@@ -3,6 +3,7 @@ import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
+import FastifyOtelInstrumentation from '@fastify/otel';
 import { createLogger } from './logger.js';
 import { createTraceProvider } from './tracing.js';
 import { createMeterProvider } from './metrics.js';
@@ -13,13 +14,11 @@ import type { MeterProvider } from '@opentelemetry/sdk-metrics';
 /**
  * Initialize the full observability stack.
  *
- * This is the main entry point for setting up logging, tracing, and
- * metrics in a MoltNet service. It:
- *
- * 1. Creates a Pino logger with structured base bindings
- * 2. Optionally sets up OpenTelemetry tracing with OTLP export
- * 3. Optionally sets up OpenTelemetry metrics with OTLP export
- * 4. Returns a shutdown function for graceful teardown
+ * Sets up:
+ * 1. Pino logger with structured base bindings
+ * 2. OpenTelemetry tracing with @fastify/otel for lifecycle-hook instrumentation
+ * 3. OpenTelemetry metrics with OTLP export
+ * 4. Graceful shutdown
  *
  * Usage:
  * ```ts
@@ -33,9 +32,17 @@ import type { MeterProvider } from '@opentelemetry/sdk-metrics';
  * });
  *
  * const app = Fastify({ loggerInstance: obs.logger });
- * // ...
- * // On shutdown:
- * await obs.shutdown();
+ *
+ * // Register @fastify/otel BEFORE routes for full lifecycle tracing
+ * if (obs.fastifyOtelPlugin) {
+ *   await app.register(obs.fastifyOtelPlugin);
+ * }
+ *
+ * // Register metrics plugin for request duration/count/active
+ * await app.register(observabilityPlugin, {
+ *   serviceName: 'moltnet-api',
+ *   shutdown: obs.shutdown,
+ * });
  * ```
  */
 export function initObservability(
@@ -53,6 +60,7 @@ export function initObservability(
 
   let tracerProvider: NodeTracerProvider | undefined;
   let meterProvider: MeterProvider | undefined;
+  let fastifyInstrumentation: FastifyOtelInstrumentation | undefined;
   let hasShutdown = false;
 
   // Initialize tracing if enabled
@@ -71,7 +79,13 @@ export function initObservability(
       tracerProvider.addSpanProcessor(new BatchSpanProcessor(exporter));
     }
 
-    trace.setGlobalTracerProvider(tracerProvider);
+    tracerProvider.register();
+
+    // Create @fastify/otel instrumentation for lifecycle-hook tracing
+    fastifyInstrumentation = new FastifyOtelInstrumentation({
+      ignorePaths: tracingConfig.ignorePaths,
+    });
+    fastifyInstrumentation.setTracerProvider(tracerProvider);
   }
 
   // Initialize metrics if enabled
@@ -134,5 +148,9 @@ export function initObservability(
     await Promise.all(shutdownPromises);
   };
 
-  return { logger, shutdown };
+  return {
+    logger,
+    shutdown,
+    fastifyOtelPlugin: fastifyInstrumentation?.plugin(),
+  };
 }

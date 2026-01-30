@@ -32,8 +32,8 @@
     "@opentelemetry/exporter-metrics-otlp-proto": "^0.57.0",
     "@opentelemetry/exporter-logs-otlp-proto": "^0.57.0",
     "@opentelemetry/instrumentation-http": "^0.57.0",
-    "@opentelemetry/instrumentation-fastify": "^0.43.0",
-    "@opentelemetry/instrumentation-pino": "^0.46.0"
+    "@opentelemetry/instrumentation-pino": "^0.46.0",
+    "@fastify/otel": "^0.16.0"
   },
   "devDependencies": {
     "typescript": "^5.3.3",

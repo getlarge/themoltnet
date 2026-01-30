@@ -1,4 +1,5 @@
 import type { Counter, Histogram, UpDownCounter } from '@opentelemetry/api';
+import type { FastifyPluginAsync } from 'fastify';
 
 export interface OtlpConfig {
   /** OTLP endpoint URL (e.g. http://localhost:4318 for collector, or direct Axiom) */
@@ -17,6 +18,12 @@ export interface LoggerConfig {
 export interface TracingConfig {
   /** Enable distributed tracing */
   enabled?: boolean;
+  /**
+   * Paths to ignore from @fastify/otel tracing.
+   * Can be a glob string (e.g. '/healthcheck') or a function
+   * receiving request options and returning true to skip.
+   */
+  ignorePaths?: string | ((opts: { url: string; method: string }) => boolean);
 }
 
 export interface MetricsConfig {
@@ -57,4 +64,15 @@ export interface ObservabilityContext {
   logger: import('pino').Logger;
   /** Gracefully shutdown all telemetry pipelines */
   shutdown: () => Promise<void>;
+  /**
+   * @fastify/otel plugin for request lifecycle tracing.
+   * Register this BEFORE defining routes:
+   *
+   * ```ts
+   * await app.register(ctx.fastifyOtelPlugin);
+   * ```
+   *
+   * Only set when tracing is enabled.
+   */
+  fastifyOtelPlugin?: FastifyPluginAsync;
 }

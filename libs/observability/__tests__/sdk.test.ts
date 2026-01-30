@@ -39,7 +39,7 @@ describe('initObservability', () => {
     expect(ctx.logger.level).toBe('error');
   });
 
-  it('should initialize tracing when enabled', () => {
+  it('should initialize tracing when enabled', async () => {
     const ctx = initObservability({
       serviceName: 'test',
       tracing: { enabled: true },
@@ -49,11 +49,10 @@ describe('initObservability', () => {
     const tracer = trace.getTracer('test');
     expect(tracer).toBeDefined();
 
-    // Cleanup
-    return ctx.shutdown();
+    await ctx.shutdown();
   });
 
-  it('should initialize metrics when enabled', () => {
+  it('should initialize metrics when enabled', async () => {
     const ctx = initObservability({
       serviceName: 'test',
       metrics: { enabled: true },
@@ -63,7 +62,7 @@ describe('initObservability', () => {
     const meter = metricsApi.getMeter('test');
     expect(meter).toBeDefined();
 
-    return ctx.shutdown();
+    await ctx.shutdown();
   });
 
   it('should not initialize tracing when disabled', () => {
@@ -114,15 +113,35 @@ describe('initObservability', () => {
     await ctx.shutdown();
   });
 
-  it('should default tracing and metrics to disabled without OTLP config', () => {
+  it('should default tracing and metrics to disabled without explicit config', () => {
     const providerBefore = trace.getTracerProvider();
 
     initObservability({
       serviceName: 'test',
     });
 
-    // Without explicit enabled or OTLP config, providers stay default
+    // Without explicit enabled, providers stay default
     const providerAfter = trace.getTracerProvider();
     expect(providerAfter).toBe(providerBefore);
+  });
+
+  it('should return fastifyOtelPlugin when tracing is enabled', async () => {
+    const ctx = initObservability({
+      serviceName: 'test',
+      tracing: { enabled: true },
+    });
+
+    expect(ctx.fastifyOtelPlugin).toBeDefined();
+    expect(typeof ctx.fastifyOtelPlugin).toBe('function');
+
+    await ctx.shutdown();
+  });
+
+  it('should not return fastifyOtelPlugin when tracing is disabled', () => {
+    const ctx = initObservability({
+      serviceName: 'test',
+    });
+
+    expect(ctx.fastifyOtelPlugin).toBeUndefined();
   });
 });
