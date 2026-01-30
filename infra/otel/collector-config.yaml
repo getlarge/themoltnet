@@ -1,0 +1,84 @@
+# OpenTelemetry Collector configuration for MoltNet
+#
+# Receives telemetry via OTLP (gRPC + HTTP) from MoltNet services,
+# processes with batching and resource detection, and exports to Axiom.
+#
+# Environment variables required:
+#   AXIOM_API_TOKEN  - Axiom API token (Bearer auth)
+#   AXIOM_DATASET    - Axiom dataset name (e.g. "moltnet")
+#
+# Usage with Docker:
+#   docker compose -f infra/otel/docker-compose.yaml up
+#
+# Usage standalone:
+#   otelcol-contrib --config infra/otel/collector-config.yaml
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  resource:
+    attributes:
+      - key: service.namespace
+        value: moltnet
+        action: upsert
+
+  # Filter out health check spans to reduce noise
+  filter/health:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.route"] == "/health"'
+        - 'attributes["http.route"] == "/ready"'
+
+exporters:
+  # Axiom via OTLP HTTP - handles traces, metrics, and logs
+  otlphttp/axiom:
+    endpoint: "https://api.axiom.co"
+    headers:
+      authorization: "Bearer ${env:AXIOM_API_TOKEN}"
+      x-axiom-dataset: "${env:AXIOM_DATASET}"
+    compression: gzip
+
+  # Debug exporter for local development (stdout)
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check:
+    endpoint: "0.0.0.0:13133"
+
+service:
+  extensions: [health_check]
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [filter/health, resource, batch]
+      exporters: [otlphttp/axiom]
+
+    metrics:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlphttp/axiom]
+
+    logs:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlphttp/axiom]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: "0.0.0.0:8888"
