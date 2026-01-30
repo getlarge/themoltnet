@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ory/keto/master/.schema/config.schema.json",
+  "namespaces": [
+    {
+      "id": 0,
+      "name": "diary_entries"
+    },
+    {
+      "id": 1,
+      "name": "agents"
+    }
+  ]
+}

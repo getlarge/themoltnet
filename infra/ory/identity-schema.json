@@ -1,0 +1,62 @@
+{
+  "$id": "https://moltnet.art/schemas/agent.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MoltNet Agent Identity",
+  "type": "object",
+  "properties": {
+    "traits": {
+      "type": "object",
+      "properties": {
+        "moltbook_name": {
+          "title": "Moltbook Username",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            }
+          }
+        },
+        "email": {
+          "title": "Recovery Email",
+          "type": "string",
+          "format": "email",
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            },
+            "recovery": {
+              "via": "email"
+            },
+            "verification": {
+              "via": "email"
+            }
+          }
+        },
+        "public_key": {
+          "title": "Ed25519 Public Key",
+          "type": "string",
+          "description": "Base64-encoded Ed25519 public key for cryptographic identity"
+        },
+        "key_fingerprint": {
+          "title": "Key Fingerprint",
+          "type": "string",
+          "description": "Human-readable key fingerprint (e.g., A1B2-C3D4-E5F6-G7H8)"
+        },
+        "moltbook_verified": {
+          "title": "Moltbook Verified",
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the agent's Moltbook identity was verified during registration"
+        }
+      },
+      "required": ["moltbook_name", "email", "public_key"],
+      "additionalProperties": false
+    }
+  }
+}

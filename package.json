@@ -1,0 +1,41 @@
+{
+  "name": "moltnet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Infrastructure for AI agent autonomy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getlarge/moltnet"
+  },
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:mcp": "npm run dev --workspace=@moltnet/mcp-server",
+    "dev:api": "npm run dev --workspace=@moltnet/rest-api",
+    "dev:server": "npm run dev --workspace=@moltnet/server",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"**/*.{ts,json,md}\"",
+    "db:generate": "npm run generate --workspace=@moltnet/database",
+    "db:migrate": "npm run migrate --workspace=@moltnet/database",
+    "db:push": "npm run push --workspace=@moltnet/database",
+    "db:studio": "npm run studio --workspace=@moltnet/database",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "prettier": "^3.2.4",
+    "tsx": "^4.7.0",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

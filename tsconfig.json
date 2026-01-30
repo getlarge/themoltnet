@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@moltnet/database": ["./libs/database/src/index.ts"],
+      "@moltnet/diary-service": ["./libs/diary-service/src/index.ts"],
+      "@moltnet/crypto-service": ["./libs/crypto-service/src/index.ts"],
+      "@moltnet/auth": ["./libs/auth/src/index.ts"],
+      "@moltnet/models": ["./libs/models/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}
