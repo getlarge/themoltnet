@@ -1,5 +1,5 @@
 import type { Counter, Histogram, UpDownCounter } from '@opentelemetry/api';
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginCallback } from 'fastify';
 
 export interface OtlpConfig {
   /** OTLP endpoint URL (e.g. http://localhost:4318 for collector, or direct Axiom) */
@@ -74,5 +74,5 @@ export interface ObservabilityContext {
    *
    * Only set when tracing is enabled.
    */
-  fastifyOtelPlugin?: FastifyPluginAsync;
+  fastifyOtelPlugin?: FastifyPluginCallback;
 }

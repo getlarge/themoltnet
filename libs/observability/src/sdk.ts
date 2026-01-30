@@ -1,9 +1,9 @@
-import { trace, metrics as metricsApi } from '@opentelemetry/api';
+import { metrics as metricsApi } from '@opentelemetry/api';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
-import FastifyOtelInstrumentation from '@fastify/otel';
+import { FastifyOtelInstrumentation } from '@fastify/otel';
 import { createLogger } from './logger.js';
 import { createTraceProvider } from './tracing.js';
 import { createMeterProvider } from './metrics.js';

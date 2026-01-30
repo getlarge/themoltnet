@@ -6,8 +6,6 @@
  */
 
 import { pgTable, uuid, text, timestamp, varchar, index, uniqueIndex, pgEnum } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
-
 // Custom vector type for pgvector (384 dimensions for e5-small-v2)
 // Drizzle doesn't have native vector support, so we use customType
 import { customType } from 'drizzle-orm/pg-core';

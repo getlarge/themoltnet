@@ -18,9 +18,18 @@ describe('createMeterProvider', () => {
 
     expect(provider).toBeDefined();
 
-    const resource = provider['_sharedState']?.resource ?? provider.resource;
-    // Resource should contain service name
-    expect(resource).toBeDefined();
+    // Create a counter to trigger metric collection with resource
+    metricsApi.setGlobalMeterProvider(provider);
+    const meter = metricsApi.getMeter('test');
+    meter.createCounter('probe').add(1);
+
+    const { resourceMetrics } = await reader.collect();
+    expect(
+      resourceMetrics.resource.attributes['service.name'],
+    ).toBe('moltnet-api');
+    expect(
+      resourceMetrics.resource.attributes['service.version'],
+    ).toBe('0.1.0');
 
     await provider.shutdown();
   });

@@ -12,8 +12,6 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
       "@moltnet/database": ["./libs/database/src/index.ts"],
@@ -24,5 +22,5 @@
       "@moltnet/observability": ["./libs/observability/src/index.ts"]
     }
   },
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "infra/ory/permissions.ts"]
 }
