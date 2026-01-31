@@ -60,11 +60,17 @@ For each open issue:
 2. Read the **Active** section. Extract task names into a set called `active`. Normalize the same way.
 
 3. For each task in the **Available** section:
-   a. Read its **Dependencies** column.
-   b. Normalize the dependency string: strip `WS\d+:\s*` prefixes, lowercase, spaces to hyphens.
-   c. If the dependency is `none` -> the task is **ready**.
-   d. If the dependency contains ` or ` (space-or-space), split on ` or `. If **any one** normalized dep is in `completed`, the task is **ready**. Otherwise check if any are in `active` -> **soon** (waiting on in-progress work). Otherwise -> **blocked**.
-   e. If the dependency contains `,`, split on `,` and trim. **All** normalized deps must be in `completed` for the task to be **ready**. If all are in either `completed` or `active` -> **soon**. Otherwise -> **blocked**.
+   a. Read its raw **Dependencies** column string.
+   b. If the raw string (trimmed, lowercased) is `none` -> the task is **ready**. Stop here.
+   c. **Split first, normalize second** — detect the delimiter on the raw string:
+      - If it contains ` or ` (space-or-space): split on ` or ` into tokens.
+      - Else if it contains `,`: split on `,` into tokens.
+      - Else: treat the whole string as a single token.
+   d. **Normalize each token individually**: trim whitespace, strip any `WS\d+:\s*` prefix, lowercase, replace spaces with hyphens.
+   e. **Evaluate**:
+      - For ` or ` dependencies (ANY required): if **any one** normalized token is in `completed` -> **ready**. Otherwise if any are in `active` -> **soon**. Otherwise -> **blocked**.
+      - For `,` dependencies (ALL required): if **every** normalized token is in `completed` -> **ready**. If every token is in `completed` or `active` -> **soon**. Otherwise -> **blocked**.
+      - For single-token dependencies: if the token is in `completed` -> **ready**. If in `active` -> **soon**. Otherwise -> **blocked**.
 
 4. Check for **file boundary overlaps**: read the Notes column of ready tasks. If two ready tasks mention the same directory (e.g., both touch `libs/diary-service/`), flag them as a potential parallel conflict.
 
