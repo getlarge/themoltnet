@@ -15,7 +15,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "demo": "vite demo",
-    "test": "vitest --passWithNoTests",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
