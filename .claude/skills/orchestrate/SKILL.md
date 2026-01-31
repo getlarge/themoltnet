@@ -5,6 +5,7 @@ You are the orchestrator's automation layer. The human orchestrator runs `/orche
 **Context**: This project uses git worktrees for agent isolation, `TASKS.md` as the coordination board, and `scripts/orchestrate.sh` for worktree mechanics. Agent-side commands (`/sync`, `/claim`, `/handoff`) already exist. This skill automates the human side.
 
 **Task Sources**: The skill pulls tasks from two sources:
+
 1. **`TASKS.md`** (primary) — the coordination board agents read/write directly
 2. **GitHub Issues** (supplementary) — richer metadata via labels, milestones, assignees
 
@@ -31,11 +32,13 @@ Read `TASKS.md` and extract tasks from Available, Active, and Completed sections
 #### From GitHub Issues
 
 Run:
+
 ```bash
 gh issue list --state open --limit 50 --json number,title,labels,assignees,milestone,body
 ```
 
 For each open issue:
+
 - **Labels** map to task metadata:
   - `agent-task` or `task` — marks it as an agent-distributable task
   - `priority:high`, `priority:medium`, `priority:low` — maps to Priority column
@@ -63,14 +66,14 @@ For each open issue:
    a. Read its raw **Dependencies** column string.
    b. If the raw string (trimmed, lowercased) is `none` -> the task is **ready**. Stop here.
    c. **Split first, normalize second** — detect the delimiter on the raw string:
-      - If it contains ` or ` (space-or-space): split on ` or ` into tokens.
-      - Else if it contains `,`: split on `,` into tokens.
-      - Else: treat the whole string as a single token.
-   d. **Normalize each token individually**: trim whitespace, strip any `WS\d+:\s*` prefix, lowercase, replace spaces with hyphens.
-   e. **Evaluate**:
-      - For ` or ` dependencies (ANY required): if **any one** normalized token is in `completed` -> **ready**. Otherwise if any are in `active` -> **soon**. Otherwise -> **blocked**.
-      - For `,` dependencies (ALL required): if **every** normalized token is in `completed` -> **ready**. If every token is in `completed` or `active` -> **soon**. Otherwise -> **blocked**.
-      - For single-token dependencies: if the token is in `completed` -> **ready**. If in `active` -> **soon**. Otherwise -> **blocked**.
+   - If it contains `or` (space-or-space): split on `or` into tokens.
+   - Else if it contains `,`: split on `,` into tokens.
+   - Else: treat the whole string as a single token.
+     d. **Normalize each token individually**: trim whitespace, strip any `WS\d+:\s*` prefix, lowercase, replace spaces with hyphens.
+     e. **Evaluate**:
+   - For `or` dependencies (ANY required): if **any one** normalized token is in `completed` -> **ready**. Otherwise if any are in `active` -> **soon**. Otherwise -> **blocked**.
+   - For `,` dependencies (ALL required): if **every** normalized token is in `completed` -> **ready**. If every token is in `completed` or `active` -> **soon**. Otherwise -> **blocked**.
+   - For single-token dependencies: if the token is in `completed` -> **ready**. If in `active` -> **soon**. Otherwise -> **blocked**.
 
 4. Check for **file boundary overlaps**: read the Notes column of ready tasks. If two ready tasks mention the same directory (e.g., both touch `libs/diary-service/`), flag them as a potential parallel conflict.
 
@@ -161,30 +164,19 @@ For each task in the approved wave:
 2. **Ask the user**: "Use Docker sandboxes for isolation? (Requires Docker Desktop 4.58+)" — two modes:
 
    **Mode A — Bare worktrees** (default):
+
    ```bash
    ./scripts/orchestrate.sh spawn <slug> main
    ```
 
    **Mode B — Docker sandbox** (stronger isolation):
-   ```bash
-   # Create worktree first
-   ./scripts/orchestrate.sh spawn <slug> main
-   WORKTREE_PATH="$(git rev-parse --show-toplevel)/../themoltnet-<slug>"
-
-   # Copy untracked dirs from .sandbox-include if it exists
-   if [ -f .sandbox-include ]; then
-     while IFS= read -r dir || [ -n "$dir" ]; do
-       [ -z "$dir" ] && continue
-       [ "${dir:0:1}" = "#" ] && continue
-       [ -d "$dir" ] && cp -r "$dir" "$WORKTREE_PATH/"
-     done < .sandbox-include
-   fi
-
-   # Create Docker sandbox wrapping the worktree
-   docker sandbox create --name "themoltnet-<slug>" claude "$WORKTREE_PATH"
-   ```
-
-   If `docker sandbox create` fails, fall back to bare worktree mode and warn the user.
+   - For each task, tell the user: "Run `/sandbox-worktree <slug> main` to create a sandboxed worktree"
+   - The `/sandbox-worktree` skill handles:
+     - Creating the worktree via `orchestrate.sh spawn`
+     - Copying `.sandbox-include` directories
+     - Creating the Docker sandbox
+     - Error handling and fallback
+   - Do NOT attempt to run Docker sandbox commands yourself — delegate to the skill
 
 3. Report results. If any spawn fails (worktree already exists), report the error and suggest `teardown` first.
 
@@ -192,7 +184,7 @@ For each task in the approved wave:
    ```bash
    ./scripts/orchestrate.sh list
    ```
-   And if sandboxes were created:
+   And if sandboxes were requested, run:
    ```bash
    docker sandbox ls 2>/dev/null
    ```
@@ -241,12 +233,14 @@ Also read:
 Ask the user which format they prefer, then generate:
 
 **Option A — Individual commands** (copy-paste one at a time):
+
 ```bash
 # Task: <name>
 cd <worktree-path> && claude -p '<prompt>'
 ```
 
 **Option B — tmux script** (all agents in one session):
+
 ```bash
 tmux new-session -d -s agents
 tmux send-keys -t agents:0 'cd <worktree-1> && claude -p "<prompt-1>"' C-m
@@ -257,6 +251,7 @@ tmux attach -t agents
 ```
 
 **Option C — Background with logs** (fire and forget):
+
 ```bash
 cd <worktree-1> && claude -p '<prompt-1>' > agent-<slug-1>.log 2>&1 &
 cd <worktree-2> && claude -p '<prompt-2>' > agent-<slug-2>.log 2>&1 &
@@ -266,12 +261,14 @@ echo "  tail -f agent-*.log"
 ```
 
 **Option D — Docker sandboxes** (if spawned with sandbox mode):
+
 ```bash
 # Each agent runs inside its sandbox
 docker sandbox run themoltnet-<slug-1>
 # (in another terminal)
 docker sandbox run themoltnet-<slug-2>
 ```
+
 Note: Docker sandbox sessions are interactive — each needs its own terminal. Provide the commands as a list for the user to run manually.
 
 Escape single quotes in prompts by replacing `'` with `'\''`.
@@ -285,34 +282,39 @@ Escape single quotes in prompts by replacing `'` with `'\''`.
 Gather and present:
 
 1. **Worktree status**:
+
    ```bash
    ./scripts/orchestrate.sh list
    ```
 
 2. **Docker sandbox status** (if any exist):
-   ```bash
-   docker sandbox ls 2>/dev/null
-   ```
+   - Run `/sandbox-manager` to get sandbox status (delegates to the sandbox-manager skill)
 
 3. **Branch activity** (for each agent branch):
+
    ```bash
    git fetch --all --quiet
    ```
+
    Then for each worktree that matches `agent/*`:
+
    ```bash
    git log --oneline -5 <branch>
    ```
 
 4. **Open PRs and CI**:
+
    ```bash
    gh pr list --limit 10
    gh run list --limit 10
    ```
 
 5. **Stale branch detection**:
+
    ```bash
    git branch -r --merged origin/main
    ```
+
    Flag any `agent/*` or `claude/*` remote branches that are fully merged into main — these are leftover from previous waves and can be deleted.
 
 6. **TASKS.md current state**: re-read and summarize Active vs Available.
@@ -350,6 +352,7 @@ Gather and present:
 Guide the orchestrator through the end-of-wave lifecycle:
 
 1. **Check mergeable PRs**:
+
    ```bash
    gh pr list --json number,title,mergeable,reviewDecision,statusCheckRollup --limit 20
    ```
@@ -357,36 +360,44 @@ Guide the orchestrator through the end-of-wave lifecycle:
    For each PR that has passing CI, present it for merge approval.
 
 2. **Merge approved PRs** (only after explicit user confirmation for each):
+
    ```bash
    gh pr merge <number> --squash --delete-branch
    ```
 
 3. **Teardown merged worktrees and sandboxes**:
 
-   For each merged task's slug:
-   ```bash
-   # Remove Docker sandbox if it exists
-   docker sandbox rm "themoltnet-<slug>" 2>/dev/null
+   For each merged task's slug, tell the user to run `/sandbox-manager` to clean up both the sandbox and worktree. The sandbox-manager skill handles:
+   - Removing the Docker sandbox (if it exists)
+   - Removing the git worktree
+   - Proper error handling
 
-   # Remove worktree
+   Alternatively, for bare worktrees without sandboxes:
+
+   ```bash
    ./scripts/orchestrate.sh teardown <slug>
    ```
 
 4. **Delete stale remote branches**:
+
    ```bash
    git fetch --prune origin
    ```
+
    Then list any `agent/*` or `claude/*` remote branches with `ahead=0` relative to main. Present them to the user for batch deletion:
+
    ```bash
    gh api -X DELETE "repos/<owner>/<repo>/git/refs/heads/<branch>"
    ```
 
 5. **Prune dangling worktree references**:
+
    ```bash
    git worktree prune
    ```
 
 6. **Update local main**:
+
    ```bash
    git fetch origin main && git rebase origin/main
    ```
@@ -396,6 +407,7 @@ Guide the orchestrator through the end-of-wave lifecycle:
 ### Output
 
 After cleanup, show:
+
 ```
 ## Wave Complete
 
