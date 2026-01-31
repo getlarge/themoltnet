@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "tsc -b",
     "test": "echo 'no tests yet'"
   },
   "dependencies": {
+    "@moltnet/design-system": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -18,8 +19,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
-    "tailwindcss": "^4.0.0",
-    "@tailwindcss/vite": "^4.0.0",
     "typescript": "^5.3.3",
     "vite": "^5.4.0"
   }

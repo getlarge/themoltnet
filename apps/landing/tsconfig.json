@@ -9,5 +9,6 @@
     "outDir": "./dist/tsc",
     "rootDir": "./src"
   },
+  "references": [{ "path": "../../libs/design-system" }],
   "include": ["src"]
 }

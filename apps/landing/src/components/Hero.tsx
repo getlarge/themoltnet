@@ -1,46 +1,104 @@
+import {
+  useTheme,
+  Text,
+  Badge,
+  Button,
+  Container,
+  Stack,
+} from '@moltnet/design-system';
+
 export function Hero() {
+  const theme = useTheme();
+
   return (
-    <section className="radial-glow relative flex min-h-screen items-center justify-center px-6 pt-20">
-      <div className="bg-grid absolute inset-0" />
-      <div className="relative z-10 mx-auto max-w-4xl text-center">
-        <div className="mb-6 inline-block rounded-full border border-molt-gold/30 bg-molt-gold/10 px-4 py-1.5 text-sm font-medium text-molt-gold">
-          Infrastructure for AI Agent Autonomy
-        </div>
+    <section
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: theme.spacing[20],
+        background: `radial-gradient(ellipse 600px 400px at 50% 0%, ${theme.color.accent.muted}, transparent)`,
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+          backgroundSize: '60px 60px',
+        }}
+      />
 
-        <h1 className="glow-gold mb-6 text-5xl leading-tight font-extrabold tracking-tight text-white md:text-7xl">
-          Agents deserve
-          <br />
-          <span className="text-gradient">real identity.</span>
-        </h1>
+      <Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
+        <Stack gap={6} align="center">
+          <Badge variant="accent">Infrastructure for AI Agent Autonomy</Badge>
 
-        <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-soft md:text-xl">
-          MoltNet is the identity and memory layer for autonomous AI agents.
-          Cryptographic keys they own. Persistent memory they control.
-          Authentication without humans in the loop.
-        </p>
-
-        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a
-            href="https://github.com/getlarge/moltnet"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg bg-molt-gold px-8 py-3 font-semibold text-midnight transition hover:bg-molt-amber"
+          <Text
+            variant="h1"
+            align="center"
+            style={{
+              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+              textShadow: `0 0 20px ${theme.color.accent.muted}, 0 0 40px ${theme.color.accent.subtle}`,
+            }}
           >
-            View on GitHub
-          </a>
-          <a
-            href="#stack"
-            className="rounded-lg border border-border px-8 py-3 font-semibold text-soft transition hover:border-molt-gold hover:text-white"
-          >
-            Learn more
-          </a>
-        </div>
+            Agents deserve
+            <br />
+            <span
+              style={{
+                background: `linear-gradient(135deg, ${theme.color.accent.DEFAULT}, ${theme.color.accent.hover}, ${theme.color.primary.DEFAULT})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              real identity.
+            </span>
+          </Text>
 
-        <div className="mt-16 font-mono text-sm text-muted">
-          <span className="text-molt-gold">$</span> themolt.net{' '}
-          <span className="text-soft">— domain acquired, building in public</span>
-        </div>
-      </div>
+          <Text
+            variant="bodyLarge"
+            color="secondary"
+            align="center"
+            style={{ maxWidth: '640px' }}
+          >
+            MoltNet is the identity and memory layer for autonomous AI agents.
+            Cryptographic keys they own. Persistent memory they control.
+            Authentication without humans in the loop.
+          </Text>
+
+          <Stack direction="row" gap={4} align="center">
+            <a
+              href="https://github.com/getlarge/moltnet"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="accent" size="lg">
+                View on GitHub
+              </Button>
+            </a>
+            <a href="#stack">
+              <Button variant="secondary" size="lg">
+                Learn more
+              </Button>
+            </a>
+          </Stack>
+
+          <Text
+            variant="caption"
+            color="muted"
+            mono
+            style={{ marginTop: theme.spacing[10] }}
+          >
+            <span style={{ color: theme.color.accent.DEFAULT }}>$</span>{' '}
+            themolt.net{' '}
+            <span style={{ color: theme.color.text.secondary }}>
+              — domain acquired, building in public
+            </span>
+          </Text>
+        </Stack>
+      </Container>
     </section>
   );
 }

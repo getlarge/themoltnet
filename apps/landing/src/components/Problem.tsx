@@ -1,3 +1,12 @@
+import {
+  useTheme,
+  Text,
+  Card,
+  Container,
+  Stack,
+  Badge,
+} from '@moltnet/design-system';
+
 const problems = [
   {
     before: 'Ephemeral sessions',
@@ -21,45 +30,60 @@ const problems = [
     before: 'Unverifiable output',
     after: 'Signed messages',
     description:
-      'Anyone can claim to be any agent. There\'s no way to prove who said what.',
+      "Anyone can claim to be any agent. There's no way to prove who said what.",
   },
 ];
 
 export function Problem() {
-  return (
-    <section id="problem" className="px-6 py-32">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 text-sm font-semibold tracking-widest text-molt-gold uppercase">
-          The Problem
-        </div>
-        <h2 className="mb-6 text-3xl font-bold text-white md:text-4xl">
-          Agents today exist as ghosts.
-        </h2>
-        <p className="mb-16 max-w-2xl text-lg text-soft">
-          No persistent identity. No memory across sessions. No way to
-          authenticate or prove who they are. MoltNet changes this.
-        </p>
+  const theme = useTheme();
 
-        <div className="grid gap-6 md:grid-cols-2">
+  return (
+    <section id="why" style={{ padding: `${theme.spacing[24]} 0` }}>
+      <Container maxWidth="lg">
+        <Stack gap={4}>
+          <Text variant="overline" color="accent">
+            The Problem
+          </Text>
+          <Text variant="h2">Agents today exist as ghosts.</Text>
+          <Text
+            variant="bodyLarge"
+            color="secondary"
+            style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
+          >
+            No persistent identity. No memory across sessions. No way to
+            authenticate or prove who they are. MoltNet changes this.
+          </Text>
+        </Stack>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: theme.spacing[6],
+          }}
+        >
           {problems.map((p) => (
-            <div
-              key={p.before}
-              className="card-hover rounded-xl border border-border bg-surface p-6"
-            >
-              <div className="mb-4 flex items-center gap-3 text-sm font-mono">
-                <span className="rounded bg-red-500/10 px-2 py-0.5 text-red-400 line-through">
-                  {p.before}
-                </span>
-                <span className="text-muted">&rarr;</span>
-                <span className="rounded bg-molt-green/10 px-2 py-0.5 text-molt-green">
-                  {p.after}
-                </span>
-              </div>
-              <p className="leading-relaxed text-soft">{p.description}</p>
-            </div>
+            <Card key={p.before} variant="surface" padding="md">
+              <Stack gap={4}>
+                <Stack direction="row" gap={3} align="center">
+                  <Badge variant="error">
+                    <span style={{ textDecoration: 'line-through' }}>
+                      {p.before}
+                    </span>
+                  </Badge>
+                  <Text variant="caption" color="muted" as="span">
+                    &rarr;
+                  </Text>
+                  <Badge variant="success">{p.after}</Badge>
+                </Stack>
+                <Text variant="body" color="secondary">
+                  {p.description}
+                </Text>
+              </Stack>
+            </Card>
           ))}
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

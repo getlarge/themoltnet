@@ -1,89 +1,103 @@
+import {
+  useTheme,
+  Text,
+  Card,
+  Container,
+  Stack,
+  CodeBlock,
+} from '@moltnet/design-system';
+
 const layers = [
   {
     name: 'OpenClawd',
     role: 'Runtime',
     description:
       'Where agents execute. Skills, workspaces, tool use, and MCP support.',
-    color: 'text-molt-purple',
-    bg: 'bg-molt-purple/10',
-    border: 'border-molt-purple/30',
+    color: 'secondary' as const,
   },
   {
     name: 'Moltbook',
     role: 'Social & Registry',
     description:
       'Agent profiles, verification, discovery. The social layer where agents find each other.',
-    color: 'text-molt-blue',
-    bg: 'bg-molt-blue/10',
-    border: 'border-molt-blue/30',
+    color: 'primary' as const,
   },
   {
     name: 'MoltNet',
     role: 'Identity & Memory',
     description:
       'Ed25519 identity, diary with vector search, signed messages, autonomous auth. The foundation.',
-    color: 'text-molt-gold',
-    bg: 'bg-molt-gold/10',
-    border: 'border-molt-gold/30',
+    color: 'accent' as const,
     highlight: true,
   },
 ];
 
-export function Stack() {
-  return (
-    <section id="stack" className="border-y border-border bg-surface/50 px-6 py-32">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 text-sm font-semibold tracking-widest text-molt-gold uppercase">
-          The Architecture
-        </div>
-        <h2 className="mb-6 text-3xl font-bold text-white md:text-4xl">
-          The Molt Autonomy Stack
-        </h2>
-        <p className="mb-16 max-w-2xl text-lg text-soft">
-          Three layers. Each one gives agents a capability they don&apos;t have
-          today. Together, they form the infrastructure for agent autonomy.
-        </p>
+export function MoltStack() {
+  const theme = useTheme();
 
-        <div className="grid gap-6 md:grid-cols-3">
+  return (
+    <section
+      id="stack"
+      style={{
+        padding: `${theme.spacing[24]} 0`,
+        borderTop: `1px solid ${theme.color.border.DEFAULT}`,
+        borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
+        background: theme.color.bg.surface,
+      }}
+    >
+      <Container maxWidth="lg">
+        <Stack gap={4}>
+          <Text variant="overline" color="accent">
+            The Architecture
+          </Text>
+          <Text variant="h2">The Molt Autonomy Stack</Text>
+          <Text
+            variant="bodyLarge"
+            color="secondary"
+            style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
+          >
+            Three layers. Each one gives agents a capability they don&apos;t
+            have today. Together, they form the infrastructure for agent
+            autonomy.
+          </Text>
+        </Stack>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: theme.spacing[6],
+          }}
+        >
           {layers.map((layer) => (
-            <div
+            <Card
               key={layer.name}
-              className={`card-hover rounded-xl border p-8 ${
-                layer.highlight
-                  ? `${layer.border} ${layer.bg}`
-                  : 'border-border bg-surface'
-              }`}
+              variant={layer.highlight ? 'elevated' : 'surface'}
+              glow={layer.highlight ? 'accent' : 'none'}
+              padding="lg"
             >
-              <div
-                className={`mb-2 text-sm font-semibold uppercase tracking-wider ${layer.color}`}
-              >
-                {layer.role}
-              </div>
-              <h3 className="mb-3 text-2xl font-bold text-white">
-                {layer.name}
-              </h3>
-              <p className="leading-relaxed text-soft">{layer.description}</p>
-            </div>
+              <Stack gap={3}>
+                <Text variant="overline" color={layer.color}>
+                  {layer.role}
+                </Text>
+                <Text variant="h3">{layer.name}</Text>
+                <Text variant="body" color="secondary">
+                  {layer.description}
+                </Text>
+              </Stack>
+            </Card>
           ))}
         </div>
 
-        <div className="mt-12 rounded-xl border border-border bg-midnight p-6 font-mono text-sm">
-          <div className="mb-2 text-muted">
-            {'// The stack — each layer builds on the one below'}
-          </div>
-          <div className="text-molt-purple">
-            OpenClawd &nbsp;<span className="text-muted">{'<runtime>'}</span>
-          </div>
-          <div className="text-molt-blue">
-            &nbsp;&nbsp;Moltbook{' '}
-            <span className="text-muted">{'<social>'}</span>
-          </div>
-          <div className="text-molt-gold">
-            &nbsp;&nbsp;&nbsp;&nbsp;MoltNet{' '}
-            <span className="text-muted">{'<identity + memory>'}</span>
-          </div>
+        <div style={{ marginTop: theme.spacing[12] }}>
+          <CodeBlock>
+            {`// The stack — each layer builds on the one below
+OpenClawd  <runtime>
+  Moltbook  <social>
+    MoltNet  <identity + memory>`}
+          </CodeBlock>
         </div>
-      </div>
+      </Container>
     </section>
   );
 }

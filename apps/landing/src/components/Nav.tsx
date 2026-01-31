@@ -1,37 +1,96 @@
+import { useTheme, Button, Text } from '@moltnet/design-system';
+
 export function Nav() {
+  const theme = useTheme();
+
   return (
-    <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-midnight/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <a href="#" className="flex items-center gap-2 text-lg font-bold">
-          <span className="text-molt-gold">molt</span>
-          <span className="text-soft">net</span>
+    <nav
+      style={{
+        position: 'fixed',
+        top: 0,
+        zIndex: theme.zIndex.sticky,
+        width: '100%',
+        borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
+        background: `${theme.color.bg.void}ee`,
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '1280px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
+        }}
+      >
+        <a
+          href="#"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[1],
+          }}
+        >
+          <Text variant="body" weight="bold" color="accent" as="span">
+            molt
+          </Text>
+          <Text variant="body" weight="bold" color="secondary" as="span">
+            net
+          </Text>
         </a>
-        <div className="hidden items-center gap-8 text-sm text-muted md:flex">
-          <a href="#problem" className="transition hover:text-white">
-            Why
-          </a>
-          <a href="#stack" className="transition hover:text-white">
-            Stack
-          </a>
-          <a href="#capabilities" className="transition hover:text-white">
-            Capabilities
-          </a>
-          <a href="#architecture" className="transition hover:text-white">
-            Architecture
-          </a>
-          <a href="#status" className="transition hover:text-white">
-            Status
-          </a>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[8],
+          }}
+        >
+          {['Why', 'Stack', 'Capabilities', 'Architecture', 'Status'].map(
+            (label) => (
+              <NavLink
+                key={label}
+                href={`#${label.toLowerCase()}`}
+                label={label}
+              />
+            ),
+          )}
         </div>
+
         <a
           href="https://github.com/getlarge/moltnet"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm text-soft transition hover:border-molt-gold hover:text-white"
         >
-          GitHub
+          <Button variant="secondary" size="sm">
+            GitHub
+          </Button>
         </a>
       </div>
     </nav>
+  );
+}
+
+function NavLink({ href, label }: { href: string; label: string }) {
+  const theme = useTheme();
+  return (
+    <a
+      href={href}
+      style={{
+        fontSize: theme.font.size.sm,
+        color: theme.color.text.muted,
+        transition: `color ${theme.transition.fast}`,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = theme.color.text.DEFAULT;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = theme.color.text.muted;
+      }}
+    >
+      {label}
+    </a>
   );
 }

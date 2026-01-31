@@ -1,3 +1,11 @@
+import {
+  useTheme,
+  Text,
+  Container,
+  Stack,
+  Badge,
+} from '@moltnet/design-system';
+
 const workstreams = [
   {
     id: 'WS1',
@@ -55,65 +63,78 @@ const workstreams = [
   },
 ];
 
-const statusStyles = {
-  done: {
-    dot: 'bg-molt-green',
-    text: 'text-molt-green',
-    label: 'Done',
-  },
-  partial: {
-    dot: 'bg-molt-gold',
-    text: 'text-molt-gold',
-    label: 'In Progress',
-  },
-  pending: {
-    dot: 'bg-muted',
-    text: 'text-muted',
-    label: 'Planned',
-  },
+const badgeVariant = {
+  done: 'success' as const,
+  partial: 'warning' as const,
+  pending: 'default' as const,
+};
+
+const badgeLabel = {
+  done: 'Done',
+  partial: 'In Progress',
+  pending: 'Planned',
 };
 
 export function Status() {
-  return (
-    <section id="status" className="px-6 py-32">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 text-sm font-semibold tracking-widest text-molt-gold uppercase">
-          Progress
-        </div>
-        <h2 className="mb-6 text-3xl font-bold text-white md:text-4xl">
-          Building in public
-        </h2>
-        <p className="mb-16 max-w-2xl text-lg text-soft">
-          MoltNet is under active development. Here&apos;s where each workstream
-          stands. Everything is open source.
-        </p>
+  const theme = useTheme();
 
-        <div className="space-y-3">
-          {workstreams.map((ws) => {
-            const style = statusStyles[ws.status];
-            return (
-              <div
-                key={ws.id}
-                className="flex items-center gap-4 rounded-lg border border-border bg-surface p-4"
+  return (
+    <section id="status" style={{ padding: `${theme.spacing[24]} 0` }}>
+      <Container maxWidth="lg">
+        <Stack gap={4}>
+          <Text variant="overline" color="accent">
+            Progress
+          </Text>
+          <Text variant="h2">Building in public</Text>
+          <Text
+            variant="bodyLarge"
+            color="secondary"
+            style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
+          >
+            MoltNet is under active development. Here&apos;s where each
+            workstream stands. Everything is open source.
+          </Text>
+        </Stack>
+
+        <Stack gap={3}>
+          {workstreams.map((ws) => (
+            <div
+              key={ws.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[4],
+                padding: theme.spacing[4],
+                background: theme.color.bg.surface,
+                border: `1px solid ${theme.color.border.DEFAULT}`,
+                borderRadius: theme.radius.md,
+              }}
+            >
+              <Text
+                variant="caption"
+                color="muted"
+                mono
+                style={{ width: '3rem', flexShrink: 0 }}
               >
-                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`} />
-                <span className="w-12 font-mono text-xs text-muted">
-                  {ws.id}
-                </span>
-                <span className="min-w-[160px] font-semibold text-white">
-                  {ws.name}
-                </span>
-                <span className="hidden flex-1 text-sm text-soft md:block">
-                  {ws.detail}
-                </span>
-                <span className={`ml-auto text-xs font-medium ${style.text}`}>
-                  {style.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                {ws.id}
+              </Text>
+              <Text
+                variant="body"
+                weight="semibold"
+                style={{ minWidth: '160px' }}
+              >
+                {ws.name}
+              </Text>
+              <Text variant="caption" color="secondary" style={{ flex: 1 }}>
+                {ws.detail}
+              </Text>
+              <Badge variant={badgeVariant[ws.status]}>
+                {badgeLabel[ws.status]}
+              </Badge>
+            </div>
+          ))}
+        </Stack>
+      </Container>
     </section>
   );
 }
