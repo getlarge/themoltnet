@@ -18,7 +18,7 @@ export {
   updateDiaryEntry,
   verifyAgentSignature,
   verifyCryptoSignature,
-} from './sdk.gen.js';
+} from './sdk.gen';
 export type {
   AgentProfile,
   ClientOptions,
@@ -112,4 +112,4 @@ export type {
   VerifyResult,
   Visibility,
   Whoami,
-} from './types.gen.js';
+} from './types.gen';
