@@ -194,29 +194,48 @@ For each task in the approved wave:
 
    to confirm everything is ready.
 
-5. **CRITICAL - Auth Fix for Docker Sandboxes**: If Mode B was used, immediately fix Claude CLI credential persistence for all sandboxes:
+5. **CRITICAL - Auth Fix for Docker Sandboxes**: If Mode B was used, tell the user they must fix credential persistence BEFORE launching agents:
+
+   **Correct workflow:**
+
+   a. Launch ONE sandbox: `docker sandbox run themoltnet-<any-name>`
+   b. Inside that sandbox: `claude login` (authenticate once)
+   c. Exit the sandbox
+   d. Run this batch fix for ALL sandboxes:
 
    ```bash
-   docker sandbox ls --format '{{.Name}}' | while read SANDBOX_NAME; do
+   docker sandbox ls | tail -n +2 | awk '{print $1}' | while read SANDBOX_NAME; do
      echo "Fixing credentials for: $SANDBOX_NAME"
      docker sandbox exec $SANDBOX_NAME bash -c '
-       sudo chown -R agent:agent /mnt/claude-data 2>/dev/null
+       # CRITICAL: Remove apiKeyHelper that overrides OAuth tokens
+       if [ -f /home/agent/.claude/settings.json ]; then
+         cat /home/agent/.claude/settings.json | jq "del(.apiKeyHelper)" > /tmp/settings.json && \
+           mv /tmp/settings.json /home/agent/.claude/settings.json
+         echo "✓ Removed apiKeyHelper from settings"
+       fi
+
+       # Persist credentials to persistent volume
+       sudo mkdir -p /mnt/claude-data
+       sudo chown -R agent:agent /mnt/claude-data
+
        if [ -f /home/agent/.claude/.credentials.json ]; then
          cp /home/agent/.claude/.credentials.json /mnt/claude-data/
          cp /home/agent/.claude.json /mnt/claude-data/ 2>/dev/null || true
          rm /home/agent/.claude/.credentials.json
          rm /home/agent/.claude.json 2>/dev/null || true
-         ln -sf /mnt/claude-data/.credentials.json /home/agent/.claude/.credentials.json
-         ln -sf /mnt/claude-data/.claude.json /home/agent/.claude.json 2>/dev/null || true
-         echo "✓ Credentials persisted"
+         ln -s /mnt/claude-data/.credentials.json /home/agent/.claude/.credentials.json
+         ln -s /mnt/claude-data/.claude.json /home/agent/.claude.json 2>/dev/null || true
+         echo "✓ Credentials persisted to volume"
        else
-         echo "⚠ No credentials - will need to authenticate first"
+         echo "⚠ No credentials found"
        fi
-     ' 2>/dev/null || echo "Sandbox not running yet - fix will be needed after first login"
+     ' 2>/dev/null || echo "  → Sandbox stopped or error"
    done
    ```
 
-   This ensures credentials persist across sandbox restarts. Without this, agents lose authentication every time a sandbox restarts.
+   e. Now all sandboxes are authenticated and will stay authenticated across restarts
+
+   **Why this order?** Credentials must exist BEFORE they can be persisted. One `claude login` creates the credential file, then the batch script copies it to all sandboxes' persistent Docker volumes.
 
 ---
 
