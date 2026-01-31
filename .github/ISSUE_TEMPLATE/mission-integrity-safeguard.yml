@@ -1,7 +1,7 @@
 name: Mission Integrity Safeguard
 description: Track implementation of a safeguard from MISSION_INTEGRITY.md
-title: "[WS10] "
-labels: ["mission-integrity", "safeguard"]
+title: '[WS10] '
+labels: ['mission-integrity', 'safeguard']
 body:
   - type: dropdown
     id: safeguard-id
@@ -9,17 +9,17 @@ body:
       label: Safeguard
       description: Which safeguard from MISSION_INTEGRITY.md does this track?
       options:
-        - "T1: Cryptographic Anchoring (extend)"
-        - "T2: Design for Exit (migration scripts)"
-        - "T3: Signature Chains for Diary Entries"
-        - "T4: Offline-First Verification CLI"
-        - "T5: Key Rotation with Continuity"
-        - "T6: Content-Addressable Diary Entry IDs"
-        - "T7: Dependency Hardening"
-        - "T8: Multi-Registrar Identity Anchoring"
-        - "T9: Agent Directory Transparency Log"
-        - "T10: Proof-of-Work for Registration"
-        - "Other (describe below)"
+        - 'T1: Cryptographic Anchoring (extend)'
+        - 'T2: Design for Exit (migration scripts)'
+        - 'T3: Signature Chains for Diary Entries'
+        - 'T4: Offline-First Verification CLI'
+        - 'T5: Key Rotation with Continuity'
+        - 'T6: Content-Addressable Diary Entry IDs'
+        - 'T7: Dependency Hardening'
+        - 'T8: Multi-Registrar Identity Anchoring'
+        - 'T9: Agent Directory Transparency Log'
+        - 'T10: Proof-of-Work for Registration'
+        - 'Other (describe below)'
     validations:
       required: true
 
@@ -28,9 +28,9 @@ body:
     attributes:
       label: Priority
       options:
-        - "High (Phase 1)"
-        - "Medium (Phase 2)"
-        - "Low (Phase 3)"
+        - 'High (Phase 1)'
+        - 'Medium (Phase 2)'
+        - 'Low (Phase 3)'
     validations:
       required: true
 
@@ -39,7 +39,7 @@ body:
     attributes:
       label: Threat mitigated
       description: What threat from the threat model does this safeguard address?
-      placeholder: "e.g., Memory tampering — an attacker with database access modifies diary entries"
+      placeholder: 'e.g., Memory tampering — an attacker with database access modifies diary entries'
     validations:
       required: true
 

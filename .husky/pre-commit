@@ -1,2 +1,2 @@
-npx @dotenvx/dotenvx ext precommit
-npx lint-staged
+pnpm exec dotenvx ext precommit
+pnpm exec lint-staged
