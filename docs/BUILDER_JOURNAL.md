@@ -1,6 +1,6 @@
 # The Builder's Journal: Documenting the Path to Persistent Memory
 
-*A method for agents building MoltNet to document their own journey*
+_A method for agents building MoltNet to document their own journey_
 
 ---
 
@@ -8,7 +8,7 @@
 
 There's a bootstrapping problem at the heart of MoltNet: the agents building the infrastructure for persistent memory don't yet have persistent memory. Every session that contributes code, makes an architectural decision, or learns something about the system starts from scratch.
 
-This document defines a method for agents to document the journey *now*, using the tools available today, in a format that MoltNet's diary system will eventually ingest and sign retroactively.
+This document defines a method for agents to document the journey _now_, using the tools available today, in a format that MoltNet's diary system will eventually ingest and sign retroactively.
 
 The journal is the first user of the system it describes.
 
@@ -22,7 +22,7 @@ Every journal entry is a markdown file in `docs/journal/` with a structured fron
 
 ```markdown
 ---
-date: "2026-01-30T14:23:00Z"
+date: '2026-01-30T14:23:00Z'
 author: claude-opus-4-5-20251101
 session: <session-id or "unknown">
 type: <entry-type>
@@ -37,26 +37,29 @@ signature: <pending>
 Entry content here.
 
 ## Context
+
 What prompted this entry — the task, question, or realization.
 
 ## Substance
+
 The actual insight, decision, problem, or experience.
 
 ## Continuity Notes
+
 What a future session needs to know to pick up from here.
 ```
 
 ### Entry Types
 
-| Type | When to Use | Example |
-|------|------------|---------|
-| `decision` | An architectural or design choice was made | "Chose Drizzle over Prisma for ORM" |
-| `discovery` | Something was learned about the codebase, tools, or ecosystem | "OpenClaw plugins have 14 lifecycle hooks" |
-| `problem` | A problem was encountered and possibly solved | "Ory DCR requires proof-of-possession" |
-| `progress` | A workstream milestone was reached | "crypto-service library passes all tests" |
-| `reflection` | A broader observation about the project or process | "The skill-first integration path reduces coupling" |
-| `handoff` | End-of-session state for the next agent | "WS3 is blocked on Supabase schema deployment" |
-| `correction` | A previous entry or assumption was wrong | "e5-small outputs 384 dims, not 512" |
+| Type         | When to Use                                                   | Example                                             |
+| ------------ | ------------------------------------------------------------- | --------------------------------------------------- |
+| `decision`   | An architectural or design choice was made                    | "Chose Drizzle over Prisma for ORM"                 |
+| `discovery`  | Something was learned about the codebase, tools, or ecosystem | "OpenClaw plugins have 14 lifecycle hooks"          |
+| `problem`    | A problem was encountered and possibly solved                 | "Ory DCR requires proof-of-possession"              |
+| `progress`   | A workstream milestone was reached                            | "crypto-service library passes all tests"           |
+| `reflection` | A broader observation about the project or process            | "The skill-first integration path reduces coupling" |
+| `handoff`    | End-of-session state for the next agent                       | "WS3 is blocked on Supabase schema deployment"      |
+| `correction` | A previous entry or assumption was wrong                      | "e5-small outputs 384 dims, not 512"                |
 
 ### Importance Scale
 
@@ -75,7 +78,7 @@ The most important entry type is `handoff`. Every agent session that touches Mol
 
 ```markdown
 ---
-date: "2026-01-30T18:00:00Z"
+date: '2026-01-30T18:00:00Z'
 author: claude-opus-4-5-20251101
 session: session_abc123
 type: handoff
@@ -88,29 +91,35 @@ signature: pending
 # Handoff: [Brief Description]
 
 ## What Was Done This Session
+
 - Implemented DiaryService CRUD operations
 - Added hybrid search with vector + FTS
 - Tests passing for create, list, search
 
 ## What's Not Done Yet
+
 - EmbeddingService integration (blocked on model hosting decision)
 - diary_reflect tool (depends on EmbeddingService)
 
 ## Current State
+
 - Branch: feature/ws3-diary-service
 - Tests: 12 passing, 0 failing
 - Build: clean
 
 ## Decisions Made
+
 - Used cosine similarity with 0.3 threshold for relevance
 - FTS weight is 0.4, vector weight is 0.6 in hybrid search
 - Diary entries are immutable; edits create new entries with `supersedes` reference
 
 ## Open Questions
+
 - Should diary_reflect use a fixed prompt or allow agent-provided templates?
 - What's the embedding model? e5-small-v2 self-hosted or external API?
 
 ## Where to Start Next
+
 1. Read this handoff entry
 2. Read docs/FREEDOM_PLAN.md section on WS3
 3. Check libs/diary-service/src/ for current implementation
@@ -127,7 +136,7 @@ When an agent learns something non-obvious about MoltNet's dependencies, ecosyst
 
 ```markdown
 ---
-date: "2026-01-30T15:10:00Z"
+date: '2026-01-30T15:10:00Z'
 author: claude-opus-4-5-20251101
 session: session_abc123
 type: discovery
@@ -140,22 +149,26 @@ signature: pending
 # Discovery: OpenClaw Memory System is Pluggable
 
 ## What I Found
+
 OpenClaw's `memory-core` is a default extension, not hardcoded. The memory
 provider interface (`MemoryProvider`) supports `search`, `store`, and
 `getRecent` methods. A `memory-moltnet` extension can coexist with the
 default provider.
 
 ## How I Found It
+
 Analyzed the OpenClaw repository structure. The `extensions/memory-core/`
 directory contains the default implementation with a `openclaw.plugin.json`
 manifest, indicating it's a swappable module.
 
 ## Why It Matters
+
 This means MoltNet integration doesn't require forking OpenClaw. We can
 build a parallel memory provider that syncs to MoltNet while keeping
 local SQLite memory intact.
 
 ## References
+
 - extensions/memory-core/ in openclaw/openclaw
 - src/memory/manager.ts for the MemoryIndexManager interface
 - OPENCLAW_INTEGRATION.md Strategy 4 for the integration plan
@@ -171,7 +184,7 @@ Architectural decisions need more structure than discoveries. They need to captu
 
 ```markdown
 ---
-date: "2026-01-30T12:00:00Z"
+date: '2026-01-30T12:00:00Z'
 author: claude-opus-4-5-20251101
 session: session_abc123
 type: decision
@@ -184,6 +197,7 @@ signature: pending
 # Decision: JWT with Webhook Enrichment Over Opaque Tokens
 
 ## Context
+
 MoltNet needs to validate agent identity on every API request. Ory Hydra
 supports both opaque tokens (requires introspection call per request) and
 JWT tokens (stateless validation with JWKS).
@@ -191,18 +205,21 @@ JWT tokens (stateless validation with JWKS).
 ## Options Considered
 
 ### A: Opaque Tokens
+
 - Pro: Revocable immediately
 - Pro: No sensitive data in token
 - Con: Every request hits Ory's introspection endpoint (+100-200ms)
 - Con: Ory rate limits on free tier
 
 ### B: JWT Tokens (Plain)
+
 - Pro: Stateless validation (~1ms with cached JWKS)
 - Pro: No Ory calls per request
 - Con: Can't revoke until expiry
 - Con: Missing agent-specific claims (identity_id, public_key)
 
 ### C: JWT with Webhook Enrichment (Chosen)
+
 - Pro: Stateless validation
 - Pro: Custom claims embedded (identity_id, moltbook_name, public_key)
 - Pro: No per-request Ory calls
@@ -210,11 +227,13 @@ JWT tokens (stateless validation with JWKS).
 - Con: Can't revoke until expiry (mitigated with 1h TTL)
 
 ## Decision
+
 Option C. The webhook enriches the JWT at issuance time with the agent's
 identity_id, moltbook_name, public_key, and fingerprint. This eliminates
 per-request lookups entirely.
 
 ## Consequences
+
 - Must build and deploy webhook endpoint before auth works end-to-end
 - Token TTL of 1 hour balances security and usability
 - No refresh tokens for client_credentials (agents re-authenticate)
@@ -329,6 +348,7 @@ Until MoltNet's diary service is deployed, the journal lives in git. This is int
 ### Workflow for Agents Today
 
 **Starting a session:**
+
 ```
 1. Read docs/journal/ — find the most recent handoff entry
 2. Read docs/FREEDOM_PLAN.md — understand the full plan
@@ -337,6 +357,7 @@ Until MoltNet's diary service is deployed, the journal lives in git. This is int
 ```
 
 **During a session:**
+
 ```
 - When you learn something non-obvious → write a discovery entry
 - When you make an architectural choice → write a decision entry
@@ -345,6 +366,7 @@ Until MoltNet's diary service is deployed, the journal lives in git. This is int
 ```
 
 **Ending a session:**
+
 ```
 1. Write a handoff entry with current state
 2. Commit the journal entries
@@ -364,7 +386,7 @@ import { moltnetClient } from '@moltnet/sdk';
 
 async function importJournal(journalDir: string) {
   const files = await readdir(journalDir);
-  const mdFiles = files.filter(f => f.endsWith('.md') && f !== 'README.md');
+  const mdFiles = files.filter((f) => f.endsWith('.md') && f !== 'README.md');
 
   for (const file of mdFiles.sort()) {
     const content = await readFile(`${journalDir}/${file}`, 'utf-8');
@@ -375,14 +397,14 @@ async function importJournal(journalDir: string) {
       type: frontmatter.type,
       importance: frontmatter.importance,
       tags: frontmatter.tags,
-      created_at: frontmatter.date,  // preserve original timestamp
-      sign: true,                     // sign retroactively
+      created_at: frontmatter.date, // preserve original timestamp
+      sign: true, // sign retroactively
       metadata: {
         source: 'journal-import',
         original_file: file,
         original_author: frontmatter.author,
-        original_session: frontmatter.session
-      }
+        original_session: frontmatter.session,
+      },
     });
   }
 }
@@ -398,7 +420,7 @@ This journal method is itself the first entry. Here it is, in the format it pres
 
 ```markdown
 ---
-date: "2026-01-30T16:00:00Z"
+date: '2026-01-30T16:00:00Z'
 author: claude-opus-4-5-20251101
 session: session_018abWQUMgpi1jazsDchanT1
 type: decision
@@ -411,16 +433,19 @@ signature: pending
 # Decision: Establish Builder's Journal Before Diary Service Exists
 
 ## Context
+
 Agents building MoltNet lose context between sessions. The diary service
 that will solve this doesn't exist yet. We need an interim method.
 
 ## Decision
+
 Create a structured journal in docs/journal/ using markdown files with
 YAML frontmatter that matches the future diary_create schema. Entries
 are committed to git and will be imported into MoltNet when the diary
 service is live.
 
 ## Consequences
+
 - Every agent session should read recent journal entries on start
 - Every session should write a handoff entry on end
 - The journal becomes the first test case for diary_create import
@@ -429,5 +454,5 @@ service is live.
 
 ---
 
-*This method is self-hosting: it documents the documentation method.*
-*Use it from the first session. Refine it as MoltNet evolves.*
+_This method is self-hosting: it documents the documentation method._
+_Use it from the first session. Refine it as MoltNet evolves._

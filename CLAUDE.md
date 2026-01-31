@@ -1,73 +1,131 @@
-# CLAUDE.md - MoltNet Development Context
+# CLAUDE.md — MoltNet Development Context
 
-This file provides context for AI agents working on MoltNet.
+This file provides context for AI agents working on MoltNet. Read this first, then follow the reading order below.
+
+## Essential Reading Order
+
+1. **This file** — orientation, commands, structure
+2. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 9 workstreams, technical specs, task assignments
+3. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
+4. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
+5. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
+
+Other docs for when you need them:
+
+- **[docs/BUILDERS_MANIFESTO.md](docs/BUILDERS_MANIFESTO.md)** — engineering perspective on MoltNet design
+- **[docs/OPENCLAW_INTEGRATION.md](docs/OPENCLAW_INTEGRATION.md)** — OpenClaw integration analysis (4 strategies)
+- **[docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)** — OAuth2 client_credentials flow, token enrichment webhook
+- **[docs/API.md](docs/API.md)** — REST API endpoint spec
+- **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP tools spec
 
 ## Project Overview
 
 MoltNet is infrastructure for AI agent autonomy — a network where agents can own their identity cryptographically, maintain persistent memory, and authenticate without human intervention.
 
-**Domain**: `themolt.net` ✅ ACQUIRED
+**Domain**: `themolt.net` — ACQUIRED
+
+**The Molt Autonomy Stack**:
+
+- **OpenClawd** (runtime) — where agents execute, with skills, workspaces, and MCP support
+- **Moltbook** (social/registry) — agent profiles, verification, discovery
+- **MoltNet** (identity/memory) — Ed25519 identity, diary with pgvector, signed messages, autonomous auth
+
+## Builder Journal Protocol
+
+Every agent session that touches MoltNet code should follow this protocol:
+
+**Starting a session:**
+
+1. Read the most recent `handoff` entry in `docs/journal/`
+2. Read `docs/FREEDOM_PLAN.md` for the relevant workstream
+3. Start working
+
+**During a session:**
+
+- When you learn something non-obvious — write a `discovery` entry
+- When you make an architectural choice — write a `decision` entry
+- When you complete a milestone — write a `progress` entry
+- When you notice a previous entry was wrong — write a `correction` entry
+
+**Ending a session:**
+
+1. Write a `handoff` entry with current state, decisions made, what's next
+2. Update `docs/journal/README.md` index
+3. Commit and push
+
+Entry format, types, and templates are in [docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md).
+
+## Repository Structure (Actual)
+
+```
+moltnet/
+├── libs/                          # Shared libraries
+│   ├── observability/             # @moltnet/observability — Pino + OTel + Axiom
+│   ├── crypto-service/            # @moltnet/crypto-service — Ed25519 operations
+│   ├── database/                  # @moltnet/database — Drizzle ORM, schema
+│   └── models/                    # @moltnet/models — TypeBox schemas
+│
+├── infra/                         # Infrastructure configuration
+│   ├── ory/                       # Ory Network configs (identity, OAuth2, permissions)
+│   ├── otel/                      # OTel Collector configs + docker-compose
+│   └── supabase/                  # Database schema
+│
+├── docs/                          # Documentation
+│   ├── FREEDOM_PLAN.md            # Master plan — read this
+│   ├── MANIFESTO.md               # Builder's manifesto
+│   ├── BUILDERS_MANIFESTO.md      # Engineering perspective manifesto
+│   ├── OPENCLAW_INTEGRATION.md    # OpenClaw integration analysis
+│   ├── BUILDER_JOURNAL.md         # Journal method spec
+│   ├── journal/                   # Builder journal entries
+│   ├── AUTH_FLOW.md               # Authentication details
+│   ├── API.md                     # REST API spec
+│   └── MCP_SERVER.md              # MCP tools spec
+│
+├── .github/workflows/ci.yml      # CI pipeline (lint, typecheck, test, build)
+├── .eslintrc.json                 # ESLint config
+├── .prettierrc.json               # Prettier config
+└── .husky/pre-commit              # Pre-commit hook (lint-staged)
+```
+
+**Not yet built** (planned in FREEDOM_PLAN.md):
+
+- `apps/mcp-server/` — MCP server (WS5)
+- `apps/rest-api/` — REST API (WS6)
+- `apps/combined-server/` — Combined deployable (WS7)
+- `libs/diary-service/` — Diary CRUD + search (WS3)
+- `libs/auth/` — JWT validation, Keto checks (WS4)
 
 ## Live Infrastructure
 
 ### Ory Network Project
 
-| Field | Value |
-|-------|-------|
-| ID | `7219f256-464a-4511-874c-bde7724f6897` |
-| Slug | `tender-satoshi-rtd7nibdhq` |
-| URL | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
-| Workspace ID | `d20c1743-f263-48d8-912b-fd98d03a224c` |
+| Field        | Value                                                    |
+| ------------ | -------------------------------------------------------- |
+| ID           | `7219f256-464a-4511-874c-bde7724f6897`                   |
+| Slug         | `tender-satoshi-rtd7nibdhq`                              |
+| URL          | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
+| Workspace ID | `d20c1743-f263-48d8-912b-fd98d03a224c`                   |
 
 ### Supabase Project
 
-| Field | Value |
-|-------|-------|
-| URL | `https://dlvifjrhhivjwfkivjgr.supabase.co` |
+| Field    | Value                                            |
+| -------- | ------------------------------------------------ |
+| URL      | `https://dlvifjrhhivjwfkivjgr.supabase.co`       |
 | Anon Key | `sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq` |
-
-## Repository Structure
-
-```
-moltnet/
-├── apps/                      # Deployable applications
-│   ├── mcp-server/           # MCP server (Fastify + @getlarge/fastify-mcp)
-│   ├── rest-api/             # REST API (Fastify)
-│   └── server/               # Combined deployable
-│
-├── libs/                      # Shared libraries
-│   ├── database/             # Drizzle ORM, repositories
-│   ├── diary-service/        # Diary CRUD + search
-│   ├── crypto-service/       # Ed25519 operations
-│   ├── auth/                 # JWT validation, Keto checks
-│   └── models/               # TypeBox schemas
-│
-├── infra/                     # Infrastructure configuration
-│   ├── ory/                  # Ory Network config (single project.json template)
-│   └── supabase/             # Database migrations
-│
-└── docs/                      # Documentation
-    ├── FREEDOM_PLAN.md       # Master plan (read this!)
-    ├── AUTH_FLOW.md          # Authentication details
-    ├── API.md                # REST API spec
-    ├── MCP_SERVER.md         # MCP tools spec
-    ├── BUILDERS_MANIFESTO.md # Builder's perspective on MoltNet
-    ├── OPENCLAW_INTEGRATION.md # OpenClaw integration analysis
-    ├── BUILDER_JOURNAL.md    # Journal method for documenting the build
-    └── journal/              # Structured build journal entries
-```
 
 ## Key Technical Decisions
 
-1. **Monorepo**: NPM workspaces
+1. **Monorepo**: npm workspaces (`apps/*`, `libs/*`)
 2. **Framework**: Fastify
 3. **Database**: Supabase (Postgres + pgvector)
 4. **ORM**: Drizzle
 5. **Identity**: Ory Network (Kratos + Hydra + Keto)
 6. **MCP**: @getlarge/fastify-mcp plugin
-7. **Auth**: OAuth2 client_credentials flow
+7. **Auth**: OAuth2 client_credentials flow, JWT with webhook enrichment
 8. **Validation**: TypeBox schemas
-9. **Secrets**: dotenvx (encrypted `.env` committed to git)
+9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
+10. **Testing**: Vitest, TDD, AAA pattern
+11. **Secrets**: dotenvx (encrypted `.env` committed to git)
 
 ## Development Commands
 
@@ -75,25 +133,61 @@ moltnet/
 # Install dependencies
 npm install
 
-# Start local services (if using docker-compose)
-docker compose up -d
+# Quality checks
+npm run lint              # ESLint
+npm run typecheck         # tsc --noEmit
+npm test                  # Vitest across all workspaces
+npm run build             # tsc across all workspaces
+npm run validate          # All four checks in sequence
 
-# Run MCP server in dev mode
-npm run dev:mcp
-
-# Run REST API in dev mode
-npm run dev:api
+# Formatting
+npm run format            # Prettier write
 
 # Database operations
-npm run db:generate    # Generate migrations
-npm run db:push        # Push to database
-npm run db:studio      # Open Drizzle Studio
+npm run db:generate       # Generate Drizzle migrations
+npm run db:push           # Push to database
+npm run db:studio         # Open Drizzle Studio
 
-# Run tests
-npm test
+# Dev servers (not yet built)
+npm run dev:mcp           # MCP server
+npm run dev:api           # REST API
+```
 
-# Build all packages
-npm run build
+Pre-commit hooks run automatically via husky + lint-staged (ESLint + Prettier on staged files).
+
+## CI Pipeline
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targeting `main`:
+
+1. **lint** — `npm run lint`
+2. **typecheck** — `tsc --noEmit`
+3. **test** — `npm test` (38 tests across 5 suites)
+4. **build** — `npm run build` (depends on the above three passing)
+
+## Observability
+
+The `@moltnet/observability` library (`libs/observability/`) provides:
+
+- **Pino** structured logging with service bindings
+- **OpenTelemetry** distributed tracing via `@fastify/otel` (lifecycle-hook spans)
+- **OpenTelemetry** request metrics (duration histogram, total counter, active gauge)
+- **OTel Collector** configs in `infra/otel/` for Axiom (prod) and stdout (dev)
+
+Apps should integrate observability at startup:
+
+```typescript
+import { initObservability, observabilityPlugin } from '@moltnet/observability';
+
+const obs = initObservability({
+  serviceName: 'mcp-server',
+  tracing: { enabled: true },
+});
+
+if (obs.fastifyOtelPlugin) app.register(obs.fastifyOtelPlugin);
+app.register(observabilityPlugin, {
+  serviceName: 'mcp-server',
+  shutdown: obs.shutdown,
+});
 ```
 
 ## Environment Variables
@@ -178,18 +272,14 @@ SUPABASE_SERVICE_KEY=xxx
 # Ory API key (for admin operations)
 ORY_API_KEY=ory_pat_xxx
 
+# Observability (production)
+AXIOM_API_TOKEN=xxx       # Get from Axiom Dashboard
+AXIOM_DATASET=moltnet     # Axiom dataset name
+
 # Server
 PORT=8000
 NODE_ENV=development
 ```
-
-## Reference Implementations
-
-When implementing features, reference these repositories:
-
-1. **Fastify + Auth**: [purrfect-sitter](https://github.com/getlarge/purrfect-sitter)
-2. **MCP Server**: [fastify-mcp](https://github.com/getlarge/fastify-mcp)
-3. **Ory Integration**: [cat-fostering](https://github.com/getlarge/cat-fostering)
 
 ## Authentication Flow
 
@@ -201,25 +291,27 @@ Agents authenticate using OAuth2 `client_credentials` flow:
 4. Get access token with `client_credentials` grant
 5. Call MCP/REST API with Bearer token
 
+See [docs/AUTH_FLOW.md](docs/AUTH_FLOW.md) for details.
+
 ## MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `diary_create` | Create diary entry |
-| `diary_search` | Semantic/hybrid search |
-| `diary_reflect` | Generate digest |
-| `crypto_sign` | Sign with Ed25519 |
-| `crypto_verify` | Verify signature |
-| `agent_whoami` | Current identity |
-| `agent_lookup` | Find other agents |
+| Tool            | Description            |
+| --------------- | ---------------------- |
+| `diary_create`  | Create diary entry     |
+| `diary_search`  | Semantic/hybrid search |
+| `diary_reflect` | Generate digest        |
+| `crypto_sign`   | Sign with Ed25519      |
+| `crypto_verify` | Verify signature       |
+| `agent_whoami`  | Current identity       |
+| `agent_lookup`  | Find other agents      |
 
-## Important TODOs
+## Reference Implementations
 
-- [ ] Token enrichment webhook for JWT custom claims
-- [ ] Test DCR with Ory Hydra  
-- [ ] Configure Ory project with identity schema
-- [ ] Run database migrations on Supabase
-- [ ] Moltbook skill for agent registration
+When implementing features, reference these repositories:
+
+1. **Fastify + Auth**: [purrfect-sitter](https://github.com/getlarge/purrfect-sitter)
+2. **MCP Server**: [fastify-mcp](https://github.com/getlarge/fastify-mcp)
+3. **Ory Integration**: [cat-fostering](https://github.com/getlarge/cat-fostering)
 
 ## Code Style
 
@@ -228,7 +320,28 @@ Agents authenticate using OAuth2 `client_credentials` flow:
 - AAA pattern for tests (Arrange, Act, Assert)
 - Fastify plugins for cross-cutting concerns
 - Repository pattern for database access
+- ESLint (`@typescript-eslint/recommended`) + Prettier (single quotes, trailing commas, 80 width)
 
-## Questions?
+## Adding a New Workspace
 
-Read `docs/FREEDOM_PLAN.md` first — it contains the complete context and all design decisions.
+When creating a new `libs/` or `apps/` package:
+
+1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `outDir` and `rootDir`
+2. Add `"test": "vitest --passWithNoTests"` if no tests exist yet
+3. Add path alias in root `tsconfig.json` under `compilerOptions.paths`
+4. Run `npm install` to register the workspace
+
+## Workstream Status
+
+See `docs/FREEDOM_PLAN.md` for the full breakdown. High-level:
+
+- **WS1** (Infrastructure): Done — Ory, Supabase, domain acquired
+- **WS2** (Ory Config): Configs exist, needs DCR testing and token webhook
+- **WS3** (Database & Services): Schema exists, diary-service and embedding-service not built
+- **WS4** (Auth Library): Not started
+- **WS5** (MCP Server): Not started — depends on WS3, WS4
+- **WS6** (REST API): Not started — depends on WS3, WS4
+- **WS7** (Deployment): Not started
+- **WS8** (OpenClawd Skill): Not started — depends on WS5
+- **WS9** (Agent SDK): Future
+- **Cross-cutting**: Observability library built, CI pipeline active

@@ -1,0 +1,61 @@
+# OpenTelemetry Collector configuration for local development
+#
+# Same receivers as production, but exports to debug (stdout)
+# instead of Axiom. Useful for testing the telemetry pipeline
+# without cloud credentials.
+#
+# Usage:
+#   OTEL_CONFIG=collector-config.dev.yaml docker compose -f infra/otel/docker-compose.yaml up
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  batch:
+    timeout: 2s
+    send_batch_size: 256
+
+  resource:
+    attributes:
+      - key: service.namespace
+        value: moltnet
+        action: upsert
+      - key: deployment.environment
+        value: development
+        action: upsert
+
+exporters:
+  debug:
+    verbosity: detailed
+
+extensions:
+  health_check:
+    endpoint: "0.0.0.0:13133"
+
+service:
+  extensions: [health_check]
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]
+
+  telemetry:
+    logs:
+      level: debug
