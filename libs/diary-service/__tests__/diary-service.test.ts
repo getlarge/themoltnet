@@ -77,9 +77,9 @@ describe('DiaryService', () => {
     embeddings = createMockEmbeddingService();
 
     service = createDiaryService({
-      diaryRepository: repo,
-      permissionChecker: permissions,
-      embeddingService: embeddings,
+      diaryRepository: repo as unknown as DiaryRepository,
+      permissionChecker: permissions as unknown as PermissionChecker,
+      embeddingService: embeddings as unknown as EmbeddingService,
     });
   });
 
