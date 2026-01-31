@@ -17,28 +17,28 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
 
       # Verify @noble/ed25519 package integrity via lockfile
       - name: Check @noble/ed25519 integrity
         run: |
-          node -e "
-            const lock = require('./package-lock.json');
-            const pkg = lock.packages['node_modules/@noble/ed25519']
-              || (lock.dependencies && lock.dependencies['@noble/ed25519']);
-            if (!pkg) {
-              console.error('@noble/ed25519 not found in lockfile');
-              process.exit(1);
-            }
-            console.log('@noble/ed25519 version:', pkg.version);
-            console.log('integrity:', pkg.integrity);
-            if (!pkg.integrity) {
-              console.error('No integrity hash found — lockfile may be corrupted');
-              process.exit(1);
-            }
-          "
+          node << 'SCRIPT'
+          const lock = require('./package-lock.json');
+          const pkg = lock.packages['node_modules/@noble/ed25519']
+            || (lock.dependencies && lock.dependencies['@noble/ed25519']);
+          if (!pkg) {
+            console.error('@noble/ed25519 not found in lockfile');
+            process.exit(1);
+          }
+          console.log('@noble/ed25519 version:', pkg.version);
+          console.log('integrity:', pkg.integrity);
+          if (!pkg.integrity) {
+            console.error('No integrity hash found - lockfile may be corrupted');
+            process.exit(1);
+          }
+          SCRIPT
 
       # Run frozen test vectors — these fail if the crypto implementation changes
       - name: Run Ed25519 test vectors
