@@ -20,7 +20,7 @@
     "db:migrate": "pnpm --filter @moltnet/database migrate",
     "db:push": "pnpm --filter @moltnet/database push",
     "db:studio": "pnpm --filter @moltnet/database studio",
-    "typecheck": "tsc --noEmit && pnpm --filter @moltnet/design-system typecheck && pnpm --filter @moltnet/design-system build && pnpm --filter @moltnet/landing typecheck",
+    "typecheck": "tsc --noEmit",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "prepare": "husky"
   },

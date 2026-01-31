@@ -10,7 +10,7 @@ catalog:
   '@vitejs/plugin-react': ^4.3.0
 
   # Testing
-  vitest: ^1.2.0
+  vitest: ^3.0.0
 
   # Linting & formatting
   eslint: ^8.56.0
