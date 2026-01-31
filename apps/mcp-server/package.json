@@ -18,15 +18,15 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@moltnet/api-client": "*",
-    "@modelcontextprotocol/sdk": "^1.25.0",
-    "fastify": "^5.2.0",
-    "fastify-plugin": "^5.0.0",
-    "zod": "^3.25.0"
+    "@moltnet/api-client": "workspace:*",
+    "@modelcontextprotocol/sdk": "catalog:",
+    "fastify": "catalog:",
+    "fastify-plugin": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.0",
-    "tsx": "^4.7.0"
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "tsx": "catalog:"
   }
 }
