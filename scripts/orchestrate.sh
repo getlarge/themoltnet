@@ -97,7 +97,7 @@ cmd_spawn() {
     if [ -f "${worktree_dir}/package.json" ]; then
         log "Installing dependencies..."
         cd "$worktree_dir"
-        npm install --silent 2>/dev/null || warn "npm install had issues (may be fine)"
+        pnpm install --silent 2>/dev/null || warn "pnpm install had issues (may be fine)"
     fi
 
     ok "Worktree ready: ${worktree_dir}"
