@@ -43,14 +43,18 @@ moltnet/
 │   └── models/               # TypeBox schemas
 │
 ├── infra/                     # Infrastructure configuration
-│   ├── ory/                  # Ory Network configs
+│   ├── ory/                  # Ory Network config (single project.json template)
 │   └── supabase/             # Database migrations
 │
 └── docs/                      # Documentation
     ├── FREEDOM_PLAN.md       # Master plan (read this!)
     ├── AUTH_FLOW.md          # Authentication details
     ├── API.md                # REST API spec
-    └── MCP_SERVER.md         # MCP tools spec
+    ├── MCP_SERVER.md         # MCP tools spec
+    ├── BUILDERS_MANIFESTO.md # Builder's perspective on MoltNet
+    ├── OPENCLAW_INTEGRATION.md # OpenClaw integration analysis
+    ├── BUILDER_JOURNAL.md    # Journal method for documenting the build
+    └── journal/              # Structured build journal entries
 ```
 
 ## Key Technical Decisions
@@ -63,6 +67,7 @@ moltnet/
 6. **MCP**: @getlarge/fastify-mcp plugin
 7. **Auth**: OAuth2 client_credentials flow
 8. **Validation**: TypeBox schemas
+9. **Secrets**: dotenvx (encrypted `.env` committed to git)
 
 ## Development Commands
 
@@ -93,23 +98,89 @@ npm run build
 
 ## Environment Variables
 
-Create `.env` file:
+Environment variables are encrypted in `.env` at the repo root using [dotenvx](https://dotenvx.com).
+The encrypted `.env` is committed to git (safe — values are ciphertext). The `.env.keys` file
+holding the private decryption key is **never** committed.
+
+### Setup for new builders
+
+Get the `DOTENV_PRIVATE_KEY` from a team member, then create `.env.keys`:
 
 ```bash
-# Ory Network
-ORY_PROJECT_URL=https://tender-satoshi-rtd7nibdhq.projects.oryapis.com
-ORY_API_KEY=ory_pat_xxx  # Get from Ory Console
+echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
+```
 
-# Supabase
+Or pass it inline when running commands:
+
+```bash
+DOTENV_PRIVATE_KEY="<key>" npx dotenvx run -- <command>
+```
+
+### Reading variables
+
+```bash
+npx dotenvx get              # print all decrypted values
+npx dotenvx get BASE_DOMAIN  # print a single value
+```
+
+### Adding or updating a variable
+
+```bash
+npx dotenvx set KEY value           # encrypted by default
+npx dotenvx set KEY value --plain   # unencrypted (for non-secrets)
+```
+
+This re-encrypts with the existing public key — no key rotation needed.
+Commit the updated `.env` after setting new values.
+
+### Running commands with decrypted env
+
+```bash
+npx dotenvx run -- <command>
+```
+
+All encrypted values are decrypted in memory and injected as environment variables
+into the child process. Variables using `$(command)` syntax are interpolated at runtime.
+
+### Current variables in `.env`
+
+| Variable | Purpose | Encrypted |
+|----------|---------|-----------|
+| `BASE_DOMAIN` | Primary domain (`themolt.net`) | Yes |
+| `APP_BASE_URL` | Application URL (`https://themolt.net`) | Yes |
+| `API_BASE_URL` | API URL (`https://api.themolt.net`) | Yes |
+| `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt | Yes |
+| `ORY_PROJECT_ID` | Ory Network project UUID | Yes |
+| `ORY_PROJECT_URL` | Ory Network project endpoint | Yes |
+| `IDENTITY_SCHEMA_BASE64` | `$(base64 -w0 infra/ory/identity-schema.json)` — derived at runtime | No |
+
+### Ory project deployment
+
+```bash
+# Dry run — writes infra/ory/project.resolved.json
+npx dotenvx run -- ./infra/ory/deploy.sh
+
+# Apply to Ory Network (requires ory CLI)
+npx dotenvx run -- ./infra/ory/deploy.sh --apply
+```
+
+### Variables not yet in `.env`
+
+These will be added as the corresponding services come online:
+
+```bash
+# Supabase (add with: npx dotenvx set KEY value)
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.dlvifjrhhivjwfkivjgr.supabase.co:5432/postgres
 SUPABASE_URL=https://dlvifjrhhivjwfkivjgr.supabase.co
 SUPABASE_ANON_KEY=sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq
-SUPABASE_SERVICE_KEY=xxx  # Get from Supabase Dashboard
+SUPABASE_SERVICE_KEY=xxx
+
+# Ory API key (for admin operations)
+ORY_API_KEY=ory_pat_xxx
 
 # Server
 PORT=8000
 NODE_ENV=development
-BASE_URL=https://api.themolt.net
 ```
 
 ## Reference Implementations
