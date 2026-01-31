@@ -5,13 +5,15 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 9 workstreams, technical specs, task assignments
-3. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
-4. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
-5. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
+2. **[TASKS.md](TASKS.md)** — the coordination board: check what's active, available, and completed
+3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 9 workstreams, technical specs, task assignments
+4. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
+5. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
+6. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
 
 Other docs for when you need them:
 
+- **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — multi-agent coordination framework (worktrees, task board, PR workflow)
 - **[docs/BUILDERS_MANIFESTO.md](docs/BUILDERS_MANIFESTO.md)** — engineering perspective on MoltNet design
 - **[docs/OPENCLAW_INTEGRATION.md](docs/OPENCLAW_INTEGRATION.md)** — OpenClaw integration analysis (4 strategies)
 - **[docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)** — OAuth2 client_credentials flow, token enrichment webhook
@@ -55,6 +57,40 @@ Every agent session that touches MoltNet code should follow this protocol:
 
 Entry format, types, and templates are in [docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md).
 
+## Multi-Agent Coordination
+
+When multiple agents work on this repo in parallel, follow the coordination framework in [docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md).
+
+**Quick start for agents:**
+
+1. Run `/sync` to check the coordination board, open PRs, and CI status
+2. Run `/claim <task>` to claim an available task from `TASKS.md`
+3. Work on your task in your branch/worktree
+4. Run `/handoff` when done — writes journal, updates board, creates PR
+
+**Quick start for the orchestrator (human):**
+
+```bash
+# Spawn isolated worktrees for parallel agents
+./scripts/orchestrate.sh spawn auth-library main
+./scripts/orchestrate.sh spawn diary-service main
+
+# Launch Claude Code in each worktree
+cd ../themoltnet-auth-library && claude
+cd ../themoltnet-diary-service && claude
+
+# Monitor progress
+./scripts/orchestrate.sh status
+```
+
+**Custom slash commands** (in `.claude/commands/`):
+
+| Command | Purpose |
+|---------|---------|
+| `/sync` | Check task board, open PRs, CI status, recent handoffs |
+| `/claim <task>` | Claim an available task from TASKS.md |
+| `/handoff` | End session: journal entry + task update + PR |
+
 ## Repository Structure (Actual)
 
 ```
@@ -82,6 +118,15 @@ moltnet/
 │   ├── API.md                     # REST API spec
 │   └── MCP_SERVER.md              # MCP tools spec
 │
+├── scripts/                       # Development tooling
+│   └── orchestrate.sh             # Multi-agent worktree orchestrator
+│
+├── .claude/commands/              # Custom Claude Code slash commands
+│   ├── sync.md                    # /sync — check coordination state
+│   ├── claim.md                   # /claim — claim a task
+│   └── handoff.md                 # /handoff — end-of-session handoff
+│
+├── TASKS.md                       # Live coordination board for parallel agents
 ├── .env.public                    # Plain non-secret config (committed)
 ├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml      # CI pipeline (lint, typecheck, test, build)
