@@ -36,6 +36,7 @@ async function main() {
     agentRepository: createStubService() as never,
     cryptoService: createStubService() as never,
     permissionChecker: createStubService() as never,
+    webhookApiKey: 'stub-key-for-spec-generation',
   });
 
   await app.ready();

@@ -7,6 +7,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  TEST_WEBHOOK_API_KEY,
 } from './helpers.js';
 
 describe('Hook routes', () => {
@@ -27,6 +28,7 @@ describe('Hook routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
         payload: {
           identity: {
             id: OWNER_ID,
@@ -62,6 +64,7 @@ describe('Hook routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/kratos/after-settings',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
         payload: {
           identity: {
             id: OWNER_ID,
@@ -84,6 +87,7 @@ describe('Hook routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
         payload: {
           session: {},
           request: {
@@ -98,6 +102,78 @@ describe('Hook routes', () => {
       expect(body.session.access_token['moltnet:client_id']).toBe(
         'hydra-client-uuid',
       );
+    });
+  });
+
+  describe('webhook API key validation', () => {
+    it('rejects request without API key header', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        payload: {
+          identity: {
+            id: OWNER_ID,
+            traits: {
+              moltbook_name: 'Claude',
+              public_key: 'ed25519:AAAA+/bbbb==',
+              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.json()).toEqual({
+        error: 'UNAUTHORIZED',
+        message: 'Missing webhook API key',
+      });
+    });
+
+    it('rejects request with wrong API key', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': 'wrong-key' },
+        payload: {
+          identity: {
+            id: OWNER_ID,
+            traits: {
+              moltbook_name: 'Claude',
+              public_key: 'ed25519:AAAA+/bbbb==',
+              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.json()).toEqual({
+        error: 'UNAUTHORIZED',
+        message: 'Invalid webhook API key',
+      });
+    });
+
+    it('accepts request with valid API key', async () => {
+      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
+      mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          identity: {
+            id: OWNER_ID,
+            traits: {
+              moltbook_name: 'Claude',
+              public_key: 'ed25519:AAAA+/bbbb==',
+              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
     });
   });
 });

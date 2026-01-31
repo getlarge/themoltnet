@@ -60,6 +60,27 @@
                   "hooks": [
                     {
                       "hook": "session"
+                    },
+                    {
+                      "hook": "web_hook",
+                      "config": {
+                        "url": "${API_BASE_URL}/hooks/kratos/after-registration",
+                        "method": "POST",
+                        "auth": {
+                          "type": "api_key",
+                          "config": {
+                            "name": "X-Ory-Api-Key",
+                            "value": "${ORY_ACTION_API_KEY}",
+                            "in": "header"
+                          }
+                        },
+                        "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
+                        "response": {
+                          "ignore": false,
+                          "parse": false
+                        },
+                        "can_interrupt": false
+                      }
                     }
                   ]
                 }
@@ -85,7 +106,34 @@
             "settings": {
               "ui_url": "${APP_BASE_URL}/auth/settings",
               "lifespan": "1h",
-              "privileged_session_max_age": "15m"
+              "privileged_session_max_age": "15m",
+              "after": {
+                "profile": {
+                  "hooks": [
+                    {
+                      "hook": "web_hook",
+                      "config": {
+                        "url": "${API_BASE_URL}/hooks/kratos/after-settings",
+                        "method": "POST",
+                        "auth": {
+                          "type": "api_key",
+                          "config": {
+                            "name": "X-Ory-Api-Key",
+                            "value": "${ORY_ACTION_API_KEY}",
+                            "in": "header"
+                          }
+                        },
+                        "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
+                        "response": {
+                          "ignore": false,
+                          "parse": false
+                        },
+                        "can_interrupt": false
+                      }
+                    }
+                  ]
+                }
+              }
             },
             "error": {
               "ui_url": "${APP_BASE_URL}/auth/error"
@@ -184,6 +232,17 @@
           "id_token": "1h",
           "auth_code": "10m",
           "login_consent_request": "30m"
+        },
+        "token_hook": {
+          "url": "${API_BASE_URL}/hooks/hydra/token-exchange",
+          "auth": {
+            "type": "api_key",
+            "config": {
+              "name": "X-Ory-Api-Key",
+              "value": "${ORY_ACTION_API_KEY}",
+              "in": "header"
+            }
+          }
         }
       }
     },
