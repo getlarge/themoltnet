@@ -12,12 +12,12 @@ The problem: you have one repo, multiple agents (Claude Code sessions), and limi
 
 The solution has four layers:
 
-| Layer | Mechanism | Purpose |
-|-------|-----------|---------|
-| **Isolation** | Git worktrees | Each agent gets its own working directory and branch |
-| **Coordination** | `TASKS.md` board | Single source of truth for who's doing what |
-| **Awareness** | PR monitoring + journal | Agents check what others have shipped |
-| **Integration** | PR-based merge + CI | Work merges through reviewed pull requests |
+| Layer            | Mechanism               | Purpose                                              |
+| ---------------- | ----------------------- | ---------------------------------------------------- |
+| **Isolation**    | Git worktrees           | Each agent gets its own working directory and branch |
+| **Coordination** | `TASKS.md` board        | Single source of truth for who's doing what          |
+| **Awareness**    | PR monitoring + journal | Agents check what others have shipped                |
+| **Integration**  | PR-based merge + CI     | Work merges through reviewed pull requests           |
 
 ---
 
@@ -108,24 +108,24 @@ GitHub Issues work well as a complement (richer discussion, labels, assignment U
 
 ## Active
 
-| Task | Agent | Branch | Status | Started |
-|------|-------|--------|--------|---------|
-| Build auth library | claude-session-abc | agent/auth-library | in-progress | 2026-01-31 |
+| Task                | Agent              | Branch              | Status      | Started    |
+| ------------------- | ------------------ | ------------------- | ----------- | ---------- |
+| Build auth library  | claude-session-abc | agent/auth-library  | in-progress | 2026-01-31 |
 | Build diary service | claude-session-def | agent/diary-service | in-progress | 2026-01-31 |
 
 ## Completed
 
-| Task | Agent | Branch | PR | Merged |
-|------|-------|--------|----|--------|
-| Build observability | claude-session-xyz | claude/manifesto-VKLID | #2 | 2026-01-31 |
+| Task                | Agent              | Branch                 | PR  | Merged     |
+| ------------------- | ------------------ | ---------------------- | --- | ---------- |
+| Build observability | claude-session-xyz | claude/manifesto-VKLID | #2  | 2026-01-31 |
 
 ## Available
 
-| Task | Priority | Dependencies | Context Files |
-|------|----------|--------------|---------------|
-| Build MCP server | high | auth-library, diary-service | docs/MCP_SERVER.md |
-| Build REST API | high | auth-library, diary-service | docs/API.md |
-| Deploy Ory webhook | medium | none | docs/AUTH_FLOW.md |
+| Task               | Priority | Dependencies                | Context Files      |
+| ------------------ | -------- | --------------------------- | ------------------ |
+| Build MCP server   | high     | auth-library, diary-service | docs/MCP_SERVER.md |
+| Build REST API     | high     | auth-library, diary-service | docs/API.md        |
+| Deploy Ory webhook | medium   | none                        | docs/AUTH_FLOW.md  |
 ```
 
 ### Rules
@@ -207,21 +207,26 @@ All work merges through pull requests. No direct pushes to main.
 
 ```markdown
 ## Summary
+
 - <what was built/changed>
 
 ## Task
+
 - From TASKS.md: <task name>
 - Workstream: <WS number if applicable>
 
 ## Changes
+
 - <file-level summary of what changed>
 
 ## Testing
+
 - [ ] All existing tests pass
 - [ ] New tests added for new functionality
 - [ ] Tested against dependencies (if applicable)
 
 ## Coordination
+
 - Depends on: <list PRs or "none">
 - Blocks: <list tasks or "none">
 - Files shared with other agents: <list or "none">
@@ -341,6 +346,7 @@ If conflicts arise during rebase, the agent resolves them or flags the human.
 ### More agents on one machine
 
 Each worktree + Claude Code session uses:
+
 - ~200-500MB disk (node_modules per worktree)
 - ~100-300MB RAM (node process + Claude Code CLI)
 - One API connection to Anthropic

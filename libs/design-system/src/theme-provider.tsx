@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useState,
-  useMemo,
-  type ReactNode,
-} from 'react';
+import { createContext, useState, useMemo, type ReactNode } from 'react';
 import { darkTheme, lightTheme, type MoltTheme } from './theme.js';
 
 // ---------------------------------------------------------------------------
@@ -99,10 +94,7 @@ export function MoltThemeProvider({
   const [mode, setMode] = useState<'dark' | 'light'>(initialMode);
   const theme = mode === 'dark' ? darkTheme : lightTheme;
 
-  const value = useMemo<ThemeContextValue>(
-    () => ({ theme, setMode }),
-    [theme],
-  );
+  const value = useMemo<ThemeContextValue>(() => ({ theme, setMode }), [theme]);
 
   const cssVars = useMemo(() => themeToCssVars(theme), [theme]);
 
@@ -119,9 +111,7 @@ export function MoltThemeProvider({
 /**
  * Parse a CSS custom properties string into a CSSProperties object.
  */
-function parseCssVars(
-  vars: string,
-): React.CSSProperties {
+function parseCssVars(vars: string): React.CSSProperties {
   const result: Record<string, string> = {};
   for (const pair of vars.split(';')) {
     const trimmed = pair.trim();

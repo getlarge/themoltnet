@@ -4,8 +4,7 @@ import type { Size } from '../types.js';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'accent';
 
-export interface ButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: Size;
 }
@@ -46,36 +45,43 @@ export function Button({
 
   const variants: Record<ButtonVariant, React.CSSProperties> = {
     primary: {
-      background: hovered && !disabled
-        ? theme.color.primary.hover
-        : theme.color.primary.DEFAULT,
+      background:
+        hovered && !disabled
+          ? theme.color.primary.hover
+          : theme.color.primary.DEFAULT,
       color: theme.color.text.inverse,
-      boxShadow: focused ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.primary.DEFAULT}` : 'none',
+      boxShadow: focused
+        ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.primary.DEFAULT}`
+        : 'none',
     },
     secondary: {
-      background: hovered && !disabled
-        ? theme.color.primary.muted
-        : 'transparent',
+      background:
+        hovered && !disabled ? theme.color.primary.muted : 'transparent',
       color: theme.color.primary.DEFAULT,
       boxShadow: focused
         ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.primary.DEFAULT}`
         : `inset 0 0 0 1px ${theme.color.border.DEFAULT}`,
     },
     ghost: {
-      background: hovered && !disabled
-        ? theme.color.primary.subtle
-        : 'transparent',
-      color: hovered && !disabled
-        ? theme.color.primary.DEFAULT
-        : theme.color.text.DEFAULT,
-      boxShadow: focused ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.primary.DEFAULT}` : 'none',
+      background:
+        hovered && !disabled ? theme.color.primary.subtle : 'transparent',
+      color:
+        hovered && !disabled
+          ? theme.color.primary.DEFAULT
+          : theme.color.text.DEFAULT,
+      boxShadow: focused
+        ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.primary.DEFAULT}`
+        : 'none',
     },
     accent: {
-      background: hovered && !disabled
-        ? theme.color.accent.hover
-        : theme.color.accent.DEFAULT,
+      background:
+        hovered && !disabled
+          ? theme.color.accent.hover
+          : theme.color.accent.DEFAULT,
       color: theme.color.text.inverse,
-      boxShadow: focused ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.accent.DEFAULT}` : 'none',
+      boxShadow: focused
+        ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.accent.DEFAULT}`
+        : 'none',
     },
   };
 

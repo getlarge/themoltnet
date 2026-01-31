@@ -15,21 +15,26 @@ End your session with a proper handoff. Do the following:
 3. **Update the journal index** in `docs/journal/README.md`
 
 4. **Run validation**:
+
    ```bash
    npm run validate
    ```
+
    Report the results.
 
 5. **Commit everything**:
+
    ```bash
    git add TASKS.md docs/journal/
    git commit -m "handoff: <brief description of what was accomplished>"
    ```
 
 6. **Create a PR** if the work is ready for review:
+
    ```bash
    gh pr create --title "<task name>" --body "## Summary\n<what was done>\n\n## Task\nFrom TASKS.md: <task>\n\n## Testing\n- [ ] All tests pass\n- [ ] New tests added"
    ```
+
    If the work is not ready, just push the branch.
 
 7. **Report** the final state: PR URL (if created), branch name, test status, what the next agent should do.

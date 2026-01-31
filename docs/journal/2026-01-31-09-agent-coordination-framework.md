@@ -18,17 +18,20 @@ MoltNet has multiple workstreams (WS2-WS9) that can be parallelized across agent
 ## Options Considered
 
 ### A: GitHub Issues as coordination database (CCPM pattern)
+
 - Pro: Rich UI, labels, assignment, discussion
 - Con: Requires gh CLI auth for every agent, API rate limits, heavier tooling
 - Con: Not portable to repos without GitHub
 
 ### B: Shared coordination file in repo (TASKS.md)
+
 - Pro: Agents can read/write without API credentials
 - Pro: Works in any git repo, no external dependencies
 - Pro: Visible in every worktree via git pull
 - Con: Merge conflicts if two agents update simultaneously (mitigated by first-push-wins)
 
 ### C: External orchestration framework (claude-flow, oh-my-claudecode)
+
 - Pro: More features (swarm topologies, model routing)
 - Con: Heavy dependencies, less transparent, harder to debug
 - Con: Vendor lock-in to specific tool versions

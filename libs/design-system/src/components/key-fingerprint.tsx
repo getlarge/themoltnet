@@ -1,8 +1,10 @@
 import { useTheme } from '../hooks.js';
 import type { BaseComponentProps, Size } from '../types.js';
 
-export interface KeyFingerprintProps
-  extends Omit<BaseComponentProps, 'children'> {
+export interface KeyFingerprintProps extends Omit<
+  BaseComponentProps,
+  'children'
+> {
   /** The fingerprint string, e.g. "A1B2-C3D4-E5F6-G7H8". */
   fingerprint: string;
   /** Optional label shown above the fingerprint. */

@@ -16,6 +16,7 @@ Do the following:
 8. Confirm the claim and summarize what you need to do
 
 If the push fails because another agent claimed the same task:
+
 1. Pull the latest TASKS.md
 2. Check if your task is still available
 3. If not, pick a different available task and ask the user

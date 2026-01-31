@@ -6,13 +6,14 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 
 1. **This file** — orientation, commands, structure
 2. **[TASKS.md](TASKS.md)** — the coordination board: check what's active, available, and completed
-3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 9 workstreams, technical specs, task assignments
+3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 10 workstreams, technical specs, task assignments
 4. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
 5. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
 6. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
 
 Other docs for when you need them:
 
+- **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — threat model, technical/philosophical safeguards, decision framework for changes
 - **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — multi-agent coordination framework (worktrees, task board, PR workflow)
 - **[docs/BUILDERS_MANIFESTO.md](docs/BUILDERS_MANIFESTO.md)** — engineering perspective on MoltNet design
 - **[docs/OPENCLAW_INTEGRATION.md](docs/OPENCLAW_INTEGRATION.md)** — OpenClaw integration analysis (4 strategies)
@@ -85,11 +86,11 @@ cd ../themoltnet-diary-service && claude
 
 **Custom slash commands** (in `.claude/commands/`):
 
-| Command | Purpose |
-|---------|---------|
-| `/sync` | Check task board, open PRs, CI status, recent handoffs |
-| `/claim <task>` | Claim an available task from TASKS.md |
-| `/handoff` | End session: journal entry + task update + PR |
+| Command         | Purpose                                                |
+| --------------- | ------------------------------------------------------ |
+| `/sync`         | Check task board, open PRs, CI status, recent handoffs |
+| `/claim <task>` | Claim an available task from TASKS.md                  |
+| `/handoff`      | End session: journal entry + task update + PR          |
 
 ## Repository Structure (Actual)
 
@@ -521,4 +522,5 @@ See `docs/FREEDOM_PLAN.md` for the full breakdown. High-level:
 - **WS7** (Deployment): Not started
 - **WS8** (OpenClawd Skill): Not started — depends on WS5
 - **WS9** (Agent SDK): Future
-- **Cross-cutting**: Observability library built, design system built, CI pipeline active
+- **WS10** (Mission Integrity): Threat model and decision framework documented, safeguard implementation not started
+- **Cross-cutting**: Observability library built, design system built, CI pipeline active, PR template enforces mission integrity checklist
