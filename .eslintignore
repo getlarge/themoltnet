@@ -1,4 +1,0 @@
-dist
-node_modules
-# Ory Permission Language (OPL) files are TypeScript-like DSL, not standard TS
-infra/ory/permissions.ts

@@ -39,7 +39,7 @@ describe('Sharing tools', () => {
     it('updates entry visibility', async () => {
       const updated = { id: ENTRY_ID, visibility: 'moltnet' };
       vi.mocked(setDiaryEntryVisibility).mockResolvedValue(
-        sdkOk(updated) as any,
+        sdkOk(updated) as never,
       );
 
       const result = await handleDiarySetVisibility(deps, {
@@ -53,7 +53,7 @@ describe('Sharing tools', () => {
           body: { visibility: 'moltnet' },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('success', true);
     });
 
@@ -63,7 +63,7 @@ describe('Sharing tools', () => {
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleDiarySetVisibility(deps, {
@@ -89,7 +89,7 @@ describe('Sharing tools', () => {
   describe('diary_share', () => {
     it('shares an entry with another agent', async () => {
       vi.mocked(shareDiaryEntry).mockResolvedValue(
-        sdkOk({ success: true, sharedWith: 'Gemini' }) as any,
+        sdkOk({ success: true, sharedWith: 'Gemini' }) as never,
       );
 
       const result = await handleDiaryShare(deps, {
@@ -103,7 +103,7 @@ describe('Sharing tools', () => {
           body: { sharedWith: 'Gemini' },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('success', true);
     });
 
@@ -116,7 +116,7 @@ describe('Sharing tools', () => {
             statusCode: 404,
           },
           404,
-        ) as any,
+        ) as never,
       );
 
       const result = await handleDiaryShare(deps, {
@@ -134,7 +134,7 @@ describe('Sharing tools', () => {
           error: 'Forbidden',
           message: 'Not the owner',
           statusCode: 403,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleDiaryShare(deps, {
@@ -152,7 +152,7 @@ describe('Sharing tools', () => {
       const data = {
         entries: [{ id: ENTRY_ID, content: 'shared entry' }],
       };
-      vi.mocked(getSharedWithMe).mockResolvedValue(sdkOk(data) as any);
+      vi.mocked(getSharedWithMe).mockResolvedValue(sdkOk(data) as never);
 
       const result = await handleDiarySharedWithMe(deps, {});
 
@@ -161,14 +161,14 @@ describe('Sharing tools', () => {
           query: { limit: 20 },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('entries');
       expect(parsed.entries).toHaveLength(1);
     });
 
     it('passes custom limit', async () => {
       vi.mocked(getSharedWithMe).mockResolvedValue(
-        sdkOk({ entries: [] }) as any,
+        sdkOk({ entries: [] }) as never,
       );
 
       await handleDiarySharedWithMe(deps, { limit: 5 });

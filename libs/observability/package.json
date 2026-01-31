@@ -18,18 +18,13 @@
     "pino-opentelemetry-transport": "catalog:",
     "fastify-plugin": "catalog:",
     "@opentelemetry/api": "catalog:",
-    "@opentelemetry/sdk-node": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/sdk-trace-node": "catalog:",
     "@opentelemetry/sdk-metrics": "catalog:",
-    "@opentelemetry/sdk-logs": "catalog:",
     "@opentelemetry/resources": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "@opentelemetry/exporter-metrics-otlp-proto": "catalog:",
-    "@opentelemetry/exporter-logs-otlp-proto": "catalog:",
-    "@opentelemetry/instrumentation-http": "catalog:",
-    "@opentelemetry/instrumentation-pino": "catalog:",
     "@fastify/otel": "catalog:"
   },
   "devDependencies": {

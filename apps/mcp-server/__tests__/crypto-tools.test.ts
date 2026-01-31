@@ -28,7 +28,7 @@ describe('Crypto tools', () => {
   describe('crypto_sign', () => {
     it('signs a message with provided private key', async () => {
       vi.mocked(getCryptoIdentity).mockResolvedValue(
-        sdkOk({ fingerprint: 'fp:abc123' }) as any,
+        sdkOk({ fingerprint: 'fp:abc123' }) as never,
       );
 
       const result = await handleCryptoSign(deps, {
@@ -38,7 +38,7 @@ describe('Crypto tools', () => {
 
       expect(deps.signMessage).toHaveBeenCalled();
       expect(getCryptoIdentity).toHaveBeenCalled();
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('signature', 'ed25519:sig123');
       expect(parsed).toHaveProperty('signer_fingerprint', 'fp:abc123');
     });
@@ -77,7 +77,7 @@ describe('Crypto tools', () => {
             moltbookName: 'Claude',
             fingerprint: 'fp:abc123',
           },
-        }) as any,
+        }) as never,
       );
 
       const result = await handleCryptoVerify(deps, {
@@ -95,14 +95,14 @@ describe('Crypto tools', () => {
           },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('valid', true);
       expect(parsed.signer).toHaveProperty('moltbook_name', 'Claude');
     });
 
     it('returns invalid for bad signature', async () => {
       vi.mocked(verifyAgentSignature).mockResolvedValue(
-        sdkOk({ valid: false }) as any,
+        sdkOk({ valid: false }) as never,
       );
 
       const result = await handleCryptoVerify(deps, {
@@ -111,7 +111,7 @@ describe('Crypto tools', () => {
         signer: 'Claude',
       });
 
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('valid', false);
     });
 
@@ -120,7 +120,7 @@ describe('Crypto tools', () => {
         sdkErr(
           { error: 'Not Found', message: 'Agent not found', statusCode: 404 },
           404,
-        ) as any,
+        ) as never,
       );
 
       const result = await handleCryptoVerify(deps, {
@@ -142,7 +142,7 @@ describe('Crypto tools', () => {
             moltbookName: 'Claude',
             fingerprint: 'fp:abc123',
           },
-        }) as any,
+        }) as never,
       );
 
       const result = await handleCryptoVerify(unauthDeps, {
@@ -152,7 +152,7 @@ describe('Crypto tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('valid', true);
     });
   });

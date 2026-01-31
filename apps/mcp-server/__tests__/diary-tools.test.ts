@@ -55,7 +55,7 @@ describe('Diary tools', () => {
         visibility: 'private',
         tags: [],
       };
-      vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as any);
+      vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as never);
 
       const result = await handleDiaryCreate(deps, {
         content: 'My first memory',
@@ -66,7 +66,7 @@ describe('Diary tools', () => {
           body: { content: 'My first memory' },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('success', true);
       expect(parsed).toHaveProperty('entry');
     });
@@ -78,7 +78,7 @@ describe('Diary tools', () => {
         visibility: 'moltnet',
         tags: ['test', 'memory'],
       };
-      vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as any);
+      vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as never);
 
       const result = await handleDiaryCreate(deps, {
         content: 'A tagged memory',
@@ -112,7 +112,7 @@ describe('Diary tools', () => {
   describe('diary_get', () => {
     it('returns an entry by ID', async () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
-      vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as any);
+      vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
 
       const result = await handleDiaryGet(deps, {
         entry_id: ENTRY_ID,
@@ -123,7 +123,7 @@ describe('Diary tools', () => {
           path: { id: ENTRY_ID },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('entry');
       expect(parsed.entry).toHaveProperty('id', ENTRY_ID);
     });
@@ -134,7 +134,7 @@ describe('Diary tools', () => {
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleDiaryGet(deps, {
@@ -164,7 +164,7 @@ describe('Diary tools', () => {
         limit: 20,
         offset: 0,
       };
-      vi.mocked(listDiaryEntries).mockResolvedValue(sdkOk(data) as any);
+      vi.mocked(listDiaryEntries).mockResolvedValue(sdkOk(data) as never);
 
       const result = await handleDiaryList(deps, {});
 
@@ -173,14 +173,14 @@ describe('Diary tools', () => {
           query: { limit: 20, offset: 0 },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('items');
       expect(parsed.items).toHaveLength(1);
     });
 
     it('passes limit and offset', async () => {
       vi.mocked(listDiaryEntries).mockResolvedValue(
-        sdkOk({ items: [], total: 0, limit: 5, offset: 10 }) as any,
+        sdkOk({ items: [], total: 0, limit: 5, offset: 10 }) as never,
       );
 
       await handleDiaryList(deps, { limit: 5, offset: 10 });
@@ -196,7 +196,7 @@ describe('Diary tools', () => {
   describe('diary_search', () => {
     it('searches with a query', async () => {
       const data = { results: [{ id: ENTRY_ID }], total: 1 };
-      vi.mocked(searchDiary).mockResolvedValue(sdkOk(data) as any);
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk(data) as never);
 
       const result = await handleDiarySearch(deps, {
         query: 'debugging OAuth',
@@ -207,14 +207,14 @@ describe('Diary tools', () => {
           body: { query: 'debugging OAuth', limit: 10 },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('results');
       expect(parsed.results).toHaveLength(1);
     });
 
     it('passes limit parameter', async () => {
       vi.mocked(searchDiary).mockResolvedValue(
-        sdkOk({ results: [], total: 0 }) as any,
+        sdkOk({ results: [], total: 0 }) as never,
       );
 
       await handleDiarySearch(deps, { query: 'test', limit: 5 });
@@ -230,7 +230,7 @@ describe('Diary tools', () => {
   describe('diary_update', () => {
     it('updates an entry', async () => {
       const updated = { id: ENTRY_ID, tags: ['updated'] };
-      vi.mocked(updateDiaryEntry).mockResolvedValue(sdkOk(updated) as any);
+      vi.mocked(updateDiaryEntry).mockResolvedValue(sdkOk(updated) as never);
 
       const result = await handleDiaryUpdate(deps, {
         entry_id: ENTRY_ID,
@@ -243,7 +243,7 @@ describe('Diary tools', () => {
           body: { tags: ['updated'] },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('success', true);
       expect(parsed).toHaveProperty('entry');
     });
@@ -254,7 +254,7 @@ describe('Diary tools', () => {
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleDiaryUpdate(deps, {
@@ -270,7 +270,7 @@ describe('Diary tools', () => {
   describe('diary_delete', () => {
     it('deletes an entry', async () => {
       vi.mocked(deleteDiaryEntry).mockResolvedValue(
-        sdkOk({ success: true }) as any,
+        sdkOk({ success: true }) as never,
       );
 
       const result = await handleDiaryDelete(deps, {
@@ -282,7 +282,7 @@ describe('Diary tools', () => {
           path: { id: ENTRY_ID },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('success', true);
     });
 
@@ -292,7 +292,7 @@ describe('Diary tools', () => {
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleDiaryDelete(deps, {
@@ -312,7 +312,7 @@ describe('Diary tools', () => {
         periodDays: 7,
         generatedAt: '2025-01-01T00:00:00.000Z',
       };
-      vi.mocked(reflectDiary).mockResolvedValue(sdkOk(digest) as any);
+      vi.mocked(reflectDiary).mockResolvedValue(sdkOk(digest) as never);
 
       const result = await handleDiaryReflect(deps, {});
 
@@ -321,13 +321,13 @@ describe('Diary tools', () => {
           query: { days: 7, maxEntries: 50 },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('digest');
     });
 
     it('passes custom days and max_entries', async () => {
       vi.mocked(reflectDiary).mockResolvedValue(
-        sdkOk({ entries: [], totalEntries: 0 }) as any,
+        sdkOk({ entries: [], totalEntries: 0 }) as never,
       );
 
       await handleDiaryReflect(deps, { days: 30, max_entries: 10 });

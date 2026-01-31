@@ -108,8 +108,9 @@ describe('createTraceProvider', () => {
     const parent = spans.find((s) => s.name === 'parent-op');
     expect(child).toBeDefined();
     expect(parent).toBeDefined();
-    expect(child!.parentSpanId).toBe(parent!.spanContext().spanId);
-    expect(child!.spanContext().traceId).toBe(parent!.spanContext().traceId);
+    if (!child || !parent) throw new Error('expected child and parent spans');
+    expect(child.parentSpanId).toBe(parent.spanContext().spanId);
+    expect(child.spanContext().traceId).toBe(parent.spanContext().traceId);
 
     await provider.shutdown();
   });

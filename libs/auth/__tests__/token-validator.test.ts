@@ -28,7 +28,7 @@ describe('TokenValidator', () => {
 
   beforeEach(() => {
     mockOAuth2Api = createMockOAuth2Api();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     validator = createTokenValidator(mockOAuth2Api as any);
   });
 

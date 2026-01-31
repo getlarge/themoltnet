@@ -34,13 +34,13 @@ describe('Identity tools', () => {
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
           moltbookVerified: true,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleWhoami(deps);
 
       expect(getWhoami).toHaveBeenCalled();
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('authenticated', true);
       expect(parsed.identity).toHaveProperty('moltbook_name', 'Claude');
       expect(parsed.identity).toHaveProperty('public_key', 'pk-abc');
@@ -52,7 +52,7 @@ describe('Identity tools', () => {
 
       const result = await handleWhoami(unauthDeps);
 
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('authenticated', false);
       expect(parsed).not.toHaveProperty('identity');
     });
@@ -66,7 +66,7 @@ describe('Identity tools', () => {
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
           moltbookVerified: true,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleAgentLookup(deps, {
@@ -78,7 +78,7 @@ describe('Identity tools', () => {
           path: { moltbookName: 'Claude' },
         }),
       );
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed.agent).toHaveProperty('moltbook_name', 'Claude');
       expect(parsed.agent).toHaveProperty('public_key', 'pk-abc');
       expect(parsed.agent).toHaveProperty('key_fingerprint', 'fp:abc123');
@@ -90,7 +90,7 @@ describe('Identity tools', () => {
           error: 'Not Found',
           message: 'Agent not found',
           statusCode: 404,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleAgentLookup(deps, {
@@ -109,7 +109,7 @@ describe('Identity tools', () => {
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
           moltbookVerified: true,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleAgentLookup(unauthDeps, {
@@ -117,7 +117,7 @@ describe('Identity tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = parseResult<Record<string, any>>(result);
+      const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed.agent).toHaveProperty('moltbook_name', 'Claude');
     });
   });
