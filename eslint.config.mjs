@@ -108,6 +108,28 @@ export default tseslint.config(
     },
   },
 
+  // Forbid direct process.env access in source files — use config module instead
+  {
+    files: [
+      'libs/*/src/**/*.ts',
+      'libs/*/src/**/*.tsx',
+      'apps/*/src/**/*.ts',
+      'apps/*/src/**/*.tsx',
+    ],
+    ignores: ['**/config.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "MemberExpression[object.name='process'][property.name='env']",
+          message:
+            'Use the config module instead of accessing process.env directly.',
+        },
+      ],
+    },
+  },
+
   // React hooks rules for TSX files
   {
     files: ['**/*.tsx'],

@@ -27,6 +27,7 @@ export interface AppOptions {
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   permissionChecker: PermissionChecker;
+  webhookApiKey: string;
   authPreHandler?: (
     request: FastifyRequest,
     reply: FastifyReply,
@@ -82,6 +83,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   // Decorate request with authContext (null by default)
   app.decorateRequest('authContext', null);
 
+  // Register webhook routes before global auth — they use their own API key auth
+  await app.register(hookRoutes, {
+    webhookApiKey: options.webhookApiKey,
+  });
+
   // If auth preHandler provided, install as global hook
   if (options.authPreHandler) {
     app.addHook('preHandler', options.authPreHandler);
@@ -92,7 +98,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register(diaryRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
-  await app.register(hookRoutes);
 
   return app;
 }
