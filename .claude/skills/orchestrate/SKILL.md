@@ -152,10 +152,33 @@ For each task in the approved wave:
    - "WS3: Diary service" -> `diary-service`
    - "WS2: Ory token enrichment webhook" -> `ory-token-enrichment-webhook`
 
-2. Run for each task:
+2. **Ask the user**: "Use Docker sandboxes for isolation? (Requires Docker Desktop 4.58+)" — two modes:
+
+   **Mode A — Bare worktrees** (default):
    ```bash
    ./scripts/orchestrate.sh spawn <slug> main
    ```
+
+   **Mode B — Docker sandbox** (stronger isolation):
+   ```bash
+   # Create worktree first
+   ./scripts/orchestrate.sh spawn <slug> main
+   WORKTREE_PATH="$(git rev-parse --show-toplevel)/../themoltnet-<slug>"
+
+   # Copy untracked dirs from .sandbox-include if it exists
+   if [ -f .sandbox-include ]; then
+     while IFS= read -r dir || [ -n "$dir" ]; do
+       [ -z "$dir" ] && continue
+       [ "${dir:0:1}" = "#" ] && continue
+       [ -d "$dir" ] && cp -r "$dir" "$WORKTREE_PATH/"
+     done < .sandbox-include
+   fi
+
+   # Create Docker sandbox wrapping the worktree
+   docker sandbox create --name "themoltnet-<slug>" claude "$WORKTREE_PATH"
+   ```
+
+   If `docker sandbox create` fails, fall back to bare worktree mode and warn the user.
 
 3. Report results. If any spawn fails (worktree already exists), report the error and suggest `teardown` first.
 
@@ -163,7 +186,11 @@ For each task in the approved wave:
    ```bash
    ./scripts/orchestrate.sh list
    ```
-   to confirm the worktrees are created.
+   And if sandboxes were created:
+   ```bash
+   docker sandbox ls 2>/dev/null
+   ```
+   to confirm everything is ready.
 
 ---
 
@@ -232,6 +259,15 @@ echo "Agents launched. Tail logs with:"
 echo "  tail -f agent-*.log"
 ```
 
+**Option D — Docker sandboxes** (if spawned with sandbox mode):
+```bash
+# Each agent runs inside its sandbox
+docker sandbox run themoltnet-<slug-1>
+# (in another terminal)
+docker sandbox run themoltnet-<slug-2>
+```
+Note: Docker sandbox sessions are interactive — each needs its own terminal. Provide the commands as a list for the user to run manually.
+
 Escape single quotes in prompts by replacing `'` with `'\''`.
 
 ---
@@ -247,7 +283,12 @@ Gather and present:
    ./scripts/orchestrate.sh list
    ```
 
-2. **Branch activity** (for each agent branch):
+2. **Docker sandbox status** (if any exist):
+   ```bash
+   docker sandbox ls 2>/dev/null
+   ```
+
+3. **Branch activity** (for each agent branch):
    ```bash
    git fetch --all --quiet
    ```
@@ -256,13 +297,19 @@ Gather and present:
    git log --oneline -5 <branch>
    ```
 
-3. **Open PRs and CI**:
+4. **Open PRs and CI**:
    ```bash
    gh pr list --limit 10
    gh run list --limit 10
    ```
 
-4. **TASKS.md current state**: re-read and summarize Active vs Available.
+5. **Stale branch detection**:
+   ```bash
+   git branch -r --merged origin/main
+   ```
+   Flag any `agent/*` or `claude/*` remote branches that are fully merged into main — these are leftover from previous waves and can be deleted.
+
+6. **TASKS.md current state**: re-read and summarize Active vs Available.
 
 ### Output Format
 
@@ -270,14 +317,17 @@ Gather and present:
 ## Agent Status
 
 ### Active Worktrees
-| Worktree | Branch | Last Commit | Age |
-|----------|--------|-------------|-----|
-| ...-auth-library | agent/auth-library | <msg> | <time> |
+| Worktree | Branch | Sandbox | Last Commit | Age |
+|----------|--------|---------|-------------|-----|
+| ...-auth-library | agent/auth-library | yes/no | <msg> | <time> |
 
 ### Open PRs
 | PR | Title | Status | CI |
 |----|-------|--------|----|
 | #N | ... | review/draft | pass/fail/running |
+
+### Stale Branches
+- <branch> (merged, safe to delete)
 
 ### Task Board
 - Active: <count> tasks in progress
@@ -305,17 +355,37 @@ Guide the orchestrator through the end-of-wave lifecycle:
    gh pr merge <number> --squash --delete-branch
    ```
 
-3. **Teardown merged worktrees**:
+3. **Teardown merged worktrees and sandboxes**:
+
+   For each merged task's slug:
    ```bash
+   # Remove Docker sandbox if it exists
+   docker sandbox rm "themoltnet-<slug>" 2>/dev/null
+
+   # Remove worktree
    ./scripts/orchestrate.sh teardown <slug>
    ```
 
-4. **Update local main**:
+4. **Delete stale remote branches**:
+   ```bash
+   git fetch --prune origin
+   ```
+   Then list any `agent/*` or `claude/*` remote branches with `ahead=0` relative to main. Present them to the user for batch deletion:
+   ```bash
+   gh api -X DELETE "repos/<owner>/<repo>/git/refs/heads/<branch>"
+   ```
+
+5. **Prune dangling worktree references**:
+   ```bash
+   git worktree prune
+   ```
+
+6. **Update local main**:
    ```bash
    git fetch origin main && git rebase origin/main
    ```
 
-5. **Re-analyze**: Run the Analyze action to show what's now ready for the next wave.
+7. **Re-analyze**: Run the Analyze action to show what's now ready for the next wave.
 
 ### Output
 
@@ -328,6 +398,10 @@ After cleanup, show:
 
 ### Cleaned Up
 - Worktree: <slug> (removed)
+- Sandbox: <slug> (removed) — if applicable
+
+### Branches Deleted
+- <branch> (was merged)
 
 ### Next Wave
 <output from Analyze action>
