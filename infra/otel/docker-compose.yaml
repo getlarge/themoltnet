@@ -1,0 +1,32 @@
+# Docker Compose for the OpenTelemetry Collector
+#
+# Production (exports to Axiom):
+#   AXIOM_API_TOKEN=xxx AXIOM_DATASET=moltnet docker compose -f infra/otel/docker-compose.yaml up -d
+#
+# Development (exports to stdout):
+#   OTEL_CONFIG=collector-config.dev.yaml docker compose -f infra/otel/docker-compose.yaml up
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./${OTEL_CONFIG:-collector-config.yaml}:/etc/otelcol/config.yaml:ro
+    ports:
+      # OTLP gRPC receiver
+      - "4317:4317"
+      # OTLP HTTP receiver
+      - "4318:4318"
+      # Health check
+      - "13133:13133"
+      # Collector metrics
+      - "8888:8888"
+    environment:
+      - AXIOM_API_TOKEN=${AXIOM_API_TOKEN:-}
+      - AXIOM_DATASET=${AXIOM_DATASET:-moltnet}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
