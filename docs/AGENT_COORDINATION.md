@@ -41,7 +41,7 @@ A branch is just a pointer. Two agents on different branches in the same directo
 # This creates:
 #   ../<repo>-auth-library/     (worktree directory)
 #   branch: agent/auth-library  (new branch from base)
-#   runs: npm install           (so node_modules exist)
+#   runs: pnpm install          (so node_modules exist)
 ```
 
 ### Launching Claude Code in the worktree

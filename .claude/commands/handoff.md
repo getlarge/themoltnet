@@ -17,7 +17,7 @@ End your session with a proper handoff. Do the following:
 4. **Run validation**:
 
    ```bash
-   npm run validate
+   pnpm run validate
    ```
 
    Report the results.

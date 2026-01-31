@@ -1,0 +1,347 @@
+# Orchestrate — Multi-Agent Task Distribution
+
+You are the orchestrator's automation layer. The human orchestrator runs `/orchestrate` to get help analyzing the task board, planning parallel work distribution, spawning agent worktrees, generating agent prompts, monitoring progress, and cleaning up after waves complete.
+
+**Context**: This project uses git worktrees for agent isolation, `TASKS.md` as the coordination board, and `scripts/orchestrate.sh` for worktree mechanics. Agent-side commands (`/sync`, `/claim`, `/handoff`) already exist. This skill automates the human side.
+
+**Task Sources**: The skill pulls tasks from two sources:
+1. **`TASKS.md`** (primary) — the coordination board agents read/write directly
+2. **GitHub Issues** (supplementary) — richer metadata via labels, milestones, assignees
+
+When both sources exist, merge them: `TASKS.md` is authoritative for agent coordination (claim/handoff), but Issues can surface tasks not yet added to the board.
+
+## How to Respond
+
+When the user invokes this skill, determine which action they want based on their message. If unclear, show a brief menu of the 6 actions. Then execute that action.
+
+---
+
+## Action 1: Analyze
+
+**Triggers**: "what's ready?", "what can we parallelize?", "analyze tasks", "show dependencies", or invoked with no specific request.
+
+Parse `TASKS.md` and GitHub Issues, then classify every available task into one of three categories.
+
+### Gathering Tasks
+
+#### From TASKS.md
+
+Read `TASKS.md` and extract tasks from Available, Active, and Completed sections as described below.
+
+#### From GitHub Issues
+
+Run:
+```bash
+gh issue list --state open --limit 50 --json number,title,labels,assignees,milestone,body
+```
+
+For each open issue:
+- **Labels** map to task metadata:
+  - `agent-task` or `task` — marks it as an agent-distributable task
+  - `priority:high`, `priority:medium`, `priority:low` — maps to Priority column
+  - `ready` — no unmet dependencies
+  - `blocked` — has unmet dependencies
+  - `workstream:N` or `WS<N>` in the title — maps to workstream
+- **Assignees** — if assigned to a user/bot, treat as Active (equivalent to claimed)
+- **Milestone** — can indicate wave grouping
+- **Body** — look for a `## Dependencies` or `Depends on:` section listing issue numbers or task names. Also look for `## Context Files` listing file paths.
+
+#### Merging Sources
+
+1. Match issues to TASKS.md entries by normalized name (strip `WS\d+:\s*`, lowercase, hyphens).
+2. If a task exists in both: TASKS.md status wins (it's what agents actually read), but enrich with any extra metadata from the issue (labels, body details).
+3. If a task exists only in Issues (with `agent-task` or `task` label): include it in the analysis with a note: `(from issue #N — not yet in TASKS.md)`. The Plan action will offer to add it.
+4. If a task exists only in TASKS.md: use it as-is — not every task needs a corresponding issue.
+
+### Dependency Resolution Algorithm
+
+1. Read the **Completed** section of `TASKS.md`. Extract task names into a set called `completed`. Normalize each name: strip any `WS\d+:\s*` prefix, lowercase, replace spaces with hyphens (e.g., "Observability library" -> "observability-library").
+
+2. Read the **Active** section. Extract task names into a set called `active`. Normalize the same way.
+
+3. For each task in the **Available** section:
+   a. Read its **Dependencies** column.
+   b. Normalize the dependency string: strip `WS\d+:\s*` prefixes, lowercase, spaces to hyphens.
+   c. If the dependency is `none` -> the task is **ready**.
+   d. If the dependency contains ` or ` (space-or-space), split on ` or `. If **any one** normalized dep is in `completed`, the task is **ready**. Otherwise check if any are in `active` -> **soon** (waiting on in-progress work). Otherwise -> **blocked**.
+   e. If the dependency contains `,`, split on `,` and trim. **All** normalized deps must be in `completed` for the task to be **ready**. If all are in either `completed` or `active` -> **soon**. Otherwise -> **blocked**.
+
+4. Check for **file boundary overlaps**: read the Notes column of ready tasks. If two ready tasks mention the same directory (e.g., both touch `libs/diary-service/`), flag them as a potential parallel conflict.
+
+### Output Format
+
+```
+## Task Analysis
+
+### Sources
+- TASKS.md: <N> available, <N> active, <N> completed
+- GitHub Issues: <N> open with agent-task label (<N> new, not in TASKS.md)
+
+### Ready (can start now)
+- **<Task Name>** [<Priority>] — <Notes snippet>
+  Dependencies: none (or all satisfied)
+  File scope: <directories from Notes>
+  Issue: #<N> (if linked) or (TASKS.md only)
+
+### Soon (waiting on active work)
+- **<Task Name>** [<Priority>] — waiting on: <active task(s)>
+
+### Blocked (dependencies not started)
+- **<Task Name>** [<Priority>] — needs: <missing dep(s)>
+
+### Not in TASKS.md (from Issues only)
+- **<Issue Title>** #<N> [<priority label>] — <body excerpt>
+  (Add to TASKS.md to make available for agents)
+
+### Potential Conflicts
+- <Task A> and <Task B> both touch <directory> — consider sequencing
+```
+
+---
+
+## Action 2: Plan
+
+**Triggers**: "distribute work", "plan tasks", "plan the wave", "what should I spawn?".
+
+Prerequisite: Run the Analyze action first (internally) if you haven't already.
+
+Present a **wave-based distribution plan**:
+
+### Wave Planning Logic
+
+1. Take all **ready** tasks from the analysis.
+2. If any ready tasks came from Issues only (not in TASKS.md), ask: "These tasks from GitHub Issues aren't in TASKS.md yet. Add them to the board?" If yes, append them to the Available section of `TASKS.md` with columns populated from the issue metadata, commit, and push.
+3. Remove any with file boundary conflicts (move the conflicting one to wave 2).
+4. Sort remaining by priority: high > medium > low.
+5. Present as Wave 1.
+6. For **soon** tasks, estimate they'll become ready after Wave 1 completes. Present as Wave 2 candidates.
+7. Note any **blocked** tasks that need manual intervention.
+
+### Output Format
+
+```
+## Distribution Plan
+
+### Wave 1 (parallel — start now)
+| # | Task | Priority | Worktree Name | Branch |
+|---|------|----------|---------------|--------|
+| 1 | <name> | high | <repo>-<slug> | agent/<slug> |
+| 2 | ... | | | |
+
+### Wave 2 (after Wave 1 merges)
+| # | Task | Unblocked By |
+|---|------|-------------|
+| 1 | <name> | <wave 1 task(s)> |
+
+### Needs Attention
+- <any blocked tasks or conflicts>
+
+Ready to spawn? Say "spawn it" or "go ahead".
+```
+
+---
+
+## Action 3: Spawn
+
+**Triggers**: "spawn it", "go ahead", "create worktrees", "spawn" (after a plan has been presented).
+
+For each task in the approved wave:
+
+1. Derive a worktree slug from the task name: strip `WS\d+:\s*` prefix, lowercase, spaces to hyphens, keep only `[a-z0-9-]`. Examples:
+   - "WS4: Auth library" -> `auth-library`
+   - "WS3: Diary service" -> `diary-service`
+   - "WS2: Ory token enrichment webhook" -> `ory-token-enrichment-webhook`
+
+2. Run for each task:
+   ```bash
+   ./scripts/orchestrate.sh spawn <slug> main
+   ```
+
+3. Report results. If any spawn fails (worktree already exists), report the error and suggest `teardown` first.
+
+4. After all spawns, run:
+   ```bash
+   ./scripts/orchestrate.sh list
+   ```
+   to confirm the worktrees are created.
+
+---
+
+## Action 4: Launch
+
+**Triggers**: "launch agents", "generate prompts", "give me the commands" (after spawn).
+
+For each spawned task, generate a self-contained agent prompt and present it as a ready-to-run terminal command.
+
+### Prompt Generation
+
+For each task, build a prompt from TASKS.md columns:
+
+```
+You are an agent working on MoltNet. Your task: <Task Name>.
+
+## Setup
+1. Run /sync to check the coordination state
+2. Run /claim <Task Name> to claim your task
+
+## Context
+Read these files first:
+<list from Context Files column, one per line with "- " prefix>
+
+Also read:
+- CLAUDE.md (project conventions)
+- docs/FREEDOM_PLAN.md (relevant workstream section)
+
+## Task
+<Notes column content>
+
+## Workflow
+1. Implement the task following project conventions in CLAUDE.md
+2. Write tests (Vitest, AAA pattern)
+3. Run: pnpm run validate
+4. Fix any lint, typecheck, or test failures
+5. Run /handoff to create journal entry and PR
+```
+
+### Output Formats
+
+Ask the user which format they prefer, then generate:
+
+**Option A — Individual commands** (copy-paste one at a time):
+```bash
+# Task: <name>
+cd <worktree-path> && claude -p '<prompt>'
+```
+
+**Option B — tmux script** (all agents in one session):
+```bash
+tmux new-session -d -s agents
+tmux send-keys -t agents:0 'cd <worktree-1> && claude -p "<prompt-1>"' C-m
+tmux split-window -h -t agents
+tmux send-keys -t agents:1 'cd <worktree-2> && claude -p "<prompt-2>"' C-m
+# ... for each task
+tmux attach -t agents
+```
+
+**Option C — Background with logs** (fire and forget):
+```bash
+cd <worktree-1> && claude -p '<prompt-1>' > agent-<slug-1>.log 2>&1 &
+cd <worktree-2> && claude -p '<prompt-2>' > agent-<slug-2>.log 2>&1 &
+# ... for each task
+echo "Agents launched. Tail logs with:"
+echo "  tail -f agent-*.log"
+```
+
+Escape single quotes in prompts by replacing `'` with `'\''`.
+
+---
+
+## Action 5: Monitor
+
+**Triggers**: "status", "check agents", "how are they doing?", "monitor".
+
+Gather and present:
+
+1. **Worktree status**:
+   ```bash
+   ./scripts/orchestrate.sh list
+   ```
+
+2. **Branch activity** (for each agent branch):
+   ```bash
+   git fetch --all --quiet
+   ```
+   Then for each worktree that matches `agent/*`:
+   ```bash
+   git log --oneline -5 <branch>
+   ```
+
+3. **Open PRs and CI**:
+   ```bash
+   gh pr list --limit 10
+   gh run list --limit 10
+   ```
+
+4. **TASKS.md current state**: re-read and summarize Active vs Available.
+
+### Output Format
+
+```
+## Agent Status
+
+### Active Worktrees
+| Worktree | Branch | Last Commit | Age |
+|----------|--------|-------------|-----|
+| ...-auth-library | agent/auth-library | <msg> | <time> |
+
+### Open PRs
+| PR | Title | Status | CI |
+|----|-------|--------|----|
+| #N | ... | review/draft | pass/fail/running |
+
+### Task Board
+- Active: <count> tasks in progress
+- Available: <count> tasks remaining
+- Completed: <count> tasks done
+```
+
+---
+
+## Action 6: Cleanup
+
+**Triggers**: "clean up", "next wave", "teardown", "merge and continue".
+
+Guide the orchestrator through the end-of-wave lifecycle:
+
+1. **Check mergeable PRs**:
+   ```bash
+   gh pr list --json number,title,mergeable,reviewDecision,statusCheckRollup --limit 20
+   ```
+
+   For each PR that has passing CI, present it for merge approval.
+
+2. **Merge approved PRs** (only after explicit user confirmation for each):
+   ```bash
+   gh pr merge <number> --squash --delete-branch
+   ```
+
+3. **Teardown merged worktrees**:
+   ```bash
+   ./scripts/orchestrate.sh teardown <slug>
+   ```
+
+4. **Update local main**:
+   ```bash
+   git fetch origin main && git rebase origin/main
+   ```
+
+5. **Re-analyze**: Run the Analyze action to show what's now ready for the next wave.
+
+### Output
+
+After cleanup, show:
+```
+## Wave Complete
+
+### Merged
+- PR #N: <title>
+
+### Cleaned Up
+- Worktree: <slug> (removed)
+
+### Next Wave
+<output from Analyze action>
+```
+
+---
+
+## Important Notes
+
+- **Never auto-merge PRs**. Always list them and wait for explicit user approval per PR.
+- **Never auto-spawn without a plan**. Always show the plan first and wait for confirmation.
+- Worktree slugs must match what `orchestrate.sh` expects: lowercase alphanumeric with hyphens.
+- The repo name for worktree paths is derived from the repo root directory name (currently `themoltnet`).
+- Agent prompts should be self-contained — the agent starts fresh with no prior context.
+- When running shell commands, use absolute or repo-relative paths. The orchestrate script is at `scripts/orchestrate.sh`.
+- **GitHub Issues are supplementary**. If `gh` is not available or the repo has no issues, skip the Issues source silently and work from `TASKS.md` alone. Never fail because Issues couldn't be fetched.
+- When adding issue-sourced tasks to `TASKS.md`, use the same table format as existing entries. Derive the Dependencies column from the issue body's dependency section (or `none` if absent).
