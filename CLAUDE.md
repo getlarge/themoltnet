@@ -133,6 +133,8 @@ moltnet/
 ├── .github/workflows/ci.yml      # CI pipeline (lint, typecheck, test, build)
 ├── .eslintrc.json                 # ESLint config
 ├── .prettierrc.json               # Prettier config
+├── .npmrc                         # pnpm settings
+├── pnpm-workspace.yaml            # Workspace config + dependency catalog
 └── .husky/pre-commit              # Pre-commit hook (dotenvx precommit + lint-staged)
 ```
 
@@ -164,7 +166,7 @@ moltnet/
 
 ## Key Technical Decisions
 
-1. **Monorepo**: npm workspaces (`apps/*`, `libs/*`)
+1. **Monorepo**: pnpm workspaces with [catalogs](https://pnpm.io/catalogs) for version policy (`apps/*`, `libs/*`)
 2. **Framework**: Fastify
 3. **Database**: Supabase (Postgres + pgvector)
 4. **ORM**: Drizzle
@@ -181,29 +183,29 @@ moltnet/
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Quality checks
-npm run lint              # ESLint
-npm run typecheck         # tsc --noEmit
-npm test                  # Vitest across all workspaces
-npm run build             # tsc across all workspaces
-npm run validate          # All four checks in sequence
+pnpm run lint              # ESLint
+pnpm run typecheck         # tsc --noEmit
+pnpm run test              # Vitest across all workspaces
+pnpm run build             # tsc across all workspaces
+pnpm run validate          # All four checks in sequence
 
 # Formatting
-npm run format            # Prettier write
+pnpm run format            # Prettier write
 
 # Database operations
-npm run db:generate       # Generate Drizzle migrations
-npm run db:push           # Push to database
-npm run db:studio         # Open Drizzle Studio
+pnpm run db:generate       # Generate Drizzle migrations
+pnpm run db:push           # Push to database
+pnpm run db:studio         # Open Drizzle Studio
 
 # Design system
-npm run demo --workspace=@moltnet/design-system   # Component showcase (Vite dev server)
+pnpm --filter @moltnet/design-system demo   # Component showcase (Vite dev server)
 
 # Dev servers (not yet built)
-npm run dev:mcp           # MCP server
-npm run dev:api           # REST API
+pnpm run dev:mcp           # MCP server
+pnpm run dev:api           # REST API
 ```
 
 Pre-commit hooks run automatically via husky:
@@ -215,11 +217,11 @@ Pre-commit hooks run automatically via husky:
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targeting `main`:
 
-1. **lint** — `npm run lint`
+1. **lint** — `pnpm run lint`
 2. **typecheck** — `tsc --noEmit`
-3. **test** — `npm test` (38 tests across 5 suites)
+3. **test** — `pnpm run test` (50 tests across 6 suites)
 4. **journal** — requires `docs/journal/` entries on PRs from `claude/` branches (warns if no handoff)
-5. **build** — `npm run build` (depends on lint, typecheck, test passing)
+5. **build** — `pnpm run build` (depends on lint, typecheck, test passing)
 
 ## Observability
 
@@ -254,7 +256,7 @@ The `@moltnet/design-system` library (`libs/design-system/`) is the single sourc
 ### Running the demo
 
 ```bash
-npm run demo --workspace=@moltnet/design-system
+pnpm --filter @moltnet/design-system demo
 ```
 
 This starts a Vite dev server with a visual showcase of every token and component. Open it to see exactly how things should look before writing UI code.
@@ -369,7 +371,7 @@ echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
 Or pass it inline:
 
 ```bash
-DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f .env.public -f .env -- <command>
+DOTENV_PRIVATE_KEY="<key>" pnpm exec dotenvx run -f .env.public -f .env -- <command>
 ```
 
 ### Reading variables
@@ -379,8 +381,8 @@ DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f .env.public -f .env -- <c
 cat .env.public
 
 # Secrets — requires private key
-npx @dotenvx/dotenvx get                    # all decrypted values from .env
-npx @dotenvx/dotenvx get OIDC_PAIRWISE_SALT # single value
+pnpm exec dotenvx get                    # all decrypted values from .env
+pnpm exec dotenvx get OIDC_PAIRWISE_SALT # single value
 ```
 
 ### Adding or updating a variable
@@ -389,7 +391,7 @@ npx @dotenvx/dotenvx get OIDC_PAIRWISE_SALT # single value
 # Non-secrets → edit .env.public directly (plain text)
 
 # Secrets → use dotenvx (encrypts automatically)
-npx @dotenvx/dotenvx set KEY value
+pnpm exec dotenvx set KEY value
 ```
 
 Never use `dotenvx encrypt` manually — it would flag `.env.public` values.
@@ -400,7 +402,7 @@ are ignored by the hook.
 ### Running commands with env loaded
 
 ```bash
-npx @dotenvx/dotenvx run -f .env.public -f .env -- <command>
+pnpm exec dotenvx run -f .env.public -f .env -- <command>
 ```
 
 dotenvx loads `.env.public` as plain values and decrypts `.env` secrets,
@@ -434,10 +436,10 @@ injecting both into the child process environment.
 
 ```bash
 # Dry run — writes infra/ory/project.resolved.json
-npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh
+pnpm exec dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh
 
 # Apply to Ory Network (requires ory CLI)
-npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
+pnpm exec dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
 ```
 
 ### Variables not yet in env files
@@ -445,7 +447,7 @@ npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
 These will be added as the corresponding services come online:
 
 ```bash
-# Secrets → add to .env with: npx @dotenvx/dotenvx set KEY value
+# Secrets → add to .env with: pnpm exec dotenvx set KEY value
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.dlvifjrhhivjwfkivjgr.supabase.co:5432/postgres
 SUPABASE_SERVICE_KEY=xxx
 ORY_API_KEY=ory_pat_xxx
@@ -507,7 +509,8 @@ When creating a new `libs/` or `apps/` package:
 1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `outDir` and `rootDir`
 2. Add `"test": "vitest --passWithNoTests"` if no tests exist yet
 3. Add path alias in root `tsconfig.json` under `compilerOptions.paths`
-4. Run `npm install` to register the workspace
+4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
+5. Run `pnpm install` to register the workspace
 
 ## Workstream Status
 

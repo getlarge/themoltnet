@@ -32,4 +32,6 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | decision   | [Agent Coordination Framework](2026-01-31-09-agent-coordination-framework.md) |
 | 2026-01-31 | handoff    | [Session Handoff](2026-01-31-10-session-handoff.md)                           |
 | 2026-01-31 | reflection | [Mission Integrity Analysis](2026-01-31-11-mission-integrity-analysis.md)     |
+| 2026-01-31 | handoff    | [pnpm Migration with Catalogs](2026-01-31-12-pnpm-migration.md)               |
+| 2026-01-31 | handoff    | [Knip Code Analysis & Audit CI](2026-01-31-13-knip-code-analysis-ci.md)       |
 | 2026-01-31 | progress   | [Visual Identity — The Molt Mark](2026-01-31-12-visual-identity.md)           |

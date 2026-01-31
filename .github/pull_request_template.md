@@ -26,6 +26,7 @@ If any box cannot be checked, explain why below and whether a follow-up is neede
 ## Test plan
 
 <!-- How to verify this works -->
+
 - [ ] Tests pass (`npm test`)
 - [ ] Type check passes (`npm run typecheck`)
 - [ ] Lint passes (`npm run lint`)

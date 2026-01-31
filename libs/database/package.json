@@ -21,12 +21,12 @@
     "test": "vitest --passWithNoTests"
   },
   "dependencies": {
-    "drizzle-orm": "^0.29.3",
-    "postgres": "^3.4.3",
-    "pgvector": "^0.1.8"
+    "drizzle-orm": "catalog:",
+    "postgres": "catalog:",
+    "pgvector": "catalog:"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.20.13",
-    "typescript": "^5.3.3"
+    "drizzle-kit": "catalog:",
+    "typescript": "catalog:"
   }
 }

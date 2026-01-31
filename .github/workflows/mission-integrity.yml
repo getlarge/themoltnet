@@ -15,34 +15,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
 
       # Verify @noble/ed25519 package integrity via lockfile
       - name: Check @noble/ed25519 integrity
         run: |
           node << 'SCRIPT'
-          const lock = require('./package-lock.json');
-          const pkg = lock.packages['node_modules/@noble/ed25519']
-            || (lock.dependencies && lock.dependencies['@noble/ed25519']);
-          if (!pkg) {
-            console.error('@noble/ed25519 not found in lockfile');
+          const fs = require('fs');
+          const lockfile = fs.readFileSync('./pnpm-lock.yaml', 'utf8');
+
+          // pnpm-lock.yaml uses '@noble/ed25519@<version>': as package keys
+          const versionMatch = lockfile.match(/'@noble\/ed25519@([\d.]+)':/);
+          if (!versionMatch) {
+            console.error('@noble/ed25519 not found in pnpm-lock.yaml');
             process.exit(1);
           }
-          console.log('@noble/ed25519 version:', pkg.version);
-          console.log('integrity:', pkg.integrity);
-          if (!pkg.integrity) {
-            console.error('No integrity hash found - lockfile may be corrupted');
+          console.log('@noble/ed25519 version:', versionMatch[1]);
+
+          // integrity hash follows the resolution block for that package
+          const integrityMatch = lockfile.match(
+            new RegExp("'@noble/ed25519@" + versionMatch[1].replace(/\./g, '\\.') + "':[\\s\\S]*?integrity:\\s+(sha\\S+)")
+          );
+          if (integrityMatch) {
+            // Strip trailing comma if present
+            const integrity = integrityMatch[1].replace(/,$/, '');
+            console.log('integrity:', integrity);
+          } else {
+            console.error('No integrity hash found — lockfile may be corrupted');
             process.exit(1);
           }
           SCRIPT
 
       # Run frozen test vectors — these fail if the crypto implementation changes
       - name: Run Ed25519 test vectors
-        run: npm test --workspace=@moltnet/crypto-service
+        run: pnpm --filter @moltnet/crypto-service test
 
   # Scan for new external service dependencies in the diff
   centralization-scan:
@@ -80,6 +91,7 @@ jobs:
             "typescriptlang.org"
             "drizzle.team"
             "vitest.dev"
+            "pnpm.io"
           )
 
           # Build grep exclusion pattern for known URLs
@@ -125,9 +137,9 @@ jobs:
             done
             echo "" >> "$GITHUB_STEP_SUMMARY"
 
-            # Show added dependencies
+            # Show added dependencies (version strings or catalog: references)
             ADDED_DEPS=$(git diff "$BASE_SHA".."$HEAD_SHA" -- '**/package.json' \
-              | grep -E '^\+.*"[^"]+"\s*:\s*"[\^~]?[0-9]' \
+              | grep -E '^\+.*"[^"]+"\s*:\s*"([\^~]?[0-9]|catalog:)' \
               | grep -v '^\+\+\+' || true)
 
             if [ -n "$ADDED_DEPS" ]; then

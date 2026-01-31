@@ -17,9 +17,9 @@
     "test": "vitest --passWithNoTests"
   },
   "dependencies": {
-    "@noble/ed25519": "^2.0.0"
+    "@noble/ed25519": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "catalog:"
   }
 }
