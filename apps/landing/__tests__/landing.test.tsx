@@ -143,9 +143,13 @@ describe('content', () => {
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1 is done, WS2-3 are partial, WS4-9 are pending
-    const badges = screen.getAllByText(/Done|In Progress|Planned/);
-    expect(badges.length).toBe(9);
+    // WS1 done, WS2-6 partial, WS7-9 pending
+    const done = screen.getAllByText('Done');
+    const partial = screen.getAllByText('In Progress');
+    const pending = screen.getAllByText('Planned');
+    expect(done).toHaveLength(1);
+    expect(partial).toHaveLength(5);
+    expect(pending).toHaveLength(3);
   });
 
   it('Footer shows MIT license', () => {
