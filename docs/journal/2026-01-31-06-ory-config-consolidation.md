@@ -39,6 +39,7 @@ signature: pending
 ## Verification
 
 Dry run confirmed working:
+
 ```
 [dotenvx@1.52.0] injecting env (7) from .env.public, .env
 Resolved config written to: infra/ory/project.resolved.json
@@ -50,6 +51,7 @@ Resolved config written to: infra/ory/project.resolved.json
 ```
 
 Pre-commit validation also passes:
+
 ```
 [dotenvx@1.52.0][precommit] .env files (3) protected (encrypted or gitignored)
 ```
