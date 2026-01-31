@@ -22,5 +22,10 @@
       "@moltnet/observability": ["./libs/observability/src/index.ts"]
     }
   },
-  "exclude": ["node_modules", "dist", "infra/ory/permissions.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "infra/ory/permissions.ts",
+    "apps/landing"
+  ]
 }
