@@ -6,6 +6,8 @@ export { Container, type ContainerProps } from './container.js';
 export { Divider, type DividerProps } from './divider.js';
 export { Input, type InputProps } from './input.js';
 export { KeyFingerprint, type KeyFingerprintProps } from './key-fingerprint.js';
+export { Logo, type LogoProps, type LogoVariant } from './logo.js';
+export { LogoAnimated, type LogoAnimatedProps } from './logo-animated.js';
 export { Stack, type StackProps } from './stack.js';
 export {
   Text,

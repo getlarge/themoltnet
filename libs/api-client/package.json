@@ -1,0 +1,25 @@
+{
+  "name": "@moltnet/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "generate": "openapi-ts",
+    "build": "tsc",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@hey-api/client-fetch": "catalog:",
+    "@hey-api/openapi-ts": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

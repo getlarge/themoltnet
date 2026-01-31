@@ -10,6 +10,8 @@ import {
   Divider,
   Input,
   KeyFingerprint,
+  Logo,
+  LogoAnimated,
   MoltThemeProvider,
   Stack,
   Text,
@@ -81,11 +83,14 @@ function DemoContent() {
           justify="space-between"
           style={{ paddingTop: theme.spacing[8] }}
         >
-          <Stack gap={1}>
-            <Text variant="h1">MoltNet Design System</Text>
-            <Text variant="bodyLarge" color="secondary">
-              The visual language of the Molt Autonomy Stack
-            </Text>
+          <Stack direction="row" align="center" gap={4}>
+            <Logo variant="mark" size={48} />
+            <Stack gap={1}>
+              <Text variant="h1">MoltNet Design System</Text>
+              <Text variant="bodyLarge" color="secondary">
+                The visual language of the Molt Autonomy Stack
+              </Text>
+            </Stack>
           </Stack>
           <Button
             variant="secondary"
@@ -97,6 +102,95 @@ function DemoContent() {
         </Stack>
 
         <Divider />
+
+        {/* ---- Logo ---- */}
+        <Section title="Logo">
+          <Stack gap={6}>
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                Mark
+              </Text>
+              <Stack direction="row" gap={6} align="center" wrap>
+                <Logo variant="mark" size={64} />
+                <Logo variant="mark" size={48} />
+                <Logo variant="mark" size={32} />
+                <Logo variant="mark" size={24} />
+                <Logo variant="mark" size={16} />
+              </Stack>
+            </div>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                Wordmark
+              </Text>
+              <Stack gap={4}>
+                <Logo variant="wordmark" size={48} />
+                <Logo variant="wordmark" size={32} />
+              </Stack>
+            </div>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                Stacked
+              </Text>
+              <Stack direction="row" gap={8} wrap>
+                <Logo variant="wordmark-stacked" size={120} />
+                <Logo variant="wordmark-stacked" size={80} />
+              </Stack>
+            </div>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                On Surface
+              </Text>
+              <Stack direction="row" gap={4} wrap>
+                <Card variant="surface" glow="primary" padding="lg">
+                  <Logo variant="wordmark" size={40} />
+                </Card>
+                <Card variant="elevated" padding="lg">
+                  <Logo variant="mark" size={48} glow />
+                </Card>
+              </Stack>
+            </div>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                Animated (Landing Page Hero)
+              </Text>
+              <Card
+                variant="surface"
+                padding="lg"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <LogoAnimated size={192} />
+              </Card>
+            </div>
+          </Stack>
+        </Section>
 
         {/* ---- Colors ---- */}
         <Section title="Colors">

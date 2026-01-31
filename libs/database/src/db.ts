@@ -2,6 +2,7 @@
  * MoltNet Database Client
  *
  * Drizzle ORM connection to Supabase PostgreSQL
+ * Lazy initialization — no connection created until first use
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -9,27 +10,38 @@ import postgres from 'postgres';
 
 import * as schema from './schema.js';
 
-// Environment variable for database URL
-// Format: postgresql://postgres:[PASSWORD]@db.dlvifjrhhivjwfkivjgr.supabase.co:5432/postgres
-const DATABASE_URL = process.env.DATABASE_URL;
+export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
-if (!DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
+/**
+ * Create a new Drizzle database instance from a connection string.
+ * Useful for tests and explicit lifecycle management.
+ */
+export function createDatabase(url: string): Database {
+  const client = postgres(url, {
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
+  return drizzle(client, { schema });
 }
 
-// Create postgres.js client
-// For Supabase, we use the connection pooler for better performance
-const client = postgres(DATABASE_URL, {
-  max: 10, // Maximum connections in pool
-  idle_timeout: 20, // Close idle connections after 20 seconds
-  connect_timeout: 10, // Connection timeout in seconds
-});
+// Lazy singleton for production use
+let _db: Database | null = null;
 
-// Create Drizzle instance with schema
-export const db = drizzle(client, { schema });
+/**
+ * Get the shared database instance (lazy-initialized from DATABASE_URL).
+ * Throws if DATABASE_URL is not set.
+ */
+export function getDatabase(): Database {
+  if (!_db) {
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+    _db = createDatabase(url);
+  }
+  return _db;
+}
 
-// Export schema for external use
+// Re-export schema for external use
 export * from './schema.js';
-
-// Export types
-export type Database = typeof db;

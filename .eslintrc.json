@@ -105,5 +105,12 @@
       }
     }
   ],
-  "ignorePatterns": ["dist", "node_modules", "*.js", "*.cjs", "*.mjs"]
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "*.js",
+    "*.cjs",
+    "*.mjs",
+    "libs/api-client/src/generated"
+  ]
 }

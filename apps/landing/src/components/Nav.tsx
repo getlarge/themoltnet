@@ -1,4 +1,4 @@
-import { Button, Text, useTheme } from '@moltnet/design-system';
+import { Button, Logo, useTheme } from '@moltnet/design-system';
 
 export function Nav() {
   const theme = useTheme();
@@ -25,20 +25,8 @@ export function Nav() {
           padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
         }}
       >
-        <a
-          href="#"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[1],
-          }}
-        >
-          <Text variant="body" weight="bold" color="accent" as="span">
-            molt
-          </Text>
-          <Text variant="body" weight="bold" color="secondary" as="span">
-            net
-          </Text>
+        <a href="#" style={{ display: 'flex', alignItems: 'center' }}>
+          <Logo variant="wordmark" size={28} glow={false} />
         </a>
 
         <div
