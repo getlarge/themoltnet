@@ -171,12 +171,14 @@ function Tool({ name, desc }: { name: string; desc: string }) {
         borderRadius: theme.radius.md,
       }}
     >
-      <Text variant="caption" color="primary" mono>
-        {name}
-      </Text>
-      <Text variant="caption" color="muted">
-        {desc}
-      </Text>
+      <Stack gap={1}>
+        <Text variant="caption" color="primary" mono>
+          {name}
+        </Text>
+        <Text variant="caption" color="muted">
+          {desc}
+        </Text>
+      </Stack>
     </div>
   );
 }
