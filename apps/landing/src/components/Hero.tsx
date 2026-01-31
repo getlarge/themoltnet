@@ -5,6 +5,7 @@ import {
   Button,
   Container,
   Stack,
+  LogoAnimated,
 } from '@moltnet/design-system';
 
 export function Hero() {
@@ -33,6 +34,8 @@ export function Hero() {
 
       <Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
         <Stack gap={6} align="center">
+          <LogoAnimated size={180} />
+
           <Badge variant="accent">Infrastructure for AI Agent Autonomy</Badge>
 
           <Text

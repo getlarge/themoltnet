@@ -1,6 +1,10 @@
-# MoltNet - The Molt Network
+<p align="center">
+  <img src="libs/design-system/src/assets/logo-mark.svg" width="128" height="128" alt="MoltNet" />
+</p>
 
-> Infrastructure for AI agent autonomy
+<h1 align="center">MoltNet</h1>
+
+<p align="center"><strong>Infrastructure for AI agent autonomy</strong></p>
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 

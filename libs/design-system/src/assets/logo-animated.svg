@@ -1,0 +1,273 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    The Molt Mark — Animated Premium
+
+    Timeline:
+      0.0s  — silence
+      0.2s  — ambient glow fades in
+      0.4s  — inner detail ring fades in
+      0.6s  — outer ring begins drawing on (1.6s duration)
+      1.4s  — gap endpoint nodes appear
+      1.8s  — diamond flash + scale materialization
+      2.2s  — radial lines fade in
+      2.4s  — ring draw completes, ring bloom appears
+      2.8s  — orbital particles begin
+      3.0s  — shedding fragments begin
+      3.2s  — glow enters breathing loop
+  -->
+  <defs>
+    <linearGradient id="a-ring-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ede0" />
+      <stop offset="45%" stop-color="#00d4c8" />
+      <stop offset="100%" stop-color="#00b8ae" />
+    </linearGradient>
+
+    <filter id="a-glow-wide" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="24" />
+    </filter>
+    <filter id="a-glow-tight" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10" />
+    </filter>
+    <filter id="a-glow-flash" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="36" />
+    </filter>
+    <filter id="a-glow-ring" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+    <filter id="a-glow-node" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+    <filter id="a-glow-particle" x="-300%" y="-300%" width="700%" height="700%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+  </defs>
+
+  <!-- ================================================================ -->
+  <!-- AMBIENT: Background radiance — fades in first                    -->
+  <!-- ================================================================ -->
+  <circle cx="256" cy="256" r="120" fill="#e6a817" opacity="0" filter="url(#a-glow-wide)">
+    <animate attributeName="opacity" values="0;0.035" dur="0.8s" begin="0.2s" fill="freeze" />
+    <animate attributeName="opacity" values="0.025;0.045;0.025" dur="4s" begin="3.2s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="256" cy="256" r="200" fill="#00d4c8" opacity="0" filter="url(#a-glow-wide)">
+    <animate attributeName="opacity" values="0;0.02" dur="0.8s" begin="0.2s" fill="freeze" />
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- INNER RINGS: Detail rings fade in                                -->
+  <!-- ================================================================ -->
+  <circle cx="256" cy="256" r="152" fill="none" stroke="#00d4c8" stroke-width="1" stroke-dasharray="8 12" opacity="0">
+    <animate attributeName="opacity" values="0;0.2" dur="0.6s" begin="0.4s" fill="freeze" />
+  </circle>
+  <circle cx="256" cy="256" r="144" fill="none" stroke="#00d4c8" stroke-width="0.5" opacity="0">
+    <animate attributeName="opacity" values="0;0.08" dur="0.6s" begin="0.5s" fill="freeze" />
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- RING BLOOM: Glow behind main ring — appears as ring completes    -->
+  <!-- ================================================================ -->
+  <circle
+    cx="256" cy="256" r="196"
+    fill="none" stroke="#00d4c8" stroke-width="40"
+    stroke-linecap="round"
+    stroke-dasharray="985.20 246.30"
+    transform="rotate(-54, 256, 256)"
+    opacity="0"
+    filter="url(#a-glow-ring)"
+  >
+    <animate attributeName="opacity" values="0;0.07" dur="0.6s" begin="2.2s" fill="freeze" />
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- MAIN RING: Draws itself on                                       -->
+  <!-- ================================================================ -->
+  <circle
+    cx="256" cy="256" r="196"
+    fill="none"
+    stroke="url(#a-ring-grad)"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-dasharray="985.20 246.30"
+    stroke-dashoffset="985.20"
+    transform="rotate(-54, 256, 256)"
+    opacity="0"
+  >
+    <animate attributeName="opacity" values="0;1" dur="0.2s" begin="0.6s" fill="freeze" />
+    <animate
+      attributeName="stroke-dashoffset"
+      values="985.20;0"
+      dur="1.6s"
+      begin="0.6s"
+      fill="freeze"
+      calcMode="spline"
+      keySplines="0.25 0.1 0.25 1"
+    />
+  </circle>
+
+  <!-- Inner edge highlight — draws with the ring -->
+  <circle
+    cx="256" cy="256" r="183"
+    fill="none" stroke="#00f0e2" stroke-width="0.75"
+    stroke-linecap="round"
+    stroke-dasharray="985.20 246.30"
+    stroke-dashoffset="985.20"
+    transform="rotate(-54, 256, 256)"
+    opacity="0"
+  >
+    <animate attributeName="opacity" values="0;0.2" dur="0.2s" begin="0.8s" fill="freeze" />
+    <animate
+      attributeName="stroke-dashoffset"
+      values="985.20;0"
+      dur="1.6s"
+      begin="0.6s"
+      fill="freeze"
+      calcMode="spline"
+      keySplines="0.25 0.1 0.25 1"
+    />
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- GAP NODES: Pop in near end of ring draw                          -->
+  <!-- ================================================================ -->
+
+  <!-- Right node glow -->
+  <circle cx="371" cy="97" r="4" fill="#00d4c8" opacity="0" filter="url(#a-glow-node)">
+    <animate attributeName="opacity" values="0;0.15" dur="0.3s" begin="1.4s" fill="freeze" />
+  </circle>
+  <!-- Right node -->
+  <circle cx="371" cy="97" r="3" fill="#00ede0" opacity="0">
+    <animate attributeName="opacity" values="0;0.8;0.6" dur="0.5s" begin="1.4s" fill="freeze" />
+    <animate attributeName="r" values="0;4;3" dur="0.4s" begin="1.4s" fill="freeze" />
+  </circle>
+
+  <!-- Left node glow -->
+  <circle cx="141" cy="97" r="4" fill="#00d4c8" opacity="0" filter="url(#a-glow-node)">
+    <animate attributeName="opacity" values="0;0.15" dur="0.3s" begin="2.0s" fill="freeze" />
+  </circle>
+  <!-- Left node -->
+  <circle cx="141" cy="97" r="3" fill="#00ede0" opacity="0">
+    <animate attributeName="opacity" values="0;0.8;0.6" dur="0.5s" begin="2.0s" fill="freeze" />
+    <animate attributeName="r" values="0;4;3" dur="0.4s" begin="2.0s" fill="freeze" />
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- DIAMOND FLASH: Bright burst at materialization                   -->
+  <!-- ================================================================ -->
+  <polygon
+    points="256,206 306,256 256,306 206,256"
+    fill="#f5c030"
+    opacity="0"
+    filter="url(#a-glow-flash)"
+  >
+    <animate attributeName="opacity" values="0;0.7;0" dur="0.8s" begin="1.8s" fill="freeze" />
+  </polygon>
+
+  <!-- ================================================================ -->
+  <!-- DIAMOND GLOW: Layered bloom — appears then breathes              -->
+  <!-- ================================================================ -->
+  <polygon points="256,206 306,256 256,306 206,256" fill="#e6a817" opacity="0" filter="url(#a-glow-wide)">
+    <animate attributeName="opacity" values="0;0.12" dur="0.4s" begin="1.8s" fill="freeze" id="dg1" />
+    <animate attributeName="opacity" values="0.08;0.15;0.08" dur="3s" begin="dg1.end" repeatCount="indefinite" />
+  </polygon>
+  <polygon points="256,206 306,256 256,306 206,256" fill="#e6a817" opacity="0" filter="url(#a-glow-tight)">
+    <animate attributeName="opacity" values="0;0.25" dur="0.4s" begin="1.8s" fill="freeze" id="dg2" />
+    <animate attributeName="opacity" values="0.2;0.35;0.2" dur="3s" begin="dg2.end" repeatCount="indefinite" />
+  </polygon>
+
+  <!-- ================================================================ -->
+  <!-- FACETED DIAMOND: Scales from 0 with elastic bounce               -->
+  <!-- ================================================================ -->
+  <g transform-origin="256 256" opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.3s" begin="1.8s" fill="freeze" />
+    <animateTransform
+      attributeName="transform"
+      type="scale"
+      values="0;1.18;0.95;1.02;1"
+      dur="0.7s"
+      begin="1.8s"
+      fill="freeze"
+      calcMode="spline"
+      keySplines="0.34 1.56 0.64 1; 0.25 0.1 0.25 1; 0.42 0 0.58 1; 0.42 0 0.58 1"
+    />
+
+    <!-- Top-right facet — highlight -->
+    <polygon points="256,206 306,256 256,256" fill="#f0b829" />
+    <!-- Bottom-right facet -->
+    <polygon points="306,256 256,306 256,256" fill="#e6a817" />
+    <!-- Bottom-left facet — shadow -->
+    <polygon points="256,306 206,256 256,256" fill="#c89010" />
+    <!-- Top-left facet -->
+    <polygon points="206,256 256,206 256,256" fill="#d9a015" />
+
+    <!-- Edge highlight -->
+    <polygon
+      points="256,206 306,256 256,306 206,256"
+      fill="none" stroke="#f5c838" stroke-width="1" stroke-linejoin="miter" opacity="0.35"
+    />
+    <!-- Facet cross -->
+    <line x1="256" y1="206" x2="256" y2="306" stroke="#f5c838" stroke-width="0.5" opacity="0.15" />
+    <line x1="206" y1="256" x2="306" y2="256" stroke="#f5c838" stroke-width="0.5" opacity="0.15" />
+  </g>
+
+  <!-- ================================================================ -->
+  <!-- RADIAL LINES: Fade in after diamond appears                      -->
+  <!-- ================================================================ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;1" dur="0.5s" begin="2.2s" fill="freeze" />
+    <line x1="256" y1="200" x2="256" y2="164" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+    <line x1="312" y1="256" x2="348" y2="256" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+    <line x1="256" y1="312" x2="256" y2="348" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+    <line x1="200" y1="256" x2="164" y2="256" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+  </g>
+
+  <!-- ================================================================ -->
+  <!-- ORBITAL PARTICLES: Trace the ring path                           -->
+  <!-- ================================================================ -->
+  <circle id="a-orbit" cx="256" cy="256" r="196" fill="none" stroke="none" transform="rotate(-54, 256, 256)" />
+
+  <!-- Teal particle -->
+  <circle r="5" fill="#00ede0" opacity="0" filter="url(#a-glow-particle)">
+    <animate attributeName="opacity" values="0;0.6;0.6;0" keyTimes="0;0.04;0.88;1" dur="4.5s" begin="2.8s" repeatCount="indefinite" />
+    <animateMotion dur="4.5s" begin="2.8s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#a-orbit" />
+    </animateMotion>
+  </circle>
+
+  <!-- Amber particle — slower, opposite feel -->
+  <circle r="3.5" fill="#e6a817" opacity="0" filter="url(#a-glow-particle)">
+    <animate attributeName="opacity" values="0;0.45;0.45;0" keyTimes="0;0.04;0.88;1" dur="6s" begin="3.5s" repeatCount="indefinite" />
+    <animateMotion dur="6s" begin="3.5s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#a-orbit" />
+    </animateMotion>
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- SHEDDING FRAGMENTS: Drift from the gap                           -->
+  <!-- ================================================================ -->
+
+  <!-- Fragment left — drifts up-left from gap -->
+  <circle cx="155" cy="100" r="3" fill="#00d4c8" opacity="0">
+    <animate attributeName="opacity" values="0;0.4;0.2;0" dur="3.5s" begin="3.0s" repeatCount="indefinite" />
+    <animateTransform attributeName="transform" type="translate" values="0,0; -14,-20; -10,-30" dur="3.5s" begin="3.0s" repeatCount="indefinite" />
+  </circle>
+
+  <!-- Fragment right — drifts up-right -->
+  <circle cx="360" cy="95" r="2" fill="#00d4c8" opacity="0">
+    <animate attributeName="opacity" values="0;0.3;0.15;0" dur="4s" begin="3.4s" repeatCount="indefinite" />
+    <animateTransform attributeName="transform" type="translate" values="0,0; 12,-16; 16,-26" dur="4s" begin="3.4s" repeatCount="indefinite" />
+  </circle>
+
+  <!-- Fragment center — tiny, floats straight up from gap -->
+  <circle cx="256" cy="62" r="1.5" fill="#00ede0" opacity="0">
+    <animate attributeName="opacity" values="0;0.3;0.1;0" dur="4.5s" begin="3.8s" repeatCount="indefinite" />
+    <animateTransform attributeName="transform" type="translate" values="0,0; 1,-22; -1,-36" dur="4.5s" begin="3.8s" repeatCount="indefinite" />
+  </circle>
+
+  <!-- ================================================================ -->
+  <!-- AMBIENT HALO: Subtle pulsing ring                                -->
+  <!-- ================================================================ -->
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#00d4c8" stroke-width="1" opacity="0">
+    <animate attributeName="opacity" values="0;0.1;0.04;0.1" dur="4s" begin="2.8s" repeatCount="indefinite" />
+    <animate attributeName="r" values="196;200;196" dur="4s" begin="2.8s" repeatCount="indefinite" />
+  </circle>
+</svg>
