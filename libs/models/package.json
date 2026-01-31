@@ -17,9 +17,9 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.32.9"
+    "@sinclair/typebox": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "catalog:"
   }
 }

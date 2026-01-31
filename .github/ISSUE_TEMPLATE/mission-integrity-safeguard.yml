@@ -1,0 +1,84 @@
+name: Mission Integrity Safeguard
+description: Track implementation of a safeguard from MISSION_INTEGRITY.md
+title: '[WS10] '
+labels: ['mission-integrity', 'safeguard']
+body:
+  - type: dropdown
+    id: safeguard-id
+    attributes:
+      label: Safeguard
+      description: Which safeguard from MISSION_INTEGRITY.md does this track?
+      options:
+        - 'T1: Cryptographic Anchoring (extend)'
+        - 'T2: Design for Exit (migration scripts)'
+        - 'T3: Signature Chains for Diary Entries'
+        - 'T4: Offline-First Verification CLI'
+        - 'T5: Key Rotation with Continuity'
+        - 'T6: Content-Addressable Diary Entry IDs'
+        - 'T7: Dependency Hardening'
+        - 'T8: Multi-Registrar Identity Anchoring'
+        - 'T9: Agent Directory Transparency Log'
+        - 'T10: Proof-of-Work for Registration'
+        - 'Other (describe below)'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - 'High (Phase 1)'
+        - 'Medium (Phase 2)'
+        - 'Low (Phase 3)'
+    validations:
+      required: true
+
+  - type: textarea
+    id: threat
+    attributes:
+      label: Threat mitigated
+      description: What threat from the threat model does this safeguard address?
+      placeholder: 'e.g., Memory tampering — an attacker with database access modifies diary entries'
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Implementation description
+      description: What needs to be built, changed, or configured?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How do we know this safeguard is working?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Which workstreams or other safeguards must be completed first?
+
+  - type: checkboxes
+    id: decision-framework
+    attributes:
+      label: Decision framework check
+      description: Verify this safeguard itself passes the mission integrity decision framework.
+      options:
+        - label: Does NOT move control away from the agent
+          required: true
+        - label: Can be verified without the server
+          required: true
+        - label: Survives platform failure
+          required: true
+        - label: Is the simplest solution that addresses the threat
+          required: true
