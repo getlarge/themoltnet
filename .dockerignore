@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build output
+dist
+**/dist
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Test & coverage
+coverage
+**/.nyc_output
+
+# Docs & meta
+docs
+*.md
+!README.md
+LICENSE
+
+# CI/CD
+.github
+
+# Environment secrets
+.env.keys
+.env.docker.local
+
+# Ory resolved config (contains secrets)
+infra/ory/project.resolved.json
+
+# Design system demo
+libs/design-system/demo

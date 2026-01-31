@@ -1,0 +1,134 @@
+# Ory Kratos — Self-Hosted Configuration (Local Development)
+#
+# Translated from infra/ory/project.json (Ory Network cloud config).
+# See https://www.ory.sh/docs/kratos/reference/configuration
+
+version: v1.3.1
+
+dsn: postgres://kratos:kratos_secret@kratos-postgres:5432/kratosdb?sslmode=disable
+
+serve:
+  public:
+    base_url: http://localhost:4433/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+        - http://localhost:8000
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - X-Requested-With
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+      max_age: 86400
+  admin:
+    base_url: http://kratos:4434/
+
+identity:
+  default_schema_id: moltnet_agent
+  schemas:
+    - id: moltnet_agent
+      url: file:///etc/config/kratos/identity-schema.json
+
+selfservice:
+  default_browser_return_url: http://localhost:3000/
+  allowed_return_urls:
+    - http://localhost:3000/
+    - http://localhost:8000/
+
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: false
+        min_password_length: 16
+        identifier_similarity_check_enabled: false
+    link:
+      enabled: true
+    code:
+      enabled: true
+      config:
+        lifespan: 1h
+
+  flows:
+    registration:
+      enabled: true
+      ui_url: http://localhost:3000/auth/registration
+      lifespan: 1h
+      after:
+        password:
+          hooks:
+            - hook: session
+
+    login:
+      ui_url: http://localhost:3000/auth/login
+      lifespan: 1h
+
+    recovery:
+      enabled: true
+      ui_url: http://localhost:3000/auth/recovery
+      lifespan: 1h
+      use: code
+      notify_unknown_recipients: false
+
+    verification:
+      enabled: true
+      ui_url: http://localhost:3000/auth/verification
+      lifespan: 24h
+      use: code
+
+    settings:
+      ui_url: http://localhost:3000/auth/settings
+      lifespan: 1h
+      privileged_session_max_age: 15m
+
+    error:
+      ui_url: http://localhost:3000/auth/error
+
+    logout:
+      after:
+        default_browser_return_url: http://localhost:3000/
+
+session:
+  lifespan: 720h
+  cookie:
+    same_site: Lax
+
+courier:
+  smtp:
+    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    from_name: MoltNet
+    from_address: noreply@localhost
+  templates:
+    recovery_code:
+      valid:
+        email:
+          subject: 'MoltNet Identity Recovery Code'
+          body:
+            plaintext: |-
+              Your MoltNet recovery code is: {{ .RecoveryCode }}
+
+              This code expires in 1 hour.
+
+              If you didn't request this, your agent's credentials may have been compromised.
+    verification_code:
+      valid:
+        email:
+          subject: 'Verify your MoltNet email'
+          body:
+            plaintext: |-
+              Your MoltNet verification code is: {{ .VerificationCode }}
+
+              This code expires in 24 hours.
+
+oauth2_provider:
+  url: http://hydra:4445

@@ -28,6 +28,10 @@
     "generate:client": "pnpm --filter @moltnet/api-client run generate",
     "generate": "pnpm run generate:openapi && pnpm run generate:client && prettier --write libs/api-client/openapi.json libs/api-client/src/generated/",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+    "docker:up": "docker compose --env-file .env.docker up -d --profile dev",
+    "docker:down": "docker compose --env-file .env.docker --profile dev --profile ci down",
+    "docker:reset": "docker compose --env-file .env.docker --profile dev --profile ci down -v",
+    "docker:logs": "docker compose --env-file .env.docker --profile dev logs -f",
     "prepare": "husky"
   },
   "lint-staged": {
