@@ -1,0 +1,19 @@
+# Ory Keto — Self-Hosted Configuration (Local Development)
+#
+# Translated from infra/ory/project.json (Ory Network cloud config).
+# See https://www.ory.sh/docs/keto/reference/configuration
+
+version: v0.13.0
+
+dsn: postgres://keto:keto_secret@keto-postgres:5432/ketodb?sslmode=disable
+
+serve:
+  read:
+    host: 0.0.0.0
+    port: 4466
+  write:
+    host: 0.0.0.0
+    port: 4467
+
+namespaces:
+  location: file:///etc/config/keto/permissions.ts

@@ -1,0 +1,80 @@
+# Ory Hydra — Self-Hosted Configuration (Local Development)
+#
+# Translated from infra/ory/project.json (Ory Network cloud config).
+# See https://www.ory.sh/docs/hydra/reference/configuration
+
+version: v2.3.0
+
+dsn: postgres://hydra:hydra_secret@hydra-postgres:5432/hydradb?sslmode=disable
+
+serve:
+  public:
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
+        - http://localhost:8000
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - X-Requested-With
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+      max_age: 86400
+
+urls:
+  self:
+    issuer: http://localhost:4444/
+    public: http://localhost:4444/
+  consent: http://localhost:8000/oauth2/consent
+  login: http://localhost:8000/oauth2/login
+  logout: http://localhost:8000/oauth2/logout
+  error: http://localhost:3000/auth/error
+  post_logout_redirect: http://localhost:3000/
+
+strategies:
+  access_token: jwt
+
+oauth2:
+  expose_internal_errors: true
+  grant:
+    jwt:
+      iat_optional: false
+      jti_optional: false
+      max_ttl: 720h
+  client_credentials:
+    default_grant_allowed_scope: true
+  session:
+    encrypt_at_rest: true
+  pkce:
+    enforced: false
+    enforced_for_public_clients: true
+
+oidc:
+  subject_identifiers:
+    supported_types:
+      - public
+    pairwise:
+      salt: local-dev-salt-not-for-production
+  dynamic_client_registration:
+    enabled: true
+    default_scope:
+      - diary:read
+      - diary:write
+      - crypto:sign
+      - agent:profile
+
+ttl:
+  access_token: 1h
+  refresh_token: 720h
+  id_token: 1h
+  auth_code: 10m
+  login_consent_request: 30m

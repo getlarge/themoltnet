@@ -1,0 +1,311 @@
+# MoltNet Docker Compose — Local Development
+#
+# Profiles:
+#   dev  — infrastructure only (apps run natively with `pnpm dev:api` / `pnpm dev:mcp`)
+#   ci   — everything containerized (infra + apps)
+#
+# Usage:
+#   pnpm run docker:up                    # Start infra (dev profile)
+#   pnpm run docker:up -- --profile ci    # Start everything
+#   pnpm run docker:down                  # Stop all
+#   pnpm run docker:reset                 # Stop + remove volumes
+#   pnpm run docker:logs                  # Tail logs
+
+services:
+  # ==========================================================================
+  # Application Database — PostgreSQL + pgvector
+  # ==========================================================================
+  app-db:
+    image: pgvector/pgvector:pg16
+    profiles: [dev, ci]
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-moltnet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-moltnet_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-moltnet}
+    volumes:
+      - app-db-data:/var/lib/postgresql/data
+      - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-moltnet}']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Ory Kratos — Identity Management
+  # ==========================================================================
+  kratos-postgres:
+    image: postgres:16
+    profiles: [dev, ci]
+    environment:
+      POSTGRES_USER: kratos
+      POSTGRES_PASSWORD: kratos_secret
+      POSTGRES_DB: kratosdb
+    volumes:
+      - kratos-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kratos']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  kratos-migrate:
+    image: oryd/kratos:v1.3.1
+    profiles: [dev, ci]
+    command: migrate sql -e --yes
+    environment:
+      DSN: postgres://kratos:kratos_secret@kratos-postgres:5432/kratosdb?sslmode=disable
+    depends_on:
+      kratos-postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  kratos:
+    image: oryd/kratos:v1.3.1
+    profiles: [dev, ci]
+    command: serve --config /etc/config/kratos/kratos.yaml --dev --watch-courier
+    ports:
+      - '4433:4433' # Public API
+      - '4434:4434' # Admin API
+    environment:
+      DSN: postgres://kratos:kratos_secret@kratos-postgres:5432/kratosdb?sslmode=disable
+    volumes:
+      - ./infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
+      - ./infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4433/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Ory Hydra — OAuth2 & OpenID Connect
+  # ==========================================================================
+  hydra-postgres:
+    image: postgres:16
+    profiles: [dev, ci]
+    environment:
+      POSTGRES_USER: hydra
+      POSTGRES_PASSWORD: hydra_secret
+      POSTGRES_DB: hydradb
+    volumes:
+      - hydra-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hydra']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  hydra-migrate:
+    image: oryd/hydra:v2.3.0
+    profiles: [dev, ci]
+    command: migrate sql -e --yes
+    environment:
+      DSN: postgres://hydra:hydra_secret@hydra-postgres:5432/hydradb?sslmode=disable
+    depends_on:
+      hydra-postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  hydra:
+    image: oryd/hydra:v2.3.0
+    profiles: [dev, ci]
+    command: serve all --config /etc/config/hydra/hydra.yaml --dev
+    ports:
+      - '4444:4444' # Public API
+      - '4445:4445' # Admin API
+    environment:
+      DSN: postgres://hydra:hydra_secret@hydra-postgres:5432/hydradb?sslmode=disable
+      SECRETS_SYSTEM: ${HYDRA_SECRETS_SYSTEM:-a-very-insecure-secret-for-local-dev-only!!}
+      OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${OIDC_PAIRWISE_SALT:-local-dev-salt-not-for-production}
+    volumes:
+      - ./infra/ory/hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4444/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Ory Keto — Permissions / Authorization
+  # ==========================================================================
+  keto-postgres:
+    image: postgres:16
+    profiles: [dev, ci]
+    environment:
+      POSTGRES_USER: keto
+      POSTGRES_PASSWORD: keto_secret
+      POSTGRES_DB: ketodb
+    volumes:
+      - keto-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U keto']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  keto-migrate:
+    image: oryd/keto:v0.13.0
+    profiles: [dev, ci]
+    command: migrate up --yes --config /etc/config/keto/keto.yaml
+    environment:
+      DSN: postgres://keto:keto_secret@keto-postgres:5432/ketodb?sslmode=disable
+    volumes:
+      - ./infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    depends_on:
+      keto-postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  keto:
+    image: oryd/keto:v0.13.0
+    profiles: [dev, ci]
+    command: serve --config /etc/config/keto/keto.yaml
+    ports:
+      - '4466:4466' # Read API
+      - '4467:4467' # Write API
+    environment:
+      DSN: postgres://keto:keto_secret@keto-postgres:5432/ketodb?sslmode=disable
+    volumes:
+      - ./infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    depends_on:
+      keto-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4466/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ==========================================================================
+  # OpenTelemetry Collector
+  # ==========================================================================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.0
+    profiles: [dev, ci]
+    command: ['--config=/etc/otelcol/config.yaml']
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+      - '13133:13133' # Health check
+    volumes:
+      - ./infra/otel/collector-config.dev.yaml:/etc/otelcol/config.yaml:ro
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:13133']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Mailslurper — Local SMTP for dev (catches Kratos emails)
+  # ==========================================================================
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    profiles: [dev]
+    ports:
+      - '1025:1025' # SMTP
+      - '4436:4436' # Web UI
+      - '4437:4437' # API
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Application Services (ci profile only)
+  # ==========================================================================
+  rest-api:
+    build:
+      context: .
+      dockerfile: apps/rest-api/Dockerfile
+    profiles: [ci]
+    ports:
+      - '${REST_API_PORT:-8000}:8000'
+    environment:
+      NODE_ENV: production
+      PORT: '8000'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
+      KRATOS_PUBLIC_URL: http://kratos:4433
+      KRATOS_ADMIN_URL: http://kratos:4434
+      HYDRA_PUBLIC_URL: http://hydra:4444
+      HYDRA_ADMIN_URL: http://hydra:4445
+      KETO_READ_URL: http://keto:4466
+      KETO_WRITE_URL: http://keto:4467
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      app-db:
+        condition: service_healthy
+      kratos:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+      keto:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: apps/mcp-server/Dockerfile
+    profiles: [ci]
+    ports:
+      - '${MCP_SERVER_PORT:-8001}:8001'
+    environment:
+      NODE_ENV: production
+      PORT: '8001'
+      REST_API_URL: http://rest-api:8000
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      rest-api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  landing:
+    build:
+      context: .
+      dockerfile: apps/landing/Dockerfile
+    profiles: [ci]
+    ports:
+      - '${LANDING_PORT:-3000}:80'
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:80/']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  app-db-data:
+  kratos-db-data:
+  hydra-db-data:
+  keto-db-data:
