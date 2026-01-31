@@ -1,0 +1,205 @@
+name: Mission Integrity
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: mission-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Verify crypto library hasn't been swapped or tampered with
+  crypto-integrity:
+    name: Crypto Library Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      # Verify @noble/ed25519 package integrity via npm
+      - name: Check @noble/ed25519 integrity
+        run: |
+          # Get the resolved version and integrity hash from package-lock.json
+          RESOLVED=$(node -e "
+            const lock = require('./package-lock.json');
+            const pkg = lock.packages['node_modules/@noble/ed25519']
+              || (lock.dependencies && lock.dependencies['@noble/ed25519']);
+            if (!pkg) { console.error('@noble/ed25519 not found in lockfile'); process.exit(1); }
+            console.log(JSON.stringify({ version: pkg.version, integrity: pkg.integrity }));
+          ")
+          echo "Resolved @noble/ed25519: $RESOLVED"
+
+          # Verify the installed package matches the lockfile hash
+          npm ls @noble/ed25519 --json | node -e "
+            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
+            const tree = JSON.parse(data);
+            const deps = tree.dependencies || {};
+            const noble = deps['@noble/ed25519'];
+            if (!noble) {
+              // Check in workspace dependencies
+              for (const [name, dep] of Object.entries(deps)) {
+                if (dep.dependencies && dep.dependencies['@noble/ed25519']) {
+                  console.log('@noble/ed25519 found in', name, 'version:', dep.dependencies['@noble/ed25519'].version);
+                  process.exit(0);
+                }
+              }
+              console.error('@noble/ed25519 not found in dependency tree');
+              process.exit(1);
+            }
+            console.log('@noble/ed25519 version:', noble.version);
+          "
+
+      # Run frozen test vectors — these fail if the crypto implementation changes
+      - name: Run Ed25519 test vectors
+        run: npx vitest run --config libs/crypto-service/vitest.config.ts
+
+  # Scan for new external service dependencies in the diff
+  centralization-scan:
+    name: Centralization Surface Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for new external URLs
+        run: |
+          echo "## Centralization Surface Scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          # Known/approved external service URLs
+          KNOWN_URLS=(
+            "themolt.net"
+            "moltbook.com"
+            "openclawd.com"
+            "oryapis.com"
+            "supabase.co"
+            "fly.io"
+            "github.com"
+            "npmjs.org"
+            "opentelemetry.io"
+            "axiom.co"
+          )
+
+          # Build grep exclusion pattern for known URLs
+          EXCLUDE_PATTERN=$(printf "|%s" "${KNOWN_URLS[@]}")
+          EXCLUDE_PATTERN="${EXCLUDE_PATTERN:1}"  # Remove leading |
+
+          # Find new https:// URLs in the diff (excluding known ones)
+          NEW_URLS=$(git diff "$BASE_SHA".."$HEAD_SHA" -- '*.ts' '*.json' '*.yml' '*.yaml' '*.md' \
+            | grep -oP 'https?://[a-zA-Z0-9._/-]+' \
+            | grep -vE "$EXCLUDE_PATTERN" \
+            | sort -u || true)
+
+          if [ -n "$NEW_URLS" ]; then
+            echo "### New External URLs Detected" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The following new external URLs were added in this PR." >> "$GITHUB_STEP_SUMMARY"
+            echo "Verify these do not introduce unplanned external dependencies:" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "$NEW_URLS" | while read -r url; do
+              echo "- \`$url\`" >> "$GITHUB_STEP_SUMMARY"
+            done
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "If these are intentional, add them to the known URLs list in \`.github/workflows/mission-integrity.yml\`." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No new external URLs detected." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Scan for new npm dependencies
+        run: |
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          # Check if any package.json files changed
+          CHANGED_PKGS=$(git diff --name-only "$BASE_SHA".."$HEAD_SHA" -- '**/package.json' || true)
+
+          if [ -n "$CHANGED_PKGS" ]; then
+            echo "### Package Changes" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The following package.json files were modified:" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "$CHANGED_PKGS" | while read -r f; do
+              echo "- \`$f\`" >> "$GITHUB_STEP_SUMMARY"
+            done
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+
+            # Show added dependencies
+            ADDED_DEPS=$(git diff "$BASE_SHA".."$HEAD_SHA" -- '**/package.json' \
+              | grep -E '^\+.*"[^"]+"\s*:\s*"[\^~]?[0-9]' \
+              | grep -v '^\+\+\+' || true)
+
+            if [ -n "$ADDED_DEPS" ]; then
+              echo "**New dependencies added:**" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              echo "$ADDED_DEPS" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "Review new dependencies for supply chain risk (see MISSION_INTEGRITY.md threat #9)." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+      - name: Scan for auth/crypto changes
+        run: |
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          # Check if crypto or auth code changed
+          CRYPTO_CHANGES=$(git diff --name-only "$BASE_SHA".."$HEAD_SHA" -- \
+            'libs/crypto-service/**' 'libs/auth/**' '**/permissions.ts' \
+            'infra/ory/**' || true)
+
+          if [ -n "$CRYPTO_CHANGES" ]; then
+            echo "### Trust Boundary Changes" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "These files affect the trust boundary (crypto, auth, permissions):" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "$CRYPTO_CHANGES" | while read -r f; do
+              echo "- \`$f\`" >> "$GITHUB_STEP_SUMMARY"
+            done
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Extra review required** — see MISSION_INTEGRITY.md decision framework." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # Verify PR body includes the mission integrity checklist
+  pr-checklist:
+    name: PR Checklist Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check mission integrity checklist
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          echo "## PR Checklist Validation" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -z "$PR_BODY" ]; then
+            echo "PR body is empty. The mission integrity checklist is required." >> "$GITHUB_STEP_SUMMARY"
+            echo "Use the PR template or add the checklist from docs/MISSION_INTEGRITY.md Part V." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          # Check for the mission integrity section
+          if echo "$PR_BODY" | grep -qi "mission integrity"; then
+            echo "Mission integrity checklist found in PR body." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Warning**: Mission integrity checklist not found in PR body." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Every PR should include the mission integrity checklist:" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "- [ ] Agent control: does NOT move control away from the agent" >> "$GITHUB_STEP_SUMMARY"
+            echo "- [ ] Offline verifiable: can be verified without the server" >> "$GITHUB_STEP_SUMMARY"
+            echo "- [ ] Platform survival: works if a managed service is replaced" >> "$GITHUB_STEP_SUMMARY"
+            echo "- [ ] Simplicity: simplest solution that solves the problem" >> "$GITHUB_STEP_SUMMARY"
+            echo "- [ ] Documented: architectural decisions are recorded" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
