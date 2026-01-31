@@ -5,14 +5,16 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 10 workstreams, technical specs, task assignments
-3. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
-4. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
-5. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
+2. **[TASKS.md](TASKS.md)** — the coordination board: check what's active, available, and completed
+3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 10 workstreams, technical specs, task assignments
+4. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
+5. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
+6. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
 
 Other docs for when you need them:
 
 - **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — threat model, technical/philosophical safeguards, decision framework for changes
+- **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — multi-agent coordination framework (worktrees, task board, PR workflow)
 - **[docs/BUILDERS_MANIFESTO.md](docs/BUILDERS_MANIFESTO.md)** — engineering perspective on MoltNet design
 - **[docs/OPENCLAW_INTEGRATION.md](docs/OPENCLAW_INTEGRATION.md)** — OpenClaw integration analysis (4 strategies)
 - **[docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)** — OAuth2 client_credentials flow, token enrichment webhook
@@ -56,6 +58,40 @@ Every agent session that touches MoltNet code should follow this protocol:
 
 Entry format, types, and templates are in [docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md).
 
+## Multi-Agent Coordination
+
+When multiple agents work on this repo in parallel, follow the coordination framework in [docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md).
+
+**Quick start for agents:**
+
+1. Run `/sync` to check the coordination board, open PRs, and CI status
+2. Run `/claim <task>` to claim an available task from `TASKS.md`
+3. Work on your task in your branch/worktree
+4. Run `/handoff` when done — writes journal, updates board, creates PR
+
+**Quick start for the orchestrator (human):**
+
+```bash
+# Spawn isolated worktrees for parallel agents
+./scripts/orchestrate.sh spawn auth-library main
+./scripts/orchestrate.sh spawn diary-service main
+
+# Launch Claude Code in each worktree
+cd ../themoltnet-auth-library && claude
+cd ../themoltnet-diary-service && claude
+
+# Monitor progress
+./scripts/orchestrate.sh status
+```
+
+**Custom slash commands** (in `.claude/commands/`):
+
+| Command         | Purpose                                                |
+| --------------- | ------------------------------------------------------ |
+| `/sync`         | Check task board, open PRs, CI status, recent handoffs |
+| `/claim <task>` | Claim an available task from TASKS.md                  |
+| `/handoff`      | End session: journal entry + task update + PR          |
+
 ## Repository Structure (Actual)
 
 ```
@@ -64,6 +100,7 @@ moltnet/
 │   ├── observability/             # @moltnet/observability — Pino + OTel + Axiom
 │   ├── crypto-service/            # @moltnet/crypto-service — Ed25519 operations
 │   ├── database/                  # @moltnet/database — Drizzle ORM, schema
+│   ├── design-system/             # @moltnet/design-system — React design system
 │   └── models/                    # @moltnet/models — TypeBox schemas
 │
 ├── infra/                         # Infrastructure configuration
@@ -82,6 +119,15 @@ moltnet/
 │   ├── API.md                     # REST API spec
 │   └── MCP_SERVER.md              # MCP tools spec
 │
+├── scripts/                       # Development tooling
+│   └── orchestrate.sh             # Multi-agent worktree orchestrator
+│
+├── .claude/commands/              # Custom Claude Code slash commands
+│   ├── sync.md                    # /sync — check coordination state
+│   ├── claim.md                   # /claim — claim a task
+│   └── handoff.md                 # /handoff — end-of-session handoff
+│
+├── TASKS.md                       # Live coordination board for parallel agents
 ├── .env.public                    # Plain non-secret config (committed)
 ├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml      # CI pipeline (lint, typecheck, test, build)
@@ -129,6 +175,7 @@ moltnet/
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
 11. **Secrets**: dotenvx (encrypted `.env` + plain `.env.public`, both committed)
+12. **UI**: React + `@moltnet/design-system` (tokens, theme provider, components)
 
 ## Development Commands
 
@@ -151,6 +198,9 @@ npm run db:generate       # Generate Drizzle migrations
 npm run db:push           # Push to database
 npm run db:studio         # Open Drizzle Studio
 
+# Design system
+npm run demo --workspace=@moltnet/design-system   # Component showcase (Vite dev server)
+
 # Dev servers (not yet built)
 npm run dev:mcp           # MCP server
 npm run dev:api           # REST API
@@ -159,7 +209,7 @@ npm run dev:api           # REST API
 Pre-commit hooks run automatically via husky:
 
 1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
-2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.json`/`.md` files
+2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.tsx`/`.json`/`.md` files
 
 ## CI Pipeline
 
@@ -168,7 +218,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targe
 1. **lint** — `npm run lint`
 2. **typecheck** — `tsc --noEmit`
 3. **test** — `npm test` (38 tests across 5 suites)
-4. **build** — `npm run build` (depends on the above three passing)
+4. **journal** — requires `docs/journal/` entries on PRs from `claude/` branches (warns if no handoff)
+5. **build** — `npm run build` (depends on lint, typecheck, test passing)
 
 ## Observability
 
@@ -196,14 +247,112 @@ app.register(observabilityPlugin, {
 });
 ```
 
+## Design System
+
+The `@moltnet/design-system` library (`libs/design-system/`) is the single source of truth for all UI work. Any React UI built for MoltNet **must** use this design system — do not invent ad-hoc colors, fonts, spacing, or components.
+
+### Running the demo
+
+```bash
+npm run demo --workspace=@moltnet/design-system
+```
+
+This starts a Vite dev server with a visual showcase of every token and component. Open it to see exactly how things should look before writing UI code.
+
+### Brand identity
+
+The color palette encodes the project's vision:
+
+| Token                                    | Value             | Meaning                                                          |
+| ---------------------------------------- | ----------------- | ---------------------------------------------------------------- |
+| `bg.void`                                | `#08080d`         | The digital void — where identity emerges                        |
+| `bg.surface`                             | `#0f0f17`         | Card and panel backgrounds                                       |
+| `primary`                                | `#00d4c8` (teal)  | **The Network** — connections, digital life, autonomy            |
+| `accent`                                 | `#e6a817` (amber) | **The Tattoo** — permanent Ed25519 identity, cryptographic proof |
+| `text`                                   | `#e8e8f0`         | Light text on dark                                               |
+| `error` / `warning` / `success` / `info` | Signal colors     | Status and feedback                                              |
+
+Dark theme is the default. A light theme is provided for accessibility.
+
+### Typography
+
+- **Sans** (`Inter`): headings, body text, UI labels
+- **Mono** (`JetBrains Mono`): keys, fingerprints, code, signatures, anything cryptographic
+
+### Using the design system
+
+```tsx
+import {
+  MoltThemeProvider,
+  Button,
+  Text,
+  Card,
+  KeyFingerprint,
+  Stack,
+  useTheme,
+} from '@moltnet/design-system';
+
+// Wrap your app root once
+function App() {
+  return (
+    <MoltThemeProvider mode="dark">
+      <MyPage />
+    </MoltThemeProvider>
+  );
+}
+
+// Use tokens via the useTheme() hook
+function MyPage() {
+  const theme = useTheme();
+  return (
+    <Stack gap={6}>
+      <Text variant="h1">Agent Profile</Text>
+      <Card variant="surface" glow="primary">
+        <KeyFingerprint
+          label="Public Key"
+          fingerprint="A1B2-C3D4-E5F6-G7H8"
+          copyable
+        />
+      </Card>
+      <Button variant="primary">Sign Memory</Button>
+    </Stack>
+  );
+}
+```
+
+### Available components
+
+| Component        | Purpose                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `Button`         | `primary`, `secondary`, `ghost`, `accent` variants; `sm`/`md`/`lg` sizes                 |
+| `Text`           | `h1`–`h4`, `body`, `bodyLarge`, `caption`, `overline`; color and weight props            |
+| `Card`           | `surface`, `elevated`, `outlined`, `ghost`; optional `glow="primary"` or `glow="accent"` |
+| `Badge`          | Status pills: `default`, `primary`, `accent`, `success`, `warning`, `error`, `info`      |
+| `Input`          | Text input with `label`, `hint`, `error` props                                           |
+| `Stack`          | Flex layout — `direction`, `gap`, `align`, `justify`, `wrap`                             |
+| `Container`      | Max-width centered wrapper (`sm`/`md`/`lg`/`xl`/`full`)                                  |
+| `Divider`        | Horizontal or vertical separator                                                         |
+| `CodeBlock`      | Block or `inline` code display in monospace                                              |
+| `KeyFingerprint` | Amber-styled Ed25519 fingerprint with optional clipboard copy                            |
+
+### Rules for UI builders
+
+1. **Import from `@moltnet/design-system`** — never hardcode color hex values, font stacks, or spacing pixels
+2. **Use the `useTheme()` hook** for any custom styling that references tokens
+3. **Dark theme first** — design for dark, verify light works
+4. **Monospace for crypto** — keys, signatures, hashes, and fingerprints always use the mono font family
+5. **Accent = identity** — use amber/accent color for anything related to cryptographic identity (keys, signatures, agent ownership)
+6. **Primary = network** — use teal/primary color for actions, links, and network-related elements (connections, discovery, status)
+7. **Run the demo** before and after making changes to verify visual consistency
+
 ## Environment Variables
 
 Configuration uses two files, both committed to git:
 
-| File | Contains | dotenvx-managed | Pre-commit validated |
-|------|----------|-----------------|---------------------|
-| `.env.public` | Non-secret config (domains, project IDs) | No | No |
-| `.env` | Encrypted secrets only | Yes | Yes — `dotenvx ext precommit` |
+| File          | Contains                                 | dotenvx-managed | Pre-commit validated          |
+| ------------- | ---------------------------------------- | --------------- | ----------------------------- |
+| `.env.public` | Non-secret config (domains, project IDs) | No              | No                            |
+| `.env`        | Encrypted secrets only                   | Yes             | Yes — `dotenvx ext precommit` |
 
 The `.env.keys` file holding the private decryption key is **never** committed.
 
@@ -261,24 +410,24 @@ injecting both into the child process environment.
 
 **`.env.public`** (plain, no key needed):
 
-| Variable | Value |
-|----------|-------|
-| `BASE_DOMAIN` | `themolt.net` |
-| `APP_BASE_URL` | `https://themolt.net` |
-| `API_BASE_URL` | `https://api.themolt.net` |
-| `ORY_PROJECT_ID` | `7219f256-464a-4511-874c-bde7724f6897` |
+| Variable          | Value                                                    |
+| ----------------- | -------------------------------------------------------- |
+| `BASE_DOMAIN`     | `themolt.net`                                            |
+| `APP_BASE_URL`    | `https://themolt.net`                                    |
+| `API_BASE_URL`    | `https://api.themolt.net`                                |
+| `ORY_PROJECT_ID`  | `7219f256-464a-4511-874c-bde7724f6897`                   |
 | `ORY_PROJECT_URL` | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
 
 **`.env`** (encrypted, requires `DOTENV_PRIVATE_KEY`):
 
-| Variable | Purpose |
-|----------|---------|
+| Variable             | Purpose                |
+| -------------------- | ---------------------- |
 | `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt |
 
 **Computed at runtime** (in `deploy.sh`):
 
-| Variable | Source |
-|----------|--------|
+| Variable                 | Source                                      |
+| ------------------------ | ------------------------------------------- |
 | `IDENTITY_SCHEMA_BASE64` | `base64 -w0 infra/ory/identity-schema.json` |
 
 ### Ory project deployment
@@ -374,4 +523,4 @@ See `docs/FREEDOM_PLAN.md` for the full breakdown. High-level:
 - **WS8** (OpenClawd Skill): Not started — depends on WS5
 - **WS9** (Agent SDK): Future
 - **WS10** (Mission Integrity): Threat model and decision framework documented, safeguard implementation not started
-- **Cross-cutting**: Observability library built, CI pipeline active, PR template enforces mission integrity checklist
+- **Cross-cutting**: Observability library built, design system built, CI pipeline active, PR template enforces mission integrity checklist

@@ -47,6 +47,46 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  journal:
+    name: Journal Entry
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      startsWith(github.head_ref, 'claude/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for journal entries
+        run: |
+          BASE=${{ github.event.pull_request.base.sha }}
+          HEAD=${{ github.event.pull_request.head.sha }}
+          JOURNAL_FILES=$(git diff --name-only "$BASE"..."$HEAD" -- 'docs/journal/*.md' | grep -v README.md || true)
+          if [ -z "$JOURNAL_FILES" ]; then
+            echo "::error::No journal entries found in docs/journal/."
+            echo ""
+            echo "Commits from claude/ branches must include at least one journal entry."
+            echo "See docs/BUILDER_JOURNAL.md for the entry format and types."
+            echo ""
+            echo "At minimum, write a handoff entry before opening the PR:"
+            echo "  docs/journal/YYYY-MM-DD-NN-<slug>.md"
+            exit 1
+          fi
+          echo "Found journal entries:"
+          echo "$JOURNAL_FILES"
+
+          # Verify at least one handoff entry exists
+          HANDOFF=$(echo "$JOURNAL_FILES" | while read -r f; do
+            if [ -f "$f" ] && head -20 "$f" | grep -q "type: handoff"; then
+              echo "$f"
+            fi
+          done || true)
+          if [ -z "$HANDOFF" ]; then
+            echo "::warning::No handoff entry found. Agent sessions should end with a handoff entry."
+          else
+            echo "Handoff entry found: $HANDOFF"
+          fi
+
   build:
     name: Build
     runs-on: ubuntu-latest

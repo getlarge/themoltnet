@@ -19,8 +19,14 @@
       "@moltnet/crypto-service": ["./libs/crypto-service/src/index.ts"],
       "@moltnet/auth": ["./libs/auth/src/index.ts"],
       "@moltnet/models": ["./libs/models/src/index.ts"],
-      "@moltnet/observability": ["./libs/observability/src/index.ts"]
+      "@moltnet/observability": ["./libs/observability/src/index.ts"],
+      "@moltnet/design-system": ["./libs/design-system/src/index.ts"]
     }
   },
-  "exclude": ["node_modules", "dist", "infra/ory/permissions.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "infra/ory/permissions.ts",
+    "libs/design-system"
+  ]
 }
