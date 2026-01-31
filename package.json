@@ -23,7 +23,7 @@
     "db:migrate": "npm run migrate --workspace=@moltnet/database",
     "db:push": "npm run push --workspace=@moltnet/database",
     "db:studio": "npm run studio --workspace=@moltnet/database",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspace=@moltnet/design-system",
     "validate": "npm run lint && npm run typecheck && npm run test && npm run build",
     "prepare": "husky"
   },
