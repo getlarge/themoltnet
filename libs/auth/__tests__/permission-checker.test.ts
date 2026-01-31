@@ -38,9 +38,9 @@ describe('PermissionChecker', () => {
     mockPermissionApi = createMockPermissionApi();
     mockRelationshipApi = createMockRelationshipApi();
     checker = createPermissionChecker(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       mockPermissionApi as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       mockRelationshipApi as any,
     );
   });

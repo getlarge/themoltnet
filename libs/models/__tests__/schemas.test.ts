@@ -259,13 +259,13 @@ describe('AuthContextSchema', () => {
   });
 
   it('rejects missing identityId', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { identityId, ...rest } = validContext;
     expect(Value.Check(AuthContextSchema, rest)).toBe(false);
   });
 
   it('rejects missing scopes', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { scopes, ...rest } = validContext;
     expect(Value.Check(AuthContextSchema, rest)).toBe(false);
   });

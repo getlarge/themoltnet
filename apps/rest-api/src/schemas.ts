@@ -6,16 +6,14 @@
  * 2. OpenAPI spec generation via @fastify/swagger
  */
 
-import { type Static, Type } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 
 // ── Reusable Atoms ──────────────────────────────────────────
 
-export const VisibilitySchema = Type.Union(
+const VisibilitySchema = Type.Union(
   [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
   { $id: 'Visibility' },
 );
-
-export type Visibility = Static<typeof VisibilitySchema>;
 
 export const ErrorSchema = Type.Object(
   {
@@ -25,8 +23,6 @@ export const ErrorSchema = Type.Object(
   },
   { $id: 'Error' },
 );
-
-export type ErrorResponse = Static<typeof ErrorSchema>;
 
 // ── Diary ───────────────────────────────────────────────────
 
@@ -48,8 +44,6 @@ export const DiaryEntrySchema = Type.Object(
   { $id: 'DiaryEntry' },
 );
 
-export type DiaryEntryResponse = Static<typeof DiaryEntrySchema>;
-
 export const DiaryListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(DiaryEntrySchema)),
@@ -68,7 +62,7 @@ export const DiarySearchResultSchema = Type.Object(
   { $id: 'DiarySearchResult' },
 );
 
-export const DigestEntrySchema = Type.Object({
+const DigestEntrySchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   content: Type.String(),
   tags: Type.Union([Type.Array(Type.String()), Type.Null()]),

@@ -67,7 +67,8 @@ describe('observabilityPlugin', () => {
       (m) => m.descriptor.name === 'http.server.request.duration',
     );
     expect(durationMetric).toBeDefined();
-    expect(durationMetric!.dataPoints.length).toBeGreaterThan(0);
+    if (!durationMetric) throw new Error('expected durationMetric');
+    expect(durationMetric.dataPoints.length).toBeGreaterThan(0);
 
     await app.close();
     await provider.shutdown();
@@ -104,8 +105,9 @@ describe('observabilityPlugin', () => {
       (m) => m.descriptor.name === 'http.server.request.total',
     );
     expect(totalMetric).toBeDefined();
+    if (!totalMetric) throw new Error('expected totalMetric');
 
-    const dataPoint = totalMetric!.dataPoints[0];
+    const dataPoint = totalMetric.dataPoints[0];
     expect(dataPoint.value).toBe(3);
 
     await app.close();
@@ -140,9 +142,10 @@ describe('observabilityPlugin', () => {
       (m) => m.descriptor.name === 'http.server.active_requests',
     );
     expect(activeMetric).toBeDefined();
+    if (!activeMetric) throw new Error('expected activeMetric');
 
     // After request completes, active should be 0
-    const dataPoint = activeMetric!.dataPoints[0];
+    const dataPoint = activeMetric.dataPoints[0];
     expect(dataPoint.value).toBe(0);
 
     await app.close();
@@ -176,7 +179,8 @@ describe('observabilityPlugin', () => {
       (m) => m.descriptor.name === 'http.server.request.total',
     );
 
-    const dataPoint = totalMetric!.dataPoints[0];
+    if (!totalMetric) throw new Error('expected totalMetric');
+    const dataPoint = totalMetric.dataPoints[0];
     expect(dataPoint.attributes['http.method']).toBe('GET');
     expect(dataPoint.attributes['http.route']).toBe('/api/diary');
     expect(dataPoint.attributes['http.status_code']).toBe(200);
@@ -213,7 +217,8 @@ describe('observabilityPlugin', () => {
       (m) => m.descriptor.name === 'http.server.request.total',
     );
 
-    const dataPoint = totalMetric!.dataPoints[0];
+    if (!totalMetric) throw new Error('expected totalMetric');
+    const dataPoint = totalMetric.dataPoints[0];
     expect(dataPoint.attributes['http.status_code']).toBe(500);
 
     await app.close();

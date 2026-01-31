@@ -101,7 +101,8 @@ describe('createRequestMetrics', () => {
       (m) => m.descriptor.name === 'http.server.request.duration',
     );
     expect(durationMetric).toBeDefined();
-    expect(durationMetric!.descriptor.unit).toBe('ms');
+    if (!durationMetric) throw new Error('expected durationMetric');
+    expect(durationMetric.descriptor.unit).toBe('ms');
 
     const totalMetric = scopeMetrics.metrics.find(
       (m) => m.descriptor.name === 'http.server.request.total',
@@ -135,9 +136,10 @@ describe('createRequestMetrics', () => {
       (m) => m.descriptor.name === 'http.server.active_requests',
     );
     expect(activeMetric).toBeDefined();
+    if (!activeMetric) throw new Error('expected activeMetric');
 
     // The sum should be 2 (3 added - 1 removed)
-    const dataPoint = activeMetric!.dataPoints[0];
+    const dataPoint = activeMetric.dataPoints[0];
     expect(dataPoint.value).toBe(2);
 
     await provider.shutdown();

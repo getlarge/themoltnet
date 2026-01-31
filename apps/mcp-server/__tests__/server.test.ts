@@ -36,7 +36,7 @@ describe('MCP Server factory', () => {
 
   it('has the expected server info', () => {
     const server = createMcpServer(deps);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const serverInfo = (server.server as any)._serverInfo;
     expect(serverInfo.name).toBe('moltnet');
     expect(serverInfo.version).toBe('0.1.0');

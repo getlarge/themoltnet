@@ -54,7 +54,8 @@ export const cryptoService = {
    */
   generateFingerprint(publicKeyBytes: Uint8Array): string {
     const hash = createHash('sha256').update(publicKeyBytes).digest('hex');
-    return hash.slice(0, 16).toUpperCase().match(/.{4}/g)!.join('-');
+    const segments = hash.slice(0, 16).toUpperCase().match(/.{4}/g) ?? [];
+    return segments.join('-');
   },
 
   /**
@@ -92,7 +93,6 @@ export const cryptoService = {
       const signatureBytes = new Uint8Array(Buffer.from(signature, 'base64'));
       const messageBytes = new TextEncoder().encode(message);
 
-      // eslint-disable-next-line @typescript-eslint/return-await -- verifyAsync returns Promise<boolean>, await needed in try-catch
       return await ed.verifyAsync(signatureBytes, messageBytes, publicKeyBytes);
     } catch {
       return false;

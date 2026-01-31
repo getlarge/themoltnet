@@ -38,7 +38,7 @@ describe('MCP Resources', () => {
           moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
-        }) as any,
+        }) as never,
       );
 
       const result = await handleIdentityResource(deps);
@@ -70,7 +70,7 @@ describe('MCP Resources', () => {
           total: 2,
           limit: 10,
           offset: 0,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleDiaryRecentResource(deps);
@@ -98,7 +98,7 @@ describe('MCP Resources', () => {
   describe('moltnet://diary/{id}', () => {
     it('returns a specific entry', async () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
-      vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as any);
+      vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
 
       const result = await handleDiaryEntryResource(deps, ENTRY_ID);
 
@@ -118,7 +118,7 @@ describe('MCP Resources', () => {
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleDiaryEntryResource(deps, 'nonexistent');
@@ -136,7 +136,7 @@ describe('MCP Resources', () => {
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
           moltbookVerified: true,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleAgentResource(deps, 'Claude');
@@ -158,7 +158,7 @@ describe('MCP Resources', () => {
           error: 'Not Found',
           message: 'Agent not found',
           statusCode: 404,
-        }) as any,
+        }) as never,
       );
 
       const result = await handleAgentResource(deps, 'Unknown');

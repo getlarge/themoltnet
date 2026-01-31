@@ -10,7 +10,7 @@ import { vi } from 'vitest';
 
 import type { McpDeps } from '../src/types.js';
 
-export const TOKEN = 'test-bearer-token';
+const TOKEN = 'test-bearer-token';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 /**

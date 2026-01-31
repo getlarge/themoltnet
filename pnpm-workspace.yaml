@@ -13,9 +13,9 @@ catalog:
   vitest: ^3.0.0
 
   # Linting & formatting
-  eslint: ^8.56.0
-  '@typescript-eslint/eslint-plugin': ^6.19.0
-  '@typescript-eslint/parser': ^6.19.0
+  eslint: ^9.0.0
+  '@eslint/js': ^9.0.0
+  typescript-eslint: ^8.0.0
   eslint-plugin-simple-import-sort: ^12.1.1
   eslint-plugin-react-hooks: ^7.0.1
   prettier: ^3.2.4
@@ -55,18 +55,13 @@ catalog:
 
   # Observability - OpenTelemetry
   '@opentelemetry/api': ^1.7.0
-  '@opentelemetry/sdk-node': ^0.57.0
   '@opentelemetry/sdk-trace-base': ^1.30.0
   '@opentelemetry/sdk-trace-node': ^1.30.0
   '@opentelemetry/sdk-metrics': ^1.30.0
-  '@opentelemetry/sdk-logs': ^0.57.0
   '@opentelemetry/resources': ^1.30.0
   '@opentelemetry/semantic-conventions': ^1.28.0
   '@opentelemetry/exporter-trace-otlp-proto': ^0.57.0
   '@opentelemetry/exporter-metrics-otlp-proto': ^0.57.0
-  '@opentelemetry/exporter-logs-otlp-proto': ^0.57.0
-  '@opentelemetry/instrumentation-http': ^0.57.0
-  '@opentelemetry/instrumentation-pino': ^0.46.0
 
   # Observability - Logging
   pino: ^9.6.0
