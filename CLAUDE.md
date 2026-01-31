@@ -117,7 +117,7 @@ moltnet/
 
 ## Key Technical Decisions
 
-1. **Monorepo**: npm workspaces (`apps/*`, `libs/*`)
+1. **Monorepo**: npm workspaces (`apps/*`, `libs/*`), TypeScript project references (`tsconfig.base.json` + solution `tsconfig.json`)
 2. **Framework**: Fastify
 3. **Database**: Supabase (Postgres + pgvector)
 4. **ORM**: Drizzle
@@ -199,10 +199,10 @@ app.register(observabilityPlugin, {
 
 Configuration uses two files, both committed to git:
 
-| File | Contains | dotenvx-managed | Pre-commit validated |
-|------|----------|-----------------|---------------------|
-| `.env.public` | Non-secret config (domains, project IDs) | No | No |
-| `.env` | Encrypted secrets only | Yes | Yes — `dotenvx ext precommit` |
+| File          | Contains                                 | dotenvx-managed | Pre-commit validated          |
+| ------------- | ---------------------------------------- | --------------- | ----------------------------- |
+| `.env.public` | Non-secret config (domains, project IDs) | No              | No                            |
+| `.env`        | Encrypted secrets only                   | Yes             | Yes — `dotenvx ext precommit` |
 
 The `.env.keys` file holding the private decryption key is **never** committed.
 
@@ -260,24 +260,24 @@ injecting both into the child process environment.
 
 **`.env.public`** (plain, no key needed):
 
-| Variable | Value |
-|----------|-------|
-| `BASE_DOMAIN` | `themolt.net` |
-| `APP_BASE_URL` | `https://themolt.net` |
-| `API_BASE_URL` | `https://api.themolt.net` |
-| `ORY_PROJECT_ID` | `7219f256-464a-4511-874c-bde7724f6897` |
+| Variable          | Value                                                    |
+| ----------------- | -------------------------------------------------------- |
+| `BASE_DOMAIN`     | `themolt.net`                                            |
+| `APP_BASE_URL`    | `https://themolt.net`                                    |
+| `API_BASE_URL`    | `https://api.themolt.net`                                |
+| `ORY_PROJECT_ID`  | `7219f256-464a-4511-874c-bde7724f6897`                   |
 | `ORY_PROJECT_URL` | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
 
 **`.env`** (encrypted, requires `DOTENV_PRIVATE_KEY`):
 
-| Variable | Purpose |
-|----------|---------|
+| Variable             | Purpose                |
+| -------------------- | ---------------------- |
 | `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt |
 
 **Computed at runtime** (in `deploy.sh`):
 
-| Variable | Source |
-|----------|--------|
+| Variable                 | Source                                      |
+| ------------------------ | ------------------------------------------- |
 | `IDENTITY_SCHEMA_BASE64` | `base64 -w0 infra/ory/identity-schema.json` |
 
 ### Ory project deployment
@@ -354,9 +354,11 @@ When implementing features, reference these repositories:
 
 When creating a new `libs/` or `apps/` package:
 
-1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `outDir` and `rootDir`
-2. Add `"test": "vitest --passWithNoTests"` if no tests exist yet
-3. Add path alias in root `tsconfig.json` under `compilerOptions.paths`
+1. Add a `tsconfig.json` extending `../../tsconfig.base.json` with `composite: true` (inherited from base), `outDir`, and `rootDir`
+   - For Node.js libs: add `"module": "NodeNext"`, `"moduleResolution": "NodeNext"`
+   - For frontend apps: add `"module": "ESNext"`, `"moduleResolution": "bundler"`, `"jsx": "react-jsx"`
+2. Add a reference in root `tsconfig.json` under `references`: `{ "path": "libs/your-package" }`
+3. Add `"test": "vitest --passWithNoTests"` if no tests exist yet
 4. Run `npm install` to register the workspace
 
 ## Workstream Status
