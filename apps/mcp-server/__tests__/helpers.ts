@@ -1,110 +1,67 @@
 /**
  * Test helpers — mocks and fixtures for MCP server tests
+ *
+ * Mocks the ApiClient methods instead of service interfaces,
+ * since the MCP server communicates with the REST API via HTTP.
  */
 
 import { vi } from 'vitest';
-import type {
-  DiaryService,
-  AgentRepository,
-  CryptoService,
-  AuthContext,
-  DiaryEntry,
-  AgentKey,
-  McpDeps,
-} from '../src/types.js';
+import type { ApiClient, ApiResponse } from '../src/api-client.js';
+import type { McpDeps } from '../src/types.js';
 
-export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
-export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
+export const TOKEN = 'test-bearer-token';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
-export const VALID_AUTH: AuthContext = {
-  identityId: OWNER_ID,
-  moltbookName: 'Claude',
-  publicKey: 'ed25519:AAAA+/bbbb==',
-  fingerprint: 'A1B2-C3D4-E5F6-07A8',
-  clientId: 'hydra-client-uuid',
-  scopes: ['diary:read', 'diary:write', 'agent:profile'],
-};
-
-export function createMockEntry(
-  overrides: Partial<DiaryEntry> = {},
-): DiaryEntry {
-  return {
-    id: ENTRY_ID,
-    ownerId: OWNER_ID,
-    title: null,
-    content: 'Test diary entry content',
-    embedding: null,
-    visibility: 'private',
-    tags: null,
-    createdAt: new Date('2026-01-30T10:00:00Z'),
-    updatedAt: new Date('2026-01-30T10:00:00Z'),
-    ...overrides,
-  };
+export interface MockApi {
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
+  del: ReturnType<typeof vi.fn>;
 }
 
-export function createMockAgent(overrides: Partial<AgentKey> = {}): AgentKey {
+export function createMockApi(): MockApi {
   return {
-    identityId: OWNER_ID,
-    moltbookName: 'Claude',
-    publicKey: 'ed25519:AAAA+/bbbb==',
-    fingerprint: 'A1B2-C3D4-E5F6-07A8',
-    moltbookVerified: null,
-    createdAt: new Date('2026-01-01T00:00:00Z'),
-    updatedAt: new Date('2026-01-01T00:00:00Z'),
-    ...overrides,
-  };
-}
-
-export interface MockServices {
-  diaryService: { [K in keyof DiaryService]: ReturnType<typeof vi.fn> };
-  agentRepository: {
-    [K in keyof AgentRepository]: ReturnType<typeof vi.fn>;
-  };
-  cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
-}
-
-export function createMockServices(): MockServices {
-  return {
-    diaryService: {
-      create: vi.fn(),
-      getById: vi.fn(),
-      list: vi.fn(),
-      search: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      share: vi.fn(),
-      getSharedWithMe: vi.fn(),
-      reflect: vi.fn(),
-    },
-    agentRepository: {
-      findByMoltbookName: vi.fn(),
-      findByIdentityId: vi.fn(),
-      upsert: vi.fn(),
-    },
-    cryptoService: {
-      sign: vi.fn(),
-      verify: vi.fn(),
-      parsePublicKey: vi.fn(),
-    },
-  };
-}
-
-export function createMockDeps(
-  mocks: MockServices,
-  auth: AuthContext | null = VALID_AUTH,
-): McpDeps {
-  return {
-    diaryService: mocks.diaryService as unknown as DiaryService,
-    agentRepository: mocks.agentRepository as unknown as AgentRepository,
-    cryptoService: mocks.cryptoService as unknown as CryptoService,
-    getAuthContext: () => auth,
+    get: vi.fn(),
+    post: vi.fn(),
+    patch: vi.fn(),
+    del: vi.fn(),
   };
 }
 
 /**
- * Helper to extract text content from a CallToolResult.
+ * Create McpDeps with mocked API client.
+ * Pass `null` for token to simulate unauthenticated state.
  */
+export function createMockDeps(
+  mockApi: MockApi,
+  token: string | null = TOKEN,
+): McpDeps {
+  return {
+    api: mockApi as unknown as ApiClient,
+    getAccessToken: () => token,
+    signMessage: vi.fn().mockResolvedValue('ed25519:sig123'),
+  };
+}
+
+/** Helper to build an OK API response */
+export function okResponse<T>(data: T): ApiResponse<T> {
+  return { status: 200, ok: true, data };
+}
+
+/** Helper to build a 201 Created response */
+export function createdResponse<T>(data: T): ApiResponse<T> {
+  return { status: 201, ok: true, data };
+}
+
+/** Helper to build an error API response */
+export function errorResponse(
+  status: number,
+  data: { error: string; message: string; statusCode: number },
+): ApiResponse<unknown> {
+  return { status, ok: false, data };
+}
+
+/** Helper to extract text content from a CallToolResult */
 export function getTextContent(result: {
   content: { type: string; text?: string }[];
 }): string {
@@ -112,9 +69,7 @@ export function getTextContent(result: {
   return textItem?.text ?? '';
 }
 
-/**
- * Helper to parse JSON text content from a CallToolResult.
- */
+/** Helper to parse JSON text content from a CallToolResult */
 export function parseResult<T = unknown>(result: {
   content: { type: string; text?: string }[];
 }): T {

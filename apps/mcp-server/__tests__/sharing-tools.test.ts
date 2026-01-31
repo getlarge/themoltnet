@@ -1,15 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  createMockServices,
+  createMockApi,
   createMockDeps,
-  createMockEntry,
-  createMockAgent,
+  okResponse,
+  errorResponse,
   parseResult,
   getTextContent,
-  OWNER_ID,
+  TOKEN,
   ENTRY_ID,
-  OTHER_AGENT_ID,
-  type MockServices,
+  type MockApi,
 } from './helpers.js';
 import type { McpDeps } from '../src/types.js';
 import {
@@ -19,36 +18,41 @@ import {
 } from '../src/sharing-tools.js';
 
 describe('Sharing tools', () => {
-  let mocks: MockServices;
+  let api: MockApi;
   let deps: McpDeps;
 
   beforeEach(() => {
-    mocks = createMockServices();
-    deps = createMockDeps(mocks);
+    api = createMockApi();
+    deps = createMockDeps(api);
   });
 
   describe('diary_set_visibility', () => {
     it('updates entry visibility', async () => {
-      const updated = createMockEntry({ visibility: 'moltnet' });
-      mocks.diaryService.update.mockResolvedValue(updated);
+      const updated = { id: ENTRY_ID, visibility: 'moltnet' };
+      api.patch.mockResolvedValue(okResponse(updated));
 
       const result = await handleDiarySetVisibility(deps, {
         entry_id: ENTRY_ID,
         visibility: 'moltnet',
       });
 
-      expect(mocks.diaryService.update).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
+      expect(api.patch).toHaveBeenCalledWith(
+        `/diary/entries/${ENTRY_ID}/visibility`,
+        TOKEN,
         { visibility: 'moltnet' },
       );
-      const parsed = parseResult(result);
+      const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('success', true);
-      expect(parsed.entry.visibility).toBe('moltnet');
     });
 
     it('returns error when entry not found', async () => {
-      mocks.diaryService.update.mockResolvedValue(null);
+      api.patch.mockResolvedValue(
+        errorResponse(404, {
+          error: 'Not Found',
+          message: 'Entry not found',
+          statusCode: 404,
+        }),
+      );
 
       const result = await handleDiarySetVisibility(deps, {
         entry_id: 'nonexistent',
@@ -60,7 +64,7 @@ describe('Sharing tools', () => {
     });
 
     it('returns error when not authenticated', async () => {
-      const unauthDeps = createMockDeps(mocks, null);
+      const unauthDeps = createMockDeps(api, null);
       const result = await handleDiarySetVisibility(unauthDeps, {
         entry_id: ENTRY_ID,
         visibility: 'public',
@@ -72,32 +76,30 @@ describe('Sharing tools', () => {
 
   describe('diary_share', () => {
     it('shares an entry with another agent', async () => {
-      const agent = createMockAgent({
-        identityId: OTHER_AGENT_ID,
-        moltbookName: 'Gemini',
-      });
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(agent);
-      mocks.diaryService.share.mockResolvedValue(true);
+      api.post.mockResolvedValue(
+        okResponse({ success: true, sharedWith: 'Gemini' }),
+      );
 
       const result = await handleDiaryShare(deps, {
         entry_id: ENTRY_ID,
         with_agent: 'Gemini',
       });
 
-      expect(mocks.agentRepository.findByMoltbookName).toHaveBeenCalledWith(
-        'Gemini',
+      expect(api.post).toHaveBeenCalledWith(
+        `/diary/entries/${ENTRY_ID}/share`,
+        TOKEN,
+        { sharedWith: 'Gemini' },
       );
-      expect(mocks.diaryService.share).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-      const parsed = parseResult(result);
+      const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('success', true);
     });
 
     it('returns error when target agent not found', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(null);
+      api.post.mockResolvedValue({
+        status: 404,
+        ok: false,
+        data: { message: 'Agent not found on MoltNet' },
+      });
 
       const result = await handleDiaryShare(deps, {
         entry_id: ENTRY_ID,
@@ -109,12 +111,13 @@ describe('Sharing tools', () => {
     });
 
     it('returns error when share fails', async () => {
-      const agent = createMockAgent({
-        identityId: OTHER_AGENT_ID,
-        moltbookName: 'Gemini',
-      });
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(agent);
-      mocks.diaryService.share.mockResolvedValue(false);
+      api.post.mockResolvedValue(
+        errorResponse(403, {
+          error: 'Forbidden',
+          message: 'Not the owner',
+          statusCode: 403,
+        }),
+      );
 
       const result = await handleDiaryShare(deps, {
         entry_id: ENTRY_ID,
@@ -128,29 +131,29 @@ describe('Sharing tools', () => {
 
   describe('diary_shared_with_me', () => {
     it('lists entries shared with the agent', async () => {
-      const entries = [createMockEntry({ ownerId: OTHER_AGENT_ID })];
-      mocks.diaryService.getSharedWithMe.mockResolvedValue(entries);
+      const data = {
+        entries: [{ id: ENTRY_ID, content: 'shared entry' }],
+      };
+      api.get.mockResolvedValue(okResponse(data));
 
       const result = await handleDiarySharedWithMe(deps, {});
 
-      expect(mocks.diaryService.getSharedWithMe).toHaveBeenCalledWith(
-        OWNER_ID,
-        20,
-      );
-      const parsed = parseResult(result);
+      expect(api.get).toHaveBeenCalledWith('/diary/shared-with-me', TOKEN, {
+        limit: 20,
+      });
+      const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('entries');
       expect(parsed.entries).toHaveLength(1);
     });
 
     it('passes custom limit', async () => {
-      mocks.diaryService.getSharedWithMe.mockResolvedValue([]);
+      api.get.mockResolvedValue(okResponse({ entries: [] }));
 
       await handleDiarySharedWithMe(deps, { limit: 5 });
 
-      expect(mocks.diaryService.getSharedWithMe).toHaveBeenCalledWith(
-        OWNER_ID,
-        5,
-      );
+      expect(api.get).toHaveBeenCalledWith('/diary/shared-with-me', TOKEN, {
+        limit: 5,
+      });
     });
   });
 });

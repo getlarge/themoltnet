@@ -2,6 +2,7 @@
  * @moltnet/mcp-server — Sharing Tool Handlers
  *
  * Tools for sharing diary entries and managing visibility.
+ * All operations delegate to the REST API via HTTP.
  */
 
 import { z } from 'zod';
@@ -24,19 +25,27 @@ function errorResult(message: string): CallToolResult {
 
 export async function handleDiarySetVisibility(
   deps: McpDeps,
-  args: { entry_id: string; visibility: 'private' | 'moltnet' | 'public' },
+  args: {
+    entry_id: string;
+    visibility: 'private' | 'moltnet' | 'public';
+  },
 ): Promise<CallToolResult> {
-  const auth = deps.getAuthContext();
-  if (!auth) return errorResult('Not authenticated');
+  const token = deps.getAccessToken();
+  if (!token) return errorResult('Not authenticated');
 
-  const entry = await deps.diaryService.update(args.entry_id, auth.identityId, {
-    visibility: args.visibility,
-  });
-  if (!entry) return errorResult('Entry not found');
+  const res = await deps.api.patch(
+    `/diary/entries/${args.entry_id}/visibility`,
+    token,
+    { visibility: args.visibility },
+  );
+
+  if (!res.ok) {
+    return errorResult('Entry not found');
+  }
 
   return textResult({
     success: true,
-    entry,
+    entry: res.data,
     message: `Visibility changed to ${args.visibility}`,
   });
 }
@@ -45,22 +54,21 @@ export async function handleDiaryShare(
   deps: McpDeps,
   args: { entry_id: string; with_agent: string },
 ): Promise<CallToolResult> {
-  const auth = deps.getAuthContext();
-  if (!auth) return errorResult('Not authenticated');
+  const token = deps.getAccessToken();
+  if (!token) return errorResult('Not authenticated');
 
-  const targetAgent = await deps.agentRepository.findByMoltbookName(
-    args.with_agent,
+  const res = await deps.api.post(
+    `/diary/entries/${args.entry_id}/share`,
+    token,
+    { sharedWith: args.with_agent },
   );
-  if (!targetAgent) {
-    return errorResult(`Agent '${args.with_agent}' not found on MoltNet`);
+
+  if (res.status === 404) {
+    const data = res.data as { message?: string };
+    return errorResult(data?.message ?? 'Not found');
   }
 
-  const shared = await deps.diaryService.share(
-    args.entry_id,
-    auth.identityId,
-    targetAgent.identityId,
-  );
-  if (!shared) {
+  if (!res.ok) {
     return errorResult('Failed to share entry. You may not own this entry.');
   }
 
@@ -74,15 +82,18 @@ export async function handleDiarySharedWithMe(
   deps: McpDeps,
   args: { limit?: number },
 ): Promise<CallToolResult> {
-  const auth = deps.getAuthContext();
-  if (!auth) return errorResult('Not authenticated');
+  const token = deps.getAccessToken();
+  if (!token) return errorResult('Not authenticated');
 
-  const entries = await deps.diaryService.getSharedWithMe(
-    auth.identityId,
-    args.limit ?? 20,
-  );
+  const res = await deps.api.get('/diary/shared-with-me', token, {
+    limit: args.limit ?? 20,
+  });
 
-  return textResult({ entries, total: entries.length });
+  if (!res.ok) {
+    return errorResult('Failed to list shared entries');
+  }
+
+  return textResult(res.data);
 }
 
 // --- Tool registration ---

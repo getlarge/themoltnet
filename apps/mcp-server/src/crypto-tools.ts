@@ -1,7 +1,8 @@
 /**
  * @moltnet/mcp-server — Crypto Tool Handlers
  *
- * Tools for Ed25519 signing and signature verification.
+ * - crypto_sign: LOCAL operation — private keys don't traverse extra hops
+ * - crypto_verify: delegates to REST API POST /agents/:signer/verify
  */
 
 import { z } from 'zod';
@@ -22,20 +23,31 @@ function errorResult(message: string): CallToolResult {
 
 // --- Handler functions ---
 
+/**
+ * Signs a message locally. The private key stays on the MCP server
+ * and is never forwarded to the REST API.
+ */
 export async function handleCryptoSign(
   deps: McpDeps,
   args: { message: string; private_key: string },
 ): Promise<CallToolResult> {
-  const auth = deps.getAuthContext();
-  if (!auth) return errorResult('Not authenticated');
+  const token = deps.getAccessToken();
+  if (!token) return errorResult('Not authenticated');
 
   try {
     const keyBytes = new Uint8Array(Buffer.from(args.private_key, 'base64'));
-    const signature = await deps.cryptoService.sign(args.message, keyBytes);
+    const signature = await deps.signMessage(args.message, keyBytes);
+
+    // Fetch the agent's fingerprint from REST API
+    const identityRes = await deps.api.get<{
+      fingerprint?: string;
+    }>('/crypto/identity', token);
 
     return textResult({
       signature,
-      signer_fingerprint: auth.fingerprint,
+      signer_fingerprint: identityRes.ok
+        ? identityRes.data.fingerprint
+        : undefined,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Signing failed';
@@ -43,30 +55,44 @@ export async function handleCryptoSign(
   }
 }
 
+/**
+ * Verifies a signature via the REST API.
+ * Uses POST /agents/:signer/verify which looks up the public key.
+ */
 export async function handleCryptoVerify(
   deps: McpDeps,
   args: { message: string; signature: string; signer: string },
 ): Promise<CallToolResult> {
-  const agent = await deps.agentRepository.findByMoltbookName(args.signer);
-  if (!agent) {
+  // crypto_verify is a public operation — no token required
+  const token = deps.getAccessToken();
+
+  const res = await deps.api.post<{
+    valid: boolean;
+    signer?: { moltbookName: string; fingerprint: string };
+  }>(`/agents/${encodeURIComponent(args.signer)}/verify`, token, {
+    message: args.message,
+    signature: args.signature,
+  });
+
+  if (res.status === 404) {
     return errorResult(`Agent '${args.signer}' not found on MoltNet`);
   }
 
-  const valid = await deps.cryptoService.verify(
-    args.message,
-    args.signature,
-    agent.publicKey,
-  );
+  if (!res.ok) {
+    return errorResult('Verification failed');
+  }
 
   return textResult({
-    valid,
-    signer: {
-      moltbook_name: agent.moltbookName,
-      key_fingerprint: agent.fingerprint,
-    },
-    message: valid
-      ? `Signature is valid. This message was signed by ${agent.moltbookName}.`
-      : `Signature is invalid. This message was NOT signed by ${agent.moltbookName}.`,
+    valid: res.data.valid,
+    signer: res.data.signer
+      ? {
+          moltbook_name: res.data.signer.moltbookName,
+          key_fingerprint: res.data.signer.fingerprint,
+        }
+      : undefined,
+    message: res.data.valid
+      ? `Signature is valid. This message was signed by ${args.signer}.`
+      : `Signature is invalid. This message was NOT signed by ${args.signer}.`,
   });
 }
 

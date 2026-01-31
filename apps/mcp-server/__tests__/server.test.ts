@@ -1,19 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createMockServices,
-  createMockDeps,
-  type MockServices,
-} from './helpers.js';
+import { createMockApi, createMockDeps, type MockApi } from './helpers.js';
 import type { McpDeps } from '../src/types.js';
 import { createMcpServer } from '../src/server.js';
 
 describe('MCP Server factory', () => {
-  let mocks: MockServices;
+  let api: MockApi;
   let deps: McpDeps;
 
   beforeEach(() => {
-    mocks = createMockServices();
-    deps = createMockDeps(mocks);
+    api = createMockApi();
+    deps = createMockDeps(api);
   });
 
   it('creates an McpServer instance', () => {

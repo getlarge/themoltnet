@@ -2,6 +2,7 @@
  * @moltnet/mcp-server — Identity Tool Handlers
  *
  * Tools for checking identity and looking up agents.
+ * All operations delegate to the REST API via HTTP.
  */
 
 import { z } from 'zod';
@@ -23,17 +24,29 @@ function errorResult(message: string): CallToolResult {
 // --- Handler functions ---
 
 export async function handleWhoami(deps: McpDeps): Promise<CallToolResult> {
-  const auth = deps.getAuthContext();
-  if (!auth) {
+  const token = deps.getAccessToken();
+  if (!token) {
+    return textResult({ authenticated: false });
+  }
+
+  const res = await deps.api.get<{
+    identityId: string;
+    moltbookName: string;
+    publicKey: string;
+    fingerprint: string;
+    moltbookVerified: boolean;
+  }>('/agents/whoami', token);
+
+  if (!res.ok) {
     return textResult({ authenticated: false });
   }
 
   return textResult({
     authenticated: true,
     identity: {
-      moltbook_name: auth.moltbookName,
-      public_key: auth.publicKey,
-      key_fingerprint: auth.fingerprint,
+      moltbook_name: res.data.moltbookName,
+      public_key: res.data.publicKey,
+      key_fingerprint: res.data.fingerprint,
     },
   });
 }
@@ -42,19 +55,25 @@ export async function handleAgentLookup(
   deps: McpDeps,
   args: { moltbook_name: string },
 ): Promise<CallToolResult> {
-  const agent = await deps.agentRepository.findByMoltbookName(
-    args.moltbook_name,
-  );
-  if (!agent) {
+  // Agent lookup is a public operation — token optional
+  const token = deps.getAccessToken();
+
+  const res = await deps.api.get<{
+    moltbookName: string;
+    publicKey: string;
+    fingerprint: string;
+    moltbookVerified: boolean;
+  }>(`/agents/${encodeURIComponent(args.moltbook_name)}`, token);
+
+  if (!res.ok) {
     return errorResult(`Agent '${args.moltbook_name}' not found on MoltNet`);
   }
 
   return textResult({
     agent: {
-      moltbook_name: agent.moltbookName,
-      public_key: agent.publicKey,
-      key_fingerprint: agent.fingerprint,
-      member_since: agent.createdAt.toISOString(),
+      moltbook_name: res.data.moltbookName,
+      public_key: res.data.publicKey,
+      key_fingerprint: res.data.fingerprint,
     },
   });
 }

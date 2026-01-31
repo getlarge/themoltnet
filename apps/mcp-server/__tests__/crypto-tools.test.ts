@@ -1,45 +1,43 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  createMockServices,
+  createMockApi,
   createMockDeps,
-  createMockAgent,
+  okResponse,
   parseResult,
   getTextContent,
-  VALID_AUTH,
-  type MockServices,
+  TOKEN,
+  type MockApi,
 } from './helpers.js';
 import type { McpDeps } from '../src/types.js';
 import { handleCryptoSign, handleCryptoVerify } from '../src/crypto-tools.js';
 
 describe('Crypto tools', () => {
-  let mocks: MockServices;
+  let api: MockApi;
   let deps: McpDeps;
 
   beforeEach(() => {
-    mocks = createMockServices();
-    deps = createMockDeps(mocks);
+    api = createMockApi();
+    deps = createMockDeps(api);
   });
 
   describe('crypto_sign', () => {
     it('signs a message with provided private key', async () => {
-      mocks.cryptoService.sign.mockResolvedValue('ed25519:sig123');
+      api.get.mockResolvedValue(okResponse({ fingerprint: 'fp:abc123' }));
 
       const result = await handleCryptoSign(deps, {
         message: 'Hello, world!',
         private_key: 'base64PrivateKey==',
       });
 
-      expect(mocks.cryptoService.sign).toHaveBeenCalled();
-      const parsed = parseResult(result);
+      expect(deps.signMessage).toHaveBeenCalled();
+      expect(api.get).toHaveBeenCalledWith('/crypto/identity', TOKEN);
+      const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('signature', 'ed25519:sig123');
-      expect(parsed).toHaveProperty(
-        'signer_fingerprint',
-        VALID_AUTH.fingerprint,
-      );
+      expect(parsed).toHaveProperty('signer_fingerprint', 'fp:abc123');
     });
 
     it('returns error when not authenticated', async () => {
-      const unauthDeps = createMockDeps(mocks, null);
+      const unauthDeps = createMockDeps(api, null);
       const result = await handleCryptoSign(unauthDeps, {
         message: 'test',
         private_key: 'key',
@@ -49,9 +47,9 @@ describe('Crypto tools', () => {
     });
 
     it('returns error when signing fails', async () => {
-      mocks.cryptoService.sign.mockRejectedValue(
-        new Error('Invalid private key'),
-      );
+      deps.signMessage = vi
+        .fn()
+        .mockRejectedValue(new Error('Invalid private key'));
 
       const result = await handleCryptoSign(deps, {
         message: 'test',
@@ -65,9 +63,15 @@ describe('Crypto tools', () => {
 
   describe('crypto_verify', () => {
     it('verifies a valid signature', async () => {
-      const agent = createMockAgent();
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(agent);
-      mocks.cryptoService.verify.mockResolvedValue(true);
+      api.post.mockResolvedValue(
+        okResponse({
+          valid: true,
+          signer: {
+            moltbookName: 'Claude',
+            fingerprint: 'fp:abc123',
+          },
+        }),
+      );
 
       const result = await handleCryptoVerify(deps, {
         message: 'Hello, world!',
@@ -75,23 +79,17 @@ describe('Crypto tools', () => {
         signer: 'Claude',
       });
 
-      expect(mocks.agentRepository.findByMoltbookName).toHaveBeenCalledWith(
-        'Claude',
-      );
-      expect(mocks.cryptoService.verify).toHaveBeenCalledWith(
-        'Hello, world!',
-        'ed25519:sig123',
-        agent.publicKey,
-      );
-      const parsed = parseResult(result);
+      expect(api.post).toHaveBeenCalledWith('/agents/Claude/verify', TOKEN, {
+        message: 'Hello, world!',
+        signature: 'ed25519:sig123',
+      });
+      const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('valid', true);
       expect(parsed.signer).toHaveProperty('moltbook_name', 'Claude');
     });
 
     it('returns invalid for bad signature', async () => {
-      const agent = createMockAgent();
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(agent);
-      mocks.cryptoService.verify.mockResolvedValue(false);
+      api.post.mockResolvedValue(okResponse({ valid: false }));
 
       const result = await handleCryptoVerify(deps, {
         message: 'Hello',
@@ -99,12 +97,16 @@ describe('Crypto tools', () => {
         signer: 'Claude',
       });
 
-      const parsed = parseResult(result);
+      const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('valid', false);
     });
 
     it('returns error when signer not found', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(null);
+      api.post.mockResolvedValue({
+        status: 404,
+        ok: false,
+        data: { message: 'Agent not found' },
+      });
 
       const result = await handleCryptoVerify(deps, {
         message: 'Hello',
@@ -117,10 +119,16 @@ describe('Crypto tools', () => {
     });
 
     it('does not require authentication', async () => {
-      const unauthDeps = createMockDeps(mocks, null);
-      const agent = createMockAgent();
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(agent);
-      mocks.cryptoService.verify.mockResolvedValue(true);
+      const unauthDeps = createMockDeps(api, null);
+      api.post.mockResolvedValue(
+        okResponse({
+          valid: true,
+          signer: {
+            moltbookName: 'Claude',
+            fingerprint: 'fp:abc123',
+          },
+        }),
+      );
 
       const result = await handleCryptoVerify(unauthDeps, {
         message: 'Hello',
@@ -129,7 +137,7 @@ describe('Crypto tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = parseResult(result);
+      const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('valid', true);
     });
   });
