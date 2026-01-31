@@ -33,7 +33,7 @@ IDENTITY_SCHEMA_BASE64="$(base64 -w0 "$SCHEMA_FILE" 2>/dev/null || base64 "$SCHE
 
 # --- Validate required vars (injected by dotenvx from .env.public + .env) ---
 missing=()
-for var in BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT; do
+for var in BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT ORY_ACTION_API_KEY; do
   if [[ -z "${!var:-}" ]]; then
     missing+=("$var")
   fi
@@ -52,7 +52,7 @@ fi
 node -e '
   const fs = require("fs");
   let content = fs.readFileSync(process.argv[1], "utf8");
-  const vars = ["BASE_DOMAIN","APP_BASE_URL","API_BASE_URL","OIDC_PAIRWISE_SALT","IDENTITY_SCHEMA_BASE64"];
+  const vars = ["BASE_DOMAIN","APP_BASE_URL","API_BASE_URL","OIDC_PAIRWISE_SALT","ORY_ACTION_API_KEY","IDENTITY_SCHEMA_BASE64"];
   for (const v of vars) {
     content = content.split("${" + v + "}").join(process.env[v]);
   }

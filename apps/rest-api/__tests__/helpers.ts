@@ -16,6 +16,7 @@ import type {
   PermissionChecker,
 } from '../src/types.js';
 
+export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
@@ -110,6 +111,7 @@ export async function createTestApp(
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
+    webhookApiKey: TEST_WEBHOOK_API_KEY,
     authPreHandler: async (request: FastifyRequest, _reply: FastifyReply) => {
       request.authContext = authContext;
     },

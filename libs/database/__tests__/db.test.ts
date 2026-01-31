@@ -3,18 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('db module', () => {
   beforeEach(() => {
     vi.resetModules();
-    delete process.env.DATABASE_URL;
   });
 
-  it('does not throw on import when DATABASE_URL is missing', async () => {
+  it('does not throw on import', async () => {
     // The module should import without error — lazy init means no connection
     await expect(import('../src/db.js')).resolves.toBeDefined();
   });
 
-  it('getDatabase throws if DATABASE_URL is not set', async () => {
+  it('getDatabase throws if url is not provided', async () => {
     const { getDatabase } = await import('../src/db.js');
     expect(() => getDatabase()).toThrow(
-      'DATABASE_URL environment variable is required',
+      'DATABASE_URL must be provided on first call to getDatabase()',
     );
   });
 

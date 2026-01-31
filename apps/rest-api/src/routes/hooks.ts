@@ -6,10 +6,38 @@
  * POST /hooks/hydra/token-exchange — Hydra token exchange webhook
  */
 
+import crypto from 'node:crypto';
+
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-export async function hookRoutes(fastify: FastifyInstance) {
+export interface HookRouteOptions {
+  webhookApiKey: string;
+}
+
+export async function hookRoutes(
+  fastify: FastifyInstance,
+  opts: HookRouteOptions,
+) {
+  fastify.addHook('preHandler', async (request, reply) => {
+    const provided = request.headers['x-ory-api-key'];
+    if (typeof provided !== 'string') {
+      return reply
+        .status(401)
+        .send({ error: 'UNAUTHORIZED', message: 'Missing webhook API key' });
+    }
+
+    const expected = Buffer.from(opts.webhookApiKey);
+    const actual = Buffer.from(provided);
+    if (
+      expected.length !== actual.length ||
+      !crypto.timingSafeEqual(expected, actual)
+    ) {
+      return reply
+        .status(401)
+        .send({ error: 'UNAUTHORIZED', message: 'Invalid webhook API key' });
+    }
+  });
   // ── Kratos After Registration ──────────────────────────────
   fastify.post(
     '/hooks/kratos/after-registration',

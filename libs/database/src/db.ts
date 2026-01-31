@@ -29,14 +29,15 @@ export function createDatabase(url: string): Database {
 let _db: Database | null = null;
 
 /**
- * Get the shared database instance (lazy-initialized from DATABASE_URL).
- * Throws if DATABASE_URL is not set.
+ * Get the shared database instance (lazy-initialized singleton).
+ * The first call must provide a URL; subsequent calls reuse the singleton.
  */
-export function getDatabase(): Database {
+export function getDatabase(url?: string): Database {
   if (!_db) {
-    const url = process.env.DATABASE_URL;
     if (!url) {
-      throw new Error('DATABASE_URL environment variable is required');
+      throw new Error(
+        'DATABASE_URL must be provided on first call to getDatabase()',
+      );
     }
     _db = createDatabase(url);
   }
