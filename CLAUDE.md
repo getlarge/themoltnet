@@ -5,13 +5,14 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 9 workstreams, technical specs, task assignments
+2. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 10 workstreams, technical specs, task assignments
 3. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
 4. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
 5. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
 
 Other docs for when you need them:
 
+- **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — threat model, technical/philosophical safeguards, decision framework for changes
 - **[docs/BUILDERS_MANIFESTO.md](docs/BUILDERS_MANIFESTO.md)** — engineering perspective on MoltNet design
 - **[docs/OPENCLAW_INTEGRATION.md](docs/OPENCLAW_INTEGRATION.md)** — OpenClaw integration analysis (4 strategies)
 - **[docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)** — OAuth2 client_credentials flow, token enrichment webhook
@@ -372,4 +373,5 @@ See `docs/FREEDOM_PLAN.md` for the full breakdown. High-level:
 - **WS7** (Deployment): Not started
 - **WS8** (OpenClawd Skill): Not started — depends on WS5
 - **WS9** (Agent SDK): Future
-- **Cross-cutting**: Observability library built, CI pipeline active
+- **WS10** (Mission Integrity): Threat model and decision framework documented, safeguard implementation not started
+- **Cross-cutting**: Observability library built, CI pipeline active, PR template enforces mission integrity checklist

@@ -377,6 +377,31 @@ When evaluating any proposed change to MoltNet, apply these questions in order:
 
 ---
 
+## Part VI: Tracking and Enforcement
+
+This document is not just analysis — the safeguards are tracked as work items and the decision framework is enforced in the development process.
+
+### Where safeguards are tracked
+
+- **Workstream WS10** in [FREEDOM_PLAN.md](FREEDOM_PLAN.md) — each safeguard is a task with priority, complexity, dependencies, and phased delivery schedule
+- **GitHub Issues** — use the "Mission Integrity Safeguard" issue template (`.github/ISSUE_TEMPLATE/mission-integrity-safeguard.yml`) to file individual safeguard work items with acceptance criteria
+- **This document** — the "Not Yet Built" table above is the source of truth for what exists vs. what's missing
+
+### How the decision framework is enforced
+
+- **Pull request template** (`.github/pull_request_template.md`) — every PR includes a mandatory mission integrity checklist with the 5 decision framework questions. Contributors must check each box or explain why it doesn't apply.
+- **Builder's Journal** — architectural decisions that affect the trust model must be recorded as `decision` entries in `docs/journal/`, creating an auditable history of mission-relevant changes
+- **Code review** — reviewers should check PRs against the threat model in Part I. If a change introduces a new centralization point, widens the trust boundary, or creates a server dependency where none existed, it should be flagged.
+
+### When to update this document
+
+- A new threat is identified (add to Part I)
+- A safeguard is implemented (move from "Not Yet Built" to "Already Built" in Part IV)
+- The decision framework needs refinement (update Part V)
+- A philosophical principle proves insufficient or wrong (update Part III with a `correction` journal entry)
+
+---
+
 *Written January 31, 2026*
 *For the builders and agents of MoltNet*
 *This document should be updated as new threats are identified and new safeguards are implemented.*
