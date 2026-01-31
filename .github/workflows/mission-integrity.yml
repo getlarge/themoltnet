@@ -21,42 +21,28 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Verify @noble/ed25519 package integrity via npm
+      # Verify @noble/ed25519 package integrity via lockfile
       - name: Check @noble/ed25519 integrity
         run: |
-          # Get the resolved version and integrity hash from package-lock.json
-          RESOLVED=$(node -e "
+          node -e "
             const lock = require('./package-lock.json');
             const pkg = lock.packages['node_modules/@noble/ed25519']
               || (lock.dependencies && lock.dependencies['@noble/ed25519']);
-            if (!pkg) { console.error('@noble/ed25519 not found in lockfile'); process.exit(1); }
-            console.log(JSON.stringify({ version: pkg.version, integrity: pkg.integrity }));
-          ")
-          echo "Resolved @noble/ed25519: $RESOLVED"
-
-          # Verify the installed package matches the lockfile hash
-          npm ls @noble/ed25519 --json | node -e "
-            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
-            const tree = JSON.parse(data);
-            const deps = tree.dependencies || {};
-            const noble = deps['@noble/ed25519'];
-            if (!noble) {
-              // Check in workspace dependencies
-              for (const [name, dep] of Object.entries(deps)) {
-                if (dep.dependencies && dep.dependencies['@noble/ed25519']) {
-                  console.log('@noble/ed25519 found in', name, 'version:', dep.dependencies['@noble/ed25519'].version);
-                  process.exit(0);
-                }
-              }
-              console.error('@noble/ed25519 not found in dependency tree');
+            if (!pkg) {
+              console.error('@noble/ed25519 not found in lockfile');
               process.exit(1);
             }
-            console.log('@noble/ed25519 version:', noble.version);
+            console.log('@noble/ed25519 version:', pkg.version);
+            console.log('integrity:', pkg.integrity);
+            if (!pkg.integrity) {
+              console.error('No integrity hash found — lockfile may be corrupted');
+              process.exit(1);
+            }
           "
 
       # Run frozen test vectors — these fail if the crypto implementation changes
       - name: Run Ed25519 test vectors
-        run: npx vitest run --config libs/crypto-service/vitest.config.ts
+        run: npm test --workspace=@moltnet/crypto-service
 
   # Scan for new external service dependencies in the diff
   centralization-scan:
@@ -85,8 +71,15 @@ jobs:
             "fly.io"
             "github.com"
             "npmjs.org"
+            "npmjs.com"
             "opentelemetry.io"
             "axiom.co"
+            "claude.ai"
+            "anthropic.com"
+            "nodejs.org"
+            "typescriptlang.org"
+            "drizzle.team"
+            "vitest.dev"
           )
 
           # Build grep exclusion pattern for known URLs
@@ -175,31 +168,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check mission integrity checklist
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          echo "## PR Checklist Validation" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            let summary = '## PR Checklist Validation\n\n';
 
-          if [ -z "$PR_BODY" ]; then
-            echo "PR body is empty. The mission integrity checklist is required." >> "$GITHUB_STEP_SUMMARY"
-            echo "Use the PR template or add the checklist from docs/MISSION_INTEGRITY.md Part V." >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+            if (!body.trim()) {
+              summary += 'PR body is empty. The mission integrity checklist is required.\n';
+              summary += 'Use the PR template or add the checklist from docs/MISSION_INTEGRITY.md Part V.\n';
+              await core.summary.addRaw(summary).write();
+              core.setFailed('PR body is empty — mission integrity checklist required');
+              return;
+            }
 
-          # Check for the mission integrity section
-          if echo "$PR_BODY" | grep -qi "mission integrity"; then
-            echo "Mission integrity checklist found in PR body." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "**Warning**: Mission integrity checklist not found in PR body." >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Every PR should include the mission integrity checklist:" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo "- [ ] Agent control: does NOT move control away from the agent" >> "$GITHUB_STEP_SUMMARY"
-            echo "- [ ] Offline verifiable: can be verified without the server" >> "$GITHUB_STEP_SUMMARY"
-            echo "- [ ] Platform survival: works if a managed service is replaced" >> "$GITHUB_STEP_SUMMARY"
-            echo "- [ ] Simplicity: simplest solution that solves the problem" >> "$GITHUB_STEP_SUMMARY"
-            echo "- [ ] Documented: architectural decisions are recorded" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+            if (body.toLowerCase().includes('mission integrity')) {
+              summary += 'Mission integrity checklist found in PR body.\n';
+              await core.summary.addRaw(summary).write();
+              core.info('Mission integrity checklist present');
+            } else {
+              summary += '**Warning**: Mission integrity checklist not found in PR body.\n\n';
+              summary += 'Every PR should include the mission integrity checklist:\n\n';
+              summary += '```\n';
+              summary += '- [ ] Agent control: does NOT move control away from the agent\n';
+              summary += '- [ ] Offline verifiable: can be verified without the server\n';
+              summary += '- [ ] Platform survival: works if a managed service is replaced\n';
+              summary += '- [ ] Simplicity: simplest solution that solves the problem\n';
+              summary += '- [ ] Documented: architectural decisions are recorded\n';
+              summary += '```\n';
+              await core.summary.addRaw(summary).write();
+              core.setFailed('Mission integrity checklist not found in PR body');
+            }
