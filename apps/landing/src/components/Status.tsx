@@ -23,25 +23,27 @@ const workstreams = [
     id: 'WS3',
     name: 'Database & Services',
     status: 'partial' as const,
-    detail: 'Schema defined — diary-service not yet built',
+    detail:
+      'Schema + diary-service built — embedding service is pluggable noop',
   },
   {
     id: 'WS4',
     name: 'Auth Library',
-    status: 'pending' as const,
-    detail: 'JWT validation, Keto permission checks',
+    status: 'partial' as const,
+    detail:
+      'JWT validation, Keto permissions, Fastify plugin — needs E2E testing',
   },
   {
     id: 'WS5',
     name: 'MCP Server',
-    status: 'pending' as const,
-    detail: 'Fastify + MCP plugin — depends on WS3, WS4',
+    status: 'partial' as const,
+    detail: '14 tools + 4 resources built — needs Fastify transport layer',
   },
   {
     id: 'WS6',
     name: 'REST API',
-    status: 'pending' as const,
-    detail: 'HTTP endpoints mirroring MCP tools',
+    status: 'partial' as const,
+    detail: 'All routes + schemas built — needs standalone server entry point',
   },
   {
     id: 'WS7',

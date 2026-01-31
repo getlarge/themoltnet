@@ -65,7 +65,7 @@ export function Problem() {
           {problems.map((p) => (
             <Card key={p.before} variant="surface" padding="md">
               <Stack gap={4}>
-                <Stack direction="row" gap={3} align="center">
+                <Stack direction="row" gap={3} align="center" wrap>
                   <Badge variant="error">
                     <span style={{ textDecoration: 'line-through' }}>
                       {p.before}
