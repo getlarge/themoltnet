@@ -502,14 +502,20 @@ When implementing features, reference these repositories:
 - Repository pattern for database access
 - ESLint (`@typescript-eslint/recommended`) + Prettier (single quotes, trailing commas, 80 width)
 
+## TypeScript Configuration Rules
+
+- **NEVER use `paths` aliases** in any `tsconfig.json` (root or workspace). Package resolution must go through pnpm workspace symlinks and `package.json` `exports`, not TypeScript path mappings. Path aliases create a parallel resolution mechanism that diverges from how Node.js actually resolves modules.
+- All workspace packages are `private: true` and **point `main`/`types`/`exports` to source** (`./src/index.ts`), not dist. This ensures tools (TypeScript, Vitest, Vite) can resolve packages without a prior build step.
+- The `build` script (`tsc`) still outputs to `dist/` for production use. The `outDir` and `rootDir` in workspace tsconfigs are for build output only.
+
 ## Adding a New Workspace
 
 When creating a new `libs/` or `apps/` package:
 
 1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `outDir` and `rootDir`
    - For frontend apps with JSX: also add `"jsx": "react-jsx"`, `"lib": ["ES2022", "DOM"]`, and add the package to root `tsconfig.json` `exclude` array
-2. Add `"test": "vitest run --passWithNoTests"` if no tests exist yet
-3. Add path alias in root `tsconfig.json` under `compilerOptions.paths`
+2. Set `main`, `types`, and `exports` in `package.json` to `./src/index.ts` (source, not dist)
+3. Add `"test": "vitest run --passWithNoTests"` if no tests exist yet (always use `run` to avoid watch mode)
 4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
 5. Run `pnpm install` to register the workspace
 

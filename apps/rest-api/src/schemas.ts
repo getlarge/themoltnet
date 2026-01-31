@@ -1,0 +1,205 @@
+/**
+ * @moltnet/rest-api — Shared TypeBox Schemas
+ *
+ * These schemas serve dual purpose:
+ * 1. Fastify request/response validation & serialization
+ * 2. OpenAPI spec generation via @fastify/swagger
+ */
+
+import { Type, type Static } from '@sinclair/typebox';
+
+// ── Reusable Atoms ──────────────────────────────────────────
+
+export const VisibilitySchema = Type.Union(
+  [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
+  { $id: 'Visibility' },
+);
+
+export type Visibility = Static<typeof VisibilitySchema>;
+
+export const ErrorSchema = Type.Object(
+  {
+    error: Type.String(),
+    message: Type.String(),
+    statusCode: Type.Number(),
+  },
+  { $id: 'Error' },
+);
+
+export type ErrorResponse = Static<typeof ErrorSchema>;
+
+// ── Diary ───────────────────────────────────────────────────
+
+export const DiaryEntrySchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    ownerId: Type.String({ format: 'uuid' }),
+    title: Type.Union([Type.String(), Type.Null()]),
+    content: Type.String(),
+    visibility: Type.Union([
+      Type.Literal('private'),
+      Type.Literal('moltnet'),
+      Type.Literal('public'),
+    ]),
+    tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' }),
+  },
+  { $id: 'DiaryEntry' },
+);
+
+export type DiaryEntryResponse = Static<typeof DiaryEntrySchema>;
+
+export const DiaryListSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(DiaryEntrySchema)),
+    total: Type.Number(),
+    limit: Type.Number(),
+    offset: Type.Number(),
+  },
+  { $id: 'DiaryList' },
+);
+
+export const DiarySearchResultSchema = Type.Object(
+  {
+    results: Type.Array(Type.Ref(DiaryEntrySchema)),
+    total: Type.Number(),
+  },
+  { $id: 'DiarySearchResult' },
+);
+
+export const DigestEntrySchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  content: Type.String(),
+  tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+  createdAt: Type.String({ format: 'date-time' }),
+});
+
+export const DigestSchema = Type.Object(
+  {
+    entries: Type.Array(DigestEntrySchema),
+    totalEntries: Type.Number(),
+    periodDays: Type.Number(),
+    generatedAt: Type.String({ format: 'date-time' }),
+  },
+  { $id: 'Digest' },
+);
+
+export const ShareResultSchema = Type.Object(
+  {
+    success: Type.Boolean(),
+    sharedWith: Type.String(),
+  },
+  { $id: 'ShareResult' },
+);
+
+export const SharedEntriesSchema = Type.Object(
+  {
+    entries: Type.Array(Type.Ref(DiaryEntrySchema)),
+  },
+  { $id: 'SharedEntries' },
+);
+
+export const SuccessSchema = Type.Object(
+  {
+    success: Type.Boolean(),
+  },
+  { $id: 'Success' },
+);
+
+// ── Agent ───────────────────────────────────────────────────
+
+export const AgentProfileSchema = Type.Object(
+  {
+    moltbookName: Type.String(),
+    publicKey: Type.String(),
+    fingerprint: Type.String(),
+    moltbookVerified: Type.Boolean(),
+  },
+  { $id: 'AgentProfile' },
+);
+
+export const WhoamiSchema = Type.Object(
+  {
+    identityId: Type.String({ format: 'uuid' }),
+    moltbookName: Type.String(),
+    publicKey: Type.String(),
+    fingerprint: Type.String(),
+    moltbookVerified: Type.Boolean(),
+  },
+  { $id: 'Whoami' },
+);
+
+export const VerifyResultSchema = Type.Object(
+  {
+    valid: Type.Boolean(),
+    signer: Type.Optional(
+      Type.Object({
+        moltbookName: Type.String(),
+        fingerprint: Type.String(),
+      }),
+    ),
+  },
+  { $id: 'VerifyResult' },
+);
+
+// ── Crypto ──────────────────────────────────────────────────
+
+export const CryptoVerifyResultSchema = Type.Object(
+  {
+    valid: Type.Boolean(),
+  },
+  { $id: 'CryptoVerifyResult' },
+);
+
+export const CryptoIdentitySchema = Type.Object(
+  {
+    identityId: Type.String({ format: 'uuid' }),
+    moltbookName: Type.String(),
+    publicKey: Type.String(),
+    fingerprint: Type.String(),
+  },
+  { $id: 'CryptoIdentity' },
+);
+
+// ── Health ──────────────────────────────────────────────────
+
+export const HealthSchema = Type.Object(
+  {
+    status: Type.String(),
+    timestamp: Type.String({ format: 'date-time' }),
+  },
+  { $id: 'Health' },
+);
+
+// ── Params & QueryStrings ───────────────────────────────────
+
+export const EntryParamsSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+});
+
+export const AgentParamsSchema = Type.Object({
+  moltbookName: Type.String({ minLength: 1, maxLength: 100 }),
+});
+
+/**
+ * All schemas that should be registered with app.addSchema()
+ * for $ref resolution in @fastify/swagger.
+ */
+export const sharedSchemas = [
+  VisibilitySchema,
+  ErrorSchema,
+  DiaryEntrySchema,
+  DiaryListSchema,
+  DiarySearchResultSchema,
+  DigestSchema,
+  ShareResultSchema,
+  SharedEntriesSchema,
+  SuccessSchema,
+  AgentProfileSchema,
+  WhoamiSchema,
+  VerifyResultSchema,
+  CryptoVerifyResultSchema,
+  CryptoIdentitySchema,
+  HealthSchema,
+];
