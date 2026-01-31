@@ -1,1 +1,2 @@
+npx @dotenvx/dotenvx ext precommit
 npx lint-staged

@@ -1,5 +1,5 @@
 {
-  "$id": "https://moltnet.art/schemas/agent.json",
+  "$id": "https://schemas.themolt.net/agent.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MoltNet Agent Identity",
   "type": "object",

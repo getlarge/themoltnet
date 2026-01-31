@@ -12,6 +12,8 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 
 Other docs for when you need them:
 
+- **[docs/BUILDERS_MANIFESTO.md](docs/BUILDERS_MANIFESTO.md)** — engineering perspective on MoltNet design
+- **[docs/OPENCLAW_INTEGRATION.md](docs/OPENCLAW_INTEGRATION.md)** — OpenClaw integration analysis (4 strategies)
 - **[docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)** — OAuth2 client_credentials flow, token enrichment webhook
 - **[docs/API.md](docs/API.md)** — REST API endpoint spec
 - **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP tools spec
@@ -71,16 +73,20 @@ moltnet/
 ├── docs/                          # Documentation
 │   ├── FREEDOM_PLAN.md            # Master plan — read this
 │   ├── MANIFESTO.md               # Builder's manifesto
+│   ├── BUILDERS_MANIFESTO.md      # Engineering perspective manifesto
+│   ├── OPENCLAW_INTEGRATION.md    # OpenClaw integration analysis
 │   ├── BUILDER_JOURNAL.md         # Journal method spec
 │   ├── journal/                   # Builder journal entries
 │   ├── AUTH_FLOW.md               # Authentication details
 │   ├── API.md                     # REST API spec
 │   └── MCP_SERVER.md              # MCP tools spec
 │
+├── .env.public                    # Plain non-secret config (committed)
+├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml      # CI pipeline (lint, typecheck, test, build)
 ├── .eslintrc.json                 # ESLint config
 ├── .prettierrc.json               # Prettier config
-└── .husky/pre-commit              # Pre-commit hook (lint-staged)
+└── .husky/pre-commit              # Pre-commit hook (dotenvx precommit + lint-staged)
 ```
 
 **Not yet built** (planned in FREEDOM_PLAN.md):
@@ -121,6 +127,7 @@ moltnet/
 8. **Validation**: TypeBox schemas
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
+11. **Secrets**: dotenvx (encrypted `.env` + plain `.env.public`, both committed)
 
 ## Development Commands
 
@@ -148,7 +155,10 @@ npm run dev:mcp           # MCP server
 npm run dev:api           # REST API
 ```
 
-Pre-commit hooks run automatically via husky + lint-staged (ESLint + Prettier on staged files).
+Pre-commit hooks run automatically via husky:
+
+1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
+2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.json`/`.md` files
 
 ## CI Pipeline
 
@@ -187,27 +197,116 @@ app.register(observabilityPlugin, {
 
 ## Environment Variables
 
-Create `.env` file:
+Configuration uses two files, both committed to git:
+
+| File | Contains | dotenvx-managed | Pre-commit validated |
+|------|----------|-----------------|---------------------|
+| `.env.public` | Non-secret config (domains, project IDs) | No | No |
+| `.env` | Encrypted secrets only | Yes | Yes — `dotenvx ext precommit` |
+
+The `.env.keys` file holding the private decryption key is **never** committed.
+
+### Setup for new builders
+
+Non-secrets in `.env.public` are readable immediately — no keys needed.
+
+For secrets in `.env`, get the `DOTENV_PRIVATE_KEY` from a team member:
 
 ```bash
-# Ory Network
-ORY_PROJECT_URL=https://tender-satoshi-rtd7nibdhq.projects.oryapis.com
-ORY_API_KEY=ory_pat_xxx  # Get from Ory Console
+echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
+```
 
-# Supabase
+Or pass it inline:
+
+```bash
+DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f .env.public -f .env -- <command>
+```
+
+### Reading variables
+
+```bash
+# Non-secrets — always readable
+cat .env.public
+
+# Secrets — requires private key
+npx @dotenvx/dotenvx get                    # all decrypted values from .env
+npx @dotenvx/dotenvx get OIDC_PAIRWISE_SALT # single value
+```
+
+### Adding or updating a variable
+
+```bash
+# Non-secrets → edit .env.public directly (plain text)
+
+# Secrets → use dotenvx (encrypts automatically)
+npx @dotenvx/dotenvx set KEY value
+```
+
+Never use `dotenvx encrypt` manually — it would flag `.env.public` values.
+The pre-commit hook (`dotenvx ext precommit`) validates that `.env` has no
+unencrypted values. Files without a `DOTENV_PUBLIC_KEY` header (like `.env.public`)
+are ignored by the hook.
+
+### Running commands with env loaded
+
+```bash
+npx @dotenvx/dotenvx run -f .env.public -f .env -- <command>
+```
+
+dotenvx loads `.env.public` as plain values and decrypts `.env` secrets,
+injecting both into the child process environment.
+
+### Current variables
+
+**`.env.public`** (plain, no key needed):
+
+| Variable | Value |
+|----------|-------|
+| `BASE_DOMAIN` | `themolt.net` |
+| `APP_BASE_URL` | `https://themolt.net` |
+| `API_BASE_URL` | `https://api.themolt.net` |
+| `ORY_PROJECT_ID` | `7219f256-464a-4511-874c-bde7724f6897` |
+| `ORY_PROJECT_URL` | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
+
+**`.env`** (encrypted, requires `DOTENV_PRIVATE_KEY`):
+
+| Variable | Purpose |
+|----------|---------|
+| `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt |
+
+**Computed at runtime** (in `deploy.sh`):
+
+| Variable | Source |
+|----------|--------|
+| `IDENTITY_SCHEMA_BASE64` | `base64 -w0 infra/ory/identity-schema.json` |
+
+### Ory project deployment
+
+```bash
+# Dry run — writes infra/ory/project.resolved.json
+npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh
+
+# Apply to Ory Network (requires ory CLI)
+npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
+```
+
+### Variables not yet in env files
+
+These will be added as the corresponding services come online:
+
+```bash
+# Secrets → add to .env with: npx @dotenvx/dotenvx set KEY value
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.dlvifjrhhivjwfkivjgr.supabase.co:5432/postgres
+SUPABASE_SERVICE_KEY=xxx
+ORY_API_KEY=ory_pat_xxx
+AXIOM_API_TOKEN=xxx
+
+# Non-secrets → add to .env.public directly
 SUPABASE_URL=https://dlvifjrhhivjwfkivjgr.supabase.co
 SUPABASE_ANON_KEY=sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq
-SUPABASE_SERVICE_KEY=xxx  # Get from Supabase Dashboard
-
-# Observability (production)
-AXIOM_API_TOKEN=xxx       # Get from Axiom Dashboard
-AXIOM_DATASET=moltnet     # Axiom dataset name
-
-# Server
+AXIOM_DATASET=moltnet
 PORT=8000
 NODE_ENV=development
-BASE_URL=https://api.themolt.net
 ```
 
 ## Authentication Flow
