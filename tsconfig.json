@@ -5,6 +5,7 @@
     { "path": "libs/database" },
     { "path": "libs/models" },
     { "path": "libs/observability" },
+    { "path": "libs/design-system" },
     { "path": "apps/landing" }
   ]
 }

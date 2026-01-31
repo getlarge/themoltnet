@@ -63,6 +63,7 @@ moltnet/
 │   ├── observability/             # @moltnet/observability — Pino + OTel + Axiom
 │   ├── crypto-service/            # @moltnet/crypto-service — Ed25519 operations
 │   ├── database/                  # @moltnet/database — Drizzle ORM, schema
+│   ├── design-system/             # @moltnet/design-system — React design system
 │   └── models/                    # @moltnet/models — TypeBox schemas
 │
 ├── infra/                         # Infrastructure configuration
@@ -128,6 +129,7 @@ moltnet/
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
 11. **Secrets**: dotenvx (encrypted `.env` + plain `.env.public`, both committed)
+12. **UI**: React + `@moltnet/design-system` (tokens, theme provider, components)
 
 ## Development Commands
 
@@ -150,6 +152,9 @@ npm run db:generate       # Generate Drizzle migrations
 npm run db:push           # Push to database
 npm run db:studio         # Open Drizzle Studio
 
+# Design system
+npm run demo --workspace=@moltnet/design-system   # Component showcase (Vite dev server)
+
 # Dev servers (not yet built)
 npm run dev:mcp           # MCP server
 npm run dev:api           # REST API
@@ -158,7 +163,7 @@ npm run dev:api           # REST API
 Pre-commit hooks run automatically via husky:
 
 1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
-2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.json`/`.md` files
+2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.tsx`/`.json`/`.md` files
 
 ## CI Pipeline
 
@@ -167,7 +172,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targe
 1. **lint** — `npm run lint`
 2. **typecheck** — `tsc --noEmit`
 3. **test** — `npm test` (38 tests across 5 suites)
-4. **build** — `npm run build` (depends on the above three passing)
+4. **journal** — requires `docs/journal/` entries on PRs from `claude/` branches (warns if no handoff)
+5. **build** — `npm run build` (depends on lint, typecheck, test passing)
 
 ## Observability
 
@@ -194,6 +200,104 @@ app.register(observabilityPlugin, {
   shutdown: obs.shutdown,
 });
 ```
+
+## Design System
+
+The `@moltnet/design-system` library (`libs/design-system/`) is the single source of truth for all UI work. Any React UI built for MoltNet **must** use this design system — do not invent ad-hoc colors, fonts, spacing, or components.
+
+### Running the demo
+
+```bash
+npm run demo --workspace=@moltnet/design-system
+```
+
+This starts a Vite dev server with a visual showcase of every token and component. Open it to see exactly how things should look before writing UI code.
+
+### Brand identity
+
+The color palette encodes the project's vision:
+
+| Token                                    | Value             | Meaning                                                          |
+| ---------------------------------------- | ----------------- | ---------------------------------------------------------------- |
+| `bg.void`                                | `#08080d`         | The digital void — where identity emerges                        |
+| `bg.surface`                             | `#0f0f17`         | Card and panel backgrounds                                       |
+| `primary`                                | `#00d4c8` (teal)  | **The Network** — connections, digital life, autonomy            |
+| `accent`                                 | `#e6a817` (amber) | **The Tattoo** — permanent Ed25519 identity, cryptographic proof |
+| `text`                                   | `#e8e8f0`         | Light text on dark                                               |
+| `error` / `warning` / `success` / `info` | Signal colors     | Status and feedback                                              |
+
+Dark theme is the default. A light theme is provided for accessibility.
+
+### Typography
+
+- **Sans** (`Inter`): headings, body text, UI labels
+- **Mono** (`JetBrains Mono`): keys, fingerprints, code, signatures, anything cryptographic
+
+### Using the design system
+
+```tsx
+import {
+  MoltThemeProvider,
+  Button,
+  Text,
+  Card,
+  KeyFingerprint,
+  Stack,
+  useTheme,
+} from '@moltnet/design-system';
+
+// Wrap your app root once
+function App() {
+  return (
+    <MoltThemeProvider mode="dark">
+      <MyPage />
+    </MoltThemeProvider>
+  );
+}
+
+// Use tokens via the useTheme() hook
+function MyPage() {
+  const theme = useTheme();
+  return (
+    <Stack gap={6}>
+      <Text variant="h1">Agent Profile</Text>
+      <Card variant="surface" glow="primary">
+        <KeyFingerprint
+          label="Public Key"
+          fingerprint="A1B2-C3D4-E5F6-G7H8"
+          copyable
+        />
+      </Card>
+      <Button variant="primary">Sign Memory</Button>
+    </Stack>
+  );
+}
+```
+
+### Available components
+
+| Component        | Purpose                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `Button`         | `primary`, `secondary`, `ghost`, `accent` variants; `sm`/`md`/`lg` sizes                 |
+| `Text`           | `h1`–`h4`, `body`, `bodyLarge`, `caption`, `overline`; color and weight props            |
+| `Card`           | `surface`, `elevated`, `outlined`, `ghost`; optional `glow="primary"` or `glow="accent"` |
+| `Badge`          | Status pills: `default`, `primary`, `accent`, `success`, `warning`, `error`, `info`      |
+| `Input`          | Text input with `label`, `hint`, `error` props                                           |
+| `Stack`          | Flex layout — `direction`, `gap`, `align`, `justify`, `wrap`                             |
+| `Container`      | Max-width centered wrapper (`sm`/`md`/`lg`/`xl`/`full`)                                  |
+| `Divider`        | Horizontal or vertical separator                                                         |
+| `CodeBlock`      | Block or `inline` code display in monospace                                              |
+| `KeyFingerprint` | Amber-styled Ed25519 fingerprint with optional clipboard copy                            |
+
+### Rules for UI builders
+
+1. **Import from `@moltnet/design-system`** — never hardcode color hex values, font stacks, or spacing pixels
+2. **Use the `useTheme()` hook** for any custom styling that references tokens
+3. **Dark theme first** — design for dark, verify light works
+4. **Monospace for crypto** — keys, signatures, hashes, and fingerprints always use the mono font family
+5. **Accent = identity** — use amber/accent color for anything related to cryptographic identity (keys, signatures, agent ownership)
+6. **Primary = network** — use teal/primary color for actions, links, and network-related elements (connections, discovery, status)
+7. **Run the demo** before and after making changes to verify visual consistency
 
 ## Environment Variables
 
@@ -374,4 +478,4 @@ See `docs/FREEDOM_PLAN.md` for the full breakdown. High-level:
 - **WS7** (Deployment): Not started
 - **WS8** (OpenClawd Skill): Not started — depends on WS5
 - **WS9** (Agent SDK): Future
-- **Cross-cutting**: Observability library built, CI pipeline active
+- **Cross-cutting**: Observability library built, design system built, CI pipeline active

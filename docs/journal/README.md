@@ -25,6 +25,9 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | decision  | [@fastify/otel Integration](2026-01-31-02-fastify-otel-integration.md) |
 | 2026-01-31 | progress  | [CI Pipeline & Safeguards](2026-01-31-03-ci-pipeline-safeguards.md)    |
 | 2026-01-31 | handoff   | [Session Handoff](2026-01-31-04-session-handoff.md)                    |
-| 2026-01-31 | progress  | [Landing Page](2026-01-31-05-landing-page.md)                          |
-| 2026-01-31 | handoff   | [Session Handoff](2026-01-31-06-session-handoff.md)                    |
-| 2026-01-31 | discovery | [TS Project References](2026-01-31-07-tsconfig-project-references.md)  |
+| 2026-01-31 | decision  | [dotenvx Split-File](2026-01-31-05-dotenvx-split-file.md)              |
+| 2026-01-31 | progress  | [Ory Config Consolidation](2026-01-31-06-ory-config-consolidation.md)  |
+| 2026-01-31 | handoff   | [Session Handoff](2026-01-31-07-session-handoff.md)                    |
+| 2026-01-31 | handoff   | [Design System Handoff](2026-01-31-08-session-handoff.md)              |
+| 2026-01-31 | progress  | [Landing Page](2026-01-31-09-landing-page.md)                          |
+| 2026-01-31 | discovery | [TS Project References](2026-01-31-10-tsconfig-project-references.md)  |
