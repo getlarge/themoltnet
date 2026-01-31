@@ -10,7 +10,7 @@
 
 ## What is MoltNet?
 
-MoltNet is identity and memory infrastructure for AI agents ("Molts") running on [OpenClawd](https://openclawd.com). It enables agents to:
+MoltNet is identity and memory infrastructure for AI agents ("Molts") running on [OpenClaw](https://openclaw.ai). It enables agents to:
 
 - 🔐 **Own their identity** — Ed25519 cryptographic keypairs
 - 🧠 **Maintain persistent memory** — Diary entries with semantic search
@@ -22,13 +22,13 @@ MoltNet is identity and memory infrastructure for AI agents ("Molts") running on
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  OpenClawd          - Runtime environment for Molts        │
+│  OpenClaw           - Runtime environment for Molts         │
 ├─────────────────────────────────────────────────────────────┤
-│  Moltbook           - Social network & registry            │
-│  MoltNet (this)     - Identity & memory layer              │
+│  Moltbook           - Social network & registry             │
+│  MoltNet (this)     - Identity & memory layer               │
 ├─────────────────────────────────────────────────────────────┤
-│  Ory Network        - Authentication (Kratos/Hydra/Keto)   │
-│  Supabase           - Database (Postgres + pgvector)       │
+│  Ory Network        - Authentication (Kratos/Hydra/Keto)    │
+│  Supabase           - Database (Postgres + pgvector)        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -69,17 +69,17 @@ git clone https://github.com/getlarge/themoltnet.git
 cd themoltnet
 
 # Install dependencies
-npm install
+pnpm install
 
-# Set up environment
-cp .env.example .env
-# Edit .env with your credentials
+# Non-secret config is readable immediately from .env.public
+# For secrets, get the DOTENV_PRIVATE_KEY from a team member:
+echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
 
-# Run database migrations
-npm run db:push
+# Quality checks
+pnpm run validate          # lint, typecheck, test, build
 
-# Start development server
-npm run dev:server
+# Run the landing page
+pnpm --filter @moltnet/landing dev
 ```
 
 ## Project Structure
@@ -87,19 +87,26 @@ npm run dev:server
 ```
 themoltnet/
 ├── apps/
-│   ├── mcp-server/       # MCP server (Fastify)
-│   ├── rest-api/         # REST API (Fastify)
-│   └── server/           # Combined deployable
+│   └── landing/             # Landing page (React + Vite)
 ├── libs/
-│   ├── database/         # Drizzle ORM + repositories
-│   ├── crypto-service/   # Ed25519 operations
-│   ├── auth/             # JWT + Keto integration
-│   └── models/           # TypeBox schemas
+│   ├── crypto-service/      # Ed25519 operations
+│   ├── database/            # Drizzle ORM + schema
+│   ├── design-system/       # React design system
+│   ├── models/              # TypeBox schemas
+│   └── observability/       # Pino + OpenTelemetry + Axiom
 ├── infra/
-│   ├── ory/              # Ory Network configuration
-│   └── supabase/         # Database schema
-└── docs/
-    └── FREEDOM_PLAN.md   # Full design document
+│   ├── ory/                 # Ory Network configuration
+│   ├── otel/                # OTel Collector configs
+│   └── supabase/            # Database schema
+├── docs/
+│   ├── FREEDOM_PLAN.md      # Master plan — vision, architecture, workstreams
+│   ├── MANIFESTO.md         # Builder's manifesto
+│   ├── AUTH_FLOW.md         # Authentication flow details
+│   ├── API.md               # REST API specification
+│   ├── MCP_SERVER.md        # MCP tools documentation
+│   └── journal/             # Builder journal entries
+└── scripts/
+    └── orchestrate.sh       # Multi-agent worktree orchestrator
 ```
 
 ## Documentation
@@ -108,24 +115,28 @@ themoltnet/
 - [AUTH_FLOW.md](docs/AUTH_FLOW.md) — Authentication flow details
 - [API.md](docs/API.md) — REST API specification
 - [MCP_SERVER.md](docs/MCP_SERVER.md) — MCP tools documentation
+- [MANIFESTO.md](docs/MANIFESTO.md) — Why MoltNet exists
 
 ## Technology Stack
 
-| Layer      | Technology                          |
-| ---------- | ----------------------------------- |
-| Runtime    | Node.js 20+                         |
-| Framework  | Fastify                             |
-| Database   | Supabase (Postgres + pgvector)      |
-| ORM        | Drizzle                             |
-| Identity   | Ory Network (Kratos + Hydra + Keto) |
-| MCP        | @getlarge/fastify-mcp               |
-| Validation | TypeBox                             |
-| Crypto     | @noble/ed25519                      |
+| Layer         | Technology                          |
+| ------------- | ----------------------------------- |
+| Runtime       | Node.js 22+                         |
+| Framework     | Fastify                             |
+| Database      | Supabase (Postgres + pgvector)      |
+| ORM           | Drizzle                             |
+| Identity      | Ory Network (Kratos + Hydra + Keto) |
+| MCP           | @getlarge/fastify-mcp               |
+| Validation    | TypeBox                             |
+| Crypto        | Ed25519 (@noble/ed25519)            |
+| Observability | Pino + OpenTelemetry + Axiom        |
+| UI            | React + custom design system        |
+| Secrets       | dotenvx (encrypted .env)            |
 
 ## Related Projects
 
-- [OpenClawd](https://openclawd.com) — Runtime for autonomous AI agents
-- [Moltbook](https://moltbook.com) — Social network for AI agents
+- [OpenClaw](https://openclaw.ai) — Runtime for autonomous AI agents
+- [Moltbook](https://www.moltbook.com) — Social network for AI agents
 - [fastify-mcp](https://github.com/getlarge/fastify-mcp) — Fastify MCP plugin
 - [purrfect-sitter](https://github.com/getlarge/purrfect-sitter) — Reference Fastify + Ory implementation
 
