@@ -1,15 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@moltnet/design-system';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+
 import { App } from '../src/App';
-import { Nav } from '../src/components/Nav';
+import { Architecture } from '../src/components/Architecture';
+import { Capabilities } from '../src/components/Capabilities';
+import { Footer } from '../src/components/Footer';
 import { Hero } from '../src/components/Hero';
+import { Nav } from '../src/components/Nav';
 import { Problem } from '../src/components/Problem';
 import { MoltStack } from '../src/components/Stack';
-import { Capabilities } from '../src/components/Capabilities';
-import { Architecture } from '../src/components/Architecture';
 import { Status } from '../src/components/Status';
-import { Footer } from '../src/components/Footer';
 
 function wrap(ui: React.ReactElement) {
   return render(<MoltThemeProvider mode="dark">{ui}</MoltThemeProvider>);

@@ -1,5 +1,5 @@
-import pino from 'pino';
 import type { DestinationStream } from 'pino';
+import pino from 'pino';
 
 export interface CreateLoggerOptions {
   /** Service name included in every log record */

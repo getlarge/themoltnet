@@ -2,18 +2,19 @@
  * Test helpers — mocks and fixtures for REST API tests
  */
 
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { vi } from 'vitest';
+
 import { buildApp } from '../src/app.js';
 import type {
-  DiaryService,
-  AgentRepository,
-  CryptoService,
-  PermissionChecker,
-  AuthContext,
-  DiaryEntry,
   AgentKey,
+  AgentRepository,
+  AuthContext,
+  CryptoService,
+  DiaryEntry,
+  DiaryService,
+  PermissionChecker,
 } from '../src/types.js';
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';

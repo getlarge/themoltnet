@@ -5,18 +5,19 @@
  * passing the agent's bearer token for auth.
  */
 
-import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   createDiaryEntry,
+  deleteDiaryEntry,
   getDiaryEntry,
   listDiaryEntries,
+  reflectDiary,
   searchDiary,
   updateDiaryEntry,
-  deleteDiaryEntry,
-  reflectDiary,
 } from '@moltnet/api-client';
+import { z } from 'zod';
+
 import type { McpDeps } from './types.js';
 
 function textResult(data: unknown): CallToolResult {

@@ -5,16 +5,17 @@
  * for protecting routes with OAuth2 token validation and scope checks.
  */
 
-import fp from 'fastify-plugin';
 import type {
   FastifyInstance,
-  FastifyRequest,
   FastifyReply,
-  preHandlerHookHandler,
+  FastifyRequest,
+  preHandlerAsyncHookHandler,
 } from 'fastify';
-import type { AuthContext } from './types.js';
-import type { TokenValidator } from './token-validator.js';
+import fp from 'fastify-plugin';
+
 import type { PermissionChecker } from './permission-checker.js';
+import type { TokenValidator } from './token-validator.js';
+import type { AuthContext } from './types.js';
 
 export interface AuthPluginOptions {
   tokenValidator: TokenValidator;
@@ -57,63 +58,60 @@ export const authPlugin = fp(
   },
 );
 
-export const requireAuth: preHandlerHookHandler = async function requireAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  const authHeader = request.headers.authorization;
-  if (!authHeader) {
-    return reply.status(401).send({
-      error: 'UNAUTHORIZED',
-      message: 'Missing authorization header',
-      statusCode: 401,
-    });
-  }
+export const requireAuth: preHandlerAsyncHookHandler =
+  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
+    const authHeader = request.headers.authorization;
+    if (!authHeader) {
+      return reply.status(401).send({
+        error: 'UNAUTHORIZED',
+        message: 'Missing authorization header',
+        statusCode: 401,
+      });
+    }
 
-  if (!authHeader.startsWith('Bearer ')) {
-    return reply.status(401).send({
-      error: 'UNAUTHORIZED',
-      message: 'Invalid authorization scheme',
-      statusCode: 401,
-    });
-  }
+    if (!authHeader.startsWith('Bearer ')) {
+      return reply.status(401).send({
+        error: 'UNAUTHORIZED',
+        message: 'Invalid authorization scheme',
+        statusCode: 401,
+      });
+    }
 
-  const token = extractBearerToken(request);
-  if (!token) {
-    return reply.status(401).send({
-      error: 'UNAUTHORIZED',
-      message: 'Missing authorization header',
-      statusCode: 401,
-    });
-  }
+    const token = extractBearerToken(request);
+    if (!token) {
+      return reply.status(401).send({
+        error: 'UNAUTHORIZED',
+        message: 'Missing authorization header',
+        statusCode: 401,
+      });
+    }
 
-  const authContext =
-    await request.server.tokenValidator.resolveAuthContext(token);
-  if (!authContext) {
-    return reply.status(401).send({
-      error: 'UNAUTHORIZED',
-      message: 'Invalid or expired token',
-      statusCode: 401,
-    });
-  }
+    const authContext =
+      await request.server.tokenValidator.resolveAuthContext(token);
+    if (!authContext) {
+      return reply.status(401).send({
+        error: 'UNAUTHORIZED',
+        message: 'Invalid or expired token',
+        statusCode: 401,
+      });
+    }
 
-  request.authContext = authContext;
-};
-
-export const optionalAuth: preHandlerHookHandler = async function optionalAuth(
-  request: FastifyRequest,
-) {
-  const token = extractBearerToken(request);
-  if (!token) return;
-
-  const authContext =
-    await request.server.tokenValidator.resolveAuthContext(token);
-  if (authContext) {
     request.authContext = authContext;
-  }
-};
+  };
 
-export function requireScopes(scopes: string[]): preHandlerHookHandler {
+export const optionalAuth: preHandlerAsyncHookHandler =
+  async function optionalAuth(request: FastifyRequest) {
+    const token = extractBearerToken(request);
+    if (!token) return;
+
+    const authContext =
+      await request.server.tokenValidator.resolveAuthContext(token);
+    if (authContext) {
+      request.authContext = authContext;
+    }
+  };
+
+export function requireScopes(scopes: string[]): preHandlerAsyncHookHandler {
   return async function requireScopesHandler(
     request: FastifyRequest,
     reply: FastifyReply,

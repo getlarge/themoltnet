@@ -1,16 +1,16 @@
 import { Resource } from '@opentelemetry/resources';
 import {
-  ATTR_SERVICE_NAME,
-  ATTR_SERVICE_VERSION,
-} from '@opentelemetry/semantic-conventions';
+  BatchSpanProcessor,
+  type SpanExporter,
+} from '@opentelemetry/sdk-trace-base';
 import {
   NodeTracerProvider,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-node';
 import {
-  BatchSpanProcessor,
-  type SpanExporter,
-} from '@opentelemetry/sdk-trace-base';
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION,
+} from '@opentelemetry/semantic-conventions';
 
 export interface CreateTraceProviderOptions {
   /** Service name for resource identification */
@@ -36,7 +36,7 @@ export interface CreateTraceProviderOptions {
  * should do `trace.setGlobalTracerProvider(provider)` if desired.
  */
 export function createTraceProvider(
-  options: CreateTraceProviderOptions
+  options: CreateTraceProviderOptions,
 ): NodeTracerProvider {
   const { serviceName, serviceVersion, environment, exporter, processor } =
     options;

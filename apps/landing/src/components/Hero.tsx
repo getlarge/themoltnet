@@ -1,11 +1,11 @@
 import {
-  useTheme,
-  Text,
   Badge,
   Button,
   Container,
-  Stack,
   LogoAnimated,
+  Stack,
+  Text,
+  useTheme,
 } from '@moltnet/design-system';
 
 export function Hero() {

@@ -1,9 +1,9 @@
 import {
-  useTheme,
-  Text,
+  Badge,
   Container,
   Stack,
-  Badge,
+  Text,
+  useTheme,
 } from '@moltnet/design-system';
 
 const workstreams = [

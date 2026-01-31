@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { createOryClients, type OryClients } from '../src/ory-client.js';
 
 describe('createOryClients', () => {

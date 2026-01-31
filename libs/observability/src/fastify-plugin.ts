@@ -1,6 +1,7 @@
-import fp from 'fastify-plugin';
 import { metrics as metricsApi } from '@opentelemetry/api';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import fp from 'fastify-plugin';
+
 import type { RequestMetrics } from './types.js';
 
 export interface ObservabilityPluginOptions {
@@ -20,7 +21,7 @@ declare module 'fastify' {
 
 const plugin: FastifyPluginAsync<ObservabilityPluginOptions> = async (
   app: FastifyInstance,
-  options: ObservabilityPluginOptions
+  options: ObservabilityPluginOptions,
 ) => {
   const { serviceName, shutdown } = options;
 

@@ -5,12 +5,13 @@
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { McpDeps } from './types.js';
-import { registerDiaryTools } from './diary-tools.js';
-import { registerSharingTools } from './sharing-tools.js';
+
 import { registerCryptoTools } from './crypto-tools.js';
+import { registerDiaryTools } from './diary-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
 import { registerResources } from './resources.js';
+import { registerSharingTools } from './sharing-tools.js';
+import type { McpDeps } from './types.js';
 
 export function createMcpServer(deps: McpDeps): McpServer {
   const server = new McpServer({

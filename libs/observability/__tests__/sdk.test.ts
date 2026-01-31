@@ -1,5 +1,6 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { trace, metrics as metricsApi } from '@opentelemetry/api';
+import { metrics as metricsApi, trace } from '@opentelemetry/api';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { initObservability } from '../src/sdk.js';
 
 describe('initObservability', () => {

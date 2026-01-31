@@ -4,10 +4,11 @@
 
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+
 import {
-  ErrorSchema,
-  CryptoVerifyResultSchema,
   CryptoIdentitySchema,
+  CryptoVerifyResultSchema,
+  ErrorSchema,
 } from '../schemas.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {

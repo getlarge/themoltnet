@@ -4,15 +4,15 @@
  * Database layer for MoltNet using Drizzle ORM
  */
 
-export { getDatabase, createDatabase, type Database } from './db.js';
-export * from './schema.js';
+export { createDatabase, type Database, getDatabase } from './db.js';
+export {
+  type AgentRepository,
+  createAgentRepository,
+} from './repositories/agent.repository.js';
 export {
   createDiaryRepository,
+  type DiaryListOptions,
   type DiaryRepository,
   type DiarySearchOptions,
-  type DiaryListOptions,
 } from './repositories/diary.repository.js';
-export {
-  createAgentRepository,
-  type AgentRepository,
-} from './repositories/agent.repository.js';
+export * from './schema.js';

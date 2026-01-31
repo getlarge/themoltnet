@@ -5,8 +5,9 @@
  */
 
 import { eq } from 'drizzle-orm';
-import { agentKeys, type AgentKey, type NewAgentKey } from '../schema.js';
+
 import type { Database } from '../db.js';
+import { type AgentKey, agentKeys, type NewAgentKey } from '../schema.js';
 
 export function createAgentRepository(db: Database) {
   return {

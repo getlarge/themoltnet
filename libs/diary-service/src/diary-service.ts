@@ -7,14 +7,14 @@
  */
 
 import type {
-  DiaryServiceDeps,
   CreateEntryInput,
-  UpdateEntryInput,
-  SearchInput,
+  DiaryEntry,
+  DiaryServiceDeps,
+  Digest,
   ListInput,
   ReflectInput,
-  Digest,
-  DiaryEntry,
+  SearchInput,
+  UpdateEntryInput,
 } from './types.js';
 
 export interface DiaryService {

@@ -4,14 +4,15 @@
  * Database operations for diary entries
  */
 
-import { eq, and, or, desc, sql, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
+
+import type { Database } from '../db.js';
 import {
   diaryEntries,
-  entryShares,
   type DiaryEntry,
+  entryShares,
   type NewDiaryEntry,
 } from '../schema.js';
-import type { Database } from '../db.js';
 
 export interface DiarySearchOptions {
   ownerId: string;

@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import { Writable } from 'node:stream';
+
+import { describe, expect, it } from 'vitest';
+
 import { createLogger } from '../src/logger.js';
 
 function createSinkStream(): { stream: Writable; lines: string[] } {

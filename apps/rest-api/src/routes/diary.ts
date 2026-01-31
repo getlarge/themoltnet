@@ -4,18 +4,19 @@
 
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
-import type { AuthContext } from '../types.js';
+
 import {
-  EntryParamsSchema,
-  ErrorSchema,
   DiaryEntrySchema,
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,
-  ShareResultSchema,
+  EntryParamsSchema,
+  ErrorSchema,
   SharedEntriesSchema,
+  ShareResultSchema,
   SuccessSchema,
 } from '../schemas.js';
+import type { AuthContext } from '../types.js';
 
 function requireAuthContext(
   authContext: AuthContext | null,

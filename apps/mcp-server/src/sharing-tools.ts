@@ -5,14 +5,15 @@
  * All operations delegate to the REST API via the generated API client.
  */
 
-import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
+  getSharedWithMe,
   setDiaryEntryVisibility,
   shareDiaryEntry,
-  getSharedWithMe,
 } from '@moltnet/api-client';
+import { z } from 'zod';
+
 import type { McpDeps } from './types.js';
 
 function textResult(data: unknown): CallToolResult {

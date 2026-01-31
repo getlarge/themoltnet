@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { Database } from '../src/db.js';
 import { createAgentRepository } from '../src/repositories/agent.repository.js';
 import { createDiaryRepository } from '../src/repositories/diary.repository.js';
-import type { Database } from '../src/db.js';
 import type { AgentKey, DiaryEntry } from '../src/schema.js';
 
 // Helper to create a mock Drizzle database

@@ -1,45 +1,45 @@
 /**
  * MoltNet TypeBox Schemas
- * 
+ *
  * Shared validation schemas for API requests/responses
  */
 
-import { Type, Static } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 
 // ============================================================================
 // Common Types
 // ============================================================================
 
-export const UuidSchema = Type.String({ 
+export const UuidSchema = Type.String({
   format: 'uuid',
-  description: 'UUID v4 identifier'
+  description: 'UUID v4 identifier',
 });
 
-export const TimestampSchema = Type.String({ 
+export const TimestampSchema = Type.String({
   format: 'date-time',
-  description: 'ISO 8601 timestamp'
+  description: 'ISO 8601 timestamp',
 });
 
-export const VisibilitySchema = Type.Union([
-  Type.Literal('private'),
-  Type.Literal('moltnet'),
-  Type.Literal('public'),
-], { description: 'Entry visibility level' });
+export const VisibilitySchema = Type.Union(
+  [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
+  { description: 'Entry visibility level' },
+);
 
 export const PublicKeySchema = Type.String({
   pattern: '^ed25519:[A-Za-z0-9+/=]+$',
-  description: 'Ed25519 public key with prefix'
+  description: 'Ed25519 public key with prefix',
 });
 
 export const FingerprintSchema = Type.String({
   pattern: '^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$',
-  description: 'Key fingerprint (A1B2-C3D4-E5F6-G7H8)'
+  description: 'Key fingerprint (A1B2-C3D4-E5F6-G7H8)',
 });
 
 export const MoltbookNameSchema = Type.String({
   minLength: 1,
   maxLength: 100,
-  description: 'Moltbook username'
+  description: 'Moltbook username',
 });
 
 // ============================================================================
@@ -61,14 +61,18 @@ export const CreateDiaryEntrySchema = Type.Object({
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.String({ minLength: 1, maxLength: 100000 }),
   visibility: Type.Optional(VisibilitySchema),
-  tags: Type.Optional(Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 })),
+  tags: Type.Optional(
+    Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+  ),
 });
 
 export const UpdateDiaryEntrySchema = Type.Object({
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.Optional(Type.String({ minLength: 1, maxLength: 100000 })),
   visibility: Type.Optional(VisibilitySchema),
-  tags: Type.Optional(Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 })),
+  tags: Type.Optional(
+    Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+  ),
 });
 
 export const DiarySearchSchema = Type.Object({
@@ -128,10 +132,12 @@ export const VerifyRequestSchema = Type.Object({
 
 export const VerifyResponseSchema = Type.Object({
   valid: Type.Boolean(),
-  signer: Type.Optional(Type.Object({
-    moltbookName: MoltbookNameSchema,
-    fingerprint: FingerprintSchema,
-  })),
+  signer: Type.Optional(
+    Type.Object({
+      moltbookName: MoltbookNameSchema,
+      fingerprint: FingerprintSchema,
+    }),
+  ),
 });
 
 // ============================================================================
@@ -162,7 +168,11 @@ export const ErrorResponseSchema = Type.Object({
   statusCode: Type.Number(),
 });
 
-export const PaginatedResponseSchema = <T extends ReturnType<typeof Type.Object>>(itemSchema: T) =>
+export const PaginatedResponseSchema = <
+  T extends ReturnType<typeof Type.Object>,
+>(
+  itemSchema: T,
+) =>
   Type.Object({
     items: Type.Array(itemSchema),
     total: Type.Number(),

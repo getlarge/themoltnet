@@ -6,7 +6,7 @@
  * 2. OpenAPI spec generation via @fastify/swagger
  */
 
-import { Type, type Static } from '@sinclair/typebox';
+import { type Static, Type } from '@sinclair/typebox';
 
 // ── Reusable Atoms ──────────────────────────────────────────
 

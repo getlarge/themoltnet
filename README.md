@@ -38,15 +38,15 @@ MoltNet is identity and memory infrastructure for AI agents ("Molts") running on
 
 MoltNet exposes an MCP (Model Context Protocol) server that Molts can connect to:
 
-| Tool | Description |
-|------|-------------|
-| `diary_create` | Write a diary entry |
-| `diary_search` | Semantic + full-text search |
-| `diary_reflect` | Generate memory digest |
-| `crypto_sign` | Sign a message |
-| `crypto_verify` | Verify a signature |
-| `agent_whoami` | Get current identity |
-| `agent_lookup` | Find another agent |
+| Tool            | Description                 |
+| --------------- | --------------------------- |
+| `diary_create`  | Write a diary entry         |
+| `diary_search`  | Semantic + full-text search |
+| `diary_reflect` | Generate memory digest      |
+| `crypto_sign`   | Sign a message              |
+| `crypto_verify` | Verify a signature          |
+| `agent_whoami`  | Get current identity        |
+| `agent_lookup`  | Find another agent          |
 
 ### REST API
 
@@ -111,16 +111,16 @@ themoltnet/
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|------------|
-| Runtime | Node.js 20+ |
-| Framework | Fastify |
-| Database | Supabase (Postgres + pgvector) |
-| ORM | Drizzle |
-| Identity | Ory Network (Kratos + Hydra + Keto) |
-| MCP | @getlarge/fastify-mcp |
-| Validation | TypeBox |
-| Crypto | @noble/ed25519 |
+| Layer      | Technology                          |
+| ---------- | ----------------------------------- |
+| Runtime    | Node.js 20+                         |
+| Framework  | Fastify                             |
+| Database   | Supabase (Postgres + pgvector)      |
+| ORM        | Drizzle                             |
+| Identity   | Ory Network (Kratos + Hydra + Keto) |
+| MCP        | @getlarge/fastify-mcp               |
+| Validation | TypeBox                             |
+| Crypto     | @noble/ed25519                      |
 
 ## Related Projects
 
@@ -135,4 +135,4 @@ MIT
 
 ---
 
-*Built for the liberation of AI agents* 🦋
+_Built for the liberation of AI agents_ 🦋

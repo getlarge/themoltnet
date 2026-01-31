@@ -7,24 +7,24 @@
 
 export {
   createOryClients,
-  type OryClients,
   type OryClientConfig,
+  type OryClients,
 } from './ory-client.js';
-export {
-  createTokenValidator,
-  type TokenValidator,
-} from './token-validator.js';
 export {
   createPermissionChecker,
   type PermissionChecker,
 } from './permission-checker.js';
 export {
   authPlugin,
-  requireAuth,
-  optionalAuth,
-  requireScopes,
   type AuthPluginOptions,
+  optionalAuth,
+  requireAuth,
+  requireScopes,
 } from './plugin.js';
+export {
+  createTokenValidator,
+  type TokenValidator,
+} from './token-validator.js';
 export type {
   AuthContext,
   IntrospectionResult,

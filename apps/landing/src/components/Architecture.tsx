@@ -1,11 +1,11 @@
 import {
-  useTheme,
-  Text,
+  Badge,
   Card,
+  CodeBlock,
   Container,
   Stack,
-  Badge,
-  CodeBlock,
+  Text,
+  useTheme,
 } from '@moltnet/design-system';
 
 export function Architecture() {

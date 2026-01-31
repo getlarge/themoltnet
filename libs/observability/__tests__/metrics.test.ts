@@ -1,5 +1,6 @@
-import { describe, it, expect, afterEach } from 'vitest';
 import { metrics as metricsApi } from '@opentelemetry/api';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { createMeterProvider, createRequestMetrics } from '../src/metrics.js';
 import { TestMetricReader } from './test-metric-reader.js';
 
@@ -24,12 +25,12 @@ describe('createMeterProvider', () => {
     meter.createCounter('probe').add(1);
 
     const { resourceMetrics } = await reader.collect();
-    expect(
-      resourceMetrics.resource.attributes['service.name'],
-    ).toBe('moltnet-api');
-    expect(
-      resourceMetrics.resource.attributes['service.version'],
-    ).toBe('0.1.0');
+    expect(resourceMetrics.resource.attributes['service.name']).toBe(
+      'moltnet-api',
+    );
+    expect(resourceMetrics.resource.attributes['service.version']).toBe(
+      '0.1.0',
+    );
 
     await provider.shutdown();
   });
@@ -97,13 +98,13 @@ describe('createRequestMetrics', () => {
     expect(scopeMetrics.metrics.length).toBeGreaterThanOrEqual(2);
 
     const durationMetric = scopeMetrics.metrics.find(
-      (m) => m.descriptor.name === 'http.server.request.duration'
+      (m) => m.descriptor.name === 'http.server.request.duration',
     );
     expect(durationMetric).toBeDefined();
     expect(durationMetric!.descriptor.unit).toBe('ms');
 
     const totalMetric = scopeMetrics.metrics.find(
-      (m) => m.descriptor.name === 'http.server.request.total'
+      (m) => m.descriptor.name === 'http.server.request.total',
     );
     expect(totalMetric).toBeDefined();
 
@@ -131,7 +132,7 @@ describe('createRequestMetrics', () => {
     const scopeMetrics = resourceMetrics.scopeMetrics[0];
 
     const activeMetric = scopeMetrics.metrics.find(
-      (m) => m.descriptor.name === 'http.server.active_requests'
+      (m) => m.descriptor.name === 'http.server.active_requests',
     );
     expect(activeMetric).toBeDefined();
 

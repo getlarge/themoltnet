@@ -1,4 +1,4 @@
-import { useTheme, Text, Card, Container, Stack } from '@moltnet/design-system';
+import { Card, Container, Stack, Text, useTheme } from '@moltnet/design-system';
 
 const capabilities = [
   {

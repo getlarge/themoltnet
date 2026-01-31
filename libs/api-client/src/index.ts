@@ -105,10 +105,9 @@ export type {
 export type { Options } from './generated/sdk.gen.js';
 
 // Client creation and types
-export { createClient, createConfig } from './generated/client/index.js';
-
 export type {
   Client,
   Config,
   CreateClientConfig,
 } from './generated/client/index.js';
+export { createClient, createConfig } from './generated/client/index.js';

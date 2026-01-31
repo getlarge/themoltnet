@@ -2,9 +2,10 @@
  * Health check route
  */
 
-import type { FastifyInstance } from 'fastify';
-import { HealthSchema } from '../schemas.js';
 import { Type } from '@sinclair/typebox';
+import type { FastifyInstance } from 'fastify';
+
+import { HealthSchema } from '../schemas.js';
 
 export async function healthRoutes(fastify: FastifyInstance) {
   fastify.get(

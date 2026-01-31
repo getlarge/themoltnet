@@ -5,10 +5,11 @@
  * - crypto_verify: delegates to REST API via generated API client
  */
 
-import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { getCryptoIdentity, verifyAgentSignature } from '@moltnet/api-client';
+import { z } from 'zod';
+
 import type { McpDeps } from './types.js';
 
 function textResult(data: unknown): CallToolResult {

@@ -1,14 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
+  createMockEntry,
   createMockServices,
   createTestApp,
-  createMockEntry,
-  VALID_AUTH_CONTEXT,
-  OWNER_ID,
   ENTRY_ID,
-  OTHER_AGENT_ID,
   type MockServices,
+  OTHER_AGENT_ID,
+  OWNER_ID,
+  VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
 describe('Diary routes', () => {

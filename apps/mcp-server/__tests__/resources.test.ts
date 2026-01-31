@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockDeps, sdkOk, sdkErr, ENTRY_ID } from './helpers.js';
-import type { McpDeps } from '../src/types.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
-  handleIdentityResource,
-  handleDiaryRecentResource,
-  handleDiaryEntryResource,
   handleAgentResource,
+  handleDiaryEntryResource,
+  handleDiaryRecentResource,
+  handleIdentityResource,
 } from '../src/resources.js';
+import type { McpDeps } from '../src/types.js';
+import { createMockDeps, ENTRY_ID, sdkErr, sdkOk } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
@@ -16,10 +17,10 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 import {
+  getAgentProfile,
+  getDiaryEntry,
   getWhoami,
   listDiaryEntries,
-  getDiaryEntry,
-  getAgentProfile,
 } from '@moltnet/api-client';
 
 describe('MCP Resources', () => {

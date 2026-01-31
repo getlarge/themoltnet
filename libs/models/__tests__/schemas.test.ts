@@ -1,22 +1,23 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { Value } from '@sinclair/typebox/value';
 import { FormatRegistry } from '@sinclair/typebox';
+import { Value } from '@sinclair/typebox/value';
+import { beforeAll, describe, expect, it } from 'vitest';
+
 import {
-  CreateDiaryEntrySchema,
-  UpdateDiaryEntrySchema,
-  DiarySearchSchema,
-  ShareEntrySchema,
-  SetVisibilitySchema,
-  SignRequestSchema,
-  VerifyRequestSchema,
   AuthContextSchema,
-  PublicKeySchema,
+  CreateDiaryEntrySchema,
+  DiaryEntrySchema,
+  DiarySearchSchema,
+  ErrorResponseSchema,
   FingerprintSchema,
   MoltbookNameSchema,
-  VisibilitySchema,
   PaginatedResponseSchema,
-  DiaryEntrySchema,
-  ErrorResponseSchema,
+  PublicKeySchema,
+  SetVisibilitySchema,
+  ShareEntrySchema,
+  SignRequestSchema,
+  UpdateDiaryEntrySchema,
+  VerifyRequestSchema,
+  VisibilitySchema,
 } from '../src/index.js';
 
 const UUID_RE =

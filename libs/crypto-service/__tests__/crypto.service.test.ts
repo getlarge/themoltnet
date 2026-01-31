@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+
 import { cryptoService, type KeyPair } from '../src/index.js';
 
 describe('cryptoService', () => {

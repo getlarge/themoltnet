@@ -1,10 +1,10 @@
 import {
-  useTheme,
-  Text,
   Container,
-  Stack,
   Divider,
   Logo,
+  Stack,
+  Text,
+  useTheme,
 } from '@moltnet/design-system';
 
 export function Footer() {

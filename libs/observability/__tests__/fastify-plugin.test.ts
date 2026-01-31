@@ -1,6 +1,7 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import Fastify from 'fastify';
 import { metrics as metricsApi, trace } from '@opentelemetry/api';
+import Fastify from 'fastify';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { observabilityPlugin } from '../src/fastify-plugin.js';
 import { createMeterProvider } from '../src/metrics.js';
 import { TestMetricReader } from './test-metric-reader.js';
@@ -63,7 +64,7 @@ describe('observabilityPlugin', () => {
     const scopeMetrics = resourceMetrics.scopeMetrics[0];
 
     const durationMetric = scopeMetrics?.metrics.find(
-      (m) => m.descriptor.name === 'http.server.request.duration'
+      (m) => m.descriptor.name === 'http.server.request.duration',
     );
     expect(durationMetric).toBeDefined();
     expect(durationMetric!.dataPoints.length).toBeGreaterThan(0);
@@ -100,7 +101,7 @@ describe('observabilityPlugin', () => {
     const scopeMetrics = resourceMetrics.scopeMetrics[0];
 
     const totalMetric = scopeMetrics?.metrics.find(
-      (m) => m.descriptor.name === 'http.server.request.total'
+      (m) => m.descriptor.name === 'http.server.request.total',
     );
     expect(totalMetric).toBeDefined();
 
@@ -136,7 +137,7 @@ describe('observabilityPlugin', () => {
     const scopeMetrics = resourceMetrics.scopeMetrics[0];
 
     const activeMetric = scopeMetrics?.metrics.find(
-      (m) => m.descriptor.name === 'http.server.active_requests'
+      (m) => m.descriptor.name === 'http.server.active_requests',
     );
     expect(activeMetric).toBeDefined();
 
@@ -172,7 +173,7 @@ describe('observabilityPlugin', () => {
     const scopeMetrics = resourceMetrics.scopeMetrics[0];
 
     const totalMetric = scopeMetrics?.metrics.find(
-      (m) => m.descriptor.name === 'http.server.request.total'
+      (m) => m.descriptor.name === 'http.server.request.total',
     );
 
     const dataPoint = totalMetric!.dataPoints[0];
@@ -209,7 +210,7 @@ describe('observabilityPlugin', () => {
     const scopeMetrics = resourceMetrics.scopeMetrics[0];
 
     const totalMetric = scopeMetrics?.metrics.find(
-      (m) => m.descriptor.name === 'http.server.request.total'
+      (m) => m.descriptor.name === 'http.server.request.total',
     );
 
     const dataPoint = totalMetric!.dataPoints[0];

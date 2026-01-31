@@ -1,13 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { handleCryptoSign, handleCryptoVerify } from '../src/crypto-tools.js';
+import type { McpDeps } from '../src/types.js';
 import {
   createMockDeps,
-  sdkOk,
-  sdkErr,
-  parseResult,
   getTextContent,
+  parseResult,
+  sdkErr,
+  sdkOk,
 } from './helpers.js';
-import type { McpDeps } from '../src/types.js';
-import { handleCryptoSign, handleCryptoVerify } from '../src/crypto-tools.js';
 
 vi.mock('@moltnet/api-client', () => ({
   getCryptoIdentity: vi.fn(),

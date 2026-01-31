@@ -11,7 +11,8 @@
  * the crypto library and have verified the new behavior is correct.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { cryptoService } from '../src/crypto.service.js';
 
 // Vector 1: deterministic seed (0x00...01), non-empty message

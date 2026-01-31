@@ -1,6 +1,6 @@
 import { useTheme } from '../hooks.js';
-import type { BaseComponentProps } from '../types.js';
 import type { spacing } from '../tokens.js';
+import type { BaseComponentProps } from '../types.js';
 
 type SpacingKey = keyof typeof spacing;
 

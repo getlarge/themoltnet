@@ -4,12 +4,13 @@
 
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+
 import {
   AgentParamsSchema,
-  ErrorSchema,
   AgentProfileSchema,
-  WhoamiSchema,
+  ErrorSchema,
   VerifyResultSchema,
+  WhoamiSchema,
 } from '../schemas.js';
 
 export async function agentRoutes(fastify: FastifyInstance) {

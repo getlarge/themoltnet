@@ -9,11 +9,12 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 import {
+  getAgentProfile,
+  getDiaryEntry,
   getWhoami,
   listDiaryEntries,
-  getDiaryEntry,
-  getAgentProfile,
 } from '@moltnet/api-client';
+
 import type { McpDeps } from './types.js';
 
 function jsonResource(uri: string, data: unknown): ReadResourceResult {

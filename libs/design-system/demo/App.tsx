@@ -1,21 +1,22 @@
 import { useState } from 'react';
+
 import {
-  MoltThemeProvider,
-  useTheme,
-  useThemeMode,
-  colors,
-  Button,
-  Text,
-  Card,
   Badge,
-  Input,
-  Stack,
+  Button,
+  Card,
+  CodeBlock,
+  colors,
   Container,
   Divider,
-  CodeBlock,
+  Input,
   KeyFingerprint,
   Logo,
   LogoAnimated,
+  MoltThemeProvider,
+  Stack,
+  Text,
+  useTheme,
+  useThemeMode,
 } from '../src/index';
 
 // ---------------------------------------------------------------------------

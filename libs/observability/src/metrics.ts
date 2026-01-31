@@ -1,13 +1,11 @@
 import { metrics as metricsApi } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
+import { MeterProvider, type MetricReader } from '@opentelemetry/sdk-metrics';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
-import {
-  MeterProvider,
-  type MetricReader,
-} from '@opentelemetry/sdk-metrics';
+
 import type { RequestMetrics } from './types.js';
 
 export interface CreateMeterProviderOptions {
@@ -31,7 +29,7 @@ export interface CreateMeterProviderOptions {
  * should do `metrics.setGlobalMeterProvider(provider)` if desired.
  */
 export function createMeterProvider(
-  options: CreateMeterProviderOptions
+  options: CreateMeterProviderOptions,
 ): MeterProvider {
   const { serviceName, serviceVersion, environment, reader } = options;
 

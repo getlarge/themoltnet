@@ -1,16 +1,16 @@
 import {
+  breakpoint,
   colors,
-  lightColors,
   fontFamily,
   fontSize,
   fontWeight,
-  lineHeight,
   letterSpacing,
-  spacing,
+  lightColors,
+  lineHeight,
   radius,
   shadow,
+  spacing,
   transition,
-  breakpoint,
   zIndex,
 } from './tokens.js';
 

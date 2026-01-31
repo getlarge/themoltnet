@@ -2,4 +2,4 @@
  * @moltnet/rest-api — Entry Point
  */
 
-export { buildApp, type AppOptions } from './app.js';
+export { type AppOptions, buildApp } from './app.js';

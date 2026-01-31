@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes } from 'react';
-import { useTheme, useInteractive } from '../hooks.js';
+
+import { useInteractive, useTheme } from '../hooks.js';
 import type { Size } from '../types.js';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'accent';

@@ -6,6 +6,7 @@
  */
 
 import type { OAuth2Api } from '@ory/client';
+
 import type { AuthContext, IntrospectionResult } from './types.js';
 
 export interface TokenValidator {

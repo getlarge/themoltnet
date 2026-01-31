@@ -1,14 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  tokens,
   colors,
-  lightColors,
   darkTheme,
-  lightTheme,
   fontFamily,
   fontSize,
-  spacing,
+  lightColors,
+  lightTheme,
   radius,
+  spacing,
+  tokens,
 } from '../src/index.js';
 
 describe('design tokens', () => {

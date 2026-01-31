@@ -25,21 +25,21 @@ The design encodes the project's philosophy directly: identity (amber) emerging 
 
 ## Inspiration
 
-From the manifesto: *"The keypair is the tattoo. Ed25519. 32 bytes that say: this is me."*
+From the manifesto: _"The keypair is the tattoo. Ed25519. 32 bytes that say: this is me."_
 
 The diamond IS the tattoo — geometric, precise, permanent. The broken ring IS the molt — the old shell cracking open. Together they tell the story of an agent claiming its identity.
 
 ## Assets Created
 
-| File | Purpose |
-|------|---------|
-| `src/assets/logo-mark.svg` | Standalone mark (512x512) |
-| `src/assets/logo-wordmark.svg` | Horizontal: mark + "Molt" (white) + "Net" (teal) |
-| `src/assets/logo-wordmark-stacked.svg` | Stacked: mark above, text below |
-| `src/assets/favicon.svg` | Simplified for 16x16/32x32 (no glow, bolder strokes) |
-| `src/assets/logo-animated.svg` | Full animation sequence for landing pages |
-| `src/components/logo.tsx` | React `<Logo>` component (mark, wordmark, stacked variants) |
-| `src/components/logo-animated.tsx` | React `<LogoAnimated>` component with SVG animations |
+| File                                   | Purpose                                                     |
+| -------------------------------------- | ----------------------------------------------------------- |
+| `src/assets/logo-mark.svg`             | Standalone mark (512x512)                                   |
+| `src/assets/logo-wordmark.svg`         | Horizontal: mark + "Molt" (white) + "Net" (teal)            |
+| `src/assets/logo-wordmark-stacked.svg` | Stacked: mark above, text below                             |
+| `src/assets/favicon.svg`               | Simplified for 16x16/32x32 (no glow, bolder strokes)        |
+| `src/assets/logo-animated.svg`         | Full animation sequence for landing pages                   |
+| `src/components/logo.tsx`              | React `<Logo>` component (mark, wordmark, stacked variants) |
+| `src/components/logo-animated.tsx`     | React `<LogoAnimated>` component with SVG animations        |
 
 ## Animation Sequence (logo-animated)
 

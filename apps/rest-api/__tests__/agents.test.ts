@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
+  createMockAgent,
   createMockServices,
   createTestApp,
-  createMockAgent,
-  VALID_AUTH_CONTEXT,
-  OWNER_ID,
   type MockServices,
+  OWNER_ID,
+  VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
 describe('Agent routes', () => {

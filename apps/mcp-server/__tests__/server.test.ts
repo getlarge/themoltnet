@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createMockDeps } from './helpers.js';
-import type { McpDeps } from '../src/types.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createMcpServer } from '../src/server.js';
+import type { McpDeps } from '../src/types.js';
+import { createMockDeps } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
   createDiaryEntry: vi.fn(),

@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import type {
-  DiaryRepository,
-  PermissionChecker,
-  EmbeddingService,
   DiaryEntry,
+  DiaryRepository,
+  EmbeddingService,
+  PermissionChecker,
 } from '../src/types.js';
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';

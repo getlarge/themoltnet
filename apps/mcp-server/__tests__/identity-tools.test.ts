@@ -1,20 +1,21 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { handleAgentLookup, handleWhoami } from '../src/identity-tools.js';
+import type { McpDeps } from '../src/types.js';
 import {
   createMockDeps,
-  sdkOk,
-  sdkErr,
-  parseResult,
   getTextContent,
+  parseResult,
+  sdkErr,
+  sdkOk,
 } from './helpers.js';
-import type { McpDeps } from '../src/types.js';
-import { handleWhoami, handleAgentLookup } from '../src/identity-tools.js';
 
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getAgentProfile: vi.fn(),
 }));
 
-import { getWhoami, getAgentProfile } from '@moltnet/api-client';
+import { getAgentProfile, getWhoami } from '@moltnet/api-client';
 
 describe('Identity tools', () => {
   let deps: McpDeps;

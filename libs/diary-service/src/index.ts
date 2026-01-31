@@ -9,13 +9,13 @@
 export { createDiaryService, type DiaryService } from './diary-service.js';
 export { createNoopEmbeddingService } from './embedding-service.js';
 export type {
-  EmbeddingService,
-  DiaryServiceDeps,
   CreateEntryInput,
-  UpdateEntryInput,
-  SearchInput,
-  ListInput,
-  ReflectInput,
+  DiaryServiceDeps,
   Digest,
   DigestEntry,
+  EmbeddingService,
+  ListInput,
+  ReflectInput,
+  SearchInput,
+  UpdateEntryInput,
 } from './types.js';

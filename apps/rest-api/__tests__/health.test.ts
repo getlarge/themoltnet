@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
   createMockServices,
   createTestApp,

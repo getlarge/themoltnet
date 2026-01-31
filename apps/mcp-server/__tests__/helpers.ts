@@ -5,8 +5,9 @@
  * @moltnet/api-client SDK functions.
  */
 
-import { vi } from 'vitest';
 import type { Client } from '@moltnet/api-client';
+import { vi } from 'vitest';
+
 import type { McpDeps } from '../src/types.js';
 
 export const TOKEN = 'test-bearer-token';

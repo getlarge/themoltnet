@@ -1,18 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  createMockDeps,
-  sdkOk,
-  sdkErr,
-  parseResult,
-  getTextContent,
-  ENTRY_ID,
-} from './helpers.js';
-import type { McpDeps } from '../src/types.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   handleDiarySetVisibility,
   handleDiaryShare,
   handleDiarySharedWithMe,
 } from '../src/sharing-tools.js';
+import type { McpDeps } from '../src/types.js';
+import {
+  createMockDeps,
+  ENTRY_ID,
+  getTextContent,
+  parseResult,
+  sdkErr,
+  sdkOk,
+} from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
   setDiaryEntryVisibility: vi.fn(),
@@ -21,9 +22,9 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 import {
+  getSharedWithMe,
   setDiaryEntryVisibility,
   shareDiaryEntry,
-  getSharedWithMe,
 } from '@moltnet/api-client';
 
 describe('Sharing tools', () => {

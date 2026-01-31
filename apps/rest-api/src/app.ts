@@ -5,20 +5,22 @@
  * Services are injected via the options parameter.
  */
 
-import Fastify, { type FastifyInstance } from 'fastify';
 import swagger from '@fastify/swagger';
-import type {
-  DiaryService,
-  AgentRepository,
-  CryptoService,
-  PermissionChecker,
-} from './types.js';
-import { sharedSchemas } from './schemas.js';
-import { healthRoutes } from './routes/health.js';
-import { diaryRoutes } from './routes/diary.js';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import Fastify, { type FastifyInstance } from 'fastify';
+
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
+import { diaryRoutes } from './routes/diary.js';
+import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { sharedSchemas } from './schemas.js';
+import type {
+  AgentRepository,
+  CryptoService,
+  DiaryService,
+  PermissionChecker,
+} from './types.js';
 
 export interface AppOptions {
   diaryService: DiaryService;
@@ -26,8 +28,8 @@ export interface AppOptions {
   cryptoService: CryptoService;
   permissionChecker: PermissionChecker;
   authPreHandler?: (
-    request: import('fastify').FastifyRequest,
-    reply: import('fastify').FastifyReply,
+    request: FastifyRequest,
+    reply: FastifyReply,
   ) => Promise<void>;
 }
 

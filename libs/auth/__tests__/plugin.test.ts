@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
   authPlugin,
-  requireAuth,
   optionalAuth,
+  requireAuth,
   requireScopes,
 } from '../src/plugin.js';
 import type { AuthContext } from '../src/types.js';
