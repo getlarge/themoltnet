@@ -26,7 +26,7 @@
     "audit": "pnpm audit --prod",
     "generate:openapi": "tsx apps/rest-api/scripts/generate-openapi.ts",
     "generate:client": "pnpm --filter @moltnet/api-client run generate",
-    "generate": "pnpm run generate:openapi && pnpm run generate:client",
+    "generate": "pnpm run generate:openapi && pnpm run generate:client && prettier --write libs/api-client/openapi.json libs/api-client/src/generated/",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "prepare": "husky"
   },
