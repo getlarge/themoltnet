@@ -1,30 +1,39 @@
 #!/usr/bin/env bash
 # Deploy Ory project configuration.
 #
-# Uses dotenvx to decrypt .env variables, substitutes them into
-# project.json, and optionally pushes to Ory Network via the CLI.
+# Loads public config from .env.public and secrets from .env (encrypted
+# via dotenvx), substitutes them into project.json, and optionally pushes
+# to Ory Network via the CLI.
 #
-# Variables (encrypted in .env via dotenvx):
-#   BASE_DOMAIN, APP_BASE_URL, API_BASE_URL,
-#   OIDC_PAIRWISE_SALT, ORY_PROJECT_ID, ORY_PROJECT_URL,
-#   IDENTITY_SCHEMA_BASE64 (derived at runtime via command substitution)
+# IDENTITY_SCHEMA_BASE64 is computed here from the schema file so it
+# never needs to be stored or encrypted in any .env file.
 #
 # Usage:
-#   npx dotenvx run -- ./infra/ory/deploy.sh              # dry run
-#   npx dotenvx run -- ./infra/ory/deploy.sh --apply       # push to Ory
+#   npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh              # dry run
+#   npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply       # push to Ory
 #
 # In CI (no .env.keys file):
-#   DOTENV_PRIVATE_KEY="<key>" npx dotenvx run -- ./infra/ory/deploy.sh --apply
+#   DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 PROJECT_TEMPLATE="${SCRIPT_DIR}/project.json"
 OUTPUT_FILE="${SCRIPT_DIR}/project.resolved.json"
 
-# --- Validate required vars (injected by dotenvx) ---
+# --- Compute IDENTITY_SCHEMA_BASE64 from the schema file ---
+SCHEMA_FILE="${SCRIPT_DIR}/identity-schema.json"
+if [[ ! -f "$SCHEMA_FILE" ]]; then
+  echo "ERROR: Identity schema not found at $SCHEMA_FILE" >&2
+  exit 1
+fi
+export IDENTITY_SCHEMA_BASE64
+IDENTITY_SCHEMA_BASE64="$(base64 -w0 "$SCHEMA_FILE" 2>/dev/null || base64 "$SCHEMA_FILE")"
+
+# --- Validate required vars (injected by dotenvx from .env.public + .env) ---
 missing=()
-for var in BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT IDENTITY_SCHEMA_BASE64; do
+for var in BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT; do
   if [[ -z "${!var:-}" ]]; then
     missing+=("$var")
   fi
@@ -34,7 +43,7 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   echo "ERROR: Missing environment variables: ${missing[*]}" >&2
   echo "" >&2
   echo "Run this script through dotenvx:" >&2
-  echo "  npx dotenvx run -- $0" >&2
+  echo "  npx @dotenvx/dotenvx run -f .env.public -f .env -- $0" >&2
   exit 1
 fi
 
@@ -62,12 +71,12 @@ echo ""
 # --- Optionally apply to Ory Network ---
 if [[ "${1:-}" != "--apply" ]]; then
   echo "Dry run — not applying to Ory Network."
-  echo "To apply: npx dotenvx run -- $0 --apply"
+  echo "To apply: npx @dotenvx/dotenvx run -f .env.public -f .env -- $0 --apply"
   exit 0
 fi
 
 if [[ -z "${ORY_PROJECT_ID:-}" ]]; then
-  echo "ERROR: ORY_PROJECT_ID must be set in .env for --apply" >&2
+  echo "ERROR: ORY_PROJECT_ID must be set in .env.public for --apply" >&2
   exit 1
 fi
 

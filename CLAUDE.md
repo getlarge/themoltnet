@@ -81,10 +81,12 @@ moltnet/
 │   ├── API.md                     # REST API spec
 │   └── MCP_SERVER.md              # MCP tools spec
 │
+├── .env.public                    # Plain non-secret config (committed)
+├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml      # CI pipeline (lint, typecheck, test, build)
 ├── .eslintrc.json                 # ESLint config
 ├── .prettierrc.json               # Prettier config
-└── .husky/pre-commit              # Pre-commit hook (lint-staged)
+└── .husky/pre-commit              # Pre-commit hook (dotenvx precommit + lint-staged)
 ```
 
 **Not yet built** (planned in FREEDOM_PLAN.md):
@@ -125,7 +127,7 @@ moltnet/
 8. **Validation**: TypeBox schemas
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
-11. **Secrets**: dotenvx (encrypted `.env` committed to git)
+11. **Secrets**: dotenvx (encrypted `.env` + plain `.env.public`, both committed)
 
 ## Development Commands
 
@@ -153,7 +155,10 @@ npm run dev:mcp           # MCP server
 npm run dev:api           # REST API
 ```
 
-Pre-commit hooks run automatically via husky + lint-staged (ESLint + Prettier on staged files).
+Pre-commit hooks run automatically via husky:
+
+1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
+2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.json`/`.md` files
 
 ## CI Pipeline
 
@@ -192,91 +197,114 @@ app.register(observabilityPlugin, {
 
 ## Environment Variables
 
-Environment variables are encrypted in `.env` at the repo root using [dotenvx](https://dotenvx.com).
-The encrypted `.env` is committed to git (safe — values are ciphertext). The `.env.keys` file
-holding the private decryption key is **never** committed.
+Configuration uses two files, both committed to git:
+
+| File | Contains | dotenvx-managed | Pre-commit validated |
+|------|----------|-----------------|---------------------|
+| `.env.public` | Non-secret config (domains, project IDs) | No | No |
+| `.env` | Encrypted secrets only | Yes | Yes — `dotenvx ext precommit` |
+
+The `.env.keys` file holding the private decryption key is **never** committed.
 
 ### Setup for new builders
 
-Get the `DOTENV_PRIVATE_KEY` from a team member, then create `.env.keys`:
+Non-secrets in `.env.public` are readable immediately — no keys needed.
+
+For secrets in `.env`, get the `DOTENV_PRIVATE_KEY` from a team member:
 
 ```bash
 echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
 ```
 
-Or pass it inline when running commands:
+Or pass it inline:
 
 ```bash
-DOTENV_PRIVATE_KEY="<key>" npx dotenvx run -- <command>
+DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f .env.public -f .env -- <command>
 ```
 
 ### Reading variables
 
 ```bash
-npx dotenvx get              # print all decrypted values
-npx dotenvx get BASE_DOMAIN  # print a single value
+# Non-secrets — always readable
+cat .env.public
+
+# Secrets — requires private key
+npx @dotenvx/dotenvx get                    # all decrypted values from .env
+npx @dotenvx/dotenvx get OIDC_PAIRWISE_SALT # single value
 ```
 
 ### Adding or updating a variable
 
 ```bash
-npx dotenvx set KEY value           # encrypted by default
-npx dotenvx set KEY value --plain   # unencrypted (for non-secrets)
+# Non-secrets → edit .env.public directly (plain text)
+
+# Secrets → use dotenvx (encrypts automatically)
+npx @dotenvx/dotenvx set KEY value
 ```
 
-This re-encrypts with the existing public key — no key rotation needed.
-Commit the updated `.env` after setting new values.
+Never use `dotenvx encrypt` manually — it would flag `.env.public` values.
+The pre-commit hook (`dotenvx ext precommit`) validates that `.env` has no
+unencrypted values. Files without a `DOTENV_PUBLIC_KEY` header (like `.env.public`)
+are ignored by the hook.
 
-### Running commands with decrypted env
+### Running commands with env loaded
 
 ```bash
-npx dotenvx run -- <command>
+npx @dotenvx/dotenvx run -f .env.public -f .env -- <command>
 ```
 
-All encrypted values are decrypted in memory and injected as environment variables
-into the child process. Variables using `$(command)` syntax are interpolated at runtime.
+dotenvx loads `.env.public` as plain values and decrypts `.env` secrets,
+injecting both into the child process environment.
 
-### Current variables in `.env`
+### Current variables
 
-| Variable | Purpose | Encrypted |
-|----------|---------|-----------|
-| `BASE_DOMAIN` | Primary domain (`themolt.net`) | Yes |
-| `APP_BASE_URL` | Application URL (`https://themolt.net`) | Yes |
-| `API_BASE_URL` | API URL (`https://api.themolt.net`) | Yes |
-| `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt | Yes |
-| `ORY_PROJECT_ID` | Ory Network project UUID | Yes |
-| `ORY_PROJECT_URL` | Ory Network project endpoint | Yes |
-| `IDENTITY_SCHEMA_BASE64` | `$(base64 -w0 infra/ory/identity-schema.json)` — derived at runtime | No |
+**`.env.public`** (plain, no key needed):
+
+| Variable | Value |
+|----------|-------|
+| `BASE_DOMAIN` | `themolt.net` |
+| `APP_BASE_URL` | `https://themolt.net` |
+| `API_BASE_URL` | `https://api.themolt.net` |
+| `ORY_PROJECT_ID` | `7219f256-464a-4511-874c-bde7724f6897` |
+| `ORY_PROJECT_URL` | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
+
+**`.env`** (encrypted, requires `DOTENV_PRIVATE_KEY`):
+
+| Variable | Purpose |
+|----------|---------|
+| `OIDC_PAIRWISE_SALT` | Ory OIDC pairwise salt |
+
+**Computed at runtime** (in `deploy.sh`):
+
+| Variable | Source |
+|----------|--------|
+| `IDENTITY_SCHEMA_BASE64` | `base64 -w0 infra/ory/identity-schema.json` |
 
 ### Ory project deployment
 
 ```bash
 # Dry run — writes infra/ory/project.resolved.json
-npx dotenvx run -- ./infra/ory/deploy.sh
+npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh
 
 # Apply to Ory Network (requires ory CLI)
-npx dotenvx run -- ./infra/ory/deploy.sh --apply
+npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
 ```
 
-### Variables not yet in `.env`
+### Variables not yet in env files
 
 These will be added as the corresponding services come online:
 
 ```bash
-# Supabase (add with: npx dotenvx set KEY value)
+# Secrets → add to .env with: npx @dotenvx/dotenvx set KEY value
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.dlvifjrhhivjwfkivjgr.supabase.co:5432/postgres
+SUPABASE_SERVICE_KEY=xxx
+ORY_API_KEY=ory_pat_xxx
+AXIOM_API_TOKEN=xxx
+
+# Non-secrets → add to .env.public directly
 SUPABASE_URL=https://dlvifjrhhivjwfkivjgr.supabase.co
 SUPABASE_ANON_KEY=sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq
-SUPABASE_SERVICE_KEY=xxx
-
-# Ory API key (for admin operations)
-ORY_API_KEY=ory_pat_xxx
-
-# Observability (production)
-AXIOM_API_TOKEN=xxx       # Get from Axiom Dashboard
-AXIOM_DATASET=moltnet     # Axiom dataset name
-
-# Server
+AXIOM_DATASET=moltnet
 PORT=8000
 NODE_ENV=development
 ```

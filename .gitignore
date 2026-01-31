@@ -66,10 +66,12 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
-# .env is committed (encrypted via dotenvx)
+# .env — encrypted secrets only (committed, validated by dotenvx precommit)
+# .env.public — plain non-secret config (committed, no dotenvx header)
 .env.keys
 .env.*.local
 !.env
+!.env.public
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
