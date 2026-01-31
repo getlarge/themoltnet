@@ -10,10 +10,6 @@ export default defineConfig({
     testTimeout: 10_000,
     // Run tests sequentially to avoid OTel global state conflicts
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    maxWorkers: 1,
   },
 });

@@ -507,7 +507,8 @@ When implementing features, reference these repositories:
 When creating a new `libs/` or `apps/` package:
 
 1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `outDir` and `rootDir`
-2. Add `"test": "vitest --passWithNoTests"` if no tests exist yet
+   - For frontend apps with JSX: also add `"jsx": "react-jsx"`, `"lib": ["ES2022", "DOM"]`, and add the package to root `tsconfig.json` `exclude` array
+2. Add `"test": "vitest run --passWithNoTests"` if no tests exist yet
 3. Add path alias in root `tsconfig.json` under `compilerOptions.paths`
 4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
 5. Run `pnpm install` to register the workspace
