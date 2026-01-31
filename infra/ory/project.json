@@ -21,7 +21,7 @@
           "schemas": [
             {
               "id": "moltnet_agent",
-              "url": "base64://IDENTITY_SCHEMA_BASE64"
+              "url": "base64://${IDENTITY_SCHEMA_BASE64}"
             }
           ]
         },

@@ -1,53 +1,54 @@
 #!/usr/bin/env bash
 # Deploy Ory project configuration.
 #
-# Reads project.json, substitutes environment variables,
-# base64-encodes identity-schema.json into the template,
-# and optionally pushes to Ory Network via the CLI.
+# Uses dotenvx to decrypt .env variables, substitutes them into
+# project.json, and optionally pushes to Ory Network via the CLI.
 #
-# Required environment variables:
-#   BASE_DOMAIN          - e.g. themolt.net
-#   APP_BASE_URL         - e.g. https://themolt.net
-#   API_BASE_URL         - e.g. https://api.themolt.net
-#   OIDC_PAIRWISE_SALT   - random string (>= 32 chars)
+# Variables (encrypted in .env via dotenvx):
+#   BASE_DOMAIN, APP_BASE_URL, API_BASE_URL,
+#   OIDC_PAIRWISE_SALT, ORY_PROJECT_ID, ORY_PROJECT_URL,
+#   IDENTITY_SCHEMA_BASE64 (derived at runtime via command substitution)
 #
-# Optional:
-#   ORY_PROJECT_ID       - Ory project ID (required for --apply)
-#   DRY_RUN              - set to "false" to actually apply (default: true)
+# Usage:
+#   npx dotenvx run -- ./infra/ory/deploy.sh              # dry run
+#   npx dotenvx run -- ./infra/ory/deploy.sh --apply       # push to Ory
+#
+# In CI (no .env.keys file):
+#   DOTENV_PRIVATE_KEY="<key>" npx dotenvx run -- ./infra/ory/deploy.sh --apply
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_TEMPLATE="${SCRIPT_DIR}/project.json"
-IDENTITY_SCHEMA="${SCRIPT_DIR}/identity-schema.json"
 OUTPUT_FILE="${SCRIPT_DIR}/project.resolved.json"
 
-# --- Validate required vars ---
+# --- Validate required vars (injected by dotenvx) ---
 missing=()
-for var in BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT; do
+for var in BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT IDENTITY_SCHEMA_BASE64; do
   if [[ -z "${!var:-}" ]]; then
     missing+=("$var")
   fi
 done
 
 if [[ ${#missing[@]} -gt 0 ]]; then
-  echo "ERROR: Missing required environment variables: ${missing[*]}" >&2
+  echo "ERROR: Missing environment variables: ${missing[*]}" >&2
   echo "" >&2
-  echo "Example:" >&2
-  echo "  export BASE_DOMAIN=themolt.net" >&2
-  echo "  export APP_BASE_URL=https://themolt.net" >&2
-  echo "  export API_BASE_URL=https://api.themolt.net" >&2
-  echo "  export OIDC_PAIRWISE_SALT=\$(openssl rand -hex 32)" >&2
+  echo "Run this script through dotenvx:" >&2
+  echo "  npx dotenvx run -- $0" >&2
   exit 1
 fi
 
-# --- Base64-encode the identity schema ---
-IDENTITY_SCHEMA_BASE64=$(base64 -w0 < "$IDENTITY_SCHEMA" 2>/dev/null || base64 -i "$IDENTITY_SCHEMA")
-
-# --- Substitute variables ---
-export BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT IDENTITY_SCHEMA_BASE64
-
-envsubst < "$PROJECT_TEMPLATE" > "$OUTPUT_FILE"
+# --- Substitute ${VAR} placeholders in project.json ---
+# Uses node for reliable literal string replacement (no regex escaping issues)
+node -e '
+  const fs = require("fs");
+  let content = fs.readFileSync(process.argv[1], "utf8");
+  const vars = ["BASE_DOMAIN","APP_BASE_URL","API_BASE_URL","OIDC_PAIRWISE_SALT","IDENTITY_SCHEMA_BASE64"];
+  for (const v of vars) {
+    content = content.split("${" + v + "}").join(process.env[v]);
+  }
+  fs.writeFileSync(process.argv[2], content);
+' "$PROJECT_TEMPLATE" "$OUTPUT_FILE"
 
 echo "Resolved config written to: $OUTPUT_FILE"
 echo ""
@@ -55,20 +56,18 @@ echo "  BASE_DOMAIN:    $BASE_DOMAIN"
 echo "  APP_BASE_URL:   $APP_BASE_URL"
 echo "  API_BASE_URL:   $API_BASE_URL"
 echo "  OIDC_SALT:      ${OIDC_PAIRWISE_SALT:0:8}..."
-echo "  SCHEMA:         $(wc -c < "$IDENTITY_SCHEMA" | tr -d ' ') bytes"
+echo "  SCHEMA:         $(echo -n "$IDENTITY_SCHEMA_BASE64" | wc -c | tr -d ' ') bytes (base64)"
 echo ""
 
 # --- Optionally apply to Ory Network ---
-DRY_RUN="${DRY_RUN:-true}"
-
-if [[ "$DRY_RUN" != "false" ]]; then
+if [[ "${1:-}" != "--apply" ]]; then
   echo "Dry run — not applying to Ory Network."
-  echo "To apply: DRY_RUN=false ORY_PROJECT_ID=<id> $0"
+  echo "To apply: npx dotenvx run -- $0 --apply"
   exit 0
 fi
 
 if [[ -z "${ORY_PROJECT_ID:-}" ]]; then
-  echo "ERROR: ORY_PROJECT_ID is required when DRY_RUN=false" >&2
+  echo "ERROR: ORY_PROJECT_ID must be set in .env for --apply" >&2
   exit 1
 fi
 
