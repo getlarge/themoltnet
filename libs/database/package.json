@@ -19,8 +19,7 @@
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
-    "postgres": "catalog:",
-    "pgvector": "catalog:"
+    "postgres": "catalog:"
   },
   "devDependencies": {
     "drizzle-kit": "catalog:",

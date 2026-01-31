@@ -20,8 +20,6 @@
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
-    "fastify": "catalog:",
-    "fastify-plugin": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
