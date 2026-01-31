@@ -29,3 +29,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | progress  | [Ory Config Consolidation](2026-01-31-06-ory-config-consolidation.md)  |
 | 2026-01-31 | handoff   | [Session Handoff](2026-01-31-07-session-handoff.md)                    |
 | 2026-01-31 | handoff   | [Design System Handoff](2026-01-31-08-session-handoff.md)              |
+| 2026-01-31 | handoff   | [pnpm Migration with Catalogs](2026-01-31-09-pnpm-migration.md)        |
