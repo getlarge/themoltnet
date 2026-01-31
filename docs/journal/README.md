@@ -39,3 +39,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | discovery  | [TS Project References](2026-01-31-15-tsconfig-project-references.md)                   |
 | 2026-01-31 | handoff    | [Visual Identity V2 & Landing Integration](2026-01-31-16-visual-identity-v2-handoff.md) |
 | 2026-01-31 | handoff    | [API Client Generation & MCP Migration](2026-01-31-17-api-client-openapi.md)            |
+| 2026-01-31 | handoff    | [ESLint v9 Flat Config Migration](2026-01-31-18-eslint-v9-flat-config.md)               |
