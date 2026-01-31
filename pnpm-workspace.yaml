@@ -44,7 +44,6 @@ catalog:
   drizzle-orm: ^0.29.3
   drizzle-kit: ^0.20.13
   postgres: ^3.4.3
-  pgvector: ^0.1.8
 
   # Crypto
   '@noble/ed25519': ^2.0.0

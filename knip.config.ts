@@ -8,15 +8,15 @@ const config: KnipConfig = {
   workspaces: {
     // ── Apps ──
     'apps/mcp-server': {
-      entry: ['src/index.ts', '__tests__/**/*.test.ts'],
+      entry: ['__tests__/**/*.test.ts'],
     },
     'apps/rest-api': {
-      entry: ['src/index.ts', '__tests__/**/*.test.ts', 'scripts/*.ts'],
+      entry: ['__tests__/**/*.test.ts', 'scripts/*.ts'],
     },
 
     // ── Libs ──
     'libs/api-client': {
-      entry: ['src/index.ts', 'openapi-ts.config.ts'],
+      entry: ['openapi-ts.config.ts'],
       // Generated code — exports are intentionally broad (full API surface)
       ignore: ['src/generated/**'],
       ignoreDependencies: [
@@ -25,26 +25,31 @@ const config: KnipConfig = {
       ],
     },
     'libs/auth': {
-      entry: ['src/index.ts', '__tests__/**/*.test.ts'],
+      entry: ['__tests__/**/*.test.ts'],
     },
     'libs/crypto-service': {
-      entry: ['src/index.ts', '__tests__/**/*.test.ts'],
+      entry: ['__tests__/**/*.test.ts'],
     },
     'libs/database': {
-      entry: ['{src/index,drizzle.config}.ts', '__tests__/**/*.test.ts'],
+      entry: ['__tests__/**/*.test.ts'],
     },
     'libs/design-system': {
-      entry: ['src/index.ts', 'demo/{main.tsx,vite.config.ts}'],
+      entry: ['demo/{main.tsx,vite.config.ts}'],
       project: ['src/**/*.{ts,tsx}', 'demo/**/*.{ts,tsx}'],
     },
     'libs/diary-service': {
-      entry: ['src/index.ts', '__tests__/**/*.test.ts'],
+      entry: ['__tests__/**/*.test.ts'],
     },
     'libs/models': {
-      entry: ['src/index.ts', '__tests__/**/*.test.ts'],
+      entry: ['__tests__/**/*.test.ts'],
     },
     'libs/observability': {
-      entry: ['src/index.ts', '__tests__/**/*.test.ts'],
+      entry: ['__tests__/**/*.test.ts'],
+      ignoreDependencies: [
+        // Used as pino transport targets (string references, not imports)
+        'pino-opentelemetry-transport',
+        'pino-pretty',
+      ],
     },
   },
 };
