@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" fill="none">
+  <!--
+    MoltNet Wordmark — horizontal layout
+    Mark (64x64) + "Molt" (light text) + "Net" (teal)
+  -->
+  <defs>
+    <filter id="wm-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2" />
+    </filter>
+  </defs>
+
+  <!-- Mark — scaled to 64x64, centered at (40, 40) -->
+  <g transform="translate(8, 8)">
+    <!-- Ring -->
+    <circle
+      cx="32" cy="32" r="24"
+      fill="none"
+      stroke="#00d4c8"
+      stroke-width="4"
+      stroke-linecap="round"
+      stroke-dasharray="117.29 33.51"
+      transform="rotate(-50, 32, 32)"
+    />
+    <!-- Diamond glow -->
+    <polygon
+      points="32,25 39,32 32,39 25,32"
+      fill="#e6a817"
+      opacity="0.3"
+      filter="url(#wm-glow)"
+    />
+    <!-- Diamond -->
+    <polygon
+      points="32,25 39,32 32,39 25,32"
+      fill="#e6a817"
+    />
+  </g>
+
+  <!-- Text — "Molt" in light text, "Net" in teal -->
+  <text
+    x="82" y="48"
+    font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    font-size="32"
+    font-weight="600"
+    letter-spacing="-0.02em"
+  >
+    <tspan fill="#e8e8f0">Molt</tspan><tspan fill="#00d4c8">Net</tspan>
+  </text>
+</svg>

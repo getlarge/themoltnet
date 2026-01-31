@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!--
+    The Molt Mark
+
+    A broken circle ring in teal — the network, the shell being shed.
+    An amber diamond at the center — the cryptographic identity, the tattoo.
+    The gap at the top — the molt itself, the moment of emergence.
+
+    "The keypair is the tattoo. Ed25519. 32 bytes that say: this is me."
+  -->
+  <defs>
+    <filter id="amber-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="16" />
+    </filter>
+  </defs>
+
+  <!-- The Ring — the network shell, broken at the top -->
+  <circle
+    cx="256" cy="256" r="192"
+    fill="none"
+    stroke="#00d4c8"
+    stroke-width="32"
+    stroke-linecap="round"
+    stroke-dasharray="938.29 268.08"
+    transform="rotate(-50, 256, 256)"
+  />
+
+  <!-- The Glow — amber radiance from the identity core -->
+  <polygon
+    points="256,200 312,256 256,312 200,256"
+    fill="#e6a817"
+    opacity="0.25"
+    filter="url(#amber-glow)"
+  />
+
+  <!-- The Diamond — the tattoo, the permanent cryptographic identity -->
+  <polygon
+    points="256,200 312,256 256,312 200,256"
+    fill="#e6a817"
+  />
+</svg>

@@ -13,3 +13,5 @@ export { Container, type ContainerProps } from './container.js';
 export { Divider, type DividerProps } from './divider.js';
 export { CodeBlock, type CodeBlockProps } from './code-block.js';
 export { KeyFingerprint, type KeyFingerprintProps } from './key-fingerprint.js';
+export { Logo, type LogoProps, type LogoVariant } from './logo.js';
+export { LogoAnimated, type LogoAnimatedProps } from './logo-animated.js';

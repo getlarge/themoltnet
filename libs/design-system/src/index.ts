@@ -60,4 +60,9 @@ export {
   type CodeBlockProps,
   KeyFingerprint,
   type KeyFingerprintProps,
+  Logo,
+  type LogoProps,
+  type LogoVariant,
+  LogoAnimated,
+  type LogoAnimatedProps,
 } from './components/index.js';
