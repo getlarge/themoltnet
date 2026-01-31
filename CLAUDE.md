@@ -167,7 +167,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targe
 1. **lint** — `npm run lint`
 2. **typecheck** — `tsc --noEmit`
 3. **test** — `npm test` (38 tests across 5 suites)
-4. **build** — `npm run build` (depends on the above three passing)
+4. **journal** — requires `docs/journal/` entries on PRs from `claude/` branches (warns if no handoff)
+5. **build** — `npm run build` (depends on lint, typecheck, test passing)
 
 ## Observability
 
