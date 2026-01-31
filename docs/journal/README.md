@@ -25,3 +25,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | decision  | [@fastify/otel Integration](2026-01-31-02-fastify-otel-integration.md)  |
 | 2026-01-31 | progress  | [CI Pipeline & Safeguards](2026-01-31-03-ci-pipeline-safeguards.md)     |
 | 2026-01-31 | handoff   | [Session Handoff](2026-01-31-04-session-handoff.md)                     |
+| 2026-01-31 | reflection | [Mission Integrity Analysis](2026-01-31-05-mission-integrity-analysis.md) |
