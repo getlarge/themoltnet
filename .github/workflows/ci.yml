@@ -50,6 +50,185 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run test
 
+  code-analysis:
+    name: Code Analysis (Knip)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run Knip (JSON report)
+        run: pnpm run knip --reporter json > knip-report.json 2>&1 || true
+      - name: Run Knip (human-readable)
+        id: knip
+        run: |
+          set +e
+          OUTPUT=$(pnpm run knip 2>&1)
+          EXIT_CODE=$?
+          set -e
+          # Strip the pnpm script header line
+          CLEAN_OUTPUT=$(echo "$OUTPUT" | grep -v '> moltnet@' | grep -v '> knip' | sed '/^$/N;/^\n$/d')
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          {
+            echo "output<<KNIP_EOF"
+            echo "$CLEAN_OUTPUT"
+            echo "KNIP_EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- knip-report -->';
+            const exitCode = '${{ steps.knip.outputs.exit_code }}';
+            const output = `${{ steps.knip.outputs.output }}`;
+
+            let body;
+            if (exitCode === '0') {
+              body = `${marker}\n## :white_check_mark: Knip — No issues found\n\nNo unused code, dependencies, or exports detected.`;
+            } else {
+              body = [
+                marker,
+                '## :warning: Knip — Unused code or dependencies found',
+                '',
+                'Run `pnpm run knip` locally to see details, or `pnpm run knip:fix` to auto-fix some of them.',
+                '',
+                '<details>',
+                '<summary>Full report</summary>',
+                '',
+                '```',
+                output,
+                '```',
+                '',
+                '</details>',
+              ].join('\n');
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knip-report
+          path: knip-report.json
+          retention-days: 30
+
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run audit
+        id: audit
+        run: |
+          set +e
+          OUTPUT=$(pnpm audit --prod 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          {
+            echo "output<<AUDIT_EOF"
+            echo "$OUTPUT"
+            echo "AUDIT_EOF"
+          } >> "$GITHUB_OUTPUT"
+          pnpm audit --prod --json > audit-report.json 2>&1 || true
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- audit-report -->';
+            const exitCode = '${{ steps.audit.outputs.exit_code }}';
+            const output = `${{ steps.audit.outputs.output }}`;
+
+            let body;
+            if (exitCode === '0') {
+              body = `${marker}\n## :white_check_mark: Dependency Audit — No vulnerabilities found\n\nNo known vulnerabilities in production dependencies.`;
+            } else {
+              body = [
+                marker,
+                '## :rotating_light: Dependency Audit — Vulnerabilities found',
+                '',
+                '<details>',
+                '<summary>Full report</summary>',
+                '',
+                '```',
+                output,
+                '```',
+                '',
+                '</details>',
+              ].join('\n');
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report
+          path: audit-report.json
+          retention-days: 30
+      - name: Fail on high/critical
+        run: pnpm audit --prod --audit-level=high
+
   journal:
     name: Journal Entry
     runs-on: ubuntu-latest

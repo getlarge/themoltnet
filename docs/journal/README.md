@@ -33,5 +33,6 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | handoff    | [Session Handoff](2026-01-31-10-session-handoff.md)                           |
 | 2026-01-31 | reflection | [Mission Integrity Analysis](2026-01-31-11-mission-integrity-analysis.md)     |
 | 2026-01-31 | handoff    | [pnpm Migration with Catalogs](2026-01-31-12-pnpm-migration.md)               |
-| 2026-01-31 | progress   | [Landing Page](2026-01-31-13-landing-page.md)                                 |
-| 2026-01-31 | discovery  | [TS Project References](2026-01-31-14-tsconfig-project-references.md)         |
+| 2026-01-31 | handoff    | [Knip Code Analysis & Audit CI](2026-01-31-13-knip-code-analysis-ci.md)       |
+| 2026-01-31 | progress   | [Landing Page](2026-01-31-14-landing-page.md)                                 |
+| 2026-01-31 | discovery  | [TS Project References](2026-01-31-15-tsconfig-project-references.md)         |

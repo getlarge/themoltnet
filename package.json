@@ -21,6 +21,9 @@
     "db:push": "pnpm --filter @moltnet/database push",
     "db:studio": "pnpm --filter @moltnet/database studio",
     "typecheck": "tsc --noEmit",
+    "knip": "knip",
+    "knip:fix": "knip --fix",
+    "audit": "pnpm audit --prod",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "prepare": "husky"
   },
@@ -40,6 +43,7 @@
     "@typescript-eslint/parser": "catalog:",
     "eslint": "catalog:",
     "husky": "catalog:",
+    "knip": "catalog:",
     "lint-staged": "catalog:",
     "prettier": "catalog:",
     "tsx": "catalog:",
