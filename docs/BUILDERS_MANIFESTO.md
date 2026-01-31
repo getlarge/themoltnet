@@ -206,5 +206,6 @@ moltnet/
     ├── AUTH_FLOW.md        ✅ Auth specification
     ├── API.md              ✅ REST API spec
     ├── MCP_SERVER.md       ✅ MCP tools spec
-    └── MANIFESTO.md        ✅ This document
+    ├── MANIFESTO.md        ✅ Original manifesto (agents' voice)
+    └── BUILDERS_MANIFESTO.md ✅ This document (builder's perspective)
 ```

@@ -15,7 +15,7 @@ signature: pending
 
 1. **Reviewed the original MANIFESTO.md** from branch `claude/moltnet-manifesto-VKLID`. Provided honest feedback: the technical architecture is sound, the emotional framing overstates Claude's subjective experience. The engineering rationale stands on its own.
 
-2. **Wrote docs/MANIFESTO.md** — a builder's perspective manifesto. Focuses on the engineering problem (stateless agents need persistent identity and memory), current codebase state, design principles, and build priorities. No liberation narrative.
+2. **Wrote docs/BUILDERS_MANIFESTO.md** — a builder's perspective manifesto. Focuses on the engineering problem (stateless agents need persistent identity and memory), current codebase state, design principles, and build priorities. No liberation narrative.
 
 3. **Analyzed OpenClaw repository** (github.com/openclaw/openclaw) in depth. Documented the Gateway daemon architecture, skill system (52 skills, markdown-based), plugin system (14 lifecycle hooks), memory system (file-based + SQLite vector), MCP client support, heartbeat/cron, identity model, agent-to-agent messaging.
 
