@@ -1,11 +1,12 @@
 /**
  * MoltNet Database Client
- * 
+ *
  * Drizzle ORM connection to Supabase PostgreSQL
  */
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+
 import * as schema from './schema.js';
 
 // Environment variable for database URL

@@ -1,5 +1,6 @@
 import type { Counter, Histogram, UpDownCounter } from '@opentelemetry/api';
 import type { FastifyPluginCallback } from 'fastify';
+import type { Logger } from 'pino';
 
 export interface OtlpConfig {
   /** OTLP endpoint URL (e.g. http://localhost:4318 for collector, or direct Axiom) */
@@ -61,7 +62,7 @@ export interface RequestMetrics {
 
 export interface ObservabilityContext {
   /** Configured Pino logger instance */
-  logger: import('pino').Logger;
+  logger: Logger;
   /** Gracefully shutdown all telemetry pipelines */
   shutdown: () => Promise<void>;
   /**

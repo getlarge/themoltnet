@@ -1,11 +1,11 @@
-import { Nav } from './components/Nav';
+import { Architecture } from './components/Architecture';
+import { Capabilities } from './components/Capabilities';
+import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
+import { Nav } from './components/Nav';
 import { Problem } from './components/Problem';
 import { MoltStack } from './components/Stack';
-import { Capabilities } from './components/Capabilities';
-import { Architecture } from './components/Architecture';
 import { Status } from './components/Status';
-import { Footer } from './components/Footer';
 
 export function App() {
   return (

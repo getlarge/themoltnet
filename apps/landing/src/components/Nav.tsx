@@ -1,4 +1,4 @@
-import { useTheme, Button, Text } from '@moltnet/design-system';
+import { Button, Text, useTheme } from '@moltnet/design-system';
 
 export function Nav() {
   const theme = useTheme();

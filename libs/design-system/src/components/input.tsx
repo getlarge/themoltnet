@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes } from 'react';
-import { useTheme, useInteractive } from '../hooks.js';
+
+import { useInteractive, useTheme } from '../hooks.js';
 import type { Size } from '../types.js';
 
 export interface InputProps extends Omit<

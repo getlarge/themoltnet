@@ -1,6 +1,10 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { trace, context, SpanKind, SpanStatusCode } from '@opentelemetry/api';
-import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { context, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import {
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { createTraceProvider } from '../src/tracing.js';
 
 describe('createTraceProvider', () => {
@@ -40,7 +44,9 @@ describe('createTraceProvider', () => {
       exporter,
     });
 
-    expect(provider.resource.attributes['deployment.environment']).toBe('staging');
+    expect(provider.resource.attributes['deployment.environment']).toBe(
+      'staging',
+    );
 
     await provider.shutdown();
   });

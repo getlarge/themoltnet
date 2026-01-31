@@ -1,7 +1,12 @@
 /**
  * @moltnet/crypto-service
- * 
+ *
  * Ed25519 cryptographic operations for MoltNet agents
  */
 
-export { cryptoService, type KeyPair, type SignedMessage, type CryptoService } from './crypto.service.js';
+export {
+  type CryptoService,
+  cryptoService,
+  type KeyPair,
+  type SignedMessage,
+} from './crypto.service.js';

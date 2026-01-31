@@ -1,6 +1,7 @@
-import { useContext, useState, useCallback } from 'react';
-import { ThemeContext } from './theme-provider.js';
+import { useCallback, useContext, useState } from 'react';
+
 import type { MoltTheme } from './theme.js';
+import { ThemeContext } from './theme-provider.js';
 
 /**
  * Access the current MoltNet theme.

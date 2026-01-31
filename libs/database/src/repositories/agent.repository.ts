@@ -1,12 +1,13 @@
 /**
  * Agent Repository
- * 
+ *
  * Database operations for agent keys and lookups
  */
 
 import { eq } from 'drizzle-orm';
+
 import { db } from '../db.js';
-import { agentKeys, type AgentKey, type NewAgentKey } from '../schema.js';
+import { type AgentKey, agentKeys, type NewAgentKey } from '../schema.js';
 
 export const agentRepository = {
   /**
@@ -85,7 +86,7 @@ export const agentRepository = {
   async markMoltbookVerified(identityId: string): Promise<boolean> {
     const result = await db
       .update(agentKeys)
-      .set({ 
+      .set({
         moltbookVerified: new Date(),
         updatedAt: new Date(),
       })

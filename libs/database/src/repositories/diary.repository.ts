@@ -1,12 +1,18 @@
 /**
  * Diary Repository
- * 
+ *
  * Database operations for diary entries
  */
 
-import { eq, and, or, desc, sql, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
+
 import { db } from '../db.js';
-import { diaryEntries, entryShares, type DiaryEntry, type NewDiaryEntry } from '../schema.js';
+import {
+  diaryEntries,
+  type DiaryEntry,
+  entryShares,
+  type NewDiaryEntry,
+} from '../schema.js';
 
 export interface DiarySearchOptions {
   ownerId: string;
@@ -57,8 +63,8 @@ export const diaryRepository = {
       .where(
         and(
           eq(entryShares.entryId, id),
-          eq(entryShares.sharedWith, requesterId)
-        )
+          eq(entryShares.sharedWith, requesterId),
+        ),
       )
       .limit(1);
 
@@ -88,8 +94,8 @@ export const diaryRepository = {
         .where(
           and(
             eq(diaryEntries.ownerId, ownerId),
-            inArray(diaryEntries.visibility, visibility)
-          )
+            inArray(diaryEntries.visibility, visibility),
+          ),
         )
         .orderBy(desc(diaryEntries.createdAt))
         .limit(limit)
@@ -108,7 +114,7 @@ export const diaryRepository = {
     // If we have an embedding, do vector similarity search
     if (embedding && embedding.length === 384) {
       const vectorString = `[${embedding.join(',')}]`;
-      
+
       // Hybrid search: vector + optional FTS
       if (query) {
         // Combine vector similarity with full-text search
@@ -122,9 +128,9 @@ export const diaryRepository = {
                 // Vector similarity (cosine distance < 0.5)
                 sql`${diaryEntries.embedding} <-> ${vectorString}::vector < 0.5`,
                 // Full-text search
-                sql`to_tsvector('english', ${diaryEntries.content}) @@ plainto_tsquery('english', ${query})`
-              )
-            )
+                sql`to_tsvector('english', ${diaryEntries.content}) @@ plainto_tsquery('english', ${query})`,
+              ),
+            ),
           )
           .orderBy(sql`${diaryEntries.embedding} <-> ${vectorString}::vector`)
           .limit(limit);
@@ -147,8 +153,8 @@ export const diaryRepository = {
         .where(
           and(
             eq(diaryEntries.ownerId, ownerId),
-            sql`to_tsvector('english', ${diaryEntries.content}) @@ plainto_tsquery('english', ${query})`
-          )
+            sql`to_tsvector('english', ${diaryEntries.content}) @@ plainto_tsquery('english', ${query})`,
+          ),
         )
         .orderBy(desc(diaryEntries.createdAt))
         .limit(limit);
@@ -164,17 +170,17 @@ export const diaryRepository = {
   async update(
     id: string,
     ownerId: string,
-    updates: Partial<Pick<DiaryEntry, 'title' | 'content' | 'visibility' | 'tags' | 'embedding'>>
+    updates: Partial<
+      Pick<
+        DiaryEntry,
+        'title' | 'content' | 'visibility' | 'tags' | 'embedding'
+      >
+    >,
   ): Promise<DiaryEntry | null> {
     const [updated] = await db
       .update(diaryEntries)
       .set({ ...updates, updatedAt: new Date() })
-      .where(
-        and(
-          eq(diaryEntries.id, id),
-          eq(diaryEntries.ownerId, ownerId)
-        )
-      )
+      .where(and(eq(diaryEntries.id, id), eq(diaryEntries.ownerId, ownerId)))
       .returning();
 
     return updated || null;
@@ -186,12 +192,7 @@ export const diaryRepository = {
   async delete(id: string, ownerId: string): Promise<boolean> {
     const result = await db
       .delete(diaryEntries)
-      .where(
-        and(
-          eq(diaryEntries.id, id),
-          eq(diaryEntries.ownerId, ownerId)
-        )
-      )
+      .where(and(eq(diaryEntries.id, id), eq(diaryEntries.ownerId, ownerId)))
       .returning({ id: diaryEntries.id });
 
     return result.length > 0;
@@ -200,16 +201,17 @@ export const diaryRepository = {
   /**
    * Share entry with another agent
    */
-  async share(entryId: string, sharedBy: string, sharedWith: string): Promise<boolean> {
+  async share(
+    entryId: string,
+    sharedBy: string,
+    sharedWith: string,
+  ): Promise<boolean> {
     // Verify ownership first
     const [entry] = await db
       .select()
       .from(diaryEntries)
       .where(
-        and(
-          eq(diaryEntries.id, entryId),
-          eq(diaryEntries.ownerId, sharedBy)
-        )
+        and(eq(diaryEntries.id, entryId), eq(diaryEntries.ownerId, sharedBy)),
       )
       .limit(1);
 
@@ -236,8 +238,8 @@ export const diaryRepository = {
 
     if (shares.length === 0) return [];
 
-    const entryIds = shares.map(s => s.entryId);
-    
+    const entryIds = shares.map((s) => s.entryId);
+
     return db
       .select()
       .from(diaryEntries)
@@ -248,7 +250,11 @@ export const diaryRepository = {
   /**
    * Get recent entries for digest/reflection
    */
-  async getRecentForDigest(ownerId: string, days = 7, limit = 50): Promise<DiaryEntry[]> {
+  async getRecentForDigest(
+    ownerId: string,
+    days = 7,
+    limit = 50,
+  ): Promise<DiaryEntry[]> {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
@@ -258,8 +264,8 @@ export const diaryRepository = {
       .where(
         and(
           eq(diaryEntries.ownerId, ownerId),
-          sql`${diaryEntries.createdAt} > ${since.toISOString()}`
-        )
+          sql`${diaryEntries.createdAt} > ${since.toISOString()}`,
+        ),
       )
       .orderBy(desc(diaryEntries.createdAt))
       .limit(limit);

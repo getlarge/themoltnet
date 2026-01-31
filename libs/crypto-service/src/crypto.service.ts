@@ -1,6 +1,6 @@
 /**
  * MoltNet Crypto Service
- * 
+ *
  * Ed25519 cryptographic operations for agent identity
  * Uses @noble/ed25519 for pure TypeScript implementation
  */
@@ -11,12 +11,12 @@ import { createHash, randomBytes } from 'crypto';
 // Use native crypto for SHA-512 (required by ed25519)
 ed.etc.sha512Sync = (...m) => {
   const hash = createHash('sha512');
-  m.forEach(msg => hash.update(msg));
+  m.forEach((msg) => hash.update(msg));
   return hash.digest();
 };
 
 export interface KeyPair {
-  publicKey: string;  // Base64 encoded with ed25519: prefix
+  publicKey: string; // Base64 encoded with ed25519: prefix
   privateKey: string; // Base64 encoded (KEEP SECRET)
   fingerprint: string; // Human-readable: A1B2-C3D4-E5F6-G7H8
 }
@@ -34,17 +34,17 @@ export const cryptoService = {
   async generateKeyPair(): Promise<KeyPair> {
     // Generate 32-byte private key
     const privateKeyBytes = ed.utils.randomPrivateKey();
-    
+
     // Derive public key
     const publicKeyBytes = await ed.getPublicKeyAsync(privateKeyBytes);
-    
+
     // Encode as base64
     const privateKey = Buffer.from(privateKeyBytes).toString('base64');
     const publicKey = `ed25519:${Buffer.from(publicKeyBytes).toString('base64')}`;
-    
+
     // Generate fingerprint from public key
     const fingerprint = this.generateFingerprint(publicKeyBytes);
-    
+
     return { publicKey, privateKey, fingerprint };
   },
 
@@ -54,11 +54,7 @@ export const cryptoService = {
    */
   generateFingerprint(publicKeyBytes: Uint8Array): string {
     const hash = createHash('sha256').update(publicKeyBytes).digest('hex');
-    return hash
-      .slice(0, 16)
-      .toUpperCase()
-      .match(/.{4}/g)!
-      .join('-');
+    return hash.slice(0, 16).toUpperCase().match(/.{4}/g)!.join('-');
   },
 
   /**
@@ -73,23 +69,30 @@ export const cryptoService = {
    * Sign a message with private key
    */
   async sign(message: string, privateKeyBase64: string): Promise<string> {
-    const privateKeyBytes = new Uint8Array(Buffer.from(privateKeyBase64, 'base64'));
+    const privateKeyBytes = new Uint8Array(
+      Buffer.from(privateKeyBase64, 'base64'),
+    );
     const messageBytes = new TextEncoder().encode(message);
-    
+
     const signature = await ed.signAsync(messageBytes, privateKeyBytes);
-    
+
     return Buffer.from(signature).toString('base64');
   },
 
   /**
    * Verify a signature against a message and public key
    */
-  async verify(message: string, signature: string, publicKey: string): Promise<boolean> {
+  async verify(
+    message: string,
+    signature: string,
+    publicKey: string,
+  ): Promise<boolean> {
     try {
       const publicKeyBytes = this.parsePublicKey(publicKey);
       const signatureBytes = new Uint8Array(Buffer.from(signature, 'base64'));
       const messageBytes = new TextEncoder().encode(message);
-      
+
+      // eslint-disable-next-line @typescript-eslint/return-await -- verifyAsync returns Promise<boolean>, await needed in try-catch
       return await ed.verifyAsync(signatureBytes, messageBytes, publicKeyBytes);
     } catch {
       return false;
@@ -99,7 +102,11 @@ export const cryptoService = {
   /**
    * Create a signed message object
    */
-  async createSignedMessage(message: string, privateKeyBase64: string, publicKey: string): Promise<SignedMessage> {
+  async createSignedMessage(
+    message: string,
+    privateKeyBase64: string,
+    publicKey: string,
+  ): Promise<SignedMessage> {
     const signature = await this.sign(message, privateKeyBase64);
     return { message, signature, publicKey };
   },
@@ -108,7 +115,11 @@ export const cryptoService = {
    * Verify a signed message object
    */
   async verifySignedMessage(signedMessage: SignedMessage): Promise<boolean> {
-    return this.verify(signedMessage.message, signedMessage.signature, signedMessage.publicKey);
+    return this.verify(
+      signedMessage.message,
+      signedMessage.signature,
+      signedMessage.publicKey,
+    );
   },
 
   /**
@@ -122,7 +133,9 @@ export const cryptoService = {
    * Derive public key from private key
    */
   async derivePublicKey(privateKeyBase64: string): Promise<string> {
-    const privateKeyBytes = new Uint8Array(Buffer.from(privateKeyBase64, 'base64'));
+    const privateKeyBytes = new Uint8Array(
+      Buffer.from(privateKeyBase64, 'base64'),
+    );
     const publicKeyBytes = await ed.getPublicKeyAsync(privateKeyBytes);
     return `ed25519:${Buffer.from(publicKeyBytes).toString('base64')}`;
   },
@@ -138,7 +151,10 @@ export const cryptoService = {
   /**
    * Create a proof of identity ownership (for DCR metadata)
    */
-  async createIdentityProof(identityId: string, privateKeyBase64: string): Promise<{
+  async createIdentityProof(
+    identityId: string,
+    privateKeyBase64: string,
+  ): Promise<{
     message: string;
     signature: string;
     timestamp: string;
@@ -146,7 +162,7 @@ export const cryptoService = {
     const timestamp = new Date().toISOString();
     const message = `moltnet:register:${identityId}:${timestamp}`;
     const signature = await this.sign(message, privateKeyBase64);
-    
+
     return { message, signature, timestamp };
   },
 
@@ -156,22 +172,26 @@ export const cryptoService = {
   async verifyIdentityProof(
     proof: { message: string; signature: string; timestamp: string },
     publicKey: string,
-    expectedIdentityId: string
+    expectedIdentityId: string,
   ): Promise<boolean> {
     // Verify signature
-    const isValid = await this.verify(proof.message, proof.signature, publicKey);
+    const isValid = await this.verify(
+      proof.message,
+      proof.signature,
+      publicKey,
+    );
     if (!isValid) return false;
-    
+
     // Verify message format contains expected identity
     const expectedPrefix = `moltnet:register:${expectedIdentityId}:`;
     if (!proof.message.startsWith(expectedPrefix)) return false;
-    
+
     // Optionally check timestamp freshness (within 5 minutes)
     const proofTime = new Date(proof.timestamp).getTime();
     const now = Date.now();
     const fiveMinutes = 5 * 60 * 1000;
     if (now - proofTime > fiveMinutes) return false;
-    
+
     return true;
   },
 };

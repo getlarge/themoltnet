@@ -1,15 +1,16 @@
-import { metrics as metricsApi } from '@opentelemetry/api';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { FastifyOtelInstrumentation } from '@fastify/otel';
-import { createLogger } from './logger.js';
-import { createTraceProvider } from './tracing.js';
-import { createMeterProvider } from './metrics.js';
-import type { ObservabilityConfig, ObservabilityContext } from './types.js';
-import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { metrics as metricsApi } from '@opentelemetry/api';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import type { MeterProvider } from '@opentelemetry/sdk-metrics';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+
+import { createLogger } from './logger.js';
+import { createMeterProvider } from './metrics.js';
+import { createTraceProvider } from './tracing.js';
+import type { ObservabilityConfig, ObservabilityContext } from './types.js';
 
 /**
  * Initialize the full observability stack.
@@ -46,7 +47,7 @@ import type { MeterProvider } from '@opentelemetry/sdk-metrics';
  * ```
  */
 export function initObservability(
-  config: ObservabilityConfig
+  config: ObservabilityConfig,
 ): ObservabilityContext {
   const {
     serviceName,
@@ -133,7 +134,7 @@ export function initObservability(
       shutdownPromises.push(
         tracerProvider.shutdown().catch((err) => {
           logger.warn({ err }, 'Error shutting down tracer provider');
-        })
+        }),
       );
     }
 
@@ -141,7 +142,7 @@ export function initObservability(
       shutdownPromises.push(
         meterProvider.shutdown().catch((err) => {
           logger.warn({ err }, 'Error shutting down meter provider');
-        })
+        }),
       );
     }
 
