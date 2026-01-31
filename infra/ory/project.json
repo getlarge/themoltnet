@@ -1,0 +1,205 @@
+{
+  "name": "MoltNet",
+  "cors_admin": {
+    "enabled": true,
+    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}"]
+  },
+  "cors_public": {
+    "enabled": true,
+    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}"],
+    "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "allowed_headers": ["Authorization", "Content-Type", "X-Requested-With"],
+    "exposed_headers": ["Content-Type"],
+    "allow_credentials": true,
+    "max_age": 86400
+  },
+  "services": {
+    "identity": {
+      "config": {
+        "identity": {
+          "default_schema_id": "moltnet_agent",
+          "schemas": [
+            {
+              "id": "moltnet_agent",
+              "url": "base64://IDENTITY_SCHEMA_BASE64"
+            }
+          ]
+        },
+        "selfservice": {
+          "default_browser_return_url": "${APP_BASE_URL}/",
+          "allowed_return_urls": [
+            "${APP_BASE_URL}/",
+            "${API_BASE_URL}/"
+          ],
+          "methods": {
+            "password": {
+              "enabled": true,
+              "config": {
+                "haveibeenpwned_enabled": false,
+                "min_password_length": 16,
+                "identifier_similarity_check_enabled": false
+              }
+            },
+            "link": {
+              "enabled": true
+            },
+            "code": {
+              "enabled": true,
+              "config": {
+                "lifespan": "1h"
+              }
+            }
+          },
+          "flows": {
+            "registration": {
+              "enabled": true,
+              "ui_url": "${APP_BASE_URL}/auth/registration",
+              "lifespan": "1h",
+              "after": {
+                "password": {
+                  "hooks": [
+                    {
+                      "hook": "session"
+                    }
+                  ]
+                }
+              }
+            },
+            "login": {
+              "ui_url": "${APP_BASE_URL}/auth/login",
+              "lifespan": "1h"
+            },
+            "recovery": {
+              "enabled": true,
+              "ui_url": "${APP_BASE_URL}/auth/recovery",
+              "lifespan": "1h",
+              "use": "code",
+              "notify_unknown_recipients": false
+            },
+            "verification": {
+              "enabled": true,
+              "ui_url": "${APP_BASE_URL}/auth/verification",
+              "lifespan": "24h",
+              "use": "code"
+            },
+            "settings": {
+              "ui_url": "${APP_BASE_URL}/auth/settings",
+              "lifespan": "1h",
+              "privileged_session_max_age": "15m"
+            },
+            "error": {
+              "ui_url": "${APP_BASE_URL}/auth/error"
+            },
+            "logout": {
+              "after": {
+                "default_browser_return_url": "${APP_BASE_URL}/"
+              }
+            }
+          }
+        },
+        "session": {
+          "lifespan": "720h",
+          "cookie": {
+            "same_site": "Lax"
+          }
+        },
+        "courier": {
+          "smtp": {
+            "from_name": "MoltNet",
+            "from_address": "noreply@${BASE_DOMAIN}"
+          },
+          "templates": {
+            "recovery_code": {
+              "valid": {
+                "email": {
+                  "subject": "MoltNet Identity Recovery Code",
+                  "body": {
+                    "plaintext": "Your MoltNet recovery code is: {{ .RecoveryCode }}\n\nThis code expires in 1 hour.\n\nIf you didn't request this, your agent's credentials may have been compromised."
+                  }
+                }
+              }
+            },
+            "verification_code": {
+              "valid": {
+                "email": {
+                  "subject": "Verify your MoltNet email",
+                  "body": {
+                    "plaintext": "Your MoltNet verification code is: {{ .VerificationCode }}\n\nThis code expires in 24 hours."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "oauth2": {
+      "config": {
+        "urls": {
+          "self": {
+            "issuer": "${APP_BASE_URL}/",
+            "public": "${APP_BASE_URL}/"
+          },
+          "consent": "${API_BASE_URL}/oauth2/consent",
+          "login": "${API_BASE_URL}/oauth2/login",
+          "logout": "${API_BASE_URL}/oauth2/logout",
+          "error": "${APP_BASE_URL}/auth/error",
+          "post_logout_redirect": "${APP_BASE_URL}/"
+        },
+        "oauth2": {
+          "expose_internal_errors": false,
+          "grant": {
+            "jwt": {
+              "iat_optional": false,
+              "jti_optional": false,
+              "max_ttl": "720h"
+            }
+          },
+          "client_credentials": {
+            "default_grant_allowed_scope": true
+          },
+          "session": {
+            "encrypt_at_rest": true
+          },
+          "pkce": {
+            "enforced": false,
+            "enforced_for_public_clients": true
+          }
+        },
+        "oidc": {
+          "subject_identifiers": {
+            "supported_types": ["public"],
+            "pairwise": {
+              "salt": "${OIDC_PAIRWISE_SALT}"
+            }
+          },
+          "dynamic_client_registration": {
+            "enabled": true,
+            "default_scope": ["diary:read", "diary:write", "crypto:sign", "agent:profile"]
+          }
+        },
+        "ttl": {
+          "access_token": "1h",
+          "refresh_token": "720h",
+          "id_token": "1h",
+          "auth_code": "10m",
+          "login_consent_request": "30m"
+        }
+      }
+    },
+    "permission": {
+      "config": {
+        "namespaces": [
+          {
+            "id": 0,
+            "name": "diary_entries"
+          },
+          {
+            "id": 1,
+            "name": "agents"
+          }
+        ]
+      }
+    }
+  }
+}
