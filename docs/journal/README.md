@@ -27,3 +27,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | handoff   | [Session Handoff](2026-01-31-04-session-handoff.md)                    |
 | 2026-01-31 | progress  | [Landing Page](2026-01-31-05-landing-page.md)                          |
 | 2026-01-31 | handoff   | [Session Handoff](2026-01-31-06-session-handoff.md)                    |
+| 2026-01-31 | discovery | [TS Project References](2026-01-31-07-tsconfig-project-references.md)  |
