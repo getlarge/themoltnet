@@ -1,37 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" fill="none">
-  <!--
-    MoltNet Wordmark — stacked layout
-    Mark centered above, text below
-  -->
   <defs>
+    <linearGradient id="ws-ring-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ede0" />
+      <stop offset="45%" stop-color="#00d4c8" />
+      <stop offset="100%" stop-color="#00b8ae" />
+    </linearGradient>
     <filter id="ws-glow" x="-100%" y="-100%" width="300%" height="300%">
       <feGaussianBlur stdDeviation="4" />
     </filter>
   </defs>
 
-  <!-- Mark — centered at (100, 56), radius 48 -->
-  <!-- Ring -->
+  <!-- Ring — gradient teal -->
   <circle
-    cx="100" cy="56" r="48"
+    cx="100" cy="56" r="40"
     fill="none"
-    stroke="#00d4c8"
-    stroke-width="8"
+    stroke="url(#ws-ring-grad)"
+    stroke-width="6"
     stroke-linecap="round"
-    stroke-dasharray="234.57 67.02"
-    transform="rotate(-50, 100, 56)"
+    stroke-dasharray="195.22 55.94"
+    transform="rotate(-54, 100, 56)"
   />
   <!-- Diamond glow -->
   <polygon
-    points="100,42 114,56 100,70 86,56"
+    points="100,44 112,56 100,68 88,56"
     fill="#e6a817"
     opacity="0.3"
     filter="url(#ws-glow)"
   />
-  <!-- Diamond -->
-  <polygon
-    points="100,42 114,56 100,70 86,56"
-    fill="#e6a817"
-  />
+  <!-- Faceted diamond -->
+  <polygon points="100,44 112,56 100,56" fill="#f0b829" />
+  <polygon points="112,56 100,68 100,56" fill="#e6a817" />
+  <polygon points="100,68 88,56 100,56" fill="#c89010" />
+  <polygon points="88,56 100,44 100,56" fill="#d9a015" />
 
   <!-- Text — centered below -->
   <text

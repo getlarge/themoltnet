@@ -1,41 +1,180 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <!--
-    The Molt Mark
+    The Molt Mark — Premium Edition
 
-    A broken circle ring in teal — the network, the shell being shed.
-    An amber diamond at the center — the cryptographic identity, the tattoo.
-    The gap at the top — the molt itself, the moment of emergence.
+    Geometry:
+      Outer ring: r=196, stroke 26, 72° gap centered at top, gradient teal
+      Inner detail ring: r=152, stroke 1, dashed, subtle teal
+      Diamond: 50px vertex distance, faceted with 4 amber shades
+      Nodes: 4px dots at gap endpoints
+      Radial lines: thin cross from diamond toward inner ring
+      Glow: layered bloom (wide + tight)
 
     "The keypair is the tattoo. Ed25519. 32 bytes that say: this is me."
   -->
   <defs>
-    <filter id="amber-glow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="16" />
+    <!-- Ring gradient — luminous teal with directional shift -->
+    <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ede0" />
+      <stop offset="45%" stop-color="#00d4c8" />
+      <stop offset="100%" stop-color="#00b8ae" />
+    </linearGradient>
+
+    <!-- Diamond gradient — warm amber with highlight -->
+    <linearGradient id="diamond-grad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#f5c030" />
+      <stop offset="50%" stop-color="#e6a817" />
+      <stop offset="100%" stop-color="#cc9010" />
+    </linearGradient>
+
+    <!-- Wide ambient glow -->
+    <filter id="glow-wide" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="24" />
+    </filter>
+
+    <!-- Tight focused glow -->
+    <filter id="glow-tight" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10" />
+    </filter>
+
+    <!-- Ring bloom -->
+    <filter id="glow-ring" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+
+    <!-- Node glow -->
+    <filter id="glow-node" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="3" />
     </filter>
   </defs>
 
-  <!-- The Ring — the network shell, broken at the top -->
+  <!-- ================================================================ -->
+  <!-- LAYER 0: Ambient background radiance                             -->
+  <!-- ================================================================ -->
+  <circle cx="256" cy="256" r="120" fill="#e6a817" opacity="0.035" filter="url(#glow-wide)" />
+  <circle cx="256" cy="256" r="200" fill="#00d4c8" opacity="0.02" filter="url(#glow-wide)" />
+
+  <!-- ================================================================ -->
+  <!-- LAYER 1: Inner detail ring — thin dashed orbit                   -->
+  <!-- ================================================================ -->
   <circle
-    cx="256" cy="256" r="192"
+    cx="256" cy="256" r="152"
     fill="none"
     stroke="#00d4c8"
-    stroke-width="32"
-    stroke-linecap="round"
-    stroke-dasharray="938.29 268.08"
-    transform="rotate(-50, 256, 256)"
+    stroke-width="1"
+    stroke-dasharray="8 12"
+    opacity="0.2"
   />
 
-  <!-- The Glow — amber radiance from the identity core -->
+  <!-- Very faint continuous inner ring -->
+  <circle
+    cx="256" cy="256" r="144"
+    fill="none"
+    stroke="#00d4c8"
+    stroke-width="0.5"
+    opacity="0.08"
+  />
+
+  <!-- ================================================================ -->
+  <!-- LAYER 2: Outer ring bloom (glow behind the main ring)            -->
+  <!-- ================================================================ -->
+  <circle
+    cx="256" cy="256" r="196"
+    fill="none"
+    stroke="#00d4c8"
+    stroke-width="40"
+    stroke-linecap="round"
+    stroke-dasharray="985.20 246.30"
+    transform="rotate(-54, 256, 256)"
+    opacity="0.07"
+    filter="url(#glow-ring)"
+  />
+
+  <!-- ================================================================ -->
+  <!-- LAYER 3: Main outer ring — gradient teal, the network shell      -->
+  <!-- ================================================================ -->
+  <circle
+    cx="256" cy="256" r="196"
+    fill="none"
+    stroke="url(#ring-grad)"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-dasharray="985.20 246.30"
+    transform="rotate(-54, 256, 256)"
+  />
+
+  <!-- Inner edge highlight — bevel effect -->
+  <circle
+    cx="256" cy="256" r="183"
+    fill="none"
+    stroke="#00f0e2"
+    stroke-width="0.75"
+    stroke-linecap="round"
+    stroke-dasharray="985.20 246.30"
+    transform="rotate(-54, 256, 256)"
+    opacity="0.2"
+  />
+
+  <!-- ================================================================ -->
+  <!-- LAYER 4: Gap endpoint nodes — network connection points          -->
+  <!-- ================================================================ -->
+
+  <!-- Right gap endpoint (306° after rotation) -->
+  <circle cx="371" cy="97" r="4" fill="#00d4c8" opacity="0.15" filter="url(#glow-node)" />
+  <circle cx="371" cy="97" r="3" fill="#00ede0" opacity="0.6" />
+
+  <!-- Left gap endpoint (234° after rotation) -->
+  <circle cx="141" cy="97" r="4" fill="#00d4c8" opacity="0.15" filter="url(#glow-node)" />
+  <circle cx="141" cy="97" r="3" fill="#00ede0" opacity="0.6" />
+
+  <!-- ================================================================ -->
+  <!-- LAYER 5: Radial accent lines — energy cross from identity core   -->
+  <!-- ================================================================ -->
+  <line x1="256" y1="200" x2="256" y2="164" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+  <line x1="312" y1="256" x2="348" y2="256" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+  <line x1="256" y1="312" x2="256" y2="348" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+  <line x1="200" y1="256" x2="164" y2="256" stroke="#00d4c8" stroke-width="1" opacity="0.1" stroke-linecap="round" />
+
+  <!-- ================================================================ -->
+  <!-- LAYER 6: Diamond glow — layered amber bloom                      -->
+  <!-- ================================================================ -->
   <polygon
-    points="256,200 312,256 256,312 200,256"
+    points="256,206 306,256 256,306 206,256"
+    fill="#e6a817"
+    opacity="0.12"
+    filter="url(#glow-wide)"
+  />
+  <polygon
+    points="256,206 306,256 256,306 206,256"
     fill="#e6a817"
     opacity="0.25"
-    filter="url(#amber-glow)"
+    filter="url(#glow-tight)"
   />
 
-  <!-- The Diamond — the tattoo, the permanent cryptographic identity -->
+  <!-- ================================================================ -->
+  <!-- LAYER 7: Faceted diamond — the cryptographic tattoo              -->
+  <!-- ================================================================ -->
+
+  <!-- Top-right facet — highlight -->
+  <polygon points="256,206 306,256 256,256" fill="#f0b829" />
+  <!-- Bottom-right facet -->
+  <polygon points="306,256 256,306 256,256" fill="#e6a817" />
+  <!-- Bottom-left facet — shadow -->
+  <polygon points="256,306 206,256 256,256" fill="#c89010" />
+  <!-- Top-left facet -->
+  <polygon points="206,256 256,206 256,256" fill="#d9a015" />
+
+  <!-- Diamond edge highlight -->
   <polygon
-    points="256,200 312,256 256,312 200,256"
-    fill="#e6a817"
+    points="256,206 306,256 256,306 206,256"
+    fill="none"
+    stroke="#f5c838"
+    stroke-width="1"
+    stroke-linejoin="miter"
+    opacity="0.35"
   />
+
+  <!-- Diamond center cross — facet line -->
+  <line x1="256" y1="206" x2="256" y2="306" stroke="#f5c838" stroke-width="0.5" opacity="0.15" />
+  <line x1="206" y1="256" x2="306" y2="256" stroke="#f5c838" stroke-width="0.5" opacity="0.15" />
 </svg>

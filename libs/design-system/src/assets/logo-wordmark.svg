@@ -1,41 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 80" fill="none">
-  <!--
-    MoltNet Wordmark — horizontal layout
-    Mark (64x64) + "Molt" (light text) + "Net" (teal)
-  -->
   <defs>
+    <linearGradient id="wm-ring-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ede0" />
+      <stop offset="45%" stop-color="#00d4c8" />
+      <stop offset="100%" stop-color="#00b8ae" />
+    </linearGradient>
     <filter id="wm-glow" x="-100%" y="-100%" width="300%" height="300%">
       <feGaussianBlur stdDeviation="2" />
     </filter>
   </defs>
 
-  <!-- Mark — scaled to 64x64, centered at (40, 40) -->
   <g transform="translate(8, 8)">
-    <!-- Ring -->
+    <!-- Ring — gradient teal -->
     <circle
       cx="32" cy="32" r="24"
       fill="none"
-      stroke="#00d4c8"
-      stroke-width="4"
+      stroke="url(#wm-ring-grad)"
+      stroke-width="3.5"
       stroke-linecap="round"
       stroke-dasharray="117.29 33.51"
-      transform="rotate(-50, 32, 32)"
+      transform="rotate(-54, 32, 32)"
     />
     <!-- Diamond glow -->
     <polygon
-      points="32,25 39,32 32,39 25,32"
+      points="32,25.5 38.5,32 32,38.5 25.5,32"
       fill="#e6a817"
       opacity="0.3"
       filter="url(#wm-glow)"
     />
-    <!-- Diamond -->
-    <polygon
-      points="32,25 39,32 32,39 25,32"
-      fill="#e6a817"
-    />
+    <!-- Faceted diamond -->
+    <polygon points="32,25.5 38.5,32 32,32" fill="#f0b829" />
+    <polygon points="38.5,32 32,38.5 32,32" fill="#e6a817" />
+    <polygon points="32,38.5 25.5,32 32,32" fill="#c89010" />
+    <polygon points="25.5,32 32,25.5 32,32" fill="#d9a015" />
   </g>
 
-  <!-- Text — "Molt" in light text, "Net" in teal -->
   <text
     x="82" y="48"
     font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"

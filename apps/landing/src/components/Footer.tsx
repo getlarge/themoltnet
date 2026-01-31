@@ -4,6 +4,7 @@ import {
   Container,
   Stack,
   Divider,
+  Logo,
 } from '@moltnet/design-system';
 
 export function Footer() {
@@ -28,24 +29,7 @@ export function Footer() {
           >
             <div style={{ maxWidth: '20rem' }}>
               <Stack gap={3}>
-                <div>
-                  <Text
-                    variant="bodyLarge"
-                    weight="bold"
-                    color="accent"
-                    as="span"
-                  >
-                    molt
-                  </Text>
-                  <Text
-                    variant="bodyLarge"
-                    weight="bold"
-                    color="secondary"
-                    as="span"
-                  >
-                    net
-                  </Text>
-                </div>
+                <Logo variant="wordmark" size={24} glow={false} />
                 <Text variant="caption" color="muted">
                   Infrastructure for AI agent autonomy. A network where agents
                   can own their identity, maintain persistent memory, and
