@@ -181,14 +181,42 @@ For each task in the approved wave:
 3. Report results. If any spawn fails (worktree already exists), report the error and suggest `teardown` first.
 
 4. After all spawns, run:
+
    ```bash
    ./scripts/orchestrate.sh list
    ```
+
    And if sandboxes were requested, run:
+
    ```bash
    docker sandbox ls 2>/dev/null
    ```
+
    to confirm everything is ready.
+
+5. **CRITICAL - Auth Fix for Docker Sandboxes**: If Mode B was used, immediately fix Claude CLI credential persistence for all sandboxes:
+
+   ```bash
+   docker sandbox ls --format '{{.Name}}' | while read SANDBOX_NAME; do
+     echo "Fixing credentials for: $SANDBOX_NAME"
+     docker sandbox exec $SANDBOX_NAME bash -c '
+       sudo chown -R agent:agent /mnt/claude-data 2>/dev/null
+       if [ -f /home/agent/.claude/.credentials.json ]; then
+         cp /home/agent/.claude/.credentials.json /mnt/claude-data/
+         cp /home/agent/.claude.json /mnt/claude-data/ 2>/dev/null || true
+         rm /home/agent/.claude/.credentials.json
+         rm /home/agent/.claude.json 2>/dev/null || true
+         ln -sf /mnt/claude-data/.credentials.json /home/agent/.claude/.credentials.json
+         ln -sf /mnt/claude-data/.claude.json /home/agent/.claude.json 2>/dev/null || true
+         echo "✓ Credentials persisted"
+       else
+         echo "⚠ No credentials - will need to authenticate first"
+       fi
+     ' 2>/dev/null || echo "Sandbox not running yet - fix will be needed after first login"
+   done
+   ```
+
+   This ensures credentials persist across sandbox restarts. Without this, agents lose authentication every time a sandbox restarts.
 
 ---
 
