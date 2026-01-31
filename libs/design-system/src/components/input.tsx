@@ -2,8 +2,10 @@ import type { InputHTMLAttributes } from 'react';
 import { useTheme, useInteractive } from '../hooks.js';
 import type { Size } from '../types.js';
 
-export interface InputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface InputProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'size'
+> {
   label?: string;
   hint?: string;
   error?: string;
@@ -28,7 +30,8 @@ export function Input({
 }: InputProps) {
   const theme = useTheme();
   const { focused, hovered, handlers } = useInteractive();
-  const inputId = id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const inputId =
+    id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
 
   const borderColor = error
     ? theme.color.error.DEFAULT
@@ -49,11 +52,12 @@ export function Input({
     lineHeight: theme.font.lineHeight.normal,
     outline: 'none',
     transition: `border-color ${theme.transition.fast}, box-shadow ${theme.transition.fast}`,
-    boxShadow: focused && !error
-      ? `0 0 0 3px ${theme.color.primary.muted}`
-      : focused && error
-        ? `0 0 0 3px ${theme.color.error.muted}`
-        : 'none',
+    boxShadow:
+      focused && !error
+        ? `0 0 0 3px ${theme.color.primary.muted}`
+        : focused && error
+          ? `0 0 0 3px ${theme.color.error.muted}`
+          : 'none',
     opacity: disabled ? 0.5 : 1,
     cursor: disabled ? 'not-allowed' : 'text',
     ...sizeStyles[inputSize],
@@ -89,9 +93,7 @@ export function Input({
         {...handlers}
         {...rest}
       />
-      {(hint || error) && (
-        <span style={hintStyle}>{error ?? hint}</span>
-      )}
+      {(hint || error) && <span style={hintStyle}>{error ?? hint}</span>}
     </div>
   );
 }

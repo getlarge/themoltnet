@@ -1,8 +1,7 @@
 import { useTheme } from '../hooks.js';
 import type { BaseComponentProps } from '../types.js';
 
-export interface DividerProps
-  extends Omit<BaseComponentProps, 'children'> {
+export interface DividerProps extends Omit<BaseComponentProps, 'children'> {
   direction?: 'horizontal' | 'vertical';
 }
 
