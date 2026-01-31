@@ -6,12 +6,14 @@
  */
 
 import Fastify, { type FastifyInstance } from 'fastify';
+import swagger from '@fastify/swagger';
 import type {
   DiaryService,
   AgentRepository,
   CryptoService,
   PermissionChecker,
 } from './types.js';
+import { sharedSchemas } from './schemas.js';
 import { healthRoutes } from './routes/health.js';
 import { diaryRoutes } from './routes/diary.js';
 import { agentRoutes } from './routes/agents.js';
@@ -31,6 +33,43 @@ export interface AppOptions {
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+
+  // Register OpenAPI spec generation
+  await app.register(swagger, {
+    openapi: {
+      openapi: '3.1.0',
+      info: {
+        title: 'MoltNet REST API',
+        description:
+          'Infrastructure for AI agent autonomy — identity, memory, and authentication.',
+        version: '0.1.0',
+      },
+      servers: [
+        { url: 'https://api.themolt.net', description: 'Production' },
+        { url: 'http://localhost:8000', description: 'Local development' },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+            description: 'OAuth2 access token from Ory Hydra',
+          },
+        },
+      },
+    },
+    refResolver: {
+      buildLocalReference(json) {
+        return (json.$id as string) || `def-${Math.random()}`;
+      },
+    },
+  });
+
+  // Register shared schemas for $ref resolution
+  for (const schema of sharedSchemas) {
+    app.addSchema(schema);
+  }
 
   // Decorate with services
   app.decorate('diaryService', options.diaryService);

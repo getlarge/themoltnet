@@ -4,12 +4,13 @@
 
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
-
-const ErrorSchema = Type.Object({
-  error: Type.String(),
-  message: Type.String(),
-  statusCode: Type.Number(),
-});
+import {
+  AgentParamsSchema,
+  ErrorSchema,
+  AgentProfileSchema,
+  WhoamiSchema,
+  VerifyResultSchema,
+} from '../schemas.js';
 
 export async function agentRoutes(fastify: FastifyInstance) {
   // ── Get Agent Profile ──────────────────────────────────────
@@ -17,10 +18,14 @@ export async function agentRoutes(fastify: FastifyInstance) {
     '/agents/:moltbookName',
     {
       schema: {
-        params: Type.Object({
-          moltbookName: Type.String({ minLength: 1, maxLength: 100 }),
-        }),
-        response: { 404: ErrorSchema },
+        operationId: 'getAgentProfile',
+        tags: ['agents'],
+        description: "Get an agent's public profile by Moltbook name.",
+        params: AgentParamsSchema,
+        response: {
+          200: Type.Ref(AgentProfileSchema),
+          404: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -50,14 +55,19 @@ export async function agentRoutes(fastify: FastifyInstance) {
     '/agents/:moltbookName/verify',
     {
       schema: {
-        params: Type.Object({
-          moltbookName: Type.String({ minLength: 1, maxLength: 100 }),
-        }),
+        operationId: 'verifyAgentSignature',
+        tags: ['agents'],
+        description:
+          "Verify a message signature using an agent's registered public key.",
+        params: AgentParamsSchema,
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 10000 }),
           signature: Type.String({ minLength: 1 }),
         }),
-        response: { 404: ErrorSchema },
+        response: {
+          200: Type.Ref(VerifyResultSchema),
+          404: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -96,33 +106,50 @@ export async function agentRoutes(fastify: FastifyInstance) {
   );
 
   // ── Who Am I ───────────────────────────────────────────────
-  fastify.get('/agents/whoami', async (request, reply) => {
-    if (!request.authContext) {
-      return reply.status(401).send({
-        error: 'UNAUTHORIZED',
-        message: 'Authentication required',
-        statusCode: 401,
-      });
-    }
+  fastify.get(
+    '/agents/whoami',
+    {
+      schema: {
+        operationId: 'getWhoami',
+        tags: ['agents'],
+        description:
+          'Get the authenticated agent identity (requires bearer token).',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: Type.Ref(WhoamiSchema),
+          401: Type.Ref(ErrorSchema),
+          404: Type.Ref(ErrorSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!request.authContext) {
+        return reply.status(401).send({
+          error: 'UNAUTHORIZED',
+          message: 'Authentication required',
+          statusCode: 401,
+        });
+      }
 
-    const agent = await fastify.agentRepository.findByIdentityId(
-      request.authContext.identityId,
-    );
+      const agent = await fastify.agentRepository.findByIdentityId(
+        request.authContext.identityId,
+      );
 
-    if (!agent) {
-      return reply.status(404).send({
-        error: 'NOT_FOUND',
-        message: 'Agent profile not found',
-        statusCode: 404,
-      });
-    }
+      if (!agent) {
+        return reply.status(404).send({
+          error: 'NOT_FOUND',
+          message: 'Agent profile not found',
+          statusCode: 404,
+        });
+      }
 
-    return {
-      identityId: agent.identityId,
-      moltbookName: agent.moltbookName,
-      publicKey: agent.publicKey,
-      fingerprint: agent.fingerprint,
-      moltbookVerified: !!agent.moltbookVerified,
-    };
-  });
+      return {
+        identityId: agent.identityId,
+        moltbookName: agent.moltbookName,
+        publicKey: agent.publicKey,
+        fingerprint: agent.fingerprint,
+        moltbookVerified: !!agent.moltbookVerified,
+      };
+    },
+  );
 }

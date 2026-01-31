@@ -1,15 +1,30 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createMockApi, createMockDeps, type MockApi } from './helpers.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createMockDeps } from './helpers.js';
 import type { McpDeps } from '../src/types.js';
 import { createMcpServer } from '../src/server.js';
 
+vi.mock('@moltnet/api-client', () => ({
+  createDiaryEntry: vi.fn(),
+  getDiaryEntry: vi.fn(),
+  listDiaryEntries: vi.fn(),
+  searchDiary: vi.fn(),
+  updateDiaryEntry: vi.fn(),
+  deleteDiaryEntry: vi.fn(),
+  reflectDiary: vi.fn(),
+  setDiaryEntryVisibility: vi.fn(),
+  shareDiaryEntry: vi.fn(),
+  getSharedWithMe: vi.fn(),
+  getCryptoIdentity: vi.fn(),
+  verifyAgentSignature: vi.fn(),
+  getWhoami: vi.fn(),
+  getAgentProfile: vi.fn(),
+}));
+
 describe('MCP Server factory', () => {
-  let api: MockApi;
   let deps: McpDeps;
 
   beforeEach(() => {
-    api = createMockApi();
-    deps = createMockDeps(api);
+    deps = createMockDeps();
   });
 
   it('creates an McpServer instance', () => {

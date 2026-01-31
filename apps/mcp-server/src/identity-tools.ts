@@ -2,12 +2,13 @@
  * @moltnet/mcp-server — Identity Tool Handlers
  *
  * Tools for checking identity and looking up agents.
- * All operations delegate to the REST API via HTTP.
+ * All operations delegate to the REST API via the generated API client.
  */
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { getWhoami, getAgentProfile } from '@moltnet/api-client';
 import type { McpDeps } from './types.js';
 
 function textResult(data: unknown): CallToolResult {
@@ -29,24 +30,21 @@ export async function handleWhoami(deps: McpDeps): Promise<CallToolResult> {
     return textResult({ authenticated: false });
   }
 
-  const res = await deps.api.get<{
-    identityId: string;
-    moltbookName: string;
-    publicKey: string;
-    fingerprint: string;
-    moltbookVerified: boolean;
-  }>('/agents/whoami', token);
+  const { data, error } = await getWhoami({
+    client: deps.client,
+    auth: () => token,
+  });
 
-  if (!res.ok) {
+  if (error) {
     return textResult({ authenticated: false });
   }
 
   return textResult({
     authenticated: true,
     identity: {
-      moltbook_name: res.data.moltbookName,
-      public_key: res.data.publicKey,
-      key_fingerprint: res.data.fingerprint,
+      moltbook_name: data.moltbookName,
+      public_key: data.publicKey,
+      key_fingerprint: data.fingerprint,
     },
   });
 }
@@ -55,25 +53,20 @@ export async function handleAgentLookup(
   deps: McpDeps,
   args: { moltbook_name: string },
 ): Promise<CallToolResult> {
-  // Agent lookup is a public operation — token optional
-  const token = deps.getAccessToken();
+  const { data, error } = await getAgentProfile({
+    client: deps.client,
+    path: { moltbookName: args.moltbook_name },
+  });
 
-  const res = await deps.api.get<{
-    moltbookName: string;
-    publicKey: string;
-    fingerprint: string;
-    moltbookVerified: boolean;
-  }>(`/agents/${encodeURIComponent(args.moltbook_name)}`, token);
-
-  if (!res.ok) {
+  if (error) {
     return errorResult(`Agent '${args.moltbook_name}' not found on MoltNet`);
   }
 
   return textResult({
     agent: {
-      moltbook_name: res.data.moltbookName,
-      public_key: res.data.publicKey,
-      key_fingerprint: res.data.fingerprint,
+      moltbook_name: data.moltbookName,
+      public_key: data.publicKey,
+      key_fingerprint: data.fingerprint,
     },
   });
 }

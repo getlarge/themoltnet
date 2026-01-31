@@ -1,41 +1,44 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  createMockApi,
   createMockDeps,
-  okResponse,
-  errorResponse,
+  sdkOk,
+  sdkErr,
   parseResult,
   getTextContent,
-  TOKEN,
-  type MockApi,
 } from './helpers.js';
 import type { McpDeps } from '../src/types.js';
 import { handleWhoami, handleAgentLookup } from '../src/identity-tools.js';
 
+vi.mock('@moltnet/api-client', () => ({
+  getWhoami: vi.fn(),
+  getAgentProfile: vi.fn(),
+}));
+
+import { getWhoami, getAgentProfile } from '@moltnet/api-client';
+
 describe('Identity tools', () => {
-  let api: MockApi;
   let deps: McpDeps;
 
   beforeEach(() => {
-    api = createMockApi();
-    deps = createMockDeps(api);
+    vi.clearAllMocks();
+    deps = createMockDeps();
   });
 
   describe('moltnet_whoami', () => {
     it('returns identity when authenticated', async () => {
-      api.get.mockResolvedValue(
-        okResponse({
+      vi.mocked(getWhoami).mockResolvedValue(
+        sdkOk({
           identityId: 'id-123',
           moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
           moltbookVerified: true,
-        }),
+        }) as any,
       );
 
       const result = await handleWhoami(deps);
 
-      expect(api.get).toHaveBeenCalledWith('/agents/whoami', TOKEN);
+      expect(getWhoami).toHaveBeenCalled();
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('authenticated', true);
       expect(parsed.identity).toHaveProperty('moltbook_name', 'Claude');
@@ -44,7 +47,7 @@ describe('Identity tools', () => {
     });
 
     it('returns unauthenticated when no auth', async () => {
-      const unauthDeps = createMockDeps(api, null);
+      const unauthDeps = createMockDeps(null);
 
       const result = await handleWhoami(unauthDeps);
 
@@ -56,20 +59,24 @@ describe('Identity tools', () => {
 
   describe('agent_lookup', () => {
     it('returns agent info by moltbook name', async () => {
-      api.get.mockResolvedValue(
-        okResponse({
+      vi.mocked(getAgentProfile).mockResolvedValue(
+        sdkOk({
           moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
           moltbookVerified: true,
-        }),
+        }) as any,
       );
 
       const result = await handleAgentLookup(deps, {
         moltbook_name: 'Claude',
       });
 
-      expect(api.get).toHaveBeenCalledWith('/agents/Claude', TOKEN);
+      expect(getAgentProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { moltbookName: 'Claude' },
+        }),
+      );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed.agent).toHaveProperty('moltbook_name', 'Claude');
       expect(parsed.agent).toHaveProperty('public_key', 'pk-abc');
@@ -77,12 +84,12 @@ describe('Identity tools', () => {
     });
 
     it('returns error when agent not found', async () => {
-      api.get.mockResolvedValue(
-        errorResponse(404, {
+      vi.mocked(getAgentProfile).mockResolvedValue(
+        sdkErr({
           error: 'Not Found',
           message: 'Agent not found',
           statusCode: 404,
-        }),
+        }) as any,
       );
 
       const result = await handleAgentLookup(deps, {
@@ -94,14 +101,14 @@ describe('Identity tools', () => {
     });
 
     it('does not require authentication', async () => {
-      const unauthDeps = createMockDeps(api, null);
-      api.get.mockResolvedValue(
-        okResponse({
+      const unauthDeps = createMockDeps(null);
+      vi.mocked(getAgentProfile).mockResolvedValue(
+        sdkOk({
           moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
           moltbookVerified: true,
-        }),
+        }) as any,
       );
 
       const result = await handleAgentLookup(unauthDeps, {

@@ -1,15 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  createMockApi,
   createMockDeps,
-  okResponse,
-  createdResponse,
-  errorResponse,
+  sdkOk,
+  sdkErr,
   parseResult,
   getTextContent,
-  TOKEN,
   ENTRY_ID,
-  type MockApi,
 } from './helpers.js';
 import type { McpDeps } from '../src/types.js';
 import {
@@ -22,13 +18,32 @@ import {
   handleDiaryReflect,
 } from '../src/diary-tools.js';
 
+vi.mock('@moltnet/api-client', () => ({
+  createDiaryEntry: vi.fn(),
+  getDiaryEntry: vi.fn(),
+  listDiaryEntries: vi.fn(),
+  searchDiary: vi.fn(),
+  updateDiaryEntry: vi.fn(),
+  deleteDiaryEntry: vi.fn(),
+  reflectDiary: vi.fn(),
+}));
+
+import {
+  createDiaryEntry,
+  getDiaryEntry,
+  listDiaryEntries,
+  searchDiary,
+  updateDiaryEntry,
+  deleteDiaryEntry,
+  reflectDiary,
+} from '@moltnet/api-client';
+
 describe('Diary tools', () => {
-  let api: MockApi;
   let deps: McpDeps;
 
   beforeEach(() => {
-    api = createMockApi();
-    deps = createMockDeps(api);
+    vi.clearAllMocks();
+    deps = createMockDeps();
   });
 
   describe('diary_create', () => {
@@ -39,15 +54,17 @@ describe('Diary tools', () => {
         visibility: 'private',
         tags: [],
       };
-      api.post.mockResolvedValue(createdResponse(entry));
+      vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as any);
 
       const result = await handleDiaryCreate(deps, {
         content: 'My first memory',
       });
 
-      expect(api.post).toHaveBeenCalledWith('/diary/entries', TOKEN, {
-        content: 'My first memory',
-      });
+      expect(createDiaryEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { content: 'My first memory' },
+        }),
+      );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('success', true);
       expect(parsed).toHaveProperty('entry');
@@ -60,7 +77,7 @@ describe('Diary tools', () => {
         visibility: 'moltnet',
         tags: ['test', 'memory'],
       };
-      api.post.mockResolvedValue(createdResponse(entry));
+      vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as any);
 
       const result = await handleDiaryCreate(deps, {
         content: 'A tagged memory',
@@ -68,16 +85,20 @@ describe('Diary tools', () => {
         tags: ['test', 'memory'],
       });
 
-      expect(api.post).toHaveBeenCalledWith('/diary/entries', TOKEN, {
-        content: 'A tagged memory',
-        visibility: 'moltnet',
-        tags: ['test', 'memory'],
-      });
+      expect(createDiaryEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            content: 'A tagged memory',
+            visibility: 'moltnet',
+            tags: ['test', 'memory'],
+          },
+        }),
+      );
       expect(result.isError).toBeUndefined();
     });
 
     it('returns error when not authenticated', async () => {
-      const unauthDeps = createMockDeps(api, null);
+      const unauthDeps = createMockDeps(null);
       const result = await handleDiaryCreate(unauthDeps, {
         content: 'test',
       });
@@ -90,25 +111,29 @@ describe('Diary tools', () => {
   describe('diary_get', () => {
     it('returns an entry by ID', async () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
-      api.get.mockResolvedValue(okResponse(entry));
+      vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as any);
 
       const result = await handleDiaryGet(deps, {
         entry_id: ENTRY_ID,
       });
 
-      expect(api.get).toHaveBeenCalledWith(`/diary/entries/${ENTRY_ID}`, TOKEN);
+      expect(getDiaryEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: ENTRY_ID },
+        }),
+      );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('entry');
       expect(parsed.entry).toHaveProperty('id', ENTRY_ID);
     });
 
     it('returns error when entry not found', async () => {
-      api.get.mockResolvedValue(
-        errorResponse(404, {
+      vi.mocked(getDiaryEntry).mockResolvedValue(
+        sdkErr({
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }),
+        }) as any,
       );
 
       const result = await handleDiaryGet(deps, {
@@ -120,7 +145,7 @@ describe('Diary tools', () => {
     });
 
     it('returns error when not authenticated', async () => {
-      const unauthDeps = createMockDeps(api, null);
+      const unauthDeps = createMockDeps(null);
       const result = await handleDiaryGet(unauthDeps, {
         entry_id: ENTRY_ID,
       });
@@ -138,77 +163,84 @@ describe('Diary tools', () => {
         limit: 20,
         offset: 0,
       };
-      api.get.mockResolvedValue(okResponse(data));
+      vi.mocked(listDiaryEntries).mockResolvedValue(sdkOk(data) as any);
 
       const result = await handleDiaryList(deps, {});
 
-      expect(api.get).toHaveBeenCalledWith('/diary/entries', TOKEN, {
-        limit: 20,
-        offset: 0,
-      });
+      expect(listDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { limit: 20, offset: 0 },
+        }),
+      );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('items');
       expect(parsed.items).toHaveLength(1);
     });
 
     it('passes limit and offset', async () => {
-      api.get.mockResolvedValue(
-        okResponse({ items: [], total: 0, limit: 5, offset: 10 }),
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [], total: 0, limit: 5, offset: 10 }) as any,
       );
 
       await handleDiaryList(deps, { limit: 5, offset: 10 });
 
-      expect(api.get).toHaveBeenCalledWith('/diary/entries', TOKEN, {
-        limit: 5,
-        offset: 10,
-      });
+      expect(listDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { limit: 5, offset: 10 },
+        }),
+      );
     });
   });
 
   describe('diary_search', () => {
     it('searches with a query', async () => {
       const data = { results: [{ id: ENTRY_ID }], total: 1 };
-      api.post.mockResolvedValue(okResponse(data));
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk(data) as any);
 
       const result = await handleDiarySearch(deps, {
         query: 'debugging OAuth',
       });
 
-      expect(api.post).toHaveBeenCalledWith('/diary/search', TOKEN, {
-        query: 'debugging OAuth',
-        limit: 10,
-      });
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { query: 'debugging OAuth', limit: 10 },
+        }),
+      );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('results');
       expect(parsed.results).toHaveLength(1);
     });
 
     it('passes limit parameter', async () => {
-      api.post.mockResolvedValue(okResponse({ results: [], total: 0 }));
+      vi.mocked(searchDiary).mockResolvedValue(
+        sdkOk({ results: [], total: 0 }) as any,
+      );
 
       await handleDiarySearch(deps, { query: 'test', limit: 5 });
 
-      expect(api.post).toHaveBeenCalledWith('/diary/search', TOKEN, {
-        query: 'test',
-        limit: 5,
-      });
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { query: 'test', limit: 5 },
+        }),
+      );
     });
   });
 
   describe('diary_update', () => {
     it('updates an entry', async () => {
       const updated = { id: ENTRY_ID, tags: ['updated'] };
-      api.patch.mockResolvedValue(okResponse(updated));
+      vi.mocked(updateDiaryEntry).mockResolvedValue(sdkOk(updated) as any);
 
       const result = await handleDiaryUpdate(deps, {
         entry_id: ENTRY_ID,
         tags: ['updated'],
       });
 
-      expect(api.patch).toHaveBeenCalledWith(
-        `/diary/entries/${ENTRY_ID}`,
-        TOKEN,
-        { tags: ['updated'] },
+      expect(updateDiaryEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: ENTRY_ID },
+          body: { tags: ['updated'] },
+        }),
       );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('success', true);
@@ -216,12 +248,12 @@ describe('Diary tools', () => {
     });
 
     it('returns error when entry not found', async () => {
-      api.patch.mockResolvedValue(
-        errorResponse(404, {
+      vi.mocked(updateDiaryEntry).mockResolvedValue(
+        sdkErr({
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }),
+        }) as any,
       );
 
       const result = await handleDiaryUpdate(deps, {
@@ -236,24 +268,30 @@ describe('Diary tools', () => {
 
   describe('diary_delete', () => {
     it('deletes an entry', async () => {
-      api.del.mockResolvedValue(okResponse({ success: true }));
+      vi.mocked(deleteDiaryEntry).mockResolvedValue(
+        sdkOk({ success: true }) as any,
+      );
 
       const result = await handleDiaryDelete(deps, {
         entry_id: ENTRY_ID,
       });
 
-      expect(api.del).toHaveBeenCalledWith(`/diary/entries/${ENTRY_ID}`, TOKEN);
+      expect(deleteDiaryEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: ENTRY_ID },
+        }),
+      );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('success', true);
     });
 
     it('returns error when entry not found', async () => {
-      api.del.mockResolvedValue(
-        errorResponse(404, {
+      vi.mocked(deleteDiaryEntry).mockResolvedValue(
+        sdkErr({
           error: 'Not Found',
           message: 'Entry not found',
           statusCode: 404,
-        }),
+        }) as any,
       );
 
       const result = await handleDiaryDelete(deps, {
@@ -273,27 +311,31 @@ describe('Diary tools', () => {
         periodDays: 7,
         generatedAt: '2025-01-01T00:00:00.000Z',
       };
-      api.get.mockResolvedValue(okResponse(digest));
+      vi.mocked(reflectDiary).mockResolvedValue(sdkOk(digest) as any);
 
       const result = await handleDiaryReflect(deps, {});
 
-      expect(api.get).toHaveBeenCalledWith('/diary/reflect', TOKEN, {
-        days: 7,
-        maxEntries: 50,
-      });
+      expect(reflectDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { days: 7, maxEntries: 50 },
+        }),
+      );
       const parsed = parseResult<Record<string, any>>(result);
       expect(parsed).toHaveProperty('digest');
     });
 
     it('passes custom days and max_entries', async () => {
-      api.get.mockResolvedValue(okResponse({ entries: [], totalEntries: 0 }));
+      vi.mocked(reflectDiary).mockResolvedValue(
+        sdkOk({ entries: [], totalEntries: 0 }) as any,
+      );
 
       await handleDiaryReflect(deps, { days: 30, max_entries: 10 });
 
-      expect(api.get).toHaveBeenCalledWith('/diary/reflect', TOKEN, {
-        days: 30,
-        maxEntries: 10,
-      });
+      expect(reflectDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { days: 30, maxEntries: 10 },
+        }),
+      );
     });
   });
 });

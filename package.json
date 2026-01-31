@@ -24,6 +24,9 @@
     "knip": "knip",
     "knip:fix": "knip --fix",
     "audit": "pnpm audit --prod",
+    "generate:openapi": "tsx apps/rest-api/scripts/generate-openapi.ts",
+    "generate:client": "pnpm --filter @moltnet/api-client run generate",
+    "generate": "pnpm run generate:openapi && pnpm run generate:client",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
     "prepare": "husky"
   },

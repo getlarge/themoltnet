@@ -2,12 +2,18 @@
  * @moltnet/mcp-server — MCP Resource Handlers
  *
  * Read-only resources exposed via the MCP protocol.
- * All data is fetched from the REST API via HTTP.
+ * All data is fetched from the REST API via the generated API client.
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
+import {
+  getWhoami,
+  listDiaryEntries,
+  getDiaryEntry,
+  getAgentProfile,
+} from '@moltnet/api-client';
 import type { McpDeps } from './types.js';
 
 function jsonResource(uri: string, data: unknown): ReadResourceResult {
@@ -32,20 +38,19 @@ export async function handleIdentityResource(
     return jsonResource('moltnet://identity', { authenticated: false });
   }
 
-  const res = await deps.api.get<{
-    moltbookName: string;
-    publicKey: string;
-    fingerprint: string;
-  }>('/agents/whoami', token);
+  const { data, error } = await getWhoami({
+    client: deps.client,
+    auth: () => token,
+  });
 
-  if (!res.ok) {
+  if (error) {
     return jsonResource('moltnet://identity', { authenticated: false });
   }
 
   return jsonResource('moltnet://identity', {
-    moltbook_name: res.data.moltbookName,
-    public_key: res.data.publicKey,
-    key_fingerprint: res.data.fingerprint,
+    moltbook_name: data.moltbookName,
+    public_key: data.publicKey,
+    key_fingerprint: data.fingerprint,
   });
 }
 
@@ -59,18 +64,20 @@ export async function handleDiaryRecentResource(
     });
   }
 
-  const res = await deps.api.get<{
-    items: unknown[];
-  }>('/diary/entries', token, { limit: 10 });
+  const { data, error } = await listDiaryEntries({
+    client: deps.client,
+    auth: () => token,
+    query: { limit: 10 },
+  });
 
-  if (!res.ok) {
+  if (error) {
     return jsonResource('moltnet://diary/recent', {
       error: 'Failed to fetch entries',
     });
   }
 
   return jsonResource('moltnet://diary/recent', {
-    entries: res.data.items,
+    entries: data.items,
   });
 }
 
@@ -85,40 +92,40 @@ export async function handleDiaryEntryResource(
     });
   }
 
-  const res = await deps.api.get(`/diary/entries/${entryId}`, token);
+  const { data, error } = await getDiaryEntry({
+    client: deps.client,
+    auth: () => token,
+    path: { id: entryId },
+  });
 
-  if (!res.ok) {
+  if (error) {
     return jsonResource(`moltnet://diary/${entryId}`, {
       error: 'Entry not found',
     });
   }
 
-  return jsonResource(`moltnet://diary/${entryId}`, res.data);
+  return jsonResource(`moltnet://diary/${entryId}`, data);
 }
 
 export async function handleAgentResource(
   deps: McpDeps,
   name: string,
 ): Promise<ReadResourceResult> {
-  const token = deps.getAccessToken();
+  const { data, error } = await getAgentProfile({
+    client: deps.client,
+    path: { moltbookName: name },
+  });
 
-  const res = await deps.api.get<{
-    moltbookName: string;
-    publicKey: string;
-    fingerprint: string;
-    moltbookVerified: boolean;
-  }>(`/agents/${encodeURIComponent(name)}`, token);
-
-  if (!res.ok) {
+  if (error) {
     return jsonResource(`moltnet://agent/${name}`, {
       error: `Agent '${name}' not found`,
     });
   }
 
   return jsonResource(`moltnet://agent/${name}`, {
-    moltbook_name: res.data.moltbookName,
-    public_key: res.data.publicKey,
-    key_fingerprint: res.data.fingerprint,
+    moltbook_name: data.moltbookName,
+    public_key: data.publicKey,
+    key_fingerprint: data.fingerprint,
   });
 }
 

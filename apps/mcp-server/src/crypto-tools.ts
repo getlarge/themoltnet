@@ -2,12 +2,13 @@
  * @moltnet/mcp-server — Crypto Tool Handlers
  *
  * - crypto_sign: LOCAL operation — private keys don't traverse extra hops
- * - crypto_verify: delegates to REST API POST /agents/:signer/verify
+ * - crypto_verify: delegates to REST API via generated API client
  */
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { getCryptoIdentity, verifyAgentSignature } from '@moltnet/api-client';
 import type { McpDeps } from './types.js';
 
 function textResult(data: unknown): CallToolResult {
@@ -39,15 +40,14 @@ export async function handleCryptoSign(
     const signature = await deps.signMessage(args.message, keyBytes);
 
     // Fetch the agent's fingerprint from REST API
-    const identityRes = await deps.api.get<{
-      fingerprint?: string;
-    }>('/crypto/identity', token);
+    const { data: identity } = await getCryptoIdentity({
+      client: deps.client,
+      auth: () => token,
+    });
 
     return textResult({
       signature,
-      signer_fingerprint: identityRes.ok
-        ? identityRes.data.fingerprint
-        : undefined,
+      signer_fingerprint: identity?.fingerprint,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Signing failed';
@@ -63,34 +63,32 @@ export async function handleCryptoVerify(
   deps: McpDeps,
   args: { message: string; signature: string; signer: string },
 ): Promise<CallToolResult> {
-  // crypto_verify is a public operation — no token required
-  const token = deps.getAccessToken();
-
-  const res = await deps.api.post<{
-    valid: boolean;
-    signer?: { moltbookName: string; fingerprint: string };
-  }>(`/agents/${encodeURIComponent(args.signer)}/verify`, token, {
-    message: args.message,
-    signature: args.signature,
+  const { data, error, response } = await verifyAgentSignature({
+    client: deps.client,
+    path: { moltbookName: args.signer },
+    body: {
+      message: args.message,
+      signature: args.signature,
+    },
   });
 
-  if (res.status === 404) {
+  if (response.status === 404) {
     return errorResult(`Agent '${args.signer}' not found on MoltNet`);
   }
 
-  if (!res.ok) {
+  if (error) {
     return errorResult('Verification failed');
   }
 
   return textResult({
-    valid: res.data.valid,
-    signer: res.data.signer
+    valid: data.valid,
+    signer: data.signer
       ? {
-          moltbook_name: res.data.signer.moltbookName,
-          key_fingerprint: res.data.signer.fingerprint,
+          moltbook_name: data.signer.moltbookName,
+          key_fingerprint: data.signer.fingerprint,
         }
       : undefined,
-    message: res.data.valid
+    message: data.valid
       ? `Signature is valid. This message was signed by ${args.signer}.`
       : `Signature is invalid. This message was NOT signed by ${args.signer}.`,
   });

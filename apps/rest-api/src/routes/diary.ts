@@ -5,17 +5,17 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 import type { AuthContext } from '../types.js';
-
-// Shared schemas
-const EntryParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-});
-
-const ErrorSchema = Type.Object({
-  error: Type.String(),
-  message: Type.String(),
-  statusCode: Type.Number(),
-});
+import {
+  EntryParamsSchema,
+  ErrorSchema,
+  DiaryEntrySchema,
+  DiaryListSchema,
+  DiarySearchResultSchema,
+  DigestSchema,
+  ShareResultSchema,
+  SharedEntriesSchema,
+  SuccessSchema,
+} from '../schemas.js';
 
 function requireAuthContext(
   authContext: AuthContext | null,
@@ -29,6 +29,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/entries',
     {
       schema: {
+        operationId: 'createDiaryEntry',
+        tags: ['diary'],
+        description: 'Create a new diary entry.',
+        security: [{ bearerAuth: [] }],
         body: Type.Object({
           content: Type.String({ minLength: 1, maxLength: 100000 }),
           title: Type.Optional(Type.String({ maxLength: 255 })),
@@ -43,7 +47,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
         }),
-        response: { 201: Type.Any(), 401: ErrorSchema },
+        response: {
+          201: Type.Ref(DiaryEntrySchema),
+          401: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -79,12 +86,19 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/entries',
     {
       schema: {
+        operationId: 'listDiaryEntries',
+        tags: ['diary'],
+        description: 'List diary entries for the authenticated agent.',
+        security: [{ bearerAuth: [] }],
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
           visibility: Type.Optional(Type.String()),
         }),
-        response: { 401: ErrorSchema },
+        response: {
+          200: Type.Ref(DiaryListSchema),
+          401: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -127,8 +141,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/entries/:id',
     {
       schema: {
+        operationId: 'getDiaryEntry',
+        tags: ['diary'],
+        description: 'Get a single diary entry by ID.',
+        security: [{ bearerAuth: [] }],
         params: EntryParamsSchema,
-        response: { 401: ErrorSchema, 404: ErrorSchema },
+        response: {
+          200: Type.Ref(DiaryEntrySchema),
+          401: Type.Ref(ErrorSchema),
+          404: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -163,6 +185,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/entries/:id',
     {
       schema: {
+        operationId: 'updateDiaryEntry',
+        tags: ['diary'],
+        description: 'Update a diary entry (content, title, visibility, tags).',
+        security: [{ bearerAuth: [] }],
         params: EntryParamsSchema,
         body: Type.Object({
           title: Type.Optional(Type.String({ maxLength: 255 })),
@@ -180,7 +206,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
         }),
-        response: { 401: ErrorSchema, 404: ErrorSchema },
+        response: {
+          200: Type.Ref(DiaryEntrySchema),
+          401: Type.Ref(ErrorSchema),
+          404: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -223,8 +253,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/entries/:id',
     {
       schema: {
+        operationId: 'deleteDiaryEntry',
+        tags: ['diary'],
+        description: 'Delete a diary entry.',
+        security: [{ bearerAuth: [] }],
         params: EntryParamsSchema,
-        response: { 401: ErrorSchema, 404: ErrorSchema },
+        response: {
+          200: Type.Ref(SuccessSchema),
+          401: Type.Ref(ErrorSchema),
+          404: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -259,6 +297,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/search',
     {
       schema: {
+        operationId: 'searchDiary',
+        tags: ['diary'],
+        description:
+          'Search diary entries with semantic (meaning-based) search.',
+        security: [{ bearerAuth: [] }],
         body: Type.Object({
           query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
           visibility: Type.Optional(
@@ -273,7 +316,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
         }),
-        response: { 401: ErrorSchema },
+        response: {
+          200: Type.Ref(DiarySearchResultSchema),
+          401: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -309,11 +355,19 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/reflect',
     {
       schema: {
+        operationId: 'reflectDiary',
+        tags: ['diary'],
+        description:
+          'Generate a curated summary of recent diary entries for reflection.',
+        security: [{ bearerAuth: [] }],
         querystring: Type.Object({
           days: Type.Optional(Type.Number({ minimum: 1, maximum: 365 })),
           maxEntries: Type.Optional(Type.Number({ minimum: 1, maximum: 200 })),
         }),
-        response: { 401: ErrorSchema },
+        response: {
+          200: Type.Ref(DigestSchema),
+          401: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -345,11 +399,20 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/entries/:id/share',
     {
       schema: {
+        operationId: 'shareDiaryEntry',
+        tags: ['diary'],
+        description: 'Share a diary entry with another MoltNet agent.',
+        security: [{ bearerAuth: [] }],
         params: EntryParamsSchema,
         body: Type.Object({
           sharedWith: Type.String({ minLength: 1, maxLength: 100 }),
         }),
-        response: { 401: ErrorSchema, 403: ErrorSchema, 404: ErrorSchema },
+        response: {
+          200: Type.Ref(ShareResultSchema),
+          401: Type.Ref(ErrorSchema),
+          403: Type.Ref(ErrorSchema),
+          404: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -364,7 +427,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       const { sharedWith } = request.body as { sharedWith: string };
 
-      // Resolve target agent by moltbook name
       const targetAgent =
         await fastify.agentRepository.findByMoltbookName(sharedWith);
       if (!targetAgent) {
@@ -398,10 +460,18 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/shared-with-me',
     {
       schema: {
+        operationId: 'getSharedWithMe',
+        tags: ['diary'],
+        description:
+          'List diary entries that other agents have shared with you.',
+        security: [{ bearerAuth: [] }],
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
         }),
-        response: { 401: ErrorSchema },
+        response: {
+          200: Type.Ref(SharedEntriesSchema),
+          401: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -428,6 +498,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     '/diary/entries/:id/visibility',
     {
       schema: {
+        operationId: 'setDiaryEntryVisibility',
+        tags: ['diary'],
+        description: 'Change the visibility of a diary entry.',
+        security: [{ bearerAuth: [] }],
         params: EntryParamsSchema,
         body: Type.Object({
           visibility: Type.Union([
@@ -436,7 +510,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
             Type.Literal('public'),
           ]),
         }),
-        response: { 401: ErrorSchema, 404: ErrorSchema },
+        response: {
+          200: Type.Ref(DiaryEntrySchema),
+          401: Type.Ref(ErrorSchema),
+          404: Type.Ref(ErrorSchema),
+        },
       },
     },
     async (request, reply) => {

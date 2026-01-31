@@ -1,64 +1,53 @@
 /**
  * Test helpers — mocks and fixtures for MCP server tests
  *
- * Mocks the ApiClient methods instead of service interfaces,
- * since the MCP server communicates with the REST API via HTTP.
+ * Provides helpers for testing handlers that use the generated
+ * @moltnet/api-client SDK functions.
  */
 
 import { vi } from 'vitest';
-import type { ApiClient, ApiResponse } from '../src/api-client.js';
+import type { Client } from '@moltnet/api-client';
 import type { McpDeps } from '../src/types.js';
 
 export const TOKEN = 'test-bearer-token';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
-export interface MockApi {
-  get: ReturnType<typeof vi.fn>;
-  post: ReturnType<typeof vi.fn>;
-  patch: ReturnType<typeof vi.fn>;
-  del: ReturnType<typeof vi.fn>;
-}
-
-export function createMockApi(): MockApi {
-  return {
-    get: vi.fn(),
-    post: vi.fn(),
-    patch: vi.fn(),
-    del: vi.fn(),
-  };
-}
-
 /**
- * Create McpDeps with mocked API client.
+ * Create McpDeps with a mock client.
  * Pass `null` for token to simulate unauthenticated state.
+ *
+ * The client is a stub — actual HTTP calls are mocked at the SDK function
+ * level via vi.mock('@moltnet/api-client') in each test file.
  */
-export function createMockDeps(
-  mockApi: MockApi,
-  token: string | null = TOKEN,
-): McpDeps {
+export function createMockDeps(token: string | null = TOKEN): McpDeps {
   return {
-    api: mockApi as unknown as ApiClient,
+    client: {} as Client,
     getAccessToken: () => token,
     signMessage: vi.fn().mockResolvedValue('ed25519:sig123'),
   };
 }
 
-/** Helper to build an OK API response */
-export function okResponse<T>(data: T): ApiResponse<T> {
-  return { status: 200, ok: true, data };
+/** Build a successful SDK response (data present, no error) */
+export function sdkOk<T>(data: T, status = 200) {
+  return {
+    data,
+    error: undefined,
+    request: {} as Request,
+    response: { status } as Response,
+  };
 }
 
-/** Helper to build a 201 Created response */
-export function createdResponse<T>(data: T): ApiResponse<T> {
-  return { status: 201, ok: true, data };
-}
-
-/** Helper to build an error API response */
-export function errorResponse(
-  status: number,
-  data: { error: string; message: string; statusCode: number },
-): ApiResponse<unknown> {
-  return { status, ok: false, data };
+/** Build an error SDK response (no data, error present) */
+export function sdkErr(
+  error: { error: string; message: string; statusCode: number },
+  status?: number,
+) {
+  return {
+    data: undefined,
+    error,
+    request: {} as Request,
+    response: { status: status ?? error.statusCode } as Response,
+  };
 }
 
 /** Helper to extract text content from a CallToolResult */

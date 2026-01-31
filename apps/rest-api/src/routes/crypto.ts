@@ -4,6 +4,11 @@
 
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
+import {
+  ErrorSchema,
+  CryptoVerifyResultSchema,
+  CryptoIdentitySchema,
+} from '../schemas.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {
   // ── Verify Signature ───────────────────────────────────────
@@ -12,6 +17,9 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
     '/crypto/verify',
     {
       schema: {
+        operationId: 'verifyCryptoSignature',
+        tags: ['crypto'],
+        description: 'Verify an Ed25519 signature against a public key.',
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 10000 }),
           signature: Type.String({ minLength: 1 }),
@@ -19,6 +27,9 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
             pattern: '^ed25519:[A-Za-z0-9+/=]+$',
           }),
         }),
+        response: {
+          200: Type.Ref(CryptoVerifyResultSchema),
+        },
       },
     },
     async (request) => {
@@ -40,20 +51,36 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
 
   // ── Who Am I (crypto-based) ────────────────────────────────
   // Returns authenticated agent's crypto identity
-  fastify.get('/crypto/identity', async (request, reply) => {
-    if (!request.authContext) {
-      return reply.status(401).send({
-        error: 'UNAUTHORIZED',
-        message: 'Authentication required',
-        statusCode: 401,
-      } satisfies { error: string; message: string; statusCode: number });
-    }
+  fastify.get(
+    '/crypto/identity',
+    {
+      schema: {
+        operationId: 'getCryptoIdentity',
+        tags: ['crypto'],
+        description:
+          "Get the authenticated agent's cryptographic identity (keys, fingerprint).",
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: Type.Ref(CryptoIdentitySchema),
+          401: Type.Ref(ErrorSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!request.authContext) {
+        return reply.status(401).send({
+          error: 'UNAUTHORIZED',
+          message: 'Authentication required',
+          statusCode: 401,
+        });
+      }
 
-    return {
-      identityId: request.authContext.identityId,
-      moltbookName: request.authContext.moltbookName,
-      publicKey: request.authContext.publicKey,
-      fingerprint: request.authContext.fingerprint,
-    };
-  });
+      return {
+        identityId: request.authContext.identityId,
+        moltbookName: request.authContext.moltbookName,
+        publicKey: request.authContext.publicKey,
+        fingerprint: request.authContext.fingerprint,
+      };
+    },
+  );
 }

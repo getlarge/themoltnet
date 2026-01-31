@@ -1,13 +1,22 @@
 /**
  * @moltnet/mcp-server — Diary Tool Handlers
  *
- * Each tool delegates to the REST API via HTTP,
- * forwarding the agent's bearer token for auth.
+ * Each tool delegates to the REST API via the generated API client,
+ * passing the agent's bearer token for auth.
  */
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import {
+  createDiaryEntry,
+  getDiaryEntry,
+  listDiaryEntries,
+  searchDiary,
+  updateDiaryEntry,
+  deleteDiaryEntry,
+  reflectDiary,
+} from '@moltnet/api-client';
 import type { McpDeps } from './types.js';
 
 function textResult(data: unknown): CallToolResult {
@@ -34,17 +43,25 @@ export async function handleDiaryCreate(
   const token = deps.getAccessToken();
   if (!token) return errorResult('Not authenticated');
 
-  const res = await deps.api.post('/diary/entries', token, args);
+  const { data, error } = await createDiaryEntry({
+    client: deps.client,
+    auth: () => token,
+    body: {
+      content: args.content,
+      visibility: args.visibility,
+      tags: args.tags,
+    },
+  });
 
-  if (!res.ok) {
+  if (error) {
     return errorResult(
-      (res.data as { message?: string })?.message ?? 'Failed to create entry',
+      (error as { message?: string })?.message ?? 'Failed to create entry',
     );
   }
 
   return textResult({
     success: true,
-    entry: res.data,
+    entry: data,
     message: 'Memory saved',
   });
 }
@@ -56,13 +73,17 @@ export async function handleDiaryGet(
   const token = deps.getAccessToken();
   if (!token) return errorResult('Not authenticated');
 
-  const res = await deps.api.get(`/diary/entries/${args.entry_id}`, token);
+  const { data, error } = await getDiaryEntry({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.entry_id },
+  });
 
-  if (!res.ok) {
+  if (error) {
     return errorResult('Entry not found');
   }
 
-  return textResult({ entry: res.data });
+  return textResult({ entry: data });
 }
 
 export async function handleDiaryList(
@@ -72,16 +93,20 @@ export async function handleDiaryList(
   const token = deps.getAccessToken();
   if (!token) return errorResult('Not authenticated');
 
-  const res = await deps.api.get('/diary/entries', token, {
-    limit: args.limit ?? 20,
-    offset: args.offset ?? 0,
+  const { data, error } = await listDiaryEntries({
+    client: deps.client,
+    auth: () => token,
+    query: {
+      limit: args.limit ?? 20,
+      offset: args.offset ?? 0,
+    },
   });
 
-  if (!res.ok) {
+  if (error) {
     return errorResult('Failed to list entries');
   }
 
-  return textResult(res.data);
+  return textResult(data);
 }
 
 export async function handleDiarySearch(
@@ -91,16 +116,20 @@ export async function handleDiarySearch(
   const token = deps.getAccessToken();
   if (!token) return errorResult('Not authenticated');
 
-  const res = await deps.api.post('/diary/search', token, {
-    query: args.query,
-    limit: args.limit ?? 10,
+  const { data, error } = await searchDiary({
+    client: deps.client,
+    auth: () => token,
+    body: {
+      query: args.query,
+      limit: args.limit ?? 10,
+    },
   });
 
-  if (!res.ok) {
+  if (error) {
     return errorResult('Search failed');
   }
 
-  return textResult(res.data);
+  return textResult(data);
 }
 
 export async function handleDiaryUpdate(
@@ -116,17 +145,18 @@ export async function handleDiaryUpdate(
   if (!token) return errorResult('Not authenticated');
 
   const { entry_id, ...updates } = args;
-  const res = await deps.api.patch(
-    `/diary/entries/${entry_id}`,
-    token,
-    updates,
-  );
+  const { data, error } = await updateDiaryEntry({
+    client: deps.client,
+    auth: () => token,
+    path: { id: entry_id },
+    body: updates,
+  });
 
-  if (!res.ok) {
+  if (error) {
     return errorResult('Entry not found');
   }
 
-  return textResult({ success: true, entry: res.data });
+  return textResult({ success: true, entry: data });
 }
 
 export async function handleDiaryDelete(
@@ -136,9 +166,13 @@ export async function handleDiaryDelete(
   const token = deps.getAccessToken();
   if (!token) return errorResult('Not authenticated');
 
-  const res = await deps.api.del(`/diary/entries/${args.entry_id}`, token);
+  const { error } = await deleteDiaryEntry({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.entry_id },
+  });
 
-  if (!res.ok) {
+  if (error) {
     return errorResult('Entry not found');
   }
 
@@ -152,16 +186,20 @@ export async function handleDiaryReflect(
   const token = deps.getAccessToken();
   if (!token) return errorResult('Not authenticated');
 
-  const res = await deps.api.get('/diary/reflect', token, {
-    days: args.days ?? 7,
-    maxEntries: args.max_entries ?? 50,
+  const { data, error } = await reflectDiary({
+    client: deps.client,
+    auth: () => token,
+    query: {
+      days: args.days ?? 7,
+      maxEntries: args.max_entries ?? 50,
+    },
   });
 
-  if (!res.ok) {
+  if (error) {
     return errorResult('Reflect failed');
   }
 
-  return textResult({ digest: res.data });
+  return textResult({ digest: data });
 }
 
 // --- Tool registration ---
