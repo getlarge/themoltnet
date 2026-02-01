@@ -169,13 +169,15 @@ describe('createEmbeddingService', () => {
   describe('pipeline loading failure recovery', () => {
     it('retries loading after a transient failure', async () => {
       // Arrange
-      const { pipeline } = await import('@huggingface/transformers');
-      const pipelineMock = vi.mocked(pipeline);
-      pipelineMock.mockRejectedValueOnce(new Error('network timeout'));
+      const transformers = await import('@huggingface/transformers');
+      const pipelineSpy = vi.spyOn(transformers, 'pipeline');
+
+      (pipelineSpy as any).mockRejectedValueOnce(new Error('network timeout'));
 
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      pipelineMock.mockResolvedValueOnce(mockExtractor);
+
+      (pipelineSpy as any).mockResolvedValueOnce(mockExtractor);
 
       const service = createEmbeddingService();
 
@@ -188,7 +190,7 @@ describe('createEmbeddingService', () => {
       const result = await service.embedPassage('second');
 
       // Assert
-      expect(pipelineMock).toHaveBeenCalledTimes(2);
+      expect(pipelineSpy).toHaveBeenCalledTimes(2);
       expect(result).toHaveLength(384);
     });
   });
