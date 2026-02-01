@@ -41,6 +41,7 @@ catalog:
   fastify: ^5.2.0
   fastify-plugin: ^5.0.0
   '@fastify/otel': ^0.16.0
+  '@fastify/static': ^9.0.0
 
   # Database
   drizzle-orm: ^0.29.3

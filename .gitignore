@@ -146,3 +146,6 @@ vite.config.ts.timestamp-*
 infra/ory/project.resolved.json
 .git.worktree.bak
 .pnpm-store/
+
+# Test results
+test-results/
