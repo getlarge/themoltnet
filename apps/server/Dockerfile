@@ -45,27 +45,21 @@ RUN pnpm --filter @moltnet/landing run build
 # Build server (tsc → dist/)
 RUN pnpm --filter @moltnet/server run build
 
+# Extract server with production-only dependencies
+RUN pnpm --filter @moltnet/server deploy --prod /app/deploy
+
 # ---------- production ----------
-FROM base AS production
+# No pnpm needed at runtime — just node
+FROM node:22-slim AS production
 
 ENV NODE_ENV=production
+WORKDIR /app
 
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./
-COPY --from=build /app/pnpm-workspace.yaml ./
+# Server with production-only dependencies (via pnpm deploy)
+COPY --from=build /app/deploy ./
 
-# Server dist
-COPY --from=build /app/apps/server/dist ./apps/server/dist
-COPY --from=build /app/apps/server/package.json ./apps/server/
-COPY --from=build /app/apps/server/node_modules ./apps/server/node_modules
-
-# Landing page build output → /app/public
+# Landing page build output → /app/public (matched by resolveStaticDir)
 COPY --from=build /app/apps/landing/dist ./public
-
-# Workspace libs source (resolved via pnpm workspace symlinks → src)
-COPY --from=build /app/libs ./libs
-
-WORKDIR /app/apps/server
 
 EXPOSE 8080
 

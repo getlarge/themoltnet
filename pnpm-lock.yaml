@@ -292,9 +292,6 @@ importers:
       '@fastify/static':
         specifier: 'catalog:'
         version: 9.0.0
-      '@moltnet/observability':
-        specifier: workspace:*
-        version: link:../../libs/observability
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.32.35

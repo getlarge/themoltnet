@@ -4,6 +4,7 @@
 app = "moltnet"
 primary_region = "fra"  # Frankfurt — EU data residency
 
+# Only used for local `fly deploy`; CI deploys a pre-built image from GHCR
 [build]
   dockerfile = "Dockerfile"
 

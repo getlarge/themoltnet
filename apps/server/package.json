@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@fastify/static": "catalog:",
-    "@moltnet/observability": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "fastify": "catalog:"
   },

@@ -19,6 +19,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   const app = Fastify({ logger });
 
+  // Health check — registered before static to prevent accidental shadowing
+  app.get('/healthz', () => {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  });
+
   // Resolve static directory
   const staticDir = resolveStaticDir(config.STATIC_DIR);
 
@@ -36,11 +41,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       return reply.status(404).send({ error: 'Not Found' });
     });
   }
-
-  // Health check
-  app.get('/healthz', async () => {
-    return { status: 'ok', timestamp: new Date().toISOString() };
-  });
 
   return app;
 }

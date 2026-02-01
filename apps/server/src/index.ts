@@ -18,6 +18,13 @@ async function main(): Promise<void> {
     app.log.fatal(err, 'Failed to start server');
     process.exit(1);
   }
+
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.once(signal, () => {
+      app.log.info({ signal }, 'Shutting down');
+      void app.close().then(() => process.exit(0));
+    });
+  }
 }
 
 void main();
