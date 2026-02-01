@@ -7,8 +7,11 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
+
+const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 
 describe('Agent routes', () => {
   let app: FastifyInstance;
@@ -116,6 +119,7 @@ describe('Agent routes', () => {
       const response = await app.inject({
         method: 'GET',
         url: '/agents/whoami',
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(200);
@@ -125,9 +129,7 @@ describe('Agent routes', () => {
     });
 
     it('returns 401 without auth', async () => {
-      const noAuthApp = await createTestApp(mocks, null);
-
-      const response = await noAuthApp.inject({
+      const response = await app.inject({
         method: 'GET',
         url: '/agents/whoami',
       });

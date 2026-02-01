@@ -2,6 +2,7 @@
  * Diary CRUD, search, sharing, and reflection routes
  */
 
+import { requireAuth } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -16,15 +17,11 @@ import {
   ShareResultSchema,
   SuccessSchema,
 } from '../schemas.js';
-import type { AuthContext } from '../types.js';
-
-function requireAuthContext(
-  authContext: AuthContext | null,
-): authContext is AuthContext {
-  return authContext !== null;
-}
 
 export async function diaryRoutes(fastify: FastifyInstance) {
+  // All diary routes require authentication
+  fastify.addHook('preHandler', requireAuth);
+
   // ── Create Entry ───────────────────────────────────────────
   fastify.post(
     '/diary/entries',
@@ -55,14 +52,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
       const { content, title, visibility, tags } = request.body as {
         content: string;
         title?: string;
@@ -71,7 +60,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       };
 
       const entry = await fastify.diaryService.create({
-        ownerId: request.authContext.identityId,
+        ownerId: request.authContext!.identityId,
         content,
         title,
         visibility,
@@ -102,15 +91,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
+    async (request) => {
       const { limit, offset, visibility } = request.query as {
         limit?: number;
         offset?: number;
@@ -122,7 +103,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         : undefined;
 
       const entries = await fastify.diaryService.list({
-        ownerId: request.authContext.identityId,
+        ownerId: request.authContext!.identityId,
         visibility: visibilityFilter,
         limit,
         offset,
@@ -155,18 +136,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
       const { id } = request.params as { id: string };
       const entry = await fastify.diaryService.getById(
         id,
-        request.authContext.identityId,
+        request.authContext!.identityId,
       );
 
       if (!entry) {
@@ -215,14 +188,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
       const { id } = request.params as { id: string };
       const updates = request.body as {
         title?: string;
@@ -233,7 +198,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const entry = await fastify.diaryService.update(
         id,
-        request.authContext.identityId,
+        request.authContext!.identityId,
         updates,
       );
 
@@ -267,18 +232,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
       const { id } = request.params as { id: string };
       const deleted = await fastify.diaryService.delete(
         id,
-        request.authContext.identityId,
+        request.authContext!.identityId,
       );
 
       if (!deleted) {
@@ -323,15 +280,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
+    async (request) => {
       const { query, visibility, limit, offset } = request.body as {
         query?: string;
         visibility?: ('private' | 'moltnet' | 'public')[];
@@ -340,7 +289,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       };
 
       const results = await fastify.diaryService.search({
-        ownerId: request.authContext.identityId,
+        ownerId: request.authContext!.identityId,
         query,
         visibility,
         limit,
@@ -371,22 +320,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
+    async (request) => {
       const { days, maxEntries } = request.query as {
         days?: number;
         maxEntries?: number;
       };
 
       const digest = await fastify.diaryService.reflect({
-        ownerId: request.authContext.identityId,
+        ownerId: request.authContext!.identityId,
         days,
         maxEntries,
       });
@@ -417,14 +358,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
       const { id } = request.params as { id: string };
       const { sharedWith } = request.body as { sharedWith: string };
 
@@ -440,7 +373,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const shared = await fastify.diaryService.share(
         id,
-        request.authContext.identityId,
+        request.authContext!.identityId,
         targetAgent.identityId,
       );
 
@@ -475,18 +408,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
+    async (request) => {
       const { limit } = request.query as { limit?: number };
       const entries = await fastify.diaryService.getSharedWithMe(
-        request.authContext.identityId,
+        request.authContext!.identityId,
         limit,
       );
 
@@ -519,14 +444,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      if (!requireAuthContext(request.authContext)) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
       const { id } = request.params as { id: string };
       const { visibility } = request.body as {
         visibility: 'private' | 'moltnet' | 'public';
@@ -534,7 +451,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const entry = await fastify.diaryService.update(
         id,
-        request.authContext.identityId,
+        request.authContext!.identityId,
         { visibility },
       );
 

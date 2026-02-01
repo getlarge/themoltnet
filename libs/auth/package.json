@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@ory/client": "catalog:",
+    "fast-jwt": "catalog:",
+    "get-jwks": "catalog:",
     "fastify-plugin": "catalog:"
   },
   "devDependencies": {

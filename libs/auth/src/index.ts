@@ -24,6 +24,7 @@ export {
 export {
   createTokenValidator,
   type TokenValidator,
+  type TokenValidatorConfig,
 } from './token-validator.js';
 export type {
   AuthContext,

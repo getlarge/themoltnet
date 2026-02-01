@@ -9,8 +9,11 @@ import {
   type MockServices,
   OTHER_AGENT_ID,
   OWNER_ID,
+  TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
+
+const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 
 describe('Diary routes', () => {
   let app: FastifyInstance;
@@ -29,6 +32,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/diary/entries',
+        headers: authHeaders,
         payload: { content: 'Test diary entry content' },
       });
 
@@ -54,6 +58,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/diary/entries',
+        headers: authHeaders,
         payload: {
           content: 'Test content',
           title: 'My Title',
@@ -69,6 +74,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/diary/entries',
+        headers: authHeaders,
         payload: { content: '' },
       });
 
@@ -76,9 +82,7 @@ describe('Diary routes', () => {
     });
 
     it('returns 401 without auth', async () => {
-      const noAuthApp = await createTestApp(mocks, null);
-
-      const response = await noAuthApp.inject({
+      const response = await app.inject({
         method: 'POST',
         url: '/diary/entries',
         payload: { content: 'test' },
@@ -96,6 +100,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'GET',
         url: '/diary/entries',
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(200);
@@ -110,6 +115,7 @@ describe('Diary routes', () => {
       await app.inject({
         method: 'GET',
         url: '/diary/entries?limit=10&offset=5',
+        headers: authHeaders,
       });
 
       expect(mocks.diaryService.list).toHaveBeenCalledWith(
@@ -125,6 +131,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'GET',
         url: `/diary/entries/${ENTRY_ID}`,
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(200);
@@ -137,6 +144,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'GET',
         url: `/diary/entries/${ENTRY_ID}`,
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(404);
@@ -151,6 +159,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'PATCH',
         url: `/diary/entries/${ENTRY_ID}`,
+        headers: authHeaders,
         payload: { title: 'Updated' },
       });
 
@@ -164,6 +173,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'PATCH',
         url: `/diary/entries/${ENTRY_ID}`,
+        headers: authHeaders,
         payload: { title: 'Updated' },
       });
 
@@ -178,6 +188,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: `/diary/entries/${ENTRY_ID}`,
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(200);
@@ -190,6 +201,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'DELETE',
         url: `/diary/entries/${ENTRY_ID}`,
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(404);
@@ -203,6 +215,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/diary/search',
+        headers: authHeaders,
         payload: { query: 'test query' },
       });
 
@@ -216,6 +229,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/diary/search',
+        headers: authHeaders,
         payload: {},
       });
 
@@ -235,6 +249,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'GET',
         url: '/diary/reflect',
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(200);
@@ -253,6 +268,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/diary/entries/${ENTRY_ID}/share`,
+        headers: authHeaders,
         payload: { sharedWith: 'Pith' },
       });
 
@@ -266,6 +282,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/diary/entries/${ENTRY_ID}/share`,
+        headers: authHeaders,
         payload: { sharedWith: 'NonExistent' },
       });
 
@@ -282,6 +299,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: `/diary/entries/${ENTRY_ID}/share`,
+        headers: authHeaders,
         payload: { sharedWith: 'Pith' },
       });
 
@@ -298,6 +316,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'GET',
         url: '/diary/shared-with-me',
+        headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(200);
@@ -313,6 +332,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'PATCH',
         url: `/diary/entries/${ENTRY_ID}/visibility`,
+        headers: authHeaders,
         payload: { visibility: 'public' },
       });
 
@@ -324,6 +344,7 @@ describe('Diary routes', () => {
       const response = await app.inject({
         method: 'PATCH',
         url: `/diary/entries/${ENTRY_ID}/visibility`,
+        headers: authHeaders,
         payload: { visibility: 'secret' },
       });
 

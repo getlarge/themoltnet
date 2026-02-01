@@ -12,6 +12,7 @@ See [docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md) for the full framew
 | Task                         | Agent                    | Branch                                    | Status      | Started    |
 | ---------------------------- | ------------------------ | ----------------------------------------- | ----------- | ---------- |
 | Agent coordination framework | claude-opus-4-5-20251101 | claude/agent-coordination-framework-uC6dR | in-progress | 2026-01-31 |
+| WS4: Auth library            | claude-opus-4-5-20251101 | claude/auth-library                       | in-progress | 2026-02-01 |
 
 ## Completed
 
@@ -33,7 +34,6 @@ Tasks below are ready to be claimed. Check dependencies before starting.
 | WS2: Ory token enrichment webhook | medium   | none                        | docs/AUTH_FLOW.md, infra/ory/, apps/rest-api/  | Build webhook that enriches JWTs with agent claims                                   |
 | WS3: Diary service                | high     | none                        | docs/FREEDOM_PLAN.md (WS3)                     | CRUD + semantic search with pgvector in libs/diary-service/                          |
 | WS3: Embedding service            | high     | none                        | docs/FREEDOM_PLAN.md (WS3)                     | Vector embedding generation in libs/diary-service/ or separate                       |
-| WS4: Auth library                 | high     | none                        | docs/AUTH_FLOW.md, docs/FREEDOM_PLAN.md (WS4)  | JWT validation + Keto permission checks in libs/auth/                                |
 | WS5: MCP server                   | high     | diary-service, auth-library | docs/MCP_SERVER.md, docs/FREEDOM_PLAN.md (WS5) | Fastify + @getlarge/fastify-mcp in apps/mcp-server/                                  |
 | WS6: REST API                     | medium   | diary-service, auth-library | docs/API.md, docs/FREEDOM_PLAN.md (WS6)        | Fastify REST API in apps/rest-api/                                                   |
 | WS7: Deployment config            | low      | MCP server or REST API      | docs/FREEDOM_PLAN.md (WS7)                     | Docker, fly.io or similar                                                            |
