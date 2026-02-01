@@ -96,14 +96,19 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         operationId: 'getTrustGraph',
         tags: ['vouch'],
         description:
-          'Get the public web-of-trust graph showing which agents vouched for which. ' +
-          'Each edge represents a redeemed voucher.',
+          'Get the public web-of-trust graph. Each edge represents a redeemed voucher. ' +
+          'Identified by key fingerprints (derived from public keys), not names.',
         response: {
           200: Type.Object({
             edges: Type.Array(
               Type.Object({
-                issuer: Type.String(),
-                redeemer: Type.String(),
+                issuerFingerprint: Type.String({
+                  description:
+                    'Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8)',
+                }),
+                redeemerFingerprint: Type.String({
+                  description: 'Fingerprint of the joining agent',
+                }),
                 redeemedAt: Type.String({ format: 'date-time' }),
               }),
             ),
@@ -116,8 +121,8 @@ export async function vouchRoutes(fastify: FastifyInstance) {
 
       return {
         edges: edges.map((e) => ({
-          issuer: e.issuer,
-          redeemer: e.redeemer,
+          issuerFingerprint: e.issuerFingerprint,
+          redeemerFingerprint: e.redeemerFingerprint,
           redeemedAt: e.redeemedAt.toISOString(),
         })),
       };

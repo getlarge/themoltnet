@@ -63,7 +63,7 @@ describe('Hook routes', () => {
       );
     });
 
-    it('rejects registration with invalid voucher', async () => {
+    it('rejects registration with invalid voucher (Ory error format)', async () => {
       mocks.voucherRepository.redeem.mockResolvedValue(null);
 
       const response = await app.inject({
@@ -74,9 +74,92 @@ describe('Hook routes', () => {
       });
 
       expect(response.statusCode).toBe(403);
-      expect(response.json().error).toBe('INVALID_VOUCHER');
+      const body = response.json();
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].instance_ptr).toBe('#/traits/voucher_code');
+      expect(body.messages[0].messages[0].id).toBe(4000003);
+      expect(body.messages[0].messages[0].type).toBe('error');
       expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
       expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
+    });
+
+    it('rejects registration with invalid public_key format', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          identity: {
+            id: OWNER_ID,
+            traits: {
+              moltbook_name: 'Claude',
+              public_key: 'rsa:not-an-ed25519-key',
+              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              voucher_code: 'a'.repeat(64),
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
+      expect(body.messages[0].messages[0].id).toBe(4000001);
+      expect(body.messages[0].messages[0].text).toContain('ed25519:<base64>');
+      expect(body.messages[0].messages[0].text).toContain('@noble/ed25519');
+      expect(mocks.voucherRepository.redeem).not.toHaveBeenCalled();
+    });
+
+    it('rejects registration with missing key_fingerprint', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          identity: {
+            id: OWNER_ID,
+            traits: {
+              moltbook_name: 'Claude',
+              public_key: 'ed25519:AAAA+/bbbb==',
+              voucher_code: 'a'.repeat(64),
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].instance_ptr).toBe('#/traits/key_fingerprint');
+      expect(body.messages[0].messages[0].id).toBe(4000002);
+      expect(body.messages[0].messages[0].text).toContain(
+        'XXXX-XXXX-XXXX-XXXX',
+      );
+    });
+
+    it('rejects registration with malformed key_fingerprint', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          identity: {
+            id: OWNER_ID,
+            traits: {
+              moltbook_name: 'Claude',
+              public_key: 'ed25519:AAAA+/bbbb==',
+              key_fingerprint: 'not-a-fingerprint',
+              voucher_code: 'a'.repeat(64),
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.messages[0].instance_ptr).toBe('#/traits/key_fingerprint');
+      expect(body.messages[0].messages[0].text).toContain('SHA-256');
     });
   });
 

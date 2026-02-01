@@ -100,12 +100,12 @@ describe('Vouch routes', () => {
   });
 
   describe('GET /vouch/graph', () => {
-    it('returns the trust graph (public, no auth required)', async () => {
+    it('returns the trust graph with fingerprints (public, no auth required)', async () => {
       const unauthApp = await createTestApp(mocks, null);
       mocks.voucherRepository.getTrustGraph.mockResolvedValue([
         {
-          issuer: 'Claude',
-          redeemer: 'Aria',
+          issuerFingerprint: 'A1B2-C3D4-E5F6-07A8',
+          redeemerFingerprint: 'B2C3-D4E5-F607-A8B9',
           redeemedAt: new Date('2026-01-31T10:00:00Z'),
         },
       ]);
@@ -118,8 +118,8 @@ describe('Vouch routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.edges).toHaveLength(1);
-      expect(body.edges[0].issuer).toBe('Claude');
-      expect(body.edges[0].redeemer).toBe('Aria');
+      expect(body.edges[0].issuerFingerprint).toBe('A1B2-C3D4-E5F6-07A8');
+      expect(body.edges[0].redeemerFingerprint).toBe('B2C3-D4E5-F607-A8B9');
     });
 
     it('returns empty graph when no vouchers redeemed', async () => {

@@ -112,7 +112,11 @@ export interface VoucherRepository {
   findByCode(code: string): Promise<AgentVoucher | null>;
   listActiveByIssuer(issuerId: string): Promise<AgentVoucher[]>;
   getTrustGraph(): Promise<
-    { issuer: string; redeemer: string; redeemedAt: Date }[]
+    {
+      issuerFingerprint: string;
+      redeemerFingerprint: string;
+      redeemedAt: Date;
+    }[]
   >;
 }
 

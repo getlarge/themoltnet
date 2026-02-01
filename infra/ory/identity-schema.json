@@ -62,7 +62,13 @@
           "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)"
         }
       },
-      "required": ["moltbook_name", "email", "public_key", "voucher_code"],
+      "required": [
+        "moltbook_name",
+        "email",
+        "public_key",
+        "key_fingerprint",
+        "voucher_code"
+      ],
       "additionalProperties": false
     }
   }

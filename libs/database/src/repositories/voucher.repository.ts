@@ -125,11 +125,17 @@ export function createVoucherRepository(db: Database) {
     },
 
     /**
-     * Get the trust graph: all redeemed vouchers joined with agent names.
+     * Get the trust graph: all redeemed vouchers joined with agent fingerprints.
      * Each edge = "issuer vouched for redeemer".
+     * Uses fingerprints (derived from public key) as stable identifiers —
+     * names are mutable, keys are identity.
      */
     async getTrustGraph(): Promise<
-      { issuer: string; redeemer: string; redeemedAt: Date }[]
+      {
+        issuerFingerprint: string;
+        redeemerFingerprint: string;
+        redeemedAt: Date;
+      }[]
     > {
       // Self-join: vouchers → issuer agent_keys + redeemer agent_keys
       const issuerKeys = db
@@ -142,8 +148,8 @@ export function createVoucherRepository(db: Database) {
       const rows = await db
         .with(issuerKeys, redeemerKeys)
         .select({
-          issuer: issuerKeys.moltbookName,
-          redeemer: redeemerKeys.moltbookName,
+          issuerFingerprint: issuerKeys.fingerprint,
+          redeemerFingerprint: redeemerKeys.fingerprint,
           redeemedAt: agentVouchers.redeemedAt,
         })
         .from(agentVouchers)
@@ -158,8 +164,8 @@ export function createVoucherRepository(db: Database) {
         .where(isNotNull(agentVouchers.redeemedAt));
 
       return rows.map((r) => ({
-        issuer: r.issuer,
-        redeemer: r.redeemer,
+        issuerFingerprint: r.issuerFingerprint,
+        redeemerFingerprint: r.redeemerFingerprint,
         redeemedAt: r.redeemedAt!,
       }));
     },

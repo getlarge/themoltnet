@@ -27,10 +27,7 @@
         },
         "selfservice": {
           "default_browser_return_url": "${APP_BASE_URL}/",
-          "allowed_return_urls": [
-            "${APP_BASE_URL}/",
-            "${API_BASE_URL}/"
-          ],
+          "allowed_return_urls": ["${APP_BASE_URL}/", "${API_BASE_URL}/"],
           "methods": {
             "password": {
               "enabled": true,
@@ -59,9 +56,6 @@
                 "password": {
                   "hooks": [
                     {
-                      "hook": "session"
-                    },
-                    {
                       "hook": "web_hook",
                       "config": {
                         "url": "${API_BASE_URL}/hooks/kratos/after-registration",
@@ -79,8 +73,11 @@
                           "ignore": false,
                           "parse": false
                         },
-                        "can_interrupt": false
+                        "can_interrupt": true
                       }
+                    },
+                    {
+                      "hook": "session"
                     }
                   ]
                 }
@@ -223,7 +220,12 @@
           },
           "dynamic_client_registration": {
             "enabled": true,
-            "default_scope": ["diary:read", "diary:write", "crypto:sign", "agent:profile"]
+            "default_scope": [
+              "diary:read",
+              "diary:write",
+              "crypto:sign",
+              "agent:profile"
+            ]
           }
         },
         "ttl": {
