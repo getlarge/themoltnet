@@ -19,6 +19,7 @@
   "dependencies": {},
   "devDependencies": {
     "@moltnet/database": "workspace:*",
+    "@moltnet/embedding-service": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

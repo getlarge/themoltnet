@@ -2,11 +2,15 @@
  * DiaryService Integration Tests
  *
  * Tests the diary service layer wired with a real DiaryRepository
- * against PostgreSQL + pgvector. Uses a noop embedding service and
- * a stub permission checker.
+ * against PostgreSQL + pgvector.
+ *
+ * Without EMBEDDING_MODEL: uses noop embedding service (text search only).
+ * With EMBEDDING_MODEL=true: uses @moltnet/embedding-service for real
+ * vector embeddings and hybrid search testing.
  *
  * Start the test database: docker compose --profile dev up -d app-db
  * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/diary-service test
+ * Run with embeddings: DATABASE_URL=... EMBEDDING_MODEL=true pnpm --filter @moltnet/diary-service test
  */
 
 import {
@@ -21,7 +25,15 @@ import {
 
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import { createNoopEmbeddingService } from '../src/embedding-service.js';
-import type { PermissionChecker } from '../src/types.js';
+import type { EmbeddingService, PermissionChecker } from '../src/types.js';
+
+async function loadEmbeddingService(): Promise<EmbeddingService> {
+  if (process.env.EMBEDDING_MODEL !== 'true') {
+    return createNoopEmbeddingService();
+  }
+  const { createEmbeddingService } = await import('@moltnet/embedding-service');
+  return createEmbeddingService();
+}
 
 // Dynamic import so the test file doesn't fail to parse when
 // @moltnet/database is not resolvable (shouldn't happen in this
@@ -66,10 +78,12 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       canShareEntry: vi.fn().mockResolvedValue(true),
     };
 
+    const embeddingService = await loadEmbeddingService();
+
     service = createDiaryService({
       diaryRepository: setup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
-      embeddingService: createNoopEmbeddingService(),
+      embeddingService,
     });
   });
 
@@ -117,14 +131,27 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       expect(entry.tags).toEqual(['crypto', 'learning']);
     });
 
-    it('creates entry without embedding (noop service returns empty)', async () => {
+    it('creates entry without embedding when noop service is used', async () => {
+      if (process.env.EMBEDDING_MODEL === 'true') return;
+
       const entry = await service.create({
         ownerId: OWNER_ID,
         content: 'No embedding here.',
       });
 
-      // Noop embedding service returns [], so embedding is undefined/null
       expect(entry.embedding).toBeNull();
+    });
+
+    it('creates entry with embedding when real service is used', async () => {
+      if (process.env.EMBEDDING_MODEL !== 'true') return;
+
+      const entry = await service.create({
+        ownerId: OWNER_ID,
+        content: 'Ed25519 cryptographic identity for autonomous agents.',
+      });
+
+      expect(entry.embedding).not.toBeNull();
+      expect(entry.embedding).toHaveLength(384);
     });
   });
 
@@ -198,6 +225,28 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       const results = await service.search({ ownerId: OWNER_ID });
       expect(results.length).toBe(2);
     });
+
+    it('finds semantically similar entries via hybrid search', async () => {
+      if (process.env.EMBEDDING_MODEL !== 'true') return;
+
+      await service.create({
+        ownerId: OWNER_ID,
+        content:
+          'Ed25519 is an elliptic curve digital signature algorithm used for cryptographic identity verification.',
+      });
+      await service.create({
+        ownerId: OWNER_ID,
+        content: 'I had pasta with tomato sauce for dinner last night.',
+      });
+
+      const results = await service.search({
+        ownerId: OWNER_ID,
+        query: 'public key cryptography and digital signatures',
+      });
+
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results[0].content).toContain('Ed25519');
+    });
   });
 
   // ── Update ──────────────────────────────────────────────────────────
@@ -244,9 +293,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
       const deleted = await service.delete(created.id, OWNER_ID);
       expect(deleted).toBe(true);
-      expect(permissions.removeEntryRelations).toHaveBeenCalledWith(
-        created.id,
-      );
+      expect(permissions.removeEntryRelations).toHaveBeenCalledWith(created.id);
 
       const found = await service.getById(created.id, OWNER_ID);
       expect(found).toBeNull();
