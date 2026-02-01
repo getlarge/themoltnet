@@ -48,3 +48,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-01 | handoff    | [@moltnet/embedding-service](2026-02-01-01-embedding-service.md)                              |
 | 2026-02-01 | handoff    | [Auth Library — Dual Token Validation](2026-02-01-01-auth-library-jwks-support.md)            |
 | 2026-02-01 | handoff    | [State Audit & Task Realignment](2026-02-01-02-state-audit-realignment.md)                    |
+| 2026-02-01 | progress   | [Token Enrichment Webhook](2026-02-01-19-token-enrichment-webhook.md)                         |
