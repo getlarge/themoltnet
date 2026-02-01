@@ -76,7 +76,7 @@ export async function hookRoutes(
         fingerprint: identity.traits.key_fingerprint,
       });
 
-      await fastify.moltnetPermissions.registerAgent(identity.id);
+      await fastify.permissionChecker.registerAgent(identity.id);
 
       return reply.status(200).send({ success: true });
     },

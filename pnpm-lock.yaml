@@ -265,6 +265,9 @@ importers:
       '@fastify/swagger':
         specifier: 'catalog:'
         version: 9.6.1
+      '@moltnet/auth':
+        specifier: workspace:*
+        version: link:../../libs/auth
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.32.35

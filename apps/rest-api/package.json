@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@fastify/swagger": "catalog:",
+    "@moltnet/auth": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "fastify": "catalog:"
   },
