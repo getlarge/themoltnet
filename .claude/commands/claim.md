@@ -1,6 +1,12 @@
 Claim a task from TASKS.md. The user will specify which task to claim as: $ARGUMENTS
 
-Do the following:
+**IMPORTANT**: This command only works on the **host**, not in Docker sandboxes (git operations required).
+
+If you're in a sandbox, tell the user: "I'm running in a sandbox. Please claim the task from the host using `/claim <task-name>`, then I can start work."
+
+**Detecting sandbox environment**: Check if `/home/agent/workspace` exists and `.git` is not a directory — that indicates a sandbox environment.
+
+If you're on the host, do the following:
 
 1. Read `TASKS.md` from the repo root
 2. Find the specified task in the "Available" section
@@ -17,6 +23,6 @@ Do the following:
 
 If the push fails because another agent claimed the same task:
 
-1. Pull the latest TASKS.md
+1. Pull the latest TASKS.md: `git pull --rebase`
 2. Check if your task is still available
 3. If not, pick a different available task and ask the user
