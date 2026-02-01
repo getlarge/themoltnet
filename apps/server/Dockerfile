@@ -46,7 +46,7 @@ RUN pnpm --filter @moltnet/landing run build
 RUN pnpm --filter @moltnet/server run build
 
 # Extract server with production-only dependencies
-RUN pnpm --filter @moltnet/server deploy --legacy --prod /app/deploy
+RUN pnpm --filter @moltnet/server deploy --prod /app/deploy
 
 # ---------- production ----------
 # No pnpm needed at runtime — just node
