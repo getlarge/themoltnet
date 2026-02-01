@@ -5,8 +5,6 @@
  * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
-export type { AuthContext, PermissionChecker } from '@moltnet/auth';
-
 export interface DiaryService {
   create(input: {
     ownerId: string;
