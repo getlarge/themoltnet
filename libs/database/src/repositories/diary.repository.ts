@@ -4,7 +4,7 @@
  * Database operations for diary entries
  */
 
-import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -28,6 +28,20 @@ export interface DiaryListOptions {
   visibility?: ('private' | 'moltnet' | 'public')[];
   limit?: number;
   offset?: number;
+}
+
+function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
+  return {
+    id: row.id as string,
+    ownerId: row.owner_id as string,
+    title: (row.title as string) ?? null,
+    content: row.content as string,
+    embedding: null, // hybrid_search omits embedding for performance
+    visibility: row.visibility as DiaryEntry['visibility'],
+    tags: (row.tags as string[]) ?? null,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
+  };
 }
 
 export function createDiaryRepository(db: Database) {
@@ -108,39 +122,45 @@ export function createDiaryRepository(db: Database) {
     },
 
     /**
-     * Hybrid search: combines vector similarity and full-text search
+     * Hybrid search: combines vector similarity and full-text search.
+     *
+     * When both query and embedding are provided, delegates to the
+     * `hybrid_search()` SQL function which uses weighted RRF scoring
+     * (70% vector + 30% FTS by default).
      */
     async search(options: DiarySearchOptions): Promise<DiaryEntry[]> {
-      const { ownerId, query, embedding, limit = 10 } = options;
+      const { ownerId, query, embedding, visibility, limit = 10, offset = 0 } =
+        options;
 
+      // Both query and embedding → use hybrid_search() SQL function
+      if (query && embedding && embedding.length === 384) {
+        const vectorString = `[${embedding.join(',')}]`;
+        const rows = await db.execute(
+          sql`SELECT * FROM hybrid_search(
+                ${ownerId}::uuid,
+                ${query},
+                ${vectorString}::vector,
+                ${limit}
+              )`,
+        );
+        return (rows as unknown as Record<string, unknown>[]).map(
+          mapRowToDiaryEntry,
+        );
+      }
+
+      // Embedding only → vector similarity search
       if (embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
-
-        if (query) {
-          return db
-            .select()
-            .from(diaryEntries)
-            .where(
-              and(
-                eq(diaryEntries.ownerId, ownerId),
-                or(
-                  sql`${diaryEntries.embedding} <-> ${vectorString}::vector < 0.5`,
-                  sql`to_tsvector('english', ${diaryEntries.content}) @@ plainto_tsquery('english', ${query})`,
-                ),
-              ),
-            )
-            .orderBy(sql`${diaryEntries.embedding} <-> ${vectorString}::vector`)
-            .limit(limit);
-        }
-
         return db
           .select()
           .from(diaryEntries)
           .where(eq(diaryEntries.ownerId, ownerId))
           .orderBy(sql`${diaryEntries.embedding} <-> ${vectorString}::vector`)
-          .limit(limit);
+          .limit(limit)
+          .offset(offset);
       }
 
+      // Query only → full-text search
       if (query) {
         return db
           .select()
@@ -152,10 +172,12 @@ export function createDiaryRepository(db: Database) {
             ),
           )
           .orderBy(desc(diaryEntries.createdAt))
-          .limit(limit);
+          .limit(limit)
+          .offset(offset);
       }
 
-      return this.list({ ownerId, limit });
+      // No query/embedding → fall back to list
+      return this.list({ ownerId, visibility, limit, offset });
     },
 
     /**
