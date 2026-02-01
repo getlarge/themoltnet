@@ -9,8 +9,8 @@
  */
 
 import type { OAuth2Api } from '@ory/client';
-import { createVerifier } from 'fast-jwt';
 import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
+import { createVerifier } from 'fast-jwt';
 import buildGetJwks from 'get-jwks';
 
 import type { AuthContext, IntrospectionResult } from './types.js';
@@ -118,9 +118,8 @@ export function createTokenValidator(
 ): TokenValidator {
   const jwksUri = config?.jwksUri;
 
-  let verifyJwt:
-    | ((token: string) => Promise<Record<string, unknown>>)
-    | null = null;
+  let verifyJwt: ((token: string) => Promise<Record<string, unknown>>) | null =
+    null;
 
   if (jwksUri) {
     const url = new URL(jwksUri);
@@ -154,9 +153,7 @@ export function createTokenValidator(
         return { active: false };
       }
 
-      const scopes = data.scope
-        ? data.scope.split(' ').filter(Boolean)
-        : [];
+      const scopes = data.scope ? data.scope.split(' ').filter(Boolean) : [];
 
       return {
         active: true,
@@ -170,9 +167,7 @@ export function createTokenValidator(
     }
   }
 
-  async function validateJwt(
-    token: string,
-  ): Promise<IntrospectionResult> {
+  async function validateJwt(token: string): Promise<IntrospectionResult> {
     if (!verifyJwt) {
       return { active: false };
     }
@@ -183,9 +178,12 @@ export function createTokenValidator(
       const clientId =
         (payload.client_id as string) ?? (payload.sub as string) ?? '';
       const scope = (payload.scope ?? payload.scp ?? '') as string;
-      const scopes = typeof scope === 'string'
-        ? scope.split(' ').filter(Boolean)
-        : Array.isArray(scope) ? scope : [];
+      const scopes =
+        typeof scope === 'string'
+          ? scope.split(' ').filter(Boolean)
+          : Array.isArray(scope)
+            ? scope
+            : [];
 
       return {
         active: true,

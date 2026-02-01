@@ -41,7 +41,7 @@ const EXPECTED_AUTH_CONTEXT = {
 };
 
 // Generate a test RSA keypair for JWT signing
-const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+const { privateKey } = crypto.generateKeyPairSync('rsa', {
   modulusLength: 2048,
 });
 
@@ -66,9 +66,7 @@ function createTestJwt(
   };
 
   const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64url');
-  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString(
-    'base64url',
-  );
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = crypto.sign(
     'sha256',
     Buffer.from(`${headerB64}.${payloadB64}`),
@@ -84,7 +82,6 @@ describe('TokenValidator', () => {
 
     beforeEach(() => {
       mockOAuth2Api = createMockOAuth2Api();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
       validator = createTokenValidator(mockOAuth2Api as any);
     });
 
@@ -344,7 +341,6 @@ describe('TokenValidator', () => {
 
     beforeEach(() => {
       mockOAuth2Api = createMockOAuth2Api();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
       validator = createTokenValidator(mockOAuth2Api as any);
     });
 
@@ -389,8 +385,7 @@ describe('TokenValidator', () => {
         data: { active: false },
       });
 
-      const result =
-        await validator.resolveAuthContext('random_unknown_token');
+      const result = await validator.resolveAuthContext('random_unknown_token');
 
       expect(result).toBeNull();
       expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalled();
@@ -405,7 +400,6 @@ describe('TokenValidator', () => {
     });
 
     it('still uses introspection for opaque tokens when JWKS is configured', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
       const validator = createTokenValidator(mockOAuth2Api as any, {
         jwksUri: 'https://auth.example.com/.well-known/jwks.json',
       });
@@ -429,7 +423,6 @@ describe('TokenValidator', () => {
     });
 
     it('falls back to introspection when JWT validation fails', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
       const validator = createTokenValidator(mockOAuth2Api as any, {
         jwksUri: 'https://auth.example.com/.well-known/jwks.json',
       });
@@ -455,7 +448,6 @@ describe('TokenValidator', () => {
     });
 
     it('returns null when both JWT validation and introspection fail', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
       const validator = createTokenValidator(mockOAuth2Api as any, {
         jwksUri: 'https://auth.example.com/.well-known/jwks.json',
       });
@@ -473,7 +465,6 @@ describe('TokenValidator', () => {
 
     it('accepts custom algorithms configuration', () => {
       // Should not throw
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
       const validator = createTokenValidator(mockOAuth2Api as any, {
         jwksUri: 'https://auth.example.com/.well-known/jwks.json',
         algorithms: ['RS256', 'ES256'],
