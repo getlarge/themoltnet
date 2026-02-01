@@ -27,32 +27,6 @@ type FeatureExtractionPipeline = (
   options?: { pooling: string; normalize: boolean },
 ) => Promise<{ tolist(): number[][] }>;
 
-let pipelinePromise: Promise<FeatureExtractionPipeline> | null = null;
-
-function getOrCreatePipeline(
-  modelId: string,
-  quantization: string,
-  cacheDir: string | undefined,
-  logger: EmbeddingLogger,
-): Promise<FeatureExtractionPipeline> {
-  if (!pipelinePromise) {
-    logger.info(
-      { modelId, quantization },
-      'Loading embedding model (first call)',
-    );
-    pipelinePromise = loadPipeline(
-      modelId,
-      quantization,
-      cacheDir,
-      logger,
-    ).catch((err) => {
-      pipelinePromise = null;
-      throw err;
-    });
-  }
-  return pipelinePromise;
-}
-
 async function loadPipeline(
   modelId: string,
   quantization: string,
@@ -96,13 +70,29 @@ export function createEmbeddingService(
   const cacheDir = options?.cacheDir;
   const logger = options?.logger ?? noopLogger;
 
+  let pipelinePromise: Promise<FeatureExtractionPipeline> | null = null;
+
+  function getOrCreatePipeline(): Promise<FeatureExtractionPipeline> {
+    if (!pipelinePromise) {
+      logger.info(
+        { modelId, quantization },
+        'Loading embedding model (first call)',
+      );
+      pipelinePromise = loadPipeline(
+        modelId,
+        quantization,
+        cacheDir,
+        logger,
+      ).catch((err) => {
+        pipelinePromise = null;
+        throw err;
+      });
+    }
+    return pipelinePromise;
+  }
+
   async function embed(text: string): Promise<number[]> {
-    const extractor = await getOrCreatePipeline(
-      modelId,
-      quantization,
-      cacheDir,
-      logger,
-    );
+    const extractor = await getOrCreatePipeline();
     const output = await extractor([text], {
       pooling: 'mean',
       normalize: false,
@@ -128,11 +118,4 @@ export function createEmbeddingService(
       return embed(`query: ${text}`);
     },
   };
-}
-
-/**
- * Reset the cached pipeline — used for testing only.
- */
-export function resetPipeline(): void {
-  pipelinePromise = null;
 }

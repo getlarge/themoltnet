@@ -15,10 +15,7 @@ vi.mock('@huggingface/transformers', () => ({
 }));
 
 // Import after mock setup
-import {
-  createEmbeddingService,
-  resetPipeline,
-} from '../src/embedding-service.js';
+import { createEmbeddingService } from '../src/embedding-service.js';
 
 function createMockLogger(): {
   [K in keyof EmbeddingLogger]: ReturnType<typeof vi.fn>;
@@ -38,7 +35,6 @@ function makeRawVector(length: number, fill = 0.5): number[] {
 describe('createEmbeddingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resetPipeline();
     mockEnv.allowLocalModels = false;
     mockEnv.cacheDir = '';
   });
@@ -171,12 +167,10 @@ describe('createEmbeddingService', () => {
       // Arrange
       const transformers = await import('@huggingface/transformers');
       const pipelineSpy = vi.spyOn(transformers, 'pipeline');
-
       (pipelineSpy as any).mockRejectedValueOnce(new Error('network timeout'));
 
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-
       (pipelineSpy as any).mockResolvedValueOnce(mockExtractor);
 
       const service = createEmbeddingService();
@@ -192,6 +186,31 @@ describe('createEmbeddingService', () => {
       // Assert
       expect(pipelineSpy).toHaveBeenCalledTimes(2);
       expect(result).toHaveLength(384);
+    });
+  });
+
+  describe('instance isolation', () => {
+    it('uses separate pipelines for services with different configs', async () => {
+      // Arrange
+      const { pipeline } = await import('@huggingface/transformers');
+      const raw = makeRawVector(384);
+      mockExtractor.mockResolvedValue({ tolist: () => [raw] });
+
+      const serviceA = createEmbeddingService({ modelId: 'model-a' });
+      const serviceB = createEmbeddingService({ modelId: 'model-b' });
+
+      // Act
+      await serviceA.embedPassage('text');
+      await serviceB.embedPassage('text');
+
+      // Assert — pipeline called twice, once per instance
+      expect(pipeline).toHaveBeenCalledTimes(2);
+      expect(pipeline).toHaveBeenCalledWith('feature-extraction', 'model-a', {
+        dtype: 'q8',
+      });
+      expect(pipeline).toHaveBeenCalledWith('feature-extraction', 'model-b', {
+        dtype: 'q8',
+      });
     });
   });
 

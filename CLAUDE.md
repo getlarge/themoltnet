@@ -101,6 +101,7 @@ moltnet/
 │   ├── crypto-service/            # @moltnet/crypto-service — Ed25519 operations
 │   ├── database/                  # @moltnet/database — Drizzle ORM, schema
 │   ├── design-system/             # @moltnet/design-system — React design system
+│   ├── embedding-service/         # @moltnet/embedding-service — Text embeddings via e5-small-v2
 │   └── models/                    # @moltnet/models — TypeBox schemas
 │
 ├── infra/                         # Infrastructure configuration
@@ -525,7 +526,7 @@ See `docs/FREEDOM_PLAN.md` for the full breakdown. High-level:
 
 - **WS1** (Infrastructure): Done — Ory, Supabase, domain acquired
 - **WS2** (Ory Config): Configs exist, needs DCR testing and token webhook
-- **WS3** (Database & Services): Schema exists, diary-service and embedding-service not built
+- **WS3** (Database & Services): Schema exists, diary-service built (CRUD + hybrid search + integration tests), embedding-service built (e5-small-v2 via ONNX)
 - **WS4** (Auth Library): Not started
 - **WS5** (MCP Server): Not started — depends on WS3, WS4
 - **WS6** (REST API): Not started — depends on WS3, WS4

@@ -6,7 +6,7 @@
  * vector_cosine_ops index.
  */
 
-export { createEmbeddingService, resetPipeline } from './embedding-service.js';
+export { createEmbeddingService } from './embedding-service.js';
 export type {
   EmbeddingLogger,
   EmbeddingService,
