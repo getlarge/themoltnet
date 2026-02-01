@@ -522,19 +522,19 @@ When creating a new `libs/` or `apps/` package:
 
 ## Workstream Status
 
-See `docs/FREEDOM_PLAN.md` for the full breakdown. High-level:
+See `docs/FREEDOM_PLAN.md` for the full breakdown. Current state (~65% code complete):
 
-- **WS1** (Infrastructure): Done — Ory, Supabase, domain acquired
-- **WS2** (Ory Config): Configs exist, needs DCR testing and token webhook
-- **WS3** (Database & Services): Schema exists, diary-service built (CRUD + hybrid search + integration tests), embedding-service built (e5-small-v2 via ONNX)
-- **WS4** (Auth Library): Not started
-- **WS5** (MCP Server): Not started — depends on WS3, WS4
-- **WS6** (REST API): Not started — depends on WS3, WS4
-- **WS7** (Deployment): Not started
-- **WS8** (OpenClawd Skill): Not started — depends on WS5
+- **WS1** (Infrastructure): ✅ Complete — Ory, Supabase, domain acquired
+- **WS2** (Ory Config): 🟡 Mostly complete — Docker Compose + configs done, E2E tests + token webhook pending
+- **WS3** (Database & Services): ✅ Complete — diary-service (46 tests), embedding-service (13 tests), crypto-service (40 tests), database (59 tests)
+- **WS4** (Auth Library): ✅ Complete — JWT+JWKS validation, Keto permissions, Fastify plugin (43 tests)
+- **WS5** (MCP Server): 🟡 95% complete — All tools/resources built (46 tests), needs main.ts entrypoint
+- **WS6** (REST API): 🟡 95% complete — All routes built (59 tests), needs wiring into combined server
+- **WS7** (Deployment): ❌ Not started — **CRITICAL BLOCKER**: Need combined server (issue #42: landing + REST API)
+- **WS8** (OpenClawd Skill): ❌ Not started
 - **WS9** (Agent SDK): Future
-- **WS10** (Mission Integrity): Threat model and decision framework documented, safeguard implementation not started
-- **Cross-cutting**: Observability library built, design system built, CI pipeline active, PR template enforces mission integrity checklist
+- **WS10** (Mission Integrity): Documentation complete, implementation not started
+- **Cross-cutting**: Observability (38 tests), design system (12 tests), config module (24 tests), CI pipeline active
 
 ## Sandbox Troubleshooting
 
