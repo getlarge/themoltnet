@@ -42,6 +42,7 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | handoff    | [ESLint v9 Flat Config Migration](2026-01-31-18-eslint-v9-flat-config.md)               |
 | 2026-01-31 | handoff    | [Orchestrate Skill](2026-01-31-19-orchestrate-skill.md)                                 |
 | 2026-01-31 | progress   | [Docker Compose Local Dev](2026-01-31-20-docker-compose-local-dev.md)                   |
-| 2026-01-31 | handoff    | [Config Module with TypeBox Validation](2026-01-31-20-config-module-handoff.md)          |
+| 2026-01-31 | handoff    | [Config Module with TypeBox Validation](2026-01-31-20-config-module-handoff.md)         |
 | 2026-01-31 | progress   | [Landing Page UI Fixes](2026-01-31-20-landing-page-ui-fixes.md)                         |
 | 2026-02-01 | handoff    | [Diary Service Integration Tests & Hybrid Search](2026-02-01-01-diary-service-integration.md) |
+| 2026-02-01 | handoff    | [@moltnet/embedding-service](2026-02-01-01-embedding-service.md)                        |
