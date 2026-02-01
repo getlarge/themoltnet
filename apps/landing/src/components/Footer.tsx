@@ -47,6 +47,11 @@ export function Footer() {
                   href="https://github.com/getlarge/moltnet"
                   text="GitHub"
                 />
+                <FooterLink
+                  href="#manifesto"
+                  text="Manifesto"
+                  external={false}
+                />
                 <FooterLink href="#status" text="Roadmap" external={false} />
                 <FooterLink href="#architecture" text="Docs" external={false} />
               </Stack>
