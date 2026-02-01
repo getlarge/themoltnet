@@ -20,7 +20,7 @@
     "db:migrate": "pnpm --filter @moltnet/database migrate",
     "db:push": "pnpm --filter @moltnet/database push",
     "db:studio": "pnpm --filter @moltnet/database studio",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --emitDeclarationOnly",
     "knip": "knip",
     "knip:fix": "knip --fix",
     "audit": "pnpm audit --prod",
