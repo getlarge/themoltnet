@@ -40,7 +40,15 @@ function getOrCreatePipeline(
       { modelId, quantization },
       'Loading embedding model (first call)',
     );
-    pipelinePromise = loadPipeline(modelId, quantization, cacheDir, logger);
+    pipelinePromise = loadPipeline(
+      modelId,
+      quantization,
+      cacheDir,
+      logger,
+    ).catch((err) => {
+      pipelinePromise = null;
+      throw err;
+    });
   }
   return pipelinePromise;
 }

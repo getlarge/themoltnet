@@ -166,6 +166,33 @@ describe('createEmbeddingService', () => {
     });
   });
 
+  describe('pipeline loading failure recovery', () => {
+    it('retries loading after a transient failure', async () => {
+      // Arrange
+      const { pipeline } = await import('@huggingface/transformers');
+      const pipelineMock = vi.mocked(pipeline);
+      pipelineMock.mockRejectedValueOnce(new Error('network timeout'));
+
+      const raw = makeRawVector(384);
+      mockExtractor.mockResolvedValue({ tolist: () => [raw] });
+      pipelineMock.mockResolvedValueOnce(mockExtractor);
+
+      const service = createEmbeddingService();
+
+      // Act — first call fails
+      await expect(service.embedPassage('first')).rejects.toThrow(
+        'network timeout',
+      );
+
+      // Act — second call retries and succeeds
+      const result = await service.embedPassage('second');
+
+      // Assert
+      expect(pipelineMock).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(384);
+    });
+  });
+
   describe('dimension mismatch', () => {
     it('logs a warning but still returns the result', async () => {
       // Arrange
