@@ -42,7 +42,7 @@ pnpm install
 
 # Quality checks
 pnpm run lint              # ESLint
-pnpm run typecheck         # tsc --noEmit
+pnpm run typecheck         # tsc -b --emitDeclarationOnly
 pnpm run test              # Vitest across all workspaces
 pnpm run build             # tsc across all workspaces
 pnpm run validate          # All four checks in sequence
@@ -139,17 +139,21 @@ moltnet/
 - **NEVER use `paths` aliases** in any `tsconfig.json` (root or workspace). Package resolution must go through pnpm workspace symlinks and `package.json` `exports`, not TypeScript path mappings.
 - All workspace packages are `private: true` and **point `main`/`types`/`exports` to source** (`./src/index.ts`), not dist. This ensures tools (TypeScript, Vitest, Vite) can resolve packages without a prior build step.
 - The `build` script (`tsc`) still outputs to `dist/` for production use. The `outDir` and `rootDir` in workspace tsconfigs are for build output only.
+- **Project references**: The root `tsconfig.json` is a solution file (`files: []` + `references` to all packages). Each workspace tsconfig has `composite: true`. Packages with `workspace:*` dependencies declare `references` to their deps.
+- **Typecheck** uses `tsc -b --emitDeclarationOnly` (not `--noEmit`, which is [unsupported with project references](https://github.com/microsoft/TypeScript/issues/53979)). This emits only `.d.ts` + `.tsbuildinfo` to gitignored `dist/`.
 
 ## Adding a New Workspace
 
 When creating a new `libs/` or `apps/` package:
 
-1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `outDir` and `rootDir`
-   - For frontend apps with JSX: also add `"jsx": "react-jsx"`, `"lib": ["ES2022", "DOM"]`, and add the package to root `tsconfig.json` `exclude` array
-2. Set `main`, `types`, and `exports` in `package.json` to `./src/index.ts` (source, not dist)
-3. Add `"test": "vitest run --passWithNoTests"` if no tests exist yet (always use `run` to avoid watch mode)
-4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
-5. Run `pnpm install` to register the workspace
+1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `composite: true`, `outDir` and `rootDir`
+   - For frontend apps with JSX: also add `"jsx": "react-jsx"`, `"lib": ["ES2022", "DOM"]`
+   - If the package depends on other workspace packages via `workspace:*`, add `"references"` entries pointing to each dependency (e.g., `{ "path": "../../libs/database" }`)
+2. Add the new package to the root `tsconfig.json` `references` array
+3. Set `main`, `types`, and `exports` in `package.json` to `./src/index.ts` (source, not dist)
+4. Add `"test": "vitest run --passWithNoTests"` if no tests exist yet (always use `run` to avoid watch mode)
+5. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
+6. Run `pnpm install` to register the workspace
 
 ## Workstream Status
 
@@ -215,7 +219,7 @@ When multiple agents work on this repo in parallel, follow the coordination fram
 GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targeting `main`:
 
 1. **lint** — `pnpm run lint`
-2. **typecheck** — `tsc --noEmit`
+2. **typecheck** — `tsc -b --emitDeclarationOnly`
 3. **test** — `pnpm run test`
 4. **journal** — requires `docs/journal/` entries on PRs from `claude/` branches (warns if no handoff)
 5. **build** — `pnpm run build` (depends on lint, typecheck, test passing)
