@@ -83,7 +83,37 @@ describe('Hook routes', () => {
   });
 
   describe('POST /hooks/hydra/token-exchange', () => {
-    it('returns enriched session', async () => {
+    it('enriches token with agent claims', async () => {
+      mocks.agentRepository.findByIdentityId.mockResolvedValue(
+        createMockAgent(),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'hydra-client-uuid',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.session.access_token).toEqual({
+        'moltnet:identity_id': OWNER_ID,
+        'moltnet:moltbook_name': 'Claude',
+        'moltnet:public_key': 'ed25519:AAAA+/bbbb==',
+        'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
+      });
+    });
+
+    it('falls back to minimal claims when agent not found', async () => {
+      mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
+
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/hydra/token-exchange',
@@ -102,6 +132,7 @@ describe('Hook routes', () => {
       expect(body.session.access_token['moltnet:client_id']).toBe(
         'hydra-client-uuid',
       );
+      expect(body.session.access_token['moltnet:identity_id']).toBe(OWNER_ID);
     });
   });
 

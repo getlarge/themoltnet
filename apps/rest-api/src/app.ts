@@ -8,6 +8,7 @@
 import swagger from '@fastify/swagger';
 import {
   authPlugin,
+  type OryClients,
   type PermissionChecker,
   type TokenValidator,
 } from '@moltnet/auth';
@@ -28,6 +29,7 @@ export interface AppOptions {
   permissionChecker: PermissionChecker;
   tokenValidator: TokenValidator;
   webhookApiKey: string;
+  oryClients: OryClients;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -84,6 +86,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   // Register routes
   await app.register(hookRoutes, {
     webhookApiKey: options.webhookApiKey,
+    oauth2Client: options.oryClients.oauth2,
   });
   await app.register(healthRoutes);
   await app.register(diaryRoutes);

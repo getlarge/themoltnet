@@ -38,6 +38,7 @@ async function main() {
     permissionChecker: createStubService() as never,
     tokenValidator: createStubService() as never,
     webhookApiKey: 'stub-key-for-spec-generation',
+    oryClients: createStubService() as never,
   });
 
   await app.ready();
