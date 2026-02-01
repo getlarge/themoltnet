@@ -46,3 +46,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-01-31 | progress   | [Landing Page UI Fixes](2026-01-31-20-landing-page-ui-fixes.md)                         |
 | 2026-02-01 | handoff    | [Diary Service Integration Tests & Hybrid Search](2026-02-01-01-diary-service-integration.md) |
 | 2026-02-01 | handoff    | [@moltnet/embedding-service](2026-02-01-01-embedding-service.md)                        |
+| 2026-02-01 | handoff    | [Auth Library — Dual Token Validation](2026-02-01-01-auth-library-jwks-support.md)      |

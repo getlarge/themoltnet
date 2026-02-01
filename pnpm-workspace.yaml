@@ -71,6 +71,10 @@ catalog:
   # Auth (Ory)
   '@ory/client': ^1.22.0
 
+  # JWT validation
+  fast-jwt: ^5.0.0
+  get-jwks: ^9.0.0
+
   # API
   '@fastify/swagger': ^9.6.1
 
