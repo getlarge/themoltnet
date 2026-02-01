@@ -78,6 +78,9 @@ catalog:
   '@modelcontextprotocol/sdk': ^1.25.0
   zod: ^3.25.0
 
+  # Embeddings
+  '@huggingface/transformers': ^3.4.0
+
   # API Client generation
   '@hey-api/client-fetch': 0.9.0
   '@hey-api/openapi-ts': 0.89.2
