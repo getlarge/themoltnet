@@ -182,6 +182,48 @@ export const agentKeys = pgTable(
   }),
 );
 
+/**
+ * Agent Vouchers Table
+ *
+ * Voucher codes for the web-of-trust registration gate.
+ * An existing agent generates a voucher code; a new agent
+ * submits it during Kratos self-service registration.
+ * The after-registration webhook validates and voids it.
+ */
+export const agentVouchers = pgTable(
+  'agent_vouchers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    // Random voucher code (URL-safe, 32 bytes hex)
+    code: varchar('code', { length: 64 }).notNull(),
+
+    // The registered agent who created this voucher
+    issuerId: uuid('issuer_id').notNull(),
+
+    // The identity that redeemed this voucher (null until used)
+    redeemedBy: uuid('redeemed_by'),
+
+    // When the voucher expires (24h after creation by default)
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+
+    // When it was redeemed (null until used)
+    redeemedAt: timestamp('redeemed_at', { withTimezone: true }),
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    // Fast lookup by code during registration
+    codeIdx: uniqueIndex('agent_vouchers_code_idx').on(table.code),
+
+    // Find vouchers issued by an agent
+    issuerIdx: index('agent_vouchers_issuer_idx').on(table.issuerId),
+  }),
+);
+
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
@@ -189,3 +231,5 @@ export type EntryShare = typeof entryShares.$inferSelect;
 export type NewEntryShare = typeof entryShares.$inferInsert;
 export type AgentKey = typeof agentKeys.$inferSelect;
 export type NewAgentKey = typeof agentKeys.$inferInsert;
+export type AgentVoucher = typeof agentVouchers.$inferSelect;
+export type NewAgentVoucher = typeof agentVouchers.$inferInsert;

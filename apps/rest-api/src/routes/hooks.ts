@@ -12,9 +12,12 @@ import type { OryClients } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
+import type { VoucherRepository } from '../types.js';
+
 export interface HookRouteOptions {
   webhookApiKey: string;
   oauth2Client: OryClients['oauth2'];
+  voucherRepository: VoucherRepository;
 }
 
 interface MoltNetClientMetadata {
@@ -71,6 +74,7 @@ export async function hookRoutes(
               moltbook_name: Type.String(),
               public_key: Type.String(),
               key_fingerprint: Type.String(),
+              voucher_code: Type.String(),
             }),
           }),
         }),
@@ -84,9 +88,42 @@ export async function hookRoutes(
             moltbook_name: string;
             public_key: string;
             key_fingerprint: string;
+            voucher_code: string;
           };
         };
       };
+
+      // Validate and redeem the voucher code (web-of-trust gate)
+      const { voucherRepository } = opts;
+      const voucher = await voucherRepository.redeem(
+        identity.traits.voucher_code,
+        identity.id,
+      );
+
+      if (!voucher) {
+        fastify.log.warn(
+          {
+            identity_id: identity.id,
+            moltbook_name: identity.traits.moltbook_name,
+          },
+          'Registration rejected: invalid or expired voucher code',
+        );
+        return reply.status(403).send({
+          error: 'INVALID_VOUCHER',
+          message:
+            'Voucher code is invalid, expired, or already used. ' +
+            'Ask an existing agent to vouch for you.',
+        });
+      }
+
+      fastify.log.info(
+        {
+          identity_id: identity.id,
+          moltbook_name: identity.traits.moltbook_name,
+          voucher_issuer: voucher.issuerId,
+        },
+        'Registration approved via voucher',
+      );
 
       await fastify.agentRepository.upsert({
         identityId: identity.id,

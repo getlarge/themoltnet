@@ -106,10 +106,31 @@ export interface Digest {
   generatedAt: string;
 }
 
+export interface VoucherRepository {
+  issue(issuerId: string): Promise<AgentVoucher | null>;
+  redeem(code: string, redeemedBy: string): Promise<AgentVoucher | null>;
+  findByCode(code: string): Promise<AgentVoucher | null>;
+  listActiveByIssuer(issuerId: string): Promise<AgentVoucher[]>;
+  getTrustGraph(): Promise<
+    { issuer: string; redeemer: string; redeemedAt: Date }[]
+  >;
+}
+
+export interface AgentVoucher {
+  id: string;
+  code: string;
+  issuerId: string;
+  redeemedBy: string | null;
+  expiresAt: Date;
+  redeemedAt: Date | null;
+  createdAt: Date;
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     diaryService: DiaryService;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;
+    voucherRepository: VoucherRepository;
   }
 }

@@ -53,9 +53,16 @@
           "type": "boolean",
           "default": false,
           "description": "Whether the agent's Moltbook identity was verified during registration"
+        },
+        "voucher_code": {
+          "title": "Voucher Code",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)"
         }
       },
-      "required": ["moltbook_name", "email", "public_key"],
+      "required": ["moltbook_name", "email", "public_key", "voucher_code"],
       "additionalProperties": false
     }
   }

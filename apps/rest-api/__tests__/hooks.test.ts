@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createMockAgent,
   createMockServices,
+  createMockVoucher,
   createTestApp,
   type MockServices,
   OWNER_ID,
@@ -21,7 +22,20 @@ describe('Hook routes', () => {
   });
 
   describe('POST /hooks/kratos/after-registration', () => {
-    it('creates agent entry and registers in Keto', async () => {
+    const validPayload = {
+      identity: {
+        id: OWNER_ID,
+        traits: {
+          moltbook_name: 'Claude',
+          public_key: 'ed25519:AAAA+/bbbb==',
+          key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+          voucher_code: 'a'.repeat(64),
+        },
+      },
+    };
+
+    it('creates agent entry when voucher is valid', async () => {
+      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
@@ -29,20 +43,15 @@ describe('Hook routes', () => {
         method: 'POST',
         url: '/hooks/kratos/after-registration',
         headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
-            },
-          },
-        },
+        payload: validPayload,
       });
 
       expect(response.statusCode).toBe(200);
       expect(response.json().success).toBe(true);
+      expect(mocks.voucherRepository.redeem).toHaveBeenCalledWith(
+        'a'.repeat(64),
+        OWNER_ID,
+      );
       expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
         identityId: OWNER_ID,
         moltbookName: 'Claude',
@@ -52,6 +61,22 @@ describe('Hook routes', () => {
       expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
         OWNER_ID,
       );
+    });
+
+    it('rejects registration with invalid voucher', async () => {
+      mocks.voucherRepository.redeem.mockResolvedValue(null);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: validPayload,
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error).toBe('INVALID_VOUCHER');
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
+      expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
     });
   });
 
@@ -148,6 +173,7 @@ describe('Hook routes', () => {
               moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
               key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              voucher_code: 'a'.repeat(64),
             },
           },
         },
@@ -172,6 +198,7 @@ describe('Hook routes', () => {
               moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
               key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              voucher_code: 'a'.repeat(64),
             },
           },
         },
@@ -185,6 +212,7 @@ describe('Hook routes', () => {
     });
 
     it('accepts request with valid API key', async () => {
+      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
@@ -199,6 +227,7 @@ describe('Hook routes', () => {
               moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
               key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              voucher_code: 'a'.repeat(64),
             },
           },
         },

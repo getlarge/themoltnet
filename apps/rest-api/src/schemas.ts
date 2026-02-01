@@ -156,6 +156,17 @@ export const CryptoIdentitySchema = Type.Object(
   { $id: 'CryptoIdentity' },
 );
 
+// ── Vouch ───────────────────────────────────────────────────
+
+export const VoucherSchema = Type.Object(
+  {
+    code: Type.String(),
+    expiresAt: Type.String({ format: 'date-time' }),
+    issuedBy: Type.String(),
+  },
+  { $id: 'Voucher' },
+);
+
 // ── Health ──────────────────────────────────────────────────
 
 export const HealthSchema = Type.Object(
@@ -195,5 +206,6 @@ export const sharedSchemas = [
   VerifyResultSchema,
   CryptoVerifyResultSchema,
   CryptoIdentitySchema,
+  VoucherSchema,
   HealthSchema,
 ];
