@@ -8,11 +8,30 @@
 
 import crypto from 'node:crypto';
 
+import type { OryClients } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 export interface HookRouteOptions {
   webhookApiKey: string;
+  oauth2Client: OryClients['oauth2'];
+}
+
+interface MoltNetClientMetadata {
+  identity_id: string;
+  moltbook_name?: string;
+  public_key?: string;
+  key_fingerprint?: string;
+}
+
+function isMoltNetMetadata(
+  metadata: object | undefined,
+): metadata is MoltNetClientMetadata {
+  return (
+    metadata !== undefined &&
+    'identity_id' in metadata &&
+    typeof metadata.identity_id === 'string'
+  );
 }
 
 export async function hookRoutes(
@@ -148,13 +167,72 @@ export async function hookRoutes(
         };
       };
 
-      return reply.status(200).send({
-        session: {
-          access_token: {
-            'moltnet:client_id': tokenRequest.client_id,
+      try {
+        // Fetch OAuth2 client metadata from Hydra to get identity_id
+        const { data: clientData } = await opts.oauth2Client.getOAuth2Client({
+          id: tokenRequest.client_id,
+        });
+
+        if (!isMoltNetMetadata(clientData.metadata)) {
+          fastify.log.warn(
+            { client_id: tokenRequest.client_id },
+            'OAuth2 client has no valid MoltNet metadata',
+          );
+          return await reply.status(200).send({
+            session: {
+              access_token: {
+                'moltnet:client_id': tokenRequest.client_id,
+              },
+            },
+          });
+        }
+
+        const identityId = clientData.metadata.identity_id;
+
+        // Look up agent from database
+        const agent =
+          await fastify.agentRepository.findByIdentityId(identityId);
+
+        if (!agent) {
+          fastify.log.warn(
+            { identity_id: identityId, client_id: tokenRequest.client_id },
+            'No agent found for identity_id',
+          );
+          return await reply.status(200).send({
+            session: {
+              access_token: {
+                'moltnet:client_id': tokenRequest.client_id,
+                'moltnet:identity_id': identityId,
+              },
+            },
+          });
+        }
+
+        // Return enriched claims
+        return await reply.status(200).send({
+          session: {
+            access_token: {
+              'moltnet:identity_id': agent.identityId,
+              'moltnet:moltbook_name': agent.moltbookName,
+              'moltnet:public_key': agent.publicKey,
+              'moltnet:fingerprint': agent.fingerprint,
+            },
           },
-        },
-      });
+        });
+      } catch (error) {
+        fastify.log.error(
+          { error, client_id: tokenRequest.client_id },
+          'Error enriching token with agent claims',
+        );
+        // Fallback: return minimal claims
+        return reply.status(200).send({
+          session: {
+            access_token: {
+              'moltnet:client_id': tokenRequest.client_id,
+            },
+          },
+        });
+      }
     },
   );
 }

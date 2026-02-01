@@ -4,6 +4,7 @@
 
 import type {
   AuthContext,
+  OryClients,
   PermissionChecker,
   TokenValidator,
 } from '@moltnet/auth';
@@ -123,6 +124,25 @@ export async function createTestApp(
     resolveAuthContext: vi.fn().mockResolvedValue(authContext),
   };
 
+  const mockOAuth2Api = {
+    getOAuth2Client: vi.fn().mockResolvedValue({
+      data: {
+        client_id: 'test-client-id',
+        metadata: {
+          identity_id: OWNER_ID,
+        },
+      },
+    }),
+  } as unknown as OryClients['oauth2'];
+
+  const mockOryClients: OryClients = {
+    frontend: {} as OryClients['frontend'],
+    identity: {} as OryClients['identity'],
+    oauth2: mockOAuth2Api,
+    permission: {} as OryClients['permission'],
+    relationship: {} as OryClients['relationship'],
+  };
+
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
@@ -130,6 +150,7 @@ export async function createTestApp(
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
     tokenValidator: mockTokenValidator,
     webhookApiKey: TEST_WEBHOOK_API_KEY,
+    oryClients: mockOryClients,
   });
 
   return app;
