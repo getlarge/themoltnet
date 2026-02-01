@@ -148,9 +148,9 @@ BEGIN
         LIMIT p_limit * 2
     ),
     fts_results AS (
-        SELECT 
+        SELECT
             d.id,
-            ts_rank(to_tsvector('english', d.content), plainto_tsquery('english', p_query)) AS score
+            ts_rank(to_tsvector('english', d.content), plainto_tsquery('english', p_query))::double precision AS score
         FROM diary_entries d
         WHERE d.owner_id = p_owner_id
           AND to_tsvector('english', d.content) @@ plainto_tsquery('english', p_query)

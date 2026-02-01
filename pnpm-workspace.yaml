@@ -71,12 +71,19 @@ catalog:
   # Auth (Ory)
   '@ory/client': ^1.22.0
 
+  # JWT validation
+  fast-jwt: ^5.0.0
+  get-jwks: ^11.0.2
+
   # API
   '@fastify/swagger': ^9.6.1
 
   # MCP
   '@modelcontextprotocol/sdk': ^1.25.0
   zod: ^3.25.0
+
+  # Embeddings
+  '@huggingface/transformers': ^3.4.0
 
   # API Client generation
   '@hey-api/client-fetch': 0.9.0

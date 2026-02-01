@@ -6,7 +6,11 @@
  */
 
 import swagger from '@fastify/swagger';
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import {
+  authPlugin,
+  type PermissionChecker,
+  type TokenValidator,
+} from '@moltnet/auth';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { agentRoutes } from './routes/agents.js';
@@ -15,23 +19,15 @@ import { diaryRoutes } from './routes/diary.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { sharedSchemas } from './schemas.js';
-import type {
-  AgentRepository,
-  CryptoService,
-  DiaryService,
-  PermissionChecker,
-} from './types.js';
+import type { AgentRepository, CryptoService, DiaryService } from './types.js';
 
 export interface AppOptions {
   diaryService: DiaryService;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   permissionChecker: PermissionChecker;
+  tokenValidator: TokenValidator;
   webhookApiKey: string;
-  authPreHandler?: (
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) => Promise<void>;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -74,26 +70,21 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     app.addSchema(schema);
   }
 
+  // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
+  await app.register(authPlugin, {
+    tokenValidator: options.tokenValidator,
+    permissionChecker: options.permissionChecker,
+  });
+
   // Decorate with services
   app.decorate('diaryService', options.diaryService);
   app.decorate('agentRepository', options.agentRepository);
   app.decorate('cryptoService', options.cryptoService);
-  app.decorate('moltnetPermissions', options.permissionChecker);
 
-  // Decorate request with authContext (null by default)
-  app.decorateRequest('authContext', null);
-
-  // Register webhook routes before global auth — they use their own API key auth
+  // Register routes
   await app.register(hookRoutes, {
     webhookApiKey: options.webhookApiKey,
   });
-
-  // If auth preHandler provided, install as global hook
-  if (options.authPreHandler) {
-    app.addHook('preHandler', options.authPreHandler);
-  }
-
-  // Register routes
   await app.register(healthRoutes);
   await app.register(diaryRoutes);
   await app.register(agentRoutes);

@@ -1,25 +1,22 @@
 {
-  "name": "@moltnet/diary-service",
+  "name": "@moltnet/embedding-service",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
-    }
+    ".": "./src/index.ts"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@huggingface/transformers": "catalog:"
+  },
   "devDependencies": {
-    "@moltnet/database": "workspace:*",
-    "@moltnet/embedding-service": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

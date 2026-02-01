@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "drizzle-kit": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

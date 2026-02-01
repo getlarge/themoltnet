@@ -2,6 +2,7 @@
  * Crypto sign/verify routes
  */
 
+import { requireAuth } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -66,21 +67,14 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ErrorSchema),
         },
       },
+      preHandler: [requireAuth],
     },
-    async (request, reply) => {
-      if (!request.authContext) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
+    async (request) => {
       return {
-        identityId: request.authContext.identityId,
-        moltbookName: request.authContext.moltbookName,
-        publicKey: request.authContext.publicKey,
-        fingerprint: request.authContext.fingerprint,
+        identityId: request.authContext!.identityId,
+        moltbookName: request.authContext!.moltbookName,
+        publicKey: request.authContext!.publicKey,
+        fingerprint: request.authContext!.fingerprint,
       };
     },
   );

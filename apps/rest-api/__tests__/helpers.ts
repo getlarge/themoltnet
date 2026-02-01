@@ -2,21 +2,25 @@
  * Test helpers — mocks and fixtures for REST API tests
  */
 
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type {
+  AuthContext,
+  PermissionChecker,
+  TokenValidator,
+} from '@moltnet/auth';
+import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
 import type {
   AgentKey,
   AgentRepository,
-  AuthContext,
   CryptoService,
   DiaryEntry,
   DiaryService,
-  PermissionChecker,
 } from '../src/types.js';
 
 export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
+export const TEST_BEARER_TOKEN = 'test-token';
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
@@ -93,7 +97,15 @@ export function createMockServices(): MockServices {
       parsePublicKey: vi.fn(),
     },
     permissionChecker: {
+      canViewEntry: vi.fn(),
+      canEditEntry: vi.fn(),
+      canDeleteEntry: vi.fn(),
+      canShareEntry: vi.fn(),
+      grantOwnership: vi.fn(),
+      grantViewer: vi.fn(),
+      revokeViewer: vi.fn(),
       registerAgent: vi.fn(),
+      removeEntryRelations: vi.fn(),
     },
   };
 }
@@ -106,15 +118,18 @@ export async function createTestApp(
   mocks: MockServices,
   authContext: AuthContext | null = null,
 ): Promise<FastifyInstance> {
+  const mockTokenValidator: TokenValidator = {
+    introspect: vi.fn().mockResolvedValue({ active: false }),
+    resolveAuthContext: vi.fn().mockResolvedValue(authContext),
+  };
+
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
+    tokenValidator: mockTokenValidator,
     webhookApiKey: TEST_WEBHOOK_API_KEY,
-    authPreHandler: async (request: FastifyRequest, _reply: FastifyReply) => {
-      request.authContext = authContext;
-    },
   });
 
   return app;

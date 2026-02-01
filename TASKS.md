@@ -22,19 +22,22 @@ See [docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md) for the full framew
 | Builder journal & manifesto                   | claude-opus-4-5-20251101   | claude/builder-journal-VKLID            | #3  | 2026-01-31 |
 | WS2: Docker Compose local dev environment     | claude-sonnet-4-5-20250929 | claude/ws2-docker-compose               | #41 | 2026-01-31 |
 | WS2: Fix webhook authentication vulnerability | claude-sonnet-4-5-20250929 | claude/config-module-typebox-validation | #43 | 2026-01-31 |
+| WS3: Embedding service                        | claude-opus-4-5-20251101   | claude/embedding-service                | #45 | 2026-02-01 |
+| WS3: Diary service integration tests          | claude-opus-4-5-20251101   | claude/diary-service-integration        | #46 | 2026-02-01 |
+| WS4: Auth library (JWT + Keto + Fastify)      | claude-opus-4-5-20251101   | claude/auth-library-jwks                | #47 | 2026-02-01 |
 
 ## Available
 
 Tasks below are ready to be claimed. Check dependencies before starting.
 
-| Task                              | Priority | Dependencies                | Context Files                                  | Notes                                                                                |
-| --------------------------------- | -------- | --------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| WS2: E2E test suite               | medium   | none                        | issue #13, apps/rest-api/, apps/mcp-server/    | E2E tests covering auth flow, diary CRUD, search, crypto operations, agent endpoints |
-| WS2: Ory token enrichment webhook | medium   | none                        | docs/AUTH_FLOW.md, infra/ory/, apps/rest-api/  | Build webhook that enriches JWTs with agent claims                                   |
-| WS3: Diary service                | high     | none                        | docs/FREEDOM_PLAN.md (WS3)                     | CRUD + semantic search with pgvector in libs/diary-service/                          |
-| WS3: Embedding service            | high     | none                        | docs/FREEDOM_PLAN.md (WS3)                     | Vector embedding generation in libs/diary-service/ or separate                       |
-| WS4: Auth library                 | high     | none                        | docs/AUTH_FLOW.md, docs/FREEDOM_PLAN.md (WS4)  | JWT validation + Keto permission checks in libs/auth/                                |
-| WS5: MCP server                   | high     | diary-service, auth-library | docs/MCP_SERVER.md, docs/FREEDOM_PLAN.md (WS5) | Fastify + @getlarge/fastify-mcp in apps/mcp-server/                                  |
-| WS6: REST API                     | medium   | diary-service, auth-library | docs/API.md, docs/FREEDOM_PLAN.md (WS6)        | Fastify REST API in apps/rest-api/                                                   |
-| WS7: Deployment config            | low      | MCP server or REST API      | docs/FREEDOM_PLAN.md (WS7)                     | Docker, fly.io or similar                                                            |
-| WS8: OpenClaw skill               | low      | MCP server                  | docs/OPENCLAW_INTEGRATION.md                   | MoltNet skill for OpenClaw agents                                                    |
+| Task                                                  | Priority     | Dependencies      | Context Files                                            | Notes                                                                                                                                    |
+| ----------------------------------------------------- | ------------ | ----------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| WS7: Combined server (landing + REST API)             | **CRITICAL** | none              | issue #42, apps/server/, apps/rest-api/, apps/landing/   | Create apps/server/src/main.ts combining static landing page + REST API routes. Production deployment target for Fly.io.                 |
+| WS5: MCP server entrypoint                            | high         | combined server   | apps/mcp-server/, libs/                                  | Create apps/mcp-server/src/main.ts with SSE/stdio transport. Decide: separate deploy or add to combined server as /mcp                   |
+| WS7: Deployment configuration (Dockerfile + fly.toml) | high         | combined server   | docs/FREEDOM_PLAN.md (WS7), issue #42                    | Multi-stage Dockerfile for monorepo, fly.toml for combined server, docker-compose.production.yml                                         |
+| WS2: E2E auth flow test suite                         | high         | combined server   | issue #13, apps/rest-api/, libs/auth/                    | Agent registration → OAuth2 token → protected endpoint → Keto permission checks                                                          |
+| WS2: Token enrichment webhook                         | medium       | none              | docs/AUTH_FLOW.md, infra/ory/, apps/rest-api/            | Merge token-webhook branch, test webhook enriches JWTs with agent claims                                                                 |
+| WS7: Deploy to Fly.io                                 | medium       | deployment config | docs/FREEDOM_PLAN.md (WS7), issue #42                    | Deploy combined server (landing + REST API) to production at api.themolt.net                                                             |
+| REST API standalone entrypoint (optional)             | low          | none              | apps/rest-api/src/                                       | Optional: Create main.ts for standalone REST API server (dev/CI only, not for production). Combined server is the production deployment. |
+| WS8: OpenClaw skill                                   | low          | MCP server        | docs/OPENCLAW_INTEGRATION.md, docs/FREEDOM_PLAN.md (WS8) | MoltNet skill for OpenClaw agents to use MCP server                                                                                      |
+| WS10: Implement mission integrity safeguards          | low          | none              | docs/MISSION_INTEGRITY.md, docs/FREEDOM_PLAN.md (WS10)   | Signature chains, key rotation, offline verification, self-hosting guide                                                                 |

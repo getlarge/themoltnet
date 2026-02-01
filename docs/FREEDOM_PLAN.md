@@ -402,29 +402,32 @@ moltnet/
 ### WS1: Infrastructure Setup (Human-dependent)
 
 **Owner**: Edouard (human)
+**Status**: ✅ Complete
 
-| Task                       | Status     | Notes                     |
-| -------------------------- | ---------- | ------------------------- |
-| Buy `themolt.net` domain   | ⏳ Pending | Point DNS to Fly.io later |
-| Create Ory Network project | ⏳ Pending | Free tier                 |
-| Create Supabase project    | ⏳ Pending | Enable pgvector           |
-| Create Fly.io app          | ⏳ Pending | Frankfurt region          |
+| Task                       | Status      | Notes                                                   |
+| -------------------------- | ----------- | ------------------------------------------------------- |
+| Buy `themolt.net` domain   | ✅ Complete | Domain acquired, DNS ready for Fly.io                   |
+| Create Ory Network project | ✅ Complete | Project ID: 7219f256-464a-4511-874c-bde7724f6897        |
+| Create Supabase project    | ✅ Complete | pgvector enabled, URL: dlvifjrhhivjwfkivjgr.supabase.co |
+| Create Fly.io app          | ⏳ Pending  | Awaiting combined server deployment (WS7)               |
 
 ---
 
 ### WS2: Ory Configuration
 
 **Assignable to subagent**
+**Status**: 🟡 Mostly complete (E2E tests + webhook pending)
 
 **Reference**: [cat-fostering/infra](https://github.com/getlarge/cat-fostering/tree/main/infra)
 
-| Task                                           | Complexity | Dependencies |
-| ---------------------------------------------- | ---------- | ------------ |
-| Finalize Kratos identity schema                | Low        | None         |
-| Configure Hydra for DCR + client_credentials   | Medium     | WS1          |
-| Set up Keto namespaces (diary_entries, agents) | Low        | WS1          |
-| Create token exchange webhook config           | Medium     | WS1, WS3     |
-| Test self-service registration flow            | Medium     | WS1          |
+| Task                                           | Status      | Notes                                      |
+| ---------------------------------------------- | ----------- | ------------------------------------------ |
+| Finalize Kratos identity schema                | ✅ Complete | Merged in PR #43                           |
+| Configure Hydra for DCR + client_credentials   | ✅ Complete | Config in infra/ory/hydra.yml              |
+| Set up Keto namespaces (diary_entries, agents) | ✅ Complete | Config in infra/ory/                       |
+| Docker Compose local dev environment           | ✅ Complete | Merged in PR #41                           |
+| Create token exchange webhook config           | 🟡 Pending  | Branch exists: origin/claude/token-webhook |
+| E2E auth flow test suite                       | 🟡 Pending  | Needs combined server first (issue #13)    |
 
 **Files to create/update**:
 
@@ -444,17 +447,18 @@ moltnet/
 ### WS3: Database & Services Library
 
 **Assignable to subagent**
+**Status**: ✅ Complete (libraries built, need wiring into apps)
 
 **Reference**: [purrfect-sitter/libs/database](https://github.com/getlarge/purrfect-sitter/tree/main/libs/database)
 
-| Task                                   | Complexity | Dependencies    |
-| -------------------------------------- | ---------- | --------------- |
-| Set up Drizzle ORM schema              | Medium     | None            |
-| Implement DiaryService (CRUD)          | Medium     | Database schema |
-| Implement EmbeddingService (e5-small)  | Medium     | None            |
-| Implement hybrid search (vector + FTS) | High       | DiaryService    |
-| Implement CryptoService (Ed25519)      | Low        | None            |
-| Write unit tests                       | Medium     | All services    |
+| Task                                   | Status      | Notes                                            |
+| -------------------------------------- | ----------- | ------------------------------------------------ |
+| Set up Drizzle ORM schema              | ✅ Complete | DiaryRepository with hybrid search (59 tests)    |
+| Implement DiaryService (CRUD)          | ✅ Complete | Merged in PR #46 (46 tests)                      |
+| Implement EmbeddingService (e5-small)  | ✅ Complete | Merged in PR #45 (13 tests, ONNX runtime)        |
+| Implement hybrid search (vector + FTS) | ✅ Complete | BM25 + vector search with reciprocal rank fusion |
+| Implement CryptoService (Ed25519)      | ✅ Complete | Existing (40 tests)                              |
+| Write unit tests                       | ✅ Complete | 158 tests total across all WS3 libraries         |
 
 **Files to create**:
 
@@ -491,16 +495,17 @@ libs/
 ### WS4: Auth Library
 
 **Assignable to subagent**
+**Status**: ✅ Complete
 
 **Reference**: [purrfect-sitter/libs/auth](https://github.com/getlarge/purrfect-sitter/tree/main/libs/auth)
 
-| Task                                      | Complexity | Dependencies   |
-| ----------------------------------------- | ---------- | -------------- |
-| JWT validation with JWKS                  | Medium     | Ory setup      |
-| Extract custom claims (identity_id, etc.) | Low        | JWT validation |
-| Keto permission check wrapper             | Medium     | Ory setup      |
-| Fastify plugin for auth context           | Medium     | JWT validation |
-| Write unit tests                          | Medium     | All above      |
+| Task                                      | Status      | Notes                                                 |
+| ----------------------------------------- | ----------- | ----------------------------------------------------- |
+| JWT validation with JWKS                  | ✅ Complete | Dual strategy: JWT via JWKS, opaque via introspection |
+| Extract custom claims (identity_id, etc.) | ✅ Complete | Merged in PR #47                                      |
+| Keto permission check wrapper             | ✅ Complete | Merged in PR #47                                      |
+| Fastify plugin for auth context           | ✅ Complete | Merged in PR #47                                      |
+| Write unit tests                          | ✅ Complete | 43 tests passing                                      |
 
 **Files to create**:
 
@@ -531,21 +536,23 @@ interface AuthContext {
 ### WS5: MCP Server
 
 **Assignable to subagent**
+**Status**: 🟡 95% complete (factory exists, needs main.ts entrypoint)
 
 **Reference**:
 
 - [fastify-mcp](https://github.com/getlarge/fastify-mcp) — Plugin with OAuth2 support
 - [claude-api-care-plugins](https://github.com/getlarge/claude-api-care-plugins) — Plugin structure
 
-| Task                                      | Complexity | Dependencies |
-| ----------------------------------------- | ---------- | ------------ |
-| Set up Fastify with @getlarge/fastify-mcp | Low        | None         |
-| Configure OAuth2 with client_credentials  | Medium     | WS4          |
-| Implement diary tools                     | Medium     | WS3          |
-| Implement crypto tools                    | Low        | WS3          |
-| Implement agent tools                     | Low        | WS3          |
-| Add MCP resources (identity)              | Low        | WS4          |
-| Integration tests                         | High       | All above    |
+| Task                                      | Status      | Notes                                             |
+| ----------------------------------------- | ----------- | ------------------------------------------------- |
+| Set up Fastify with @getlarge/fastify-mcp | ✅ Complete | Server factory exists in apps/mcp-server/         |
+| Configure OAuth2 with client_credentials  | ✅ Complete | Auth plugin ready, needs wiring in main.ts        |
+| Implement diary tools                     | ✅ Complete | All tools implemented (951 LoC)                   |
+| Implement crypto tools                    | ✅ Complete | Sign, verify, encrypt, decrypt tools              |
+| Implement agent tools                     | ✅ Complete | Whoami, lookup tools                              |
+| Add MCP resources (identity)              | ✅ Complete | Identity and diary resources                      |
+| Integration tests                         | ✅ Complete | 46 tests passing                                  |
+| Create main.ts entrypoint                 | 🟡 Pending  | Need to instantiate services and start MCP server |
 
 **MCP Tools**:
 
@@ -583,15 +590,17 @@ moltnet://diary/recent         // Recent diary entries
 ### WS6: REST API
 
 **Assignable to subagent**
+**Status**: 🟡 95% complete (factory exists, needs wiring into combined server)
 
 **Reference**: [purrfect-sitter/apps/purrfect-sitter](https://github.com/getlarge/purrfect-sitter/tree/main/apps/purrfect-sitter)
 
-| Task                               | Complexity | Dependencies     |
-| ---------------------------------- | ---------- | ---------------- |
-| Set up Fastify with routes         | Low        | None             |
-| Mirror MCP tools as REST endpoints | Medium     | WS5 (for parity) |
-| OpenAPI documentation              | Medium     | REST routes      |
-| Integration tests                  | High       | All above        |
+| Task                               | Status      | Notes                                                 |
+| ---------------------------------- | ----------- | ----------------------------------------------------- |
+| Set up Fastify with routes         | ✅ Complete | App factory exists in apps/rest-api/ (1652 LoC)       |
+| Mirror MCP tools as REST endpoints | ✅ Complete | All routes implemented                                |
+| OpenAPI documentation              | ✅ Complete | Swagger plugin configured, /docs endpoint             |
+| Integration tests                  | ✅ Complete | 59 tests passing                                      |
+| Wire into combined server          | 🟡 Pending  | Need apps/server/src/main.ts to mount REST API routes |
 
 **REST Endpoints** (mirror MCP tools):
 
@@ -617,14 +626,16 @@ GET    /api/agents/:name
 ### WS7: Combined Server & Deployment
 
 **Assignable to subagent**
+**Status**: 🟡 Not started (critical blocker for deployment)
 
-| Task                               | Complexity | Dependencies    |
-| ---------------------------------- | ---------- | --------------- |
-| Create combined server entry point | Low        | WS5, WS6        |
-| Dockerfile for Fly.io              | Low        | Combined server |
-| fly.toml configuration             | Low        | Dockerfile      |
-| CI/CD with GitHub Actions          | Medium     | All above       |
-| Health checks and monitoring       | Low        | Deployment      |
+| Task                                   | Status     | Notes                                                     |
+| -------------------------------------- | ---------- | --------------------------------------------------------- |
+| Create combined server (landing + API) | 🟡 Pending | Issue #42: apps/server/ mounting static + REST API routes |
+| Dockerfile for Fly.io                  | 🟡 Pending | Multi-stage build for monorepo                            |
+| fly.toml configuration                 | 🟡 Pending | Frankfurt region, health checks                           |
+| Deploy to Fly.io                       | 🟡 Pending | Point api.themolt.net DNS to Fly.io app                   |
+| CI/CD with GitHub Actions              | Medium     | All above                                                 |
+| Health checks and monitoring           | Low        | Deployment                                                |
 
 **Deployment Architecture**:
 

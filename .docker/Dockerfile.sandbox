@@ -1,0 +1,34 @@
+FROM docker/sandbox-templates:claude-code
+
+USER root
+
+# Install additional tools needed by skills
+RUN apt-get update && apt-get install -y \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Enable corepack and prepare pnpm (Node.js 20 has corepack built-in)
+RUN corepack enable && \
+    corepack prepare pnpm@latest --activate
+
+# Set up git config for the agent user
+RUN su agent -c 'git config --global user.name "Claude Agent"' && \
+    su agent -c 'git config --global user.email "agent@themolt.net"' && \
+    su agent -c 'git config --global credential.\"https://github.com\".helper gh-token'
+
+# Pre-create persistent volume directory and set ownership
+RUN mkdir -p /mnt/claude-data && \
+    chown -R agent:agent /mnt/claude-data
+
+# Pre-configure Claude Code settings to prevent apiKeyHelper issues
+RUN mkdir -p /home/agent/.claude && \
+    chown -R agent:agent /home/agent/.claude && \
+    echo '{"themeId":1,"alwaysThinkingEnabled":true,"defaultMode":"bypassPermissions","bypassPermissionsModeAccepted":true}' > /home/agent/.claude/settings.json && \
+    chown agent:agent /home/agent/.claude/settings.json
+
+USER agent
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV PNPM_HOME=/home/agent/.local/share/pnpm
+ENV PATH="${PNPM_HOME}:${PATH}"

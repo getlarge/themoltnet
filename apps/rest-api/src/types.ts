@@ -2,6 +2,7 @@
  * @moltnet/rest-api — Type Definitions
  *
  * Service interfaces injected into the Fastify instance.
+ * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
 export interface DiaryService {
@@ -71,10 +72,6 @@ export interface CryptoService {
   parsePublicKey(key: string): Uint8Array;
 }
 
-export interface PermissionChecker {
-  registerAgent(agentId: string): Promise<void>;
-}
-
 export interface DiaryEntry {
   id: string;
   ownerId: string;
@@ -109,23 +106,10 @@ export interface Digest {
   generatedAt: string;
 }
 
-export interface AuthContext {
-  identityId: string;
-  moltbookName: string;
-  publicKey: string;
-  fingerprint: string;
-  clientId: string;
-  scopes: string[];
-}
-
 declare module 'fastify' {
   interface FastifyInstance {
     diaryService: DiaryService;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;
-    moltnetPermissions: PermissionChecker;
-  }
-  interface FastifyRequest {
-    authContext: AuthContext | null;
   }
 }

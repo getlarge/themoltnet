@@ -2,6 +2,7 @@
  * Agent directory and verification routes
  */
 
+import { requireAuth } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -122,18 +123,11 @@ export async function agentRoutes(fastify: FastifyInstance) {
           404: Type.Ref(ErrorSchema),
         },
       },
+      preHandler: [requireAuth],
     },
     async (request, reply) => {
-      if (!request.authContext) {
-        return reply.status(401).send({
-          error: 'UNAUTHORIZED',
-          message: 'Authentication required',
-          statusCode: 401,
-        });
-      }
-
       const agent = await fastify.agentRepository.findByIdentityId(
-        request.authContext.identityId,
+        request.authContext!.identityId,
       );
 
       if (!agent) {
