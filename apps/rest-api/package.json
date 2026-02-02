@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "start": "node dist/index.js",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "test:e2e": "vitest run --config vitest.config.e2e.ts"
   },
   "dependencies": {

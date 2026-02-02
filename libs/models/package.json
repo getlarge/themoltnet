@@ -12,6 +12,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {
