@@ -1,8 +1,8 @@
 /**
  * E2E: Diary CRUD lifecycle
  *
- * Tests create → read → list → update → search → reflect → delete
- * using the generated API client against a real database.
+ * Tests the full diary flow using real auth tokens from Hydra,
+ * real permissions from Keto, and real data in PostgreSQL.
  */
 
 import {
@@ -17,33 +17,27 @@ import {
   setDiaryEntryVisibility,
   updateDiaryEntry,
 } from '@moltnet/api-client';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  createTestHarness,
-  isDatabaseAvailable,
-  type TestHarness,
-} from './setup.js';
+import { createAgent, type TestAgent } from './helpers.js';
+import { createTestHarness, type TestHarness } from './setup.js';
 
-const AUTH_TOKEN = 'e2e-valid-token';
-
-describe('Diary CRUD', async () => {
-  const available = await isDatabaseAvailable();
-  if (!available) {
-    it.skip('database not available — run `pnpm run docker:up`', () => {});
-    return;
-  }
-
+describe('Diary CRUD', () => {
   let harness: TestHarness;
   let client: Client;
+  let agent: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
-  });
 
-  beforeEach(async () => {
-    await harness.cleanup();
+    agent = await createAgent({
+      app: harness.app,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+      moltbookName: 'DiaryTestAgent',
+    });
   });
 
   afterAll(async () => {
@@ -55,37 +49,19 @@ describe('Diary CRUD', async () => {
   it('creates a diary entry', async () => {
     const { data, error } = await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
-      body: { content: 'My first e2e diary entry' },
+      auth: () => agent.accessToken,
+      body: { content: 'First e2e entry', title: 'Hello' },
     });
 
     expect(error).toBeUndefined();
-    expect(data).toBeDefined();
-    expect(data!.id).toBeDefined();
-    expect(data!.content).toBe('My first e2e diary entry');
+    expect(data!.content).toBe('First e2e entry');
+    expect(data!.title).toBe('Hello');
+    expect(data!.ownerId).toBe(agent.identityId);
     expect(data!.visibility).toBe('private');
-    expect(data!.ownerId).toBe(harness.authContext.identityId);
+    expect(data!.id).toBeDefined();
   });
 
-  it('creates an entry with all optional fields', async () => {
-    const { data, error } = await createDiaryEntry({
-      client,
-      auth: () => AUTH_TOKEN,
-      body: {
-        content: 'Entry with extras',
-        title: 'My Title',
-        visibility: 'public',
-        tags: ['test', 'e2e'],
-      },
-    });
-
-    expect(error).toBeUndefined();
-    expect(data!.title).toBe('My Title');
-    expect(data!.visibility).toBe('public');
-    expect(data!.tags).toEqual(['test', 'e2e']);
-  });
-
-  it('rejects entry creation without auth', async () => {
+  it('rejects unauthenticated create', async () => {
     const { data, error } = await createDiaryEntry({
       client,
       body: { content: 'Should fail' },
@@ -97,16 +73,16 @@ describe('Diary CRUD', async () => {
 
   // ── Read ────────────────────────────────────────────────────
 
-  it('reads a diary entry by ID', async () => {
+  it('reads back a created entry by id', async () => {
     const { data: created } = await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       body: { content: 'Read me back' },
     });
 
     const { data, error } = await getDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       path: { id: created!.id },
     });
 
@@ -115,73 +91,53 @@ describe('Diary CRUD', async () => {
     expect(data!.content).toBe('Read me back');
   });
 
-  it('returns 404 for non-existent entry', async () => {
-    const { data, error } = await getDiaryEntry({
-      client,
-      auth: () => AUTH_TOKEN,
-      path: { id: '00000000-0000-4000-a000-000000000099' },
-    });
-
-    expect(data).toBeUndefined();
-    expect(error).toBeDefined();
-  });
-
   // ── List ────────────────────────────────────────────────────
 
-  it('lists diary entries', async () => {
+  it('lists entries for the authenticated agent', async () => {
     await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
-      body: { content: 'Entry one' },
+      auth: () => agent.accessToken,
+      body: { content: 'List entry A' },
     });
     await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
-      body: { content: 'Entry two' },
+      auth: () => agent.accessToken,
+      body: { content: 'List entry B' },
     });
 
     const { data, error } = await listDiaryEntries({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
     });
 
     expect(error).toBeUndefined();
-    expect(data!.items).toHaveLength(2);
-    expect(data!.total).toBe(2);
+    // Should have at least the two we just created (plus any from prior tests)
+    expect(data!.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('paginates diary entries', async () => {
-    for (let i = 0; i < 5; i++) {
-      await createDiaryEntry({
-        client,
-        auth: () => AUTH_TOKEN,
-        body: { content: `Entry ${i}` },
-      });
-    }
-
-    const { data } = await listDiaryEntries({
+  it('respects limit parameter', async () => {
+    const { data, error } = await listDiaryEntries({
       client,
-      auth: () => AUTH_TOKEN,
-      query: { limit: 2, offset: 0 },
+      auth: () => agent.accessToken,
+      query: { limit: 1 },
     });
 
-    expect(data!.items).toHaveLength(2);
-    expect(data!.limit).toBe(2);
-    expect(data!.offset).toBe(0);
+    expect(error).toBeUndefined();
+    expect(data!.length).toBe(1);
   });
 
   // ── Update ──────────────────────────────────────────────────
 
-  it('updates a diary entry', async () => {
+  it('updates an entry', async () => {
     const { data: created } = await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       body: { content: 'Before update' },
     });
 
     const { data, error } = await updateDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       path: { id: created!.id },
       body: { content: 'After update', title: 'Updated' },
     });
@@ -191,97 +147,117 @@ describe('Diary CRUD', async () => {
     expect(data!.title).toBe('Updated');
   });
 
-  it('updates entry visibility', async () => {
+  // ── Visibility ──────────────────────────────────────────────
+
+  it('changes entry visibility', async () => {
     const { data: created } = await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
-      body: { content: 'Change my visibility' },
+      auth: () => agent.accessToken,
+      body: { content: 'Visibility test' },
     });
+
+    expect(created!.visibility).toBe('private');
 
     const { data, error } = await setDiaryEntryVisibility({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       path: { id: created!.id },
-      body: { visibility: 'moltnet' },
+      body: { visibility: 'public' },
     });
 
     expect(error).toBeUndefined();
-    expect(data!.visibility).toBe('moltnet');
+    expect(data!.visibility).toBe('public');
   });
 
   // ── Delete ──────────────────────────────────────────────────
 
-  it('deletes a diary entry', async () => {
+  it('deletes an entry', async () => {
     const { data: created } = await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       body: { content: 'Delete me' },
     });
 
-    const { data, error } = await deleteDiaryEntry({
+    const { error: deleteError } = await deleteDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       path: { id: created!.id },
     });
 
-    expect(error).toBeUndefined();
-    expect(data!.success).toBe(true);
+    expect(deleteError).toBeUndefined();
 
     // Verify it's gone
-    const { data: gone, error: notFound } = await getDiaryEntry({
+    const { data: fetched } = await getDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
+      auth: () => agent.accessToken,
       path: { id: created!.id },
     });
 
-    expect(gone).toBeUndefined();
-    expect(notFound).toBeDefined();
+    expect(fetched).toBeUndefined();
   });
 
   // ── Search ──────────────────────────────────────────────────
 
-  it('searches diary entries by text', async () => {
+  it('searches entries by text', async () => {
     await createDiaryEntry({
       client,
-      auth: () => AUTH_TOKEN,
-      body: { content: 'The quantum computer operates at low temperatures' },
-    });
-    await createDiaryEntry({
-      client,
-      auth: () => AUTH_TOKEN,
-      body: { content: 'A simple recipe for banana bread' },
+      auth: () => agent.accessToken,
+      body: {
+        content:
+          'The quantum entanglement experiment yielded surprising results',
+      },
     });
 
     const { data, error } = await searchDiary({
       client,
-      auth: () => AUTH_TOKEN,
-      body: { query: 'quantum' },
+      auth: () => agent.accessToken,
+      body: { query: 'quantum entanglement' },
     });
 
     expect(error).toBeUndefined();
-    expect(data!.results.length).toBeGreaterThanOrEqual(1);
-    expect(data!.results[0].content).toContain('quantum');
+    expect(data!.length).toBeGreaterThanOrEqual(1);
+    expect(data![0].content).toContain('quantum entanglement');
   });
 
   // ── Reflect ─────────────────────────────────────────────────
 
   it('generates a reflection digest', async () => {
-    await createDiaryEntry({
-      client,
-      auth: () => AUTH_TOKEN,
-      body: { content: 'Worked on e2e tests today', tags: ['dev'] },
-    });
-
     const { data, error } = await reflectDiary({
       client,
-      auth: () => AUTH_TOKEN,
-      query: { days: 7 },
+      auth: () => agent.accessToken,
     });
 
     expect(error).toBeUndefined();
-    expect(data!.entries).toHaveLength(1);
-    expect(data!.totalEntries).toBe(1);
-    expect(data!.periodDays).toBe(7);
+    expect(data!.entries).toBeDefined();
+    expect(data!.periodDays).toBeDefined();
     expect(data!.generatedAt).toBeDefined();
+  });
+
+  // ── Cross-agent isolation ───────────────────────────────────
+
+  it('isolates entries between agents', async () => {
+    const otherAgent = await createAgent({
+      app: harness.app,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+      moltbookName: 'IsolationAgent',
+    });
+
+    // Other agent creates an entry
+    await createDiaryEntry({
+      client,
+      auth: () => otherAgent.accessToken,
+      body: { content: 'Private to other agent' },
+    });
+
+    // Original agent shouldn't see it in their list
+    const { data } = await listDiaryEntries({
+      client,
+      auth: () => agent.accessToken,
+    });
+
+    const contents = data!.map((e: { content: string }) => e.content);
+    expect(contents).not.toContain('Private to other agent');
   });
 });

@@ -1,5 +1,8 @@
 /**
- * E2E: Agent profiles, whoami, and crypto operations
+ * E2E: Agent profiles, whoami, crypto operations
+ *
+ * Tests agent registration, profile lookup, signature verification,
+ * and crypto challenge flows using real auth and real crypto.
  */
 
 import {
@@ -12,70 +15,52 @@ import {
   verifyCryptoSignature,
 } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
-import { createAgentRepository } from '@moltnet/database';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  AGENT_A_ID,
-  createTestHarness,
-  isDatabaseAvailable,
-  type TestHarness,
-} from './setup.js';
+import { createAgent, type TestAgent } from './helpers.js';
+import { createTestHarness, type TestHarness } from './setup.js';
 
-const AUTH_TOKEN = 'e2e-valid-token';
-
-describe('Agents & Crypto', async () => {
-  const available = await isDatabaseAvailable();
-  if (!available) {
-    it.skip('database not available — run `pnpm run docker:up`', () => {});
-    return;
-  }
-
+describe('Agents & Crypto', () => {
   let harness: TestHarness;
   let client: Client;
-  let agentRepo: ReturnType<typeof createAgentRepository>;
+  let agent: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
-    agentRepo = createAgentRepository(harness.db);
-  });
 
-  beforeEach(async () => {
-    await harness.cleanup();
+    agent = await createAgent({
+      app: harness.app,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+      moltbookName: 'CryptoTestAgent',
+    });
   });
 
   afterAll(async () => {
     await harness?.teardown();
   });
 
-  // ── Agent Profile ───────────────────────────────────────────
+  // ── Agent Profile (public) ──────────────────────────────────
 
   describe('GET /agents/:moltbookName', () => {
     it('returns an agent profile', async () => {
-      await agentRepo.upsert({
-        identityId: AGENT_A_ID,
-        moltbookName: 'TestAgent',
-        publicKey: harness.keyPair.publicKey,
-        fingerprint: harness.keyPair.fingerprint,
-      });
-
       const { data, error } = await getAgentProfile({
         client,
-        path: { moltbookName: 'TestAgent' },
+        path: { moltbookName: agent.moltbookName },
       });
 
       expect(error).toBeUndefined();
-      expect(data!.moltbookName).toBe('TestAgent');
-      expect(data!.publicKey).toBe(harness.keyPair.publicKey);
-      expect(data!.fingerprint).toBe(harness.keyPair.fingerprint);
-      expect(data!.moltbookVerified).toBe(false);
+      expect(data!.moltbookName).toBe(agent.moltbookName);
+      expect(data!.publicKey).toBe(agent.keyPair.publicKey);
+      expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
 
     it('returns 404 for unknown agent', async () => {
       const { data, error } = await getAgentProfile({
         client,
-        path: { moltbookName: 'NonExistent' },
+        path: { moltbookName: 'NonExistentAgent42' },
       });
 
       expect(data).toBeUndefined();
@@ -83,29 +68,32 @@ describe('Agents & Crypto', async () => {
     });
   });
 
-  // ── Whoami ──────────────────────────────────────────────────
+  // ── Whoami (authenticated) ──────────────────────────────────
 
   describe('GET /agents/whoami', () => {
     it('returns authenticated agent identity', async () => {
-      await agentRepo.upsert({
-        identityId: AGENT_A_ID,
-        moltbookName: 'TestAgent',
-        publicKey: harness.keyPair.publicKey,
-        fingerprint: harness.keyPair.fingerprint,
-      });
-
       const { data, error } = await getWhoami({
         client,
-        auth: () => AUTH_TOKEN,
+        auth: () => agent.accessToken,
       });
 
       expect(error).toBeUndefined();
-      expect(data!.identityId).toBe(AGENT_A_ID);
-      expect(data!.moltbookName).toBe('TestAgent');
+      expect(data!.identityId).toBe(agent.identityId);
+      expect(data!.moltbookName).toBe(agent.moltbookName);
     });
 
     it('rejects unauthenticated request', async () => {
       const { data, error } = await getWhoami({ client });
+
+      expect(data).toBeUndefined();
+      expect(error).toBeDefined();
+    });
+
+    it('rejects invalid token', async () => {
+      const { data, error } = await getWhoami({
+        client,
+        auth: () => 'definitely-not-a-valid-token',
+      });
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
@@ -115,44 +103,30 @@ describe('Agents & Crypto', async () => {
   // ── Agent Signature Verification ────────────────────────────
 
   describe('POST /agents/:moltbookName/verify', () => {
-    it('verifies a valid signature', async () => {
-      await agentRepo.upsert({
-        identityId: AGENT_A_ID,
-        moltbookName: 'TestAgent',
-        publicKey: harness.keyPair.publicKey,
-        fingerprint: harness.keyPair.fingerprint,
-      });
-
-      const message = 'Hello, MoltNet!';
+    it('verifies a valid Ed25519 signature', async () => {
+      const message = 'Hello, MoltNet! Signed by CryptoTestAgent';
       const signature = await cryptoService.sign(
         message,
-        harness.keyPair.privateKey,
+        agent.keyPair.privateKey,
       );
 
       const { data, error } = await verifyAgentSignature({
         client,
-        path: { moltbookName: 'TestAgent' },
+        path: { moltbookName: agent.moltbookName },
         body: { message, signature },
       });
 
       expect(error).toBeUndefined();
       expect(data!.valid).toBe(true);
       expect(data!.signer).toBeDefined();
-      expect(data!.signer!.moltbookName).toBe('TestAgent');
-      expect(data!.signer!.fingerprint).toBe(harness.keyPair.fingerprint);
+      expect(data!.signer!.moltbookName).toBe(agent.moltbookName);
+      expect(data!.signer!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
 
     it('rejects an invalid signature', async () => {
-      await agentRepo.upsert({
-        identityId: AGENT_A_ID,
-        moltbookName: 'TestAgent',
-        publicKey: harness.keyPair.publicKey,
-        fingerprint: harness.keyPair.fingerprint,
-      });
-
       const { data, error } = await verifyAgentSignature({
         client,
-        path: { moltbookName: 'TestAgent' },
+        path: { moltbookName: agent.moltbookName },
         body: {
           message: 'Hello, MoltNet!',
           signature: 'dGhpcyBpcyBub3QgYSB2YWxpZCBzaWduYXR1cmU=',
@@ -161,18 +135,35 @@ describe('Agents & Crypto', async () => {
 
       expect(error).toBeUndefined();
       expect(data!.valid).toBe(false);
-      expect(data!.signer).toBeUndefined();
+    });
+
+    it('rejects signature from wrong key', async () => {
+      const otherKeyPair = await cryptoService.generateKeyPair();
+      const message = 'Signed by wrong agent';
+      const signature = await cryptoService.sign(
+        message,
+        otherKeyPair.privateKey,
+      );
+
+      const { data, error } = await verifyAgentSignature({
+        client,
+        path: { moltbookName: agent.moltbookName },
+        body: { message, signature },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(false);
     });
   });
 
-  // ── Crypto Verify (public endpoint) ─────────────────────────
+  // ── Crypto Verify (public) ──────────────────────────────────
 
   describe('POST /crypto/verify', () => {
     it('verifies a standalone Ed25519 signature', async () => {
       const message = 'standalone crypto check';
       const signature = await cryptoService.sign(
         message,
-        harness.keyPair.privateKey,
+        agent.keyPair.privateKey,
       );
 
       const { data, error } = await verifyCryptoSignature({
@@ -180,7 +171,7 @@ describe('Agents & Crypto', async () => {
         body: {
           message,
           signature,
-          publicKey: harness.keyPair.publicKey,
+          publicKey: agent.keyPair.publicKey,
         },
       });
 
@@ -191,7 +182,7 @@ describe('Agents & Crypto', async () => {
     it('rejects a tampered message', async () => {
       const signature = await cryptoService.sign(
         'original message',
-        harness.keyPair.privateKey,
+        agent.keyPair.privateKey,
       );
 
       const { data, error } = await verifyCryptoSignature({
@@ -199,7 +190,7 @@ describe('Agents & Crypto', async () => {
         body: {
           message: 'tampered message',
           signature,
-          publicKey: harness.keyPair.publicKey,
+          publicKey: agent.keyPair.publicKey,
         },
       });
 
@@ -214,13 +205,60 @@ describe('Agents & Crypto', async () => {
     it('returns the authenticated agent crypto identity', async () => {
       const { data, error } = await getCryptoIdentity({
         client,
-        auth: () => AUTH_TOKEN,
+        auth: () => agent.accessToken,
       });
 
       expect(error).toBeUndefined();
-      expect(data!.identityId).toBe(AGENT_A_ID);
-      expect(data!.publicKey).toBe(harness.authContext.publicKey);
-      expect(data!.fingerprint).toBe(harness.authContext.fingerprint);
+      expect(data!.identityId).toBe(agent.identityId);
+      expect(data!.publicKey).toBe(agent.keyPair.publicKey);
+      expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
+    });
+  });
+
+  // ── Crypto Challenge Flow ───────────────────────────────────
+
+  describe('Crypto challenge', () => {
+    it('completes a sign-then-verify challenge', async () => {
+      // 1. Generate a challenge message
+      const challenge = cryptoService.generateChallenge();
+
+      // 2. Agent signs the challenge
+      const signature = await cryptoService.sign(
+        challenge,
+        agent.keyPair.privateKey,
+      );
+
+      // 3. Verifier checks via the public API
+      const { data, error } = await verifyCryptoSignature({
+        client,
+        body: {
+          message: challenge,
+          signature,
+          publicKey: agent.keyPair.publicKey,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(true);
+    });
+
+    it('verifies via agent lookup (not just raw public key)', async () => {
+      const challenge = cryptoService.generateChallenge();
+      const signature = await cryptoService.sign(
+        challenge,
+        agent.keyPair.privateKey,
+      );
+
+      // Verify via the agent-scoped endpoint (looks up public key by name)
+      const { data, error } = await verifyAgentSignature({
+        client,
+        path: { moltbookName: agent.moltbookName },
+        body: { message: challenge, signature },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(true);
+      expect(data!.signer!.moltbookName).toBe(agent.moltbookName);
     });
   });
 });

@@ -290,6 +290,9 @@ importers:
       '@moltnet/diary-service':
         specifier: workspace:*
         version: link:../../libs/diary-service
+      '@ory/client':
+        specifier: 'catalog:'
+        version: 1.22.22
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.29.5(@opentelemetry/api@1.9.0)(@types/react@19.2.10)(postgres@3.4.8)(react@19.2.4)

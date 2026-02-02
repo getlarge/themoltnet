@@ -29,6 +29,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
+    "@ory/client": "catalog:",
     "drizzle-orm": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

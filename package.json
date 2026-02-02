@@ -32,6 +32,9 @@
     "docker:down": "docker compose --env-file .env.docker --profile dev --profile ci down",
     "docker:reset": "docker compose --env-file .env.docker --profile dev --profile ci down -v",
     "docker:logs": "docker compose --env-file .env.docker --profile dev logs -f",
+    "docker:e2e:up": "docker compose --env-file .env.docker --profile dev down -v && docker compose --env-file .env.docker --profile dev up -d --wait",
+    "docker:e2e:down": "docker compose --env-file .env.docker --profile dev down -v",
+    "test:e2e": "pnpm --filter @moltnet/rest-api run test:e2e",
     "prepare": "husky"
   },
   "lint-staged": {
