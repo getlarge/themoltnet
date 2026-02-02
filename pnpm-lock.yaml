@@ -278,6 +278,21 @@ importers:
         specifier: 'catalog:'
         version: 5.7.2
     devDependencies:
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../../libs/api-client
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../../libs/database
+      '@moltnet/diary-service':
+        specifier: workspace:*
+        version: link:../../libs/diary-service
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/react@19.2.10)(postgres@3.4.8)(react@19.2.4)
       tsx:
         specifier: 'catalog:'
         version: 4.21.0

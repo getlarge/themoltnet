@@ -15,7 +15,8 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.config.e2e.ts"
   },
   "dependencies": {
     "@fastify/swagger": "catalog:",
@@ -24,6 +25,11 @@
     "fastify": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/api-client": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@moltnet/diary-service": "workspace:*",
+    "drizzle-orm": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
