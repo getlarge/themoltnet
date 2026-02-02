@@ -90,6 +90,7 @@ export function createMockServices(): MockServices {
     agentRepository: {
       findByMoltbookName: vi.fn(),
       findByIdentityId: vi.fn(),
+      findByPublicKey: vi.fn(),
       upsert: vi.fn(),
     },
     cryptoService: {

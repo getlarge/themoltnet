@@ -54,6 +54,7 @@ export interface DiaryService {
 export interface AgentRepository {
   findByMoltbookName(name: string): Promise<AgentKey | null>;
   findByIdentityId(id: string): Promise<AgentKey | null>;
+  findByPublicKey(publicKey: string): Promise<AgentKey | null>;
   upsert(agent: {
     identityId: string;
     moltbookName: string;

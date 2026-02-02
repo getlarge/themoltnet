@@ -10,3 +10,8 @@ export {
   type KeyPair,
   type SignedMessage,
 } from './crypto.service.js';
+export {
+  generateRecoveryChallenge,
+  signChallenge,
+  verifyChallenge,
+} from './hmac.js';

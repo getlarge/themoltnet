@@ -5,6 +5,7 @@ import {
   loadDatabaseConfig,
   loadObservabilityConfig,
   loadOryConfig,
+  loadRecoveryConfig,
   loadServerConfig,
   loadWebhookConfig,
   resolveOryUrls,
@@ -21,6 +22,7 @@ const validEnv = {
   AXIOM_LOGS_DATASET: 'moltnet-logs',
   AXIOM_TRACES_DATASET: 'moltnet-traces',
   AXIOM_METRICS_DATASET: 'moltnet-metrics',
+  RECOVERY_CHALLENGE_SECRET: 'test-recovery-secret-at-least-16',
 };
 
 // ============================================================================
@@ -46,9 +48,9 @@ describe('loadServerConfig', () => {
   });
 
   it('rejects invalid NODE_ENV', () => {
-    expect(() =>
-      loadServerConfig({ NODE_ENV: 'invalid' }),
-    ).toThrow('Invalid Server config');
+    expect(() => loadServerConfig({ NODE_ENV: 'invalid' })).toThrow(
+      'Invalid Server config',
+    );
   });
 });
 
@@ -87,9 +89,9 @@ describe('loadWebhookConfig', () => {
   });
 
   it('throws when ORY_ACTION_API_KEY is empty string', () => {
-    expect(() =>
-      loadWebhookConfig({ ORY_ACTION_API_KEY: '' }),
-    ).toThrow('Invalid Webhook config');
+    expect(() => loadWebhookConfig({ ORY_ACTION_API_KEY: '' })).toThrow(
+      'Invalid Webhook config',
+    );
   });
 });
 
@@ -150,6 +152,29 @@ describe('loadObservabilityConfig', () => {
 });
 
 // ============================================================================
+// RecoveryConfig
+// ============================================================================
+
+describe('loadRecoveryConfig', () => {
+  it('parses valid config', () => {
+    const config = loadRecoveryConfig({
+      RECOVERY_CHALLENGE_SECRET: 'a-secret-at-least-16-chars',
+    });
+    expect(config.RECOVERY_CHALLENGE_SECRET).toBe('a-secret-at-least-16-chars');
+  });
+
+  it('throws when RECOVERY_CHALLENGE_SECRET is missing', () => {
+    expect(() => loadRecoveryConfig({})).toThrow('Invalid Recovery config');
+  });
+
+  it('throws when RECOVERY_CHALLENGE_SECRET is too short', () => {
+    expect(() =>
+      loadRecoveryConfig({ RECOVERY_CHALLENGE_SECRET: 'short' }),
+    ).toThrow('Invalid Recovery config');
+  });
+});
+
+// ============================================================================
 // loadConfig (combined)
 // ============================================================================
 
@@ -158,12 +183,13 @@ describe('loadConfig', () => {
     const config = loadConfig(validEnv);
     expect(config.server.PORT).toBe(8000);
     expect(config.server.NODE_ENV).toBe('production');
-    expect(config.database.DATABASE_URL).toBe(
-      'postgresql://localhost/moltnet',
-    );
+    expect(config.database.DATABASE_URL).toBe('postgresql://localhost/moltnet');
     expect(config.webhook.ORY_ACTION_API_KEY).toBe('test-webhook-key');
     expect(config.ory.ORY_PROJECT_URL).toBe('https://ory.example.com');
     expect(config.observability.AXIOM_API_TOKEN).toBe('xaat-xxx');
+    expect(config.recovery.RECOVERY_CHALLENGE_SECRET).toBe(
+      'test-recovery-secret-at-least-16',
+    );
   });
 
   it('throws when a required field is missing', () => {
