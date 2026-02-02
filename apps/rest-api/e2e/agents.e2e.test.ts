@@ -34,7 +34,6 @@ describe('Agents & Crypto', () => {
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
       webhookApiKey: harness.webhookApiKey,
-      moltbookName: 'CryptoTestAgent',
     });
   });
 

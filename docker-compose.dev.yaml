@@ -45,6 +45,11 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: kratos
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+      mailslurper:
+        condition: service_started
 
   hydra-migrate:
     extends:
@@ -55,6 +60,9 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: hydra
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
 
   keto-migrate:
     extends:
@@ -65,6 +73,9 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: keto
+    depends_on:
+      keto-migrate:
+        condition: service_completed_successfully
 
   otel-collector:
     extends:

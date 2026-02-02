@@ -63,6 +63,13 @@ services:
     volumes:
       - ./infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
       - ./infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'netstat -an | grep -q 4434']
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
   # ==========================================================================
   # Ory Hydra — OAuth2 & OpenID Connect
   # ==========================================================================
@@ -103,6 +110,13 @@ services:
       OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${OIDC_PAIRWISE_SALT:-local-dev-salt-not-for-production}
     volumes:
       - ./infra/ory/hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'netstat -an | grep -q 4444']
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
   # ==========================================================================
   # Ory Keto — Permissions / Authorization
   # ==========================================================================
@@ -140,6 +154,13 @@ services:
     volumes:
       - ./infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'netstat -an | grep -q 4466']
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
   # ==========================================================================
   # OpenTelemetry Collector
   # ==========================================================================
