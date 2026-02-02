@@ -73,6 +73,12 @@ services:
       POSTGRES_USER: hydra
       POSTGRES_PASSWORD: hydra_secret
       POSTGRES_DB: hydradb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hydra']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
   hydra-migrate:
     image: oryd/hydra:v2.3.0
     profiles: [dev, ci]
@@ -107,6 +113,12 @@ services:
       POSTGRES_USER: keto
       POSTGRES_PASSWORD: keto_secret
       POSTGRES_DB: ketodb
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U keto']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
   keto-migrate:
     image: oryd/keto:v0.14.0
     profiles: [dev, ci]
