@@ -14,7 +14,8 @@
   "scripts": {
     "generate": "openapi-ts",
     "build": "tsc",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@hey-api/client-fetch": "catalog:",
