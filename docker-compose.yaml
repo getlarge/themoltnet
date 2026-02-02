@@ -215,11 +215,8 @@ services:
       - '13133:13133' # Health check
     volumes:
       - ./infra/otel/collector-config.dev.yaml:/etc/otelcol/config.yaml:ro
-    healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:13133']
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    # No healthcheck - wget/curl not available in minimal image
+    # Service is non-critical for e2e tests (observability only)
     restart: unless-stopped
 
   # ==========================================================================
