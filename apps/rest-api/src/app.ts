@@ -93,12 +93,5 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
 
-  // Debug: print all registered routes
-  await app.ready();
-  console.log('Registered routes:');
-  for (const route of app.printRoutes({ commonPrefix: false }).split('\n')) {
-    console.log(route);
-  }
-
   return app;
 }

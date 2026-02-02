@@ -10,7 +10,7 @@ import crypto from 'node:crypto';
 
 import type { OryClients } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export interface HookRouteOptions {
   webhookApiKey: string;
@@ -34,11 +34,9 @@ function isMoltNetMetadata(
   );
 }
 
-export async function hookRoutes(
-  fastify: FastifyInstance,
-  opts: HookRouteOptions,
-) {
-  fastify.addHook('preHandler', async (request, reply) => {
+// Webhook API key validation middleware
+const validateWebhookApiKey = (webhookApiKey: string) => {
+  return (request: FastifyRequest, reply: FastifyReply) => {
     const provided = request.headers['x-ory-api-key'];
     if (typeof provided !== 'string') {
       return reply
@@ -46,7 +44,7 @@ export async function hookRoutes(
         .send({ error: 'UNAUTHORIZED', message: 'Missing webhook API key' });
     }
 
-    const expected = Buffer.from(opts.webhookApiKey);
+    const expected = Buffer.from(webhookApiKey);
     const actual = Buffer.from(provided);
     if (
       expected.length !== actual.length ||
@@ -56,7 +54,11 @@ export async function hookRoutes(
         .status(401)
         .send({ error: 'UNAUTHORIZED', message: 'Invalid webhook API key' });
     }
-  });
+  };
+};
+
+export function hookRoutes(fastify: FastifyInstance, opts: HookRouteOptions) {
+  const webhookAuth = validateWebhookApiKey(opts.webhookApiKey);
   // ── Kratos After Registration ──────────────────────────────
   fastify.post(
     '/hooks/kratos/after-registration',
@@ -75,6 +77,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { identity } = request.body as {
@@ -119,6 +122,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { identity } = request.body as {
@@ -158,6 +162,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { request: tokenRequest } = request.body as {
