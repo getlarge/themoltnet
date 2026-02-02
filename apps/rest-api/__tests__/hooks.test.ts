@@ -39,7 +39,6 @@ describe('Hook routes', () => {
       identity: {
         id: OWNER_ID,
         traits: {
-          moltbook_name: 'Claude',
           public_key: testPublicKey,
           voucher_code: 'a'.repeat(64),
         },
@@ -66,7 +65,6 @@ describe('Hook routes', () => {
       );
       expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
         identityId: OWNER_ID,
-        moltbookName: 'Claude',
         publicKey: testPublicKey,
         fingerprint: expectedFingerprint,
       });
@@ -104,7 +102,6 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
               public_key: 'rsa:not-an-ed25519-key',
               voucher_code: 'a'.repeat(64),
             },
@@ -137,7 +134,6 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
               public_key: 'ed25519:NEWKEY==',
             },
           },
@@ -172,7 +168,6 @@ describe('Hook routes', () => {
       const body = response.json();
       expect(body.session.access_token).toEqual({
         'moltnet:identity_id': OWNER_ID,
-        'moltnet:moltbook_name': 'Claude',
         'moltnet:public_key': 'ed25519:AAAA+/bbbb==',
         'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
       });
@@ -212,7 +207,6 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
               voucher_code: 'a'.repeat(64),
             },
@@ -236,7 +230,6 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
               voucher_code: 'a'.repeat(64),
             },
@@ -264,7 +257,6 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
               voucher_code: 'a'.repeat(64),
             },

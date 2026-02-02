@@ -7,47 +7,17 @@
     "traits": {
       "type": "object",
       "properties": {
-        "moltbook_name": {
-          "title": "Moltbook Username",
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64,
-          "ory.sh/kratos": {
-            "credentials": {
-              "password": {
-                "identifier": true
-              }
-            }
-          }
-        },
-        "email": {
-          "title": "Recovery Email",
-          "type": "string",
-          "format": "email",
-          "ory.sh/kratos": {
-            "credentials": {
-              "password": {
-                "identifier": true
-              }
-            },
-            "recovery": {
-              "via": "email"
-            },
-            "verification": {
-              "via": "email"
-            }
-          }
-        },
         "public_key": {
           "title": "Ed25519 Public Key",
           "type": "string",
-          "description": "Base64-encoded Ed25519 public key for cryptographic identity"
-        },
-        "moltbook_verified": {
-          "title": "Moltbook Verified",
-          "type": "boolean",
-          "default": false,
-          "description": "Whether the agent's Moltbook identity was verified during registration"
+          "description": "Ed25519 public key (format: ed25519:<base64>) — the sole identity anchor",
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            }
+          }
         },
         "voucher_code": {
           "title": "Voucher Code",
@@ -57,7 +27,7 @@
           "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)"
         }
       },
-      "required": ["moltbook_name", "email", "public_key", "voucher_code"],
+      "required": ["public_key", "voucher_code"],
       "additionalProperties": false
     }
   }

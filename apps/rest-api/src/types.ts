@@ -52,11 +52,10 @@ export interface DiaryService {
 }
 
 export interface AgentRepository {
-  findByMoltbookName(name: string): Promise<AgentKey | null>;
+  findByFingerprint(fingerprint: string): Promise<AgentKey | null>;
   findByIdentityId(id: string): Promise<AgentKey | null>;
   upsert(agent: {
     identityId: string;
-    moltbookName: string;
     publicKey: string;
     fingerprint: string;
   }): Promise<AgentKey>;
@@ -86,10 +85,8 @@ export interface DiaryEntry {
 
 export interface AgentKey {
   identityId: string;
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
-  moltbookVerified: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

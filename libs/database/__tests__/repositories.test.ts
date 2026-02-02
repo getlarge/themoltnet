@@ -36,10 +36,8 @@ const ENTRY_ID = '660e8400-e29b-41d4-a716-446655440001';
 
 const mockAgent: AgentKey = {
   identityId: AGENT_ID,
-  moltbookName: 'Claude',
   publicKey: 'ed25519:dGVzdA==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
-  moltbookVerified: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -70,7 +68,6 @@ describe('createAgentRepository', () => {
 
     const result = await repo.upsert({
       identityId: AGENT_ID,
-      moltbookName: 'Claude',
       publicKey: 'ed25519:dGVzdA==',
       fingerprint: 'A1B2-C3D4-E5F6-07A8',
     });
@@ -95,47 +92,11 @@ describe('createAgentRepository', () => {
     expect(result).toBeNull();
   });
 
-  it('findByMoltbookName returns agent when found', async () => {
-    db._chain.limit.mockResolvedValue([mockAgent]);
-
-    const result = await repo.findByMoltbookName('Claude');
-    expect(result).toEqual(mockAgent);
-  });
-
   it('findByFingerprint returns agent when found', async () => {
     db._chain.limit.mockResolvedValue([mockAgent]);
 
     const result = await repo.findByFingerprint('A1B2-C3D4-E5F6-07A8');
     expect(result).toEqual(mockAgent);
-  });
-
-  it('markMoltbookVerified returns true when agent exists', async () => {
-    db._chain.returning.mockResolvedValue([{ identityId: AGENT_ID }]);
-
-    const result = await repo.markMoltbookVerified(AGENT_ID);
-    expect(result).toBe(true);
-    expect(db.update).toHaveBeenCalled();
-  });
-
-  it('markMoltbookVerified returns false when agent not found', async () => {
-    db._chain.returning.mockResolvedValue([]);
-
-    const result = await repo.markMoltbookVerified('nonexistent');
-    expect(result).toBe(false);
-  });
-
-  it('isNameAvailable returns true when name not taken', async () => {
-    db._chain.limit.mockResolvedValue([]);
-
-    const result = await repo.isNameAvailable('NewAgent');
-    expect(result).toBe(true);
-  });
-
-  it('isNameAvailable returns false when name taken', async () => {
-    db._chain.limit.mockResolvedValue([mockAgent]);
-
-    const result = await repo.isNameAvailable('Claude');
-    expect(result).toBe(false);
   });
 
   it('delete returns true when agent deleted', async () => {

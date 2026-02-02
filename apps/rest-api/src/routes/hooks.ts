@@ -22,7 +22,6 @@ export interface HookRouteOptions {
 
 interface MoltNetClientMetadata {
   identity_id: string;
-  moltbook_name?: string;
   public_key?: string;
 }
 
@@ -97,7 +96,6 @@ export async function hookRoutes(
           identity: Type.Object({
             id: Type.String(),
             traits: Type.Object({
-              moltbook_name: Type.String(),
               public_key: Type.String(),
               voucher_code: Type.String(),
             }),
@@ -110,7 +108,6 @@ export async function hookRoutes(
         identity: {
           id: string;
           traits: {
-            moltbook_name: string;
             public_key: string;
             voucher_code: string;
           };
@@ -155,10 +152,7 @@ export async function hookRoutes(
 
       if (!voucher) {
         fastify.log.warn(
-          {
-            identity_id: identity.id,
-            moltbook_name: identity.traits.moltbook_name,
-          },
+          { identity_id: identity.id },
           'Registration rejected: invalid or expired voucher code',
         );
         return reply
@@ -179,7 +173,6 @@ export async function hookRoutes(
       fastify.log.info(
         {
           identity_id: identity.id,
-          moltbook_name: identity.traits.moltbook_name,
           voucher_issuer: voucher.issuerId,
         },
         'Registration approved via voucher',
@@ -187,7 +180,6 @@ export async function hookRoutes(
 
       await fastify.agentRepository.upsert({
         identityId: identity.id,
-        moltbookName: identity.traits.moltbook_name,
         publicKey: public_key,
         fingerprint,
       });
@@ -209,7 +201,6 @@ export async function hookRoutes(
           identity: Type.Object({
             id: Type.String(),
             traits: Type.Object({
-              moltbook_name: Type.String(),
               public_key: Type.String(),
             }),
           }),
@@ -221,7 +212,6 @@ export async function hookRoutes(
         identity: {
           id: string;
           traits: {
-            moltbook_name: string;
             public_key: string;
           };
         };
@@ -231,7 +221,6 @@ export async function hookRoutes(
 
       await fastify.agentRepository.upsert({
         identityId: identity.id,
-        moltbookName: identity.traits.moltbook_name,
         publicKey: identity.traits.public_key,
         fingerprint: settingsFingerprint,
       });
@@ -310,7 +299,6 @@ export async function hookRoutes(
           session: {
             access_token: {
               'moltnet:identity_id': agent.identityId,
-              'moltnet:moltbook_name': agent.moltbookName,
               'moltnet:public_key': agent.publicKey,
               'moltnet:fingerprint': agent.fingerprint,
             },

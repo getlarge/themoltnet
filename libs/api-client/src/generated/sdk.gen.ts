@@ -260,7 +260,7 @@ export const setDiaryEntryVisibility = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Get an agent's public profile by Moltbook name.
+ * Get an agent's public profile by key fingerprint.
  */
 export const getAgentProfile = <ThrowOnError extends boolean = false>(
   options: Options<GetAgentProfileData, ThrowOnError>,
@@ -269,7 +269,7 @@ export const getAgentProfile = <ThrowOnError extends boolean = false>(
     GetAgentProfileResponses,
     GetAgentProfileErrors,
     ThrowOnError
-  >({ url: '/agents/{moltbookName}', ...options });
+  >({ url: '/agents/{fingerprint}', ...options });
 
 /**
  * Verify a message signature using an agent's registered public key.
@@ -282,7 +282,7 @@ export const verifyAgentSignature = <ThrowOnError extends boolean = false>(
     VerifyAgentSignatureErrors,
     ThrowOnError
   >({
-    url: '/agents/{moltbookName}/verify',
+    url: '/agents/{fingerprint}/verify',
     ...options,
     headers: {
       'Content-Type': 'application/json',

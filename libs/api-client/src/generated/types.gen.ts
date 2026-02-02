@@ -61,24 +61,19 @@ export type Success = {
 };
 
 export type AgentProfile = {
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
-  moltbookVerified: boolean;
 };
 
 export type Whoami = {
   identityId: string;
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
-  moltbookVerified: boolean;
 };
 
 export type VerifyResult = {
   valid: boolean;
   signer?: {
-    moltbookName: string;
     fingerprint: string;
   };
 };
@@ -89,7 +84,6 @@ export type CryptoVerifyResult = {
 
 export type CryptoIdentity = {
   identityId: string;
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
 };
@@ -447,10 +441,10 @@ export type SetDiaryEntryVisibilityResponse =
 export type GetAgentProfileData = {
   body?: never;
   path: {
-    moltbookName: string;
+    fingerprint: string;
   };
   query?: never;
-  url: '/agents/{moltbookName}';
+  url: '/agents/{fingerprint}';
 };
 
 export type GetAgentProfileErrors = {
@@ -479,10 +473,10 @@ export type VerifyAgentSignatureData = {
     signature: string;
   };
   path: {
-    moltbookName: string;
+    fingerprint: string;
   };
   query?: never;
-  url: '/agents/{moltbookName}/verify';
+  url: '/agents/{fingerprint}/verify';
 };
 
 export type VerifyAgentSignatureErrors = {

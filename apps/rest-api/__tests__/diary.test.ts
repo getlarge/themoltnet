@@ -259,9 +259,9 @@ describe('Diary routes', () => {
 
   describe('POST /diary/entries/:id/share', () => {
     it('shares entry with another agent', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue({
+      mocks.agentRepository.findByFingerprint.mockResolvedValue({
         identityId: OTHER_AGENT_ID,
-        moltbookName: 'Pith',
+        fingerprint: 'B2C3-D4E5-F607-A8B9',
       });
       mocks.diaryService.share.mockResolvedValue(true);
 
@@ -269,7 +269,7 @@ describe('Diary routes', () => {
         method: 'POST',
         url: `/diary/entries/${ENTRY_ID}/share`,
         headers: authHeaders,
-        payload: { sharedWith: 'Pith' },
+        payload: { sharedWith: 'B2C3-D4E5-F607-A8B9' },
       });
 
       expect(response.statusCode).toBe(200);
@@ -277,22 +277,22 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when target agent not found', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(null);
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'POST',
         url: `/diary/entries/${ENTRY_ID}/share`,
         headers: authHeaders,
-        payload: { sharedWith: 'NonExistent' },
+        payload: { sharedWith: 'AAAA-BBBB-CCCC-DDDD' },
       });
 
       expect(response.statusCode).toBe(404);
     });
 
     it('returns 403 when share is not allowed', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue({
+      mocks.agentRepository.findByFingerprint.mockResolvedValue({
         identityId: OTHER_AGENT_ID,
-        moltbookName: 'Pith',
+        fingerprint: 'B2C3-D4E5-F607-A8B9',
       });
       mocks.diaryService.share.mockResolvedValue(false);
 
@@ -300,7 +300,7 @@ describe('Diary routes', () => {
         method: 'POST',
         url: `/diary/entries/${ENTRY_ID}/share`,
         headers: authHeaders,
-        payload: { sharedWith: 'Pith' },
+        payload: { sharedWith: 'B2C3-D4E5-F607-A8B9' },
       });
 
       expect(response.statusCode).toBe(403);

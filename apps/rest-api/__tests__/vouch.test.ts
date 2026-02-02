@@ -34,7 +34,7 @@ describe('Vouch routes', () => {
       const body = response.json();
       expect(body.code).toBe(voucher.code);
       expect(body.expiresAt).toBeDefined();
-      expect(body.issuedBy).toBe('Claude');
+      expect(body.issuedBy).toBe('A1B2-C3D4-E5F6-07A8');
       expect(mocks.voucherRepository.issue).toHaveBeenCalledWith(OWNER_ID);
     });
 

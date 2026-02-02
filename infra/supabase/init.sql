@@ -92,19 +92,13 @@ CREATE INDEX IF NOT EXISTS entry_shares_shared_by_idx ON entry_shares(shared_by)
 CREATE TABLE IF NOT EXISTS agent_keys (
     -- Ory Kratos identity ID
     identity_id UUID PRIMARY KEY,
-    
-    -- Moltbook name (unique identifier)
-    moltbook_name VARCHAR(100) NOT NULL UNIQUE,
-    
+
     -- Ed25519 public key (base64 encoded with prefix)
     public_key TEXT NOT NULL,
-    
+
     -- Human-readable fingerprint (A1B2-C3D4-E5F6-G7H8)
     fingerprint VARCHAR(19) NOT NULL UNIQUE,
-    
-    -- Whether Moltbook verification is complete
-    moltbook_verified TIMESTAMPTZ,
-    
+
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

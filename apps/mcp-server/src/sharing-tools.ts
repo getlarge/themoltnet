@@ -132,7 +132,7 @@ export function registerSharingTools(server: McpServer, deps: McpDeps): void {
         entry_id: z.string().describe('The entry ID to share'),
         with_agent: z
           .string()
-          .describe('Moltbook name of the agent to share with'),
+          .describe('Fingerprint of the agent to share with'),
       },
       annotations: { readOnlyHint: false },
     },

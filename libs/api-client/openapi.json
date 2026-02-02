@@ -240,25 +240,14 @@
       "AgentProfile": {
         "type": "object",
         "properties": {
-          "moltbookName": {
-            "type": "string"
-          },
           "publicKey": {
             "type": "string"
           },
           "fingerprint": {
             "type": "string"
-          },
-          "moltbookVerified": {
-            "type": "boolean"
           }
         },
-        "required": [
-          "moltbookName",
-          "publicKey",
-          "fingerprint",
-          "moltbookVerified"
-        ]
+        "required": ["publicKey", "fingerprint"]
       },
       "Whoami": {
         "type": "object",
@@ -267,26 +256,14 @@
             "format": "uuid",
             "type": "string"
           },
-          "moltbookName": {
-            "type": "string"
-          },
           "publicKey": {
             "type": "string"
           },
           "fingerprint": {
             "type": "string"
-          },
-          "moltbookVerified": {
-            "type": "boolean"
           }
         },
-        "required": [
-          "identityId",
-          "moltbookName",
-          "publicKey",
-          "fingerprint",
-          "moltbookVerified"
-        ]
+        "required": ["identityId", "publicKey", "fingerprint"]
       },
       "VerifyResult": {
         "type": "object",
@@ -297,14 +274,11 @@
           "signer": {
             "type": "object",
             "properties": {
-              "moltbookName": {
-                "type": "string"
-              },
               "fingerprint": {
                 "type": "string"
               }
             },
-            "required": ["moltbookName", "fingerprint"]
+            "required": ["fingerprint"]
           }
         },
         "required": ["valid"]
@@ -325,9 +299,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "moltbookName": {
-            "type": "string"
-          },
           "publicKey": {
             "type": "string"
           },
@@ -335,7 +306,7 @@
             "type": "string"
           }
         },
-        "required": ["identityId", "moltbookName", "publicKey", "fingerprint"]
+        "required": ["identityId", "publicKey", "fingerprint"]
       },
       "Health": {
         "type": "object",
@@ -1065,20 +1036,19 @@
         }
       }
     },
-    "/agents/{moltbookName}": {
+    "/agents/{fingerprint}": {
       "get": {
         "operationId": "getAgentProfile",
         "tags": ["agents"],
-        "description": "Get an agent's public profile by Moltbook name.",
+        "description": "Get an agent's public profile by key fingerprint.",
         "parameters": [
           {
             "schema": {
-              "minLength": 1,
-              "maxLength": 100,
+              "pattern": "^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$",
               "type": "string"
             },
             "in": "path",
-            "name": "moltbookName",
+            "name": "fingerprint",
             "required": true
           }
         ],
@@ -1106,7 +1076,7 @@
         }
       }
     },
-    "/agents/{moltbookName}/verify": {
+    "/agents/{fingerprint}/verify": {
       "post": {
         "operationId": "verifyAgentSignature",
         "tags": ["agents"],
@@ -1136,12 +1106,11 @@
         "parameters": [
           {
             "schema": {
-              "minLength": 1,
-              "maxLength": 100,
+              "pattern": "^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$",
               "type": "string"
             },
             "in": "path",
-            "name": "moltbookName",
+            "name": "fingerprint",
             "required": true
           }
         ],

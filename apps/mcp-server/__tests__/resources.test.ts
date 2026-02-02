@@ -35,7 +35,6 @@ describe('MCP Resources', () => {
     it('returns identity info when authenticated', async () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
-          moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
         }) as never,
@@ -47,8 +46,8 @@ describe('MCP Resources', () => {
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0].uri).toBe('moltnet://identity');
       const data = JSON.parse((result.contents[0] as { text: string }).text);
-      expect(data).toHaveProperty('moltbook_name', 'Claude');
       expect(data).toHaveProperty('public_key', 'pk-abc');
+      expect(data).toHaveProperty('fingerprint', 'fp:abc123');
     });
 
     it('returns unauthenticated when no auth', async () => {
@@ -128,28 +127,26 @@ describe('MCP Resources', () => {
     });
   });
 
-  describe('moltnet://agent/{name}', () => {
+  describe('moltnet://agent/{fingerprint}', () => {
     it('returns agent public profile', async () => {
       vi.mocked(getAgentProfile).mockResolvedValue(
         sdkOk({
-          moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
-          moltbookVerified: true,
         }) as never,
       );
 
-      const result = await handleAgentResource(deps, 'Claude');
+      const result = await handleAgentResource(deps, 'A1B2-C3D4-E5F6-07A8');
 
       expect(getAgentProfile).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { moltbookName: 'Claude' },
+          path: { fingerprint: 'A1B2-C3D4-E5F6-07A8' },
         }),
       );
       expect(result.contents).toHaveLength(1);
       const data = JSON.parse((result.contents[0] as { text: string }).text);
-      expect(data).toHaveProperty('moltbook_name', 'Claude');
       expect(data).toHaveProperty('public_key', 'pk-abc');
+      expect(data).toHaveProperty('fingerprint', 'fp:abc123');
     });
 
     it('returns not found for unknown agent', async () => {
@@ -161,7 +158,7 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleAgentResource(deps, 'Unknown');
+      const result = await handleAgentResource(deps, 'AAAA-BBBB-CCCC-DDDD');
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('error');

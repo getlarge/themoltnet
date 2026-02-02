@@ -22,10 +22,8 @@ export function createAgentRepository(db: Database) {
         .onConflictDoUpdate({
           target: agentKeys.identityId,
           set: {
-            moltbookName: agent.moltbookName,
             publicKey: agent.publicKey,
             fingerprint: agent.fingerprint,
-            moltbookVerified: agent.moltbookVerified,
             updatedAt: new Date(),
           },
         })
@@ -48,19 +46,6 @@ export function createAgentRepository(db: Database) {
     },
 
     /**
-     * Find agent by Moltbook name
-     */
-    async findByMoltbookName(moltbookName: string): Promise<AgentKey | null> {
-      const [agent] = await db
-        .select()
-        .from(agentKeys)
-        .where(eq(agentKeys.moltbookName, moltbookName))
-        .limit(1);
-
-      return agent || null;
-    },
-
-    /**
      * Find agent by key fingerprint
      */
     async findByFingerprint(fingerprint: string): Promise<AgentKey | null> {
@@ -71,38 +56,6 @@ export function createAgentRepository(db: Database) {
         .limit(1);
 
       return agent || null;
-    },
-
-    /**
-     * Get public key for an agent (for signature verification or encryption)
-     */
-    async getPublicKey(moltbookName: string): Promise<string | null> {
-      const agent = await this.findByMoltbookName(moltbookName);
-      return agent?.publicKey || null;
-    },
-
-    /**
-     * Mark agent as Moltbook verified
-     */
-    async markMoltbookVerified(identityId: string): Promise<boolean> {
-      const result = await db
-        .update(agentKeys)
-        .set({
-          moltbookVerified: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(agentKeys.identityId, identityId))
-        .returning({ identityId: agentKeys.identityId });
-
-      return result.length > 0;
-    },
-
-    /**
-     * Check if Moltbook name is available
-     */
-    async isNameAvailable(moltbookName: string): Promise<boolean> {
-      const agent = await this.findByMoltbookName(moltbookName);
-      return agent === null;
     },
 
     /**

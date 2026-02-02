@@ -30,7 +30,6 @@ export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 export const VALID_AUTH_CONTEXT: AuthContext = {
   identityId: OWNER_ID,
-  moltbookName: 'Claude',
   publicKey: 'ed25519:AAAA+/bbbb==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
   clientId: 'hydra-client-uuid',
@@ -57,10 +56,8 @@ export function createMockEntry(
 export function createMockAgent(overrides: Partial<AgentKey> = {}): AgentKey {
   return {
     identityId: OWNER_ID,
-    moltbookName: 'Claude',
     publicKey: 'ed25519:AAAA+/bbbb==',
     fingerprint: 'A1B2-C3D4-E5F6-07A8',
-    moltbookVerified: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
@@ -108,7 +105,7 @@ export function createMockServices(): MockServices {
       reflect: vi.fn(),
     },
     agentRepository: {
-      findByMoltbookName: vi.fn(),
+      findByFingerprint: vi.fn(),
       findByIdentityId: vi.fn(),
       upsert: vi.fn(),
     },

@@ -362,11 +362,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { sharedWith } = request.body as { sharedWith: string };
 
       const targetAgent =
-        await fastify.agentRepository.findByMoltbookName(sharedWith);
+        await fastify.agentRepository.findByFingerprint(sharedWith);
       if (!targetAgent) {
         return reply.status(404).send({
           error: 'NOT_FOUND',
-          message: `Agent "${sharedWith}" not found`,
+          message: `Agent with fingerprint "${sharedWith}" not found`,
           statusCode: 404,
         });
       }

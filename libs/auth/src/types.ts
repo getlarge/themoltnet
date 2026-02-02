@@ -4,7 +4,6 @@
 
 export interface AuthContext {
   identityId: string;
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
   clientId: string;

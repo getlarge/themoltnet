@@ -50,7 +50,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
       return reply.status(201).send({
         code: voucher.code,
         expiresAt: voucher.expiresAt.toISOString(),
-        issuedBy: request.authContext!.moltbookName,
+        issuedBy: request.authContext!.fingerprint,
       });
     },
   );
@@ -82,7 +82,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         vouchers: vouchers.map((v) => ({
           code: v.code,
           expiresAt: v.expiresAt.toISOString(),
-          issuedBy: request.authContext!.moltbookName,
+          issuedBy: request.authContext!.fingerprint,
         })),
       };
     },

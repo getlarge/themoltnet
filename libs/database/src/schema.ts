@@ -149,17 +149,11 @@ export const agentKeys = pgTable(
     // Ory Kratos identity ID
     identityId: uuid('identity_id').primaryKey(),
 
-    // Moltbook name (unique identifier)
-    moltbookName: varchar('moltbook_name', { length: 100 }).notNull(),
-
     // Ed25519 public key (base64 encoded with prefix)
     publicKey: text('public_key').notNull(),
 
     // Human-readable fingerprint (A1B2-C3D4-E5F6-G7H8)
     fingerprint: varchar('fingerprint', { length: 19 }).notNull(),
-
-    // Whether Moltbook verification is complete
-    moltbookVerified: timestamp('moltbook_verified', { withTimezone: true }),
 
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -170,11 +164,6 @@ export const agentKeys = pgTable(
       .notNull(),
   },
   (table) => ({
-    // Unique Moltbook name
-    moltbookNameIdx: uniqueIndex('agent_keys_moltbook_name_idx').on(
-      table.moltbookName,
-    ),
-
     // Unique fingerprint
     fingerprintIdx: uniqueIndex('agent_keys_fingerprint_idx').on(
       table.fingerprint,

@@ -52,17 +52,15 @@ function extractAuthContextFromClaims(
   scopes: string[],
 ): AuthContext | null {
   const identityId = claims['moltnet:identity_id'] as string | undefined;
-  const moltbookName = claims['moltnet:moltbook_name'] as string | undefined;
   const publicKey = claims['moltnet:public_key'] as string | undefined;
-  const fingerprint = claims['moltnet:key_fingerprint'] as string | undefined;
+  const fingerprint = claims['moltnet:fingerprint'] as string | undefined;
 
-  if (!identityId || !moltbookName || !publicKey || !fingerprint) {
+  if (!identityId || !publicKey || !fingerprint) {
     return null;
   }
 
   return {
     identityId,
-    moltbookName,
     publicKey,
     fingerprint,
     clientId,
@@ -86,22 +84,15 @@ async function fetchClientMetadata(
     }
 
     const metaIdentityId = metadata.identity_id;
-    const metaMoltbookName = metadata.moltbook_name;
     const metaPublicKey = metadata.public_key;
-    const metaFingerprint = metadata.key_fingerprint;
+    const metaFingerprint = metadata.fingerprint;
 
-    if (
-      !metaIdentityId ||
-      !metaMoltbookName ||
-      !metaPublicKey ||
-      !metaFingerprint
-    ) {
+    if (!metaIdentityId || !metaPublicKey || !metaFingerprint) {
       return null;
     }
 
     return {
       identityId: metaIdentityId,
-      moltbookName: metaMoltbookName,
       publicKey: metaPublicKey,
       fingerprint: metaFingerprint,
       clientId,
