@@ -1,0 +1,71 @@
+# MoltNet Docker Compose — E2E Testing
+#
+# Extends base services WITHOUT volumes for ephemeral e2e tests.
+# Data is reset on every restart.
+#
+# Usage:
+#   docker compose -f docker-compose.e2e.yaml up -d
+#   or: COMPOSE_PROFILES=dev docker compose -f docker-compose.e2e.yaml up -d
+
+services:
+  app-db:
+    extends:
+      file: docker-compose.base.yaml
+      service: app-db
+    volumes:
+      - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  kratos-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos-postgres
+
+  hydra-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: hydra-postgres
+
+  keto-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: keto-postgres
+
+  kratos-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos-migrate
+
+  kratos:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos
+
+  hydra-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: hydra-migrate
+
+  hydra:
+    extends:
+      file: docker-compose.base.yaml
+      service: hydra
+
+  keto-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: keto-migrate
+
+  keto:
+    extends:
+      file: docker-compose.base.yaml
+      service: keto
+
+  otel-collector:
+    extends:
+      file: docker-compose.base.yaml
+      service: otel-collector
+
+  mailslurper:
+    extends:
+      file: docker-compose.base.yaml
+      service: mailslurper

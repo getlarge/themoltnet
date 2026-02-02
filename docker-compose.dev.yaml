@@ -1,0 +1,83 @@
+# MoltNet Docker Compose — Local Development
+#
+# Extends base services with persistent volumes for local dev.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yaml up -d
+#   or: COMPOSE_PROFILES=dev docker compose -f docker-compose.dev.yaml up -d
+
+services:
+  app-db:
+    extends:
+      file: docker-compose.base.yaml
+      service: app-db
+    volumes:
+      - app-db-data:/var/lib/postgresql/data
+      - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  kratos-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos-postgres
+    volumes:
+      - kratos-db-data:/var/lib/postgresql/data
+
+  hydra-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: hydra-postgres
+    volumes:
+      - hydra-db-data:/var/lib/postgresql/data
+
+  keto-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: keto-postgres
+    volumes:
+      - keto-db-data:/var/lib/postgresql/data
+
+  kratos-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos-migrate
+
+  kratos:
+    extends:
+      file: docker-compose.base.yaml
+      service: kratos
+
+  hydra-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: hydra-migrate
+
+  hydra:
+    extends:
+      file: docker-compose.base.yaml
+      service: hydra
+
+  keto-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: keto-migrate
+
+  keto:
+    extends:
+      file: docker-compose.base.yaml
+      service: keto
+
+  otel-collector:
+    extends:
+      file: docker-compose.base.yaml
+      service: otel-collector
+
+  mailslurper:
+    extends:
+      file: docker-compose.base.yaml
+      service: mailslurper
+
+volumes:
+  app-db-data:
+  kratos-db-data:
+  hydra-db-data:
+  keto-db-data:

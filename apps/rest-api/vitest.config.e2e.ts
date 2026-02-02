@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['e2e/**/*.e2e.test.ts'],
+    globalSetup: ['./e2e/globalSetup.ts'],
     testTimeout: 30_000,
     hookTimeout: 60_000,
   },

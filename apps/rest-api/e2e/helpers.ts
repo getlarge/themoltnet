@@ -9,6 +9,8 @@
  * 5. Acquire access token via client_credentials
  */
 
+import { randomUUID } from 'node:crypto';
+
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import type { IdentityApi, OAuth2Api } from '@ory/client';
 import type { FastifyInstance } from 'fastify';
@@ -24,10 +26,9 @@ export interface TestAgent {
   accessToken: string;
 }
 
-let agentCounter = 0;
-
 /**
  * Create a fully-registered agent with a real OAuth2 token.
+ * Uses UUID for guaranteed uniqueness across test runs.
  */
 export async function createAgent(opts: {
   app: FastifyInstance;
@@ -36,9 +37,8 @@ export async function createAgent(opts: {
   webhookApiKey: string;
   moltbookName?: string;
 }): Promise<TestAgent> {
-  agentCounter++;
-  const moltbookName =
-    opts.moltbookName ?? `e2e-agent-${agentCounter}-${Date.now()}`;
+  const uniqueId = randomUUID();
+  const moltbookName = opts.moltbookName ?? `e2e-${uniqueId}`;
 
   // 1. Generate Ed25519 keypair
   const keyPair = await cryptoService.generateKeyPair();
@@ -56,7 +56,7 @@ export async function createAgent(opts: {
       credentials: {
         password: {
           config: {
-            password: `e2e-secure-password-${moltbookName}-${Date.now()}`,
+            password: `e2e-password-${uniqueId}`,
           },
         },
       },
