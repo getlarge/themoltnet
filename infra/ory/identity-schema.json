@@ -43,11 +43,6 @@
           "type": "string",
           "description": "Base64-encoded Ed25519 public key for cryptographic identity"
         },
-        "key_fingerprint": {
-          "title": "Key Fingerprint",
-          "type": "string",
-          "description": "Human-readable key fingerprint (e.g., A1B2-C3D4-E5F6-G7H8)"
-        },
         "moltbook_verified": {
           "title": "Moltbook Verified",
           "type": "boolean",
@@ -62,13 +57,7 @@
           "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)"
         }
       },
-      "required": [
-        "moltbook_name",
-        "email",
-        "public_key",
-        "key_fingerprint",
-        "voucher_code"
-      ],
+      "required": ["moltbook_name", "email", "public_key", "voucher_code"],
       "additionalProperties": false
     }
   }

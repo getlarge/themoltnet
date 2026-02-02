@@ -24,7 +24,6 @@ interface MoltNetClientMetadata {
   identity_id: string;
   moltbook_name?: string;
   public_key?: string;
-  key_fingerprint?: string;
 }
 
 function isMoltNetMetadata(
@@ -35,6 +34,17 @@ function isMoltNetMetadata(
     'identity_id' in metadata &&
     typeof metadata.identity_id === 'string'
   );
+}
+
+/**
+ * Derive key fingerprint from an ed25519: public key string.
+ * Format: A1B2-C3D4-E5F6-G7H8 (first 16 hex chars of SHA-256, uppercased)
+ */
+function deriveFingerprint(publicKey: string): string {
+  const pubBytes = Buffer.from(publicKey.replace(/^ed25519:/, ''), 'base64');
+  const hash = crypto.createHash('sha256').update(pubBytes).digest('hex');
+  const segments = hash.slice(0, 16).toUpperCase().match(/.{4}/g) ?? [];
+  return segments.join('-');
 }
 
 /**
@@ -89,7 +99,6 @@ export async function hookRoutes(
             traits: Type.Object({
               moltbook_name: Type.String(),
               public_key: Type.String(),
-              key_fingerprint: Type.Optional(Type.String()),
               voucher_code: Type.String(),
             }),
           }),
@@ -103,13 +112,12 @@ export async function hookRoutes(
           traits: {
             moltbook_name: string;
             public_key: string;
-            key_fingerprint?: string;
             voucher_code: string;
           };
         };
       };
 
-      const { public_key, key_fingerprint, voucher_code } = identity.traits;
+      const { public_key, voucher_code } = identity.traits;
 
       // ── Validate public_key format ───────────────────────────────
       if (!public_key.startsWith('ed25519:') || public_key.length <= 8) {
@@ -132,35 +140,14 @@ export async function hookRoutes(
                 '  const raw = publicKey.export({ type: "spki", format: "der" }).subarray(-32);\n' +
                 '  const public_key = "ed25519:" + raw.toString("base64");\n\n' +
                 'Store your private key securely at ~/.config/moltnet/private.key (chmod 600). ' +
-                'It never leaves your machine.',
+                'It never leaves your machine. ' +
+                'The key fingerprint will be derived automatically from your public key.',
             ),
           );
       }
 
-      // ── Validate key_fingerprint format ──────────────────────────
-      if (
-        !key_fingerprint ||
-        !/^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/.test(
-          key_fingerprint,
-        )
-      ) {
-        return reply
-          .status(400)
-          .send(
-            oryValidationError(
-              '#/traits/key_fingerprint',
-              4000002,
-              'key_fingerprint must be format "XXXX-XXXX-XXXX-XXXX" — the first 16 hex chars ' +
-                'of SHA-256(public_key_bytes), uppercased and grouped by 4.\n\n' +
-                'Derive from your public key:\n' +
-                '  import { createHash } from "node:crypto";\n' +
-                '  const pubBytes = Buffer.from(public_key.replace("ed25519:", ""), "base64");\n' +
-                '  const hash = createHash("sha256").update(pubBytes).digest("hex");\n' +
-                '  const key_fingerprint = hash.slice(0, 16).toUpperCase().match(/.{4}/g).join("-");\n\n' +
-                'Example result: "A1B2-C3D4-E5F6-G7H8"',
-            ),
-          );
-      }
+      // Derive fingerprint server-side from public key
+      const fingerprint = deriveFingerprint(public_key);
 
       // ── Validate and redeem voucher code (web-of-trust gate) ─────
       const { voucherRepository } = opts;
@@ -202,7 +189,7 @@ export async function hookRoutes(
         identityId: identity.id,
         moltbookName: identity.traits.moltbook_name,
         publicKey: public_key,
-        fingerprint: key_fingerprint,
+        fingerprint,
       });
 
       await fastify.permissionChecker.registerAgent(identity.id);
@@ -224,7 +211,6 @@ export async function hookRoutes(
             traits: Type.Object({
               moltbook_name: Type.String(),
               public_key: Type.String(),
-              key_fingerprint: Type.String(),
             }),
           }),
         }),
@@ -237,16 +223,17 @@ export async function hookRoutes(
           traits: {
             moltbook_name: string;
             public_key: string;
-            key_fingerprint: string;
           };
         };
       };
+
+      const settingsFingerprint = deriveFingerprint(identity.traits.public_key);
 
       await fastify.agentRepository.upsert({
         identityId: identity.id,
         moltbookName: identity.traits.moltbook_name,
         publicKey: identity.traits.public_key,
-        fingerprint: identity.traits.key_fingerprint,
+        fingerprint: settingsFingerprint,
       });
 
       return reply.status(200).send({ success: true });

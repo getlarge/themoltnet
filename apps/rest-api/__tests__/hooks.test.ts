@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -11,6 +13,14 @@ import {
   TEST_WEBHOOK_API_KEY,
 } from './helpers.js';
 
+/** Derive fingerprint the same way the webhook does */
+function deriveFingerprint(publicKey: string): string {
+  const pubBytes = Buffer.from(publicKey.replace(/^ed25519:/, ''), 'base64');
+  const hash = createHash('sha256').update(pubBytes).digest('hex');
+  const segments = hash.slice(0, 16).toUpperCase().match(/.{4}/g) ?? [];
+  return segments.join('-');
+}
+
 describe('Hook routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
@@ -22,13 +32,15 @@ describe('Hook routes', () => {
   });
 
   describe('POST /hooks/kratos/after-registration', () => {
+    const testPublicKey = 'ed25519:AAAA+/bbbb==';
+    const expectedFingerprint = deriveFingerprint(testPublicKey);
+
     const validPayload = {
       identity: {
         id: OWNER_ID,
         traits: {
           moltbook_name: 'Claude',
-          public_key: 'ed25519:AAAA+/bbbb==',
-          key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+          public_key: testPublicKey,
           voucher_code: 'a'.repeat(64),
         },
       },
@@ -55,8 +67,8 @@ describe('Hook routes', () => {
       expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
         identityId: OWNER_ID,
         moltbookName: 'Claude',
-        publicKey: 'ed25519:AAAA+/bbbb==',
-        fingerprint: 'A1B2-C3D4-E5F6-07A8',
+        publicKey: testPublicKey,
+        fingerprint: expectedFingerprint,
       });
       expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
         OWNER_ID,
@@ -94,7 +106,6 @@ describe('Hook routes', () => {
             traits: {
               moltbook_name: 'Claude',
               public_key: 'rsa:not-an-ed25519-key',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
               voucher_code: 'a'.repeat(64),
             },
           },
@@ -109,57 +120,6 @@ describe('Hook routes', () => {
       expect(body.messages[0].messages[0].text).toContain('ed25519:<base64>');
       expect(body.messages[0].messages[0].text).toContain('@noble/ed25519');
       expect(mocks.voucherRepository.redeem).not.toHaveBeenCalled();
-    });
-
-    it('rejects registration with missing key_fingerprint', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/after-registration',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:AAAA+/bbbb==',
-              voucher_code: 'a'.repeat(64),
-            },
-          },
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-      const body = response.json();
-      expect(body.messages).toHaveLength(1);
-      expect(body.messages[0].instance_ptr).toBe('#/traits/key_fingerprint');
-      expect(body.messages[0].messages[0].id).toBe(4000002);
-      expect(body.messages[0].messages[0].text).toContain(
-        'XXXX-XXXX-XXXX-XXXX',
-      );
-    });
-
-    it('rejects registration with malformed key_fingerprint', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/after-registration',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'not-a-fingerprint',
-              voucher_code: 'a'.repeat(64),
-            },
-          },
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-      const body = response.json();
-      expect(body.messages[0].instance_ptr).toBe('#/traits/key_fingerprint');
-      expect(body.messages[0].messages[0].text).toContain('SHA-256');
     });
   });
 
@@ -179,7 +139,6 @@ describe('Hook routes', () => {
             traits: {
               moltbook_name: 'Claude',
               public_key: 'ed25519:NEWKEY==',
-              key_fingerprint: 'B2C3-D4E5-F607-A8B9',
             },
           },
         },
@@ -255,7 +214,6 @@ describe('Hook routes', () => {
             traits: {
               moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
               voucher_code: 'a'.repeat(64),
             },
           },
@@ -280,7 +238,6 @@ describe('Hook routes', () => {
             traits: {
               moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
               voucher_code: 'a'.repeat(64),
             },
           },
@@ -309,7 +266,6 @@ describe('Hook routes', () => {
             traits: {
               moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
               voucher_code: 'a'.repeat(64),
             },
           },
