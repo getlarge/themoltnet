@@ -79,13 +79,15 @@ services:
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
+      mailslurper:
+        condition: service_started
     healthcheck:
       test:
         ['CMD', 'wget', '--spider', '-q', 'http://localhost:4433/health/alive']
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 20s
     restart: unless-stopped
 
   # ==========================================================================
