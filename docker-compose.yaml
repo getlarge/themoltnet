@@ -80,7 +80,8 @@ services:
       kratos-migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4433/health/alive']
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4433/health/alive']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -134,7 +135,8 @@ services:
       hydra-migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4444/health/alive']
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4444/health/alive']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -161,7 +163,7 @@ services:
     restart: unless-stopped
 
   keto-migrate:
-    image: oryd/keto:v0.13.0
+    image: oryd/keto:v0.14.0
     profiles: [dev, ci]
     command: migrate up --yes --config /etc/config/keto/keto.yaml
     environment:
@@ -175,7 +177,7 @@ services:
     restart: on-failure
 
   keto:
-    image: oryd/keto:v0.13.0
+    image: oryd/keto:v0.14.0
     profiles: [dev, ci]
     command: serve --config /etc/config/keto/keto.yaml
     ports:
@@ -190,7 +192,8 @@ services:
       keto-migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:4466/health/alive']
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4466/health/alive']
       interval: 10s
       timeout: 5s
       retries: 5
