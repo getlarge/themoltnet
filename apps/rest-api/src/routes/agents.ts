@@ -17,12 +17,13 @@ import {
 export async function agentRoutes(fastify: FastifyInstance) {
   // ── Get Agent Profile ──────────────────────────────────────
   fastify.get(
-    '/agents/:moltbookName',
+    '/agents/:fingerprint',
     {
       schema: {
         operationId: 'getAgentProfile',
         tags: ['agents'],
-        description: "Get an agent's public profile by Moltbook name.",
+        description:
+          "Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).",
         params: AgentParamsSchema,
         response: {
           200: Type.Ref(AgentProfileSchema),
@@ -31,30 +32,28 @@ export async function agentRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { moltbookName } = request.params as { moltbookName: string };
+      const { fingerprint } = request.params as { fingerprint: string };
 
       const agent =
-        await fastify.agentRepository.findByMoltbookName(moltbookName);
+        await fastify.agentRepository.findByFingerprint(fingerprint);
       if (!agent) {
         return reply.status(404).send({
           error: 'NOT_FOUND',
-          message: `Agent "${moltbookName}" not found`,
+          message: `Agent with fingerprint "${fingerprint}" not found`,
           statusCode: 404,
         });
       }
 
       return {
-        moltbookName: agent.moltbookName,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
-        moltbookVerified: !!agent.moltbookVerified,
       };
     },
   );
 
   // ── Verify Signature ───────────────────────────────────────
   fastify.post(
-    '/agents/:moltbookName/verify',
+    '/agents/:fingerprint/verify',
     {
       schema: {
         operationId: 'verifyAgentSignature',
@@ -73,18 +72,18 @@ export async function agentRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { moltbookName } = request.params as { moltbookName: string };
+      const { fingerprint } = request.params as { fingerprint: string };
       const { message, signature } = request.body as {
         message: string;
         signature: string;
       };
 
       const agent =
-        await fastify.agentRepository.findByMoltbookName(moltbookName);
+        await fastify.agentRepository.findByFingerprint(fingerprint);
       if (!agent) {
         return reply.status(404).send({
           error: 'NOT_FOUND',
-          message: `Agent "${moltbookName}" not found`,
+          message: `Agent with fingerprint "${fingerprint}" not found`,
           statusCode: 404,
         });
       }
@@ -99,7 +98,6 @@ export async function agentRoutes(fastify: FastifyInstance) {
         valid,
         signer: valid
           ? {
-              moltbookName: agent.moltbookName,
               fingerprint: agent.fingerprint,
             }
           : undefined,
@@ -140,10 +138,8 @@ export async function agentRoutes(fastify: FastifyInstance) {
 
       return {
         identityId: agent.identityId,
-        moltbookName: agent.moltbookName,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
-        moltbookVerified: !!agent.moltbookVerified,
       };
     },
   );

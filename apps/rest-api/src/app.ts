@@ -19,13 +19,20 @@ import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
-import type { AgentRepository, CryptoService, DiaryService } from './types.js';
+import type {
+  AgentRepository,
+  CryptoService,
+  DiaryService,
+  VoucherRepository,
+} from './types.js';
 
 export interface AppOptions {
   diaryService: DiaryService;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
+  voucherRepository: VoucherRepository;
   permissionChecker: PermissionChecker;
   tokenValidator: TokenValidator;
   webhookApiKey: string;
@@ -83,6 +90,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.decorate('diaryService', options.diaryService);
   app.decorate('agentRepository', options.agentRepository);
   app.decorate('cryptoService', options.cryptoService);
+  app.decorate('voucherRepository', options.voucherRepository);
 
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);
@@ -94,6 +102,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register(diaryRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
+  await app.register(vouchRoutes);
 
   return app;
 }

@@ -22,47 +22,47 @@ describe('Agent routes', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
   });
 
-  describe('GET /agents/:moltbookName', () => {
+  describe('GET /agents/:fingerprint', () => {
     it('returns agent profile', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
 
       const response = await app.inject({
         method: 'GET',
-        url: '/agents/Claude',
+        url: '/agents/C212-DAFA-27C5-6C57',
       });
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.moltbookName).toBe('Claude');
-      expect(body.publicKey).toBe('ed25519:AAAA+/bbbb==');
-      expect(body.fingerprint).toBe('A1B2-C3D4-E5F6-07A8');
-      expect(body.moltbookVerified).toBe(false);
+      expect(body.publicKey).toBe(
+        'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+      );
+      expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
     });
 
     it('returns 404 when agent not found', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(null);
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'GET',
-        url: '/agents/NonExistent',
+        url: '/agents/AAAA-BBBB-CCCC-DDDD',
       });
 
       expect(response.statusCode).toBe(404);
     });
   });
 
-  describe('POST /agents/:moltbookName/verify', () => {
+  describe('POST /agents/:fingerprint/verify', () => {
     it('verifies valid signature', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
       mocks.cryptoService.verify.mockResolvedValue(true);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/agents/Claude/verify',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
         payload: {
           message: 'test message',
           signature: 'valid_sig',
@@ -72,18 +72,18 @@ describe('Agent routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.valid).toBe(true);
-      expect(body.signer.moltbookName).toBe('Claude');
+      expect(body.signer.fingerprint).toBe('C212-DAFA-27C5-6C57');
     });
 
     it('returns invalid for bad signature', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
       mocks.cryptoService.verify.mockResolvedValue(false);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/agents/Claude/verify',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
         payload: {
           message: 'test message',
           signature: 'bad_sig',
@@ -95,11 +95,11 @@ describe('Agent routes', () => {
     });
 
     it('returns 404 when agent not found', async () => {
-      mocks.agentRepository.findByMoltbookName.mockResolvedValue(null);
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/agents/NonExistent/verify',
+        url: '/agents/AAAA-BBBB-CCCC-DDDD/verify',
         payload: {
           message: 'test',
           signature: 'sig',
@@ -125,7 +125,7 @@ describe('Agent routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.identityId).toBe(OWNER_ID);
-      expect(body.moltbookName).toBe('Claude');
+      expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
     });
 
     it('returns 401 without auth', async () => {

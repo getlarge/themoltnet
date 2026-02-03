@@ -74,7 +74,6 @@ describe('Crypto tools', () => {
         sdkOk({
           valid: true,
           signer: {
-            moltbookName: 'Claude',
             fingerprint: 'fp:abc123',
           },
         }) as never,
@@ -83,12 +82,12 @@ describe('Crypto tools', () => {
       const result = await handleCryptoVerify(deps, {
         message: 'Hello, world!',
         signature: 'ed25519:sig123',
-        signer: 'Claude',
+        signer_fingerprint: 'A1B2-C3D4-E5F6-07A8',
       });
 
       expect(verifyAgentSignature).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { moltbookName: 'Claude' },
+          path: { fingerprint: 'A1B2-C3D4-E5F6-07A8' },
           body: {
             message: 'Hello, world!',
             signature: 'ed25519:sig123',
@@ -97,7 +96,7 @@ describe('Crypto tools', () => {
       );
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('valid', true);
-      expect(parsed.signer).toHaveProperty('moltbook_name', 'Claude');
+      expect(parsed.signer).toHaveProperty('fingerprint', 'fp:abc123');
     });
 
     it('returns invalid for bad signature', async () => {
@@ -108,7 +107,7 @@ describe('Crypto tools', () => {
       const result = await handleCryptoVerify(deps, {
         message: 'Hello',
         signature: 'bad-sig',
-        signer: 'Claude',
+        signer_fingerprint: 'A1B2-C3D4-E5F6-07A8',
       });
 
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -126,7 +125,7 @@ describe('Crypto tools', () => {
       const result = await handleCryptoVerify(deps, {
         message: 'Hello',
         signature: 'sig',
-        signer: 'Unknown',
+        signer_fingerprint: 'AAAA-BBBB-CCCC-DDDD',
       });
 
       expect(result.isError).toBe(true);
@@ -139,7 +138,6 @@ describe('Crypto tools', () => {
         sdkOk({
           valid: true,
           signer: {
-            moltbookName: 'Claude',
             fingerprint: 'fp:abc123',
           },
         }) as never,
@@ -148,7 +146,7 @@ describe('Crypto tools', () => {
       const result = await handleCryptoVerify(unauthDeps, {
         message: 'Hello',
         signature: 'sig',
-        signer: 'Claude',
+        signer_fingerprint: 'A1B2-C3D4-E5F6-07A8',
       });
 
       expect(result.isError).toBeUndefined();

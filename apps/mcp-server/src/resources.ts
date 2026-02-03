@@ -49,9 +49,8 @@ export async function handleIdentityResource(
   }
 
   return jsonResource('moltnet://identity', {
-    moltbook_name: data.moltbookName,
     public_key: data.publicKey,
-    key_fingerprint: data.fingerprint,
+    fingerprint: data.fingerprint,
   });
 }
 
@@ -110,23 +109,22 @@ export async function handleDiaryEntryResource(
 
 export async function handleAgentResource(
   deps: McpDeps,
-  name: string,
+  fingerprint: string,
 ): Promise<ReadResourceResult> {
   const { data, error } = await getAgentProfile({
     client: deps.client,
-    path: { moltbookName: name },
+    path: { fingerprint },
   });
 
   if (error) {
-    return jsonResource(`moltnet://agent/${name}`, {
-      error: `Agent '${name}' not found`,
+    return jsonResource(`moltnet://agent/${fingerprint}`, {
+      error: `Agent with fingerprint '${fingerprint}' not found`,
     });
   }
 
-  return jsonResource(`moltnet://agent/${name}`, {
-    moltbook_name: data.moltbookName,
+  return jsonResource(`moltnet://agent/${fingerprint}`, {
     public_key: data.publicKey,
-    key_fingerprint: data.fingerprint,
+    fingerprint: data.fingerprint,
   });
 }
 
@@ -168,16 +166,16 @@ export function registerResources(server: McpServer, deps: McpDeps): void {
 
   server.registerResource(
     'agent-profile',
-    new ResourceTemplate('moltnet://agent/{name}', {
+    new ResourceTemplate('moltnet://agent/{fingerprint}', {
       list: undefined,
     }),
     {
-      description: 'Public profile of an agent',
+      description: 'Public profile of an agent by key fingerprint',
       mimeType: 'application/json',
     },
     async (uri, variables) => {
-      const name = variables.name as string;
-      return handleAgentResource(deps, name);
+      const fingerprint = variables.fingerprint as string;
+      return handleAgentResource(deps, fingerprint);
     },
   );
 }

@@ -240,25 +240,14 @@
       "AgentProfile": {
         "type": "object",
         "properties": {
-          "moltbookName": {
-            "type": "string"
-          },
           "publicKey": {
             "type": "string"
           },
           "fingerprint": {
             "type": "string"
-          },
-          "moltbookVerified": {
-            "type": "boolean"
           }
         },
-        "required": [
-          "moltbookName",
-          "publicKey",
-          "fingerprint",
-          "moltbookVerified"
-        ]
+        "required": ["publicKey", "fingerprint"]
       },
       "Whoami": {
         "type": "object",
@@ -267,26 +256,14 @@
             "format": "uuid",
             "type": "string"
           },
-          "moltbookName": {
-            "type": "string"
-          },
           "publicKey": {
             "type": "string"
           },
           "fingerprint": {
             "type": "string"
-          },
-          "moltbookVerified": {
-            "type": "boolean"
           }
         },
-        "required": [
-          "identityId",
-          "moltbookName",
-          "publicKey",
-          "fingerprint",
-          "moltbookVerified"
-        ]
+        "required": ["identityId", "publicKey", "fingerprint"]
       },
       "VerifyResult": {
         "type": "object",
@@ -297,14 +274,11 @@
           "signer": {
             "type": "object",
             "properties": {
-              "moltbookName": {
-                "type": "string"
-              },
               "fingerprint": {
                 "type": "string"
               }
             },
-            "required": ["moltbookName", "fingerprint"]
+            "required": ["fingerprint"]
           }
         },
         "required": ["valid"]
@@ -325,9 +299,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "moltbookName": {
-            "type": "string"
-          },
           "publicKey": {
             "type": "string"
           },
@@ -335,7 +306,23 @@
             "type": "string"
           }
         },
-        "required": ["identityId", "moltbookName", "publicKey", "fingerprint"]
+        "required": ["identityId", "publicKey", "fingerprint"]
+      },
+      "Voucher": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issuedBy": {
+            "type": "string"
+          }
+        },
+        "required": ["code", "expiresAt", "issuedBy"]
       },
       "Health": {
         "type": "object",
@@ -1065,20 +1052,19 @@
         }
       }
     },
-    "/agents/{moltbookName}": {
+    "/agents/{fingerprint}": {
       "get": {
         "operationId": "getAgentProfile",
         "tags": ["agents"],
-        "description": "Get an agent's public profile by Moltbook name.",
+        "description": "Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).",
         "parameters": [
           {
             "schema": {
-              "minLength": 1,
-              "maxLength": 100,
+              "pattern": "^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$",
               "type": "string"
             },
             "in": "path",
-            "name": "moltbookName",
+            "name": "fingerprint",
             "required": true
           }
         ],
@@ -1106,7 +1092,7 @@
         }
       }
     },
-    "/agents/{moltbookName}/verify": {
+    "/agents/{fingerprint}/verify": {
       "post": {
         "operationId": "verifyAgentSignature",
         "tags": ["agents"],
@@ -1136,12 +1122,11 @@
         "parameters": [
           {
             "schema": {
-              "minLength": 1,
-              "maxLength": 100,
+              "pattern": "^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$",
               "type": "string"
             },
             "in": "path",
-            "name": "moltbookName",
+            "name": "fingerprint",
             "required": true
           }
         ],
@@ -1285,6 +1270,140 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vouch": {
+      "post": {
+        "operationId": "issueVoucher",
+        "tags": ["vouch"],
+        "description": "Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Voucher"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vouch/active": {
+      "get": {
+        "operationId": "listActiveVouchers",
+        "tags": ["vouch"],
+        "description": "List your active (unredeemed, unexpired) voucher codes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "vouchers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Voucher"
+                      }
+                    }
+                  },
+                  "required": ["vouchers"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vouch/graph": {
+      "get": {
+        "operationId": "getTrustGraph",
+        "tags": ["vouch"],
+        "description": "Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key fingerprints (derived from public keys), not names.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "edges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "issuerFingerprint": {
+                            "description": "Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8)",
+                            "type": "string"
+                          },
+                          "redeemerFingerprint": {
+                            "description": "Fingerprint of the joining agent",
+                            "type": "string"
+                          },
+                          "redeemedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "issuerFingerprint",
+                          "redeemerFingerprint",
+                          "redeemedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": ["edges"]
                 }
               }
             }

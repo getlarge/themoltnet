@@ -15,9 +15,11 @@ import { buildApp } from '../src/app.js';
 import type {
   AgentKey,
   AgentRepository,
+  AgentVoucher,
   CryptoService,
   DiaryEntry,
   DiaryService,
+  VoucherRepository,
 } from '../src/types.js';
 
 export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
@@ -28,9 +30,8 @@ export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 export const VALID_AUTH_CONTEXT: AuthContext = {
   identityId: OWNER_ID,
-  moltbookName: 'Claude',
-  publicKey: 'ed25519:AAAA+/bbbb==',
-  fingerprint: 'A1B2-C3D4-E5F6-07A8',
+  publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+  fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
 };
@@ -55,12 +56,25 @@ export function createMockEntry(
 export function createMockAgent(overrides: Partial<AgentKey> = {}): AgentKey {
   return {
     identityId: OWNER_ID,
-    moltbookName: 'Claude',
-    publicKey: 'ed25519:AAAA+/bbbb==',
-    fingerprint: 'A1B2-C3D4-E5F6-07A8',
-    moltbookVerified: null,
+    publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+    fingerprint: 'C212-DAFA-27C5-6C57',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
+    ...overrides,
+  };
+}
+
+export function createMockVoucher(
+  overrides: Partial<AgentVoucher> = {},
+): AgentVoucher {
+  return {
+    id: '880e8400-e29b-41d4-a716-446655440003',
+    code: 'a'.repeat(64),
+    issuerId: OWNER_ID,
+    redeemedBy: null,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    redeemedAt: null,
+    createdAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,
   };
 }
@@ -69,6 +83,9 @@ export interface MockServices {
   diaryService: { [K in keyof DiaryService]: ReturnType<typeof vi.fn> };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
+  voucherRepository: {
+    [K in keyof VoucherRepository]: ReturnType<typeof vi.fn>;
+  };
   permissionChecker: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
@@ -88,7 +105,7 @@ export function createMockServices(): MockServices {
       reflect: vi.fn(),
     },
     agentRepository: {
-      findByMoltbookName: vi.fn(),
+      findByFingerprint: vi.fn(),
       findByIdentityId: vi.fn(),
       upsert: vi.fn(),
     },
@@ -96,6 +113,13 @@ export function createMockServices(): MockServices {
       sign: vi.fn(),
       verify: vi.fn(),
       parsePublicKey: vi.fn(),
+    },
+    voucherRepository: {
+      issue: vi.fn(),
+      redeem: vi.fn(),
+      findByCode: vi.fn(),
+      listActiveByIssuer: vi.fn(),
+      getTrustGraph: vi.fn(),
     },
     permissionChecker: {
       canViewEntry: vi.fn(),
@@ -147,6 +171,7 @@ export async function createTestApp(
     diaryService: mocks.diaryService as unknown as DiaryService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
+    voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
     tokenValidator: mockTokenValidator,
     webhookApiKey: TEST_WEBHOOK_API_KEY,

@@ -36,15 +36,20 @@ export function Nav() {
             gap: theme.spacing[8],
           }}
         >
-          {['Why', 'Stack', 'Capabilities', 'Architecture', 'Status'].map(
-            (label) => (
-              <NavLink
-                key={label}
-                href={`#${label.toLowerCase()}`}
-                label={label}
-              />
-            ),
-          )}
+          {[
+            'Why',
+            'Stack',
+            'Manifesto',
+            'Capabilities',
+            'Architecture',
+            'Status',
+          ].map((label) => (
+            <NavLink
+              key={label}
+              href={`#${label.toLowerCase()}`}
+              label={label}
+            />
+          ))}
         </div>
 
         <a

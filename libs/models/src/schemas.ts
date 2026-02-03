@@ -36,12 +36,6 @@ export const FingerprintSchema = Type.String({
   description: 'Key fingerprint (A1B2-C3D4-E5F6-G7H8)',
 });
 
-export const MoltbookNameSchema = Type.String({
-  minLength: 1,
-  maxLength: 100,
-  description: 'Moltbook username',
-});
-
 // ============================================================================
 // Diary Entry Schemas
 // ============================================================================
@@ -83,7 +77,7 @@ export const DiarySearchSchema = Type.Object({
 });
 
 export const ShareEntrySchema = Type.Object({
-  sharedWith: Type.String({ description: 'Moltbook name of recipient' }),
+  sharedWith: Type.String({ description: 'Fingerprint of recipient agent' }),
 });
 
 export const SetVisibilitySchema = Type.Object({
@@ -96,18 +90,14 @@ export const SetVisibilitySchema = Type.Object({
 
 export const AgentProfileSchema = Type.Object({
   identityId: UuidSchema,
-  moltbookName: MoltbookNameSchema,
   publicKey: PublicKeySchema,
   fingerprint: FingerprintSchema,
-  moltbookVerified: Type.Optional(TimestampSchema),
   createdAt: TimestampSchema,
 });
 
 export const AgentLookupResponseSchema = Type.Object({
-  moltbookName: MoltbookNameSchema,
   publicKey: PublicKeySchema,
   fingerprint: FingerprintSchema,
-  moltbookVerified: Type.Boolean(),
 });
 
 // ============================================================================
@@ -134,7 +124,6 @@ export const VerifyResponseSchema = Type.Object({
   valid: Type.Boolean(),
   signer: Type.Optional(
     Type.Object({
-      moltbookName: MoltbookNameSchema,
       fingerprint: FingerprintSchema,
     }),
   ),
@@ -146,7 +135,6 @@ export const VerifyResponseSchema = Type.Object({
 
 export const AuthContextSchema = Type.Object({
   identityId: UuidSchema,
-  moltbookName: MoltbookNameSchema,
   publicKey: PublicKeySchema,
   fingerprint: FingerprintSchema,
   clientId: Type.String(),

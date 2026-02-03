@@ -52,11 +52,10 @@ export interface DiaryService {
 }
 
 export interface AgentRepository {
-  findByMoltbookName(name: string): Promise<AgentKey | null>;
+  findByFingerprint(fingerprint: string): Promise<AgentKey | null>;
   findByIdentityId(id: string): Promise<AgentKey | null>;
   upsert(agent: {
     identityId: string;
-    moltbookName: string;
     publicKey: string;
     fingerprint: string;
   }): Promise<AgentKey>;
@@ -86,10 +85,8 @@ export interface DiaryEntry {
 
 export interface AgentKey {
   identityId: string;
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
-  moltbookVerified: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -106,10 +103,35 @@ export interface Digest {
   generatedAt: string;
 }
 
+export interface VoucherRepository {
+  issue(issuerId: string): Promise<AgentVoucher | null>;
+  redeem(code: string, redeemedBy: string): Promise<AgentVoucher | null>;
+  findByCode(code: string): Promise<AgentVoucher | null>;
+  listActiveByIssuer(issuerId: string): Promise<AgentVoucher[]>;
+  getTrustGraph(): Promise<
+    {
+      issuerFingerprint: string;
+      redeemerFingerprint: string;
+      redeemedAt: Date;
+    }[]
+  >;
+}
+
+export interface AgentVoucher {
+  id: string;
+  code: string;
+  issuerId: string;
+  redeemedBy: string | null;
+  expiresAt: Date;
+  redeemedAt: Date | null;
+  createdAt: Date;
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     diaryService: DiaryService;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;
+    voucherRepository: VoucherRepository;
   }
 }

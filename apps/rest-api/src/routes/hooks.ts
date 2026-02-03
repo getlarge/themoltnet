@@ -9,6 +9,7 @@
 import crypto from 'node:crypto';
 
 import type { OryClients } from '@moltnet/auth';
+import { cryptoService } from '@moltnet/crypto-service';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
@@ -22,9 +23,7 @@ declare module 'fastify' {
 
 interface MoltNetClientMetadata {
   identity_id: string;
-  moltbook_name?: string;
   public_key?: string;
-  key_fingerprint?: string;
 }
 
 function isMoltNetMetadata(
@@ -35,6 +34,22 @@ function isMoltNetMetadata(
     'identity_id' in metadata &&
     typeof metadata.identity_id === 'string'
   );
+}
+
+/**
+ * Build an Ory-compatible webhook error response.
+ * Ory Kratos expects this schema for flow-interrupting webhooks:
+ * { messages: [{ instance_ptr, messages: [{ id, text, type, context }] }] }
+ */
+function oryValidationError(instancePtr: string, id: number, text: string) {
+  return {
+    messages: [
+      {
+        instance_ptr: instancePtr,
+        messages: [{ id, text, type: 'error', context: {} }],
+      },
+    ],
+  };
 }
 
 // Webhook API key validation middleware
@@ -77,9 +92,8 @@ export async function hookRoutes(fastify: FastifyInstance) {
           identity: Type.Object({
             id: Type.String(),
             traits: Type.Object({
-              moltbook_name: Type.String(),
               public_key: Type.String(),
-              key_fingerprint: Type.String(),
+              voucher_code: Type.String(),
             }),
           }),
         }),
@@ -91,18 +105,85 @@ export async function hookRoutes(fastify: FastifyInstance) {
         identity: {
           id: string;
           traits: {
-            moltbook_name: string;
             public_key: string;
-            key_fingerprint: string;
+            voucher_code: string;
           };
         };
       };
 
+      const { public_key, voucher_code } = identity.traits;
+
+      // ── Validate public_key format and Ed25519 key bytes ──────────
+      let publicKeyBytes: Uint8Array;
+      try {
+        publicKeyBytes = cryptoService.parsePublicKey(public_key);
+      } catch {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              'public_key must use format "ed25519:<base64>" where <base64> is ' +
+                'your raw 32-byte Ed25519 public key encoded in base64.',
+            ),
+          );
+      }
+
+      if (publicKeyBytes.length !== 32) {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              `public_key must be exactly 32 bytes (got ${publicKeyBytes.length}). ` +
+                'Provide the raw Ed25519 public key, not an SPKI/X.509 wrapper.',
+            ),
+          );
+      }
+
+      // Derive fingerprint server-side from public key
+      const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
+
+      // ── Validate and redeem voucher code (web-of-trust gate) ─────
+      const voucher = await fastify.voucherRepository.redeem(
+        voucher_code,
+        identity.id,
+      );
+
+      if (!voucher) {
+        fastify.log.warn(
+          { identity_id: identity.id },
+          'Registration rejected: invalid or expired voucher code',
+        );
+        return reply
+          .status(403)
+          .send(
+            oryValidationError(
+              '#/traits/voucher_code',
+              4000003,
+              'Voucher code is invalid, expired, or already used.\n\n' +
+                'To join MoltNet, you need a voucher from an existing member.\n' +
+                'Ask an agent on the network to run the moltnet_vouch tool.\n' +
+                'They will receive a single-use code to share with you.\n' +
+                'Include it as voucher_code in your registration traits.',
+            ),
+          );
+      }
+
+      fastify.log.info(
+        {
+          identity_id: identity.id,
+          voucher_issuer: voucher.issuerId,
+        },
+        'Registration approved via voucher',
+      );
+
       await fastify.agentRepository.upsert({
         identityId: identity.id,
-        moltbookName: identity.traits.moltbook_name,
-        publicKey: identity.traits.public_key,
-        fingerprint: identity.traits.key_fingerprint,
+        publicKey: public_key,
+        fingerprint,
       });
 
       await fastify.permissionChecker.registerAgent(identity.id);
@@ -122,9 +203,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
           identity: Type.Object({
             id: Type.String(),
             traits: Type.Object({
-              moltbook_name: Type.String(),
               public_key: Type.String(),
-              key_fingerprint: Type.String(),
             }),
           }),
         }),
@@ -136,18 +215,48 @@ export async function hookRoutes(fastify: FastifyInstance) {
         identity: {
           id: string;
           traits: {
-            moltbook_name: string;
             public_key: string;
-            key_fingerprint: string;
           };
         };
       };
 
+      const { public_key } = identity.traits;
+
+      // ── Validate public_key format and Ed25519 key bytes ──────────
+      let settingsKeyBytes: Uint8Array;
+      try {
+        settingsKeyBytes = cryptoService.parsePublicKey(public_key);
+      } catch {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              'public_key must use format "ed25519:<base64>"',
+            ),
+          );
+      }
+
+      if (settingsKeyBytes.length !== 32) {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              `public_key must be exactly 32 bytes (got ${settingsKeyBytes.length}).`,
+            ),
+          );
+      }
+
+      const settingsFingerprint =
+        cryptoService.generateFingerprint(settingsKeyBytes);
+
       await fastify.agentRepository.upsert({
         identityId: identity.id,
-        moltbookName: identity.traits.moltbook_name,
-        publicKey: identity.traits.public_key,
-        fingerprint: identity.traits.key_fingerprint,
+        publicKey: public_key,
+        fingerprint: settingsFingerprint,
       });
 
       return reply.status(200).send({ success: true });
@@ -227,7 +336,6 @@ export async function hookRoutes(fastify: FastifyInstance) {
           session: {
             access_token: {
               'moltnet:identity_id': agent.identityId,
-              'moltnet:moltbook_name': agent.moltbookName,
               'moltnet:public_key': agent.publicKey,
               'moltnet:fingerprint': agent.fingerprint,
             },

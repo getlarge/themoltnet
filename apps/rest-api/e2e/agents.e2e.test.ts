@@ -17,7 +17,7 @@ import {
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Agents & Crypto', () => {
@@ -29,12 +29,19 @@ describe('Agents & Crypto', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
+    // Create a voucher from the bootstrap identity
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
     agent = await createAgent({
       app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
       webhookApiKey: harness.webhookApiKey,
+      voucherCode,
     });
   });
 
@@ -44,15 +51,14 @@ describe('Agents & Crypto', () => {
 
   // ── Agent Profile (public) ──────────────────────────────────
 
-  describe('GET /agents/:moltbookName', () => {
+  describe('GET /agents/:fingerprint', () => {
     it('returns an agent profile', async () => {
       const { data, error } = await getAgentProfile({
         client,
-        path: { moltbookName: agent.moltbookName },
+        path: { fingerprint: agent.keyPair.fingerprint },
       });
 
       expect(error).toBeUndefined();
-      expect(data!.moltbookName).toBe(agent.moltbookName);
       expect(data!.publicKey).toBe(agent.keyPair.publicKey);
       expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
@@ -60,7 +66,7 @@ describe('Agents & Crypto', () => {
     it('returns 404 for unknown agent', async () => {
       const { data, error } = await getAgentProfile({
         client,
-        path: { moltbookName: 'NonExistentAgent42' },
+        path: { fingerprint: 'AAAA-BBBB-CCCC-DDDD' },
       });
 
       expect(data).toBeUndefined();
@@ -79,7 +85,7 @@ describe('Agents & Crypto', () => {
 
       expect(error).toBeUndefined();
       expect(data!.identityId).toBe(agent.identityId);
-      expect(data!.moltbookName).toBe(agent.moltbookName);
+      expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
 
     it('rejects unauthenticated request', async () => {
@@ -102,7 +108,7 @@ describe('Agents & Crypto', () => {
 
   // ── Agent Signature Verification ────────────────────────────
 
-  describe('POST /agents/:moltbookName/verify', () => {
+  describe('POST /agents/:fingerprint/verify', () => {
     it('verifies a valid Ed25519 signature', async () => {
       const message = 'Hello, MoltNet! Signed by CryptoTestAgent';
       const signature = await cryptoService.sign(
@@ -112,21 +118,20 @@ describe('Agents & Crypto', () => {
 
       const { data, error } = await verifyAgentSignature({
         client,
-        path: { moltbookName: agent.moltbookName },
+        path: { fingerprint: agent.keyPair.fingerprint },
         body: { message, signature },
       });
 
       expect(error).toBeUndefined();
       expect(data!.valid).toBe(true);
       expect(data!.signer).toBeDefined();
-      expect(data!.signer!.moltbookName).toBe(agent.moltbookName);
       expect(data!.signer!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
 
     it('rejects an invalid signature', async () => {
       const { data, error } = await verifyAgentSignature({
         client,
-        path: { moltbookName: agent.moltbookName },
+        path: { fingerprint: agent.keyPair.fingerprint },
         body: {
           message: 'Hello, MoltNet!',
           signature: 'dGhpcyBpcyBub3QgYSB2YWxpZCBzaWduYXR1cmU=',
@@ -147,7 +152,7 @@ describe('Agents & Crypto', () => {
 
       const { data, error } = await verifyAgentSignature({
         client,
-        path: { moltbookName: agent.moltbookName },
+        path: { fingerprint: agent.keyPair.fingerprint },
         body: { message, signature },
       });
 
@@ -249,16 +254,16 @@ describe('Agents & Crypto', () => {
         agent.keyPair.privateKey,
       );
 
-      // Verify via the agent-scoped endpoint (looks up public key by name)
+      // Verify via the agent-scoped endpoint (looks up public key by fingerprint)
       const { data, error } = await verifyAgentSignature({
         client,
-        path: { moltbookName: agent.moltbookName },
+        path: { fingerprint: agent.keyPair.fingerprint },
         body: { message: challenge, signature },
       });
 
       expect(error).toBeUndefined();
       expect(data!.valid).toBe(true);
-      expect(data!.signer!.moltbookName).toBe(agent.moltbookName);
+      expect(data!.signer!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
   });
 });

@@ -30,10 +30,8 @@ describe('Identity tools', () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
           identityId: 'id-123',
-          moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
-          moltbookVerified: true,
         }) as never,
       );
 
@@ -42,9 +40,8 @@ describe('Identity tools', () => {
       expect(getWhoami).toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('authenticated', true);
-      expect(parsed.identity).toHaveProperty('moltbook_name', 'Claude');
       expect(parsed.identity).toHaveProperty('public_key', 'pk-abc');
-      expect(parsed.identity).toHaveProperty('key_fingerprint', 'fp:abc123');
+      expect(parsed.identity).toHaveProperty('fingerprint', 'fp:abc123');
     });
 
     it('returns unauthenticated when no auth', async () => {
@@ -59,29 +56,26 @@ describe('Identity tools', () => {
   });
 
   describe('agent_lookup', () => {
-    it('returns agent info by moltbook name', async () => {
+    it('returns agent info by fingerprint', async () => {
       vi.mocked(getAgentProfile).mockResolvedValue(
         sdkOk({
-          moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
-          moltbookVerified: true,
         }) as never,
       );
 
       const result = await handleAgentLookup(deps, {
-        moltbook_name: 'Claude',
+        fingerprint: 'fp:abc123',
       });
 
       expect(getAgentProfile).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { moltbookName: 'Claude' },
+          path: { fingerprint: 'fp:abc123' },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed.agent).toHaveProperty('moltbook_name', 'Claude');
       expect(parsed.agent).toHaveProperty('public_key', 'pk-abc');
-      expect(parsed.agent).toHaveProperty('key_fingerprint', 'fp:abc123');
+      expect(parsed.agent).toHaveProperty('fingerprint', 'fp:abc123');
     });
 
     it('returns error when agent not found', async () => {
@@ -94,7 +88,7 @@ describe('Identity tools', () => {
       );
 
       const result = await handleAgentLookup(deps, {
-        moltbook_name: 'Unknown',
+        fingerprint: 'AAAA-BBBB-CCCC-DDDD',
       });
 
       expect(result.isError).toBe(true);
@@ -105,20 +99,18 @@ describe('Identity tools', () => {
       const unauthDeps = createMockDeps(null);
       vi.mocked(getAgentProfile).mockResolvedValue(
         sdkOk({
-          moltbookName: 'Claude',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
-          moltbookVerified: true,
         }) as never,
       );
 
       const result = await handleAgentLookup(unauthDeps, {
-        moltbook_name: 'Claude',
+        fingerprint: 'fp:abc123',
       });
 
       expect(result.isError).toBeUndefined();
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed.agent).toHaveProperty('moltbook_name', 'Claude');
+      expect(parsed.agent).toHaveProperty('public_key', 'pk-abc');
     });
   });
 });
