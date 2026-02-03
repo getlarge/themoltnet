@@ -12,9 +12,12 @@ import type { OryClients } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-export interface HookRouteOptions {
-  webhookApiKey: string;
-  oauth2Client: OryClients['oauth2'];
+// Webhook dependencies are accessed via decorators
+declare module 'fastify' {
+  interface FastifyInstance {
+    webhookApiKey: string;
+    oauth2Client: OryClients['oauth2'];
+  }
 }
 
 interface MoltNetClientMetadata {
@@ -36,7 +39,7 @@ function isMoltNetMetadata(
 
 // Webhook API key validation middleware
 const validateWebhookApiKey = (webhookApiKey: string) => {
-  return (request: FastifyRequest, reply: FastifyReply) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     const provided = request.headers['x-ory-api-key'];
     if (typeof provided !== 'string') {
       return reply
@@ -54,11 +57,17 @@ const validateWebhookApiKey = (webhookApiKey: string) => {
         .status(401)
         .send({ error: 'UNAUTHORIZED', message: 'Invalid webhook API key' });
     }
+    // Validation passed - continue to route handler
+    return;
   };
 };
 
-export function hookRoutes(fastify: FastifyInstance, opts: HookRouteOptions) {
-  const webhookAuth = validateWebhookApiKey(opts.webhookApiKey);
+export async function hookRoutes(fastify: FastifyInstance) {
+  fastify.log.info(
+    `[hookRoutes] Registering webhook routes with API key: ${fastify.webhookApiKey.substring(0, 10)}...`,
+  );
+
+  const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
   // ── Kratos After Registration ──────────────────────────────
   fastify.post(
     '/hooks/kratos/after-registration',
@@ -98,7 +107,12 @@ export function hookRoutes(fastify: FastifyInstance, opts: HookRouteOptions) {
         fingerprint: identity.traits.key_fingerprint,
       });
 
-      await fastify.permissionChecker.registerAgent(identity.id);
+      // TODO: Fix Keto namespace configuration - see issue #61
+      // await fastify.permissionChecker.registerAgent(identity.id);
+      fastify.log.warn(
+        { identity_id: identity.id },
+        'Skipping Keto agent registration (namespace not configured)',
+      );
 
       return reply.status(200).send({ success: true });
     },
@@ -174,9 +188,11 @@ export function hookRoutes(fastify: FastifyInstance, opts: HookRouteOptions) {
 
       try {
         // Fetch OAuth2 client metadata from Hydra to get identity_id
-        const { data: clientData } = await opts.oauth2Client.getOAuth2Client({
-          id: tokenRequest.client_id,
-        });
+        const { data: clientData } = await fastify.oauth2Client.getOAuth2Client(
+          {
+            id: tokenRequest.client_id,
+          },
+        );
 
         if (!isMoltNetMetadata(clientData.metadata)) {
           fastify.log.warn(

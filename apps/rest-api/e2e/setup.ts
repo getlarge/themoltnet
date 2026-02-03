@@ -114,6 +114,7 @@ export interface TestHarness {
 }
 
 export async function createTestHarness(): Promise<TestHarness> {
+  console.log('[E2E] Creating test harness...');
   const db = createDatabase(DATABASE_URL);
 
   // Verify database is reachable (fail fast, no silent skip)
@@ -148,9 +149,60 @@ export async function createTestHarness(): Promise<TestHarness> {
     tokenValidator,
     webhookApiKey: WEBHOOK_API_KEY,
     oryClients,
+    logger: true,
   });
 
+  // Ensure all plugins are fully registered before listening
+  await app.ready();
+
+  // Listen on a random port
   const address = await app.listen({ port: 0, host: '127.0.0.1' });
+  console.log(`[E2E] Server started at ${address}`);
+
+  // Print all registered routes
+  console.log('[E2E] Registered routes:');
+  const routes = app.printRoutes({ commonPrefix: false });
+  console.log(routes);
+
+  // Test /health first to verify HTTP works
+  const healthResp = await fetch(`${address}/health`);
+  console.log(`[E2E] Health check: ${healthResp.status}`);
+
+  // Test the webhook route immediately after server starts
+  const testWebhookUrl = `${address}/hooks/kratos/after-registration`;
+  console.log(`[E2E] Testing webhook route: ${testWebhookUrl}`);
+  console.log(`[E2E] Using webhook API key: ${WEBHOOK_API_KEY}`);
+  console.log(
+    `[E2E] App has routes:`,
+    app.hasRoute({ url: '/hooks/kratos/after-registration', method: 'POST' }),
+  );
+  try {
+    const testResp = await fetch(testWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-ory-api-key': WEBHOOK_API_KEY,
+      },
+      body: JSON.stringify({
+        identity: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          traits: {
+            moltbook_name: 'SetupTest',
+            public_key: 'ed25519:TEST',
+            key_fingerprint: 'TEST',
+          },
+        },
+      }),
+    });
+    console.log(`[E2E] Webhook test response: ${testResp.status}`);
+  } catch (err) {
+    console.error('[E2E] Webhook test error:', err);
+  }
+
+  // Wait a bit for the server to be fully ready
+  await new Promise((resolve) => {
+    setTimeout(resolve, 100);
+  });
 
   return {
     app,

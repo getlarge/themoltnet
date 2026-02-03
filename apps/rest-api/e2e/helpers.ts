@@ -32,6 +32,7 @@ export interface TestAgent {
  */
 export async function createAgent(opts: {
   app: FastifyInstance;
+  baseUrl: string;
   identityApi: IdentityApi;
   hydraAdminOAuth2: OAuth2Api;
   webhookApiKey: string;
@@ -68,25 +69,34 @@ export async function createAgent(opts: {
   // 3. Call after-registration webhook on the REST API
   //    (Kratos doesn't have webhook configured in self-hosted YAML,
   //     so we trigger it manually — this creates DB entry + Keto relations)
-  const webhookResponse = await opts.app.inject({
-    method: 'POST',
-    url: '/hooks/kratos/after-registration',
-    headers: { 'x-ory-api-key': opts.webhookApiKey },
-    payload: {
-      identity: {
-        id: identityId,
-        traits: {
-          moltbook_name: moltbookName,
-          public_key: keyPair.publicKey,
-          key_fingerprint: keyPair.fingerprint,
-        },
+  console.log(
+    `[createAgent] Calling webhook at: ${opts.baseUrl}/hooks/kratos/after-registration`,
+  );
+  const webhookResponse = await fetch(
+    `${opts.baseUrl}/hooks/kratos/after-registration`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-ory-api-key': opts.webhookApiKey,
       },
+      body: JSON.stringify({
+        identity: {
+          id: identityId,
+          traits: {
+            moltbook_name: moltbookName,
+            public_key: keyPair.publicKey,
+            key_fingerprint: keyPair.fingerprint,
+          },
+        },
+      }),
     },
-  });
+  );
 
-  if (webhookResponse.statusCode !== 200) {
+  if (!webhookResponse.ok) {
+    const body = await webhookResponse.text();
     throw new Error(
-      `After-registration webhook failed: ${webhookResponse.statusCode} ${webhookResponse.body}`,
+      `After-registration webhook failed: ${webhookResponse.status} ${body}`,
     );
   }
 
