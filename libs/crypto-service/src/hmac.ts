@@ -10,14 +10,17 @@ import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 const RECOVERY_CHALLENGE_PREFIX = 'moltnet:recovery';
 
 /**
- * Generate a recovery challenge string with embedded timestamp.
+ * Generate a recovery challenge string bound to a specific public key.
  *
- * Format: moltnet:recovery:{32 bytes random hex}:{unix timestamp ms}
+ * Format: moltnet:recovery:{publicKey}:{32 bytes random hex}:{unix timestamp ms}
+ *
+ * Binding the public key into the challenge (and therefore the HMAC)
+ * ensures the signed challenge can only be used by the intended agent.
  */
-export function generateRecoveryChallenge(): string {
+export function generateRecoveryChallenge(publicKey: string): string {
   const nonce = randomBytes(32).toString('hex');
   const timestamp = Date.now();
-  return `${RECOVERY_CHALLENGE_PREFIX}:${nonce}:${timestamp}`;
+  return `${RECOVERY_CHALLENGE_PREFIX}:${publicKey}:${nonce}:${timestamp}`;
 }
 
 /**
@@ -29,7 +32,10 @@ export function signChallenge(challenge: string, secret: string): string {
 }
 
 /**
- * Verify a challenge's HMAC and check that it hasn't expired.
+ * Verify a challenge's HMAC, public key binding, and TTL.
+ *
+ * Expected format: moltnet:recovery:ed25519:{keyData}:{nonce}:{timestamp}
+ * (6 colon-separated parts because the public key contains one colon)
  *
  * Returns `{ valid: true }` or `{ valid: false, reason: string }`.
  */
@@ -38,11 +44,29 @@ export function verifyChallenge(
   hmac: string,
   secret: string,
   maxAgeMs: number,
+  expectedPublicKey?: string,
 ): { valid: true } | { valid: false; reason: string } {
   // Verify the challenge format
+  // 6 parts: moltnet : recovery : ed25519 : keyData : nonce : timestamp
   const parts = challenge.split(':');
-  if (parts.length !== 4 || parts[0] !== 'moltnet' || parts[1] !== 'recovery') {
+  if (
+    parts.length !== 6 ||
+    parts[0] !== 'moltnet' ||
+    parts[1] !== 'recovery' ||
+    parts[2] !== 'ed25519'
+  ) {
     return { valid: false, reason: 'Invalid challenge format' };
+  }
+
+  // If caller provides a public key, verify it matches the embedded one
+  if (expectedPublicKey) {
+    const embeddedKey = `${parts[2]}:${parts[3]}`;
+    if (embeddedKey !== expectedPublicKey) {
+      return {
+        valid: false,
+        reason: 'Challenge was issued for a different key',
+      };
+    }
   }
 
   // Verify HMAC (timing-safe comparison)
@@ -57,7 +81,7 @@ export function verifyChallenge(
   }
 
   // Verify timestamp freshness
-  const timestamp = parseInt(parts[3], 10);
+  const timestamp = parseInt(parts[5], 10);
   if (isNaN(timestamp)) {
     return { valid: false, reason: 'Invalid challenge timestamp' };
   }

@@ -70,7 +70,7 @@ export async function recoveryRoutes(
         });
       }
 
-      const challenge = generateRecoveryChallenge();
+      const challenge = generateRecoveryChallenge(publicKey);
       const hmac = signChallenge(challenge, recoverySecret);
 
       fastify.log.info(
@@ -78,7 +78,7 @@ export async function recoveryRoutes(
         'Recovery challenge issued',
       );
 
-      return { challenge, hmac, identityId: agent.identityId };
+      return { challenge, hmac };
     },
   );
 
@@ -122,12 +122,13 @@ export async function recoveryRoutes(
         publicKey: string;
       };
 
-      // 1. Verify HMAC and TTL
+      // 1. Verify HMAC, public key binding, and TTL
       const hmacResult = verifyChallenge(
         challenge,
         hmac,
         recoverySecret,
         CHALLENGE_TTL_MS,
+        publicKey,
       );
       if (!hmacResult.valid) {
         return reply.status(400).send({

@@ -43,9 +43,11 @@ describe('Recovery routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.challenge).toMatch(/^moltnet:recovery:[a-f0-9]{64}:\d+$/);
+      expect(body.challenge).toMatch(
+        /^moltnet:recovery:ed25519:[A-Za-z0-9+/=]+:[a-f0-9]{64}:\d+$/,
+      );
       expect(body.hmac).toMatch(/^[a-f0-9]{64}$/);
-      expect(body.identityId).toBe(OWNER_ID);
+      expect(body).not.toHaveProperty('identityId');
       expect(mocks.agentRepository.findByPublicKey).toHaveBeenCalledWith(
         agent.publicKey,
       );
@@ -76,14 +78,16 @@ describe('Recovery routes', () => {
   });
 
   describe('POST /recovery/verify', () => {
+    const VERIFY_PUBLIC_KEY = 'ed25519:AAAA+/bbbb==';
+
     function createValidPayload() {
-      const challenge = generateRecoveryChallenge();
+      const challenge = generateRecoveryChallenge(VERIFY_PUBLIC_KEY);
       const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
       return {
         challenge,
         hmac,
         signature: 'valid-base64-signature',
-        publicKey: 'ed25519:AAAA+/bbbb==',
+        publicKey: VERIFY_PUBLIC_KEY,
       };
     }
 
@@ -167,7 +171,7 @@ describe('Recovery routes', () => {
 
     it('returns 400 for expired challenge', async () => {
       const sixMinutesAgo = Date.now() - 6 * 60 * 1000;
-      const challenge = `moltnet:recovery:${'a'.repeat(64)}:${sixMinutesAgo}`;
+      const challenge = `moltnet:recovery:ed25519:AAAA+/bbbb==:${'a'.repeat(64)}:${sixMinutesAgo}`;
       const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
 
       const response = await app.inject({
@@ -177,7 +181,7 @@ describe('Recovery routes', () => {
           challenge,
           hmac,
           signature: 'some-sig',
-          publicKey: 'ed25519:AAAA+/bbbb==',
+          publicKey: VERIFY_PUBLIC_KEY,
         },
       });
 

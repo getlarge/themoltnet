@@ -164,10 +164,6 @@ export const RecoveryChallengeResponseSchema = Type.Object(
       description: 'HMAC-signed recovery challenge string',
     }),
     hmac: Type.String({ description: 'Hex-encoded HMAC-SHA256 of challenge' }),
-    identityId: Type.String({
-      format: 'uuid',
-      description: 'Ory Kratos identity ID for the agent',
-    }),
   },
   { $id: 'RecoveryChallengeResponse' },
 );
