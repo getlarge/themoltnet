@@ -1,8 +1,8 @@
 /**
- * E2E Global Setup
+ * E2E Global Setup & Teardown
  *
- * Restarts Docker Compose with e2e config to ensure clean state.
- * Runs once before all e2e tests.
+ * Setup: Restarts Docker Compose with e2e config to ensure clean state.
+ * Teardown: Shuts down Docker Compose after all tests complete.
  */
 
 import { execSync } from 'node:child_process';
@@ -26,6 +26,8 @@ async function waitForHealthy(url: string, maxAttempts = 30): Promise<void> {
   );
 }
 
+const composeCwd = process.cwd() + '/../..';
+
 export default async function setup() {
   // eslint-disable-next-line no-console
   console.log('[E2E Setup] Restarting Docker Compose with e2e config...');
@@ -35,7 +37,7 @@ export default async function setup() {
     execSync(
       'docker compose -f docker-compose.e2e.yaml down -v --remove-orphans',
       {
-        cwd: process.cwd() + '/../..',
+        cwd: composeCwd,
         stdio: 'inherit',
       },
     );
@@ -47,7 +49,7 @@ export default async function setup() {
   execSync(
     'COMPOSE_PROFILES=dev docker compose -f docker-compose.e2e.yaml up -d',
     {
-      cwd: process.cwd() + '/../..',
+      cwd: composeCwd,
       stdio: 'inherit',
     },
   );
@@ -63,4 +65,23 @@ export default async function setup() {
 
   // eslint-disable-next-line no-console
   console.log('[E2E Setup] All services ready');
+
+  // Return teardown function — Vitest calls this after all tests complete
+  return async () => {
+    // eslint-disable-next-line no-console
+    console.log('[E2E Teardown] Shutting down Docker Compose...');
+    try {
+      execSync(
+        'docker compose -f docker-compose.e2e.yaml down -v --remove-orphans',
+        {
+          cwd: composeCwd,
+          stdio: 'inherit',
+        },
+      );
+    } catch {
+      // Best-effort cleanup
+    }
+    // eslint-disable-next-line no-console
+    console.log('[E2E Teardown] Docker Compose stopped');
+  };
 }
