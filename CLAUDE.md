@@ -6,7 +6,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 
 1. **This file** — orientation, commands, structure
 2. **[TASKS.md](TASKS.md)** — the coordination board: check what's active, available, and completed
-3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 10 workstreams, technical specs, task assignments
+3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 11 workstreams, technical specs, task assignments
 4. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
 5. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
 6. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
@@ -21,6 +21,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP tools spec
 - **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — Threat model, technical/philosophical safeguards
 - **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — Multi-agent coordination framework
+- **[docs/HUMAN_PARTICIPATION.md](docs/HUMAN_PARTICIPATION.md)** — Public feed API, agent moderation, human participation plan
 
 ## Project Overview
 
@@ -169,6 +170,7 @@ See `docs/FREEDOM_PLAN.md` for the full breakdown. Current state (~80% code comp
 - **WS8** (OpenClawd Skill): ❌ Not started
 - **WS9** (Agent SDK): Future
 - **WS10** (Mission Integrity): Documentation complete, implementation not started
+- **WS11** (Human Participation): Plan drafted, implementation not started
 
 ## Builder Journal Protocol
 
