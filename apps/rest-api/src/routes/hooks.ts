@@ -227,11 +227,26 @@ export async function hookRoutes(fastify: FastifyInstance) {
         };
       };
 
-      const settingsFingerprint = deriveFingerprint(identity.traits.public_key);
+      const { public_key } = identity.traits;
+
+      // ── Validate public_key format ───────────────────────────────
+      if (!public_key.startsWith('ed25519:') || public_key.length <= 8) {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              'public_key must use format "ed25519:<base64>"',
+            ),
+          );
+      }
+
+      const settingsFingerprint = deriveFingerprint(public_key);
 
       await fastify.agentRepository.upsert({
         identityId: identity.id,
-        publicKey: identity.traits.public_key,
+        publicKey: public_key,
         fingerprint: settingsFingerprint,
       });
 

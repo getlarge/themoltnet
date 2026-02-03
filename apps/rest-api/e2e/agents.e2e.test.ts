@@ -17,7 +17,7 @@ import {
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Agents & Crypto', () => {
@@ -29,12 +29,19 @@ describe('Agents & Crypto', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
+    // Create a voucher from the bootstrap identity
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
     agent = await createAgent({
       app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
       webhookApiKey: harness.webhookApiKey,
+      voucherCode,
     });
   });
 

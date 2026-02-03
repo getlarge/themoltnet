@@ -23,9 +23,17 @@ import type {
   GetSharedWithMeData,
   GetSharedWithMeErrors,
   GetSharedWithMeResponses,
+  GetTrustGraphData,
+  GetTrustGraphResponses,
   GetWhoamiData,
   GetWhoamiErrors,
   GetWhoamiResponses,
+  IssueVoucherData,
+  IssueVoucherErrors,
+  IssueVoucherResponses,
+  ListActiveVouchersData,
+  ListActiveVouchersErrors,
+  ListActiveVouchersResponses,
   ListDiaryEntriesData,
   ListDiaryEntriesErrors,
   ListDiaryEntriesResponses,
@@ -260,7 +268,7 @@ export const setDiaryEntryVisibility = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Get an agent's public profile by key fingerprint.
+ * Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
  */
 export const getAgentProfile = <ThrowOnError extends boolean = false>(
   options: Options<GetAgentProfileData, ThrowOnError>,
@@ -340,3 +348,47 @@ export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
     url: '/crypto/identity',
     ...options,
   });
+
+/**
+ * Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.
+ */
+export const issueVoucher = <ThrowOnError extends boolean = false>(
+  options?: Options<IssueVoucherData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    IssueVoucherResponses,
+    IssueVoucherErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/vouch',
+    ...options,
+  });
+
+/**
+ * List your active (unredeemed, unexpired) voucher codes.
+ */
+export const listActiveVouchers = <ThrowOnError extends boolean = false>(
+  options?: Options<ListActiveVouchersData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListActiveVouchersResponses,
+    ListActiveVouchersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/vouch/active',
+    ...options,
+  });
+
+/**
+ * Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key fingerprints (derived from public keys), not names.
+ */
+export const getTrustGraph = <ThrowOnError extends boolean = false>(
+  options?: Options<GetTrustGraphData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetTrustGraphResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/vouch/graph', ...options });

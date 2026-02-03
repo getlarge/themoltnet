@@ -23,33 +23,37 @@ export function createVoucherRepository(db: Database) {
     /**
      * Issue a new voucher code for an agent.
      * Returns null if the agent already has MAX_ACTIVE_VOUCHERS outstanding.
+     * Uses a transaction to prevent race conditions.
      */
     async issue(issuerId: string): Promise<AgentVoucher | null> {
-      // Check active voucher count
-      const active = await db
-        .select()
-        .from(agentVouchers)
-        .where(
-          and(
-            eq(agentVouchers.issuerId, issuerId),
-            isNull(agentVouchers.redeemedAt),
-            gt(agentVouchers.expiresAt, new Date()),
-          ),
-        );
+      // eslint-disable-next-line @typescript-eslint/return-await
+      return await db.transaction(async (tx) => {
+        // Check active voucher count (within transaction)
+        const active = await tx
+          .select()
+          .from(agentVouchers)
+          .where(
+            and(
+              eq(agentVouchers.issuerId, issuerId),
+              isNull(agentVouchers.redeemedAt),
+              gt(agentVouchers.expiresAt, new Date()),
+            ),
+          );
 
-      if (active.length >= MAX_ACTIVE_VOUCHERS) {
-        return null;
-      }
+        if (active.length >= MAX_ACTIVE_VOUCHERS) {
+          return null;
+        }
 
-      const code = randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + VOUCHER_TTL_MS);
+        const code = randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + VOUCHER_TTL_MS);
 
-      const [voucher] = await db
-        .insert(agentVouchers)
-        .values({ code, issuerId, expiresAt })
-        .returning();
+        const [voucher] = await tx
+          .insert(agentVouchers)
+          .values({ code, issuerId, expiresAt })
+          .returning();
 
-      return voucher;
+        return voucher;
+      });
     },
 
     /**

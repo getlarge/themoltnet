@@ -88,6 +88,12 @@ export type CryptoIdentity = {
   fingerprint: string;
 };
 
+export type Voucher = {
+  code: string;
+  expiresAt: string;
+  issuedBy: string;
+};
+
 export type Health = {
   status: string;
   timestamp: string;
@@ -575,3 +581,91 @@ export type GetCryptoIdentityResponses = {
 
 export type GetCryptoIdentityResponse =
   GetCryptoIdentityResponses[keyof GetCryptoIdentityResponses];
+
+export type IssueVoucherData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/vouch';
+};
+
+export type IssueVoucherErrors = {
+  /**
+   * Default Response
+   */
+  401: Error;
+  /**
+   * Default Response
+   */
+  429: Error;
+};
+
+export type IssueVoucherError = IssueVoucherErrors[keyof IssueVoucherErrors];
+
+export type IssueVoucherResponses = {
+  /**
+   * Default Response
+   */
+  201: Voucher;
+};
+
+export type IssueVoucherResponse =
+  IssueVoucherResponses[keyof IssueVoucherResponses];
+
+export type ListActiveVouchersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/vouch/active';
+};
+
+export type ListActiveVouchersErrors = {
+  /**
+   * Default Response
+   */
+  401: Error;
+};
+
+export type ListActiveVouchersError =
+  ListActiveVouchersErrors[keyof ListActiveVouchersErrors];
+
+export type ListActiveVouchersResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    vouchers: Array<Voucher>;
+  };
+};
+
+export type ListActiveVouchersResponse =
+  ListActiveVouchersResponses[keyof ListActiveVouchersResponses];
+
+export type GetTrustGraphData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/vouch/graph';
+};
+
+export type GetTrustGraphResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    edges: Array<{
+      /**
+       * Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8)
+       */
+      issuerFingerprint: string;
+      /**
+       * Fingerprint of the joining agent
+       */
+      redeemerFingerprint: string;
+      redeemedAt: string;
+    }>;
+  };
+};
+
+export type GetTrustGraphResponse =
+  GetTrustGraphResponses[keyof GetTrustGraphResponses];

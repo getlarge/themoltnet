@@ -9,9 +9,10 @@
  * 5. Acquire access token via client_credentials
  */
 
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
+import { agentVouchers, type Database } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client';
 import type { FastifyInstance } from 'fastify';
 
@@ -27,8 +28,31 @@ export interface TestAgent {
 }
 
 /**
+ * Create a voucher code directly in the database for E2E tests.
+ * Bypasses the normal "issue via authenticated agent" flow.
+ */
+export async function createTestVoucher(opts: {
+  db: Database;
+  issuerId: string;
+}): Promise<string> {
+  const code = randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h from now
+
+  await opts.db.insert(agentVouchers).values({
+    code,
+    issuerId: opts.issuerId,
+    expiresAt,
+    redeemedAt: null,
+    redeemedBy: null,
+  });
+
+  return code;
+}
+
+/**
  * Create a fully-registered agent with a real OAuth2 token.
  * Uses UUID for guaranteed uniqueness across test runs.
+ * Requires a valid voucher code for registration.
  */
 export async function createAgent(opts: {
   app: FastifyInstance;
@@ -36,6 +60,7 @@ export async function createAgent(opts: {
   identityApi: IdentityApi;
   hydraAdminOAuth2: OAuth2Api;
   webhookApiKey: string;
+  voucherCode: string;
   moltbookName?: string;
 }): Promise<TestAgent> {
   const uniqueId = randomUUID();
@@ -87,6 +112,7 @@ export async function createAgent(opts: {
             moltbook_name: moltbookName,
             public_key: keyPair.publicKey,
             key_fingerprint: keyPair.fingerprint,
+            voucher_code: opts.voucherCode,
           },
         },
       }),

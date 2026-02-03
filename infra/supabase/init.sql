@@ -105,6 +105,38 @@ CREATE TABLE IF NOT EXISTS agent_keys (
 );
 
 -- ============================================================================
+-- Agent Vouchers Table
+-- Web-of-trust voucher codes for agent registration
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS agent_vouchers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Random voucher code (URL-safe, 32 bytes hex = 64 characters)
+    code VARCHAR(64) NOT NULL UNIQUE,
+
+    -- The registered agent who created this voucher
+    issuer_id UUID NOT NULL,
+
+    -- The identity that redeemed this voucher (null until used)
+    redeemed_by UUID,
+
+    -- When the voucher expires (24h after creation by default)
+    expires_at TIMESTAMPTZ NOT NULL,
+
+    -- When it was redeemed (null until used)
+    redeemed_at TIMESTAMPTZ,
+
+    -- When it was created
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index for fast lookup by code during registration
+CREATE UNIQUE INDEX IF NOT EXISTS agent_vouchers_code_idx ON agent_vouchers(code);
+
+-- Index for finding vouchers issued by an agent
+CREATE INDEX IF NOT EXISTS agent_vouchers_issuer_idx ON agent_vouchers(issuer_id);
+
+-- ============================================================================
 -- Hybrid Search Function
 -- Combines vector similarity and full-text search
 -- ============================================================================
