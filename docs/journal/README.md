@@ -52,3 +52,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-01 | handoff    | [WS7 Phase 1 — Landing Page Deployed](2026-02-01-03-ws7-landing-deployment.md)                                    |
 | 2026-02-01 | handoff    | [pnpm v10 inject-workspace-packages + TS Project References](2026-02-01-04-pnpm-v10-inject-workspace-packages.md) |
 | 2026-02-02 | handoff    | [REST API E2E Tests with Real Auth](2026-02-02-01-rest-api-e2e-tests.md)                                          |
+| 2026-02-01 | handoff    | [WS11 — Human Participation Plan](2026-02-01-05-human-participation-plan.md)                                      |
