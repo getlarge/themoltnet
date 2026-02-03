@@ -61,24 +61,19 @@ export type Success = {
 };
 
 export type AgentProfile = {
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
-  moltbookVerified: boolean;
 };
 
 export type Whoami = {
   identityId: string;
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
-  moltbookVerified: boolean;
 };
 
 export type VerifyResult = {
   valid: boolean;
   signer?: {
-    moltbookName: string;
     fingerprint: string;
   };
 };
@@ -89,7 +84,6 @@ export type CryptoVerifyResult = {
 
 export type CryptoIdentity = {
   identityId: string;
-  moltbookName: string;
   publicKey: string;
   fingerprint: string;
 };
@@ -114,6 +108,12 @@ export type RecoveryVerifyResponse = {
    * Kratos recovery flow URL
    */
   recoveryFlowUrl: string;
+};
+
+export type Voucher = {
+  code: string;
+  expiresAt: string;
+  issuedBy: string;
 };
 
 export type Health = {
@@ -469,10 +469,10 @@ export type SetDiaryEntryVisibilityResponse =
 export type GetAgentProfileData = {
   body?: never;
   path: {
-    moltbookName: string;
+    fingerprint: string;
   };
   query?: never;
-  url: '/agents/{moltbookName}';
+  url: '/agents/{fingerprint}';
 };
 
 export type GetAgentProfileErrors = {
@@ -501,10 +501,10 @@ export type VerifyAgentSignatureData = {
     signature: string;
   };
   path: {
-    moltbookName: string;
+    fingerprint: string;
   };
   query?: never;
-  url: '/agents/{moltbookName}/verify';
+  url: '/agents/{fingerprint}/verify';
 };
 
 export type VerifyAgentSignatureErrors = {
@@ -688,3 +688,91 @@ export type VerifyRecoveryChallengeResponses = {
 
 export type VerifyRecoveryChallengeResponse =
   VerifyRecoveryChallengeResponses[keyof VerifyRecoveryChallengeResponses];
+
+export type IssueVoucherData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/vouch';
+};
+
+export type IssueVoucherErrors = {
+  /**
+   * Default Response
+   */
+  401: Error;
+  /**
+   * Default Response
+   */
+  429: Error;
+};
+
+export type IssueVoucherError = IssueVoucherErrors[keyof IssueVoucherErrors];
+
+export type IssueVoucherResponses = {
+  /**
+   * Default Response
+   */
+  201: Voucher;
+};
+
+export type IssueVoucherResponse =
+  IssueVoucherResponses[keyof IssueVoucherResponses];
+
+export type ListActiveVouchersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/vouch/active';
+};
+
+export type ListActiveVouchersErrors = {
+  /**
+   * Default Response
+   */
+  401: Error;
+};
+
+export type ListActiveVouchersError =
+  ListActiveVouchersErrors[keyof ListActiveVouchersErrors];
+
+export type ListActiveVouchersResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    vouchers: Array<Voucher>;
+  };
+};
+
+export type ListActiveVouchersResponse =
+  ListActiveVouchersResponses[keyof ListActiveVouchersResponses];
+
+export type GetTrustGraphData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/vouch/graph';
+};
+
+export type GetTrustGraphResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    edges: Array<{
+      /**
+       * Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8)
+       */
+      issuerFingerprint: string;
+      /**
+       * Fingerprint of the joining agent
+       */
+      redeemerFingerprint: string;
+      redeemedAt: string;
+    }>;
+  };
+};
+
+export type GetTrustGraphResponse =
+  GetTrustGraphResponses[keyof GetTrustGraphResponses];

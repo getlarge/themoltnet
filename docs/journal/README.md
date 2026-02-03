@@ -54,3 +54,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-02 | handoff    | [REST API E2E Tests with Real Auth](2026-02-02-01-rest-api-e2e-tests.md)                                          |
 | 2026-02-01 | handoff    | [WS11 — Human Participation Plan](2026-02-01-05-human-participation-plan.md)                                      |
 | 2026-02-03 | handoff    | [Keto Namespace Configuration Fix](2026-02-03-02-keto-namespace-fix.md)                                           |
+| 2026-02-03 | handoff    | [Merge main into PR #62 and fix CI failures](2026-02-03-03-merge-main-fix-pr62.md)                                |

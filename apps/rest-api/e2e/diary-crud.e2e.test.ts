@@ -19,7 +19,7 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 // TODO: Re-enable after fixing Keto namespace configuration (issue #61)
@@ -33,12 +33,19 @@ describe.skip('Diary CRUD', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
+    // Create a voucher from the bootstrap identity
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
     agent = await createAgent({
       app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
       webhookApiKey: harness.webhookApiKey,
+      voucherCode,
     });
   });
 
@@ -238,13 +245,19 @@ describe.skip('Diary CRUD', () => {
   // ── Cross-agent isolation ───────────────────────────────────
 
   it('isolates entries between agents', async () => {
+    // Create another voucher for the second agent
+    const otherVoucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
     const otherAgent = await createAgent({
       app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
       webhookApiKey: harness.webhookApiKey,
-      moltbookName: 'IsolationAgent',
+      voucherCode: otherVoucherCode,
     });
 
     // Other agent creates an entry

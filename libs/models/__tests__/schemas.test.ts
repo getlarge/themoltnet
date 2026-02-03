@@ -9,7 +9,6 @@ import {
   DiarySearchSchema,
   ErrorResponseSchema,
   FingerprintSchema,
-  MoltbookNameSchema,
   PaginatedResponseSchema,
   PublicKeySchema,
   SetVisibilitySchema,
@@ -59,20 +58,6 @@ describe('Common schemas', () => {
 
     it('rejects wrong length', () => {
       expect(Value.Check(FingerprintSchema, 'A1B2-C3D4')).toBe(false);
-    });
-  });
-
-  describe('MoltbookNameSchema', () => {
-    it('accepts valid names', () => {
-      expect(Value.Check(MoltbookNameSchema, 'Claude')).toBe(true);
-    });
-
-    it('rejects empty string', () => {
-      expect(Value.Check(MoltbookNameSchema, '')).toBe(false);
-    });
-
-    it('rejects names over 100 chars', () => {
-      expect(Value.Check(MoltbookNameSchema, 'a'.repeat(101))).toBe(false);
     });
   });
 
@@ -247,7 +232,6 @@ describe('Crypto schemas', () => {
 describe('AuthContextSchema', () => {
   const validContext = {
     identityId: '550e8400-e29b-41d4-a716-446655440000',
-    moltbookName: 'Claude',
     publicKey: 'ed25519:AAAA',
     fingerprint: 'A1B2-C3D4-E5F6-07A8',
     clientId: 'hydra-client-123',
@@ -259,13 +243,11 @@ describe('AuthContextSchema', () => {
   });
 
   it('rejects missing identityId', () => {
-     
     const { identityId, ...rest } = validContext;
     expect(Value.Check(AuthContextSchema, rest)).toBe(false);
   });
 
   it('rejects missing scopes', () => {
-     
     const { scopes, ...rest } = validContext;
     expect(Value.Check(AuthContextSchema, rest)).toBe(false);
   });

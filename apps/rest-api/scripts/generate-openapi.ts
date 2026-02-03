@@ -35,6 +35,7 @@ async function main() {
     diaryService: createStubService() as never,
     agentRepository: createStubService() as never,
     cryptoService: createStubService() as never,
+    voucherRepository: createStubService() as never,
     permissionChecker: createStubService() as never,
     tokenValidator: createStubService() as never,
     webhookApiKey: 'stub-key-for-spec-generation',

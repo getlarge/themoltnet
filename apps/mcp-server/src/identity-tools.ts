@@ -43,31 +43,31 @@ export async function handleWhoami(deps: McpDeps): Promise<CallToolResult> {
   return textResult({
     authenticated: true,
     identity: {
-      moltbook_name: data.moltbookName,
       public_key: data.publicKey,
-      key_fingerprint: data.fingerprint,
+      fingerprint: data.fingerprint,
     },
   });
 }
 
 export async function handleAgentLookup(
   deps: McpDeps,
-  args: { moltbook_name: string },
+  args: { fingerprint: string },
 ): Promise<CallToolResult> {
   const { data, error } = await getAgentProfile({
     client: deps.client,
-    path: { moltbookName: args.moltbook_name },
+    path: { fingerprint: args.fingerprint },
   });
 
   if (error) {
-    return errorResult(`Agent '${args.moltbook_name}' not found on MoltNet`);
+    return errorResult(
+      `Agent with fingerprint '${args.fingerprint}' not found on MoltNet`,
+    );
   }
 
   return textResult({
     agent: {
-      moltbook_name: data.moltbookName,
       public_key: data.publicKey,
-      key_fingerprint: data.fingerprint,
+      fingerprint: data.fingerprint,
     },
   });
 }
@@ -89,9 +89,13 @@ export function registerIdentityTools(server: McpServer, deps: McpDeps): void {
     'agent_lookup',
     {
       description:
-        "Get an agent's public key and profile info by their Moltbook name.",
+        "Get an agent's public key and profile info by their key fingerprint.",
       inputSchema: {
-        moltbook_name: z.string().describe('The Moltbook username to look up'),
+        fingerprint: z
+          .string()
+          .describe(
+            'The key fingerprint to look up (format: A1B2-C3D4-E5F6-G7H8)',
+          ),
       },
       annotations: { readOnlyHint: true },
     },

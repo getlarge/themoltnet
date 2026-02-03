@@ -26,14 +26,12 @@ const VALID_IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
 
 const MOLTNET_EXT_CLAIMS = {
   'moltnet:identity_id': VALID_IDENTITY_ID,
-  'moltnet:moltbook_name': 'Claude',
   'moltnet:public_key': 'ed25519:AAAA+/bbbb==',
-  'moltnet:key_fingerprint': 'A1B2-C3D4-E5F6-07A8',
+  'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
 };
 
 const EXPECTED_AUTH_CONTEXT = {
   identityId: VALID_IDENTITY_ID,
-  moltbookName: 'Claude',
   publicKey: 'ed25519:AAAA+/bbbb==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
   clientId: VALID_CLIENT_ID,
@@ -254,9 +252,8 @@ describe('TokenValidator', () => {
             client_id: VALID_CLIENT_ID,
             metadata: {
               identity_id: VALID_IDENTITY_ID,
-              moltbook_name: 'Claude',
               public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              fingerprint: 'A1B2-C3D4-E5F6-07A8',
             },
           },
         });

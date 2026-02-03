@@ -105,10 +105,8 @@ export const SuccessSchema = Type.Object(
 
 export const AgentProfileSchema = Type.Object(
   {
-    moltbookName: Type.String(),
     publicKey: Type.String(),
     fingerprint: Type.String(),
-    moltbookVerified: Type.Boolean(),
   },
   { $id: 'AgentProfile' },
 );
@@ -116,10 +114,8 @@ export const AgentProfileSchema = Type.Object(
 export const WhoamiSchema = Type.Object(
   {
     identityId: Type.String({ format: 'uuid' }),
-    moltbookName: Type.String(),
     publicKey: Type.String(),
     fingerprint: Type.String(),
-    moltbookVerified: Type.Boolean(),
   },
   { $id: 'Whoami' },
 );
@@ -129,7 +125,6 @@ export const VerifyResultSchema = Type.Object(
     valid: Type.Boolean(),
     signer: Type.Optional(
       Type.Object({
-        moltbookName: Type.String(),
         fingerprint: Type.String(),
       }),
     ),
@@ -149,7 +144,6 @@ export const CryptoVerifyResultSchema = Type.Object(
 export const CryptoIdentitySchema = Type.Object(
   {
     identityId: Type.String({ format: 'uuid' }),
-    moltbookName: Type.String(),
     publicKey: Type.String(),
     fingerprint: Type.String(),
   },
@@ -179,6 +173,17 @@ export const RecoveryVerifyResponseSchema = Type.Object(
   { $id: 'RecoveryVerifyResponse' },
 );
 
+// ── Vouch ───────────────────────────────────────────────────
+
+export const VoucherSchema = Type.Object(
+  {
+    code: Type.String(),
+    expiresAt: Type.String({ format: 'date-time' }),
+    issuedBy: Type.String(),
+  },
+  { $id: 'Voucher' },
+);
+
 // ── Health ──────────────────────────────────────────────────
 
 export const HealthSchema = Type.Object(
@@ -196,7 +201,9 @@ export const EntryParamsSchema = Type.Object({
 });
 
 export const AgentParamsSchema = Type.Object({
-  moltbookName: Type.String({ minLength: 1, maxLength: 100 }),
+  fingerprint: Type.String({
+    pattern: '^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$',
+  }),
 });
 
 /**
@@ -220,5 +227,6 @@ export const sharedSchemas = [
   CryptoIdentitySchema,
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
+  VoucherSchema,
   HealthSchema,
 ];

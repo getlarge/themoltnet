@@ -15,4 +15,8 @@ export {
   type DiaryRepository,
   type DiarySearchOptions,
 } from './repositories/diary.repository.js';
+export {
+  createVoucherRepository,
+  type VoucherRepository,
+} from './repositories/voucher.repository.js';
 export * from './schema.js';

@@ -1,9 +1,11 @@
+import { cryptoService } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockAgent,
   createMockServices,
+  createMockVoucher,
   createTestApp,
   type MockServices,
   OWNER_ID,
@@ -21,10 +23,71 @@ describe('Hook routes', () => {
   });
 
   describe('POST /hooks/kratos/after-registration', () => {
-    it('creates agent entry and registers in Keto', async () => {
+    const testPublicKey =
+      'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
+    const expectedFingerprint = cryptoService.generateFingerprint(
+      cryptoService.parsePublicKey(testPublicKey),
+    );
+
+    const validPayload = {
+      identity: {
+        id: OWNER_ID,
+        traits: {
+          public_key: testPublicKey,
+          voucher_code: 'a'.repeat(64),
+        },
+      },
+    };
+
+    it('creates agent entry when voucher is valid', async () => {
+      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: validPayload,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().success).toBe(true);
+      expect(mocks.voucherRepository.redeem).toHaveBeenCalledWith(
+        'a'.repeat(64),
+        OWNER_ID,
+      );
+      expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
+        identityId: OWNER_ID,
+        publicKey: testPublicKey,
+        fingerprint: expectedFingerprint,
+      });
+      expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
+        OWNER_ID,
+      );
+    });
+
+    it('rejects registration with invalid voucher (Ory error format)', async () => {
+      mocks.voucherRepository.redeem.mockResolvedValue(null);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: validPayload,
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = response.json();
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].instance_ptr).toBe('#/traits/voucher_code');
+      expect(body.messages[0].messages[0].id).toBe(4000003);
+      expect(body.messages[0].messages[0].type).toBe('error');
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
+      expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
+    });
+
+    it('rejects registration with invalid public_key format', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/kratos/after-registration',
@@ -33,33 +96,29 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              public_key: 'rsa:not-an-ed25519-key',
+              voucher_code: 'a'.repeat(64),
             },
           },
         },
       });
 
-      expect(response.statusCode).toBe(200);
-      expect(response.json().success).toBe(true);
-      expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
-        identityId: OWNER_ID,
-        moltbookName: 'Claude',
-        publicKey: 'ed25519:AAAA+/bbbb==',
-        fingerprint: 'A1B2-C3D4-E5F6-07A8',
-      });
-      // TODO: Re-enable after fixing Keto namespace configuration (issue #61)
-      // expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
-      //   OWNER_ID,
-      // );
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.messages).toHaveLength(1);
+      expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
+      expect(body.messages[0].messages[0].id).toBe(4000001);
+      expect(body.messages[0].messages[0].text).toContain('32 bytes');
+      expect(mocks.voucherRepository.redeem).not.toHaveBeenCalled();
     });
   });
 
   describe('POST /hooks/kratos/after-settings', () => {
     it('updates agent entry', async () => {
       mocks.agentRepository.upsert.mockResolvedValue(
-        createMockAgent({ publicKey: 'ed25519:NEWKEY==' }),
+        createMockAgent({
+          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
+        }),
       );
 
       const response = await app.inject({
@@ -70,9 +129,8 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:NEWKEY==',
-              key_fingerprint: 'B2C3-D4E5-F607-A8B9',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
             },
           },
         },
@@ -106,9 +164,9 @@ describe('Hook routes', () => {
       const body = response.json();
       expect(body.session.access_token).toEqual({
         'moltnet:identity_id': OWNER_ID,
-        'moltnet:moltbook_name': 'Claude',
-        'moltnet:public_key': 'ed25519:AAAA+/bbbb==',
-        'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
+        'moltnet:public_key':
+          'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+        'moltnet:fingerprint': 'C212-DAFA-27C5-6C57',
       });
     });
 
@@ -146,9 +204,9 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+              voucher_code: 'a'.repeat(64),
             },
           },
         },
@@ -170,9 +228,9 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+              voucher_code: 'a'.repeat(64),
             },
           },
         },
@@ -186,6 +244,7 @@ describe('Hook routes', () => {
     });
 
     it('accepts request with valid API key', async () => {
+      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
@@ -197,9 +256,9 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              moltbook_name: 'Claude',
-              public_key: 'ed25519:AAAA+/bbbb==',
-              key_fingerprint: 'A1B2-C3D4-E5F6-07A8',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+              voucher_code: 'a'.repeat(64),
             },
           },
         },

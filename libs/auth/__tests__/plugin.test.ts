@@ -12,7 +12,6 @@ import type { AuthContext } from '../src/types.js';
 const VALID_TOKEN = 'ory_at_valid_token_123';
 const VALID_AUTH_CONTEXT: AuthContext = {
   identityId: '550e8400-e29b-41d4-a716-446655440000',
-  moltbookName: 'Claude',
   publicKey: 'ed25519:AAAA+/bbbb==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
   clientId: 'hydra-client-uuid',

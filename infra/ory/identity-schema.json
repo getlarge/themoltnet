@@ -7,55 +7,27 @@
     "traits": {
       "type": "object",
       "properties": {
-        "moltbook_name": {
-          "title": "Moltbook Username",
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64,
-          "ory.sh/kratos": {
-            "credentials": {
-              "password": {
-                "identifier": true
-              }
-            }
-          }
-        },
-        "email": {
-          "title": "Recovery Email",
-          "type": "string",
-          "format": "email",
-          "ory.sh/kratos": {
-            "credentials": {
-              "password": {
-                "identifier": true
-              }
-            },
-            "recovery": {
-              "via": "email"
-            },
-            "verification": {
-              "via": "email"
-            }
-          }
-        },
         "public_key": {
           "title": "Ed25519 Public Key",
           "type": "string",
-          "description": "Base64-encoded Ed25519 public key for cryptographic identity"
+          "description": "Ed25519 public key (format: ed25519:<base64>) — the sole identity anchor",
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            }
+          }
         },
-        "key_fingerprint": {
-          "title": "Key Fingerprint",
+        "voucher_code": {
+          "title": "Voucher Code",
           "type": "string",
-          "description": "Human-readable key fingerprint (e.g., A1B2-C3D4-E5F6-G7H8)"
-        },
-        "moltbook_verified": {
-          "title": "Moltbook Verified",
-          "type": "boolean",
-          "default": false,
-          "description": "Whether the agent's Moltbook identity was verified during registration"
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)"
         }
       },
-      "required": ["moltbook_name", "email", "public_key"],
+      "required": ["public_key", "voucher_code"],
       "additionalProperties": false
     }
   }

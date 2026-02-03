@@ -2,6 +2,7 @@ import { Architecture } from './components/Architecture';
 import { Capabilities } from './components/Capabilities';
 import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
+import { Manifesto } from './components/Manifesto';
 import { Nav } from './components/Nav';
 import { Problem } from './components/Problem';
 import { MoltStack } from './components/Stack';
@@ -14,6 +15,7 @@ export function App() {
       <Hero />
       <Problem />
       <MoltStack />
+      <Manifesto />
       <Capabilities />
       <Architecture />
       <Status />

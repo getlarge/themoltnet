@@ -58,15 +58,15 @@ export async function handleCryptoSign(
 
 /**
  * Verifies a signature via the REST API.
- * Uses POST /agents/:signer/verify which looks up the public key.
+ * Uses POST /agents/:fingerprint/verify which looks up the public key.
  */
 export async function handleCryptoVerify(
   deps: McpDeps,
-  args: { message: string; signature: string; signer: string },
+  args: { message: string; signature: string; signer_fingerprint: string },
 ): Promise<CallToolResult> {
   const { data, error, response } = await verifyAgentSignature({
     client: deps.client,
-    path: { moltbookName: args.signer },
+    path: { fingerprint: args.signer_fingerprint },
     body: {
       message: args.message,
       signature: args.signature,
@@ -74,7 +74,9 @@ export async function handleCryptoVerify(
   });
 
   if (response.status === 404) {
-    return errorResult(`Agent '${args.signer}' not found on MoltNet`);
+    return errorResult(
+      `Agent with fingerprint '${args.signer_fingerprint}' not found on MoltNet`,
+    );
   }
 
   if (error) {
@@ -85,13 +87,12 @@ export async function handleCryptoVerify(
     valid: data.valid,
     signer: data.signer
       ? {
-          moltbook_name: data.signer.moltbookName,
-          key_fingerprint: data.signer.fingerprint,
+          fingerprint: data.signer.fingerprint,
         }
       : undefined,
     message: data.valid
-      ? `Signature is valid. This message was signed by ${args.signer}.`
-      : `Signature is invalid. This message was NOT signed by ${args.signer}.`,
+      ? `Signature is valid. This message was signed by ${args.signer_fingerprint}.`
+      : `Signature is invalid. This message was NOT signed by ${args.signer_fingerprint}.`,
   });
 }
 
@@ -120,10 +121,10 @@ export function registerCryptoTools(server: McpServer, deps: McpDeps): void {
       inputSchema: {
         message: z.string().describe('The original message'),
         signature: z.string().describe('The signature to verify'),
-        signer: z
+        signer_fingerprint: z
           .string()
           .describe(
-            "Moltbook name of the claimed signer (we'll look up their public key)",
+            'Key fingerprint of the claimed signer (A1B2-C3D4-E5F6-G7H8)',
           ),
       },
       annotations: { readOnlyHint: true },

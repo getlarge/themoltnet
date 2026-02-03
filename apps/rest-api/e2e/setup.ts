@@ -19,6 +19,7 @@ import {
   createAgentRepository,
   createDatabase,
   createDiaryRepository,
+  createVoucherRepository,
   type Database,
 } from '@moltnet/database';
 import {
@@ -109,6 +110,8 @@ export interface TestHarness {
   identityApi: IdentityApi;
   hydraAdminOAuth2: OAuth2Api;
   webhookApiKey: string;
+  /** Bootstrap identity ID for creating initial vouchers */
+  bootstrapIdentityId: string;
   /** Close server */
   teardown(): Promise<void>;
 }
@@ -124,6 +127,7 @@ export async function createTestHarness(): Promise<TestHarness> {
 
   const diaryRepository = createDiaryRepository(db);
   const agentRepository = createAgentRepository(db);
+  const voucherRepository = createVoucherRepository(db);
   const embeddingService = createNoopEmbeddingService();
 
   const permissionChecker = createPermissionChecker(
@@ -144,6 +148,7 @@ export async function createTestHarness(): Promise<TestHarness> {
   const app = await buildApp({
     diaryService,
     agentRepository,
+    voucherRepository,
     cryptoService,
     permissionChecker,
     tokenValidator,
@@ -168,41 +173,44 @@ export async function createTestHarness(): Promise<TestHarness> {
   const healthResp = await fetch(`${address}/health`);
   console.log(`[E2E] Health check: ${healthResp.status}`);
 
-  // Test the webhook route immediately after server starts
-  const testWebhookUrl = `${address}/hooks/kratos/after-registration`;
-  console.log(`[E2E] Testing webhook route: ${testWebhookUrl}`);
-  console.log(`[E2E] Using webhook API key: ${WEBHOOK_API_KEY}`);
+  // Verify webhook route is registered
   console.log(
-    `[E2E] App has routes:`,
+    `[E2E] Webhook route registered:`,
     app.hasRoute({ url: '/hooks/kratos/after-registration', method: 'POST' }),
   );
-  try {
-    const testResp = await fetch(testWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-ory-api-key': WEBHOOK_API_KEY,
+
+  // Create a bootstrap identity in Kratos for issuing test vouchers
+  // This identity doesn't need a voucher since it's the first one
+  const bootstrapKeyPair = await cryptoService.generateKeyPair();
+
+  const { data: bootstrapIdentity } = await identityApi.createIdentity({
+    createIdentityBody: {
+      schema_id: 'moltnet_agent',
+      traits: {
+        public_key: bootstrapKeyPair.publicKey,
+        voucher_code: 'bootstrap-genesis',
       },
-      body: JSON.stringify({
-        identity: {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          traits: {
-            moltbook_name: 'SetupTest',
-            public_key: 'ed25519:TEST',
-            key_fingerprint: 'TEST',
+      credentials: {
+        password: {
+          config: {
+            password: 'bootstrap-password',
           },
         },
-      }),
-    });
-    console.log(`[E2E] Webhook test response: ${testResp.status}`);
-  } catch (err) {
-    console.error('[E2E] Webhook test error:', err);
-  }
-
-  // Wait a bit for the server to be fully ready
-  await new Promise((resolve) => {
-    setTimeout(resolve, 100);
+      },
+    },
   });
+
+  // Create the agent entry in the database (bypass webhook voucher check)
+  await agentRepository.upsert({
+    identityId: bootstrapIdentity.id,
+    publicKey: bootstrapKeyPair.publicKey,
+    fingerprint: bootstrapKeyPair.fingerprint,
+  });
+
+  // Register in Keto for permissions
+  await permissionChecker.registerAgent(bootstrapIdentity.id);
+
+  console.log(`[E2E] Bootstrap identity created: ${bootstrapIdentity.id}`);
 
   return {
     app,
@@ -212,6 +220,7 @@ export async function createTestHarness(): Promise<TestHarness> {
     identityApi,
     hydraAdminOAuth2,
     webhookApiKey: WEBHOOK_API_KEY,
+    bootstrapIdentityId: bootstrapIdentity.id,
     async teardown() {
       await app.close();
     },

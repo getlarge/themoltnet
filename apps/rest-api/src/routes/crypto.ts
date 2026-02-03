@@ -72,7 +72,6 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
     async (request) => {
       return {
         identityId: request.authContext!.identityId,
-        moltbookName: request.authContext!.moltbookName,
         publicKey: request.authContext!.publicKey,
         fingerprint: request.authContext!.fingerprint,
       };
