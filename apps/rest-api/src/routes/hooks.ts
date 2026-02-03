@@ -10,11 +10,14 @@ import crypto from 'node:crypto';
 
 import type { OryClients } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-export interface HookRouteOptions {
-  webhookApiKey: string;
-  oauth2Client: OryClients['oauth2'];
+// Webhook dependencies are accessed via decorators
+declare module 'fastify' {
+  interface FastifyInstance {
+    webhookApiKey: string;
+    oauth2Client: OryClients['oauth2'];
+  }
 }
 
 interface MoltNetClientMetadata {
@@ -34,11 +37,9 @@ function isMoltNetMetadata(
   );
 }
 
-export async function hookRoutes(
-  fastify: FastifyInstance,
-  opts: HookRouteOptions,
-) {
-  fastify.addHook('preHandler', async (request, reply) => {
+// Webhook API key validation middleware
+const validateWebhookApiKey = (webhookApiKey: string) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     const provided = request.headers['x-ory-api-key'];
     if (typeof provided !== 'string') {
       return reply
@@ -46,7 +47,7 @@ export async function hookRoutes(
         .send({ error: 'UNAUTHORIZED', message: 'Missing webhook API key' });
     }
 
-    const expected = Buffer.from(opts.webhookApiKey);
+    const expected = Buffer.from(webhookApiKey);
     const actual = Buffer.from(provided);
     if (
       expected.length !== actual.length ||
@@ -56,7 +57,15 @@ export async function hookRoutes(
         .status(401)
         .send({ error: 'UNAUTHORIZED', message: 'Invalid webhook API key' });
     }
-  });
+    // Validation passed - continue to route handler
+    return;
+  };
+};
+
+export async function hookRoutes(fastify: FastifyInstance) {
+  fastify.log.info('[hookRoutes] Registering webhook routes');
+
+  const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
   // ── Kratos After Registration ──────────────────────────────
   fastify.post(
     '/hooks/kratos/after-registration',
@@ -75,6 +84,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { identity } = request.body as {
@@ -95,7 +105,12 @@ export async function hookRoutes(
         fingerprint: identity.traits.key_fingerprint,
       });
 
-      await fastify.permissionChecker.registerAgent(identity.id);
+      // TODO: Fix Keto namespace configuration - see issue #61
+      // await fastify.permissionChecker.registerAgent(identity.id);
+      fastify.log.warn(
+        { identity_id: identity.id },
+        'Skipping Keto agent registration (namespace not configured)',
+      );
 
       return reply.status(200).send({ success: true });
     },
@@ -119,6 +134,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { identity } = request.body as {
@@ -158,6 +174,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { request: tokenRequest } = request.body as {
@@ -169,9 +186,11 @@ export async function hookRoutes(
 
       try {
         // Fetch OAuth2 client metadata from Hydra to get identity_id
-        const { data: clientData } = await opts.oauth2Client.getOAuth2Client({
-          id: tokenRequest.client_id,
-        });
+        const { data: clientData } = await fastify.oauth2Client.getOAuth2Client(
+          {
+            id: tokenRequest.client_id,
+          },
+        );
 
         if (!isMoltNetMetadata(clientData.metadata)) {
           fastify.log.warn(

@@ -293,6 +293,26 @@ jobs:
             exit 1
           fi
 
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start infrastructure (clean slate)
+        run: docker compose --profile dev up -d --wait
+      - name: Run e2e tests
+        run: pnpm run test:e2e
+      - name: Stop infrastructure
+        if: always()
+        run: docker compose --profile dev down -v
+
   build:
     name: Build
     runs-on: ubuntu-latest

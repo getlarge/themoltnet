@@ -1,15 +1,7 @@
-# MoltNet Docker Compose — Local Development
+# MoltNet Docker Compose — Base Configuration
 #
-# Profiles:
-#   dev  — infrastructure only (apps run natively with `pnpm dev:api` / `pnpm dev:mcp`)
-#   ci   — everything containerized (infra + apps)
-#
-# Usage:
-#   pnpm run docker:up                    # Start infra (dev profile)
-#   pnpm run docker:up -- --profile ci    # Start everything
-#   pnpm run docker:down                  # Stop all
-#   pnpm run docker:reset                 # Stop + remove volumes
-#   pnpm run docker:logs                  # Tail logs
+# This file defines shared service configurations.
+# Extended by docker-compose.dev.yaml (with volumes) and docker-compose.e2e.yaml (without volumes)
 
 services:
   # ==========================================================================
@@ -24,9 +16,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-moltnet}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-moltnet_secret}
       POSTGRES_DB: ${POSTGRES_DB:-moltnet}
-    volumes:
-      - app-db-data:/var/lib/postgresql/data
-      - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-moltnet}']
       interval: 5s
@@ -44,8 +33,6 @@ services:
       POSTGRES_USER: kratos
       POSTGRES_PASSWORD: kratos_secret
       POSTGRES_DB: kratosdb
-    volumes:
-      - kratos-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U kratos']
       interval: 5s
@@ -76,20 +63,14 @@ services:
     volumes:
       - ./infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
       - ./infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
-    depends_on:
-      kratos-migrate:
-        condition: service_completed_successfully
-      mailslurper:
-        condition: service_started
     healthcheck:
       test:
-        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4433/health/alive']
-      interval: 10s
-      timeout: 5s
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4434/health/alive']
+      interval: 3s
+      timeout: 3s
       retries: 5
-      start_period: 20s
+      start_period: 5s
     restart: unless-stopped
-
   # ==========================================================================
   # Ory Hydra — OAuth2 & OpenID Connect
   # ==========================================================================
@@ -100,15 +81,12 @@ services:
       POSTGRES_USER: hydra
       POSTGRES_PASSWORD: hydra_secret
       POSTGRES_DB: hydradb
-    volumes:
-      - hydra-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U hydra']
       interval: 5s
       timeout: 3s
       retries: 5
     restart: unless-stopped
-
   hydra-migrate:
     image: oryd/hydra:v2.3.0
     profiles: [dev, ci]
@@ -133,18 +111,14 @@ services:
       OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${OIDC_PAIRWISE_SALT:-local-dev-salt-not-for-production}
     volumes:
       - ./infra/ory/hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
-    depends_on:
-      hydra-migrate:
-        condition: service_completed_successfully
     healthcheck:
       test:
         ['CMD', 'wget', '--spider', '-q', 'http://localhost:4444/health/alive']
-      interval: 10s
-      timeout: 5s
+      interval: 3s
+      timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 5s
     restart: unless-stopped
-
   # ==========================================================================
   # Ory Keto — Permissions / Authorization
   # ==========================================================================
@@ -155,15 +129,12 @@ services:
       POSTGRES_USER: keto
       POSTGRES_PASSWORD: keto_secret
       POSTGRES_DB: ketodb
-    volumes:
-      - keto-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U keto']
       interval: 5s
       timeout: 3s
       retries: 5
     restart: unless-stopped
-
   keto-migrate:
     image: oryd/keto:v0.14.0
     profiles: [dev, ci]
@@ -177,7 +148,6 @@ services:
       keto-postgres:
         condition: service_healthy
     restart: on-failure
-
   keto:
     image: oryd/keto:v0.14.0
     profiles: [dev, ci]
@@ -190,18 +160,14 @@ services:
     volumes:
       - ./infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
-    depends_on:
-      keto-migrate:
-        condition: service_completed_successfully
     healthcheck:
       test:
         ['CMD', 'wget', '--spider', '-q', 'http://localhost:4466/health/alive']
-      interval: 10s
-      timeout: 5s
+      interval: 3s
+      timeout: 3s
       retries: 5
-      start_period: 10s
+      start_period: 5s
     restart: unless-stopped
-
   # ==========================================================================
   # OpenTelemetry Collector
   # ==========================================================================
@@ -215,10 +181,6 @@ services:
       - '13133:13133' # Health check
     volumes:
       - ./infra/otel/collector-config.dev.yaml:/etc/otelcol/config.yaml:ro
-    # No healthcheck - wget/curl not available in minimal image
-    # Service is non-critical for e2e tests (observability only)
-    restart: unless-stopped
-
   # ==========================================================================
   # Mailslurper — Local SMTP for dev (catches Kratos emails)
   # ==========================================================================
@@ -305,9 +267,3 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
-
-volumes:
-  app-db-data:
-  kratos-db-data:
-  hydra-db-data:
-  keto-db-data:

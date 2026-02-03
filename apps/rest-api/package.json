@@ -14,16 +14,26 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
+    "lint": "eslint .",
     "start": "node dist/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "vitest run --config vitest.config.e2e.ts"
   },
   "dependencies": {
     "@fastify/swagger": "catalog:",
     "@moltnet/auth": "workspace:*",
     "@sinclair/typebox": "catalog:",
-    "fastify": "catalog:"
+    "fastify": "catalog:",
+    "fastify-plugin": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/api-client": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@moltnet/diary-service": "workspace:*",
+    "@ory/client": "catalog:",
+    "drizzle-orm": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

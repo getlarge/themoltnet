@@ -48,5 +48,7 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-01 | handoff    | [@moltnet/embedding-service](2026-02-01-01-embedding-service.md)                                                  |
 | 2026-02-01 | handoff    | [Auth Library — Dual Token Validation](2026-02-01-01-auth-library-jwks-support.md)                                |
 | 2026-02-01 | handoff    | [State Audit & Task Realignment](2026-02-01-02-state-audit-realignment.md)                                        |
+| 2026-02-03 | discovery  | [Webhook Routes 404: Fastify Encapsulation](2026-02-03-01-webhook-routes-404-fastify-encapsulation.md)            |
 | 2026-02-01 | handoff    | [WS7 Phase 1 — Landing Page Deployed](2026-02-01-03-ws7-landing-deployment.md)                                    |
 | 2026-02-01 | handoff    | [pnpm v10 inject-workspace-packages + TS Project References](2026-02-01-04-pnpm-v10-inject-workspace-packages.md) |
+| 2026-02-02 | handoff    | [REST API E2E Tests with Real Auth](2026-02-02-01-rest-api-e2e-tests.md)                                          |
