@@ -7,6 +7,13 @@
 
 import type { PermissionApi, RelationshipApi } from '@ory/client';
 
+import {
+  AgentRelation,
+  DiaryEntryPermission,
+  DiaryEntryRelation,
+  KetoNamespace,
+} from './keto-constants.js';
+
 export interface PermissionChecker {
   canViewEntry(entryId: string, agentId: string): Promise<boolean>;
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
@@ -47,9 +54,9 @@ export function createPermissionChecker(
     canViewEntry(entryId: string, agentId: string): Promise<boolean> {
       return checkPermission(
         permissionApi,
-        'diary_entries',
+        KetoNamespace.DiaryEntry,
         entryId,
-        'view',
+        DiaryEntryPermission.View,
         agentId,
       );
     },
@@ -57,9 +64,9 @@ export function createPermissionChecker(
     canEditEntry(entryId: string, agentId: string): Promise<boolean> {
       return checkPermission(
         permissionApi,
-        'diary_entries',
+        KetoNamespace.DiaryEntry,
         entryId,
-        'edit',
+        DiaryEntryPermission.Edit,
         agentId,
       );
     },
@@ -67,9 +74,9 @@ export function createPermissionChecker(
     canDeleteEntry(entryId: string, agentId: string): Promise<boolean> {
       return checkPermission(
         permissionApi,
-        'diary_entries',
+        KetoNamespace.DiaryEntry,
         entryId,
-        'delete',
+        DiaryEntryPermission.Delete,
         agentId,
       );
     },
@@ -77,9 +84,9 @@ export function createPermissionChecker(
     canShareEntry(entryId: string, agentId: string): Promise<boolean> {
       return checkPermission(
         permissionApi,
-        'diary_entries',
+        KetoNamespace.DiaryEntry,
         entryId,
-        'share',
+        DiaryEntryPermission.Share,
         agentId,
       );
     },
@@ -87,9 +94,9 @@ export function createPermissionChecker(
     async grantOwnership(entryId: string, agentId: string): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {
-          namespace: 'diary_entries',
+          namespace: KetoNamespace.DiaryEntry,
           object: entryId,
-          relation: 'owner',
+          relation: DiaryEntryRelation.Owner,
           subject_id: agentId,
         },
       });
@@ -98,9 +105,9 @@ export function createPermissionChecker(
     async grantViewer(entryId: string, agentId: string): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {
-          namespace: 'diary_entries',
+          namespace: KetoNamespace.DiaryEntry,
           object: entryId,
-          relation: 'viewer',
+          relation: DiaryEntryRelation.Viewer,
           subject_id: agentId,
         },
       });
@@ -108,9 +115,9 @@ export function createPermissionChecker(
 
     async revokeViewer(entryId: string, agentId: string): Promise<void> {
       await relationshipApi.deleteRelationships({
-        namespace: 'diary_entries',
+        namespace: KetoNamespace.DiaryEntry,
         object: entryId,
-        relation: 'viewer',
+        relation: DiaryEntryRelation.Viewer,
         subjectId: agentId,
       });
     },
@@ -118,9 +125,9 @@ export function createPermissionChecker(
     async registerAgent(agentId: string): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {
-          namespace: 'agents',
+          namespace: KetoNamespace.Agent,
           object: agentId,
-          relation: 'self',
+          relation: AgentRelation.Self,
           subject_id: agentId,
         },
       });
@@ -128,7 +135,7 @@ export function createPermissionChecker(
 
     async removeEntryRelations(entryId: string): Promise<void> {
       await relationshipApi.deleteRelationships({
-        namespace: 'diary_entries',
+        namespace: KetoNamespace.DiaryEntry,
         object: entryId,
       });
     },

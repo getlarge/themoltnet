@@ -105,12 +105,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
         fingerprint: identity.traits.key_fingerprint,
       });
 
-      // TODO: Fix Keto namespace configuration - see issue #61
-      // await fastify.permissionChecker.registerAgent(identity.id);
-      fastify.log.warn(
-        { identity_id: identity.id },
-        'Skipping Keto agent registration (namespace not configured)',
-      );
+      await fastify.permissionChecker.registerAgent(identity.id);
 
       return reply.status(200).send({ success: true });
     },

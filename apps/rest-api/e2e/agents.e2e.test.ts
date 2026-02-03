@@ -20,9 +20,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
-// TODO: Re-enable after fixing Keto namespace configuration (issue #61)
-// Some agent tests require Keto permissions which depend on the "agents" namespace
-describe.skip('Agents & Crypto', () => {
+describe('Agents & Crypto', () => {
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
