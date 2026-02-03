@@ -94,6 +94,28 @@ export type CryptoIdentity = {
   fingerprint: string;
 };
 
+export type RecoveryChallengeResponse = {
+  /**
+   * HMAC-signed recovery challenge string
+   */
+  challenge: string;
+  /**
+   * Hex-encoded HMAC-SHA256 of challenge
+   */
+  hmac: string;
+};
+
+export type RecoveryVerifyResponse = {
+  /**
+   * One-time Kratos recovery code
+   */
+  recoveryCode: string;
+  /**
+   * Kratos recovery flow URL
+   */
+  recoveryFlowUrl: string;
+};
+
 export type Health = {
   status: string;
   timestamp: string;
@@ -581,3 +603,88 @@ export type GetCryptoIdentityResponses = {
 
 export type GetCryptoIdentityResponse =
   GetCryptoIdentityResponses[keyof GetCryptoIdentityResponses];
+
+export type RequestRecoveryChallengeData = {
+  body: {
+    /**
+     * Ed25519 public key with prefix
+     */
+    publicKey: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/recovery/challenge';
+};
+
+export type RequestRecoveryChallengeErrors = {
+  /**
+   * Default Response
+   */
+  400: Error;
+  /**
+   * Default Response
+   */
+  404: Error;
+};
+
+export type RequestRecoveryChallengeError =
+  RequestRecoveryChallengeErrors[keyof RequestRecoveryChallengeErrors];
+
+export type RequestRecoveryChallengeResponses = {
+  /**
+   * Default Response
+   */
+  200: RecoveryChallengeResponse;
+};
+
+export type RequestRecoveryChallengeResponse =
+  RequestRecoveryChallengeResponses[keyof RequestRecoveryChallengeResponses];
+
+export type VerifyRecoveryChallengeData = {
+  body: {
+    challenge: string;
+    /**
+     * Hex-encoded HMAC-SHA256
+     */
+    hmac: string;
+    /**
+     * Base64-encoded Ed25519 signature of the challenge
+     */
+    signature: string;
+    /**
+     * Ed25519 public key with prefix
+     */
+    publicKey: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/recovery/verify';
+};
+
+export type VerifyRecoveryChallengeErrors = {
+  /**
+   * Default Response
+   */
+  400: Error;
+  /**
+   * Default Response
+   */
+  404: Error;
+  /**
+   * Default Response
+   */
+  502: Error;
+};
+
+export type VerifyRecoveryChallengeError =
+  VerifyRecoveryChallengeErrors[keyof VerifyRecoveryChallengeErrors];
+
+export type VerifyRecoveryChallengeResponses = {
+  /**
+   * Default Response
+   */
+  200: RecoveryVerifyResponse;
+};
+
+export type VerifyRecoveryChallengeResponse =
+  VerifyRecoveryChallengeResponses[keyof VerifyRecoveryChallengeResponses];
