@@ -30,8 +30,8 @@ export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 export const VALID_AUTH_CONTEXT: AuthContext = {
   identityId: OWNER_ID,
-  publicKey: 'ed25519:AAAA+/bbbb==',
-  fingerprint: 'A1B2-C3D4-E5F6-07A8',
+  publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+  fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
 };
@@ -56,8 +56,8 @@ export function createMockEntry(
 export function createMockAgent(overrides: Partial<AgentKey> = {}): AgentKey {
   return {
     identityId: OWNER_ID,
-    publicKey: 'ed25519:AAAA+/bbbb==',
-    fingerprint: 'A1B2-C3D4-E5F6-07A8',
+    publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+    fingerprint: 'C212-DAFA-27C5-6C57',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,

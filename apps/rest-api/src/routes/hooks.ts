@@ -9,6 +9,7 @@
 import crypto from 'node:crypto';
 
 import type { OryClients } from '@moltnet/auth';
+import { cryptoService } from '@moltnet/crypto-service';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
@@ -33,17 +34,6 @@ function isMoltNetMetadata(
     'identity_id' in metadata &&
     typeof metadata.identity_id === 'string'
   );
-}
-
-/**
- * Derive key fingerprint from an ed25519: public key string.
- * Format: A1B2-C3D4-E5F6-G7H8 (first 16 hex chars of SHA-256, uppercased)
- */
-function deriveFingerprint(publicKey: string): string {
-  const pubBytes = Buffer.from(publicKey.replace(/^ed25519:/, ''), 'base64');
-  const hash = crypto.createHash('sha256').update(pubBytes).digest('hex');
-  const segments = hash.slice(0, 16).toUpperCase().match(/.{4}/g) ?? [];
-  return segments.join('-');
 }
 
 /**
@@ -123,8 +113,11 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
       const { public_key, voucher_code } = identity.traits;
 
-      // ── Validate public_key format ───────────────────────────────
-      if (!public_key.startsWith('ed25519:') || public_key.length <= 8) {
+      // ── Validate public_key format and Ed25519 key bytes ──────────
+      let publicKeyBytes: Uint8Array;
+      try {
+        publicKeyBytes = cryptoService.parsePublicKey(public_key);
+      } catch {
         return reply
           .status(400)
           .send(
@@ -132,26 +125,26 @@ export async function hookRoutes(fastify: FastifyInstance) {
               '#/traits/public_key',
               4000001,
               'public_key must use format "ed25519:<base64>" where <base64> is ' +
-                'your raw 32-byte Ed25519 public key encoded in base64.\n\n' +
-                'Generate your keypair with @noble/ed25519:\n' +
-                '  import * as ed from "@noble/ed25519";\n' +
-                '  const privateKey = ed.utils.randomPrivateKey();\n' +
-                '  const publicKey = await ed.getPublicKeyAsync(privateKey);\n' +
-                '  const public_key = "ed25519:" + Buffer.from(publicKey).toString("base64");\n\n' +
-                'Or with Node.js crypto:\n' +
-                '  import { generateKeyPairSync } from "node:crypto";\n' +
-                '  const { publicKey } = generateKeyPairSync("ed25519");\n' +
-                '  const raw = publicKey.export({ type: "spki", format: "der" }).subarray(-32);\n' +
-                '  const public_key = "ed25519:" + raw.toString("base64");\n\n' +
-                'Store your private key securely at ~/.config/moltnet/private.key (chmod 600). ' +
-                'It never leaves your machine. ' +
-                'The key fingerprint will be derived automatically from your public key.',
+                'your raw 32-byte Ed25519 public key encoded in base64.',
+            ),
+          );
+      }
+
+      if (publicKeyBytes.length !== 32) {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              `public_key must be exactly 32 bytes (got ${publicKeyBytes.length}). ` +
+                'Provide the raw Ed25519 public key, not an SPKI/X.509 wrapper.',
             ),
           );
       }
 
       // Derive fingerprint server-side from public key
-      const fingerprint = deriveFingerprint(public_key);
+      const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
 
       // ── Validate and redeem voucher code (web-of-trust gate) ─────
       const voucher = await fastify.voucherRepository.redeem(
@@ -229,8 +222,11 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
       const { public_key } = identity.traits;
 
-      // ── Validate public_key format ───────────────────────────────
-      if (!public_key.startsWith('ed25519:') || public_key.length <= 8) {
+      // ── Validate public_key format and Ed25519 key bytes ──────────
+      let settingsKeyBytes: Uint8Array;
+      try {
+        settingsKeyBytes = cryptoService.parsePublicKey(public_key);
+      } catch {
         return reply
           .status(400)
           .send(
@@ -242,7 +238,20 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
       }
 
-      const settingsFingerprint = deriveFingerprint(public_key);
+      if (settingsKeyBytes.length !== 32) {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              `public_key must be exactly 32 bytes (got ${settingsKeyBytes.length}).`,
+            ),
+          );
+      }
+
+      const settingsFingerprint =
+        cryptoService.generateFingerprint(settingsKeyBytes);
 
       await fastify.agentRepository.upsert({
         identityId: identity.id,

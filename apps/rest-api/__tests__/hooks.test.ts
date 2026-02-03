@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-
+import { cryptoService } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -13,14 +12,6 @@ import {
   TEST_WEBHOOK_API_KEY,
 } from './helpers.js';
 
-/** Derive fingerprint the same way the webhook does */
-function deriveFingerprint(publicKey: string): string {
-  const pubBytes = Buffer.from(publicKey.replace(/^ed25519:/, ''), 'base64');
-  const hash = createHash('sha256').update(pubBytes).digest('hex');
-  const segments = hash.slice(0, 16).toUpperCase().match(/.{4}/g) ?? [];
-  return segments.join('-');
-}
-
 describe('Hook routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
@@ -32,8 +23,11 @@ describe('Hook routes', () => {
   });
 
   describe('POST /hooks/kratos/after-registration', () => {
-    const testPublicKey = 'ed25519:AAAA+/bbbb==';
-    const expectedFingerprint = deriveFingerprint(testPublicKey);
+    const testPublicKey =
+      'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
+    const expectedFingerprint = cryptoService.generateFingerprint(
+      cryptoService.parsePublicKey(testPublicKey),
+    );
 
     const validPayload = {
       identity: {
@@ -114,8 +108,7 @@ describe('Hook routes', () => {
       expect(body.messages).toHaveLength(1);
       expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
       expect(body.messages[0].messages[0].id).toBe(4000001);
-      expect(body.messages[0].messages[0].text).toContain('ed25519:<base64>');
-      expect(body.messages[0].messages[0].text).toContain('@noble/ed25519');
+      expect(body.messages[0].messages[0].text).toContain('32 bytes');
       expect(mocks.voucherRepository.redeem).not.toHaveBeenCalled();
     });
   });
@@ -123,7 +116,9 @@ describe('Hook routes', () => {
   describe('POST /hooks/kratos/after-settings', () => {
     it('updates agent entry', async () => {
       mocks.agentRepository.upsert.mockResolvedValue(
-        createMockAgent({ publicKey: 'ed25519:NEWKEY==' }),
+        createMockAgent({
+          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
+        }),
       );
 
       const response = await app.inject({
@@ -134,7 +129,8 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              public_key: 'ed25519:NEWKEY==',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
             },
           },
         },
@@ -168,8 +164,9 @@ describe('Hook routes', () => {
       const body = response.json();
       expect(body.session.access_token).toEqual({
         'moltnet:identity_id': OWNER_ID,
-        'moltnet:public_key': 'ed25519:AAAA+/bbbb==',
-        'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
+        'moltnet:public_key':
+          'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+        'moltnet:fingerprint': 'C212-DAFA-27C5-6C57',
       });
     });
 
@@ -207,7 +204,8 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              public_key: 'ed25519:AAAA+/bbbb==',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
               voucher_code: 'a'.repeat(64),
             },
           },
@@ -230,7 +228,8 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              public_key: 'ed25519:AAAA+/bbbb==',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
               voucher_code: 'a'.repeat(64),
             },
           },
@@ -257,7 +256,8 @@ describe('Hook routes', () => {
           identity: {
             id: OWNER_ID,
             traits: {
-              public_key: 'ed25519:AAAA+/bbbb==',
+              public_key:
+                'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
               voucher_code: 'a'.repeat(64),
             },
           },

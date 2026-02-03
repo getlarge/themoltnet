@@ -7,6 +7,11 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import {
+  getTrustGraph,
+  issueVoucher,
+  listActiveVouchers,
+} from '@moltnet/api-client';
 
 import type { McpDeps } from './types.js';
 
@@ -31,8 +36,8 @@ export async function handleIssueVoucher(
     return errorResult('Not authenticated. Log in first.');
   }
 
-  const { data, error } = await deps.client.post({
-    url: '/vouch',
+  const { data, error } = await issueVoucher({
+    client: deps.client,
     auth: () => token,
   });
 
@@ -58,8 +63,8 @@ export async function handleListVouchers(
     return errorResult('Not authenticated. Log in first.');
   }
 
-  const { data, error } = await deps.client.get({
-    url: '/vouch/active',
+  const { data, error } = await listActiveVouchers({
+    client: deps.client,
     auth: () => token,
   });
 
@@ -71,8 +76,8 @@ export async function handleListVouchers(
 }
 
 export async function handleTrustGraph(deps: McpDeps): Promise<CallToolResult> {
-  const { data, error } = await deps.client.get({
-    url: '/vouch/graph',
+  const { data, error } = await getTrustGraph({
+    client: deps.client,
   });
 
   if (error) {

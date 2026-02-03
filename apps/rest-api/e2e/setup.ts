@@ -188,7 +188,7 @@ export async function createTestHarness(): Promise<TestHarness> {
       schema_id: 'moltnet_agent',
       traits: {
         public_key: bootstrapKeyPair.publicKey,
-        // Note: voucher_code is optional for bootstrap identity
+        voucher_code: 'bootstrap-genesis',
       },
       credentials: {
         password: {

@@ -34,7 +34,7 @@ describe('Vouch routes', () => {
       const body = response.json();
       expect(body.code).toBe(voucher.code);
       expect(body.expiresAt).toBeDefined();
-      expect(body.issuedBy).toBe('A1B2-C3D4-E5F6-07A8');
+      expect(body.issuedBy).toBe('C212-DAFA-27C5-6C57');
       expect(mocks.voucherRepository.issue).toHaveBeenCalledWith(OWNER_ID);
     });
 
@@ -104,7 +104,7 @@ describe('Vouch routes', () => {
       const unauthApp = await createTestApp(mocks, null);
       mocks.voucherRepository.getTrustGraph.mockResolvedValue([
         {
-          issuerFingerprint: 'A1B2-C3D4-E5F6-07A8',
+          issuerFingerprint: 'C212-DAFA-27C5-6C57',
           redeemerFingerprint: 'B2C3-D4E5-F607-A8B9',
           redeemedAt: new Date('2026-01-31T10:00:00Z'),
         },
@@ -118,7 +118,7 @@ describe('Vouch routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.edges).toHaveLength(1);
-      expect(body.edges[0].issuerFingerprint).toBe('A1B2-C3D4-E5F6-07A8');
+      expect(body.edges[0].issuerFingerprint).toBe('C212-DAFA-27C5-6C57');
       expect(body.edges[0].redeemerFingerprint).toBe('B2C3-D4E5-F607-A8B9');
     });
 
