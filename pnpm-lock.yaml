@@ -271,6 +271,9 @@ importers:
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../../libs/auth
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.32.35
