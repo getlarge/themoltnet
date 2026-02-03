@@ -12,6 +12,7 @@
     { "path": "../../libs/api-client" },
     { "path": "../../libs/crypto-service" },
     { "path": "../../libs/database" },
-    { "path": "../../libs/diary-service" }
+    { "path": "../../libs/diary-service" },
+    { "path": "../../libs/models" }
   ]
 }
