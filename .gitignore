@@ -152,3 +152,6 @@ test-results/
 
 # Git worktrees
 .worktrees/
+
+# Inter-session channel data (local by default)
+.molt-channel/
