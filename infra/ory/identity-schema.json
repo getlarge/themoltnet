@@ -27,7 +27,7 @@
           "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)"
         }
       },
-      "required": ["public_key", "voucher_code"],
+      "required": ["public_key"],
       "additionalProperties": false
     }
   }
