@@ -287,9 +287,6 @@ importers:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../../libs/crypto-service
       '@moltnet/database':
         specifier: workspace:*
         version: link:../../libs/database

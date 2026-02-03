@@ -30,7 +30,6 @@
   },
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
     "@ory/client": "catalog:",
