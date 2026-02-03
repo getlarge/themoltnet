@@ -217,10 +217,8 @@ export async function createTestHarness(): Promise<TestHarness> {
     createIdentityBody: {
       schema_id: 'moltnet_agent',
       traits: {
-        moltbook_name: 'e2e-bootstrap',
-        email: 'bootstrap@e2e.themolt.net',
         public_key: bootstrapKeyPair.publicKey,
-        key_fingerprint: bootstrapKeyPair.fingerprint,
+        // Note: voucher_code is optional for bootstrap identity
       },
       credentials: {
         password: {

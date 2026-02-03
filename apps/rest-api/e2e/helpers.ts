@@ -74,10 +74,8 @@ export async function createAgent(opts: {
     createIdentityBody: {
       schema_id: 'moltnet_agent',
       traits: {
-        moltbook_name: moltbookName,
-        email: `${moltbookName}@e2e.themolt.net`,
         public_key: keyPair.publicKey,
-        key_fingerprint: keyPair.fingerprint,
+        voucher_code: opts.voucherCode,
       },
       credentials: {
         password: {
@@ -109,9 +107,7 @@ export async function createAgent(opts: {
         identity: {
           id: identityId,
           traits: {
-            moltbook_name: moltbookName,
             public_key: keyPair.publicKey,
-            key_fingerprint: keyPair.fingerprint,
             voucher_code: opts.voucherCode,
           },
         },
