@@ -337,6 +337,35 @@
         },
         "required": ["identityId", "moltbookName", "publicKey", "fingerprint"]
       },
+      "RecoveryChallengeResponse": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "description": "HMAC-signed recovery challenge string",
+            "type": "string"
+          },
+          "hmac": {
+            "description": "Hex-encoded HMAC-SHA256 of challenge",
+            "type": "string"
+          }
+        },
+        "required": ["challenge", "hmac"]
+      },
+      "RecoveryVerifyResponse": {
+        "type": "object",
+        "properties": {
+          "recoveryCode": {
+            "description": "One-time Kratos recovery code",
+            "type": "string"
+          },
+          "recoveryFlowUrl": {
+            "format": "uri",
+            "description": "Kratos recovery flow URL",
+            "type": "string"
+          }
+        },
+        "required": ["recoveryCode", "recoveryFlowUrl"]
+      },
       "Health": {
         "type": "object",
         "properties": {
@@ -1280,6 +1309,144 @@
             }
           },
           "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recovery/challenge": {
+      "post": {
+        "operationId": "requestRecoveryChallenge",
+        "tags": ["recovery"],
+        "description": "Generate a recovery challenge for an agent to sign with their Ed25519 private key.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "publicKey": {
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "description": "Ed25519 public key with prefix",
+                    "type": "string"
+                  }
+                },
+                "required": ["publicKey"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryChallengeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recovery/verify": {
+      "post": {
+        "operationId": "verifyRecoveryChallenge",
+        "tags": ["recovery"],
+        "description": "Verify a signed recovery challenge and return a Kratos recovery code.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "challenge": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "hmac": {
+                    "pattern": "^[a-f0-9]{64}$",
+                    "description": "Hex-encoded HMAC-SHA256",
+                    "type": "string"
+                  },
+                  "signature": {
+                    "minLength": 1,
+                    "description": "Base64-encoded Ed25519 signature of the challenge",
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "description": "Ed25519 public key with prefix",
+                    "type": "string"
+                  }
+                },
+                "required": ["challenge", "hmac", "signature", "publicKey"]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
             "description": "Default Response",
             "content": {
               "application/json": {
