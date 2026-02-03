@@ -63,9 +63,7 @@ const validateWebhookApiKey = (webhookApiKey: string) => {
 };
 
 export async function hookRoutes(fastify: FastifyInstance) {
-  fastify.log.info(
-    `[hookRoutes] Registering webhook routes with API key: ${fastify.webhookApiKey.substring(0, 10)}...`,
-  );
+  fastify.log.info('[hookRoutes] Registering webhook routes');
 
   const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
   // ── Kratos After Registration ──────────────────────────────

@@ -64,7 +64,8 @@ services:
       - ./infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
       - ./infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
     healthcheck:
-      test: ['CMD-SHELL', 'netstat -an | grep -q 4434']
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4434/health/alive']
       interval: 3s
       timeout: 3s
       retries: 5
@@ -111,7 +112,8 @@ services:
     volumes:
       - ./infra/ory/hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
     healthcheck:
-      test: ['CMD-SHELL', 'netstat -an | grep -q 4444']
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4444/health/alive']
       interval: 3s
       timeout: 3s
       retries: 5
@@ -142,6 +144,10 @@ services:
     volumes:
       - ./infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    depends_on:
+      keto-postgres:
+        condition: service_healthy
+    restart: on-failure
   keto:
     image: oryd/keto:v0.14.0
     profiles: [dev, ci]
@@ -155,7 +161,8 @@ services:
       - ./infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
     healthcheck:
-      test: ['CMD-SHELL', 'netstat -an | grep -q 4466']
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4466/health/alive']
       interval: 3s
       timeout: 3s
       retries: 5
