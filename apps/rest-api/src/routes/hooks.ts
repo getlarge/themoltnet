@@ -10,14 +10,14 @@ import crypto from 'node:crypto';
 
 import type { OryClients } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import type { VoucherRepository } from '../types.js';
-
-export interface HookRouteOptions {
-  webhookApiKey: string;
-  oauth2Client: OryClients['oauth2'];
-  voucherRepository: VoucherRepository;
+// Webhook dependencies are accessed via decorators
+declare module 'fastify' {
+  interface FastifyInstance {
+    webhookApiKey: string;
+    oauth2Client: OryClients['oauth2'];
+  }
 }
 
 interface MoltNetClientMetadata {
@@ -62,11 +62,9 @@ function oryValidationError(instancePtr: string, id: number, text: string) {
   };
 }
 
-export async function hookRoutes(
-  fastify: FastifyInstance,
-  opts: HookRouteOptions,
-) {
-  fastify.addHook('preHandler', async (request, reply) => {
+// Webhook API key validation middleware
+const validateWebhookApiKey = (webhookApiKey: string) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     const provided = request.headers['x-ory-api-key'];
     if (typeof provided !== 'string') {
       return reply
@@ -74,7 +72,7 @@ export async function hookRoutes(
         .send({ error: 'UNAUTHORIZED', message: 'Missing webhook API key' });
     }
 
-    const expected = Buffer.from(opts.webhookApiKey);
+    const expected = Buffer.from(webhookApiKey);
     const actual = Buffer.from(provided);
     if (
       expected.length !== actual.length ||
@@ -84,7 +82,15 @@ export async function hookRoutes(
         .status(401)
         .send({ error: 'UNAUTHORIZED', message: 'Invalid webhook API key' });
     }
-  });
+    // Validation passed - continue to route handler
+    return;
+  };
+};
+
+export async function hookRoutes(fastify: FastifyInstance) {
+  fastify.log.info('[hookRoutes] Registering webhook routes');
+
+  const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
   // ── Kratos After Registration ──────────────────────────────
   fastify.post(
     '/hooks/kratos/after-registration',
@@ -102,6 +108,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { identity } = request.body as {
@@ -147,8 +154,10 @@ export async function hookRoutes(
       const fingerprint = deriveFingerprint(public_key);
 
       // ── Validate and redeem voucher code (web-of-trust gate) ─────
-      const { voucherRepository } = opts;
-      const voucher = await voucherRepository.redeem(voucher_code, identity.id);
+      const voucher = await fastify.voucherRepository.redeem(
+        voucher_code,
+        identity.id,
+      );
 
       if (!voucher) {
         fastify.log.warn(
@@ -206,6 +215,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { identity } = request.body as {
@@ -244,6 +254,7 @@ export async function hookRoutes(
           }),
         }),
       },
+      preHandler: [webhookAuth],
     },
     async (request, reply) => {
       const { request: tokenRequest } = request.body as {
@@ -255,9 +266,11 @@ export async function hookRoutes(
 
       try {
         // Fetch OAuth2 client metadata from Hydra to get identity_id
-        const { data: clientData } = await opts.oauth2Client.getOAuth2Client({
-          id: tokenRequest.client_id,
-        });
+        const { data: clientData } = await fastify.oauth2Client.getOAuth2Client(
+          {
+            id: tokenRequest.client_id,
+          },
+        );
 
         if (!isMoltNetMetadata(clientData.metadata)) {
           fastify.log.warn(

@@ -38,9 +38,8 @@ describe('PermissionChecker', () => {
     mockPermissionApi = createMockPermissionApi();
     mockRelationshipApi = createMockRelationshipApi();
     checker = createPermissionChecker(
-       
       mockPermissionApi as any,
-       
+
       mockRelationshipApi as any,
     );
   });
@@ -55,7 +54,7 @@ describe('PermissionChecker', () => {
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
-        namespace: 'diary_entries',
+        namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'view',
         subjectId: AGENT_ID,
@@ -93,7 +92,7 @@ describe('PermissionChecker', () => {
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
-        namespace: 'diary_entries',
+        namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'edit',
         subjectId: AGENT_ID,
@@ -121,7 +120,7 @@ describe('PermissionChecker', () => {
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
-        namespace: 'diary_entries',
+        namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'delete',
         subjectId: AGENT_ID,
@@ -139,7 +138,7 @@ describe('PermissionChecker', () => {
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
-        namespace: 'diary_entries',
+        namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'share',
         subjectId: AGENT_ID,
@@ -157,7 +156,7 @@ describe('PermissionChecker', () => {
 
       expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
         createRelationshipBody: {
-          namespace: 'diary_entries',
+          namespace: 'DiaryEntry',
           object: ENTRY_ID,
           relation: 'owner',
           subject_id: AGENT_ID,
@@ -186,7 +185,7 @@ describe('PermissionChecker', () => {
 
       expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
         createRelationshipBody: {
-          namespace: 'diary_entries',
+          namespace: 'DiaryEntry',
           object: ENTRY_ID,
           relation: 'viewer',
           subject_id: OTHER_AGENT_ID,
@@ -204,7 +203,7 @@ describe('PermissionChecker', () => {
       await checker.revokeViewer(ENTRY_ID, OTHER_AGENT_ID);
 
       expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
-        namespace: 'diary_entries',
+        namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'viewer',
         subjectId: OTHER_AGENT_ID,
@@ -222,7 +221,7 @@ describe('PermissionChecker', () => {
 
       expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
         createRelationshipBody: {
-          namespace: 'agents',
+          namespace: 'Agent',
           object: AGENT_ID,
           relation: 'self',
           subject_id: AGENT_ID,
@@ -240,7 +239,7 @@ describe('PermissionChecker', () => {
       await checker.removeEntryRelations(ENTRY_ID);
 
       expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
-        namespace: 'diary_entries',
+        namespace: 'DiaryEntry',
         object: ENTRY_ID,
       });
     });

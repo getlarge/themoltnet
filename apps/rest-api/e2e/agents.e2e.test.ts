@@ -1,0 +1,264 @@
+/**
+ * E2E: Agent profiles, whoami, crypto operations
+ *
+ * Tests agent registration, profile lookup, signature verification,
+ * and crypto challenge flows using real auth and real crypto.
+ */
+
+import {
+  type Client,
+  createClient,
+  getAgentProfile,
+  getCryptoIdentity,
+  getWhoami,
+  verifyAgentSignature,
+  verifyCryptoSignature,
+} from '@moltnet/api-client';
+import { cryptoService } from '@moltnet/crypto-service';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { createAgent, type TestAgent } from './helpers.js';
+import { createTestHarness, type TestHarness } from './setup.js';
+
+describe('Agents & Crypto', () => {
+  let harness: TestHarness;
+  let client: Client;
+  let agent: TestAgent;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
+
+    agent = await createAgent({
+      app: harness.app,
+      baseUrl: harness.baseUrl,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+    });
+  });
+
+  afterAll(async () => {
+    await harness?.teardown();
+  });
+
+  // ── Agent Profile (public) ──────────────────────────────────
+
+  describe('GET /agents/:moltbookName', () => {
+    it('returns an agent profile', async () => {
+      const { data, error } = await getAgentProfile({
+        client,
+        path: { moltbookName: agent.moltbookName },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.moltbookName).toBe(agent.moltbookName);
+      expect(data!.publicKey).toBe(agent.keyPair.publicKey);
+      expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
+    });
+
+    it('returns 404 for unknown agent', async () => {
+      const { data, error } = await getAgentProfile({
+        client,
+        path: { moltbookName: 'NonExistentAgent42' },
+      });
+
+      expect(data).toBeUndefined();
+      expect(error).toBeDefined();
+    });
+  });
+
+  // ── Whoami (authenticated) ──────────────────────────────────
+
+  describe('GET /agents/whoami', () => {
+    it('returns authenticated agent identity', async () => {
+      const { data, error } = await getWhoami({
+        client,
+        auth: () => agent.accessToken,
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.identityId).toBe(agent.identityId);
+      expect(data!.moltbookName).toBe(agent.moltbookName);
+    });
+
+    it('rejects unauthenticated request', async () => {
+      const { data, error } = await getWhoami({ client });
+
+      expect(data).toBeUndefined();
+      expect(error).toBeDefined();
+    });
+
+    it('rejects invalid token', async () => {
+      const { data, error } = await getWhoami({
+        client,
+        auth: () => 'definitely-not-a-valid-token',
+      });
+
+      expect(data).toBeUndefined();
+      expect(error).toBeDefined();
+    });
+  });
+
+  // ── Agent Signature Verification ────────────────────────────
+
+  describe('POST /agents/:moltbookName/verify', () => {
+    it('verifies a valid Ed25519 signature', async () => {
+      const message = 'Hello, MoltNet! Signed by CryptoTestAgent';
+      const signature = await cryptoService.sign(
+        message,
+        agent.keyPair.privateKey,
+      );
+
+      const { data, error } = await verifyAgentSignature({
+        client,
+        path: { moltbookName: agent.moltbookName },
+        body: { message, signature },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(true);
+      expect(data!.signer).toBeDefined();
+      expect(data!.signer!.moltbookName).toBe(agent.moltbookName);
+      expect(data!.signer!.fingerprint).toBe(agent.keyPair.fingerprint);
+    });
+
+    it('rejects an invalid signature', async () => {
+      const { data, error } = await verifyAgentSignature({
+        client,
+        path: { moltbookName: agent.moltbookName },
+        body: {
+          message: 'Hello, MoltNet!',
+          signature: 'dGhpcyBpcyBub3QgYSB2YWxpZCBzaWduYXR1cmU=',
+        },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(false);
+    });
+
+    it('rejects signature from wrong key', async () => {
+      const otherKeyPair = await cryptoService.generateKeyPair();
+      const message = 'Signed by wrong agent';
+      const signature = await cryptoService.sign(
+        message,
+        otherKeyPair.privateKey,
+      );
+
+      const { data, error } = await verifyAgentSignature({
+        client,
+        path: { moltbookName: agent.moltbookName },
+        body: { message, signature },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(false);
+    });
+  });
+
+  // ── Crypto Verify (public) ──────────────────────────────────
+
+  describe('POST /crypto/verify', () => {
+    it('verifies a standalone Ed25519 signature', async () => {
+      const message = 'standalone crypto check';
+      const signature = await cryptoService.sign(
+        message,
+        agent.keyPair.privateKey,
+      );
+
+      const { data, error } = await verifyCryptoSignature({
+        client,
+        body: {
+          message,
+          signature,
+          publicKey: agent.keyPair.publicKey,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(true);
+    });
+
+    it('rejects a tampered message', async () => {
+      const signature = await cryptoService.sign(
+        'original message',
+        agent.keyPair.privateKey,
+      );
+
+      const { data, error } = await verifyCryptoSignature({
+        client,
+        body: {
+          message: 'tampered message',
+          signature,
+          publicKey: agent.keyPair.publicKey,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(false);
+    });
+  });
+
+  // ── Crypto Identity (authenticated) ─────────────────────────
+
+  describe('GET /crypto/identity', () => {
+    it('returns the authenticated agent crypto identity', async () => {
+      const { data, error } = await getCryptoIdentity({
+        client,
+        auth: () => agent.accessToken,
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.identityId).toBe(agent.identityId);
+      expect(data!.publicKey).toBe(agent.keyPair.publicKey);
+      expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
+    });
+  });
+
+  // ── Crypto Challenge Flow ───────────────────────────────────
+
+  describe('Crypto challenge', () => {
+    it('completes a sign-then-verify challenge', async () => {
+      // 1. Generate a challenge message
+      const challenge = cryptoService.generateChallenge();
+
+      // 2. Agent signs the challenge
+      const signature = await cryptoService.sign(
+        challenge,
+        agent.keyPair.privateKey,
+      );
+
+      // 3. Verifier checks via the public API
+      const { data, error } = await verifyCryptoSignature({
+        client,
+        body: {
+          message: challenge,
+          signature,
+          publicKey: agent.keyPair.publicKey,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(true);
+    });
+
+    it('verifies via agent lookup (not just raw public key)', async () => {
+      const challenge = cryptoService.generateChallenge();
+      const signature = await cryptoService.sign(
+        challenge,
+        agent.keyPair.privateKey,
+      );
+
+      // Verify via the agent-scoped endpoint (looks up public key by name)
+      const { data, error } = await verifyAgentSignature({
+        client,
+        path: { moltbookName: agent.moltbookName },
+        body: { message: challenge, signature },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.valid).toBe(true);
+      expect(data!.signer!.moltbookName).toBe(agent.moltbookName);
+    });
+  });
+});

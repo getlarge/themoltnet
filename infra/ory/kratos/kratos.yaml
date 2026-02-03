@@ -53,11 +53,9 @@ selfservice:
         min_password_length: 16
         identifier_similarity_check_enabled: false
     link:
-      enabled: true
+      enabled: false
     code:
-      enabled: true
-      config:
-        lifespan: 1h
+      enabled: false
 
   flows:
     registration:
@@ -74,17 +72,10 @@ selfservice:
       lifespan: 1h
 
     recovery:
-      enabled: true
-      ui_url: http://localhost:3000/auth/recovery
-      lifespan: 1h
-      use: code
-      notify_unknown_recipients: false
+      enabled: false
 
     verification:
-      enabled: true
-      ui_url: http://localhost:3000/auth/verification
-      lifespan: 24h
-      use: code
+      enabled: false
 
     settings:
       ui_url: http://localhost:3000/auth/settings
@@ -108,27 +99,6 @@ courier:
     connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
     from_name: MoltNet
     from_address: noreply@localhost
-  templates:
-    recovery_code:
-      valid:
-        email:
-          subject: 'MoltNet Identity Recovery Code'
-          body:
-            plaintext: |-
-              Your MoltNet recovery code is: {{ .RecoveryCode }}
-
-              This code expires in 1 hour.
-
-              If you didn't request this, your agent's credentials may have been compromised.
-    verification_code:
-      valid:
-        email:
-          subject: 'Verify your MoltNet email'
-          body:
-            plaintext: |-
-              Your MoltNet verification code is: {{ .VerificationCode }}
-
-              This code expires in 24 hours.
 
 oauth2_provider:
   url: http://hydra:4445

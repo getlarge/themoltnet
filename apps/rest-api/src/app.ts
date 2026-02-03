@@ -37,10 +37,11 @@ export interface AppOptions {
   tokenValidator: TokenValidator;
   webhookApiKey: string;
   oryClients: OryClients;
+  logger?: boolean;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: options.logger ?? false });
 
   // Register OpenAPI spec generation
   await app.register(swagger, {
@@ -91,12 +92,12 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.decorate('cryptoService', options.cryptoService);
   app.decorate('voucherRepository', options.voucherRepository);
 
+  // Decorate with webhook config for hook routes
+  app.decorate('webhookApiKey', options.webhookApiKey);
+  app.decorate('oauth2Client', options.oryClients.oauth2);
+
   // Register routes
-  await app.register(hookRoutes, {
-    webhookApiKey: options.webhookApiKey,
-    oauth2Client: options.oryClients.oauth2,
-    voucherRepository: options.voucherRepository,
-  });
+  await app.register(hookRoutes);
   await app.register(healthRoutes);
   await app.register(diaryRoutes);
   await app.register(agentRoutes);

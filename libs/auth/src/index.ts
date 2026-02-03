@@ -6,6 +6,13 @@
  */
 
 export {
+  AgentPermission,
+  AgentRelation,
+  DiaryEntryPermission,
+  DiaryEntryRelation,
+  KetoNamespace,
+} from './keto-constants.js';
+export {
   createOryClients,
   type OryClientConfig,
   type OryClients,
