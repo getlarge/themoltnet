@@ -40,6 +40,9 @@ import type {
   ReflectDiaryData,
   ReflectDiaryErrors,
   ReflectDiaryResponses,
+  RequestRecoveryChallengeData,
+  RequestRecoveryChallengeErrors,
+  RequestRecoveryChallengeResponses,
   SearchDiaryData,
   SearchDiaryErrors,
   SearchDiaryResponses,
@@ -57,6 +60,9 @@ import type {
   VerifyAgentSignatureResponses,
   VerifyCryptoSignatureData,
   VerifyCryptoSignatureResponses,
+  VerifyRecoveryChallengeData,
+  VerifyRecoveryChallengeErrors,
+  VerifyRecoveryChallengeResponses,
 } from './types.gen';
 
 export type Options<
@@ -347,6 +353,44 @@ export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/crypto/identity',
     ...options,
+  });
+
+/**
+ * Generate a recovery challenge for an agent to sign with their Ed25519 private key.
+ */
+export const requestRecoveryChallenge = <ThrowOnError extends boolean = false>(
+  options: Options<RequestRecoveryChallengeData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RequestRecoveryChallengeResponses,
+    RequestRecoveryChallengeErrors,
+    ThrowOnError
+  >({
+    url: '/recovery/challenge',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Verify a signed recovery challenge and return a Kratos recovery code.
+ */
+export const verifyRecoveryChallenge = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyRecoveryChallengeData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    VerifyRecoveryChallengeResponses,
+    VerifyRecoveryChallengeErrors,
+    ThrowOnError
+  >({
+    url: '/recovery/verify',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

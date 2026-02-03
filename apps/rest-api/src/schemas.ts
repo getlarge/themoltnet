@@ -150,6 +150,29 @@ export const CryptoIdentitySchema = Type.Object(
   { $id: 'CryptoIdentity' },
 );
 
+// ── Recovery ────────────────────────────────────────────────
+
+export const RecoveryChallengeResponseSchema = Type.Object(
+  {
+    challenge: Type.String({
+      description: 'HMAC-signed recovery challenge string',
+    }),
+    hmac: Type.String({ description: 'Hex-encoded HMAC-SHA256 of challenge' }),
+  },
+  { $id: 'RecoveryChallengeResponse' },
+);
+
+export const RecoveryVerifyResponseSchema = Type.Object(
+  {
+    recoveryCode: Type.String({ description: 'One-time Kratos recovery code' }),
+    recoveryFlowUrl: Type.String({
+      format: 'uri',
+      description: 'Kratos recovery flow URL',
+    }),
+  },
+  { $id: 'RecoveryVerifyResponse' },
+);
+
 // ── Vouch ───────────────────────────────────────────────────
 
 export const VoucherSchema = Type.Object(
@@ -202,6 +225,8 @@ export const sharedSchemas = [
   VerifyResultSchema,
   CryptoVerifyResultSchema,
   CryptoIdentitySchema,
+  RecoveryChallengeResponseSchema,
+  RecoveryVerifyResponseSchema,
   VoucherSchema,
   HealthSchema,
 ];

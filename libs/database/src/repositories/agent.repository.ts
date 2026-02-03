@@ -46,6 +46,19 @@ export function createAgentRepository(db: Database) {
     },
 
     /**
+     * Find agent by public key
+     */
+    async findByPublicKey(publicKey: string): Promise<AgentKey | null> {
+      const [agent] = await db
+        .select()
+        .from(agentKeys)
+        .where(eq(agentKeys.publicKey, publicKey))
+        .limit(1);
+
+      return agent || null;
+    },
+
+    /**
      * Find agent by key fingerprint
      */
     async findByFingerprint(fingerprint: string): Promise<AgentKey | null> {

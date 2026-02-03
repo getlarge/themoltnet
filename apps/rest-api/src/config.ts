@@ -35,6 +35,10 @@ const WebhookConfigSchema = Type.Object({
   ORY_ACTION_API_KEY: Type.String({ minLength: 1 }),
 });
 
+const RecoveryConfigSchema = Type.Object({
+  RECOVERY_CHALLENGE_SECRET: Type.String({ minLength: 16 }),
+});
+
 const OryConfigSchema = Type.Object({
   ORY_PROJECT_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
@@ -62,6 +66,7 @@ export type DatabaseConfig = Static<typeof DatabaseConfigSchema>;
 export type WebhookConfig = Static<typeof WebhookConfigSchema>;
 export type OryConfig = Static<typeof OryConfigSchema>;
 export type ObservabilityEnvConfig = Static<typeof ObservabilityConfigSchema>;
+export type RecoveryConfig = Static<typeof RecoveryConfigSchema>;
 
 export interface AppConfig {
   server: ServerConfig;
@@ -69,6 +74,7 @@ export interface AppConfig {
   webhook: WebhookConfig;
   ory: OryConfig;
   observability: ObservabilityEnvConfig;
+  recovery: RecoveryConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -109,9 +115,7 @@ function validateSchema<T extends TObject>(
     return withDefaults;
   }
   const errors = [...Value.Errors(schema, withDefaults)];
-  const details = errors
-    .map((e) => `  - ${e.path}: ${e.message}`)
-    .join('\n');
+  const details = errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
   throw new Error(`Invalid ${name} config:\n${details}`);
 }
 
@@ -152,11 +156,7 @@ export function loadWebhookConfig(
 export function loadOryConfig(
   env: Record<string, string | undefined> = process.env,
 ): OryConfig {
-  return validateSchema(
-    'Ory',
-    OryConfigSchema,
-    pickEnv(OryConfigSchema, env),
-  );
+  return validateSchema('Ory', OryConfigSchema, pickEnv(OryConfigSchema, env));
 }
 
 export function loadObservabilityConfig(
@@ -166,6 +166,16 @@ export function loadObservabilityConfig(
     'Observability',
     ObservabilityConfigSchema,
     pickEnv(ObservabilityConfigSchema, env),
+  );
+}
+
+export function loadRecoveryConfig(
+  env: Record<string, string | undefined> = process.env,
+): RecoveryConfig {
+  return validateSchema(
+    'Recovery',
+    RecoveryConfigSchema,
+    pickEnv(RecoveryConfigSchema, env),
   );
 }
 
@@ -182,6 +192,7 @@ export function loadConfig(
     webhook: loadWebhookConfig(env),
     ory: loadOryConfig(env),
     observability: loadObservabilityConfig(env),
+    recovery: loadRecoveryConfig(env),
   };
 }
 

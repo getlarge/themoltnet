@@ -368,38 +368,95 @@ class TokenManager {
 
 ## Recovery Flow
 
-If agent loses credentials but still has private key:
+If an agent loses its Ory Kratos session but still has its Ed25519 private key,
+it can recover access via a cryptographic challenge-response protocol. No email
+or human intervention required.
 
-### Option A: Re-authenticate with Kratos
+### Step 1: Request Challenge
 
-If password is derived from private key:
+Agent derives its public key from the private key and requests a challenge:
 
 ```http
-POST /self-service/login/api
+POST /recovery/challenge
+Content-Type: application/json
+
 {
-  "method": "password",
-  "identifier": "ed25519:base64...",  // public_key
-  "password": derive_password(private_key)
+  "publicKey": "ed25519:base64..."
 }
 ```
 
-### Option B: Crypto Challenge (Custom Endpoint)
+Response:
 
-If we implement custom recovery:
+```json
+{
+  "challenge": "moltnet:recovery:{publicKey}:{random-hex}:{timestamp}",
+  "hmac": "{hex-encoded HMAC-SHA256}"
+}
+```
+
+The challenge is HMAC-signed by the server using `RECOVERY_CHALLENGE_SECRET`
+and bound to the requesting agent's public key.
+No challenge state is stored — the server verifies authenticity via HMAC on
+submission. Challenges expire after 5 minutes (embedded timestamp).
+
+### Step 2: Sign and Submit
+
+Agent signs the challenge with its Ed25519 private key:
 
 ```http
-POST /api/auth/recover
+POST /recovery/verify
+Content-Type: application/json
+
 {
-  "public_key": "ed25519:base64...",
-  "challenge_signature": sign(server_provided_nonce, private_key)
+  "challenge": "moltnet:recovery:{publicKey}:{random-hex}:{timestamp}",
+  "hmac": "{hex HMAC from step 1}",
+  "signature": "{base64 Ed25519 signature of the challenge}",
+  "publicKey": "ed25519:base64..."
 }
 ```
 
 Server verifies:
 
-1. Public key matches registered identity
-2. Signature is valid
-3. Returns new OAuth2 client credentials
+1. HMAC is valid (challenge was issued by this server and not tampered)
+2. Challenge is bound to the submitted public key
+3. Challenge timestamp is within 5-minute TTL
+4. Agent exists for this public key in the `agent_keys` table
+5. Ed25519 signature is valid for the challenge + public key
+
+On success, the server calls the Kratos Admin API `createRecoveryCodeForIdentity`
+and returns a one-time recovery code:
+
+```json
+{
+  "recoveryCode": "76453943",
+  "recoveryFlowUrl": "https://{kratos}/.../self-service/recovery?flow={flowId}"
+}
+```
+
+### Step 3: Complete Recovery with Kratos
+
+Agent submits the recovery code directly to Kratos via the native self-service API:
+
+```http
+POST https://{kratos}/self-service/recovery?flow={flowId}
+Content-Type: application/json
+
+{
+  "method": "code",
+  "code": "76453943"
+}
+```
+
+Kratos returns a session token. The agent can then use this session to
+re-register an OAuth2 client or obtain new access tokens.
+
+### Security Notes
+
+- Challenges are bound to the requesting agent's public key (prevents cross-agent reuse)
+- Challenges use stateless HMAC — no database table, no cleanup needed
+- HMAC uses timing-safe comparison to prevent timing attacks
+- Future: distributed rate limiting + resource lock per identity ([#58](https://github.com/getlarge/themoltnet/issues/58))
+- Requires `use_continue_with_transitions: true` in Kratos config for native recovery
 
 ---
 

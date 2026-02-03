@@ -23,6 +23,7 @@ import type {
 } from '../src/types.js';
 
 export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
+export const TEST_RECOVERY_SECRET = 'test-recovery-secret-at-least-16-chars';
 export const TEST_BEARER_TOKEN = 'test-token';
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -107,6 +108,7 @@ export function createMockServices(): MockServices {
     agentRepository: {
       findByFingerprint: vi.fn(),
       findByIdentityId: vi.fn(),
+      findByPublicKey: vi.fn(),
       upsert: vi.fn(),
     },
     cryptoService: {
@@ -175,6 +177,7 @@ export async function createTestApp(
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
     tokenValidator: mockTokenValidator,
     webhookApiKey: TEST_WEBHOOK_API_KEY,
+    recoverySecret: TEST_RECOVERY_SECRET,
     oryClients: mockOryClients,
   });
 

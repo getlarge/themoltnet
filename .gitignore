@@ -149,3 +149,6 @@ infra/ory/project.resolved.json
 
 # Test results
 test-results/
+
+# Git worktrees
+.worktrees/

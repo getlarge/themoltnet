@@ -19,6 +19,7 @@ import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { recoveryRoutes } from './routes/recovery.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
 import type {
@@ -36,6 +37,7 @@ export interface AppOptions {
   permissionChecker: PermissionChecker;
   tokenValidator: TokenValidator;
   webhookApiKey: string;
+  recoverySecret: string;
   oryClients: OryClients;
   logger?: boolean;
 }
@@ -102,6 +104,10 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register(diaryRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
+  await app.register(recoveryRoutes, {
+    recoverySecret: options.recoverySecret,
+    identityClient: options.oryClients.identity,
+  });
   await app.register(vouchRoutes);
 
   return app;

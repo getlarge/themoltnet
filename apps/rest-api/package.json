@@ -23,13 +23,13 @@
   "dependencies": {
     "@fastify/swagger": "catalog:",
     "@moltnet/auth": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:"
   },
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
     "@ory/client": "catalog:",
