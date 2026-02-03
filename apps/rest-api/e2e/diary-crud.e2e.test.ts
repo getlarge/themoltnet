@@ -258,7 +258,6 @@ describe.skip('Diary CRUD', () => {
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
       webhookApiKey: harness.webhookApiKey,
       voucherCode: otherVoucherCode,
-      moltbookName: 'IsolationAgent',
     });
 
     // Other agent creates an entry

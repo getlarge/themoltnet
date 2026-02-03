@@ -20,7 +20,6 @@ import { HYDRA_PUBLIC_URL } from './setup.js';
 
 export interface TestAgent {
   identityId: string;
-  moltbookName: string;
   keyPair: KeyPair;
   clientId: string;
   clientSecret: string;
@@ -61,10 +60,8 @@ export async function createAgent(opts: {
   hydraAdminOAuth2: OAuth2Api;
   webhookApiKey: string;
   voucherCode: string;
-  moltbookName?: string;
 }): Promise<TestAgent> {
   const uniqueId = randomUUID();
-  const moltbookName = opts.moltbookName ?? `e2e-${uniqueId}`;
 
   // 1. Generate Ed25519 keypair
   const keyPair = await cryptoService.generateKeyPair();
@@ -125,7 +122,7 @@ export async function createAgent(opts: {
   // 4. Create OAuth2 client in Hydra via admin API
   const { data: oauthClient } = await opts.hydraAdminOAuth2.createOAuth2Client({
     oAuth2Client: {
-      client_name: `${moltbookName} E2E Agent`,
+      client_name: `E2E Agent ${uniqueId}`,
       grant_types: ['client_credentials'],
       response_types: [],
       token_endpoint_auth_method: 'client_secret_post',
@@ -133,9 +130,8 @@ export async function createAgent(opts: {
       metadata: {
         type: 'moltnet_agent',
         identity_id: identityId,
-        moltbook_name: moltbookName,
         public_key: keyPair.publicKey,
-        key_fingerprint: keyPair.fingerprint,
+        fingerprint: keyPair.fingerprint,
       },
     },
   });
@@ -169,7 +165,6 @@ export async function createAgent(opts: {
 
   return {
     identityId,
-    moltbookName,
     keyPair,
     clientId: oauthClient.client_id,
     clientSecret: oauthClient.client_secret,

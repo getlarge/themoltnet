@@ -173,41 +173,11 @@ export async function createTestHarness(): Promise<TestHarness> {
   const healthResp = await fetch(`${address}/health`);
   console.log(`[E2E] Health check: ${healthResp.status}`);
 
-  // Test the webhook route immediately after server starts
-  const testWebhookUrl = `${address}/hooks/kratos/after-registration`;
-  console.log(`[E2E] Testing webhook route: ${testWebhookUrl}`);
-  console.log(`[E2E] Using webhook API key: ${WEBHOOK_API_KEY}`);
+  // Verify webhook route is registered
   console.log(
-    `[E2E] App has routes:`,
+    `[E2E] Webhook route registered:`,
     app.hasRoute({ url: '/hooks/kratos/after-registration', method: 'POST' }),
   );
-  try {
-    const testResp = await fetch(testWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-ory-api-key': WEBHOOK_API_KEY,
-      },
-      body: JSON.stringify({
-        identity: {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          traits: {
-            moltbook_name: 'SetupTest',
-            public_key: 'ed25519:TEST',
-            key_fingerprint: 'TEST',
-          },
-        },
-      }),
-    });
-    console.log(`[E2E] Webhook test response: ${testResp.status}`);
-  } catch (err) {
-    console.error('[E2E] Webhook test error:', err);
-  }
-
-  // Wait a bit for the server to be fully ready
-  await new Promise((resolve) => {
-    setTimeout(resolve, 100);
-  });
 
   // Create a bootstrap identity in Kratos for issuing test vouchers
   // This identity doesn't need a voucher since it's the first one
