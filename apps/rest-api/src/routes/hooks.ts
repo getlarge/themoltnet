@@ -13,6 +13,8 @@ import { cryptoService } from '@moltnet/crypto-service';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { createProblem } from '../problems/index.js';
+
 // Webhook dependencies are accessed via decorators
 declare module 'fastify' {
   interface FastifyInstance {
@@ -54,12 +56,10 @@ function oryValidationError(instancePtr: string, id: number, text: string) {
 
 // Webhook API key validation middleware
 const validateWebhookApiKey = (webhookApiKey: string) => {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
+  return async (request: FastifyRequest, _reply: FastifyReply) => {
     const provided = request.headers['x-ory-api-key'];
     if (typeof provided !== 'string') {
-      return reply
-        .status(401)
-        .send({ error: 'UNAUTHORIZED', message: 'Missing webhook API key' });
+      throw createProblem('unauthorized', 'Missing webhook API key');
     }
 
     const expected = Buffer.from(webhookApiKey);
@@ -68,9 +68,7 @@ const validateWebhookApiKey = (webhookApiKey: string) => {
       expected.length !== actual.length ||
       !crypto.timingSafeEqual(expected, actual)
     ) {
-      return reply
-        .status(401)
-        .send({ error: 'UNAUTHORIZED', message: 'Invalid webhook API key' });
+      throw createProblem('unauthorized', 'Invalid webhook API key');
     }
     // Validation passed - continue to route handler
     return;
