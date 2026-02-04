@@ -29,6 +29,7 @@
     { "path": "apps/server" },
     { "path": "apps/rest-api" },
     { "path": "apps/mcp-server" },
+    { "path": "apps/channel-agent" },
     { "path": "apps/landing" }
   ]
 }
