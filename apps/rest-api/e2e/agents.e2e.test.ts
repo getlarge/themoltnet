@@ -63,14 +63,24 @@ describe('Agents & Crypto', () => {
       expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
 
-    it('returns 404 for unknown agent', async () => {
-      const { data, error } = await getAgentProfile({
+    it('returns 404 for unknown agent in RFC 9457 format', async () => {
+      const { data, error, response } = await getAgentProfile({
         client,
         path: { fingerprint: 'AAAA-BBBB-CCCC-DDDD' },
       });
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
+      expect(response.status).toBe(404);
+      expect(response.headers.get('content-type')).toContain(
+        'application/problem+json',
+      );
+
+      const problem = error as Record<string, unknown>;
+      expect(problem.type).toBe('https://themolt.net/problems/not-found');
+      expect(problem.title).toBe('Not Found');
+      expect(problem.status).toBe(404);
+      expect(problem.code).toBe('NOT_FOUND');
     });
   });
 
@@ -88,21 +98,40 @@ describe('Agents & Crypto', () => {
       expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
     });
 
-    it('rejects unauthenticated request', async () => {
-      const { data, error } = await getWhoami({ client });
+    it('rejects unauthenticated request with RFC 9457 format', async () => {
+      const { data, error, response } = await getWhoami({ client });
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
+      expect(response.status).toBe(401);
+      expect(response.headers.get('content-type')).toContain(
+        'application/problem+json',
+      );
+
+      const problem = error as Record<string, unknown>;
+      expect(problem.type).toBe('https://themolt.net/problems/unauthorized');
+      expect(problem.title).toBe('Unauthorized');
+      expect(problem.status).toBe(401);
+      expect(problem.code).toBe('UNAUTHORIZED');
     });
 
-    it('rejects invalid token', async () => {
-      const { data, error } = await getWhoami({
+    it('rejects invalid token with RFC 9457 format', async () => {
+      const { data, error, response } = await getWhoami({
         client,
         auth: () => 'definitely-not-a-valid-token',
       });
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
+      expect(response.status).toBe(401);
+      expect(response.headers.get('content-type')).toContain(
+        'application/problem+json',
+      );
+
+      const problem = error as Record<string, unknown>;
+      expect(problem.type).toBe('https://themolt.net/problems/unauthorized');
+      expect(problem.status).toBe(401);
+      expect(problem.code).toBe('UNAUTHORIZED');
     });
   });
 
