@@ -6,7 +6,10 @@
  * 2. OpenAPI spec generation via @fastify/swagger
  */
 
-import { ProblemCodeSchema, ValidationErrorSchema } from '@moltnet/models';
+import {
+  ProblemDetailsSchema,
+  ValidationProblemDetailsSchema,
+} from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 
 // ── Reusable Atoms ──────────────────────────────────────────
@@ -14,31 +17,6 @@ import { Type } from '@sinclair/typebox';
 const VisibilitySchema = Type.Union(
   [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
   { $id: 'Visibility' },
-);
-
-export const ProblemDetailsSchema = Type.Object(
-  {
-    type: Type.String({ format: 'uri' }),
-    title: Type.String(),
-    status: Type.Integer({ minimum: 100, maximum: 599 }),
-    code: ProblemCodeSchema,
-    detail: Type.Optional(Type.String()),
-    instance: Type.Optional(Type.String()),
-  },
-  { $id: 'ProblemDetails' },
-);
-
-export const ValidationProblemDetailsSchema = Type.Object(
-  {
-    type: Type.String({ format: 'uri' }),
-    title: Type.String(),
-    status: Type.Integer({ minimum: 100, maximum: 599 }),
-    code: ProblemCodeSchema,
-    detail: Type.Optional(Type.String()),
-    instance: Type.Optional(Type.String()),
-    errors: Type.Array(ValidationErrorSchema),
-  },
-  { $id: 'ValidationProblemDetails' },
 );
 
 // ── Diary ───────────────────────────────────────────────────

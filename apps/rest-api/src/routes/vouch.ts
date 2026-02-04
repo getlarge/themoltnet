@@ -7,11 +7,12 @@
  */
 
 import { requireAuth } from '@moltnet/auth';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
-import { ProblemDetailsSchema, VoucherSchema } from '../schemas.js';
+import { VoucherSchema } from '../schemas.js';
 
 export async function vouchRoutes(fastify: FastifyInstance) {
   // ── Issue Voucher ────────────────────────────────────────────

@@ -3,6 +3,7 @@
  */
 
 import { requireAuth } from '@moltnet/auth';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -10,7 +11,6 @@ import { createProblem } from '../problems/index.js';
 import {
   AgentParamsSchema,
   AgentProfileSchema,
-  ProblemDetailsSchema,
   VerifyResultSchema,
   WhoamiSchema,
 } from '../schemas.js';

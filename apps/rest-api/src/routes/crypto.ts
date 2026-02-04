@@ -3,14 +3,11 @@
  */
 
 import { requireAuth } from '@moltnet/auth';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-import {
-  CryptoIdentitySchema,
-  CryptoVerifyResultSchema,
-  ProblemDetailsSchema,
-} from '../schemas.js';
+import { CryptoIdentitySchema, CryptoVerifyResultSchema } from '../schemas.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {
   // ── Verify Signature ───────────────────────────────────────

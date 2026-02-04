@@ -15,30 +15,39 @@ export const ProblemCodeSchema = Type.Union([
 
 export type ProblemCode = Static<typeof ProblemCodeSchema>;
 
-export const ProblemDetailsSchema = Type.Object({
-  type: Type.String({ format: 'uri' }),
-  title: Type.String(),
-  status: Type.Integer({ minimum: 100, maximum: 599 }),
-  code: ProblemCodeSchema,
-  detail: Type.Optional(Type.String()),
-  instance: Type.Optional(Type.String()),
-});
+export const ProblemDetailsSchema = Type.Object(
+  {
+    type: Type.String({ format: 'uri' }),
+    title: Type.String(),
+    status: Type.Integer({ minimum: 100, maximum: 599 }),
+    code: ProblemCodeSchema,
+    detail: Type.Optional(Type.String()),
+    instance: Type.Optional(Type.String()),
+  },
+  { $id: 'ProblemDetails' },
+);
 
 export type ProblemDetails = Static<typeof ProblemDetailsSchema>;
 
-export const ValidationErrorSchema = Type.Object({
-  field: Type.String(),
-  message: Type.String(),
-});
+export const ValidationErrorSchema = Type.Object(
+  {
+    field: Type.String(),
+    message: Type.String(),
+  },
+  { $id: 'ValidationError' },
+);
 
 export type ValidationError = Static<typeof ValidationErrorSchema>;
 
-export const ValidationProblemDetailsSchema = Type.Intersect([
-  ProblemDetailsSchema,
-  Type.Object({
-    errors: Type.Array(ValidationErrorSchema),
-  }),
-]);
+export const ValidationProblemDetailsSchema = Type.Intersect(
+  [
+    ProblemDetailsSchema,
+    Type.Object({
+      errors: Type.Array(ValidationErrorSchema),
+    }),
+  ],
+  { $id: 'ValidationProblemDetails' },
+);
 
 export type ValidationProblemDetails = Static<
   typeof ValidationProblemDetailsSchema

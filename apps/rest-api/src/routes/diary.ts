@@ -3,6 +3,7 @@
  */
 
 import { requireAuth } from '@moltnet/auth';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -13,7 +14,6 @@ import {
   DiarySearchResultSchema,
   DigestSchema,
   EntryParamsSchema,
-  ProblemDetailsSchema,
   SharedEntriesSchema,
   ShareResultSchema,
   SuccessSchema,
