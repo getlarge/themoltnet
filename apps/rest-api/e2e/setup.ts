@@ -28,6 +28,7 @@ import {
 } from '@moltnet/diary-service';
 import {
   Configuration,
+  FrontendApi,
   IdentityApi,
   OAuth2Api,
   PermissionApi,
@@ -54,9 +55,14 @@ const KETO_WRITE_URL =
   process.env.ORY_KETO_ADMIN_URL ?? 'http://localhost:4467';
 const KRATOS_ADMIN_URL =
   process.env.ORY_KRATOS_ADMIN_URL ?? 'http://localhost:4434';
+const KRATOS_PUBLIC_URL =
+  process.env.ORY_KRATOS_PUBLIC_URL ?? 'http://localhost:4433';
 
 const WEBHOOK_API_KEY =
   process.env.ORY_ACTION_API_KEY ?? 'e2e-test-webhook-key';
+
+const RECOVERY_SECRET =
+  process.env.RECOVERY_SECRET ?? 'e2e-recovery-secret-for-hmac-signing';
 
 export {
   DATABASE_URL,
@@ -65,6 +71,8 @@ export {
   KETO_READ_URL,
   KETO_WRITE_URL,
   KRATOS_ADMIN_URL,
+  KRATOS_PUBLIC_URL,
+  RECOVERY_SECRET,
   WEBHOOK_API_KEY,
 };
 
@@ -80,14 +88,22 @@ export function createE2eOryClients(): {
   const ketoReadConfig = new Configuration({ basePath: KETO_READ_URL });
   const ketoWriteConfig = new Configuration({ basePath: KETO_WRITE_URL });
   const kratosAdminConfig = new Configuration({ basePath: KRATOS_ADMIN_URL });
+  const kratosPublicConfig = new Configuration({
+    basePath: KRATOS_PUBLIC_URL,
+  });
 
   const hydraAdminOAuth2 = new OAuth2Api(hydraAdminConfig);
+  const kratosPublicFrontend = new FrontendApi(kratosPublicConfig);
 
   const oryClients: OryClients = createOryClients({
     baseUrl: HYDRA_ADMIN_URL,
   });
   // Override individual clients to point at the correct service URLs
+  // (createOryClients uses a single basePath, but Docker Compose
+  //  puts each Ory service on a different port)
   Object.assign(oryClients, {
+    frontend: kratosPublicFrontend,
+    identity: new IdentityApi(kratosAdminConfig),
     oauth2: hydraAdminOAuth2,
     permission: new PermissionApi(ketoReadConfig),
     relationship: new RelationshipApi(ketoWriteConfig),
@@ -97,6 +113,7 @@ export function createE2eOryClients(): {
     oryClients,
     identityApi: new IdentityApi(kratosAdminConfig),
     hydraAdminOAuth2,
+    kratosPublicFrontend,
   };
 }
 
@@ -109,6 +126,8 @@ export interface TestHarness {
   oryClients: OryClients;
   identityApi: IdentityApi;
   hydraAdminOAuth2: OAuth2Api;
+  /** Kratos public Frontend API (self-service flows: recovery, login, etc.) */
+  kratosPublicFrontend: FrontendApi;
   webhookApiKey: string;
   /** Bootstrap identity ID for creating initial vouchers */
   bootstrapIdentityId: string;
@@ -123,7 +142,8 @@ export async function createTestHarness(): Promise<TestHarness> {
   // Verify database is reachable (fail fast, no silent skip)
   await db.execute(sql`SELECT 1`);
 
-  const { oryClients, identityApi, hydraAdminOAuth2 } = createE2eOryClients();
+  const { oryClients, identityApi, hydraAdminOAuth2, kratosPublicFrontend } =
+    createE2eOryClients();
 
   const diaryRepository = createDiaryRepository(db);
   const agentRepository = createAgentRepository(db);
@@ -153,6 +173,7 @@ export async function createTestHarness(): Promise<TestHarness> {
     permissionChecker,
     tokenValidator,
     webhookApiKey: WEBHOOK_API_KEY,
+    recoverySecret: RECOVERY_SECRET,
     oryClients,
     logger: true,
   });
@@ -219,6 +240,7 @@ export async function createTestHarness(): Promise<TestHarness> {
     oryClients,
     identityApi,
     hydraAdminOAuth2,
+    kratosPublicFrontend,
     webhookApiKey: WEBHOOK_API_KEY,
     bootstrapIdentityId: bootstrapIdentity.id,
     async teardown() {

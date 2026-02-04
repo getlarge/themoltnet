@@ -55,7 +55,9 @@ selfservice:
     link:
       enabled: false
     code:
-      enabled: false
+      enabled: true
+      config:
+        lifespan: 15m
 
   flows:
     registration:
@@ -72,7 +74,10 @@ selfservice:
       lifespan: 1h
 
     recovery:
-      enabled: false
+      enabled: true
+      use: code
+      ui_url: http://localhost:3000/auth/recovery
+      lifespan: 15m
 
     verification:
       enabled: false
