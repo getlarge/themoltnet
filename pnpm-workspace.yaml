@@ -33,7 +33,7 @@ catalog:
   eslint-plugin-react-hooks: ^7.0.1
   eslint-plugin-simple-import-sort: ^12.1.1
   fast-jwt: ^5.0.0
-  fastify: ^5.2.0
+  fastify: ^5.7.3
   fastify-plugin: ^5.1.0
   get-jwks: ^11.0.2
   husky: ^9.1.0

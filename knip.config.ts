@@ -11,7 +11,7 @@ const config: KnipConfig = {
       entry: ['__tests__/**/*.test.ts'],
     },
     'apps/rest-api': {
-      entry: ['__tests__/**/*.test.ts', 'scripts/*.ts'],
+      entry: ['__tests__/**/*.test.ts', 'e2e/**/*.ts', 'scripts/*.ts'],
     },
 
     // ── Libs ──
