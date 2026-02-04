@@ -6,10 +6,11 @@ import { requireAuth } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
+import { createProblem } from '../problems/index.js';
 import {
   AgentParamsSchema,
   AgentProfileSchema,
-  ErrorSchema,
+  ProblemDetailsSchema,
   VerifyResultSchema,
   WhoamiSchema,
 } from '../schemas.js';
@@ -27,21 +28,20 @@ export async function agentRoutes(fastify: FastifyInstance) {
         params: AgentParamsSchema,
         response: {
           200: Type.Ref(AgentProfileSchema),
-          404: Type.Ref(ErrorSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { fingerprint } = request.params as { fingerprint: string };
 
       const agent =
         await fastify.agentRepository.findByFingerprint(fingerprint);
       if (!agent) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: `Agent with fingerprint "${fingerprint}" not found`,
-          statusCode: 404,
-        });
+        throw createProblem(
+          'not-found',
+          `Agent with fingerprint "${fingerprint}" not found`,
+        );
       }
 
       return {
@@ -67,11 +67,11 @@ export async function agentRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(VerifyResultSchema),
-          404: Type.Ref(ErrorSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { fingerprint } = request.params as { fingerprint: string };
       const { message, signature } = request.body as {
         message: string;
@@ -81,11 +81,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
       const agent =
         await fastify.agentRepository.findByFingerprint(fingerprint);
       if (!agent) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: `Agent with fingerprint "${fingerprint}" not found`,
-          statusCode: 404,
-        });
+        throw createProblem(
+          'not-found',
+          `Agent with fingerprint "${fingerprint}" not found`,
+        );
       }
 
       const valid = await fastify.cryptoService.verify(
@@ -117,23 +116,19 @@ export async function agentRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         response: {
           200: Type.Ref(WhoamiSchema),
-          401: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
       preHandler: [requireAuth],
     },
-    async (request, reply) => {
+    async (request) => {
       const agent = await fastify.agentRepository.findByIdentityId(
         request.authContext!.identityId,
       );
 
       if (!agent) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: 'Agent profile not found',
-          statusCode: 404,
-        });
+        throw createProblem('not-found', 'Agent profile not found');
       }
 
       return {

@@ -9,7 +9,7 @@ import type { FastifyInstance } from 'fastify';
 import {
   CryptoIdentitySchema,
   CryptoVerifyResultSchema,
-  ErrorSchema,
+  ProblemDetailsSchema,
 } from '../schemas.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {
@@ -64,7 +64,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         response: {
           200: Type.Ref(CryptoIdentitySchema),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
       preHandler: [requireAuth],
