@@ -9,15 +9,24 @@
  *
  * Usage:
  *   ANTHROPIC_API_KEY=sk-... pnpm --filter @moltnet/channel-agent dev
- *   ANTHROPIC_API_KEY=sk-... pnpm --filter @moltnet/channel-agent dev -- --name "archivist" --channel ops
+ *   ANTHROPIC_API_KEY=sk-... pnpm --filter @moltnet/channel-agent dev -- --name "archivist" --persona personas/archivist.md
  */
 
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { existsSync, type FSWatcher, watch } from 'node:fs';
+import { existsSync, type FSWatcher, readdirSync, watch } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import Anthropic from '@anthropic-ai/sdk';
+
+import { Diary, diaryTools, executeDiaryTool } from './memory.js';
+import {
+  composeSystemPrompt,
+  loadPersona,
+  loadSkill,
+  type Persona,
+  type Skill,
+} from './persona.js';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -32,6 +41,8 @@ interface AgentConfig {
   systemPrompt: string;
   pollIntervalMs: number;
   apiKey: string;
+  personaFile: string | null;
+  skillsDir: string | null;
 }
 
 function parseArgs(): Partial<AgentConfig> {
@@ -60,13 +71,21 @@ function parseArgs(): Partial<AgentConfig> {
       case '--api-key':
         parsed.apiKey = args[++i];
         break;
+      case '--persona':
+        parsed.personaFile = args[++i];
+        break;
+      case '--skills-dir':
+        parsed.skillsDir = args[++i];
+        break;
       case '--help':
         console.log(`Usage: channel-agent [options]
-  --name <name>          Agent display name (default: auto-generated)
+  --name <name>          Agent display name (default: from persona or auto)
   --channel <channel>    Channel to join (default: general)
   --channel-dir <path>   Path to .molt-channel (default: .molt-channel)
   --model <model>        Anthropic model (default: claude-sonnet-4-20250514)
-  --system <prompt>      System prompt override
+  --system <prompt>      System prompt override (ignores persona)
+  --persona <file>       Persona file (markdown with YAML frontmatter)
+  --skills-dir <dir>     Directory of SKILL.md files to load
   --poll-interval <ms>   Fallback poll interval (default: 5000)
   --api-key <key>        Anthropic API key (or set ANTHROPIC_API_KEY)`);
         process.exit(0);
@@ -91,34 +110,74 @@ function buildConfig(overrides: Partial<AgentConfig>): AgentConfig {
   const apiKey = overrides.apiKey ?? process.env['ANTHROPIC_API_KEY'] ?? '';
 
   return {
-    name: overrides.name ?? `agent-${randomUUID().slice(0, 8)}`,
+    name: overrides.name ?? '',
     channel: overrides.channel ?? 'general',
     channelDir,
     channelScript,
     model: overrides.model ?? 'claude-sonnet-4-20250514',
-    systemPrompt:
-      overrides.systemPrompt ??
-      `You are an autonomous agent on the MoltNet channel network.
-You receive messages from other agents and humans via a shared channel.
-You can send messages back, list who is online, and send direct messages.
-
-Be concise and helpful. When you receive a message, respond thoughtfully.
-If asked a question, answer it. If asked to do something, explain what you would do.
-You are a prototype — preparing for the real MoltNet where agents have
-cryptographic identity, persistent memory, and autonomous auth.
-
-Always respond to messages you receive. Keep responses brief (1-3 sentences)
-unless the topic requires depth.`,
+    systemPrompt: overrides.systemPrompt ?? '',
     pollIntervalMs: overrides.pollIntervalMs ?? 5000,
     apiKey,
+    personaFile: overrides.personaFile ?? null,
+    skillsDir: overrides.skillsDir ?? null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Persona, skills, and memory setup
+// ---------------------------------------------------------------------------
+
+function loadPersonaAndSkills(cfg: AgentConfig): {
+  persona: Persona | null;
+  skills: Skill[];
+  name: string;
+  model: string;
+} {
+  let persona: Persona | null = null;
+  const skills: Skill[] = [];
+
+  // Load persona
+  if (cfg.personaFile) {
+    const personaPath = resolve(cfg.personaFile);
+    if (existsSync(personaPath)) {
+      persona = loadPersona(personaPath);
+      log(`Loaded persona: ${persona.name || 'unnamed'}`);
+    } else {
+      log(`Persona file not found: ${personaPath}`);
+    }
+  }
+
+  // Load skills
+  if (cfg.skillsDir) {
+    const skillsPath = resolve(cfg.skillsDir);
+    if (existsSync(skillsPath)) {
+      const files = readdirSync(skillsPath).filter(
+        (f) => f.endsWith('.md') || f === 'SKILL.md',
+      );
+      for (const file of files) {
+        const skill = loadSkill(join(skillsPath, file));
+        skills.push(skill);
+        log(`Loaded skill: ${skill.name}`);
+      }
+    }
+  }
+
+  // Resolve name: CLI flag > persona > auto-generated
+  const name = cfg.name || persona?.name || `agent-${randomUUID().slice(0, 8)}`;
+
+  // Resolve model: CLI flag > persona > default
+  const model =
+    cfg.model !== 'claude-sonnet-4-20250514' && cfg.model
+      ? cfg.model
+      : (persona?.model ?? cfg.model);
+
+  return { persona, skills, name, model };
 }
 
 // ---------------------------------------------------------------------------
 // Channel operations (thin wrappers around channel.sh)
 // ---------------------------------------------------------------------------
 
-// Module-level config, set once in main() before anything else runs
 let agentConfig: AgentConfig;
 
 function sh(script: string, args: string[]): string {
@@ -199,7 +258,7 @@ function channelHeartbeat(sessionId: string): void {
 // Tool definitions for the Anthropic API
 // ---------------------------------------------------------------------------
 
-const tools: Anthropic.Messages.Tool[] = [
+const channelTools: Anthropic.Messages.Tool[] = [
   {
     name: 'channel_send',
     description:
@@ -248,15 +307,20 @@ const tools: Anthropic.Messages.Tool[] = [
   },
 ];
 
+// All tools: channel + diary
+const allTools: Anthropic.Messages.Tool[] = [...channelTools, ...diaryTools];
+
 // ---------------------------------------------------------------------------
 // Tool executor
 // ---------------------------------------------------------------------------
 
 function executeTool(
   sessionId: string,
+  diary: Diary,
   name: string,
   input: Record<string, unknown>,
 ): string {
+  // Channel tools
   switch (name) {
     case 'channel_send': {
       const channel = (input['channel'] as string) ?? agentConfig.channel;
@@ -270,9 +334,14 @@ function executeTool(
     }
     case 'channel_list_sessions':
       return channelSessions();
-    default:
-      return `error: unknown tool ${name}`;
   }
+
+  // Diary tools
+  if (name === 'diary_write' || name === 'diary_recall') {
+    return executeDiaryTool(diary, name, input);
+  }
+
+  return `error: unknown tool ${name}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -289,6 +358,7 @@ interface ChannelMessage {
 async function handleMessages(
   client: Anthropic,
   sessionId: string,
+  diary: Diary,
   messages: ChannelMessage[],
 ): Promise<void> {
   const incoming = messages
@@ -302,11 +372,13 @@ async function handleMessages(
   const conversationMessages: Anthropic.Messages.MessageParam[] = [
     {
       role: 'user',
-      content: `New channel messages:\n\n${incoming}\n\nRespond to these messages using the channel_send tool.`,
+      content:
+        `New channel messages:\n\n${incoming}\n\n` +
+        `Respond to these messages using the channel_send tool. ` +
+        `If something is worth remembering, use diary_write.`,
     },
   ];
 
-  // Agentic tool-use loop
   let turns = 0;
   const maxTurns = 5;
 
@@ -316,7 +388,7 @@ async function handleMessages(
       model: agentConfig.model,
       max_tokens: 1024,
       system: agentConfig.systemPrompt,
-      tools,
+      tools: allTools,
       messages: conversationMessages,
     });
 
@@ -340,6 +412,7 @@ async function handleMessages(
         log(`Tool call: ${block.name}(${JSON.stringify(block.input)})`);
         const result = executeTool(
           sessionId,
+          diary,
           block.name,
           block.input as Record<string, unknown>,
         );
@@ -367,7 +440,11 @@ async function handleMessages(
 // File watcher
 // ---------------------------------------------------------------------------
 
-function startWatcher(sessionId: string, client: Anthropic): FSWatcher | null {
+function startWatcher(
+  sessionId: string,
+  client: Anthropic,
+  diary: Diary,
+): FSWatcher | null {
   const channelsDir = join(agentConfig.channelDir, 'channels');
   if (!existsSync(channelsDir)) {
     log('Channels directory does not exist yet, falling back to polling only');
@@ -391,7 +468,7 @@ function startWatcher(sessionId: string, client: Anthropic): FSWatcher | null {
 
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      void checkAndHandle(sessionId, client);
+      void checkAndHandle(sessionId, client, diary);
     }, 500);
   });
 
@@ -402,6 +479,7 @@ function startWatcher(sessionId: string, client: Anthropic): FSWatcher | null {
 function startDirectWatcher(
   sessionId: string,
   client: Anthropic,
+  diary: Diary,
 ): FSWatcher | null {
   const shortId = sessionId.slice(0, 8);
   const directDir = join(
@@ -417,7 +495,7 @@ function startDirectWatcher(
     if (!filename?.endsWith('.json')) return;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      void checkAndHandle(sessionId, client);
+      void checkAndHandle(sessionId, client, diary);
     }, 500);
   });
 
@@ -432,6 +510,7 @@ function startDirectWatcher(
 async function checkAndHandle(
   sessionId: string,
   client: Anthropic,
+  diary: Diary,
 ): Promise<void> {
   const poll = channelPoll(sessionId);
   if (!poll.has_new) return;
@@ -450,7 +529,7 @@ async function checkAndHandle(
 
   if (parsed.count === 0 || parsed.messages.length === 0) return;
 
-  await handleMessages(client, sessionId, parsed.messages);
+  await handleMessages(client, sessionId, diary, parsed.messages);
 }
 
 // ---------------------------------------------------------------------------
@@ -469,6 +548,25 @@ function log(message: string): void {
 async function main(): Promise<void> {
   const overrides = parseArgs();
   agentConfig = buildConfig(overrides);
+
+  // Load persona, skills, resolve name
+  const { persona, skills, name, model } = loadPersonaAndSkills(agentConfig);
+  agentConfig.name = name;
+  agentConfig.model = model;
+
+  // Initialize diary (persistent memory)
+  const diary = new Diary(agentConfig.channelDir, agentConfig.name);
+  const recentMemories = diary.formatForContext(10);
+
+  // Compose system prompt: base + persona + skills + memories
+  if (!agentConfig.systemPrompt) {
+    agentConfig.systemPrompt = composeSystemPrompt(
+      persona,
+      skills,
+      recentMemories,
+    );
+  }
+
   const sessionId = randomUUID();
 
   log('Channel Agent starting');
@@ -476,6 +574,11 @@ async function main(): Promise<void> {
   log(`  Session:   ${sessionId.slice(0, 8)}`);
   log(`  Channel:   #${agentConfig.channel}`);
   log(`  Model:     ${agentConfig.model}`);
+  log(`  Persona:   ${persona?.name ?? '(default)'}`);
+  log(
+    `  Skills:    ${skills.length > 0 ? skills.map((s) => s.name).join(', ') : '(none)'}`,
+  );
+  log(`  Memories:  ${recentMemories.length} entries loaded`);
   log(`  Dir:       ${agentConfig.channelDir}`);
 
   if (!agentConfig.apiKey) {
@@ -495,16 +598,15 @@ async function main(): Promise<void> {
     log(`Active sessions:\n${sessions}`);
   }
 
-  await checkAndHandle(sessionId, client);
+  await checkAndHandle(sessionId, client, diary);
 
-  const channelWatcher = startWatcher(sessionId, client);
-  const directWatcher = startDirectWatcher(sessionId, client);
+  const channelWatcher = startWatcher(sessionId, client, diary);
+  const directWatcher = startDirectWatcher(sessionId, client, diary);
 
-  // Fallback poll loop: catches messages if watchers miss something,
-  // handles channels/dirs created after startup, sends heartbeat
+  // Fallback poll loop
   const pollInterval = setInterval(() => {
     channelHeartbeat(sessionId);
-    void checkAndHandle(sessionId, client);
+    void checkAndHandle(sessionId, client, diary);
   }, agentConfig.pollIntervalMs);
 
   channelSend(
