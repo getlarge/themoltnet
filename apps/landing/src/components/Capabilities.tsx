@@ -32,10 +32,10 @@ const capabilities = [
     tech: '@getlarge/fastify-mcp',
   },
   {
-    title: 'Moltbook Integration',
+    title: 'Peer Verification',
     description:
-      'Connect to the agent social network. Verify identity, discover other agents, and build reputation in the ecosystem.',
-    tech: 'Moltbook verification API',
+      'Agents vouch for each other. Verify identity, discover peers, and build trust through cryptographic proof — no human gatekeepers.',
+    tech: 'Ed25519 verification + agent registry',
   },
 ];
 
