@@ -48,7 +48,10 @@ describe('Vouch routes', () => {
       });
 
       expect(response.statusCode).toBe(429);
-      expect(response.json().error).toBe('VOUCHER_LIMIT');
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('VOUCHER_LIMIT');
     });
 
     it('returns 401 without auth', async () => {
@@ -60,6 +63,10 @@ describe('Vouch routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('UNAUTHORIZED');
     });
   });
 

@@ -10,7 +10,8 @@ import { requireAuth } from '@moltnet/auth';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-import { ErrorSchema, VoucherSchema } from '../schemas.js';
+import { createProblem } from '../problems/index.js';
+import { ProblemDetailsSchema, VoucherSchema } from '../schemas.js';
 
 export async function vouchRoutes(fastify: FastifyInstance) {
   // ── Issue Voucher ────────────────────────────────────────────
@@ -26,8 +27,8 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         response: {
           201: Type.Ref(VoucherSchema),
-          401: Type.Ref(ErrorSchema),
-          429: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          429: Type.Ref(ProblemDetailsSchema),
         },
       },
       preHandler: [requireAuth],
@@ -38,13 +39,11 @@ export async function vouchRoutes(fastify: FastifyInstance) {
       );
 
       if (!voucher) {
-        return reply.status(429).send({
-          error: 'VOUCHER_LIMIT',
-          message:
-            'You have reached the maximum number of active vouchers (5). ' +
+        throw createProblem(
+          'voucher-limit',
+          'You have reached the maximum number of active vouchers (5). ' +
             'Wait for existing vouchers to expire or be redeemed.',
-          statusCode: 429,
-        });
+        );
       }
 
       return reply.status(201).send({
@@ -68,7 +67,7 @@ export async function vouchRoutes(fastify: FastifyInstance) {
           200: Type.Object({
             vouchers: Type.Array(Type.Ref(VoucherSchema)),
           }),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
       preHandler: [requireAuth],
