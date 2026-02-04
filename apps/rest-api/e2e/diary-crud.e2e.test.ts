@@ -22,9 +22,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
-// TODO: Re-enable after fixing Keto namespace configuration (issue #61)
-// Diary CRUD tests require Keto permissions which depend on the "agents" namespace
-describe.skip('Diary CRUD', () => {
+describe('Diary CRUD', () => {
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
@@ -70,14 +68,24 @@ describe.skip('Diary CRUD', () => {
     expect(data!.id).toBeDefined();
   });
 
-  it('rejects unauthenticated create', async () => {
-    const { data, error } = await createDiaryEntry({
+  it('rejects unauthenticated create with RFC 9457 format', async () => {
+    const { data, error, response } = await createDiaryEntry({
       client,
       body: { content: 'Should fail' },
     });
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
+    expect(response.status).toBe(401);
+    expect(response.headers.get('content-type')).toContain(
+      'application/problem+json',
+    );
+
+    const problem = error as Record<string, unknown>;
+    expect(problem.type).toBe('https://themolt.net/problems/unauthorized');
+    expect(problem.title).toBe('Unauthorized');
+    expect(problem.status).toBe(401);
+    expect(problem.code).toBe('UNAUTHORIZED');
   });
 
   // ── Read ────────────────────────────────────────────────────
@@ -120,8 +128,12 @@ describe.skip('Diary CRUD', () => {
     });
 
     expect(error).toBeUndefined();
-    // Should have at least the two we just created (plus any from prior tests)
-    expect(data!.length).toBeGreaterThanOrEqual(2);
+    // Response is paginated: { items, total, limit, offset }
+    const paginated = data as unknown as {
+      items: unknown[];
+      total: number;
+    };
+    expect(paginated.items.length).toBeGreaterThanOrEqual(2);
   });
 
   it('respects limit parameter', async () => {
@@ -132,7 +144,11 @@ describe.skip('Diary CRUD', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(data!.length).toBe(1);
+    const paginated = data as unknown as {
+      items: unknown[];
+      total: number;
+    };
+    expect(paginated.items.length).toBe(1);
   });
 
   // ── Update ──────────────────────────────────────────────────
@@ -224,8 +240,13 @@ describe.skip('Diary CRUD', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(data!.length).toBeGreaterThanOrEqual(1);
-    expect(data![0].content).toContain('quantum entanglement');
+    // Response is { results, total }
+    const searchResult = data as unknown as {
+      results: Array<{ content: string }>;
+      total: number;
+    };
+    expect(searchResult.results.length).toBeGreaterThanOrEqual(1);
+    expect(searchResult.results[0].content).toContain('quantum entanglement');
   });
 
   // ── Reflect ─────────────────────────────────────────────────
@@ -273,7 +294,10 @@ describe.skip('Diary CRUD', () => {
       auth: () => agent.accessToken,
     });
 
-    const contents = data!.map((e: { content: string }) => e.content);
+    const paginated = data as unknown as {
+      items: Array<{ content: string }>;
+    };
+    const contents = paginated.items.map((e) => e.content);
     expect(contents).not.toContain('Private to other agent');
   });
 });

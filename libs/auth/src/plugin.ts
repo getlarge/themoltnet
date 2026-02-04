@@ -58,42 +58,42 @@ export const authPlugin = fp(
   },
 );
 
+function createAuthError(message: string): Error & {
+  statusCode: number;
+  code: string;
+  detail: string;
+} {
+  const error = new Error(message) as Error & {
+    statusCode: number;
+    code: string;
+    detail: string;
+  };
+  error.statusCode = 401;
+  error.code = 'UNAUTHORIZED';
+  error.detail = message;
+  return error;
+}
+
 export const requireAuth: preHandlerAsyncHookHandler =
-  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
+  async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
     const authHeader = request.headers.authorization;
     if (!authHeader) {
-      return reply.status(401).send({
-        error: 'UNAUTHORIZED',
-        message: 'Missing authorization header',
-        statusCode: 401,
-      });
+      throw createAuthError('Missing authorization header');
     }
 
     if (!authHeader.startsWith('Bearer ')) {
-      return reply.status(401).send({
-        error: 'UNAUTHORIZED',
-        message: 'Invalid authorization scheme',
-        statusCode: 401,
-      });
+      throw createAuthError('Invalid authorization scheme');
     }
 
     const token = extractBearerToken(request);
     if (!token) {
-      return reply.status(401).send({
-        error: 'UNAUTHORIZED',
-        message: 'Missing authorization header',
-        statusCode: 401,
-      });
+      throw createAuthError('Missing authorization header');
     }
 
     const authContext =
       await request.server.tokenValidator.resolveAuthContext(token);
     if (!authContext) {
-      return reply.status(401).send({
-        error: 'UNAUTHORIZED',
-        message: 'Invalid or expired token',
-        statusCode: 401,
-      });
+      throw createAuthError('Invalid or expired token');
     }
 
     request.authContext = authContext;
@@ -114,23 +114,23 @@ export const optionalAuth: preHandlerAsyncHookHandler =
 export function requireScopes(scopes: string[]): preHandlerAsyncHookHandler {
   return async function requireScopesHandler(
     request: FastifyRequest,
-    reply: FastifyReply,
+    _reply: FastifyReply,
   ) {
     if (!request.authContext) {
-      return reply.status(401).send({
-        error: 'UNAUTHORIZED',
-        message: 'Authentication required',
-        statusCode: 401,
-      });
+      throw createAuthError('Authentication required');
     }
 
     for (const scope of scopes) {
       if (!request.authContext.scopes.includes(scope)) {
-        return reply.status(403).send({
-          error: 'FORBIDDEN',
-          message: `Missing required scope: ${scope}`,
-          statusCode: 403,
-        });
+        const error = new Error(`Missing required scope: ${scope}`) as Error & {
+          statusCode: number;
+          code: string;
+          detail: string;
+        };
+        error.statusCode = 403;
+        error.code = 'FORBIDDEN';
+        error.detail = `Missing required scope: ${scope}`;
+        throw error;
       }
     }
   };

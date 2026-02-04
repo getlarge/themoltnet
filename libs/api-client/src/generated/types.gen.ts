@@ -6,10 +6,50 @@ export type ClientOptions = {
 
 export type Visibility = 'private' | 'moltnet' | 'public';
 
-export type Error = {
-  error: string;
+export type ProblemDetails = {
+  type: string;
+  title: string;
+  status: number;
+  code:
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'UPSTREAM_ERROR'
+    | 'INTERNAL_SERVER_ERROR';
+  detail?: string;
+  instance?: string;
+};
+
+export type ValidationProblemDetails = {
+  type: string;
+  title: string;
+  status: number;
+  code:
+    | 'UNAUTHORIZED'
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'VALIDATION_FAILED'
+    | 'INVALID_CHALLENGE'
+    | 'INVALID_SIGNATURE'
+    | 'VOUCHER_LIMIT'
+    | 'UPSTREAM_ERROR'
+    | 'INTERNAL_SERVER_ERROR';
+  detail?: string;
+  instance?: string;
+} & {
+  errors: Array<{
+    field: string;
+    message: string;
+  }>;
+};
+
+export type ValidationError = {
+  field: string;
   message: string;
-  statusCode: number;
 };
 
 export type DiaryEntry = {
@@ -152,7 +192,7 @@ export type ListDiaryEntriesErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
 };
 
 export type ListDiaryEntriesError =
@@ -184,7 +224,7 @@ export type CreateDiaryEntryErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
 };
 
 export type CreateDiaryEntryError =
@@ -213,11 +253,11 @@ export type DeleteDiaryEntryErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type DeleteDiaryEntryError =
@@ -246,11 +286,11 @@ export type GetDiaryEntryErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type GetDiaryEntryError = GetDiaryEntryErrors[keyof GetDiaryEntryErrors];
@@ -283,11 +323,11 @@ export type UpdateDiaryEntryErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type UpdateDiaryEntryError =
@@ -319,7 +359,7 @@ export type SearchDiaryErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
 };
 
 export type SearchDiaryError = SearchDiaryErrors[keyof SearchDiaryErrors];
@@ -348,7 +388,7 @@ export type ReflectDiaryErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
 };
 
 export type ReflectDiaryError = ReflectDiaryErrors[keyof ReflectDiaryErrors];
@@ -378,15 +418,15 @@ export type ShareDiaryEntryErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
   /**
    * Default Response
    */
-  403: Error;
+  403: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type ShareDiaryEntryError =
@@ -415,7 +455,7 @@ export type GetSharedWithMeErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
 };
 
 export type GetSharedWithMeError =
@@ -446,11 +486,11 @@ export type SetDiaryEntryVisibilityErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type SetDiaryEntryVisibilityError =
@@ -479,7 +519,7 @@ export type GetAgentProfileErrors = {
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type GetAgentProfileError =
@@ -511,7 +551,7 @@ export type VerifyAgentSignatureErrors = {
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type VerifyAgentSignatureError =
@@ -538,11 +578,11 @@ export type GetWhoamiErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type GetWhoamiError = GetWhoamiErrors[keyof GetWhoamiErrors];
@@ -588,7 +628,7 @@ export type GetCryptoIdentityErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
 };
 
 export type GetCryptoIdentityError =
@@ -620,11 +660,11 @@ export type RequestRecoveryChallengeErrors = {
   /**
    * Default Response
    */
-  400: Error;
+  400: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
 };
 
 export type RequestRecoveryChallengeError =
@@ -665,15 +705,15 @@ export type VerifyRecoveryChallengeErrors = {
   /**
    * Default Response
    */
-  400: Error;
+  400: ProblemDetails;
   /**
    * Default Response
    */
-  404: Error;
+  404: ProblemDetails;
   /**
    * Default Response
    */
-  502: Error;
+  502: ProblemDetails;
 };
 
 export type VerifyRecoveryChallengeError =
@@ -700,11 +740,11 @@ export type IssueVoucherErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
   /**
    * Default Response
    */
-  429: Error;
+  429: ProblemDetails;
 };
 
 export type IssueVoucherError = IssueVoucherErrors[keyof IssueVoucherErrors];
@@ -730,7 +770,7 @@ export type ListActiveVouchersErrors = {
   /**
    * Default Response
    */
-  401: Error;
+  401: ProblemDetails;
 };
 
 export type ListActiveVouchersError =
@@ -776,3 +816,43 @@ export type GetTrustGraphResponses = {
 
 export type GetTrustGraphResponse =
   GetTrustGraphResponses[keyof GetTrustGraphResponses];
+
+export type ListProblemTypesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/problems';
+};
+
+export type ListProblemTypesResponses = {
+  /**
+   * Default Response
+   */
+  200: Array<{
+    type?: string;
+    title?: string;
+    status?: number;
+    code?: string;
+    description?: string;
+    commonCauses?: Array<string>;
+  }>;
+};
+
+export type ListProblemTypesResponse =
+  ListProblemTypesResponses[keyof ListProblemTypesResponses];
+
+export type GetProblemTypeData = {
+  body?: never;
+  path: {
+    type: string;
+  };
+  query?: never;
+  url: '/problems/{type}';
+};
+
+export type GetProblemTypeResponses = {
+  /**
+   * Default Response
+   */
+  200: unknown;
+};

@@ -3,16 +3,17 @@
  */
 
 import { requireAuth } from '@moltnet/auth';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
+import { createProblem } from '../problems/index.js';
 import {
   DiaryEntrySchema,
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,
   EntryParamsSchema,
-  ErrorSchema,
   SharedEntriesSchema,
   ShareResultSchema,
   SuccessSchema,
@@ -47,7 +48,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           201: Type.Ref(DiaryEntrySchema),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -87,7 +88,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(DiaryListSchema),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -130,12 +131,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         params: EntryParamsSchema,
         response: {
           200: Type.Ref(DiaryEntrySchema),
-          401: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { id } = request.params as { id: string };
       const entry = await fastify.diaryService.getById(
         id,
@@ -143,11 +144,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       );
 
       if (!entry) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: 'Entry not found',
-          statusCode: 404,
-        });
+        throw createProblem('not-found', 'Entry not found');
       }
 
       return entry;
@@ -182,12 +179,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(DiaryEntrySchema),
-          401: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { id } = request.params as { id: string };
       const updates = request.body as {
         title?: string;
@@ -203,11 +200,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       );
 
       if (!entry) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: 'Entry not found or not owned by you',
-          statusCode: 404,
-        });
+        throw createProblem('not-found', 'Entry not found or not owned by you');
       }
 
       return entry;
@@ -226,12 +219,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         params: EntryParamsSchema,
         response: {
           200: Type.Ref(SuccessSchema),
-          401: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { id } = request.params as { id: string };
       const deleted = await fastify.diaryService.delete(
         id,
@@ -239,11 +232,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       );
 
       if (!deleted) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: 'Entry not found or not owned by you',
-          statusCode: 404,
-        });
+        throw createProblem('not-found', 'Entry not found or not owned by you');
       }
 
       return { success: true };
@@ -276,7 +265,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(DiarySearchResultSchema),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -316,7 +305,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(DigestSchema),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -351,24 +340,23 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(ShareResultSchema),
-          401: Type.Ref(ErrorSchema),
-          403: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { id } = request.params as { id: string };
       const { sharedWith } = request.body as { sharedWith: string };
 
       const targetAgent =
         await fastify.agentRepository.findByFingerprint(sharedWith);
       if (!targetAgent) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: `Agent with fingerprint "${sharedWith}" not found`,
-          statusCode: 404,
-        });
+        throw createProblem(
+          'not-found',
+          `Agent with fingerprint "${sharedWith}" not found`,
+        );
       }
 
       const shared = await fastify.diaryService.share(
@@ -378,11 +366,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       );
 
       if (!shared) {
-        return reply.status(403).send({
-          error: 'FORBIDDEN',
-          message: 'Cannot share this entry',
-          statusCode: 403,
-        });
+        throw createProblem('forbidden', 'Cannot share this entry');
       }
 
       return { success: true, sharedWith };
@@ -404,7 +388,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(SharedEntriesSchema),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -438,12 +422,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(DiaryEntrySchema),
-          401: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { id } = request.params as { id: string };
       const { visibility } = request.body as {
         visibility: 'private' | 'moltnet' | 'public';
@@ -456,11 +440,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       );
 
       if (!entry) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: 'Entry not found or not owned by you',
-          statusCode: 404,
-        });
+        throw createProblem('not-found', 'Entry not found or not owned by you');
       }
 
       return entry;
