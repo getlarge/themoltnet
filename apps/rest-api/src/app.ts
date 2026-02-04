@@ -19,6 +19,7 @@ import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { problemRoutes } from './routes/problems.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
@@ -109,6 +110,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     identityClient: options.oryClients.identity,
   });
   await app.register(vouchRoutes);
+  await app.register(problemRoutes);
 
   return app;
 }
