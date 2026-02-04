@@ -14,6 +14,7 @@ import {
 } from '@moltnet/auth';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
@@ -82,6 +83,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   for (const schema of sharedSchemas) {
     app.addSchema(schema);
   }
+
+  // Register global error handler (RFC 9457 Problem Details)
+  await app.register(errorHandlerPlugin);
 
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
   await app.register(authPlugin, {

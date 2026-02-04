@@ -6,6 +6,7 @@
  * 2. OpenAPI spec generation via @fastify/swagger
  */
 
+import { ProblemCodeSchema, ValidationErrorSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 
 // ── Reusable Atoms ──────────────────────────────────────────
@@ -15,13 +16,29 @@ const VisibilitySchema = Type.Union(
   { $id: 'Visibility' },
 );
 
-export const ErrorSchema = Type.Object(
+export const ProblemDetailsSchema = Type.Object(
   {
-    error: Type.String(),
-    message: Type.String(),
-    statusCode: Type.Number(),
+    type: Type.String({ format: 'uri' }),
+    title: Type.String(),
+    status: Type.Integer({ minimum: 100, maximum: 599 }),
+    code: ProblemCodeSchema,
+    detail: Type.Optional(Type.String()),
+    instance: Type.Optional(Type.String()),
   },
-  { $id: 'Error' },
+  { $id: 'ProblemDetails' },
+);
+
+export const ValidationProblemDetailsSchema = Type.Object(
+  {
+    type: Type.String({ format: 'uri' }),
+    title: Type.String(),
+    status: Type.Integer({ minimum: 100, maximum: 599 }),
+    code: ProblemCodeSchema,
+    detail: Type.Optional(Type.String()),
+    instance: Type.Optional(Type.String()),
+    errors: Type.Array(ValidationErrorSchema),
+  },
+  { $id: 'ValidationProblemDetails' },
 );
 
 // ── Diary ───────────────────────────────────────────────────
@@ -212,7 +229,8 @@ export const AgentParamsSchema = Type.Object({
  */
 export const sharedSchemas = [
   VisibilitySchema,
-  ErrorSchema,
+  ProblemDetailsSchema,
+  ValidationProblemDetailsSchema,
   DiaryEntrySchema,
   DiaryListSchema,
   DiarySearchResultSchema,
