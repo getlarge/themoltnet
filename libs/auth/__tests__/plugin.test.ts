@@ -144,7 +144,8 @@ describe('requireAuth preHandler', () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json()).toEqual({
-      error: 'UNAUTHORIZED',
+      code: 'UNAUTHORIZED',
+      error: 'Unauthorized',
       message: 'Missing authorization header',
       statusCode: 401,
     });
@@ -163,7 +164,8 @@ describe('requireAuth preHandler', () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json()).toEqual({
-      error: 'UNAUTHORIZED',
+      code: 'UNAUTHORIZED',
+      error: 'Unauthorized',
       message: 'Invalid authorization scheme',
       statusCode: 401,
     });
@@ -184,7 +186,8 @@ describe('requireAuth preHandler', () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json()).toEqual({
-      error: 'UNAUTHORIZED',
+      code: 'UNAUTHORIZED',
+      error: 'Unauthorized',
       message: 'Invalid or expired token',
       statusCode: 401,
     });
@@ -203,7 +206,8 @@ describe('requireAuth preHandler', () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json()).toEqual({
-      error: 'UNAUTHORIZED',
+      code: 'UNAUTHORIZED',
+      error: 'Unauthorized',
       message: 'Missing authorization header',
       statusCode: 401,
     });
@@ -354,7 +358,8 @@ describe('requireScopes preHandler', () => {
 
     expect(response.statusCode).toBe(403);
     expect(response.json()).toEqual({
-      error: 'FORBIDDEN',
+      code: 'FORBIDDEN',
+      error: 'Forbidden',
       message: 'Missing required scope: diary:delete',
       statusCode: 403,
     });
@@ -376,7 +381,8 @@ describe('requireScopes preHandler', () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json()).toEqual({
-      error: 'UNAUTHORIZED',
+      code: 'UNAUTHORIZED',
+      error: 'Unauthorized',
       message: 'Authentication required',
       statusCode: 401,
     });

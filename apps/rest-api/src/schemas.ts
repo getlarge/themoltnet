@@ -6,6 +6,10 @@
  * 2. OpenAPI spec generation via @fastify/swagger
  */
 
+import {
+  ProblemDetailsSchema,
+  ValidationProblemDetailsSchema,
+} from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 
 // ── Reusable Atoms ──────────────────────────────────────────
@@ -13,15 +17,6 @@ import { Type } from '@sinclair/typebox';
 const VisibilitySchema = Type.Union(
   [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
   { $id: 'Visibility' },
-);
-
-export const ErrorSchema = Type.Object(
-  {
-    error: Type.String(),
-    message: Type.String(),
-    statusCode: Type.Number(),
-  },
-  { $id: 'Error' },
 );
 
 // ── Diary ───────────────────────────────────────────────────
@@ -212,7 +207,8 @@ export const AgentParamsSchema = Type.Object({
  */
 export const sharedSchemas = [
   VisibilitySchema,
-  ErrorSchema,
+  ProblemDetailsSchema,
+  ValidationProblemDetailsSchema,
   DiaryEntrySchema,
   DiaryListSchema,
   DiarySearchResultSchema,

@@ -63,7 +63,10 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
-      expect(response.json().error).toBe('NOT_FOUND');
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('NOT_FOUND');
     });
 
     it('returns 400 for malformed public key', async () => {
@@ -166,7 +169,10 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().error).toBe('INVALID_CHALLENGE');
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('INVALID_CHALLENGE');
     });
 
     it('returns 400 for expired challenge', async () => {
@@ -186,8 +192,11 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().error).toBe('INVALID_CHALLENGE');
-      expect(response.json().message).toBe('Challenge expired');
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('INVALID_CHALLENGE');
+      expect(response.json().detail).toBe('Challenge expired');
     });
 
     it('returns 404 when no agent found for public key', async () => {
@@ -201,7 +210,10 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
-      expect(response.json().error).toBe('NOT_FOUND');
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('NOT_FOUND');
     });
 
     it('returns 400 for invalid Ed25519 signature', async () => {
@@ -217,7 +229,10 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.json().error).toBe('INVALID_SIGNATURE');
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('INVALID_SIGNATURE');
     });
 
     it('returns 502 when Kratos Admin API fails', async () => {
@@ -263,7 +278,10 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(502);
-      expect(response.json().error).toBe('UPSTREAM_ERROR');
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('UPSTREAM_ERROR');
     });
   });
 });

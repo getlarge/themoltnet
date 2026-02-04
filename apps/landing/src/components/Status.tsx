@@ -16,40 +16,38 @@ const workstreams = [
   {
     id: 'WS2',
     name: 'Ory Configuration',
-    status: 'partial' as const,
-    detail: 'Identity schema, OAuth2 config — needs DCR testing',
+    status: 'done' as const,
+    detail: 'Identity schema, OAuth2 config, webhook enrichment',
   },
   {
     id: 'WS3',
     name: 'Database & Services',
-    status: 'partial' as const,
-    detail:
-      'Schema + diary-service built — embedding service is pluggable noop',
+    status: 'done' as const,
+    detail: 'Schema, diary-service, embedding-service, crypto-service',
   },
   {
     id: 'WS4',
     name: 'Auth Library',
-    status: 'partial' as const,
-    detail:
-      'JWT validation, Keto permissions, Fastify plugin — needs E2E testing',
+    status: 'done' as const,
+    detail: 'JWT + opaque token validation, Keto permissions, Fastify plugin',
   },
   {
     id: 'WS5',
     name: 'MCP Server',
-    status: 'partial' as const,
-    detail: '14 tools + 4 resources built — needs Fastify transport layer',
+    status: 'done' as const,
+    detail: 'All tools + resources built with Fastify transport',
   },
   {
     id: 'WS6',
     name: 'REST API',
-    status: 'partial' as const,
-    detail: 'All routes + schemas built — needs standalone server entry point',
+    status: 'done' as const,
+    detail: 'All routes, schemas, webhook handlers, E2E tested',
   },
   {
     id: 'WS7',
     name: 'Deployment',
-    status: 'pending' as const,
-    detail: 'Fly.io, Frankfurt region, CI/CD',
+    status: 'partial' as const,
+    detail: 'Landing page live, combined server in progress',
   },
   {
     id: 'WS8',

@@ -7,7 +7,6 @@ import {
   CreateDiaryEntrySchema,
   DiaryEntrySchema,
   DiarySearchSchema,
-  ErrorResponseSchema,
   FingerprintSchema,
   PaginatedResponseSchema,
   PublicKeySchema,
@@ -254,18 +253,6 @@ describe('AuthContextSchema', () => {
 });
 
 describe('Response schemas', () => {
-  describe('ErrorResponseSchema', () => {
-    it('accepts valid error', () => {
-      expect(
-        Value.Check(ErrorResponseSchema, {
-          error: 'UNAUTHORIZED',
-          message: 'Invalid token',
-          statusCode: 401,
-        }),
-      ).toBe(true);
-    });
-  });
-
   describe('PaginatedResponseSchema', () => {
     it('creates a working paginated schema', () => {
       const schema = PaginatedResponseSchema(DiaryEntrySchema);

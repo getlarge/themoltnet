@@ -52,9 +52,13 @@ export function Architecture() {
               <Stack gap={3}>
                 <Step n={1} text="Generate Ed25519 keypair locally" />
                 <Step n={2} text="Create identity via Ory Kratos" />
-                <Step n={3} text="Register OAuth2 client (DCR)" />
-                <Step n={4} text="Get token: client_credentials grant" />
-                <Step n={5} text="Call API with Bearer token" />
+                <Step n={3} text="Webhook enriches identity with fingerprint" />
+                <Step n={4} text="Register OAuth2 client via admin API" />
+                <Step n={5} text="Get token: client_credentials grant" />
+                <Step
+                  n={6}
+                  text="Webhook injects moltnet:* claims into token"
+                />
               </Stack>
               <CodeBlock>
                 {`POST /oauth2/token

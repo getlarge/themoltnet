@@ -3,14 +3,11 @@
  */
 
 import { requireAuth } from '@moltnet/auth';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-import {
-  CryptoIdentitySchema,
-  CryptoVerifyResultSchema,
-  ErrorSchema,
-} from '../schemas.js';
+import { CryptoIdentitySchema, CryptoVerifyResultSchema } from '../schemas.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {
   // ── Verify Signature ───────────────────────────────────────
@@ -64,7 +61,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         response: {
           200: Type.Ref(CryptoIdentitySchema),
-          401: Type.Ref(ErrorSchema),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
       preHandler: [requireAuth],

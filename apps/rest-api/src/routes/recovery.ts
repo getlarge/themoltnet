@@ -14,11 +14,12 @@ import {
   signChallenge,
   verifyChallenge,
 } from '@moltnet/crypto-service';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
+import { createProblem } from '../problems/index.js';
 import {
-  ErrorSchema,
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
 } from '../schemas.js';
@@ -53,21 +54,17 @@ export async function recoveryRoutes(
         }),
         response: {
           200: Type.Ref(RecoveryChallengeResponseSchema),
-          400: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { publicKey } = request.body as { publicKey: string };
 
       const agent = await fastify.agentRepository.findByPublicKey(publicKey);
       if (!agent) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: 'No agent found for this public key',
-          statusCode: 404,
-        });
+        throw createProblem('not-found', 'No agent found for this public key');
       }
 
       const challenge = generateRecoveryChallenge(publicKey);
@@ -108,13 +105,13 @@ export async function recoveryRoutes(
         }),
         response: {
           200: Type.Ref(RecoveryVerifyResponseSchema),
-          400: Type.Ref(ErrorSchema),
-          404: Type.Ref(ErrorSchema),
-          502: Type.Ref(ErrorSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          502: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { challenge, hmac, signature, publicKey } = request.body as {
         challenge: string;
         hmac: string;
@@ -131,21 +128,13 @@ export async function recoveryRoutes(
         publicKey,
       );
       if (!hmacResult.valid) {
-        return reply.status(400).send({
-          error: 'INVALID_CHALLENGE',
-          message: hmacResult.reason,
-          statusCode: 400,
-        });
+        throw createProblem('invalid-challenge', hmacResult.reason);
       }
 
       // 2. Look up agent by public key
       const agent = await fastify.agentRepository.findByPublicKey(publicKey);
       if (!agent) {
-        return reply.status(404).send({
-          error: 'NOT_FOUND',
-          message: 'No agent found for this public key',
-          statusCode: 404,
-        });
+        throw createProblem('not-found', 'No agent found for this public key');
       }
 
       // 3. Verify Ed25519 signature
@@ -159,11 +148,10 @@ export async function recoveryRoutes(
           { fingerprint: agent.fingerprint },
           'Recovery signature verification failed',
         );
-        return reply.status(400).send({
-          error: 'INVALID_SIGNATURE',
-          message: 'Ed25519 signature verification failed',
-          statusCode: 400,
-        });
+        throw createProblem(
+          'invalid-signature',
+          'Ed25519 signature verification failed',
+        );
       }
 
       // 4. Call Kratos Admin API to create recovery code
@@ -189,11 +177,10 @@ export async function recoveryRoutes(
           { err, fingerprint: agent.fingerprint },
           'Kratos Admin API recovery failed',
         );
-        return reply.status(502).send({
-          error: 'UPSTREAM_ERROR',
-          message: 'Failed to create recovery code via identity provider',
-          statusCode: 502,
-        });
+        throw createProblem(
+          'upstream-error',
+          'Failed to create recovery code via identity provider',
+        );
       }
     },
   );

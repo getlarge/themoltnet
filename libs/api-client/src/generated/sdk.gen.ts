@@ -20,6 +20,8 @@ import type {
   GetDiaryEntryResponses,
   GetHealthData,
   GetHealthResponses,
+  GetProblemTypeData,
+  GetProblemTypeResponses,
   GetSharedWithMeData,
   GetSharedWithMeErrors,
   GetSharedWithMeResponses,
@@ -37,6 +39,8 @@ import type {
   ListDiaryEntriesData,
   ListDiaryEntriesErrors,
   ListDiaryEntriesResponses,
+  ListProblemTypesData,
+  ListProblemTypesResponses,
   ReflectDiaryData,
   ReflectDiaryErrors,
   ReflectDiaryResponses,
@@ -436,3 +440,27 @@ export const getTrustGraph = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/vouch/graph', ...options });
+
+/**
+ * List all problem types used in API error responses (RFC 9457).
+ */
+export const listProblemTypes = <ThrowOnError extends boolean = false>(
+  options?: Options<ListProblemTypesData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListProblemTypesResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/problems', ...options });
+
+/**
+ * Get details about a specific problem type (RFC 9457).
+ */
+export const getProblemType = <ThrowOnError extends boolean = false>(
+  options: Options<GetProblemTypeData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetProblemTypeResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/problems/{type}', ...options });

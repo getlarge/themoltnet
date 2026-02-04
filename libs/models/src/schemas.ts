@@ -150,12 +150,6 @@ export const SuccessResponseSchema = Type.Object({
   message: Type.Optional(Type.String()),
 });
 
-export const ErrorResponseSchema = Type.Object({
-  error: Type.String(),
-  message: Type.String(),
-  statusCode: Type.Number(),
-});
-
 export const PaginatedResponseSchema = <
   T extends ReturnType<typeof Type.Object>,
 >(
@@ -187,4 +181,3 @@ export type VerifyRequest = Static<typeof VerifyRequestSchema>;
 export type VerifyResponse = Static<typeof VerifyResponseSchema>;
 export type AuthContext = Static<typeof AuthContextSchema>;
 export type SuccessResponse = Static<typeof SuccessResponseSchema>;
-export type ErrorResponse = Static<typeof ErrorResponseSchema>;

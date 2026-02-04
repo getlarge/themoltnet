@@ -143,13 +143,13 @@ describe('content', () => {
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1 done, WS2-6 partial, WS7-9 pending
+    // WS1-6 done, WS7 partial, WS8-9 pending
     const done = screen.getAllByText('Done');
     const partial = screen.getAllByText('In Progress');
     const pending = screen.getAllByText('Planned');
-    expect(done).toHaveLength(1);
-    expect(partial).toHaveLength(5);
-    expect(pending).toHaveLength(3);
+    expect(done).toHaveLength(6);
+    expect(partial).toHaveLength(1);
+    expect(pending).toHaveLength(2);
   });
 
   it('Footer shows MIT license', () => {

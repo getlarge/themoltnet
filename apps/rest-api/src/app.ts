@@ -14,11 +14,13 @@ import {
 } from '@moltnet/auth';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { problemRoutes } from './routes/problems.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
@@ -82,6 +84,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     app.addSchema(schema);
   }
 
+  // Register global error handler (RFC 9457 Problem Details)
+  await app.register(errorHandlerPlugin);
+
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
@@ -109,6 +114,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     identityClient: options.oryClients.identity,
   });
   await app.register(vouchRoutes);
+  await app.register(problemRoutes);
 
   return app;
 }
