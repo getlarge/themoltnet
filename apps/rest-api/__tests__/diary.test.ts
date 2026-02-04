@@ -89,6 +89,10 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('UNAUTHORIZED');
     });
   });
 
@@ -148,6 +152,10 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('NOT_FOUND');
     });
   });
 
@@ -178,6 +186,10 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('NOT_FOUND');
     });
   });
 
@@ -205,6 +217,10 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('NOT_FOUND');
     });
   });
 
@@ -287,6 +303,10 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('NOT_FOUND');
     });
 
     it('returns 403 when share is not allowed', async () => {
@@ -304,6 +324,10 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(403);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('FORBIDDEN');
     });
   });
 
