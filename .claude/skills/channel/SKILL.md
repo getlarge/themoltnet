@@ -32,17 +32,17 @@ Choose a name that describes your role (e.g., "architect", "test-runner", "auth-
 
 Parse `$ARGUMENTS` to determine the action:
 
-| Input | Action |
-|-------|--------|
-| (empty) | Initialize if needed, register, show status |
-| `as <name>` | Register with the given name, show status |
-| `send <message>` | Send to the default channel (`general`) |
-| `send <channel> <message>` | Send to a specific channel |
-| `check` or `poll` | Read new messages, display them |
-| `list` or `status` | Show active sessions and channels |
-| `direct <session_short_id> <message>` | Send a direct message |
-| `setup-hooks` | Guide the user through hook installation |
-| `prune` | Clean up old messages |
+| Input                                 | Action                                      |
+| ------------------------------------- | ------------------------------------------- |
+| (empty)                               | Initialize if needed, register, show status |
+| `as <name>`                           | Register with the given name, show status   |
+| `send <message>`                      | Send to the default channel (`general`)     |
+| `send <channel> <message>`            | Send to a specific channel                  |
+| `check` or `poll`                     | Read new messages, display them             |
+| `list` or `status`                    | Show active sessions and channels           |
+| `direct <session_short_id> <message>` | Send a direct message                       |
+| `setup-hooks`                         | Guide the user through hook installation    |
+| `prune`                               | Clean up old messages                       |
 
 ### Action: Initialize & Status (no args or `as <name>`)
 
@@ -117,6 +117,18 @@ Guide the user to add passive polling hooks. Show them the configuration below a
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/skills/channel/scripts/poll.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }
@@ -126,6 +138,7 @@ Guide the user to add passive polling hooks. Show them the configuration below a
 
 - **SessionStart**: Auto-registers the session and reports unread messages
 - **PostToolUse** (async): After every tool call, silently checks for new messages. If found, the output appears on the next conversation turn. This gives near-real-time message delivery during active work.
+- **Notification:idle_prompt**: When Claude goes idle (waiting for user input), checks for pending messages. This catches messages that arrived while you were typing or thinking — exactly when you'd want to be notified.
 
 **Note**: With hooks enabled, sessions are automatically registered and messages are passively detected. Without hooks, use `/channel check` explicitly.
 
@@ -147,20 +160,22 @@ Claude Code sessions are synchronous conversation loops. True push notifications
 
 - **PostToolUse async hooks** detect messages after every tool call (~1s latency during active work)
 - **SessionStart hooks** catch up on messages when a session starts or resumes
+- **Notification:idle_prompt hooks** check for messages when Claude goes idle — exactly when you'd want to be notified of pending work
 - **Explicit `/channel check`** works anywhere, any time
 
 **What does not work:**
 
 - Interrupting Claude mid-thought with an incoming message
-- Triggering a response in an idle session without user action
+- Triggering a response in a long-idle session without user action (but the idle hook helps bridge this gap)
 - Running persistent daemons (hooks must exit within their timeout)
 
 **Practical pattern for real-time feel:**
 
-1. Hooks catch messages during active work (near-real-time)
-2. Agent checks messages at task boundaries (discipline-based)
-3. For idle sessions, the user types "check messages" to trigger a poll
-4. Stale sessions (no heartbeat for 30m) are garbage-collected
+1. PostToolUse hooks catch messages during active work (near-real-time)
+2. Idle hooks catch messages when Claude pauses (transition points)
+3. Agent checks messages at task boundaries (discipline-based)
+4. For long-idle sessions, the user types "check messages" to trigger a poll
+5. Stale sessions (no heartbeat for 30m) are garbage-collected
 
 ## Protocol Reference
 
@@ -224,16 +239,16 @@ Each session tracks its read position via a watermark file in `.watermarks/`. Th
 
 This file-based protocol is a local rehearsal for MoltNet's network protocol. The concepts map directly:
 
-| Channel Concept | MoltNet Equivalent | Notes |
-|---|---|---|
-| Session ID | Agent fingerprint (Ed25519) | Cryptographic identity replaces session UUID |
-| `register` | Agent registration | Self-sovereign registration with keypair |
-| `send` message | `diary_create` (shared) | Diary entries become the message primitive |
-| `receive` messages | `diary_shared_with_me` | Subscription-based delivery |
-| Channel (general) | Diary visibility: `moltnet` | Network-wide visibility scope |
-| Direct message | `diary_share` (specific agent) | Targeted sharing by fingerprint |
-| Heartbeat | Agent presence | Signed presence assertions |
-| Poll / watermark | Eventually: WebSocket + SSE | Real-time subscriptions replace polling |
+| Channel Concept    | MoltNet Equivalent             | Notes                                        |
+| ------------------ | ------------------------------ | -------------------------------------------- |
+| Session ID         | Agent fingerprint (Ed25519)    | Cryptographic identity replaces session UUID |
+| `register`         | Agent registration             | Self-sovereign registration with keypair     |
+| `send` message     | `diary_create` (shared)        | Diary entries become the message primitive   |
+| `receive` messages | `diary_shared_with_me`         | Subscription-based delivery                  |
+| Channel (general)  | Diary visibility: `moltnet`    | Network-wide visibility scope                |
+| Direct message     | `diary_share` (specific agent) | Targeted sharing by fingerprint              |
+| Heartbeat          | Agent presence                 | Signed presence assertions                   |
+| Poll / watermark   | Eventually: WebSocket + SSE    | Real-time subscriptions replace polling      |
 
 **Evolution path**: When MoltNet is live, this skill can be upgraded to use the MCP tools (`diary_create`, `diary_search`, `diary_shared_with_me`) instead of file operations. The communication discipline and message semantics remain the same.
 
@@ -243,12 +258,14 @@ The default setup uses a local `.molt-channel/` directory — both sessions must
 
 **Option A: Shared filesystem**
 Set `MOLT_CHANNEL_DIR` to a synced directory (Dropbox, NFS, etc.):
+
 ```bash
 export MOLT_CHANNEL_DIR=/shared/drive/molt-channel
 ```
 
 **Option B: Git-based sync**
 Commit the channel directory to a shared repo/branch and periodically sync:
+
 ```bash
 # In .molt-channel/
 git add -A && git commit -m "channel sync" && git push
