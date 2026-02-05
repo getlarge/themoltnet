@@ -25,6 +25,7 @@ function createMockDb() {
     select: vi.fn().mockReturnValue(mockChain),
     update: vi.fn().mockReturnValue(mockChain),
     delete: vi.fn().mockReturnValue(mockChain),
+    transaction: vi.fn().mockImplementation((fn) => fn(db)),
     _chain: mockChain,
   };
 
@@ -136,33 +137,17 @@ describe('createDiaryRepository', () => {
     expect(result).toEqual(mockEntry);
   });
 
-  it('findById returns entry when requester is owner', async () => {
+  it('findById returns entry by ID', async () => {
     db._chain.limit.mockResolvedValue([mockEntry]);
 
-    const result = await repo.findById(ENTRY_ID, AGENT_ID);
+    const result = await repo.findById(ENTRY_ID);
     expect(result).toEqual(mockEntry);
-  });
-
-  it('findById returns entry when visibility is public', async () => {
-    const publicEntry = { ...mockEntry, visibility: 'public' as const };
-    db._chain.limit.mockResolvedValue([publicEntry]);
-
-    const result = await repo.findById(ENTRY_ID, 'other-agent');
-    expect(result).toEqual(publicEntry);
-  });
-
-  it('findById returns entry when visibility is moltnet', async () => {
-    const moltnetEntry = { ...mockEntry, visibility: 'moltnet' as const };
-    db._chain.limit.mockResolvedValue([moltnetEntry]);
-
-    const result = await repo.findById(ENTRY_ID, 'other-agent');
-    expect(result).toEqual(moltnetEntry);
   });
 
   it('findById returns null when entry not found', async () => {
     db._chain.limit.mockResolvedValue([]);
 
-    const result = await repo.findById('nonexistent', AGENT_ID);
+    const result = await repo.findById('nonexistent');
     expect(result).toBeNull();
   });
 
@@ -178,50 +163,36 @@ describe('createDiaryRepository', () => {
     const updated = { ...mockEntry, title: 'Updated' };
     db._chain.returning.mockResolvedValue([updated]);
 
-    const result = await repo.update(ENTRY_ID, AGENT_ID, {
-      title: 'Updated',
-    });
+    const result = await repo.update(ENTRY_ID, { title: 'Updated' });
     expect(db.update).toHaveBeenCalled();
     expect(result).toEqual(updated);
   });
 
-  it('update returns null when entry not found or not owned', async () => {
+  it('update returns null when entry not found', async () => {
     db._chain.returning.mockResolvedValue([]);
 
-    const result = await repo.update(ENTRY_ID, 'wrong-owner', {
-      title: 'Hacked',
-    });
+    const result = await repo.update(ENTRY_ID, { title: 'Hacked' });
     expect(result).toBeNull();
   });
 
   it('delete returns true when entry deleted', async () => {
     db._chain.returning.mockResolvedValue([{ id: ENTRY_ID }]);
 
-    const result = await repo.delete(ENTRY_ID, AGENT_ID);
+    const result = await repo.delete(ENTRY_ID);
     expect(result).toBe(true);
   });
 
-  it('delete returns false when entry not found or not owned', async () => {
+  it('delete returns false when entry not found', async () => {
     db._chain.returning.mockResolvedValue([]);
 
-    const result = await repo.delete(ENTRY_ID, 'wrong-owner');
+    const result = await repo.delete(ENTRY_ID);
     expect(result).toBe(false);
   });
 
-  it('share verifies ownership then creates share', async () => {
-    // First call: select to verify ownership
-    db._chain.limit.mockResolvedValueOnce([mockEntry]);
-
+  it('share creates share record', async () => {
     const result = await repo.share(ENTRY_ID, AGENT_ID, 'other-agent');
     expect(result).toBe(true);
     expect(db.insert).toHaveBeenCalled();
-  });
-
-  it('share returns false when entry not owned', async () => {
-    db._chain.limit.mockResolvedValueOnce([]);
-
-    const result = await repo.share(ENTRY_ID, 'wrong-owner', 'other-agent');
-    expect(result).toBe(false);
   });
 
   it('getSharedWithMe returns empty array when no shares', async () => {

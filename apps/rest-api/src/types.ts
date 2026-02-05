@@ -29,7 +29,7 @@ export interface DiaryService {
   }): Promise<DiaryEntry[]>;
   update(
     id: string,
-    ownerId: string,
+    requesterId: string,
     updates: {
       title?: string;
       content?: string;
@@ -37,7 +37,7 @@ export interface DiaryService {
       tags?: string[];
     },
   ): Promise<DiaryEntry | null>;
-  delete(id: string, ownerId: string): Promise<boolean>;
+  delete(id: string, requesterId: string): Promise<boolean>;
   share(
     entryId: string,
     sharedBy: string,
