@@ -3,7 +3,6 @@ lockfileVersion: '9.0'
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
-  injectWorkspacePackages: true
 
 catalogs:
   default:
@@ -163,6 +162,9 @@ catalogs:
     typescript-eslint:
       specifier: ^8.0.0
       version: 8.54.0
+    update-ts-references:
+      specifier: ^4.0.0
+      version: 4.0.0
     vite:
       specifier: ^6.0.0
       version: 6.4.1
@@ -215,6 +217,9 @@ importers:
       typescript-eslint:
         specifier: 'catalog:'
         version: 8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
+      update-ts-references:
+        specifier: 'catalog:'
+        version: 4.0.0
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
@@ -319,10 +324,10 @@ importers:
         version: link:../../libs/api-client
       '@moltnet/database':
         specifier: workspace:*
-        version: file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
+        version: link:../../libs/database
       '@moltnet/diary-service':
         specifier: workspace:*
-        version: file:libs/diary-service(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
+        version: link:../../libs/diary-service
       '@ory/client':
         specifier: 'catalog:'
         version: 1.22.22
@@ -470,7 +475,7 @@ importers:
     dependencies:
       '@moltnet/database':
         specifier: workspace:*
-        version: file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
+        version: link:../database
     devDependencies:
       '@moltnet/embedding-service':
         specifier: workspace:*
@@ -2480,12 +2485,6 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@moltnet/database@file:libs/database':
-    resolution: { directory: libs/database, type: directory }
-
-  '@moltnet/diary-service@file:libs/diary-service':
-    resolution: { directory: libs/diary-service, type: directory }
-
   '@napi-rs/wasm-runtime@1.1.1':
     resolution:
       {
@@ -3935,6 +3934,12 @@ packages:
       }
     engines: { node: '>= 0.4' }
 
+  array-timsort@1.0.3:
+    resolution:
+      {
+        integrity: sha512-/+3GRL7dDAGEfM6TseQk/U+mi18TU2Ms9I3UlLdUMhz2hbvGNTKdj9xniwXfUqgYhHxRx0+8UnKkvlNwVU+cWQ==,
+      }
+
   asn1.js@5.4.1:
     resolution:
       {
@@ -4367,6 +4372,13 @@ packages:
       }
     engines: { node: ^12.20.0 || >=14 }
 
+  comment-json@4.5.1:
+    resolution:
+      {
+        integrity: sha512-taEtr3ozUmOB7it68Jll7s0Pwm+aoiHyXKrEC8SEodL4rNpdfDLqa7PfBlrgFoCNNdR8ImL+muti5IGvktJAAg==,
+      }
+    engines: { node: '>= 6' }
+
   concat-map@0.0.1:
     resolution:
       {
@@ -4454,6 +4466,12 @@ packages:
         integrity: sha512-7Vv6asjS4gMOuILabD3l739tsaxFQmC+a7pLZm02zyvs8p977bL3zEgq3yDk5rn9B0PbYgIv++jmHcuUab4RhA==,
       }
     engines: { node: '>=18' }
+
+  core-util-is@1.0.3:
+    resolution:
+      {
+        integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==,
+      }
 
   cors@2.8.6:
     resolution:
@@ -5066,6 +5084,14 @@ packages:
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
 
+  esprima@4.0.1:
+    resolution:
+      {
+        integrity: sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==,
+      }
+    engines: { node: '>=4' }
+    hasBin: true
+
   esquery@1.7.0:
     resolution:
       {
@@ -5543,6 +5569,13 @@ packages:
         integrity: sha512-tvZgpqk6fz4BaNZ66ZsRaZnbHvP/jG3uKJvAZOwEVUL4RTA5nJeeLYfyN9/VA8NX/V3IBG+hkeuGpKjvELkVhA==,
       }
     engines: { node: 20 || >=22 }
+
+  glob@7.2.3:
+    resolution:
+      {
+        integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==,
+      }
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@8.1.0:
     resolution:
@@ -6835,6 +6868,13 @@ packages:
       }
     engines: { node: '>=8' }
 
+  path-is-absolute@1.0.1:
+    resolution:
+      {
+        integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==,
+      }
+    engines: { node: '>=0.10.0' }
+
   path-key@3.1.1:
     resolution:
       {
@@ -8095,6 +8135,14 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
+  update-ts-references@4.0.0:
+    resolution:
+      {
+        integrity: sha512-f9dHWEDOapl83Ef4d2fyaosCzlI4q/HM3ub/tIfPus8ddQfhLylVn+Vtu9NQwnwxS/WGKPtFdqaN5kNT7d1oaQ==,
+      }
+    engines: { node: '>=14.0.0' }
+    hasBin: true
+
   uri-js@4.4.1:
     resolution:
       {
@@ -8672,24 +8720,6 @@ snapshots:
     dependencies:
       '@dbos-inc/dbos-sdk': 3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3)
       drizzle-orm: 0.29.5(@opentelemetry/api@1.8.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)(react@19.2.4)
-      pg: 8.18.0
-      superjson: 1.13.3
-    transitivePeerDependencies:
-      - pg-native
-
-  '@dbos-inc/drizzle-datasource@4.8.8(@dbos-inc/dbos-sdk@3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3))(drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)(react@19.2.4))':
-    dependencies:
-      '@dbos-inc/dbos-sdk': 3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3)
-      drizzle-orm: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)(react@19.2.4)
-      pg: 8.18.0
-      superjson: 1.13.3
-    transitivePeerDependencies:
-      - pg-native
-
-  '@dbos-inc/drizzle-datasource@4.8.8(@dbos-inc/dbos-sdk@3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3))(drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(pg@8.18.0)(postgres@3.4.8)(react@19.2.4))':
-    dependencies:
-      '@dbos-inc/dbos-sdk': 3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3)
-      drizzle-orm: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(pg@8.18.0)(postgres@3.4.8)(react@19.2.4)
       pg: 8.18.0
       superjson: 1.13.3
     transitivePeerDependencies:
@@ -9522,117 +9552,6 @@ snapshots:
     transitivePeerDependencies:
       - hono
       - supports-color
-
-  '@moltnet/database@file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)':
-    dependencies:
-      '@dbos-inc/dbos-sdk': 3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3)
-      '@dbos-inc/drizzle-datasource': 4.8.8(@dbos-inc/dbos-sdk@3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3))(drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)(react@19.2.4))
-      drizzle-orm: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)(react@19.2.4)
-      pg: 8.18.0
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cloudflare/workers-types'
-      - '@libsql/client'
-      - '@neondatabase/serverless'
-      - '@opentelemetry/api'
-      - '@planetscale/database'
-      - '@types/better-sqlite3'
-      - '@types/koa'
-      - '@types/node'
-      - '@types/pg'
-      - '@types/react'
-      - '@types/sql.js'
-      - '@vercel/postgres'
-      - better-sqlite3
-      - bufferutil
-      - bun-types
-      - expo-sqlite
-      - knex
-      - koa
-      - kysely
-      - mysql
-      - mysql2
-      - pg-native
-      - postgres
-      - react
-      - sql.js
-      - sqlite3
-      - supports-color
-      - tedious
-      - utf-8-validate
-
-  '@moltnet/database@file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)':
-    dependencies:
-      '@dbos-inc/dbos-sdk': 3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3)
-      '@dbos-inc/drizzle-datasource': 4.8.8(@dbos-inc/dbos-sdk@3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3))(drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(pg@8.18.0)(postgres@3.4.8)(react@19.2.4))
-      drizzle-orm: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(pg@8.18.0)(postgres@3.4.8)(react@19.2.4)
-      pg: 8.18.0
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cloudflare/workers-types'
-      - '@libsql/client'
-      - '@neondatabase/serverless'
-      - '@opentelemetry/api'
-      - '@planetscale/database'
-      - '@types/better-sqlite3'
-      - '@types/koa'
-      - '@types/node'
-      - '@types/pg'
-      - '@types/react'
-      - '@types/sql.js'
-      - '@vercel/postgres'
-      - better-sqlite3
-      - bufferutil
-      - bun-types
-      - expo-sqlite
-      - knex
-      - koa
-      - kysely
-      - mysql
-      - mysql2
-      - pg-native
-      - postgres
-      - react
-      - sql.js
-      - sqlite3
-      - supports-color
-      - tedious
-      - utf-8-validate
-
-  '@moltnet/diary-service@file:libs/diary-service(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)':
-    dependencies:
-      '@moltnet/database': file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
-    transitivePeerDependencies:
-      - '@aws-sdk/client-rds-data'
-      - '@cloudflare/workers-types'
-      - '@libsql/client'
-      - '@neondatabase/serverless'
-      - '@opentelemetry/api'
-      - '@planetscale/database'
-      - '@types/better-sqlite3'
-      - '@types/koa'
-      - '@types/node'
-      - '@types/pg'
-      - '@types/react'
-      - '@types/sql.js'
-      - '@vercel/postgres'
-      - better-sqlite3
-      - bufferutil
-      - bun-types
-      - expo-sqlite
-      - knex
-      - koa
-      - kysely
-      - mysql
-      - mysql2
-      - pg-native
-      - postgres
-      - react
-      - sql.js
-      - sqlite3
-      - supports-color
-      - tedious
-      - utf-8-validate
 
   '@napi-rs/wasm-runtime@1.1.1':
     dependencies:
@@ -10546,6 +10465,8 @@ snapshots:
 
   aria-query@5.3.2: {}
 
+  array-timsort@1.0.3: {}
+
   asn1.js@5.4.1:
     dependencies:
       bn.js: 4.12.2
@@ -10785,6 +10706,12 @@ snapshots:
 
   commander@9.5.0: {}
 
+  comment-json@4.5.1:
+    dependencies:
+      array-timsort: 1.0.3
+      core-util-is: 1.0.3
+      esprima: 4.0.1
+
   concat-map@0.0.1: {}
 
   confbox@0.2.2: {}
@@ -10819,6 +10746,8 @@ snapshots:
   copy-anything@4.0.5:
     dependencies:
       is-what: 5.5.0
+
+  core-util-is@1.0.3: {}
 
   cors@2.8.6:
     dependencies:
@@ -10961,16 +10890,6 @@ snapshots:
       '@types/pg': 8.16.0
       '@types/react': 19.2.10
       knex: 3.1.0(pg@8.18.0)
-      pg: 8.18.0
-      postgres: 3.4.8
-      react: 19.2.4
-
-  drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(pg@8.18.0)(postgres@3.4.8)(react@19.2.4):
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.0
-      '@types/pg': 8.16.0
-      '@types/react': 19.2.10
-      knex: 3.1.0
       pg: 8.18.0
       postgres: 3.4.8
       react: 19.2.4
@@ -11271,6 +11190,8 @@ snapshots:
       acorn: 8.15.0
       acorn-jsx: 5.3.2(acorn@8.15.0)
       eslint-visitor-keys: 4.2.1
+
+  esprima@4.0.1: {}
 
   esquery@1.7.0:
     dependencies:
@@ -11585,6 +11506,15 @@ snapshots:
       minimatch: 10.1.1
       minipass: 7.1.2
       path-scurry: 2.0.1
+
+  glob@7.2.3:
+    dependencies:
+      fs.realpath: 1.0.0
+      inflight: 1.0.6
+      inherits: 2.0.4
+      minimatch: 3.1.2
+      once: 1.4.0
+      path-is-absolute: 1.0.1
 
   glob@8.1.0:
     dependencies:
@@ -11908,26 +11838,6 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
-
-  knex@3.1.0:
-    dependencies:
-      colorette: 2.0.19
-      commander: 10.0.1
-      debug: 4.3.4
-      escalade: 3.2.0
-      esm: 3.2.25
-      get-package-type: 0.1.0
-      getopts: 2.3.0
-      interpret: 2.2.0
-      lodash: 4.17.23
-      pg-connection-string: 2.6.2
-      rechoir: 0.8.0
-      resolve-from: 5.0.0
-      tarn: 3.0.2
-      tildify: 2.0.0
-    transitivePeerDependencies:
-      - supports-color
-    optional: true
 
   knex@3.1.0(pg@8.11.3):
     dependencies:
@@ -12376,6 +12286,8 @@ snapshots:
   parseurl@1.3.3: {}
 
   path-exists@4.0.0: {}
+
+  path-is-absolute@1.0.1: {}
 
   path-key@3.1.1: {}
 
@@ -13130,6 +13042,14 @@ snapshots:
       browserslist: 4.28.1
       escalade: 3.2.0
       picocolors: 1.1.1
+
+  update-ts-references@4.0.0:
+    dependencies:
+      comment-json: 4.5.1
+      glob: 7.2.3
+      js-yaml: 4.1.1
+      minimatch: 3.1.2
+      minimist: 1.2.8
 
   uri-js@4.4.1:
     dependencies:

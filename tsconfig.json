@@ -12,23 +12,50 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "customConditions": ["@moltnet/source"]
   },
   "files": [],
   "exclude": ["node_modules", "dist", "infra/ory/permissions.ts"],
   "references": [
-    { "path": "libs/models" },
-    { "path": "libs/crypto-service" },
-    { "path": "libs/database" },
-    { "path": "libs/embedding-service" },
-    { "path": "libs/observability" },
-    { "path": "libs/auth" },
-    { "path": "libs/api-client" },
-    { "path": "libs/design-system" },
-    { "path": "libs/diary-service" },
-    { "path": "apps/server" },
-    { "path": "apps/rest-api" },
-    { "path": "apps/mcp-server" },
-    { "path": "apps/landing" }
+    {
+      "path": "apps/landing"
+    },
+    {
+      "path": "apps/mcp-server"
+    },
+    {
+      "path": "apps/rest-api"
+    },
+    {
+      "path": "apps/server"
+    },
+    {
+      "path": "libs/api-client"
+    },
+    {
+      "path": "libs/auth"
+    },
+    {
+      "path": "libs/crypto-service"
+    },
+    {
+      "path": "libs/database"
+    },
+    {
+      "path": "libs/design-system"
+    },
+    {
+      "path": "libs/diary-service"
+    },
+    {
+      "path": "libs/embedding-service"
+    },
+    {
+      "path": "libs/models"
+    },
+    {
+      "path": "libs/observability"
+    }
   ]
 }

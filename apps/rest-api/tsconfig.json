@@ -8,11 +8,23 @@
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "__tests__"],
   "references": [
-    { "path": "../../libs/auth" },
-    { "path": "../../libs/api-client" },
-    { "path": "../../libs/crypto-service" },
-    { "path": "../../libs/database" },
-    { "path": "../../libs/diary-service" },
-    { "path": "../../libs/models" }
+    {
+      "path": "../../libs/api-client"
+    },
+    {
+      "path": "../../libs/auth"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/database"
+    },
+    {
+      "path": "../../libs/diary-service"
+    },
+    {
+      "path": "../../libs/models"
+    }
   ]
 }

@@ -46,7 +46,7 @@ pnpm install
 pnpm run lint              # ESLint across all workspaces
 pnpm run typecheck         # tsc -b --emitDeclarationOnly across all workspaces
 pnpm run test              # Vitest across all workspaces
-pnpm run build             # tsc across all workspaces
+pnpm run build             # tsc -b (incremental) + vite build for landing
 pnpm run validate          # All four checks in sequence
 
 # Formatting
@@ -139,10 +139,11 @@ moltnet/
 ## TypeScript Configuration Rules
 
 - **NEVER use `paths` aliases** in any `tsconfig.json` (root or workspace). Package resolution must go through pnpm workspace symlinks and `package.json` `exports`, not TypeScript path mappings.
-- All workspace packages are `private: true` and **point `main`/`types`/`exports` to source** (`./src/index.ts`), not dist. This ensures tools (TypeScript, Vitest, Vite) can resolve packages without a prior build step.
-- The `build` script (`tsc`) still outputs to `dist/` for production use. The `outDir` and `rootDir` in workspace tsconfigs are for build output only.
-- **Project references**: The root `tsconfig.json` is a solution file (`files: []` + `references` to all packages). Each workspace tsconfig has `composite: true`. Packages with `workspace:*` dependencies declare `references` to their deps.
+- **Conditional exports**: All workspace packages use conditional exports with an `@moltnet/source` condition pointing to `./src/index.ts`, plus `import` and `types` also pointing to source. The `main` and `types` top-level fields point to `./dist/` for fallback/production use. The root `tsconfig.json` has `"customConditions": ["@moltnet/source"]` so TypeScript explicitly resolves via the source condition. Vitest and Vite resolve via the `import` condition (which also points to source).
+- **Incremental builds**: The `build` script uses `tsc -b` (not plain `tsc`) for incremental compilation with `.tsbuildinfo` caching. The root `build` script runs `tsc -b` from root (single invocation, dependency-ordered) then `vite build` for the landing app.
+- **Project references**: The root `tsconfig.json` is a solution file (`files: []` + `references` to all packages). Each workspace tsconfig has `composite: true`. References are auto-synced from `workspace:*` dependencies by `update-ts-references` (runs in postinstall).
 - **Typecheck**: Each workspace runs `tsc -b --emitDeclarationOnly` via `pnpm -r run typecheck`. This emits only `.d.ts` + `.tsbuildinfo` to gitignored `dist/`, which is required because `composite: true` and project references don't support `--noEmit`.
+- **Workspace linking**: `inject-workspace-packages=false` in `.npmrc` — workspace dependencies are symlinked (not hardlinked copies), so changes propagate instantly without re-running `pnpm install`.
 
 ## Adding a New Workspace
 
@@ -150,12 +151,14 @@ When creating a new `libs/` or `apps/` package:
 
 1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `composite: true`, `outDir` and `rootDir`
    - For frontend apps with JSX: also add `"jsx": "react-jsx"`, `"lib": ["ES2022", "DOM"]`
-   - If the package depends on other workspace packages via `workspace:*`, add `"references"` entries pointing to each dependency (e.g., `{ "path": "../../libs/database" }`)
-2. Add the new package to the root `tsconfig.json` `references` array
-3. Set `main`, `types`, and `exports` in `package.json` to `./src/index.ts` (source, not dist)
-4. Add `"test": "vitest run --passWithNoTests"` if no tests exist yet (always use `run` to avoid watch mode)
-5. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
-6. Run `pnpm install` to register the workspace
+   - tsconfig `references` are auto-synced by `update-ts-references` on `pnpm install`
+2. Set `main`/`types` to `./dist/index.js`/`./dist/index.d.ts` and `exports` with conditional format:
+   ```json
+   "exports": { ".": { "@moltnet/source": "./src/index.ts", "import": "./src/index.ts", "types": "./src/index.ts" } }
+   ```
+3. Add `"build": "tsc -b"` and `"test": "vitest run --passWithNoTests"` if no tests exist yet
+4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
+5. Run `pnpm install` to register the workspace (this also auto-syncs tsconfig references)
 
 ## Workstream Status
 
