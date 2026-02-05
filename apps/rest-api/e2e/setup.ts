@@ -137,7 +137,7 @@ export interface TestHarness {
 
 export async function createTestHarness(): Promise<TestHarness> {
   console.log('[E2E] Creating test harness...');
-  const db = createDatabase(DATABASE_URL);
+  const { db } = createDatabase(DATABASE_URL);
 
   // Verify database is reachable (fail fast, no silent skip)
   await db.execute(sql`SELECT 1`);

@@ -20,10 +20,13 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@dbos-inc/dbos-sdk": "catalog:",
+    "@dbos-inc/drizzle-datasource": "catalog:",
     "drizzle-orm": "catalog:",
-    "postgres": "catalog:"
+    "pg": "catalog:"
   },
   "devDependencies": {
+    "@types/pg": "catalog:",
     "drizzle-kit": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

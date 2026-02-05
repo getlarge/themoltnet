@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import type {
+  DataSource,
   DiaryEntry,
   DiaryRepository,
   EmbeddingService,
@@ -566,6 +567,166 @@ describe('DiaryService', () => {
 
       expect(result.entries).toHaveLength(0);
       expect(result.totalEntries).toBe(0);
+    });
+  });
+});
+
+// ── DBOS Transaction Mode Tests ────────────────────────────────────────
+// These tests verify the DBOS path is correctly triggered when dataSource
+// is provided, ensuring durable workflows are used instead of sync calls.
+
+// Hoisted mocks for DBOS module - vi.hoisted runs before vi.mock
+const { mockWorkflowFn, mockStartWorkflow } = vi.hoisted(() => {
+  const mockWorkflowFn = vi.fn().mockResolvedValue(undefined);
+  const mockStartWorkflow = vi.fn().mockReturnValue(mockWorkflowFn);
+  return { mockWorkflowFn, mockStartWorkflow };
+});
+
+vi.mock('@moltnet/database', () => ({
+  DBOS: {
+    startWorkflow: mockStartWorkflow,
+  },
+  ketoWorkflows: {
+    grantOwnership: { name: 'keto.grantOwnership' },
+    removeEntryRelations: { name: 'keto.removeEntryRelations' },
+    grantViewer: { name: 'keto.grantViewer' },
+  },
+}));
+
+describe('DiaryService (DBOS mode)', () => {
+  let service: DiaryService;
+  let repo: ReturnType<typeof createMockDiaryRepository>;
+  let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let embeddings: ReturnType<typeof createMockEmbeddingService>;
+  let dataSource: {
+    client: object;
+    runTransaction: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    repo = createMockDiaryRepository();
+    permissions = createMockPermissionChecker();
+    embeddings = createMockEmbeddingService();
+
+    // Mock dataSource with runTransaction
+    dataSource = {
+      client: { __mock: 'transactionalClient' },
+      runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    };
+
+    // Reset mocks
+    mockStartWorkflow.mockClear();
+    mockWorkflowFn.mockClear();
+    mockStartWorkflow.mockReturnValue(mockWorkflowFn);
+
+    service = createDiaryService({
+      diaryRepository: repo as unknown as DiaryRepository,
+      permissionChecker: permissions as unknown as PermissionChecker,
+      embeddingService: embeddings as unknown as EmbeddingService,
+      dataSource: dataSource as unknown as DataSource,
+    });
+  });
+
+  describe('create (DBOS mode)', () => {
+    it('uses dataSource.runTransaction instead of repo.transaction', async () => {
+      const mockEntry = createMockEntry();
+      repo.create.mockResolvedValue(mockEntry);
+      embeddings.embedPassage.mockResolvedValue([]);
+
+      await service.create({ ownerId: OWNER_ID, content: 'Test' });
+
+      expect(dataSource.runTransaction).toHaveBeenCalledTimes(1);
+      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { name: 'diary.create' },
+      );
+      expect(repo.transaction).not.toHaveBeenCalled();
+    });
+
+    it('passes dataSource.client to repo.create', async () => {
+      const mockEntry = createMockEntry();
+      repo.create.mockResolvedValue(mockEntry);
+      embeddings.embedPassage.mockResolvedValue([]);
+
+      await service.create({ ownerId: OWNER_ID, content: 'Test' });
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerId: OWNER_ID, content: 'Test' }),
+        dataSource.client,
+      );
+    });
+
+    it('fires durable Keto workflow after transaction commits', async () => {
+      const mockEntry = createMockEntry();
+      repo.create.mockResolvedValue(mockEntry);
+      embeddings.embedPassage.mockResolvedValue([]);
+
+      await service.create({ ownerId: OWNER_ID, content: 'Test' });
+
+      expect(mockStartWorkflow).toHaveBeenCalledWith({
+        name: 'keto.grantOwnership',
+      });
+      expect(mockWorkflowFn).toHaveBeenCalledWith(mockEntry.id, OWNER_ID);
+      // Sync permissionChecker should NOT be called in DBOS mode
+      expect(permissions.grantOwnership).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('delete (DBOS mode)', () => {
+    it('uses dataSource.runTransaction and fires durable workflow', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(true);
+
+      await service.delete(ENTRY_ID, OWNER_ID);
+
+      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { name: 'diary.delete' },
+      );
+      expect(mockStartWorkflow).toHaveBeenCalledWith({
+        name: 'keto.removeEntryRelations',
+      });
+      expect(mockWorkflowFn).toHaveBeenCalledWith(ENTRY_ID);
+      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
+    });
+
+    it('does not fire workflow when delete returns false', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(false);
+
+      const result = await service.delete(ENTRY_ID, OWNER_ID);
+
+      expect(result).toBe(false);
+      expect(mockStartWorkflow).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('share (DBOS mode)', () => {
+    it('uses dataSource.runTransaction and fires durable workflow', async () => {
+      permissions.canShareEntry.mockResolvedValue(true);
+      repo.share.mockResolvedValue(true);
+
+      await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
+
+      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { name: 'diary.share' },
+      );
+      expect(mockStartWorkflow).toHaveBeenCalledWith({
+        name: 'keto.grantViewer',
+      });
+      expect(mockWorkflowFn).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
+      expect(permissions.grantViewer).not.toHaveBeenCalled();
+    });
+
+    it('does not fire workflow when share returns false', async () => {
+      permissions.canShareEntry.mockResolvedValue(true);
+      repo.share.mockResolvedValue(false);
+
+      const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
+
+      expect(result).toBe(false);
+      expect(mockStartWorkflow).not.toHaveBeenCalled();
     });
   });
 });
