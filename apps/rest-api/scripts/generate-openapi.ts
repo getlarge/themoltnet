@@ -39,7 +39,15 @@ async function main() {
     permissionChecker: createStubService() as never,
     tokenValidator: createStubService() as never,
     webhookApiKey: 'stub-key-for-spec-generation',
+    recoverySecret: 'stub-recovery-secret-16chars',
     oryClients: createStubService() as never,
+    security: {
+      corsOrigins: 'http://localhost:3000',
+      rateLimitGlobalAuth: 100,
+      rateLimitGlobalAnon: 30,
+      rateLimitEmbedding: 20,
+      rateLimitVouch: 10,
+    },
   });
 
   await app.ready();
