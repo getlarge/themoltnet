@@ -304,7 +304,7 @@ importers:
         version: file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
       '@moltnet/diary-service':
         specifier: workspace:*
-        version: link:../../libs/diary-service
+        version: file:libs/diary-service(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
       '@ory/client':
         specifier: 'catalog:'
         version: 1.22.22
@@ -449,10 +449,11 @@ importers:
         version: 6.4.1(@types/node@25.1.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
   libs/diary-service:
-    devDependencies:
+    dependencies:
       '@moltnet/database':
         specifier: workspace:*
         version: file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
+    devDependencies:
       '@moltnet/embedding-service':
         specifier: workspace:*
         version: link:../embedding-service
@@ -2445,6 +2446,9 @@ packages:
 
   '@moltnet/database@file:libs/database':
     resolution: { directory: libs/database, type: directory }
+
+  '@moltnet/diary-service@file:libs/diary-service':
+    resolution: { directory: libs/diary-service, type: directory }
 
   '@napi-rs/wasm-runtime@1.1.1':
     resolution:
@@ -9504,6 +9508,41 @@ snapshots:
       '@dbos-inc/drizzle-datasource': 4.8.8(@dbos-inc/dbos-sdk@3.5.8(@types/koa@2.15.0)(@types/node@25.1.0)(koa@2.16.3))(drizzle-orm@0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(pg@8.18.0)(postgres@3.4.8)(react@19.2.4))
       drizzle-orm: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0)(pg@8.18.0)(postgres@3.4.8)(react@19.2.4)
       pg: 8.18.0
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@cloudflare/workers-types'
+      - '@libsql/client'
+      - '@neondatabase/serverless'
+      - '@opentelemetry/api'
+      - '@planetscale/database'
+      - '@types/better-sqlite3'
+      - '@types/koa'
+      - '@types/node'
+      - '@types/pg'
+      - '@types/react'
+      - '@types/sql.js'
+      - '@vercel/postgres'
+      - better-sqlite3
+      - bufferutil
+      - bun-types
+      - expo-sqlite
+      - knex
+      - koa
+      - kysely
+      - mysql
+      - mysql2
+      - pg-native
+      - postgres
+      - react
+      - sql.js
+      - sqlite3
+      - supports-color
+      - tedious
+      - utf-8-validate
+
+  '@moltnet/diary-service@file:libs/diary-service(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)':
+    dependencies:
+      '@moltnet/database': file:libs/database(@opentelemetry/api@1.9.0)(@types/koa@2.15.0)(@types/node@25.1.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(koa@2.16.3)(postgres@3.4.8)(react@19.2.4)
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
       - '@cloudflare/workers-types'

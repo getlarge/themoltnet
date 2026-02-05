@@ -18,9 +18,10 @@
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
-  "dependencies": {},
+  "dependencies": {
+    "@moltnet/database": "workspace:*"
+  },
   "devDependencies": {
-    "@moltnet/database": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"

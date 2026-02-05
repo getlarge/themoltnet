@@ -13,6 +13,23 @@ export interface DiaryServiceDeps {
   diaryRepository: DiaryRepository;
   permissionChecker: PermissionChecker;
   embeddingService: EmbeddingService;
+  /** Optional: DBOS DataSource for durable transactions. If not provided, falls back to repository transactions. */
+  dataSource?: DataSource;
+}
+
+/**
+ * DBOS DataSource interface for running durable transactions.
+ * The full type lives in @moltnet/database — we define a minimal
+ * version here to avoid circular dependencies.
+ */
+export interface DataSource {
+  /** Drizzle client for queries inside transactions */
+  client: DatabaseExecutor;
+  /** Run a function inside a durable transaction */
+  runTransaction<T>(
+    fn: () => Promise<T>,
+    options?: { name?: string },
+  ): Promise<T>;
 }
 
 export interface CreateEntryInput {

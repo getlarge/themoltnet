@@ -24,9 +24,19 @@
  *   Agent:      self → act_as
  * ```
  *
- * Each mutation follows: Check (Keto) → Execute (DB + Keto in transaction)
- * If Keto relationship mutation fails, the DB transaction rolls back.
+ * ## Transaction Discipline
+ *
+ * When DBOS DataSource is available:
+ * - DB writes run inside `dataSource.runTransaction()` for atomic persistence
+ * - Keto relationship mutations run as durable workflows with automatic retry
+ * - Pattern: DB commit first, then fire durable Keto workflow (eventual consistency)
+ *
+ * When DBOS is not available (fallback):
+ * - Uses repository transactions with synchronous Keto calls
+ * - Keto failure rolls back the DB transaction
  */
+
+import { DBOS, ketoWorkflows } from '@moltnet/database';
 
 import type {
   CreateEntryInput,
@@ -60,7 +70,8 @@ export interface DiaryService {
 }
 
 export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
-  const { diaryRepository, permissionChecker, embeddingService } = deps;
+  const { diaryRepository, permissionChecker, embeddingService, dataSource } =
+    deps;
 
   return {
     async create(input: CreateEntryInput): Promise<DiaryEntry> {
@@ -75,21 +86,35 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         // Embedding generation is best-effort; entry is created without it
       }
 
-      return diaryRepository.transaction(async (tx) => {
-        const entry = await diaryRepository.create(
-          {
-            ownerId: input.ownerId,
-            content: input.content,
-            title: input.title,
-            visibility: input.visibility ?? 'private',
-            tags: input.tags,
-            embedding,
-          },
-          tx,
+      const entryData = {
+        ownerId: input.ownerId,
+        content: input.content,
+        title: input.title,
+        visibility: input.visibility ?? 'private',
+        tags: input.tags,
+        embedding,
+      };
+
+      // When DBOS is available, use durable transactions + workflows
+      if (dataSource) {
+        const entry = await dataSource.runTransaction(
+          async () => diaryRepository.create(entryData, dataSource.client),
+          { name: 'diary.create' },
         );
 
-        await permissionChecker.grantOwnership(entry.id, input.ownerId);
+        // Fire durable Keto workflow (retries automatically on failure)
+        await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(
+          entry.id,
+          input.ownerId,
+        );
 
+        return entry;
+      }
+
+      // Fallback: repository transaction with synchronous Keto call
+      return diaryRepository.transaction(async (tx) => {
+        const entry = await diaryRepository.create(entryData, tx);
+        await permissionChecker.grantOwnership(entry.id, input.ownerId);
         return entry;
       });
     },
@@ -171,6 +196,22 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const allowed = await permissionChecker.canDeleteEntry(id, requesterId);
       if (!allowed) return false;
 
+      // When DBOS is available, use durable transactions + workflows
+      if (dataSource) {
+        const deleted = await dataSource.runTransaction(
+          async () => diaryRepository.delete(id, dataSource.client),
+          { name: 'diary.delete' },
+        );
+
+        if (!deleted) return false;
+
+        // Fire durable Keto workflow (retries automatically on failure)
+        await DBOS.startWorkflow(ketoWorkflows.removeEntryRelations)(id);
+
+        return true;
+      }
+
+      // Fallback: repository transaction with synchronous Keto call
       return diaryRepository.transaction(async (tx) => {
         const deleted = await diaryRepository.delete(id, tx);
         if (!deleted) return false;
@@ -188,6 +229,31 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const canShare = await permissionChecker.canShareEntry(entryId, sharedBy);
       if (!canShare) return false;
 
+      // When DBOS is available, use durable transactions + workflows
+      if (dataSource) {
+        const shared = await dataSource.runTransaction(
+          async () =>
+            diaryRepository.share(
+              entryId,
+              sharedBy,
+              sharedWith,
+              dataSource.client,
+            ),
+          { name: 'diary.share' },
+        );
+
+        if (!shared) return false;
+
+        // Fire durable Keto workflow (retries automatically on failure)
+        await DBOS.startWorkflow(ketoWorkflows.grantViewer)(
+          entryId,
+          sharedWith,
+        );
+
+        return true;
+      }
+
+      // Fallback: repository transaction with synchronous Keto call
       return diaryRepository.transaction(async (tx) => {
         const shared = await diaryRepository.share(
           entryId,
