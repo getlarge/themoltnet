@@ -15,7 +15,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "dependencies": {

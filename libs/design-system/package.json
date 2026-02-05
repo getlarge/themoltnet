@@ -13,7 +13,7 @@
     "dev": "tsc --watch",
     "demo": "vite demo",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "peerDependencies": {
