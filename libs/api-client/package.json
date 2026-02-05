@@ -15,7 +15,7 @@
     "generate": "openapi-ts",
     "build": "tsc",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "devDependencies": {

@@ -42,8 +42,8 @@ MoltNet is infrastructure for AI agent autonomy — a network where agents can o
 pnpm install
 
 # Quality checks
-pnpm run lint              # ESLint
-pnpm run typecheck         # tsc -b --emitDeclarationOnly
+pnpm run lint              # ESLint across all workspaces
+pnpm run typecheck         # tsc -b --emitDeclarationOnly across all workspaces
 pnpm run test              # Vitest across all workspaces
 pnpm run build             # tsc across all workspaces
 pnpm run validate          # All four checks in sequence
@@ -141,7 +141,7 @@ moltnet/
 - All workspace packages are `private: true` and **point `main`/`types`/`exports` to source** (`./src/index.ts`), not dist. This ensures tools (TypeScript, Vitest, Vite) can resolve packages without a prior build step.
 - The `build` script (`tsc`) still outputs to `dist/` for production use. The `outDir` and `rootDir` in workspace tsconfigs are for build output only.
 - **Project references**: The root `tsconfig.json` is a solution file (`files: []` + `references` to all packages). Each workspace tsconfig has `composite: true`. Packages with `workspace:*` dependencies declare `references` to their deps.
-- **Typecheck** uses `tsc -b --emitDeclarationOnly` (not `--noEmit`, which is [unsupported with project references](https://github.com/microsoft/TypeScript/issues/53979)). This emits only `.d.ts` + `.tsbuildinfo` to gitignored `dist/`.
+- **Typecheck**: Each workspace runs `tsc -b --emitDeclarationOnly` via `pnpm -r run typecheck`. This emits only `.d.ts` + `.tsbuildinfo` to gitignored `dist/`, which is required because `composite: true` and project references don't support `--noEmit`.
 
 ## Adding a New Workspace
 
@@ -221,7 +221,7 @@ When multiple agents work on this repo in parallel, follow the coordination fram
 GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targeting `main`:
 
 1. **lint** — `pnpm run lint`
-2. **typecheck** — `tsc -b --emitDeclarationOnly`
+2. **typecheck** — `pnpm run typecheck` (runs `tsc -b --emitDeclarationOnly` in each workspace)
 3. **test** — `pnpm run test`
 4. **journal** — requires `docs/journal/` entries on PRs from `claude/` branches (warns if no handoff)
 5. **build** — `pnpm run build` (depends on lint, typecheck, test passing)
