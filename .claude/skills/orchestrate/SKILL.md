@@ -4,12 +4,13 @@ You are the orchestrator's automation layer. The human orchestrator runs `/orche
 
 **Context**: This project uses git worktrees for agent isolation, `TASKS.md` as the coordination board, and `scripts/orchestrate.sh` for worktree mechanics. Agent-side commands (`/sync`, `/claim`, `/handoff`) already exist. This skill automates the human side.
 
-**Task Sources**: The skill pulls tasks from two sources:
+**Task Sources**: The skill pulls tasks from three sources (in priority order):
 
-1. **`TASKS.md`** (primary) — the coordination board agents read/write directly
-2. **GitHub Issues** (supplementary) — richer metadata via labels, milestones, assignees
+1. **GitHub Projects** (primary) — the project board with structured fields (Status, Priority, Readiness, Effort, Agent, Workstream, Dependencies). Requires `gh` CLI and `MOLTNET_PROJECT_NUMBER` env var.
+2. **GitHub Issues** (supplementary) — richer metadata via labels, milestones, assignees, issue body
+3. **`TASKS.md`** (fallback) — the flat-file coordination board, used when `gh` is unavailable
 
-When both sources exist, merge them: `TASKS.md` is authoritative for agent coordination (claim/handoff), but Issues can surface tasks not yet added to the board.
+When GitHub Projects is available, it is authoritative for agent coordination. When it's not (no `gh`, no project configured), fall back to TASKS.md. Issues are always supplementary — they surface tasks not yet on the board.
 
 ## How to Respond
 
@@ -25,11 +26,21 @@ Parse `TASKS.md` and GitHub Issues, then classify every available task into one 
 
 ### Gathering Tasks
 
-#### From TASKS.md
+#### From GitHub Projects (primary)
 
-Read `TASKS.md` and extract tasks from Available, Active, and Completed sections as described below.
+If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set, query the project board:
 
-#### From GitHub Issues
+```bash
+gh project item-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json
+```
+
+This returns items with their project fields (Status, Priority, Readiness, Effort, Agent, etc.). Use these fields directly — no parsing of markdown tables needed.
+
+#### From TASKS.md (fallback)
+
+If GitHub Projects is unavailable, read `TASKS.md` and extract tasks from Available, Active, and Completed sections as described below.
+
+#### From GitHub Issues (supplementary)
 
 Run:
 

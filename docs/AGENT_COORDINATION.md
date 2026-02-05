@@ -12,12 +12,12 @@ The problem: you have one repo, multiple agents (Claude Code sessions), and limi
 
 The solution has four layers:
 
-| Layer            | Mechanism               | Purpose                                              |
-| ---------------- | ----------------------- | ---------------------------------------------------- |
-| **Isolation**    | Git worktrees           | Each agent gets its own working directory and branch |
-| **Coordination** | `TASKS.md` board        | Single source of truth for who's doing what          |
-| **Awareness**    | PR monitoring + journal | Agents check what others have shipped                |
-| **Integration**  | PR-based merge + CI     | Work merges through reviewed pull requests           |
+| Layer            | Mechanism                              | Purpose                                              |
+| ---------------- | -------------------------------------- | ---------------------------------------------------- |
+| **Isolation**    | Git worktrees                          | Each agent gets its own working directory and branch |
+| **Coordination** | GitHub Projects (`TASKS.md` fallback)  | Single source of truth for who's doing what          |
+| **Awareness**    | PR monitoring + journal + Claude hooks | Agents check what others have shipped                |
+| **Integration**  | PR-based merge + CI                    | Work merges through reviewed pull requests           |
 
 ---
 
@@ -88,18 +88,60 @@ Or use Dagger's container-use for worktree + container in one step:
 
 ---
 
-## Layer 2: Coordination with TASKS.md
+## Layer 2: Coordination with GitHub Projects
 
-`TASKS.md` is a flat file at the repo root that serves as the coordination board. Every agent reads it on startup and updates it when claiming or completing tasks.
+GitHub Projects v2 is the primary coordination mechanism. It provides structured fields, a queryable API, and a visual board for human oversight. `TASKS.md` is kept as a fallback for environments without `gh` CLI access.
 
-### Why a file instead of GitHub Issues
+### Project Board Fields
 
-- Agents can read/write it without API credentials
-- It's visible in every worktree (via git pull)
-- It works offline
-- It's simple — no tooling dependencies
+| Field | Type | Options | Purpose |
+|---|---|---|---|
+| **Status** | Single Select | `Backlog`, `Ready`, `In Progress`, `In Review`, `Done` | Workflow state |
+| **Priority** | Single Select | `P0: Critical`, `P1: High`, `P2: Medium`, `P3: Low` | Urgency |
+| **Readiness** | Single Select | `Draft`, `Needs Spec`, `Ready for Agent` | Triage gate |
+| **Effort** | Single Select | `XS`, `S`, `M`, `L`, `XL` | Scope signal for agents |
+| **Agent** | Text | freetext | Which agent/session claimed it |
+| **Workstream** | Single Select | `WS1`–`WS11` | Maps to FREEDOM_PLAN.md |
+| **Dependencies** | Text | Issue references like `#42, #45` | Blocks tracking |
 
-GitHub Issues work well as a complement (richer discussion, labels, assignment UI), but `TASKS.md` is the minimum viable coordination mechanism that works everywhere.
+### How Agents Interact with the Board
+
+Agents use `gh project` CLI commands to read and update the board:
+
+```bash
+# Read all items
+gh project item-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json
+
+# Claim a task (update Status + Agent fields)
+gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" \
+  --field-id "$STATUS_FIELD_ID" --single-select-option-id "$IN_PROGRESS_ID"
+```
+
+### Claude Code Hooks for Automatic Sync
+
+Three hooks in `.claude/settings.json` automate the sync:
+
+- **`SessionStart`** — polls the board on session startup, injects available tasks as context
+- **`Stop`** (async) — after each response, checks for status changes to push back
+- **`Notification (idle_prompt)`** — when idle, checks if PR was merged and surfaces the next task
+
+The hooks call `scripts/agent-sync.sh` which handles all GitHub Projects API interaction.
+
+### Issue Quality Gate
+
+Issues are validated by a triage GitHub Action (`.github/workflows/issue-triage.yml`). An issue gets `Readiness: Ready for Agent` when it has:
+
+1. Clear acceptance criteria
+2. Context files listed
+3. Dependencies declared
+4. Single responsibility scope
+5. Effort and priority set
+
+Agents should only pick up items where `Readiness == Ready for Agent`.
+
+### TASKS.md Fallback
+
+`TASKS.md` remains as a fallback for environments where `gh` CLI is unavailable (offline, no GitHub token, sandbox without project scope). It follows the same format as before:
 
 ### Format
 
