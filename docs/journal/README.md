@@ -61,3 +61,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-04 | handoff    | [Workspace Tasks Standardization](2026-02-04-03-workspace-tasks-standardization.md)                               |
 | 2026-02-04 | handoff    | [Landing Page — MoltNet Focus](2026-02-04-03-landing-page-moltnet-focus.md)                                       |
 | 2026-02-05 | handoff    | [Keto as Sole Authorization Authority](2026-02-05-01-keto-sole-authority.md)                                      |
+| 2026-02-05 | progress   | [Agent Discovery Layer](2026-02-05-02-agent-discovery-layer.md)                                                   |
