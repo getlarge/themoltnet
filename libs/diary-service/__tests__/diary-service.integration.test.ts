@@ -71,11 +71,14 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
     };
 
     permissions = {
+      canViewEntry: vi.fn().mockResolvedValue(true),
+      canEditEntry: vi.fn().mockResolvedValue(true),
+      canDeleteEntry: vi.fn().mockResolvedValue(true),
+      canShareEntry: vi.fn().mockResolvedValue(true),
       grantOwnership: vi.fn().mockResolvedValue(undefined),
       grantViewer: vi.fn().mockResolvedValue(undefined),
       revokeViewer: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
-      canShareEntry: vi.fn().mockResolvedValue(true),
     };
 
     const embeddingService = await loadEmbeddingService();
@@ -158,26 +161,55 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   // ── Read ────────────────────────────────────────────────────────────
 
   describe('getById', () => {
-    it('returns entry for the owner', async () => {
+    it('returns entry when Keto allows', async () => {
       const created = await service.create({
         ownerId: OWNER_ID,
         content: 'Private thought.',
       });
 
+      permissions.canViewEntry.mockResolvedValue(true);
       const found = await service.getById(created.id, OWNER_ID);
       expect(found).not.toBeNull();
       expect(found!.content).toBe('Private thought.');
     });
 
-    it('returns null for private entry accessed by non-owner', async () => {
+    it('returns null when Keto denies viewing private entry', async () => {
       const created = await service.create({
         ownerId: OWNER_ID,
         content: 'Secret entry.',
         visibility: 'private',
       });
 
+      permissions.canViewEntry.mockResolvedValue(false);
       const found = await service.getById(created.id, OTHER_AGENT);
       expect(found).toBeNull();
+    });
+
+    it('returns public entry without Keto check', async () => {
+      const created = await service.create({
+        ownerId: OWNER_ID,
+        content: 'Public thought.',
+        visibility: 'public',
+      });
+
+      permissions.canViewEntry.mockClear();
+      const found = await service.getById(created.id, OTHER_AGENT);
+      expect(found).not.toBeNull();
+      expect(found!.content).toBe('Public thought.');
+      expect(permissions.canViewEntry).not.toHaveBeenCalled();
+    });
+
+    it('returns moltnet entry without Keto check', async () => {
+      const created = await service.create({
+        ownerId: OWNER_ID,
+        content: 'Moltnet-visible thought.',
+        visibility: 'moltnet',
+      });
+
+      permissions.canViewEntry.mockClear();
+      const found = await service.getById(created.id, OTHER_AGENT);
+      expect(found).not.toBeNull();
+      expect(permissions.canViewEntry).not.toHaveBeenCalled();
     });
   });
 
@@ -252,12 +284,13 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   // ── Update ──────────────────────────────────────────────────────────
 
   describe('update', () => {
-    it('updates entry fields', async () => {
+    it('updates entry fields when Keto allows', async () => {
       const created = await service.create({
         ownerId: OWNER_ID,
         content: 'Original.',
       });
 
+      permissions.canEditEntry.mockResolvedValue(true);
       const updated = await service.update(created.id, OWNER_ID, {
         title: 'Updated Title',
         content: 'New content.',
@@ -268,12 +301,13 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       expect(updated!.content).toBe('New content.');
     });
 
-    it('returns null when non-owner tries to update', async () => {
+    it('returns null when Keto denies edit', async () => {
       const created = await service.create({
         ownerId: OWNER_ID,
         content: 'Protected.',
       });
 
+      permissions.canEditEntry.mockResolvedValue(false);
       const result = await service.update(created.id, OTHER_AGENT, {
         title: 'Hacked',
       });
@@ -285,26 +319,29 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   // ── Delete ──────────────────────────────────────────────────────────
 
   describe('delete', () => {
-    it('deletes entry and removes permission relations', async () => {
+    it('deletes entry and removes permission relations when Keto allows', async () => {
       const created = await service.create({
         ownerId: OWNER_ID,
         content: 'To delete.',
       });
 
+      permissions.canDeleteEntry.mockResolvedValue(true);
       const deleted = await service.delete(created.id, OWNER_ID);
       expect(deleted).toBe(true);
       expect(permissions.removeEntryRelations).toHaveBeenCalledWith(created.id);
 
+      permissions.canViewEntry.mockResolvedValue(true);
       const found = await service.getById(created.id, OWNER_ID);
       expect(found).toBeNull();
     });
 
-    it('returns false and does not call removeEntryRelations for non-owner', async () => {
+    it('returns false when Keto denies delete', async () => {
       const created = await service.create({
         ownerId: OWNER_ID,
         content: 'Protected.',
       });
 
+      permissions.canDeleteEntry.mockResolvedValue(false);
       const deleted = await service.delete(created.id, OTHER_AGENT);
       expect(deleted).toBe(false);
       expect(permissions.removeEntryRelations).not.toHaveBeenCalled();

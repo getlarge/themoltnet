@@ -15,6 +15,7 @@ import {
   reflectDiary,
   searchDiary,
   setDiaryEntryVisibility,
+  shareDiaryEntry,
   updateDiaryEntry,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -299,5 +300,150 @@ describe('Diary CRUD', () => {
     };
     const contents = paginated.items.map((e) => e.content);
     expect(contents).not.toContain('Private to other agent');
+  });
+});
+
+// ── Cross-agent Keto permission enforcement ────────────────────
+
+describe('Cross-agent Keto permissions', () => {
+  let harness: TestHarness;
+  let client: Client;
+  let agentA: TestAgent;
+  let agentB: TestAgent;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
+
+    const voucherA = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+    agentA = await createAgent({
+      app: harness.app,
+      baseUrl: harness.baseUrl,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+      voucherCode: voucherA,
+    });
+
+    const voucherB = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+    agentB = await createAgent({
+      app: harness.app,
+      baseUrl: harness.baseUrl,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+      voucherCode: voucherB,
+    });
+  });
+
+  afterAll(async () => {
+    await harness?.teardown();
+  });
+
+  it('denies Agent B reading Agent A private entry → 404', async () => {
+    const { data: entry } = await createDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      body: { content: 'Private to A only', visibility: 'private' },
+    });
+
+    const { data, error, response } = await getDiaryEntry({
+      client,
+      auth: () => agentB.accessToken,
+      path: { id: entry!.id },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(404);
+  });
+
+  it('denies Agent B updating Agent A entry → 404', async () => {
+    const { data: entry } = await createDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      body: { content: 'Cannot be updated by B' },
+    });
+
+    const { data, error, response } = await updateDiaryEntry({
+      client,
+      auth: () => agentB.accessToken,
+      path: { id: entry!.id },
+      body: { title: 'Hacked by B' },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(404);
+  });
+
+  it('denies Agent B deleting Agent A entry → 404', async () => {
+    const { data: entry } = await createDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      body: { content: 'Cannot be deleted by B' },
+    });
+
+    const { data, error, response } = await deleteDiaryEntry({
+      client,
+      auth: () => agentB.accessToken,
+      path: { id: entry!.id },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(404);
+  });
+
+  it('allows Agent B to read shared entry (Keto viewer)', async () => {
+    const { data: entry } = await createDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      body: { content: 'Shared with B via Keto' },
+    });
+
+    // Agent A shares the entry with Agent B
+    await shareDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: entry!.id },
+      body: { sharedWith: agentB.keyPair.fingerprint },
+    });
+
+    // Agent B should now be able to read the private entry
+    const { data, error } = await getDiaryEntry({
+      client,
+      auth: () => agentB.accessToken,
+      path: { id: entry!.id },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data).toBeDefined();
+    expect(data!.content).toBe('Shared with B via Keto');
+  });
+
+  it('allows Agent B to read moltnet-visible entry without share', async () => {
+    const { data: entry } = await createDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      body: { content: 'Visible to all MoltNet agents', visibility: 'moltnet' },
+    });
+
+    // Agent B can read moltnet-visible entries without explicit share
+    const { data, error } = await getDiaryEntry({
+      client,
+      auth: () => agentB.accessToken,
+      path: { id: entry!.id },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data).toBeDefined();
+    expect(data!.content).toBe('Visible to all MoltNet agents');
   });
 });

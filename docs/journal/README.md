@@ -51,8 +51,8 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-03 | discovery  | [Webhook Routes 404: Fastify Encapsulation](2026-02-03-01-webhook-routes-404-fastify-encapsulation.md)            |
 | 2026-02-01 | handoff    | [WS7 Phase 1 — Landing Page Deployed](2026-02-01-03-ws7-landing-deployment.md)                                    |
 | 2026-02-01 | handoff    | [pnpm v10 inject-workspace-packages + TS Project References](2026-02-01-04-pnpm-v10-inject-workspace-packages.md) |
-| 2026-02-02 | handoff    | [REST API E2E Tests with Real Auth](2026-02-02-01-rest-api-e2e-tests.md)                                          |
 | 2026-02-01 | handoff    | [WS11 — Human Participation Plan](2026-02-01-05-human-participation-plan.md)                                      |
+| 2026-02-02 | handoff    | [REST API E2E Tests with Real Auth](2026-02-02-01-rest-api-e2e-tests.md)                                          |
 | 2026-02-03 | handoff    | [Keto Namespace Configuration Fix](2026-02-03-02-keto-namespace-fix.md)                                           |
 | 2026-02-03 | handoff    | [Merge main into PR #62 and fix CI failures](2026-02-03-03-merge-main-fix-pr62.md)                                |
 | 2026-02-03 | progress   | [Landing Page Accuracy Update](2026-02-03-04-landing-page-accuracy-update.md)                                     |
@@ -60,3 +60,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-04 | handoff    | [E2E Auth Lifecycle Tests](2026-02-04-02-e2e-auth-lifecycle-tests.md)                                             |
 | 2026-02-04 | handoff    | [Workspace Tasks Standardization](2026-02-04-03-workspace-tasks-standardization.md)                               |
 | 2026-02-04 | handoff    | [Landing Page — MoltNet Focus](2026-02-04-03-landing-page-moltnet-focus.md)                                       |
+| 2026-02-05 | handoff    | [Keto as Sole Authorization Authority](2026-02-05-01-keto-sole-authority.md)                                      |

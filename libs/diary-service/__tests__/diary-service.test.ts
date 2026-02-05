@@ -33,6 +33,7 @@ function createMockDiaryRepository(): {
   [K in keyof DiaryRepository]: ReturnType<typeof vi.fn>;
 } {
   return {
+    transaction: vi.fn().mockImplementation((fn) => fn({})),
     create: vi.fn(),
     findById: vi.fn(),
     list: vi.fn(),
@@ -49,11 +50,14 @@ function createMockPermissionChecker(): {
   [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
 } {
   return {
-    grantOwnership: vi.fn(),
-    grantViewer: vi.fn(),
-    revokeViewer: vi.fn(),
-    removeEntryRelations: vi.fn(),
-    canShareEntry: vi.fn(),
+    canViewEntry: vi.fn().mockResolvedValue(true),
+    canEditEntry: vi.fn().mockResolvedValue(true),
+    canDeleteEntry: vi.fn().mockResolvedValue(true),
+    canShareEntry: vi.fn().mockResolvedValue(true),
+    grantOwnership: vi.fn().mockResolvedValue(undefined),
+    grantViewer: vi.fn().mockResolvedValue(undefined),
+    revokeViewer: vi.fn().mockResolvedValue(undefined),
+    removeEntryRelations: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -85,11 +89,10 @@ describe('DiaryService', () => {
   });
 
   describe('create', () => {
-    it('creates entry with embedding and grants ownership', async () => {
+    it('creates entry with embedding and grants ownership in transaction', async () => {
       const mockEntry = createMockEntry({ embedding: MOCK_EMBEDDING });
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(mockEntry);
-      permissions.grantOwnership.mockResolvedValue(undefined);
 
       const result = await service.create({
         ownerId: OWNER_ID,
@@ -97,17 +100,21 @@ describe('DiaryService', () => {
       });
 
       expect(result).toEqual(mockEntry);
+      expect(repo.transaction).toHaveBeenCalledTimes(1);
       expect(embeddings.embedPassage).toHaveBeenCalledWith(
         'Test diary entry content',
       );
-      expect(repo.create).toHaveBeenCalledWith({
-        ownerId: OWNER_ID,
-        content: 'Test diary entry content',
-        title: undefined,
-        visibility: 'private',
-        tags: undefined,
-        embedding: MOCK_EMBEDDING,
-      });
+      expect(repo.create).toHaveBeenCalledWith(
+        {
+          ownerId: OWNER_ID,
+          content: 'Test diary entry content',
+          title: undefined,
+          visibility: 'private',
+          tags: undefined,
+          embedding: MOCK_EMBEDDING,
+        },
+        expect.anything(),
+      );
       expect(permissions.grantOwnership).toHaveBeenCalledWith(
         mockEntry.id,
         OWNER_ID,
@@ -123,7 +130,6 @@ describe('DiaryService', () => {
       });
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(mockEntry);
-      permissions.grantOwnership.mockResolvedValue(undefined);
 
       const result = await service.create({
         ownerId: OWNER_ID,
@@ -142,7 +148,6 @@ describe('DiaryService', () => {
       const mockEntry = createMockEntry();
       embeddings.embedPassage.mockRejectedValue(new Error('Embedding failed'));
       repo.create.mockResolvedValue(mockEntry);
-      permissions.grantOwnership.mockResolvedValue(undefined);
 
       const result = await service.create({
         ownerId: OWNER_ID,
@@ -152,13 +157,13 @@ describe('DiaryService', () => {
       expect(result).toEqual(mockEntry);
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: undefined }),
+        expect.anything(),
       );
     });
 
     it('defaults visibility to private', async () => {
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(createMockEntry());
-      permissions.grantOwnership.mockResolvedValue(undefined);
 
       await service.create({
         ownerId: OWNER_ID,
@@ -167,27 +172,79 @@ describe('DiaryService', () => {
 
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ visibility: 'private' }),
+        expect.anything(),
       );
+    });
+
+    it('rolls back DB if grantOwnership fails', async () => {
+      const mockEntry = createMockEntry();
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(mockEntry);
+      permissions.grantOwnership.mockRejectedValue(
+        new Error('Keto unavailable'),
+      );
+      repo.transaction.mockImplementation(async (fn) => fn({}));
+
+      await expect(
+        service.create({ ownerId: OWNER_ID, content: 'Test' }),
+      ).rejects.toThrow('Keto unavailable');
     });
   });
 
   describe('getById', () => {
-    it('returns entry when found', async () => {
+    it('returns entry when Keto allows viewing private entry', async () => {
       const mockEntry = createMockEntry();
       repo.findById.mockResolvedValue(mockEntry);
+      permissions.canViewEntry.mockResolvedValue(true);
 
       const result = await service.getById(ENTRY_ID, OWNER_ID);
 
       expect(result).toEqual(mockEntry);
-      expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
+      expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID);
+      expect(permissions.canViewEntry).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
     });
 
-    it('returns null when not found or no access', async () => {
+    it('returns null when not found', async () => {
       repo.findById.mockResolvedValue(null);
 
       const result = await service.getById(ENTRY_ID, OTHER_AGENT_ID);
 
       expect(result).toBeNull();
+      expect(permissions.canViewEntry).not.toHaveBeenCalled();
+    });
+
+    it('returns null when Keto denies viewing private entry', async () => {
+      const mockEntry = createMockEntry({ visibility: 'private' });
+      repo.findById.mockResolvedValue(mockEntry);
+      permissions.canViewEntry.mockResolvedValue(false);
+
+      const result = await service.getById(ENTRY_ID, OTHER_AGENT_ID);
+
+      expect(result).toBeNull();
+      expect(permissions.canViewEntry).toHaveBeenCalledWith(
+        ENTRY_ID,
+        OTHER_AGENT_ID,
+      );
+    });
+
+    it('skips Keto check for public entries', async () => {
+      const mockEntry = createMockEntry({ visibility: 'public' });
+      repo.findById.mockResolvedValue(mockEntry);
+
+      const result = await service.getById(ENTRY_ID, OTHER_AGENT_ID);
+
+      expect(result).toEqual(mockEntry);
+      expect(permissions.canViewEntry).not.toHaveBeenCalled();
+    });
+
+    it('skips Keto check for moltnet entries', async () => {
+      const mockEntry = createMockEntry({ visibility: 'moltnet' });
+      repo.findById.mockResolvedValue(mockEntry);
+
+      const result = await service.getById(ENTRY_ID, OTHER_AGENT_ID);
+
+      expect(result).toEqual(mockEntry);
+      expect(permissions.canViewEntry).not.toHaveBeenCalled();
     });
   });
 
@@ -281,8 +338,9 @@ describe('DiaryService', () => {
   });
 
   describe('update', () => {
-    it('updates entry fields', async () => {
+    it('checks Keto permission then updates entry', async () => {
       const updated = createMockEntry({ title: 'Updated Title' });
+      permissions.canEditEntry.mockResolvedValue(true);
       repo.update.mockResolvedValue(updated);
 
       const result = await service.update(ENTRY_ID, OWNER_ID, {
@@ -290,9 +348,21 @@ describe('DiaryService', () => {
       });
 
       expect(result).toEqual(updated);
-      expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID, {
+      expect(permissions.canEditEntry).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
+      expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, {
         title: 'Updated Title',
       });
+    });
+
+    it('returns null when Keto denies edit', async () => {
+      permissions.canEditEntry.mockResolvedValue(false);
+
+      const result = await service.update(ENTRY_ID, OTHER_AGENT_ID, {
+        title: 'Hacked',
+      });
+
+      expect(result).toBeNull();
+      expect(repo.update).not.toHaveBeenCalled();
     });
 
     it('regenerates embedding when content is updated', async () => {
@@ -300,6 +370,7 @@ describe('DiaryService', () => {
         content: 'New content',
         embedding: MOCK_EMBEDDING,
       });
+      permissions.canEditEntry.mockResolvedValue(true);
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.update.mockResolvedValue(updated);
 
@@ -309,47 +380,67 @@ describe('DiaryService', () => {
 
       expect(result).toEqual(updated);
       expect(embeddings.embedPassage).toHaveBeenCalledWith('New content');
-      expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID, {
+      expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, {
         content: 'New content',
         embedding: MOCK_EMBEDDING,
       });
     });
 
     it('does not regenerate embedding when only title is updated', async () => {
+      permissions.canEditEntry.mockResolvedValue(true);
       repo.update.mockResolvedValue(createMockEntry({ title: 'New Title' }));
 
       await service.update(ENTRY_ID, OWNER_ID, { title: 'New Title' });
 
       expect(embeddings.embedPassage).not.toHaveBeenCalled();
     });
-
-    it('returns null when entry not found or not owner', async () => {
-      repo.update.mockResolvedValue(null);
-
-      const result = await service.update(ENTRY_ID, OTHER_AGENT_ID, {
-        title: 'New',
-      });
-
-      expect(result).toBeNull();
-    });
   });
 
   describe('delete', () => {
-    it('deletes entry and removes permission relations', async () => {
+    it('checks Keto permission then deletes in transaction', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(true);
       repo.delete.mockResolvedValue(true);
-      permissions.removeEntryRelations.mockResolvedValue(undefined);
 
       const result = await service.delete(ENTRY_ID, OWNER_ID);
 
       expect(result).toBe(true);
-      expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
+      expect(permissions.canDeleteEntry).toHaveBeenCalledWith(
+        ENTRY_ID,
+        OWNER_ID,
+      );
+      expect(repo.transaction).toHaveBeenCalledTimes(1);
+      expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID, expect.anything());
       expect(permissions.removeEntryRelations).toHaveBeenCalledWith(ENTRY_ID);
     });
 
-    it('returns false when entry not found or not owner', async () => {
-      repo.delete.mockResolvedValue(false);
+    it('returns false when Keto denies delete', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(false);
 
       const result = await service.delete(ENTRY_ID, OTHER_AGENT_ID);
+
+      expect(result).toBe(false);
+      expect(repo.delete).not.toHaveBeenCalled();
+      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
+    });
+
+    it('rolls back DB if removeEntryRelations fails', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(true);
+      permissions.removeEntryRelations.mockRejectedValue(
+        new Error('Keto unavailable'),
+      );
+      repo.transaction.mockImplementation(async (fn) => fn({}));
+
+      await expect(service.delete(ENTRY_ID, OWNER_ID)).rejects.toThrow(
+        'Keto unavailable',
+      );
+    });
+
+    it('returns false when entry does not exist in DB', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(false);
+
+      const result = await service.delete(ENTRY_ID, OWNER_ID);
 
       expect(result).toBe(false);
       expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
@@ -357,10 +448,9 @@ describe('DiaryService', () => {
   });
 
   describe('share', () => {
-    it('shares entry and grants viewer permission', async () => {
+    it('shares entry in transaction and grants viewer permission', async () => {
       permissions.canShareEntry.mockResolvedValue(true);
       repo.share.mockResolvedValue(true);
-      permissions.grantViewer.mockResolvedValue(undefined);
 
       const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
 
@@ -369,10 +459,12 @@ describe('DiaryService', () => {
         ENTRY_ID,
         OWNER_ID,
       );
+      expect(repo.transaction).toHaveBeenCalledTimes(1);
       expect(repo.share).toHaveBeenCalledWith(
         ENTRY_ID,
         OWNER_ID,
         OTHER_AGENT_ID,
+        expect.anything(),
       );
       expect(permissions.grantViewer).toHaveBeenCalledWith(
         ENTRY_ID,
@@ -397,6 +489,17 @@ describe('DiaryService', () => {
 
       expect(result).toBe(false);
       expect(permissions.grantViewer).not.toHaveBeenCalled();
+    });
+
+    it('rolls back DB if grantViewer fails', async () => {
+      permissions.canShareEntry.mockResolvedValue(true);
+      repo.share.mockResolvedValue(true);
+      permissions.grantViewer.mockRejectedValue(new Error('Keto unavailable'));
+      repo.transaction.mockImplementation(async (fn) => fn({}));
+
+      await expect(
+        service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID),
+      ).rejects.toThrow('Keto unavailable');
     });
   });
 

@@ -4,6 +4,28 @@
  * Orchestrates diary CRUD operations with embedding generation
  * and permission management. Sits between the API layer and the
  * database repository.
+ *
+ * ## Authorization Model — Keto as Sole Authority
+ *
+ * ```
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │ DB Entity          │ Event        │ Keto Relationship           │
+ * ├────────────────────┼──────────────┼─────────────────────────────┤
+ * │ diary_entries      │ INSERT       │ DiaryEntry:{id}#owner@Agent:{ownerId}     │
+ * │ diary_entries      │ DELETE       │ Remove ALL DiaryEntry:{id} relations      │
+ * │ entry_shares       │ INSERT       │ DiaryEntry:{entryId}#viewer@Agent:{sharedWith} │
+ * │ entry_shares       │ DELETE       │ Remove DiaryEntry:{entryId}#viewer@Agent:{sharedWith} │
+ * │ agent_keys         │ INSERT       │ Agent:{identityId}#self@Agent:{identityId}│
+ * └────────────────────┴──────────────┴─────────────────────────────┘
+ *
+ * Keto OPL (infra/ory/permissions.ts):
+ *   DiaryEntry: owner → view, edit, delete, share
+ *               viewer → view
+ *   Agent:      self → act_as
+ * ```
+ *
+ * Each mutation follows: Check (Keto) → Execute (DB + Keto in transaction)
+ * If Keto relationship mutation fails, the DB transaction rolls back.
  */
 
 import type {
@@ -24,10 +46,10 @@ export interface DiaryService {
   search(input: SearchInput): Promise<DiaryEntry[]>;
   update(
     id: string,
-    ownerId: string,
+    requesterId: string,
     updates: UpdateEntryInput,
   ): Promise<DiaryEntry | null>;
-  delete(id: string, ownerId: string): Promise<boolean>;
+  delete(id: string, requesterId: string): Promise<boolean>;
   share(
     entryId: string,
     sharedBy: string,
@@ -53,22 +75,38 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         // Embedding generation is best-effort; entry is created without it
       }
 
-      const entry = await diaryRepository.create({
-        ownerId: input.ownerId,
-        content: input.content,
-        title: input.title,
-        visibility: input.visibility ?? 'private',
-        tags: input.tags,
-        embedding,
+      return diaryRepository.transaction(async (tx) => {
+        const entry = await diaryRepository.create(
+          {
+            ownerId: input.ownerId,
+            content: input.content,
+            title: input.title,
+            visibility: input.visibility ?? 'private',
+            tags: input.tags,
+            embedding,
+          },
+          tx,
+        );
+
+        await permissionChecker.grantOwnership(entry.id, input.ownerId);
+
+        return entry;
       });
-
-      await permissionChecker.grantOwnership(entry.id, input.ownerId);
-
-      return entry;
     },
 
     async getById(id: string, requesterId: string): Promise<DiaryEntry | null> {
-      return diaryRepository.findById(id, requesterId);
+      const entry = await diaryRepository.findById(id);
+      if (!entry) return null;
+
+      // Public and moltnet entries are visible to everyone — skip Keto
+      if (entry.visibility === 'public' || entry.visibility === 'moltnet') {
+        return entry;
+      }
+
+      const allowed = await permissionChecker.canViewEntry(id, requesterId);
+      if (!allowed) return null;
+
+      return entry;
     },
 
     async list(input: ListInput): Promise<DiaryEntry[]> {
@@ -106,9 +144,12 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async update(
       id: string,
-      ownerId: string,
+      requesterId: string,
       updates: UpdateEntryInput,
     ): Promise<DiaryEntry | null> {
+      const allowed = await permissionChecker.canEditEntry(id, requesterId);
+      if (!allowed) return null;
+
       const repoUpdates: Record<string, unknown> = { ...updates };
 
       // Regenerate embedding when content changes
@@ -123,15 +164,20 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         }
       }
 
-      return diaryRepository.update(id, ownerId, repoUpdates);
+      return diaryRepository.update(id, repoUpdates);
     },
 
-    async delete(id: string, ownerId: string): Promise<boolean> {
-      const deleted = await diaryRepository.delete(id, ownerId);
-      if (deleted) {
+    async delete(id: string, requesterId: string): Promise<boolean> {
+      const allowed = await permissionChecker.canDeleteEntry(id, requesterId);
+      if (!allowed) return false;
+
+      return diaryRepository.transaction(async (tx) => {
+        const deleted = await diaryRepository.delete(id, tx);
+        if (!deleted) return false;
+
         await permissionChecker.removeEntryRelations(id);
-      }
-      return deleted;
+        return true;
+      });
     },
 
     async share(
@@ -142,11 +188,18 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const canShare = await permissionChecker.canShareEntry(entryId, sharedBy);
       if (!canShare) return false;
 
-      const shared = await diaryRepository.share(entryId, sharedBy, sharedWith);
-      if (!shared) return false;
+      return diaryRepository.transaction(async (tx) => {
+        const shared = await diaryRepository.share(
+          entryId,
+          sharedBy,
+          sharedWith,
+          tx,
+        );
+        if (!shared) return false;
 
-      await permissionChecker.grantViewer(entryId, sharedWith);
-      return true;
+        await permissionChecker.grantViewer(entryId, sharedWith);
+        return true;
+      });
     },
 
     async getSharedWithMe(

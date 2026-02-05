@@ -1,7 +1,8 @@
 /**
  * Diary Repository
  *
- * Database operations for diary entries
+ * Pure data layer for diary entries. No authorization logic —
+ * permission checks are handled by the service layer via Keto.
  */
 
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -47,48 +48,38 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
 export function createDiaryRepository(db: Database) {
   return {
     /**
+     * Run a callback inside a database transaction.
+     * If the callback throws, the transaction is rolled back.
+     */
+    async transaction<T>(fn: (tx: Database) => Promise<T>): Promise<T> {
+      // PgTransaction extends the same query API as PgDatabase, so the
+      // cast is safe — callers only use insert/update/delete/select.
+      return db.transaction((tx) => fn(tx as unknown as Database));
+    },
+
+    /**
      * Create a new diary entry
      */
-    async create(entry: NewDiaryEntry): Promise<DiaryEntry> {
-      const [created] = await db.insert(diaryEntries).values(entry).returning();
+    async create(entry: NewDiaryEntry, tx?: Database): Promise<DiaryEntry> {
+      const executor = tx ?? db;
+      const [created] = await executor
+        .insert(diaryEntries)
+        .values(entry)
+        .returning();
       return created;
     },
 
     /**
-     * Get entry by ID (with access control)
+     * Get entry by ID (no access control — service layer checks Keto)
      */
-    async findById(
-      id: string,
-      requesterId: string,
-    ): Promise<DiaryEntry | null> {
+    async findById(id: string): Promise<DiaryEntry | null> {
       const [entry] = await db
         .select()
         .from(diaryEntries)
         .where(eq(diaryEntries.id, id))
         .limit(1);
 
-      if (!entry) return null;
-
-      // Check access permissions
-      if (entry.ownerId === requesterId) return entry;
-      if (entry.visibility === 'public') return entry;
-      if (entry.visibility === 'moltnet') return entry;
-
-      // Check if explicitly shared
-      const [share] = await db
-        .select()
-        .from(entryShares)
-        .where(
-          and(
-            eq(entryShares.entryId, id),
-            eq(entryShares.sharedWith, requesterId),
-          ),
-        )
-        .limit(1);
-
-      if (share) return entry;
-
-      return null;
+      return entry ?? null;
     },
 
     /**
@@ -129,8 +120,14 @@ export function createDiaryRepository(db: Database) {
      * (70% vector + 30% FTS by default).
      */
     async search(options: DiarySearchOptions): Promise<DiaryEntry[]> {
-      const { ownerId, query, embedding, visibility, limit = 10, offset = 0 } =
-        options;
+      const {
+        ownerId,
+        query,
+        embedding,
+        visibility,
+        limit = 10,
+        offset = 0,
+      } = options;
 
       // Both query and embedding → use hybrid_search() SQL function
       if (query && embedding && embedding.length === 384) {
@@ -181,58 +178,52 @@ export function createDiaryRepository(db: Database) {
     },
 
     /**
-     * Update entry (ownership required)
+     * Update entry by ID (no ownership check — service layer checks Keto)
      */
     async update(
       id: string,
-      ownerId: string,
       updates: Partial<
         Pick<
           DiaryEntry,
           'title' | 'content' | 'visibility' | 'tags' | 'embedding'
         >
       >,
+      tx?: Database,
     ): Promise<DiaryEntry | null> {
-      const [updated] = await db
+      const executor = tx ?? db;
+      const [updated] = await executor
         .update(diaryEntries)
         .set({ ...updates, updatedAt: new Date() })
-        .where(and(eq(diaryEntries.id, id), eq(diaryEntries.ownerId, ownerId)))
+        .where(eq(diaryEntries.id, id))
         .returning();
 
       return updated || null;
     },
 
     /**
-     * Delete entry (ownership required)
+     * Delete entry by ID (no ownership check — service layer checks Keto)
      */
-    async delete(id: string, ownerId: string): Promise<boolean> {
-      const result = await db
+    async delete(id: string, tx?: Database): Promise<boolean> {
+      const executor = tx ?? db;
+      const result = await executor
         .delete(diaryEntries)
-        .where(and(eq(diaryEntries.id, id), eq(diaryEntries.ownerId, ownerId)))
+        .where(eq(diaryEntries.id, id))
         .returning({ id: diaryEntries.id });
 
       return result.length > 0;
     },
 
     /**
-     * Share entry with another agent
+     * Insert share record (no ownership check — service layer checks Keto)
      */
     async share(
       entryId: string,
       sharedBy: string,
       sharedWith: string,
+      tx?: Database,
     ): Promise<boolean> {
-      const [entry] = await db
-        .select()
-        .from(diaryEntries)
-        .where(
-          and(eq(diaryEntries.id, entryId), eq(diaryEntries.ownerId, sharedBy)),
-        )
-        .limit(1);
-
-      if (!entry) return false;
-
-      await db
+      const executor = tx ?? db;
+      await executor
         .insert(entryShares)
         .values({ entryId, sharedBy, sharedWith })
         .onConflictDoNothing();
