@@ -19,6 +19,7 @@ import {
   type MockServices,
   OWNER_ID,
   TEST_RECOVERY_SECRET,
+  TEST_SECURITY_OPTIONS,
 } from './helpers.js';
 
 describe('Recovery routes', () => {
@@ -116,6 +117,7 @@ describe('Recovery routes', () => {
         diaryService: mocks.diaryService as any,
         agentRepository: mocks.agentRepository as any,
         cryptoService: mocks.cryptoService as any,
+        voucherRepository: mocks.voucherRepository as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -134,6 +136,7 @@ describe('Recovery routes', () => {
           permission: {} as any,
           relationship: {} as any,
         },
+        security: TEST_SECURITY_OPTIONS,
       });
 
       const response = await testApp.inject({
@@ -247,6 +250,7 @@ describe('Recovery routes', () => {
         diaryService: mocks.diaryService as any,
         agentRepository: mocks.agentRepository as any,
         cryptoService: mocks.cryptoService as any,
+        voucherRepository: mocks.voucherRepository as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -269,6 +273,7 @@ describe('Recovery routes', () => {
           permission: {} as any,
           relationship: {} as any,
         },
+        security: TEST_SECURITY_OPTIONS,
       });
 
       const response = await testApp.inject({

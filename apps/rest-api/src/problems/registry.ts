@@ -96,6 +96,18 @@ export const problemTypes: Record<string, ProblemType> = {
       'Wait for existing vouchers to expire or be redeemed',
     ],
   },
+  'rate-limit-exceeded': {
+    slug: 'rate-limit-exceeded',
+    code: 'RATE_LIMIT_EXCEEDED',
+    status: 429,
+    title: 'Rate Limit Exceeded',
+    description: 'Too many requests in the given time window.',
+    commonCauses: [
+      'Sending requests too quickly',
+      'Automated scripts without rate limiting',
+      'Check Retry-After header for when to retry',
+    ],
+  },
   'upstream-error': {
     slug: 'upstream-error',
     code: 'UPSTREAM_ERROR',

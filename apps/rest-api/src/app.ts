@@ -14,7 +14,10 @@ import {
 } from '@moltnet/auth';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
+import { rateLimitPlugin } from './plugins/rate-limit.js';
+import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
@@ -31,6 +34,19 @@ import type {
   VoucherRepository,
 } from './types.js';
 
+export interface SecurityOptions {
+  /** Comma-separated list of allowed CORS origins */
+  corsOrigins: string;
+  /** Max requests per minute for authenticated users */
+  rateLimitGlobalAuth: number;
+  /** Max requests per minute for anonymous users */
+  rateLimitGlobalAnon: number;
+  /** Max requests per minute for embedding endpoints */
+  rateLimitEmbedding: number;
+  /** Max requests per minute for vouch endpoints */
+  rateLimitVouch: number;
+}
+
 export interface AppOptions {
   diaryService: DiaryService;
   agentRepository: AgentRepository;
@@ -41,11 +57,29 @@ export interface AppOptions {
   webhookApiKey: string;
   recoverySecret: string;
   oryClients: OryClients;
+  security: SecurityOptions;
   logger?: boolean;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? false });
+
+  // Register security plugins first (order matters)
+  // 1. Security headers (helmet)
+  await app.register(securityHeadersPlugin);
+
+  // 2. CORS
+  await app.register(corsPluginFp, {
+    origins: options.security.corsOrigins,
+  });
+
+  // 3. Rate limiting
+  await app.register(rateLimitPlugin, {
+    globalAuthLimit: options.security.rateLimitGlobalAuth,
+    globalAnonLimit: options.security.rateLimitGlobalAnon,
+    embeddingLimit: options.security.rateLimitEmbedding,
+    vouchLimit: options.security.rateLimitVouch,
+  });
 
   // Register OpenAPI spec generation
   await app.register(swagger, {

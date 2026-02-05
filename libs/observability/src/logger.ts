@@ -1,4 +1,4 @@
-import type { DestinationStream } from 'pino';
+import type { DestinationStream, LoggerOptions } from 'pino';
 import pino from 'pino';
 
 export interface CreateLoggerOptions {
@@ -16,6 +16,67 @@ export interface CreateLoggerOptions {
   otelEnabled?: boolean;
   /** Custom destination stream (useful for testing) */
   destination?: DestinationStream;
+  /** Disable redaction (useful for testing) */
+  disableRedaction?: boolean;
+}
+
+/**
+ * Default paths to redact from log output.
+ * These cover common locations where sensitive data may appear.
+ */
+export const DEFAULT_REDACT_PATHS = [
+  // Request headers
+  'req.headers.authorization',
+  'req.headers.cookie',
+  'req.headers["x-api-key"]',
+  'req.headers["x-ory-api-key"]',
+  'req.headers["x-access-token"]',
+  'req.headers["x-refresh-token"]',
+  // Response headers (if logged)
+  'res.headers["set-cookie"]',
+  // Common body fields
+  'body.password',
+  'body.token',
+  'body.accessToken',
+  'body.refreshToken',
+  'body.apiKey',
+  'body.secret',
+  'body.privateKey',
+  'body.recoveryCodes',
+  // Nested request body
+  'req.body.password',
+  'req.body.token',
+  'req.body.accessToken',
+  'req.body.refreshToken',
+  'req.body.apiKey',
+  'req.body.secret',
+  'req.body.privateKey',
+  'req.body.recoveryCodes',
+  // Error context that might contain sensitive data
+  'err.config.headers.authorization',
+  'err.config.headers.cookie',
+  'err.response.config.headers.authorization',
+  // Ory webhook payloads
+  'payload.traits.recovery_codes',
+  'payload.session.identity.credentials',
+  // Query parameters (if logged)
+  'req.query.token',
+  'req.query.code',
+];
+
+/**
+ * Build redaction config for Pino logger.
+ */
+function buildRedactConfig(
+  disabled: boolean,
+): LoggerOptions['redact'] | undefined {
+  if (disabled) {
+    return undefined;
+  }
+  return {
+    paths: DEFAULT_REDACT_PATHS,
+    censor: '[REDACTED]',
+  };
 }
 
 /**
@@ -37,7 +98,10 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     pretty = false,
     otelEnabled = false,
     destination,
+    disableRedaction = false,
   } = options;
+
+  const redact = buildRedactConfig(disableRedaction);
 
   const base: Record<string, string> = {
     service: serviceName,
@@ -53,7 +117,7 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
 
   // When a custom destination is provided (e.g. for testing), use it directly
   if (destination) {
-    return pino({ level, base }, destination);
+    return pino({ level, base, redact }, destination);
   }
 
   // Build transport targets
@@ -61,6 +125,7 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     return pino({
       level,
       base,
+      redact,
       transport: {
         targets: [
           pretty
@@ -94,6 +159,7 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     return pino({
       level,
       base,
+      redact,
       transport: {
         target: 'pino-pretty',
         options: { colorize: true },
@@ -101,5 +167,5 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     });
   }
 
-  return pino({ level, base });
+  return pino({ level, base, redact });
 }

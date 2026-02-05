@@ -17,9 +17,9 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: "0.0.0.0:4317"
+        endpoint: '0.0.0.0:4317'
       http:
-        endpoint: "0.0.0.0:4318"
+        endpoint: '0.0.0.0:4318'
 
 processors:
   batch:
@@ -41,13 +41,48 @@ processors:
         - 'attributes["http.route"] == "/health"'
         - 'attributes["http.route"] == "/ready"'
 
+  # Redact sensitive values from telemetry using transform processor
+  # This provides defense-in-depth when Pino redaction is bypassed
+  transform/redact:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          # HTTP headers that may contain credentials
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.response.header.set-cookie"], ".*", "[REDACTED]")
+          # Generic sensitive keys
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+          # Ory-specific sensitive data
+          - replace_pattern(attributes["ory.recovery_codes"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["ory.credentials"], ".*", "[REDACTED]")
+    log_statements:
+      - context: log
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+
 exporters:
   # Axiom via OTLP HTTP - handles traces, metrics, and logs
   otlphttp/axiom:
-    endpoint: "https://api.axiom.co"
+    endpoint: 'https://api.axiom.co'
     headers:
-      authorization: "Bearer ${env:AXIOM_API_TOKEN}"
-      x-axiom-dataset: "${env:AXIOM_DATASET}"
+      authorization: 'Bearer ${env:AXIOM_API_TOKEN}'
+      x-axiom-dataset: '${env:AXIOM_DATASET}'
     compression: gzip
 
   # Debug exporter for local development (stdout)
@@ -56,7 +91,7 @@ exporters:
 
 extensions:
   health_check:
-    endpoint: "0.0.0.0:13133"
+    endpoint: '0.0.0.0:13133'
 
 service:
   extensions: [health_check]
@@ -64,7 +99,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [filter/health, resource, batch]
+      processors: [filter/health, transform/redact, resource, batch]
       exporters: [otlphttp/axiom]
 
     metrics:
@@ -74,11 +109,11 @@ service:
 
     logs:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [transform/redact, resource, batch]
       exporters: [otlphttp/axiom]
 
   telemetry:
     logs:
       level: info
     metrics:
-      address: "0.0.0.0:8888"
+      address: '0.0.0.0:8888'

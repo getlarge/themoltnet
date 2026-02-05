@@ -57,6 +57,19 @@ const ObservabilityConfigSchema = Type.Object({
   AXIOM_METRICS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
 });
 
+const SecurityConfigSchema = Type.Object({
+  // CORS origins (comma-separated)
+  CORS_ORIGINS: Type.String({
+    default:
+      'https://themolt.net,https://api.themolt.net,http://localhost:3000,http://localhost:8000',
+  }),
+  // Rate limiting (requests per minute)
+  RATE_LIMIT_GLOBAL_AUTH: Type.Number({ default: 100 }),
+  RATE_LIMIT_GLOBAL_ANON: Type.Number({ default: 30 }),
+  RATE_LIMIT_EMBEDDING: Type.Number({ default: 20 }),
+  RATE_LIMIT_VOUCH: Type.Number({ default: 10 }),
+});
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -67,6 +80,7 @@ export type WebhookConfig = Static<typeof WebhookConfigSchema>;
 export type OryConfig = Static<typeof OryConfigSchema>;
 export type ObservabilityEnvConfig = Static<typeof ObservabilityConfigSchema>;
 export type RecoveryConfig = Static<typeof RecoveryConfigSchema>;
+export type SecurityConfig = Static<typeof SecurityConfigSchema>;
 
 export interface AppConfig {
   server: ServerConfig;
@@ -75,6 +89,7 @@ export interface AppConfig {
   ory: OryConfig;
   observability: ObservabilityEnvConfig;
   recovery: RecoveryConfig;
+  security: SecurityConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -179,6 +194,16 @@ export function loadRecoveryConfig(
   );
 }
 
+export function loadSecurityConfig(
+  env: Record<string, string | undefined> = process.env,
+): SecurityConfig {
+  return validateSchema(
+    'Security',
+    SecurityConfigSchema,
+    pickEnv(SecurityConfigSchema, env),
+  );
+}
+
 // ============================================================================
 // Combined loader
 // ============================================================================
@@ -193,6 +218,7 @@ export function loadConfig(
     ory: loadOryConfig(env),
     observability: loadObservabilityConfig(env),
     recovery: loadRecoveryConfig(env),
+    security: loadSecurityConfig(env),
   };
 }
 

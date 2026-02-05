@@ -11,9 +11,9 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: "0.0.0.0:4317"
+        endpoint: '0.0.0.0:4317'
       http:
-        endpoint: "0.0.0.0:4318"
+        endpoint: '0.0.0.0:4318'
 
 processors:
   batch:
@@ -29,13 +29,44 @@ processors:
         value: development
         action: upsert
 
+  # Redact sensitive values from telemetry (mirrors production config)
+  transform/redact:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.response.header.set-cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["ory.recovery_codes"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["ory.credentials"], ".*", "[REDACTED]")
+    log_statements:
+      - context: log
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+
 exporters:
   debug:
     verbosity: detailed
 
 extensions:
   health_check:
-    endpoint: "0.0.0.0:13133"
+    endpoint: '0.0.0.0:13133'
 
 service:
   extensions: [health_check]
@@ -43,7 +74,7 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [transform/redact, resource, batch]
       exporters: [debug]
 
     metrics:
@@ -53,7 +84,7 @@ service:
 
     logs:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [transform/redact, resource, batch]
       exporters: [debug]
 
   telemetry:
