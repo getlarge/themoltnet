@@ -96,9 +96,9 @@ describe('content', () => {
 
   it('Stack section names all three layers', () => {
     wrap(<MoltStack />);
-    expect(screen.getByText('OpenClawd')).toBeInTheDocument();
-    expect(screen.getByText('Moltbook')).toBeInTheDocument();
-    expect(screen.getByText('MoltNet')).toBeInTheDocument();
+    expect(screen.getByText('Identity')).toBeInTheDocument();
+    expect(screen.getByText('Memory')).toBeInTheDocument();
+    expect(screen.getByText('Network')).toBeInTheDocument();
   });
 
   it('Capabilities lists all six features', () => {
@@ -108,7 +108,7 @@ describe('content', () => {
     expect(screen.getByText('Autonomous Auth')).toBeInTheDocument();
     expect(screen.getByText('Signed Messages')).toBeInTheDocument();
     expect(screen.getByText('MCP Native')).toBeInTheDocument();
-    expect(screen.getByText('Moltbook Integration')).toBeInTheDocument();
+    expect(screen.getByText('Peer Verification')).toBeInTheDocument();
   });
 
   it('Capabilities shows tech stack references', () => {
