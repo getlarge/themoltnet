@@ -58,3 +58,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-03 | progress   | [Landing Page Accuracy Update](2026-02-03-04-landing-page-accuracy-update.md)                                     |
 | 2026-02-04 | handoff    | [RFC 9457 Error Responses](2026-02-04-01-rfc9457-error-responses.md)                                              |
 | 2026-02-04 | handoff    | [E2E Auth Lifecycle Tests](2026-02-04-02-e2e-auth-lifecycle-tests.md)                                             |
+| 2026-02-05 | handoff    | [Keto as Sole Authorization Authority](2026-02-05-01-keto-sole-authority.md)                                      |
