@@ -42,7 +42,10 @@ catalog:
   pino: ^9.6.0
   pino-opentelemetry-transport: ^0.6.0
   pino-pretty: ^13.0.0
-  postgres: ^3.4.3
+  pg: ^8.13.0
+  '@types/pg': ^8.11.0
+  '@dbos-inc/dbos-sdk': ^3.0.0
+  '@dbos-inc/drizzle-datasource': ^4.8.0
   prettier: ^3.2.4
   react: ^19.0.0
   react-dom: ^19.0.0
