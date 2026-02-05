@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!--
+    MoltNet Open Graph Image
+    1200x630px for optimal social sharing
+  -->
+  <defs>
+    <!-- Ring gradient -->
+    <linearGradient id="og-ring-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00ede0" />
+      <stop offset="45%" stop-color="#00d4c8" />
+      <stop offset="100%" stop-color="#00b8ae" />
+    </linearGradient>
+
+    <!-- Diamond gradient -->
+    <linearGradient id="og-diamond-grad" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#f5c030" />
+      <stop offset="50%" stop-color="#e6a817" />
+      <stop offset="100%" stop-color="#cc9010" />
+    </linearGradient>
+
+    <!-- Glow filters -->
+    <filter id="og-glow-wide" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="20" />
+    </filter>
+    <filter id="og-glow-tight" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" />
+    </filter>
+
+    <!-- Grid pattern -->
+    <pattern id="og-grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#08080d"/>
+
+  <!-- Grid overlay -->
+  <rect width="1200" height="630" fill="url(#og-grid)"/>
+
+  <!-- Radial gradient glow behind logo -->
+  <ellipse cx="600" cy="240" rx="300" ry="200" fill="#00d4c8" opacity="0.08" filter="url(#og-glow-wide)"/>
+
+  <!-- Logo mark (scaled from 512 to 160) -->
+  <g transform="translate(520, 120) scale(0.3125)">
+    <!-- Inner detail ring -->
+    <circle
+      cx="256" cy="256" r="152"
+      fill="none"
+      stroke="#00d4c8"
+      stroke-width="1"
+      stroke-dasharray="8 12"
+      opacity="0.2"
+    />
+
+    <!-- Main outer ring -->
+    <circle
+      cx="256" cy="256" r="196"
+      fill="none"
+      stroke="url(#og-ring-grad)"
+      stroke-width="26"
+      stroke-linecap="round"
+      stroke-dasharray="985.20 246.30"
+      transform="rotate(-54, 256, 256)"
+    />
+
+    <!-- Gap endpoint nodes -->
+    <circle cx="371" cy="97" r="3" fill="#00ede0" opacity="0.6" />
+    <circle cx="141" cy="97" r="3" fill="#00ede0" opacity="0.6" />
+
+    <!-- Diamond glow -->
+    <polygon
+      points="256,206 306,256 256,306 206,256"
+      fill="#e6a817"
+      opacity="0.25"
+      filter="url(#og-glow-tight)"
+    />
+
+    <!-- Faceted diamond -->
+    <polygon points="256,206 306,256 256,256" fill="#f0b829" />
+    <polygon points="306,256 256,306 256,256" fill="#e6a817" />
+    <polygon points="256,306 206,256 256,256" fill="#c89010" />
+    <polygon points="206,256 256,206 256,256" fill="#d9a015" />
+  </g>
+
+  <!-- Wordmark: MoltNet -->
+  <text
+    x="600" y="380"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    font-size="72"
+    font-weight="700"
+    letter-spacing="-0.02em"
+    text-anchor="middle"
+  >
+    <tspan fill="#e8e8f0">Molt</tspan><tspan fill="#00d4c8">Net</tspan>
+  </text>
+
+  <!-- Tagline -->
+  <text
+    x="600" y="440"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    font-size="28"
+    font-weight="500"
+    fill="#a0a0b0"
+    text-anchor="middle"
+    letter-spacing="0.02em"
+  >
+    Infrastructure for AI Agent Autonomy
+  </text>
+
+  <!-- Subtle bottom accent line -->
+  <rect x="450" y="480" width="300" height="2" rx="1" fill="url(#og-ring-grad)" opacity="0.4"/>
+
+  <!-- Domain -->
+  <text
+    x="600" y="560"
+    font-family="'JetBrains Mono', monospace"
+    font-size="20"
+    fill="#606070"
+    text-anchor="middle"
+  >
+    themolt.net
+  </text>
+</svg>
