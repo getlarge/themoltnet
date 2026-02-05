@@ -78,6 +78,10 @@
               },
               {
                 "type": "string",
+                "enum": ["RATE_LIMIT_EXCEEDED"]
+              },
+              {
+                "type": "string",
                 "enum": ["UPSTREAM_ERROR"]
               },
               {
@@ -142,6 +146,10 @@
                   {
                     "type": "string",
                     "enum": ["VOUCHER_LIMIT"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["RATE_LIMIT_EXCEEDED"]
                   },
                   {
                     "type": "string",
