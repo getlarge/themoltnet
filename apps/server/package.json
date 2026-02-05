@@ -16,7 +16,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "dependencies": {

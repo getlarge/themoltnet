@@ -16,7 +16,7 @@
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "dependencies": {
