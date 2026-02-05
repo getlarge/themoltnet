@@ -3,12 +3,22 @@
  *
  * Initializes DBOS durable execution framework with Keto workflows.
  * Must be registered after the auth plugin (needs permissionChecker).
+ *
+ * ## Initialization Order
+ *
+ * 1. configureDBOS()              — set DBOS runtime config
+ * 2. initKetoWorkflows()          — register workflow definitions
+ * 3. setKetoRelationshipWriter()  — inject Keto client
+ * 4. initDBOS()                   — create data source (optionally with shared pool)
+ * 5. launchDBOS()                 — start runtime, recover pending workflows
  */
 
 import {
+  configureDBOS,
   type DataSource,
   getDataSource,
   initDBOS,
+  initKetoWorkflows,
   launchDBOS,
   setKetoRelationshipWriter,
   shutdownDBOS,
@@ -39,19 +49,25 @@ async function dbosPlugin(
     );
   }
 
-  // 1. Set the relationship writer for Keto workflows
+  // 1. Configure DBOS (must be first, before workflow registration)
+  configureDBOS();
+
+  // 2. Register Keto workflows (must be after config, before launch)
+  initKetoWorkflows();
+
+  // 3. Set the relationship writer for Keto workflows
   setKetoRelationshipWriter(fastify.permissionChecker);
 
-  // 2. Initialize DBOS (creates DrizzleDataSource, sets config)
+  // 4. Initialize DBOS data source
   await initDBOS({ databaseUrl });
 
-  // 3. Launch DBOS (starts runtime, recovers interrupted workflows)
+  // 5. Launch DBOS (starts runtime, recovers interrupted workflows)
   await launchDBOS();
 
-  // 4. Decorate Fastify with the dataSource for route handlers
+  // 6. Decorate Fastify with the dataSource for route handlers
   fastify.decorate('dataSource', getDataSource());
 
-  // 5. Graceful shutdown
+  // 7. Graceful shutdown
   fastify.addHook('onClose', async () => {
     fastify.log.info('Shutting down DBOS...');
     await shutdownDBOS();

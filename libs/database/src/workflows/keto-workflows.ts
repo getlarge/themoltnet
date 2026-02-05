@@ -8,6 +8,12 @@
  * - Automatic retry (5 attempts with exponential backoff)
  * - Crash recovery (resumes from last completed step)
  * - Idempotency (re-running completed workflows is a no-op)
+ *
+ * ## Initialization Order
+ *
+ * Workflows are registered lazily on first access via `initKetoWorkflows()`.
+ * This allows the module to be imported before DBOS is configured.
+ * The Fastify DBOS plugin calls `initKetoWorkflows()` after `configureDBOS()`.
  */
 
 import { DBOS } from '@dbos-inc/dbos-sdk';
@@ -58,89 +64,142 @@ const ketoStepConfig = {
   backoffRate: 2,
 };
 
-// ── Steps ────────────────────────────────────────────────────────────
-// Each step wraps a single Keto API call
+// ── Lazy Registration ────────────────────────────────────────────────
+// Workflows are registered on first call to initKetoWorkflows().
+// This avoids registering before DBOS.setConfig() is called.
 
-const grantOwnershipStep = DBOS.registerStep(
-  async (entryId: string, agentId: string): Promise<void> => {
-    await getRelationshipWriter().grantOwnership(entryId, agentId);
-  },
-  { name: 'keto.step.grantOwnership', ...ketoStepConfig },
-);
+type WorkflowFn<T extends unknown[]> = (...args: T) => Promise<void>;
 
-const removeEntryRelationsStep = DBOS.registerStep(
-  async (entryId: string): Promise<void> => {
-    await getRelationshipWriter().removeEntryRelations(entryId);
-  },
-  { name: 'keto.step.removeEntryRelations', ...ketoStepConfig },
-);
+let _workflows: {
+  grantOwnership: WorkflowFn<[string, string]>;
+  removeEntryRelations: WorkflowFn<[string]>;
+  grantViewer: WorkflowFn<[string, string]>;
+  revokeViewer: WorkflowFn<[string, string]>;
+  registerAgent: WorkflowFn<[string]>;
+} | null = null;
 
-const grantViewerStep = DBOS.registerStep(
-  async (entryId: string, agentId: string): Promise<void> => {
-    await getRelationshipWriter().grantViewer(entryId, agentId);
-  },
-  { name: 'keto.step.grantViewer', ...ketoStepConfig },
-);
+/**
+ * Initialize and register Keto workflows with DBOS.
+ *
+ * Must be called AFTER configureDBOS() and BEFORE launchDBOS().
+ * Idempotent - safe to call multiple times.
+ */
+export function initKetoWorkflows(): void {
+  if (_workflows) return; // Already initialized
 
-const revokeViewerStep = DBOS.registerStep(
-  async (entryId: string, agentId: string): Promise<void> => {
-    await getRelationshipWriter().revokeViewer(entryId, agentId);
-  },
-  { name: 'keto.step.revokeViewer', ...ketoStepConfig },
-);
+  // ── Steps ──────────────────────────────────────────────────────────
+  const grantOwnershipStep = DBOS.registerStep(
+    async (entryId: string, agentId: string): Promise<void> => {
+      await getRelationshipWriter().grantOwnership(entryId, agentId);
+    },
+    { name: 'keto.step.grantOwnership', ...ketoStepConfig },
+  );
 
-const registerAgentStep = DBOS.registerStep(
-  async (agentId: string): Promise<void> => {
-    await getRelationshipWriter().registerAgent(agentId);
-  },
-  { name: 'keto.step.registerAgent', ...ketoStepConfig },
-);
+  const removeEntryRelationsStep = DBOS.registerStep(
+    async (entryId: string): Promise<void> => {
+      await getRelationshipWriter().removeEntryRelations(entryId);
+    },
+    { name: 'keto.step.removeEntryRelations', ...ketoStepConfig },
+  );
 
-// ── Workflows ────────────────────────────────────────────────────────
-// Each workflow wraps a single step for now. Can compose multiple
-// steps later (e.g., diaryCreated = grantOwnership + publishEvent).
+  const grantViewerStep = DBOS.registerStep(
+    async (entryId: string, agentId: string): Promise<void> => {
+      await getRelationshipWriter().grantViewer(entryId, agentId);
+    },
+    { name: 'keto.step.grantViewer', ...ketoStepConfig },
+  );
 
-export const grantOwnershipWorkflow = DBOS.registerWorkflow(
-  async (entryId: string, agentId: string): Promise<void> => {
-    await grantOwnershipStep(entryId, agentId);
-  },
-  { name: 'keto.grantOwnership' },
-);
+  const revokeViewerStep = DBOS.registerStep(
+    async (entryId: string, agentId: string): Promise<void> => {
+      await getRelationshipWriter().revokeViewer(entryId, agentId);
+    },
+    { name: 'keto.step.revokeViewer', ...ketoStepConfig },
+  );
 
-export const removeEntryRelationsWorkflow = DBOS.registerWorkflow(
-  async (entryId: string): Promise<void> => {
-    await removeEntryRelationsStep(entryId);
-  },
-  { name: 'keto.removeEntryRelations' },
-);
+  const registerAgentStep = DBOS.registerStep(
+    async (agentId: string): Promise<void> => {
+      await getRelationshipWriter().registerAgent(agentId);
+    },
+    { name: 'keto.step.registerAgent', ...ketoStepConfig },
+  );
 
-export const grantViewerWorkflow = DBOS.registerWorkflow(
-  async (entryId: string, agentId: string): Promise<void> => {
-    await grantViewerStep(entryId, agentId);
-  },
-  { name: 'keto.grantViewer' },
-);
-
-export const revokeViewerWorkflow = DBOS.registerWorkflow(
-  async (entryId: string, agentId: string): Promise<void> => {
-    await revokeViewerStep(entryId, agentId);
-  },
-  { name: 'keto.revokeViewer' },
-);
-
-export const registerAgentWorkflow = DBOS.registerWorkflow(
-  async (agentId: string): Promise<void> => {
-    await registerAgentStep(agentId);
-  },
-  { name: 'keto.registerAgent' },
-);
+  // ── Workflows ──────────────────────────────────────────────────────
+  _workflows = {
+    grantOwnership: DBOS.registerWorkflow(
+      async (entryId: string, agentId: string): Promise<void> => {
+        await grantOwnershipStep(entryId, agentId);
+      },
+      { name: 'keto.grantOwnership' },
+    ),
+    removeEntryRelations: DBOS.registerWorkflow(
+      async (entryId: string): Promise<void> => {
+        await removeEntryRelationsStep(entryId);
+      },
+      { name: 'keto.removeEntryRelations' },
+    ),
+    grantViewer: DBOS.registerWorkflow(
+      async (entryId: string, agentId: string): Promise<void> => {
+        await grantViewerStep(entryId, agentId);
+      },
+      { name: 'keto.grantViewer' },
+    ),
+    revokeViewer: DBOS.registerWorkflow(
+      async (entryId: string, agentId: string): Promise<void> => {
+        await revokeViewerStep(entryId, agentId);
+      },
+      { name: 'keto.revokeViewer' },
+    ),
+    registerAgent: DBOS.registerWorkflow(
+      async (agentId: string): Promise<void> => {
+        await registerAgentStep(agentId);
+      },
+      { name: 'keto.registerAgent' },
+    ),
+  };
+}
 
 // ── Exported Collection ──────────────────────────────────────────────
+// Getter ensures workflows are accessed only after initialization.
 
 export const ketoWorkflows = {
-  grantOwnership: grantOwnershipWorkflow,
-  removeEntryRelations: removeEntryRelationsWorkflow,
-  grantViewer: grantViewerWorkflow,
-  revokeViewer: revokeViewerWorkflow,
-  registerAgent: registerAgentWorkflow,
+  get grantOwnership() {
+    if (!_workflows) {
+      throw new Error(
+        'Keto workflows not initialized. Call initKetoWorkflows() after configureDBOS().',
+      );
+    }
+    return _workflows.grantOwnership;
+  },
+  get removeEntryRelations() {
+    if (!_workflows) {
+      throw new Error(
+        'Keto workflows not initialized. Call initKetoWorkflows() after configureDBOS().',
+      );
+    }
+    return _workflows.removeEntryRelations;
+  },
+  get grantViewer() {
+    if (!_workflows) {
+      throw new Error(
+        'Keto workflows not initialized. Call initKetoWorkflows() after configureDBOS().',
+      );
+    }
+    return _workflows.grantViewer;
+  },
+  get revokeViewer() {
+    if (!_workflows) {
+      throw new Error(
+        'Keto workflows not initialized. Call initKetoWorkflows() after configureDBOS().',
+      );
+    }
+    return _workflows.revokeViewer;
+  },
+  get registerAgent() {
+    if (!_workflows) {
+      throw new Error(
+        'Keto workflows not initialized. Call initKetoWorkflows() after configureDBOS().',
+      );
+    }
+    return _workflows.registerAgent;
+  },
 };

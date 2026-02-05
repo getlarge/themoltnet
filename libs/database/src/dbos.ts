@@ -5,6 +5,14 @@
  * This module initializes DBOS with DrizzleDataSource for atomic
  * DB + workflow persistence.
  *
+ * ## Initialization Order (CRITICAL)
+ *
+ * DBOS requires a specific initialization order:
+ * 1. `configureDBOS()` — sets DBOS config, MUST be called before importing workflows
+ * 2. Import workflow modules (keto-workflows.ts registers workflows at import time)
+ * 3. `initDBOS()` — creates DrizzleDataSource with connection pool
+ * 4. `launchDBOS()` — starts DBOS runtime, recovers pending workflows
+ *
  * @see https://docs.dbos.dev/typescript/tutorials/transaction-tutorial
  */
 
@@ -17,7 +25,8 @@ import * as schema from './schema.js';
 export type DBOSDatabase = NodePgDatabase<typeof schema>;
 
 let dataSource: DrizzleDataSource<DBOSDatabase> | null = null;
-let initialized = false;
+let configured = false;
+let launched = false;
 
 export interface DBOSConfig {
   databaseUrl: string;
@@ -25,14 +34,35 @@ export interface DBOSConfig {
 }
 
 /**
+ * Configure DBOS runtime settings.
+ *
+ * MUST be called BEFORE registering any workflows (initKetoWorkflows).
+ * Workflow registration via DBOS.registerWorkflow() requires config to be set.
+ */
+export function configureDBOS(): void {
+  if (configured) return; // Idempotent
+  DBOS.setConfig({ name: 'moltnet-api' });
+  configured = true;
+}
+
+/**
  * Initialize DBOS with DrizzleDataSource.
  *
- * Must be called before any workflow registration or execution.
- * Workflows should be registered before calling DBOS.launch().
+ * Call this AFTER configureDBOS() and initKetoWorkflows().
+ *
+ * Note: DBOS creates its own connection pool internally. When DBOS is active,
+ * prefer using dataSource.client for database operations rather than creating
+ * a separate pool via createDatabase().
  */
 export async function initDBOS(config: DBOSConfig): Promise<void> {
-  if (initialized) {
-    throw new Error('DBOS already initialized. Call shutdownDBOS() first.');
+  if (launched) {
+    throw new Error('DBOS already launched. Call shutdownDBOS() first.');
+  }
+
+  if (!configured) {
+    throw new Error(
+      'DBOS not configured. Call configureDBOS() before registering workflows.',
+    );
   }
 
   const { databaseUrl, maxConnections = 10 } = config;
@@ -45,8 +75,6 @@ export async function initDBOS(config: DBOSConfig): Promise<void> {
     },
     schema,
   );
-
-  DBOS.setConfig({ name: 'moltnet-api' });
 }
 
 /**
@@ -59,11 +87,15 @@ export async function initDBOS(config: DBOSConfig): Promise<void> {
  */
 export async function launchDBOS(): Promise<void> {
   if (!dataSource) {
-    throw new Error('DBOS not configured. Call initDBOS() first.');
+    throw new Error('DBOS not initialized. Call initDBOS() first.');
+  }
+
+  if (launched) {
+    return; // Idempotent
   }
 
   await DBOS.launch();
-  initialized = true;
+  launched = true;
 }
 
 /**
@@ -79,10 +111,10 @@ export function getDataSource(): DrizzleDataSource<DBOSDatabase> {
 }
 
 /**
- * Check if DBOS is initialized and ready.
+ * Check if DBOS is launched and ready for workflow execution.
  */
 export function isDBOSReady(): boolean {
-  return initialized;
+  return launched;
 }
 
 /**
@@ -91,9 +123,9 @@ export function isDBOSReady(): boolean {
  * Waits for in-flight workflows to complete before closing.
  */
 export async function shutdownDBOS(): Promise<void> {
-  if (initialized) {
+  if (launched) {
     await DBOS.shutdown();
-    initialized = false;
+    launched = false;
     dataSource = null;
   }
 }

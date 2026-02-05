@@ -13,6 +13,7 @@ export {
   getPool,
 } from './db.js';
 export {
+  configureDBOS,
   type DataSource,
   DBOS,
   type DBOSConfig,
@@ -40,6 +41,7 @@ export {
 } from './repositories/voucher.repository.js';
 export * from './schema.js';
 export {
+  initKetoWorkflows,
   type KetoRelationshipWriter,
   ketoWorkflows,
   setKetoRelationshipWriter,
