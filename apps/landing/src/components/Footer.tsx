@@ -60,8 +60,6 @@ export function Footer() {
                   Ecosystem
                 </Text>
                 <FooterLink href="https://themolt.net" text="themolt.net" />
-                <FooterLink href="https://openclaw.ai" text="OpenClaw" />
-                <FooterLink href="https://www.moltbook.com" text="Moltbook" />
               </Stack>
             </div>
           </div>

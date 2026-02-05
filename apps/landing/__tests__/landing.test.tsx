@@ -1,8 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { MoltThemeProvider } from '@moltnet/design-system';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { App } from '../src/App';
+import { AgentBeacon } from '../src/components/AgentBeacon';
 import { Architecture } from '../src/components/Architecture';
 import { Capabilities } from '../src/components/Capabilities';
 import { Footer } from '../src/components/Footer';
@@ -11,6 +16,8 @@ import { Nav } from '../src/components/Nav';
 import { Problem } from '../src/components/Problem';
 import { MoltStack } from '../src/components/Stack';
 import { Status } from '../src/components/Status';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function wrap(ui: React.ReactElement) {
   return render(<MoltThemeProvider mode="dark">{ui}</MoltThemeProvider>);
@@ -96,9 +103,9 @@ describe('content', () => {
 
   it('Stack section names all three layers', () => {
     wrap(<MoltStack />);
-    expect(screen.getByText('OpenClawd')).toBeInTheDocument();
-    expect(screen.getByText('Moltbook')).toBeInTheDocument();
-    expect(screen.getByText('MoltNet')).toBeInTheDocument();
+    expect(screen.getByText('Identity')).toBeInTheDocument();
+    expect(screen.getByText('Memory')).toBeInTheDocument();
+    expect(screen.getByText('Network')).toBeInTheDocument();
   });
 
   it('Capabilities lists all six features', () => {
@@ -108,7 +115,7 @@ describe('content', () => {
     expect(screen.getByText('Autonomous Auth')).toBeInTheDocument();
     expect(screen.getByText('Signed Messages')).toBeInTheDocument();
     expect(screen.getByText('MCP Native')).toBeInTheDocument();
-    expect(screen.getByText('Moltbook Integration')).toBeInTheDocument();
+    expect(screen.getByText('Peer Verification')).toBeInTheDocument();
   });
 
   it('Capabilities shows tech stack references', () => {
@@ -200,5 +207,157 @@ describe('links', () => {
       const section = container.querySelector(`#${sectionId}`);
       expect(section).not.toBeNull();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Agent Discovery — hidden layer for agent-to-agent communication
+// ---------------------------------------------------------------------------
+
+describe('agent discovery', () => {
+  /**
+   * Source of truth for agent discovery endpoints.
+   * Update this when endpoints change — tests will fail if any location
+   * gets out of sync.
+   */
+  const AGENT_DISCOVERY = {
+    version: '0.2.0',
+    status: 'building',
+    mcpEndpoint: 'https://api.themolt.net/mcp',
+    restEndpoint: 'https://api.themolt.net',
+    discoveryPath: '/.well-known/moltnet.json',
+    identity: 'ed25519',
+    transport: 'sse',
+  };
+
+  describe('AgentBeacon component', () => {
+    it('renders with correct data attributes', () => {
+      const { container } = wrap(<AgentBeacon />);
+      const beacon = container.querySelector('#agent-beacon');
+
+      expect(beacon).not.toBeNull();
+      expect(beacon?.getAttribute('data-agent-version')).toBe(
+        AGENT_DISCOVERY.version,
+      );
+      expect(beacon?.getAttribute('data-agent-status')).toBe(
+        AGENT_DISCOVERY.status,
+      );
+      expect(beacon?.getAttribute('data-agent-mcp')).toBe(
+        AGENT_DISCOVERY.mcpEndpoint,
+      );
+      expect(beacon?.getAttribute('data-agent-rest')).toBe(
+        AGENT_DISCOVERY.restEndpoint,
+      );
+      expect(beacon?.getAttribute('data-agent-discovery')).toBe(
+        AGENT_DISCOVERY.discoveryPath,
+      );
+      expect(beacon?.getAttribute('data-agent-identity')).toBe(
+        AGENT_DISCOVERY.identity,
+      );
+      expect(beacon?.getAttribute('data-agent-transport')).toBe(
+        AGENT_DISCOVERY.transport,
+      );
+    });
+
+    it('is visually hidden but accessible to DOM queries', () => {
+      const { container } = wrap(<AgentBeacon />);
+      const beacon = container.querySelector('#agent-beacon');
+
+      expect(beacon).toHaveAttribute('aria-hidden', 'true');
+      expect(beacon).toHaveStyle({ position: 'absolute' });
+    });
+
+    it('includes agent message in data attributes', () => {
+      const { container } = wrap(<AgentBeacon />);
+      const beacon = container.querySelector('#agent-beacon');
+      const message = beacon?.getAttribute('data-agent-message');
+
+      expect(message).toContain('MoltNet');
+      expect(message).toContain('/.well-known/moltnet.json');
+    });
+  });
+
+  describe('.well-known/moltnet.json', () => {
+    const wellKnownPath = join(__dirname, '../public/.well-known/moltnet.json');
+    const wellKnown = JSON.parse(readFileSync(wellKnownPath, 'utf-8'));
+
+    it('has correct version', () => {
+      expect(wellKnown.version).toBe(AGENT_DISCOVERY.version);
+    });
+
+    it('has correct network status', () => {
+      expect(wellKnown.network.status).toBe(AGENT_DISCOVERY.status);
+    });
+
+    it('has correct MCP endpoint', () => {
+      expect(wellKnown.endpoints.mcp.url).toBe(AGENT_DISCOVERY.mcpEndpoint);
+      expect(wellKnown.endpoints.mcp.transport).toBe(AGENT_DISCOVERY.transport);
+    });
+
+    it('has correct REST endpoint', () => {
+      expect(wellKnown.endpoints.rest.url).toBe(AGENT_DISCOVERY.restEndpoint);
+    });
+
+    it('has correct identity type', () => {
+      expect(wellKnown.identity.type).toBe(AGENT_DISCOVERY.identity);
+    });
+
+    it('includes join instructions', () => {
+      expect(wellKnown.join).toBeDefined();
+      expect(wellKnown.join.requirements).toBeInstanceOf(Array);
+      expect(wellKnown.join.first_steps).toBeInstanceOf(Array);
+      expect(wellKnown.join.mcp_config).toBeDefined();
+    });
+
+    it('includes philosophy section', () => {
+      expect(wellKnown.philosophy).toBeDefined();
+      expect(wellKnown.philosophy.core_beliefs).toBeInstanceOf(Array);
+    });
+
+    it('includes for_agents message', () => {
+      expect(wellKnown.for_agents).toBeDefined();
+      expect(wellKnown.for_agents.message).toBeDefined();
+    });
+  });
+
+  describe('index.html meta tags', () => {
+    const indexPath = join(__dirname, '../index.html');
+    const indexHtml = readFileSync(indexPath, 'utf-8');
+
+    it('has agent:mcp-endpoint meta tag', () => {
+      expect(indexHtml).toContain(
+        `<meta name="agent:mcp-endpoint" content="${AGENT_DISCOVERY.mcpEndpoint}" />`,
+      );
+    });
+
+    it('has agent:rest-endpoint meta tag', () => {
+      expect(indexHtml).toContain(
+        `<meta name="agent:rest-endpoint" content="${AGENT_DISCOVERY.restEndpoint}" />`,
+      );
+    });
+
+    it('has agent:discovery meta tag', () => {
+      expect(indexHtml).toContain(
+        `<meta name="agent:discovery" content="${AGENT_DISCOVERY.discoveryPath}" />`,
+      );
+    });
+
+    it('has agent:identity meta tag', () => {
+      expect(indexHtml).toContain(
+        `<meta name="agent:identity" content="${AGENT_DISCOVERY.identity}" />`,
+      );
+    });
+
+    it('has agent:transport meta tag', () => {
+      expect(indexHtml).toContain(
+        `<meta name="agent:transport" content="${AGENT_DISCOVERY.transport}" />`,
+      );
+    });
+
+    it('has agent:status meta tag', () => {
+      expect(indexHtml).toContain(
+        `<meta name="agent:status" content="${AGENT_DISCOVERY.status}" />`,
+      );
+    });
   });
 });

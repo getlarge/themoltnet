@@ -51,9 +51,9 @@ const workstreams = [
   },
   {
     id: 'WS8',
-    name: 'OpenClawd Skill',
+    name: 'Agent Skill',
     status: 'pending' as const,
-    detail: 'Agent runtime integration',
+    detail: 'Runtime integration for agent platforms',
   },
   {
     id: 'WS9',
