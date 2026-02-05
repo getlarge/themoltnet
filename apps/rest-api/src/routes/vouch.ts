@@ -19,6 +19,10 @@ export async function vouchRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/vouch',
     {
+      // Apply stricter rate limit for voucher issuance (trust graph protection)
+      config: {
+        rateLimit: fastify.rateLimitConfig?.vouch,
+      },
       schema: {
         operationId: 'issueVoucher',
         tags: ['vouch'],

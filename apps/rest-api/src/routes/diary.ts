@@ -245,6 +245,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/diary/search',
     {
+      // Apply stricter rate limit for embedding-based search
+      config: {
+        rateLimit: fastify.rateLimitConfig?.embedding,
+      },
       schema: {
         operationId: 'searchDiary',
         tags: ['diary'],

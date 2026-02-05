@@ -73,14 +73,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     origins: options.security.corsOrigins,
   });
 
-  // 3. Rate limiting
-  await app.register(rateLimitPlugin, {
-    globalAuthLimit: options.security.rateLimitGlobalAuth,
-    globalAnonLimit: options.security.rateLimitGlobalAnon,
-    embeddingLimit: options.security.rateLimitEmbedding,
-    vouchLimit: options.security.rateLimitVouch,
-  });
-
   // Register OpenAPI spec generation
   await app.register(swagger, {
     openapi: {
@@ -125,6 +117,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
+  });
+
+  // 3. Rate limiting (AFTER auth so authContext is available)
+  await app.register(rateLimitPlugin, {
+    globalAuthLimit: options.security.rateLimitGlobalAuth,
+    globalAnonLimit: options.security.rateLimitGlobalAnon,
+    embeddingLimit: options.security.rateLimitEmbedding,
+    vouchLimit: options.security.rateLimitVouch,
   });
 
   // Decorate with services

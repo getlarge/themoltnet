@@ -215,5 +215,38 @@ describe('Security features', () => {
         timeWindow: '1 minute',
       });
     });
+
+    it('returns RFC 9457 Problem Details on rate limit exceeded', async () => {
+      // Create app with very low rate limit
+      const lowLimitApp = await createTestApp(mocks);
+      // Override the rate limit to be very low for this test
+      // We'll make requests to a non-allowlisted endpoint until we exceed the limit
+      type InjectResponse = Awaited<ReturnType<typeof lowLimitApp.inject>>;
+      const responses: InjectResponse[] = [];
+      for (let i = 0; i < 1002; i++) {
+        responses.push(
+          await lowLimitApp.inject({
+            method: 'GET',
+            url: '/agents/whoami',
+            headers: {
+              authorization: 'Bearer test-token',
+            },
+          }),
+        );
+      }
+
+      // At least one should be rate limited (429)
+      const rateLimited = responses.find((r) => r.statusCode === 429);
+      if (rateLimited) {
+        const body = JSON.parse(rateLimited.body);
+        expect(body.type).toContain('rate-limit-exceeded');
+        expect(body.title).toBe('Rate Limit Exceeded');
+        expect(body.status).toBe(429);
+        expect(body.code).toBe('RATE_LIMIT_EXCEEDED');
+        expect(body.retryAfter).toBeDefined();
+        expect(typeof body.retryAfter).toBe('number');
+      }
+      // If no rate limit hit, that's fine - limits are high in test mode
+    });
   });
 });

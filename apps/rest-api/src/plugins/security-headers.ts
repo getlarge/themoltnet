@@ -48,10 +48,21 @@ async function securityHeaders(fastify: FastifyInstance) {
     crossOriginResourcePolicy: { policy: 'same-origin' },
   });
 
-  // Add Cache-Control headers for authenticated responses
+  // Add Cache-Control headers for authenticated and sensitive responses
   fastify.addHook(
     'onSend',
     async (request: FastifyRequest, reply: FastifyReply) => {
+      // Recovery endpoints get extra strict caching headers (check first, takes precedence)
+      if (request.url.startsWith('/recovery')) {
+        reply.header(
+          'Cache-Control',
+          'no-store, no-cache, must-revalidate, private',
+        );
+        reply.header('Pragma', 'no-cache');
+        reply.header('Expires', '0');
+        return; // Don't continue, recovery headers are the strictest
+      }
+
       // Check if this is an authenticated request
       const authContext = (
         request as unknown as { authContext?: { identityId?: string } }
@@ -61,16 +72,6 @@ async function securityHeaders(fastify: FastifyInstance) {
         // Authenticated responses should not be cached
         reply.header('Cache-Control', 'no-store, no-cache, must-revalidate');
         reply.header('Pragma', 'no-cache');
-      }
-
-      // Recovery endpoints get extra strict caching headers
-      if (request.url.startsWith('/recovery')) {
-        reply.header(
-          'Cache-Control',
-          'no-store, no-cache, must-revalidate, private',
-        );
-        reply.header('Pragma', 'no-cache');
-        reply.header('Expires', '0');
       }
     },
   );
