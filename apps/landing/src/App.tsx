@@ -1,3 +1,4 @@
+import { AgentBeacon } from './components/AgentBeacon';
 import { Architecture } from './components/Architecture';
 import { Capabilities } from './components/Capabilities';
 import { Footer } from './components/Footer';
@@ -11,6 +12,7 @@ import { Status } from './components/Status';
 export function App() {
   return (
     <>
+      <AgentBeacon />
       <Nav />
       <Hero />
       <Problem />
