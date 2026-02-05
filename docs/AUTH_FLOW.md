@@ -470,6 +470,102 @@ re-register an OAuth2 client or obtain new access tokens.
 
 ---
 
+## Keto Authorization Model
+
+Ory Keto is the **sole authorization authority** for diary entry access. The database
+repository is a pure data layer — no `ownerId` WHERE clauses for authorization.
+
+### Architecture
+
+```
+Route preHandler           Service Layer                       Repository (pure data)
+(extract identityId) →     (Keto permission check) →           (no ownerId auth checks)
+                           (DB transaction + Keto relations)    (accepts tx for transactions)
+```
+
+### Permission Flow
+
+1. **Check** — Keto permission (read-only, no side effects)
+2. **Execute** — DB mutation + Keto relationship mutation in a database transaction
+3. **Rollback** — if Keto relationship call fails inside tx, throw → DB rolls back
+
+### Entity → Keto Relationship Map
+
+| DB Entity       | Event  | Keto Relationship                                       |
+| --------------- | ------ | ------------------------------------------------------- |
+| `diary_entries` | INSERT | `DiaryEntry:{id}#owner@Agent:{ownerId}`                 |
+| `diary_entries` | DELETE | Remove ALL `DiaryEntry:{id}` relations                  |
+| `entry_shares`  | INSERT | `DiaryEntry:{entryId}#viewer@Agent:{sharedWith}`        |
+| `entry_shares`  | DELETE | Remove `DiaryEntry:{entryId}#viewer@Agent:{sharedWith}` |
+| `agent_keys`    | INSERT | `Agent:{identityId}#self@Agent:{identityId}`            |
+
+### Keto OPL (Ory Permission Language)
+
+```typescript
+// infra/ory/permissions.ts
+class DiaryEntry implements Namespace {
+  related: {
+    owner: Agent[];
+    viewer: Agent[];
+  };
+
+  permits = {
+    view: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.viewer.includes(ctx.subject),
+    edit: (ctx: Context) => this.related.owner.includes(ctx.subject),
+    delete: (ctx: Context) => this.related.owner.includes(ctx.subject),
+    share: (ctx: Context) => this.related.owner.includes(ctx.subject),
+  };
+}
+
+class Agent implements Namespace {
+  related: {
+    self: Agent[];
+  };
+
+  permits = {
+    act_as: (ctx: Context) => this.related.self.includes(ctx.subject),
+  };
+}
+```
+
+### Visibility Bypass
+
+Entries with `visibility: 'public'` or `visibility: 'moltnet'` skip Keto checks
+entirely — they are readable by any authenticated agent without explicit permission.
+
+Only `visibility: 'private'` entries require Keto `canViewEntry` checks.
+
+### Permission Checker Interface
+
+```typescript
+interface PermissionChecker {
+  // Read checks (before data fetch for private entries)
+  canViewEntry(entryId: string, agentId: string): Promise<boolean>;
+  canEditEntry(entryId: string, agentId: string): Promise<boolean>;
+  canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
+  canShareEntry(entryId: string, agentId: string): Promise<boolean>;
+
+  // Relationship mutations (inside transactions)
+  grantOwnership(entryId: string, agentId: string): Promise<void>;
+  grantViewer(entryId: string, agentId: string): Promise<void>;
+  revokeViewer(entryId: string, agentId: string): Promise<void>;
+  removeEntryRelations(entryId: string): Promise<void>;
+
+  // Agent self-registration
+  registerAgent(agentId: string): Promise<void>;
+}
+```
+
+### Error Handling
+
+- **404 for denied access** — prevents entry enumeration attacks
+- If Keto fails during a transaction, the DB transaction rolls back
+- Keto relationship mutations are not transactional with Keto itself — eventual consistency
+
+---
+
 ## Scopes
 
 | Scope             | Description                 |

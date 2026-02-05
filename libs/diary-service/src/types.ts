@@ -65,17 +65,28 @@ export interface Digest {
   generatedAt: string;
 }
 
+/**
+ * Database executor type — either the main database or a transaction.
+ * Drizzle's PgTransaction extends PgDatabase, so both share the same API.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DatabaseExecutor = any;
+
 // Minimal interfaces for dependency injection (avoids importing database/auth packages)
 export interface DiaryRepository {
-  create(entry: {
-    ownerId: string;
-    content: string;
-    title?: string | null;
-    visibility?: 'private' | 'moltnet' | 'public';
-    tags?: string[] | null;
-    embedding?: number[] | null;
-  }): Promise<DiaryEntry>;
-  findById(id: string, requesterId: string): Promise<DiaryEntry | null>;
+  transaction<T>(fn: (tx: DatabaseExecutor) => Promise<T>): Promise<T>;
+  create(
+    entry: {
+      ownerId: string;
+      content: string;
+      title?: string | null;
+      visibility?: 'private' | 'moltnet' | 'public';
+      tags?: string[] | null;
+      embedding?: number[] | null;
+    },
+    tx?: DatabaseExecutor,
+  ): Promise<DiaryEntry>;
+  findById(id: string): Promise<DiaryEntry | null>;
   list(options: ListInput): Promise<DiaryEntry[]>;
   search(options: {
     ownerId: string;
@@ -87,7 +98,6 @@ export interface DiaryRepository {
   }): Promise<DiaryEntry[]>;
   update(
     id: string,
-    ownerId: string,
     updates: Partial<{
       title: string | null;
       content: string;
@@ -95,12 +105,14 @@ export interface DiaryRepository {
       tags: string[] | null;
       embedding: number[] | null;
     }>,
+    tx?: DatabaseExecutor,
   ): Promise<DiaryEntry | null>;
-  delete(id: string, ownerId: string): Promise<boolean>;
+  delete(id: string, tx?: DatabaseExecutor): Promise<boolean>;
   share(
     entryId: string,
     sharedBy: string,
     sharedWith: string,
+    tx?: DatabaseExecutor,
   ): Promise<boolean>;
   getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
   getRecentForDigest(
@@ -111,11 +123,14 @@ export interface DiaryRepository {
 }
 
 export interface PermissionChecker {
+  canViewEntry(entryId: string, agentId: string): Promise<boolean>;
+  canEditEntry(entryId: string, agentId: string): Promise<boolean>;
+  canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
+  canShareEntry(entryId: string, agentId: string): Promise<boolean>;
   grantOwnership(entryId: string, agentId: string): Promise<void>;
   grantViewer(entryId: string, agentId: string): Promise<void>;
   revokeViewer(entryId: string, agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
-  canShareEntry(entryId: string, agentId: string): Promise<boolean>;
 }
 
 export interface DiaryEntry {

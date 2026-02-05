@@ -199,8 +199,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         updates,
       );
 
+      // 404 for denied access is intentional (prevents entry enumeration)
       if (!entry) {
-        throw createProblem('not-found', 'Entry not found or not owned by you');
+        throw createProblem('not-found', 'Entry not found');
       }
 
       return entry;
@@ -231,8 +232,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         request.authContext!.identityId,
       );
 
+      // 404 for denied access is intentional (prevents entry enumeration)
       if (!deleted) {
-        throw createProblem('not-found', 'Entry not found or not owned by you');
+        throw createProblem('not-found', 'Entry not found');
       }
 
       return { success: true };
@@ -439,8 +441,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         { visibility },
       );
 
+      // 404 for denied access is intentional (prevents entry enumeration)
       if (!entry) {
-        throw createProblem('not-found', 'Entry not found or not owned by you');
+        throw createProblem('not-found', 'Entry not found');
       }
 
       return entry;
