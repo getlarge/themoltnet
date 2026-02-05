@@ -25,6 +25,13 @@ import type {
 export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
 export const TEST_RECOVERY_SECRET = 'test-recovery-secret-at-least-16-chars';
 export const TEST_BEARER_TOKEN = 'test-token';
+export const TEST_SECURITY_OPTIONS = {
+  corsOrigins: 'http://localhost:3000,http://localhost:8000',
+  rateLimitGlobalAuth: 1000, // Higher limits for tests
+  rateLimitGlobalAnon: 1000,
+  rateLimitEmbedding: 1000,
+  rateLimitVouch: 1000,
+};
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
@@ -179,6 +186,7 @@ export async function createTestApp(
     webhookApiKey: TEST_WEBHOOK_API_KEY,
     recoverySecret: TEST_RECOVERY_SECRET,
     oryClients: mockOryClients,
+    security: TEST_SECURITY_OPTIONS,
   });
 
   return app;

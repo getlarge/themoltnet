@@ -175,6 +175,13 @@ export async function createTestHarness(): Promise<TestHarness> {
     webhookApiKey: WEBHOOK_API_KEY,
     recoverySecret: RECOVERY_SECRET,
     oryClients,
+    security: {
+      corsOrigins: 'http://localhost:3000,http://localhost:8000',
+      rateLimitGlobalAuth: 1000, // Higher for E2E tests
+      rateLimitGlobalAnon: 1000,
+      rateLimitEmbedding: 1000,
+      rateLimitVouch: 1000,
+    },
     logger: true,
   });
 

@@ -21,6 +21,9 @@
     "test:e2e": "vitest run --config vitest.config.e2e.ts"
   },
   "dependencies": {
+    "@fastify/cors": "catalog:",
+    "@fastify/helmet": "catalog:",
+    "@fastify/rate-limit": "catalog:",
     "@fastify/swagger": "catalog:",
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",

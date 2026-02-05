@@ -9,6 +9,7 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('INVALID_CHALLENGE'),
   Type.Literal('INVALID_SIGNATURE'),
   Type.Literal('VOUCHER_LIMIT'),
+  Type.Literal('RATE_LIMIT_EXCEEDED'),
   Type.Literal('UPSTREAM_ERROR'),
   Type.Literal('INTERNAL_SERVER_ERROR'),
 ]);

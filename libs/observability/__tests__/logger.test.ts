@@ -2,7 +2,7 @@ import { Writable } from 'node:stream';
 
 import { describe, expect, it } from 'vitest';
 
-import { createLogger } from '../src/logger.js';
+import { createLogger, DEFAULT_REDACT_PATHS } from '../src/logger.js';
 
 function createSinkStream(): { stream: Writable; lines: string[] } {
   const lines: string[] = [];
@@ -137,6 +137,155 @@ describe('createLogger', () => {
         expect(record.err.stack).toBeDefined();
         resolve();
       });
+    });
+  });
+
+  describe('redaction', () => {
+    it('should redact authorization header', () => {
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({
+        serviceName: 'test',
+        destination: stream,
+      });
+      logger.info(
+        {
+          req: {
+            headers: {
+              authorization: 'Bearer secret-token-12345',
+              'content-type': 'application/json',
+            },
+          },
+        },
+        'incoming request',
+      );
+
+      return new Promise<void>((resolve) => {
+        setImmediate(() => {
+          const record = JSON.parse(lines[0]);
+          expect(record.req.headers.authorization).toBe('[REDACTED]');
+          expect(record.req.headers['content-type']).toBe('application/json');
+          resolve();
+        });
+      });
+    });
+
+    it('should redact cookie header', () => {
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({
+        serviceName: 'test',
+        destination: stream,
+      });
+      logger.info(
+        {
+          req: {
+            headers: {
+              cookie: 'session=abc123; tracking=xyz789',
+            },
+          },
+        },
+        'incoming request',
+      );
+
+      return new Promise<void>((resolve) => {
+        setImmediate(() => {
+          const record = JSON.parse(lines[0]);
+          expect(record.req.headers.cookie).toBe('[REDACTED]');
+          resolve();
+        });
+      });
+    });
+
+    it('should redact password in request body', () => {
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({
+        serviceName: 'test',
+        destination: stream,
+      });
+      logger.info(
+        {
+          req: {
+            body: {
+              username: 'alice',
+              password: 'super-secret-password',
+            },
+          },
+        },
+        'login attempt',
+      );
+
+      return new Promise<void>((resolve) => {
+        setImmediate(() => {
+          const record = JSON.parse(lines[0]);
+          expect(record.req.body.username).toBe('alice');
+          expect(record.req.body.password).toBe('[REDACTED]');
+          resolve();
+        });
+      });
+    });
+
+    it('should redact x-ory-api-key header', () => {
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({
+        serviceName: 'test',
+        destination: stream,
+      });
+      logger.info(
+        {
+          req: {
+            headers: {
+              'x-ory-api-key': 'ory_at_secret_key',
+            },
+          },
+        },
+        'webhook call',
+      );
+
+      return new Promise<void>((resolve) => {
+        setImmediate(() => {
+          const record = JSON.parse(lines[0]);
+          expect(record.req.headers['x-ory-api-key']).toBe('[REDACTED]');
+          resolve();
+        });
+      });
+    });
+
+    it('should not redact when disableRedaction is true', () => {
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({
+        serviceName: 'test',
+        destination: stream,
+        disableRedaction: true,
+      });
+      logger.info(
+        {
+          req: {
+            headers: {
+              authorization: 'Bearer visible-token',
+            },
+          },
+        },
+        'request',
+      );
+
+      return new Promise<void>((resolve) => {
+        setImmediate(() => {
+          const record = JSON.parse(lines[0]);
+          expect(record.req.headers.authorization).toBe('Bearer visible-token');
+          resolve();
+        });
+      });
+    });
+  });
+
+  describe('DEFAULT_REDACT_PATHS', () => {
+    it('should contain common sensitive paths', () => {
+      expect(DEFAULT_REDACT_PATHS).toContain('req.headers.authorization');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.headers.cookie');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.headers["x-api-key"]');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.headers["x-ory-api-key"]');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.body.password');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.body.token');
+      expect(DEFAULT_REDACT_PATHS).toContain('body.password');
     });
   });
 });

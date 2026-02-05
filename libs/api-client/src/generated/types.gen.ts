@@ -18,6 +18,7 @@ export type ProblemDetails = {
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
     | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
@@ -36,6 +37,7 @@ export type ValidationProblemDetails = {
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
     | 'VOUCHER_LIMIT'
+    | 'RATE_LIMIT_EXCEEDED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
