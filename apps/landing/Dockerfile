@@ -4,9 +4,8 @@
 #   docker build -f apps/landing/Dockerfile .
 
 # ---------- base ----------
-FROM node:20-slim AS base
-ARG NPM_STRICT_SSL=true
-RUN npm config set strict-ssl ${NPM_STRICT_SSL} && npm install -g pnpm@10.28.1
+FROM node:22-slim AS base
+RUN npm install -g pnpm@10.28.1
 WORKDIR /app
 
 # ---------- deps ----------
@@ -16,6 +15,7 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
 
 # Copy all workspace package.json files to leverage Docker layer caching
+COPY apps/server/package.json apps/server/
 COPY apps/rest-api/package.json apps/rest-api/
 COPY apps/mcp-server/package.json apps/mcp-server/
 COPY apps/landing/package.json apps/landing/
@@ -27,9 +27,10 @@ COPY libs/models/package.json libs/models/
 COPY libs/auth/package.json libs/auth/
 COPY libs/diary-service/package.json libs/diary-service/
 COPY libs/api-client/package.json libs/api-client/
+COPY libs/embedding-service/package.json libs/embedding-service/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --ignore-scripts
 
 # ---------- build ----------
 FROM deps AS build
