@@ -63,7 +63,7 @@ export interface AgentRepository {
 }
 
 export interface CryptoService {
-  sign(message: string, privateKey: Uint8Array): Promise<string>;
+  sign(message: string, privateKeyBase64: string): Promise<string>;
   verify(
     message: string,
     signature: string,

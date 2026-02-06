@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/server/**'
+      - 'apps/rest-api/**'
       - 'apps/landing/**'
       - 'libs/**'
       - 'pnpm-lock.yaml'

@@ -61,9 +61,16 @@ export interface AppOptions {
   logger?: boolean;
 }
 
-export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ logger: options.logger ?? false });
-
+/**
+ * Register all REST API middleware and routes on a caller-provided Fastify instance.
+ *
+ * This is the composable entry point: the combined server calls this to mount
+ * the full API on its own Fastify instance alongside static file serving.
+ */
+export async function registerApiRoutes(
+  app: FastifyInstance,
+  options: Omit<AppOptions, 'logger'>,
+): Promise<void> {
   // Register security plugins first (order matters)
   // 1. Security headers (helmet)
   await app.register(securityHeadersPlugin);
@@ -149,6 +156,10 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   });
   await app.register(vouchRoutes);
   await app.register(problemRoutes);
+}
 
+export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
+  const app = Fastify({ logger: options.logger ?? false });
+  await registerApiRoutes(app, options);
   return app;
 }

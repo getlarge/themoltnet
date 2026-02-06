@@ -21,7 +21,15 @@
   },
   "dependencies": {
     "@fastify/static": "catalog:",
-    "@sinclair/typebox": "catalog:",
+    "@moltnet/auth": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@moltnet/diary-service": "workspace:*",
+    "@moltnet/embedding-service": "workspace:*",
+    "@moltnet/observability": "workspace:*",
+    "@moltnet/rest-api": "workspace:*",
+    "@ory/client": "catalog:",
+    "drizzle-orm": "catalog:",
     "fastify": "catalog:"
   },
   "devDependencies": {
