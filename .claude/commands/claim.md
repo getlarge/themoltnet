@@ -40,7 +40,8 @@ If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set:
 
    ```bash
    AGENT_FIELD_ID=$(echo "$FIELDS" | jq -r '.fields[] | select(.name == "Agent") | .id')
-   gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" --field-id "$AGENT_FIELD_ID" --text "$(whoami)-$(date +%s)"
+   AGENT_ID="$(whoami)-$(date +%s)"
+   gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" --field-id "$AGENT_FIELD_ID" --text "$AGENT_ID"
    ```
 
 4. **Assign the issue** (if it's a GitHub issue):
@@ -55,6 +56,32 @@ If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set:
    - Context files (from issue body)
    - Dependencies status
    - What to do next
+
+6. **Write the signal file** (`.agent-claim.json` in the project root) to enable hook-driven lifecycle:
+
+   ```bash
+   cat > .agent-claim.json << 'SIGNAL'
+   {
+     "item_id": "<ITEM_ID from step 3>",
+     "issue_number": <ISSUE_NUMBER>,
+     "branch": "claude/<branch-name>",
+     "agent_id": "<AGENT_ID from step 3>",
+     "phase": "coding",
+     "summary": "",
+     "status": "In Progress",
+     "pr_number": null,
+     "last_check_poll": null
+   }
+   SIGNAL
+   ```
+
+   Replace the placeholders with actual values. The `branch` should match the branch you create for this task. The `summary` will be filled in during `/handoff`.
+
+   **Important**: The signal file drives the post-coding lifecycle. The `phase` field controls what the hooks do:
+   - `coding` — normal development, hooks sync status to board
+   - `ready_for_pr` — on-stop hook creates the PR automatically
+   - `pr_created` — on-idle hook polls CI checks
+   - `done` — on-stop hook closes the issue and cleans up
 
 ## When GitHub Projects is Unavailable
 

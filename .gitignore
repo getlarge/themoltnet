@@ -150,5 +150,8 @@ infra/ory/project.response.json
 # Test results
 test-results/
 
+# Agent signal file (ephemeral, per-session)
+.agent-claim.json
+
 # Git worktrees
 .worktrees/

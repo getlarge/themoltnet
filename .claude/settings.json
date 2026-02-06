@@ -9,6 +9,15 @@
     "feature-dev@claude-code-plugins": true,
     "superpowers@claude-plugins-official": true
   },
+  "permissions": {
+    "allow": [
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue develop:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -29,8 +38,7 @@
           {
             "type": "command",
             "command": "set -a && . $CLAUDE_PROJECT_DIR/env.public && set +a && $CLAUDE_PROJECT_DIR/scripts/agent-sync.sh on-stop",
-            "timeout": 15000,
-            "async": true
+            "timeout": 30000
           }
         ]
       }
