@@ -45,15 +45,25 @@ const entry = await dataSource.runTransaction(
 
 ### Workflow Pattern
 
-Fire durable workflows after DB commits for eventual consistency:
+**CRITICAL**: Schedule durable workflows INSIDE `runTransaction()` for atomicity:
 
 ```typescript
-// DB commit first
-const entry = await dataSource.runTransaction(...);
-
-// Then fire durable workflow (retries automatically)
-await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(entry.id, ownerId);
+// Correct: Workflow scheduling inside transaction
+const entry = await dataSource.runTransaction(
+  async () => {
+    const entry = await diaryRepository.create(entryData, dataSource.client);
+    // Schedule workflow INSIDE the transaction callback
+    await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(entry.id, ownerId);
+    return entry;
+  },
+  { name: 'diary.create' },
+);
 ```
+
+**Why this matters**: If workflow scheduling happens outside the transaction, a crash
+between DB commit and workflow start creates a window where the DB record exists
+but the Keto permission is never granted. Scheduling inside the transaction ensures
+both succeed or both fail together.
 
 ## Workflows & Steps
 
