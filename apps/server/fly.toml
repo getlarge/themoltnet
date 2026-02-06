@@ -11,7 +11,7 @@ primary_region = "fra"  # Frankfurt — EU data residency
 [env]
   PORT = "8080"
   NODE_ENV = "production"
-  ORY_PROJECT_URL = "https://jolly-knuth-51xp4qus6a.projects.oryapis.com"
+  ORY_PROJECT_URL = "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com"
   CORS_ORIGINS = "https://themolt.net,https://api.themolt.net"
 
 [http_service]
