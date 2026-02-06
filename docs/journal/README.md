@@ -64,3 +64,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-05 | progress   | [Agent Discovery Layer](2026-02-05-02-agent-discovery-layer.md)                                                   |
 | 2026-02-05 | progress   | [Security Hardening](2026-02-05-03-security-hardening.md)                                                         |
 | 2026-02-06 | correction | [DBOS Atomicity Fix](2026-02-06-01-dbos-atomicity-fix.md)                                                         |
+| 2026-02-06 | handoff    | [pnpm + TS References + Vite SSR Builds](2026-02-06-01-pnpm-ts-references-vite-ssr.md)                            |
