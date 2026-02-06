@@ -9,7 +9,7 @@
   },
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "build": "tsc -b && pnpm --filter @moltnet/landing build",
+    "build": "pnpm -r run build",
     "postinstall": "update-ts-references",
     "dev:mcp": "pnpm --filter @moltnet/mcp-server dev",
     "dev:api": "pnpm --filter @moltnet/rest-api dev",

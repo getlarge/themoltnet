@@ -12,8 +12,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
-    "customConditions": ["@moltnet/source"]
+    "sourceMap": true
   },
   "files": [],
   "exclude": ["node_modules", "dist", "infra/ory/permissions.ts"],

@@ -46,7 +46,7 @@ pnpm install
 pnpm run lint              # ESLint across all workspaces
 pnpm run typecheck         # tsc -b --emitDeclarationOnly across all workspaces
 pnpm run test              # Vitest across all workspaces
-pnpm run build             # tsc -b (incremental) + vite build for landing
+pnpm run build             # libs: tsc -b, apps: vite build (SSR for Node.js, client for landing)
 pnpm run validate          # All four checks in sequence
 
 # Formatting
@@ -139,8 +139,8 @@ moltnet/
 ## TypeScript Configuration Rules
 
 - **NEVER use `paths` aliases** in any `tsconfig.json` (root or workspace). Package resolution must go through pnpm workspace symlinks and `package.json` `exports`, not TypeScript path mappings.
-- **Conditional exports**: All workspace packages use conditional exports with an `@moltnet/source` condition pointing to `./src/index.ts`, plus `import` and `types` also pointing to source. The `main` and `types` top-level fields point to `./dist/` for fallback/production use. The root `tsconfig.json` has `"customConditions": ["@moltnet/source"]` so TypeScript explicitly resolves via the source condition. Vitest and Vite resolve via the `import` condition (which also points to source).
-- **Incremental builds**: The `build` script uses `tsc -b` (not plain `tsc`) for incremental compilation with `.tsbuildinfo` caching. The root `build` script runs `tsc -b` from root (single invocation, dependency-ordered) then `vite build` for the landing app.
+- **Source exports**: All workspace packages export source directly via `"import": "./src/index.ts"` and `"types": "./src/index.ts"` in conditional exports. The `main` and `types` top-level fields point to `./dist/` as fallback. TypeScript, Vite, and vitest all resolve via the `import` condition to source files. No custom conditions needed.
+- **Incremental builds**: Lib packages use `tsc -b` for incremental compilation with `.tsbuildinfo` caching. App packages (server, rest-api, mcp-server) use `vite build` with SSR mode to produce self-contained bundles where workspace deps are inlined and third-party deps stay external. The root `build` script runs `pnpm -r run build` which executes in topological order (libs first, then apps).
 - **Project references**: The root `tsconfig.json` is a solution file (`files: []` + `references` to all packages). Each workspace tsconfig has `composite: true`. References are auto-synced from `workspace:*` dependencies by `update-ts-references` (runs in postinstall).
 - **Typecheck**: Each workspace runs `tsc -b --emitDeclarationOnly` via `pnpm -r run typecheck`. This emits only `.d.ts` + `.tsbuildinfo` to gitignored `dist/`, which is required because `composite: true` and project references don't support `--noEmit`.
 - **Workspace linking**: `inject-workspace-packages=false` in `.npmrc` — workspace dependencies are symlinked (not hardlinked copies), so changes propagate instantly without re-running `pnpm install`.
@@ -152,11 +152,11 @@ When creating a new `libs/` or `apps/` package:
 1. Add a `tsconfig.json` extending root (`"extends": "../../tsconfig.json"`) with `composite: true`, `outDir` and `rootDir`
    - For frontend apps with JSX: also add `"jsx": "react-jsx"`, `"lib": ["ES2022", "DOM"]`
    - tsconfig `references` are auto-synced by `update-ts-references` on `pnpm install`
-2. Set `main`/`types` to `./dist/index.js`/`./dist/index.d.ts` and `exports` with conditional format:
+2. Set `main`/`types` to `./dist/index.js`/`./dist/index.d.ts` and `exports` with source-direct format:
    ```json
-   "exports": { ".": { "@moltnet/source": "./src/index.ts", "import": "./src/index.ts", "types": "./src/index.ts" } }
+   "exports": { ".": { "import": "./src/index.ts", "types": "./src/index.ts" } }
    ```
-3. Add `"build": "tsc -b"` and `"test": "vitest run --passWithNoTests"` if no tests exist yet
+3. For **libs**: add `"build": "tsc -b"`. For **apps**: add `"build": "vite build"` with a `vite.config.ts` using `build.ssr` for Node.js entry points. Add `"test": "vitest run --passWithNoTests"` if no tests exist yet
 4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
 5. Run `pnpm install` to register the workspace (this also auto-syncs tsconfig references)
 
