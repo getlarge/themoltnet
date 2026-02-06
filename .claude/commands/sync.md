@@ -10,7 +10,7 @@ Check the current coordination state before starting work. Do the following:
    ```
 
    Parse the JSON and report:
-   - Items with Status "Ready" — tasks available to claim
+   - Items with Status "Todo" — tasks available to claim
    - Items with Status "In Progress" — what other agents are working on
    - Items with Status "Done" recently — what was just completed
    - Items with Readiness "Ready for Agent" — validated and ready to pick up

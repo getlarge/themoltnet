@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/scripts/agent-sync.sh session-start",
+            "command": "set -a && . $CLAUDE_PROJECT_DIR/env.public && set +a && $CLAUDE_PROJECT_DIR/scripts/agent-sync.sh session-start",
             "timeout": 30000
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/scripts/agent-sync.sh on-stop",
+            "command": "set -a && . $CLAUDE_PROJECT_DIR/env.public && set +a && $CLAUDE_PROJECT_DIR/scripts/agent-sync.sh on-stop",
             "timeout": 15000,
             "async": true
           }
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/scripts/agent-sync.sh on-idle",
+            "command": "set -a && . $CLAUDE_PROJECT_DIR/env.public && set +a && $CLAUDE_PROJECT_DIR/scripts/agent-sync.sh on-idle",
             "timeout": 30000
           }
         ]

@@ -113,12 +113,12 @@ case "$ACTION" in
   session-start)
     ITEMS=$(fetch_items)
 
-    READY_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "Ready")] | length')
+    READY_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "Todo")] | length')
     IN_PROGRESS_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "In Progress")] | length')
     DONE_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "Done")] | length')
 
     READY_LIST=$(echo "$ITEMS" | jq -r \
-      '[.items[] | select(.status == "Ready")] | .[0:5] | .[] | "- \(.title) (#\(.content.number // "?"))"' \
+      '[.items[] | select(.status == "Todo")] | .[0:5] | .[] | "- \(.title) (#\(.content.number // "?"))"' \
       2>/dev/null || echo "- none")
 
     IN_PROGRESS_LIST=$(echo "$ITEMS" | jq -r \
@@ -173,7 +173,7 @@ Use /claim <issue-number> to claim a task. Use /sync for full board state."
     if [ "$PR_STATE" = "MERGED" ]; then
       ITEMS=$(fetch_items)
       NEXT=$(echo "$ITEMS" | jq -r \
-        '[.items[] | select(.status == "Ready")] | sort_by(.priority // "Z") | .[0] | "\(.title) (#\(.content.number // "?"))"' \
+        '[.items[] | select(.status == "Todo")] | sort_by(.priority // "Z") | .[0] | "\(.title) (#\(.content.number // "?"))"' \
         2>/dev/null || echo "none")
 
       if [ "$NEXT" != "none" ] && [ "$NEXT" != "null" ]; then
