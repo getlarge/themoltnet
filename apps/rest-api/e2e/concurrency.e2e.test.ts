@@ -1,9 +1,10 @@
 /**
  * E2E: Concurrency tests
  *
- * Tests concurrent diary operations to verify atomicity and consistency
- * at the HTTP API level. These tests verify that Keto permissions are
- * immediately available after create/share operations complete.
+ * Tests concurrent diary and voucher operations to verify atomicity and
+ * consistency at the HTTP API level. These tests verify that Keto permissions
+ * are immediately available after create/share operations complete, and that
+ * voucher race conditions are properly handled.
  */
 
 import {
@@ -12,8 +13,11 @@ import {
   createDiaryEntry,
   deleteDiaryEntry,
   getDiaryEntry,
+  issueVoucher,
+  listActiveVouchers,
   shareDiaryEntry,
 } from '@moltnet/api-client';
+import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
@@ -130,6 +134,143 @@ describe('Concurrency and Atomicity', () => {
       });
       expect(data).toBeUndefined();
     }
+  });
+
+  // ── Concurrent Voucher Issuance ────────────────────────────
+
+  describe('concurrent voucher issuance', () => {
+    it('enforces max-5 invariant under concurrent POST /vouch', async () => {
+      // Create a fresh agent so its voucher count starts at 0
+      const freshVoucher = await createTestVoucher({
+        db: harness.db,
+        issuerId: harness.bootstrapIdentityId,
+      });
+      const freshAgent = await createAgent({
+        app: harness.app,
+        baseUrl: harness.baseUrl,
+        identityApi: harness.identityApi,
+        hydraAdminOAuth2: harness.hydraAdminOAuth2,
+        webhookApiKey: harness.webhookApiKey,
+        voucherCode: freshVoucher,
+      });
+
+      // Issue 4 vouchers sequentially
+      for (let i = 0; i < 4; i++) {
+        const { error } = await issueVoucher({
+          client,
+          auth: () => freshAgent.accessToken,
+        });
+        expect(error).toBeUndefined();
+      }
+
+      // Fire 3 concurrent issuance requests — at most 1 should succeed
+      const responses = await Promise.all(
+        Array.from({ length: 3 }, () =>
+          issueVoucher({
+            client,
+            auth: () => freshAgent.accessToken,
+          }),
+        ),
+      );
+
+      const succeeded = responses.filter((r) => r.response.status === 201);
+      const rateLimited = responses.filter((r) => r.response.status === 429);
+
+      // The total active count should never exceed 5
+      const { data: activeList } = await listActiveVouchers({
+        client,
+        auth: () => freshAgent.accessToken,
+      });
+      expect(activeList!.vouchers.length).toBeLessThanOrEqual(5);
+
+      // At most 1 of the concurrent batch should have succeeded
+      expect(succeeded.length).toBeLessThanOrEqual(1);
+      // The rest should be rate-limited (429) or server errors
+      expect(succeeded.length + rateLimited.length).toBe(responses.length);
+    });
+  });
+
+  // ── Concurrent Voucher Redemption ─────────────────────────
+
+  describe('concurrent voucher redemption', () => {
+    it('only one agent registers with the same voucher code', async () => {
+      // Create a single voucher
+      const sharedVoucher = await createTestVoucher({
+        db: harness.db,
+        issuerId: harness.bootstrapIdentityId,
+      });
+
+      // Create two identities that will race to redeem the same voucher
+      const keyPairA = await cryptoService.generateKeyPair();
+      const keyPairB = await cryptoService.generateKeyPair();
+
+      const { data: identityA } = await harness.identityApi.createIdentity({
+        createIdentityBody: {
+          schema_id: 'moltnet_agent',
+          traits: {
+            public_key: keyPairA.publicKey,
+            voucher_code: sharedVoucher,
+          },
+          credentials: {
+            password: { config: { password: 'e2e-race-agent-a' } },
+          },
+        },
+      });
+
+      const { data: identityB } = await harness.identityApi.createIdentity({
+        createIdentityBody: {
+          schema_id: 'moltnet_agent',
+          traits: {
+            public_key: keyPairB.publicKey,
+            voucher_code: sharedVoucher,
+          },
+          credentials: {
+            password: { config: { password: 'e2e-race-agent-b' } },
+          },
+        },
+      });
+
+      // Race: both call the after-registration webhook with the same voucher
+      const [respA, respB] = await Promise.all([
+        fetch(`${harness.baseUrl}/hooks/kratos/after-registration`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ory-api-key': harness.webhookApiKey,
+          },
+          body: JSON.stringify({
+            identity: {
+              id: identityA.id,
+              traits: {
+                public_key: keyPairA.publicKey,
+                voucher_code: sharedVoucher,
+              },
+            },
+          }),
+        }),
+        fetch(`${harness.baseUrl}/hooks/kratos/after-registration`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ory-api-key': harness.webhookApiKey,
+          },
+          body: JSON.stringify({
+            identity: {
+              id: identityB.id,
+              traits: {
+                public_key: keyPairB.publicKey,
+                voucher_code: sharedVoucher,
+              },
+            },
+          }),
+        }),
+      ]);
+
+      const statuses = [respA.status, respB.status].sort();
+
+      // Exactly one should succeed (200), the other should fail (403)
+      expect(statuses).toEqual([200, 403]);
+    });
   });
 
   // ── Sharing Atomicity ──────────────────────────────────────

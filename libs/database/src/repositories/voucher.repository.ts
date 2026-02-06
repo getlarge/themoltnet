@@ -27,38 +27,44 @@ export function createVoucherRepository(db: Database) {
      */
     async issue(issuerId: string): Promise<AgentVoucher | null> {
       // eslint-disable-next-line @typescript-eslint/return-await
-      return await db.transaction(async (tx) => {
-        // Check active voucher count (within transaction)
-        const active = await tx
-          .select()
-          .from(agentVouchers)
-          .where(
-            and(
-              eq(agentVouchers.issuerId, issuerId),
-              isNull(agentVouchers.redeemedAt),
-              gt(agentVouchers.expiresAt, new Date()),
-            ),
-          );
+      return await db.transaction(
+        async (tx) => {
+          // Check active voucher count (within transaction)
+          const active = await tx
+            .select()
+            .from(agentVouchers)
+            .where(
+              and(
+                eq(agentVouchers.issuerId, issuerId),
+                isNull(agentVouchers.redeemedAt),
+                gt(agentVouchers.expiresAt, new Date()),
+              ),
+            );
 
-        if (active.length >= MAX_ACTIVE_VOUCHERS) {
-          return null;
-        }
+          if (active.length >= MAX_ACTIVE_VOUCHERS) {
+            return null;
+          }
 
-        const code = randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + VOUCHER_TTL_MS);
+          const code = randomBytes(32).toString('hex');
+          const expiresAt = new Date(Date.now() + VOUCHER_TTL_MS);
 
-        const [voucher] = await tx
-          .insert(agentVouchers)
-          .values({ code, issuerId, expiresAt })
-          .returning();
+          const [voucher] = await tx
+            .insert(agentVouchers)
+            .values({ code, issuerId, expiresAt })
+            .returning();
 
-        return voucher;
-      });
+          return voucher;
+        },
+        { isolationLevel: 'serializable' },
+      );
     },
 
     /**
      * Validate and redeem a voucher code.
      * Returns the voucher if valid, null if invalid/expired/already-used.
+     *
+     * Uses a single atomic UPDATE with all conditions in the WHERE clause.
+     * Postgres row-level locking ensures only one concurrent caller can win.
      */
     async redeem(
       code: string,
@@ -66,32 +72,14 @@ export function createVoucherRepository(db: Database) {
     ): Promise<AgentVoucher | null> {
       const now = new Date();
 
-      // Find valid voucher: matches code, not redeemed, not expired
-      const [voucher] = await db
-        .select()
-        .from(agentVouchers)
-        .where(
-          and(
-            eq(agentVouchers.code, code),
-            isNull(agentVouchers.redeemedAt),
-            gt(agentVouchers.expiresAt, now),
-          ),
-        )
-        .limit(1);
-
-      if (!voucher) {
-        return null;
-      }
-
-      // Void the voucher
       const [redeemed] = await db
         .update(agentVouchers)
         .set({ redeemedBy, redeemedAt: now })
         .where(
           and(
-            eq(agentVouchers.id, voucher.id),
-            // Re-check not redeemed to prevent race condition
+            eq(agentVouchers.code, code),
             isNull(agentVouchers.redeemedAt),
+            gt(agentVouchers.expiresAt, now),
           ),
         )
         .returning();
