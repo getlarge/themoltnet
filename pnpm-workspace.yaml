@@ -14,7 +14,7 @@ catalog:
   '@hey-api/client-fetch': 0.9.0
   '@hey-api/openapi-ts': 0.89.2
   '@huggingface/transformers': ^3.4.0
-  '@modelcontextprotocol/sdk': ^1.25.0
+  '@modelcontextprotocol/sdk': ^1.26.0
   '@noble/ed25519': ^2.0.0
   '@opentelemetry/api': ^1.7.0
   '@opentelemetry/exporter-metrics-otlp-proto': ^0.57.0
