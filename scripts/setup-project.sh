@@ -102,7 +102,50 @@ create_select_field "Workstream" "WS1,WS2,WS3,WS4,WS5,WS6,WS7,WS8,WS9,WS10,WS11"
 create_text_field "Agent"
 create_text_field "Dependencies"
 
-# --- Step 4: Report ---
+# --- Step 4: Verify built-in workflows ---
+
+log "Checking project workflows..."
+
+PROJECT_ID=$(gh project view "$PROJECT_NUMBER" --owner "$OWNER" --format json | jq -r '.id')
+
+WORKFLOWS=$(gh api graphql -f query="
+{
+  node(id: \"$PROJECT_ID\") {
+    ... on ProjectV2 {
+      workflows(first: 20) {
+        nodes { name enabled }
+      }
+    }
+  }
+}" 2>/dev/null | jq -r '.data.node.workflows.nodes' 2>/dev/null || echo "[]")
+
+EXPECTED_WORKFLOWS=(
+  "Item closed"
+  "Pull request merged"
+  "Item added to project"
+  "Pull request linked to issue"
+  "Auto-close issue"
+  "Item reopened"
+  "Code changes requested"
+  "Code review approved"
+  "Auto-add to project"
+)
+
+DISABLED_WORKFLOWS=()
+for wf_name in "${EXPECTED_WORKFLOWS[@]}"; do
+  ENABLED=$(echo "$WORKFLOWS" | jq -r --arg name "$wf_name" '.[] | select(.name == $name) | .enabled' 2>/dev/null)
+  if [ "$ENABLED" = "true" ]; then
+    ok "  Workflow '${wf_name}': enabled"
+  elif [ -z "$ENABLED" ]; then
+    warn "  Workflow '${wf_name}': not found (may need to be created in UI)"
+    DISABLED_WORKFLOWS+=("$wf_name")
+  else
+    warn "  Workflow '${wf_name}': DISABLED"
+    DISABLED_WORKFLOWS+=("$wf_name")
+  fi
+done
+
+# --- Step 5: Report ---
 
 echo ""
 ok "Project #${PROJECT_NUMBER} is ready: https://github.com/users/${OWNER}/projects/${PROJECT_NUMBER}"
@@ -110,3 +153,21 @@ echo ""
 echo "Add to your env.public:"
 echo "  MOLTNET_PROJECT_NUMBER=${PROJECT_NUMBER}"
 echo "  MOLTNET_PROJECT_OWNER=${OWNER}"
+
+if [ ${#DISABLED_WORKFLOWS[@]} -gt 0 ]; then
+  echo ""
+  warn "Some workflows need manual enabling in the UI:"
+  warn "  https://github.com/users/${OWNER}/projects/${PROJECT_NUMBER}/workflows"
+  echo ""
+  echo "  Enable these workflows and configure their actions:"
+  echo ""
+  echo "  Item closed             → Set Status to 'Done'"
+  echo "  Pull request merged     → Set Status to 'Done'"
+  echo "  Item added to project   → Set Status to 'Todo'"
+  echo "  Item reopened           → Set Status to 'In Progress'"
+  echo "  Pull request linked     → Set Status to 'In Progress'"
+  echo "  Code review approved    → Set Status to 'Done'"
+  echo "  Code changes requested  → Set Status to 'In Progress'"
+  echo "  Auto-close issue        → When Status is 'Done', close issue"
+  echo "  Auto-add to project     → Filter: label:agent-task"
+fi

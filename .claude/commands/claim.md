@@ -56,29 +56,7 @@ If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set:
    - Dependencies status
    - What to do next
 
-## TASKS.md Fallback
+## When GitHub Projects is Unavailable
 
-If GitHub Projects is unavailable, fall back to the original TASKS.md workflow:
-
-**IMPORTANT**: The TASKS.md fallback only works on the **host**, not in Docker sandboxes (git operations required).
-
-If you're in a sandbox and `gh` is unavailable, tell the user: "I'm running in a sandbox without GitHub Projects access. Please claim the task from the host using `/claim <task-name>`, then I can start work."
-
-1. Read `TASKS.md` from the repo root
-2. Find the specified task in the "Available" section
-3. If the task is not in Available, report an error (it may already be claimed or not exist)
-4. Check the task's dependencies — if any are not in the "Completed" section, warn that this task is blocked
-5. Move the task from "Available" to "Active" with:
-   - Agent: your session identifier or model name
-   - Branch: the current git branch name
-   - Status: `in-progress`
-   - Started: today's date
-6. Commit the change: `git add TASKS.md && git commit -m "tasks: claim <task-name>"`
-7. Push: `git push origin HEAD`
-8. Confirm the claim and summarize what you need to do
-
-If the push fails because another agent claimed the same task:
-
-1. Pull the latest TASKS.md: `git pull --rebase`
-2. Check if your task is still available
-3. If not, pick a different available task and ask the user
+If `gh` CLI is not available or `MOLTNET_PROJECT_NUMBER` is not set, tell the user:
+"GitHub Projects access is required for task coordination. Ensure `gh` CLI is installed, authenticated with project scope (`gh auth refresh -s project`), and `MOLTNET_PROJECT_NUMBER` is set in `env.public`."

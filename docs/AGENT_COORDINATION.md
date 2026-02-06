@@ -15,7 +15,7 @@ The solution has four layers:
 | Layer            | Mechanism                              | Purpose                                              |
 | ---------------- | -------------------------------------- | ---------------------------------------------------- |
 | **Isolation**    | Git worktrees                          | Each agent gets its own working directory and branch |
-| **Coordination** | GitHub Projects (`TASKS.md` fallback)  | Single source of truth for who's doing what          |
+| **Coordination** | GitHub Projects                        | Single source of truth for who's doing what          |
 | **Awareness**    | PR monitoring + journal + Claude hooks | Agents check what others have shipped                |
 | **Integration**  | PR-based merge + CI                    | Work merges through reviewed pull requests           |
 
@@ -51,7 +51,7 @@ A branch is just a pointer. Two agents on different branches in the same directo
 cd ../<repo>-auth-library && claude
 
 # Headless (fire and forget)
-cd ../<repo>-auth-library && claude -p "Read TASKS.md, claim your task, implement it, create a PR when done."
+cd ../<repo>-auth-library && claude -p "Run /sync, claim your task, implement it, create a PR when done."
 
 # Background with logging
 cd ../<repo>-auth-library && claude -p "..." > agent-auth.log 2>&1 &
@@ -90,19 +90,19 @@ Or use Dagger's container-use for worktree + container in one step:
 
 ## Layer 2: Coordination with GitHub Projects
 
-GitHub Projects v2 is the primary coordination mechanism. It provides structured fields, a queryable API, and a visual board for human oversight. `TASKS.md` is kept as a fallback for environments without `gh` CLI access.
+GitHub Projects v2 is the coordination mechanism. It provides structured fields, a queryable API, and a visual board for human oversight.
 
 ### Project Board Fields
 
-| Field | Type | Options | Purpose |
-|---|---|---|---|
-| **Status** | Single Select | `Backlog`, `Ready`, `In Progress`, `In Review`, `Done` | Workflow state |
-| **Priority** | Single Select | `P0: Critical`, `P1: High`, `P2: Medium`, `P3: Low` | Urgency |
-| **Readiness** | Single Select | `Draft`, `Needs Spec`, `Ready for Agent` | Triage gate |
-| **Effort** | Single Select | `XS`, `S`, `M`, `L`, `XL` | Scope signal for agents |
-| **Agent** | Text | freetext | Which agent/session claimed it |
-| **Workstream** | Single Select | `WS1`–`WS11` | Maps to FREEDOM_PLAN.md |
-| **Dependencies** | Text | Issue references like `#42, #45` | Blocks tracking |
+| Field            | Type          | Options                                             | Purpose                                          |
+| ---------------- | ------------- | --------------------------------------------------- | ------------------------------------------------ |
+| **Status**       | Single Select | `Todo`, `In Progress`, `Done`                       | Workflow state (default GitHub Project statuses) |
+| **Priority**     | Single Select | `P0: Critical`, `P1: High`, `P2: Medium`, `P3: Low` | Urgency                                          |
+| **Readiness**    | Single Select | `Draft`, `Needs Spec`, `Ready for Agent`            | Triage gate                                      |
+| **Effort**       | Single Select | `XS`, `S`, `M`, `L`, `XL`                           | Scope signal for agents                          |
+| **Agent**        | Text          | freetext                                            | Which agent/session claimed it                   |
+| **Workstream**   | Single Select | `WS1`–`WS11`                                        | Maps to FREEDOM_PLAN.md                          |
+| **Dependencies** | Text          | Issue references like `#42, #45`                    | Blocks tracking                                  |
 
 ### How Agents Interact with the Board
 
@@ -139,56 +139,6 @@ Issues are validated by a triage GitHub Action (`.github/workflows/issue-triage.
 
 Agents should only pick up items where `Readiness == Ready for Agent`.
 
-### TASKS.md Fallback
-
-`TASKS.md` remains as a fallback for environments where `gh` CLI is unavailable (offline, no GitHub token, sandbox without project scope). It follows the same format as before:
-
-### Format
-
-```markdown
-# Tasks
-
-## Active
-
-| Task                | Agent              | Branch              | Status      | Started    |
-| ------------------- | ------------------ | ------------------- | ----------- | ---------- |
-| Build auth library  | claude-session-abc | agent/auth-library  | in-progress | 2026-01-31 |
-| Build diary service | claude-session-def | agent/diary-service | in-progress | 2026-01-31 |
-
-## Completed
-
-| Task                | Agent              | Branch                 | PR  | Merged     |
-| ------------------- | ------------------ | ---------------------- | --- | ---------- |
-| Build observability | claude-session-xyz | claude/manifesto-VKLID | #2  | 2026-01-31 |
-
-## Available
-
-| Task               | Priority | Dependencies                | Context Files      |
-| ------------------ | -------- | --------------------------- | ------------------ |
-| Build MCP server   | high     | auth-library, diary-service | docs/MCP_SERVER.md |
-| Build REST API     | high     | auth-library, diary-service | docs/API.md        |
-| Deploy Ory webhook | medium   | none                        | docs/AUTH_FLOW.md  |
-```
-
-### Rules
-
-1. **Before starting work**: pull latest `TASKS.md`, move your task from Available to Active
-2. **Commit the claim**: push the updated `TASKS.md` so other agents see it
-3. **On completion**: move to Completed with PR link, push
-4. **Check dependencies**: don't start a task whose dependencies aren't in Completed
-5. **Conflicts**: if two agents claim the same task, the first push wins — the second agent picks a different task
-
-### Syncing TASKS.md across worktrees
-
-Worktrees share `.git` but not working files. To see the latest board:
-
-```bash
-# From any worktree
-git fetch origin main && git checkout origin/main -- TASKS.md
-```
-
-Or use the `/sync` custom command (see Layer 3).
-
 ---
 
 ## Layer 3: Awareness Through PR Monitoring
@@ -207,15 +157,15 @@ Install these by copying `.claude/commands/` into your repo. Agents use them as 
 
 #### `/sync` — Check coordination state
 
-Reads `TASKS.md`, lists open PRs, checks CI status. Run this at the start of every session.
+Queries the GitHub Project board, lists open PRs, checks CI status. Run this at the start of every session.
 
 #### `/claim` — Claim a task
 
-Moves a task from Available to Active in `TASKS.md`, commits and pushes the change.
+Claims a task on the GitHub Project board (sets Status to "In Progress" and Agent field).
 
 #### `/handoff` — End-of-session handoff
 
-Writes a journal entry, updates `TASKS.md`, creates a PR if work is ready.
+Writes a journal entry, updates the project board, creates a PR if work is ready.
 
 ### Periodic awareness (for long sessions)
 
@@ -224,7 +174,7 @@ Agents on long-running tasks should re-sync periodically:
 ```
 Every ~30 minutes of work or before starting a new subtask:
 1. git fetch origin main
-2. Check if TASKS.md changed (new completions that unblock you?)
+2. Run /sync to check the project board for status changes
 3. Check if any new PRs touch files you're modifying
 4. If main has changes relevant to your work, rebase
 ```
@@ -254,7 +204,7 @@ All work merges through pull requests. No direct pushes to main.
 
 ## Task
 
-- From TASKS.md: <task name>
+- From project board: <task name> (#<issue number>)
 - Workstream: <WS number if applicable>
 
 ## Changes
@@ -289,9 +239,9 @@ claude -p "Review PR #42. Check for: correctness, test coverage, adherence to pr
 
 You are the orchestrator. Your job is:
 
-1. **Define tasks** — populate the Available section of `TASKS.md`
+1. **Define tasks** — create issues on the GitHub Project board
 2. **Spawn agents** — use `./scripts/orchestrate.sh spawn` for each task
-3. **Monitor progress** — check PRs, read `TASKS.md`, check CI
+3. **Monitor progress** — check PRs, check the project board, check CI
 4. **Resolve conflicts** — when agents step on each other, you decide
 5. **Merge PRs** — you're the final gate (or delegate to a review agent)
 6. **Unblock agents** — when an agent is stuck, provide context or make a decision
@@ -299,9 +249,8 @@ You are the orchestrator. Your job is:
 ### Typical session
 
 ```bash
-# 1. Update the task board
-vim TASKS.md  # add tasks to Available section
-git add TASKS.md && git commit -m "tasks: add WS3 and WS4 tasks" && git push
+# 1. Create issues on the project board (via GitHub UI or gh CLI)
+gh issue create --title "Build auth library" --label agent-task --body "..."
 
 # 2. Spawn agents for independent tasks
 ./scripts/orchestrate.sh spawn auth-library main
@@ -318,7 +267,7 @@ gh run list                      # see CI status
 
 # 5. Merge and iterate
 gh pr merge 5 --squash
-# Update TASKS.md, spawn next wave of agents
+# Spawn next wave of agents
 ```
 
 ### Using tmux for multi-agent management
@@ -357,7 +306,7 @@ Agent B (diary-service):    libs/diary-service/**
 Agent C (mcp-server):       apps/mcp-server/**
 ```
 
-Shared files (`package.json`, `tsconfig.json`, `TASKS.md`) are the main conflict source. Minimize changes to shared files, and when they must change, make them small and atomic.
+Shared files (`package.json`, `tsconfig.json`) are the main conflict source. Minimize changes to shared files, and when they must change, make them small and atomic.
 
 ### Dependency ordering
 
@@ -397,11 +346,11 @@ A typical dev machine can run 3-5 concurrent agents comfortably. More is possibl
 
 ### Across machines
 
-The framework works across machines because git is the coordination layer:
+The framework works across machines because git + GitHub Projects is the coordination layer:
 
 1. All machines clone the same repo
 2. All agents push to the same remote
-3. `TASKS.md` syncs via git push/pull
+3. The project board syncs via `gh` CLI
 4. PRs are visible to everyone via GitHub
 
 No shared filesystem or message bus needed.
@@ -427,21 +376,21 @@ Your CI pipeline is the final arbiter. If an agent's PR passes CI, the code is i
 ### For agents (Claude Code)
 
 ```
-/sync              # Check TASKS.md, open PRs, CI status
-/claim <task>      # Claim a task from TASKS.md
-/handoff           # End session: journal entry + PR + TASKS.md update
+/sync              # Check project board, open PRs, CI status
+/claim <task>      # Claim a task from the project board
+/handoff           # End session: journal entry + board update + PR
 ```
 
 ### For agents (programmatic)
 
 ```bash
 # Start of session
-git fetch origin main
-git checkout origin/main -- TASKS.md
-# Read TASKS.md, find your task, start working
+source env.public
+gh project item-list "$MOLTNET_PROJECT_NUMBER" --owner "$MOLTNET_PROJECT_OWNER" --format json
+# Find an available task, claim it, start working
 
 # End of session
-# Update TASKS.md, commit, push, create PR
+# Update project board status, commit, push, create PR
 gh pr create --title "..." --body "..."
 ```
 
@@ -452,9 +401,9 @@ gh pr create --title "..." --body "..."
 This framework is portable. To use it in another repo:
 
 1. Copy `docs/AGENT_COORDINATION.md` (this file)
-2. Copy `scripts/orchestrate.sh`
+2. Copy `scripts/orchestrate.sh` and `scripts/setup-project.sh`
 3. Copy `.claude/commands/` (sync, claim, handoff)
-4. Create a `TASKS.md` in the repo root
+4. Run `./scripts/setup-project.sh` to create the GitHub Project board
 5. Add a section to your project's `CLAUDE.md` pointing agents to this framework
 
 The journal protocol (`docs/BUILDER_JOURNAL.md`) is optional but recommended for projects where context continuity matters across sessions.

@@ -10,7 +10,7 @@ set -euo pipefail
 #   status                      Full status: worktrees + PRs + CI
 #   teardown <task>             Remove a worktree
 #   teardown-all                Remove all agent worktrees
-#   sync                        Pull latest TASKS.md into current worktree
+#   sync                        Show project board status
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -47,7 +47,7 @@ Commands:
   status                  Full status: worktrees, open PRs, CI runs
   teardown <task>         Remove a specific agent worktree
   teardown-all            Remove all agent worktrees
-  sync                    Fetch and show latest TASKS.md
+  sync                    Show project board status
 
 Examples:
   ./scripts/orchestrate.sh spawn auth-library
@@ -130,14 +130,15 @@ cmd_status() {
     git worktree list
     echo ""
 
-    echo -e "${BOLD}=== TASKS.md Summary ===${NC}"
-    if [ -f "TASKS.md" ]; then
-        # Show Active and Available sections
-        awk '/^## Active/,/^## [A-Z]/{print}' TASKS.md 2>/dev/null | head -20
-        echo "..."
-        awk '/^## Available/,0{print}' TASKS.md 2>/dev/null | head -20
+    echo -e "${BOLD}=== Project Board ===${NC}"
+    if command -v gh &>/dev/null && [ -n "${MOLTNET_PROJECT_NUMBER:-}" ]; then
+        gh project item-list "${MOLTNET_PROJECT_NUMBER}" \
+            --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" \
+            --format json 2>/dev/null \
+            | jq -r '.items[] | "\(.status // "?") | \(.title) (#\(.content.number // "?"))"' 2>/dev/null \
+            || warn "Could not fetch project board"
     else
-        warn "No TASKS.md found"
+        warn "MOLTNET_PROJECT_NUMBER not set — run: source env.public"
     fi
     echo ""
 
@@ -214,10 +215,15 @@ cmd_sync() {
     log "Fetching latest from origin/main..."
     git fetch origin main 2>/dev/null || warn "Could not fetch origin/main"
 
-    if git show origin/main:TASKS.md &>/dev/null; then
-        git show origin/main:TASKS.md
+    if command -v gh &>/dev/null && [ -n "${MOLTNET_PROJECT_NUMBER:-}" ]; then
+        log "Project board items:"
+        gh project item-list "${MOLTNET_PROJECT_NUMBER}" \
+            --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" \
+            --format json 2>/dev/null \
+            | jq -r '.items[] | "\(.status // "?") | \(.title) (#\(.content.number // "?"))"' 2>/dev/null \
+            || warn "Could not fetch project board"
     else
-        warn "No TASKS.md found on origin/main"
+        warn "MOLTNET_PROJECT_NUMBER not set — run: source env.public"
     fi
 }
 
