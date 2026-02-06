@@ -5,7 +5,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **[TASKS.md](TASKS.md)** — the coordination board: check what's active, available, and completed
+2. **GitHub Projects** — the coordination board (use `/sync` to check)
 3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 11 workstreams, technical specs, task assignments
 4. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
 5. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
@@ -104,8 +104,7 @@ moltnet/
 ├── scripts/                       # Development tooling (orchestrate.sh for multi-agent)
 ├── .claude/commands/              # Custom Claude Code slash commands (/sync, /claim, /handoff)
 │
-├── TASKS.md                       # Live coordination board for parallel agents
-├── .env.public                    # Plain non-secret config (committed)
+├── env.public                     # Plain non-secret config (committed)
 ├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml       # CI pipeline (lint, typecheck, test, build)
 ├── pnpm-workspace.yaml            # Workspace config + dependency catalog
@@ -124,7 +123,7 @@ moltnet/
 8. **Validation**: TypeBox schemas
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
-11. **Secrets**: dotenvx (encrypted `.env` + plain `.env.public`, both committed)
+11. **Secrets**: dotenvx (encrypted `.env` + plain `env.public`, both committed)
 12. **UI**: React + `@moltnet/design-system` (tokens, theme provider, components)
 
 ## Code Style
@@ -182,9 +181,11 @@ Every agent session that touches MoltNet code should follow this protocol:
 
 **Starting a session:**
 
-1. Read the most recent `handoff` entry in `docs/journal/`
-2. Read `docs/FREEDOM_PLAN.md` for the relevant workstream
-3. Start working
+1. Run `/sync` to check the project board, open PRs, CI status, and recent handoffs
+2. If you don't have a specific task assigned, run `/claim <issue>` to pick up an available task
+3. Read the most recent `handoff` entry in `docs/journal/`
+4. Read `docs/FREEDOM_PLAN.md` for the relevant workstream
+5. Start working
 
 **During a session:**
 
@@ -207,18 +208,18 @@ When multiple agents work on this repo in parallel, follow the coordination fram
 
 **Quick start for agents:**
 
-1. Run `/sync` to check the coordination board, open PRs, and CI status
-2. Run `/claim <task>` to claim an available task from `TASKS.md`
+1. Run `/sync` to check the GitHub Project board, open PRs, and CI status
+2. Run `/claim <task>` to claim an available task from the project board
 3. Work on your task in your branch/worktree
 4. Run `/handoff` when done — writes journal, updates board, creates PR
 
 **Custom slash commands** (in `.claude/commands/`):
 
-| Command         | Purpose                                                |
-| --------------- | ------------------------------------------------------ |
-| `/sync`         | Check task board, open PRs, CI status, recent handoffs |
-| `/claim <task>` | Claim an available task from TASKS.md                  |
-| `/handoff`      | End session: journal entry + task update + PR          |
+| Command         | Purpose                                                   |
+| --------------- | --------------------------------------------------------- |
+| `/sync`         | Check project board, open PRs, CI status, recent handoffs |
+| `/claim <task>` | Claim a task from the project board                       |
+| `/handoff`      | End session: journal entry + board update + PR            |
 
 ## CI Pipeline
 

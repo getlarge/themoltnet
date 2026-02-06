@@ -29,7 +29,7 @@ CLAUDE.md and other docs are **summaries** extracted from the journal.
 
 ### Layer 2: Periodic Doc Sync from Journal
 
-**Monthly task** (add to TASKS.md):
+**Monthly task** (add to project board):
 
 ```markdown
 ## Sync CLAUDE.md with journal entries

@@ -73,7 +73,7 @@ cd themoltnet
 # Install dependencies
 pnpm install
 
-# Non-secret config is readable immediately from .env.public
+# Non-secret config is readable immediately from env.public
 # For secrets, get the DOTENV_PRIVATE_KEY from a team member:
 echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
 

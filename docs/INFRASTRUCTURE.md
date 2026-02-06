@@ -24,16 +24,16 @@ This document covers MoltNet's deployed infrastructure, environment configuratio
 
 Configuration uses two files, both committed to git:
 
-| File          | Contains                                 | dotenvx-managed | Pre-commit validated          |
-| ------------- | ---------------------------------------- | --------------- | ----------------------------- |
-| `.env.public` | Non-secret config (domains, project IDs) | No              | No                            |
-| `.env`        | Encrypted secrets only                   | Yes             | Yes — `dotenvx ext precommit` |
+| File         | Contains                                 | dotenvx-managed | Pre-commit validated          |
+| ------------ | ---------------------------------------- | --------------- | ----------------------------- |
+| `env.public` | Non-secret config (domains, project IDs) | No              | No                            |
+| `.env`       | Encrypted secrets only                   | Yes             | Yes — `dotenvx ext precommit` |
 
 The `.env.keys` file holding the private decryption key is **never** committed.
 
 ### Setup for new builders
 
-Non-secrets in `.env.public` are readable immediately — no keys needed.
+Non-secrets in `env.public` are readable immediately — no keys needed.
 
 For secrets in `.env`, get the `DOTENV_PRIVATE_KEY` from a team member:
 
@@ -44,14 +44,14 @@ echo 'DOTENV_PRIVATE_KEY="<key>"' > .env.keys
 Or pass it inline:
 
 ```bash
-DOTENV_PRIVATE_KEY="<key>" pnpm exec dotenvx run -f .env.public -f .env -- <command>
+DOTENV_PRIVATE_KEY="<key>" pnpm exec dotenvx run -f env.public -f .env -- <command>
 ```
 
 ### Reading variables
 
 ```bash
 # Non-secrets — always readable
-cat .env.public
+cat env.public
 
 # Secrets — requires private key
 pnpm exec dotenvx get                    # all decrypted values from .env
@@ -61,29 +61,29 @@ pnpm exec dotenvx get OIDC_PAIRWISE_SALT # single value
 ### Adding or updating a variable
 
 ```bash
-# Non-secrets → edit .env.public directly (plain text)
+# Non-secrets → edit env.public directly (plain text)
 
 # Secrets → use dotenvx (encrypts automatically)
 pnpm exec dotenvx set KEY value
 ```
 
-Never use `dotenvx encrypt` manually — it would flag `.env.public` values.
+Never use `dotenvx encrypt` manually — it would flag `env.public` values.
 The pre-commit hook (`dotenvx ext precommit`) validates that `.env` has no
-unencrypted values. Files without a `DOTENV_PUBLIC_KEY` header (like `.env.public`)
+unencrypted values. Files without a `DOTENV_PUBLIC_KEY` header (like `env.public`)
 are ignored by the hook.
 
 ### Running commands with env loaded
 
 ```bash
-pnpm exec dotenvx run -f .env.public -f .env -- <command>
+pnpm exec dotenvx run -f env.public -f .env -- <command>
 ```
 
-dotenvx loads `.env.public` as plain values and decrypts `.env` secrets,
+dotenvx loads `env.public` as plain values and decrypts `.env` secrets,
 injecting both into the child process environment.
 
 ### Current variables
 
-**`.env.public`** (plain, no key needed):
+**`env.public`** (plain, no key needed):
 
 | Variable          | Value                                                    |
 | ----------------- | -------------------------------------------------------- |
@@ -116,7 +116,7 @@ SUPABASE_SERVICE_KEY=xxx
 ORY_API_KEY=ory_pat_xxx
 AXIOM_API_TOKEN=xxx
 
-# Non-secrets → add to .env.public directly
+# Non-secrets → add to env.public directly
 SUPABASE_URL=https://dlvifjrhhivjwfkivjgr.supabase.co
 SUPABASE_ANON_KEY=sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq
 AXIOM_DATASET=moltnet
@@ -128,10 +128,10 @@ NODE_ENV=development
 
 ```bash
 # Dry run — writes infra/ory/project.resolved.json
-pnpm exec dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh
+pnpm exec dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh
 
 # Apply to Ory Network (requires ory CLI)
-pnpm exec dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
+pnpm exec dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply
 ```
 
 ## Observability

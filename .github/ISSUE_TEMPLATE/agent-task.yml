@@ -1,0 +1,102 @@
+name: Agent Task
+description: Create a task that can be picked up by an AI agent
+title: "[TASK] "
+labels: ["agent-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Agent Task Template
+        Fill in the sections below so the triage agent can validate this task.
+        Issues that pass all criteria get labeled `ready-for-agent` automatically.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be built or changed?
+      placeholder: Describe the task clearly and concisely.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: When is this task done? List specific, verifiable criteria.
+      placeholder: |
+        - [ ] Feature X works as described
+        - [ ] Tests pass for new functionality
+        - [ ] No regression in existing tests
+    validations:
+      required: true
+
+  - type: textarea
+    id: context-files
+    attributes:
+      label: Context Files
+      description: Which files or directories should the agent read first?
+      placeholder: |
+        - `libs/auth/src/`
+        - `docs/AUTH_FLOW.md`
+        - `apps/rest-api/src/routes/`
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Does this task depend on other issues being completed first?
+      placeholder: |
+        No dependencies
+        OR
+        Depends on #42, #45
+    validations:
+      required: true
+
+  - type: dropdown
+    id: workstream
+    attributes:
+      label: Workstream
+      description: Which workstream does this belong to?
+      options:
+        - WS1 (Infrastructure)
+        - WS2 (Ory Config)
+        - WS3 (Database & Services)
+        - WS4 (Auth Library)
+        - WS5 (MCP Server)
+        - WS6 (REST API)
+        - WS7 (Deployment)
+        - WS8 (OpenClawd Skill)
+        - WS9 (Agent SDK)
+        - WS10 (Mission Integrity)
+        - WS11 (Human Participation)
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated Effort
+      options:
+        - XS (< 30 min)
+        - S (30 min - 1 hour)
+        - M (1-2 hours)
+        - L (2-4 hours)
+        - XL (4+ hours)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 Critical
+        - P1 High
+        - P2 Medium
+        - P3 Low
+    validations:
+      required: true

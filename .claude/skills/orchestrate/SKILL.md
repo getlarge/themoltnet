@@ -2,14 +2,9 @@
 
 You are the orchestrator's automation layer. The human orchestrator runs `/orchestrate` to get help analyzing the task board, planning parallel work distribution, spawning agent worktrees, generating agent prompts, monitoring progress, and cleaning up after waves complete.
 
-**Context**: This project uses git worktrees for agent isolation, `TASKS.md` as the coordination board, and `scripts/orchestrate.sh` for worktree mechanics. Agent-side commands (`/sync`, `/claim`, `/handoff`) already exist. This skill automates the human side.
+**Context**: This project uses git worktrees for agent isolation, GitHub Projects as the coordination board, and `scripts/orchestrate.sh` for worktree mechanics. Agent-side commands (`/sync`, `/claim`, `/handoff`) already exist. This skill automates the human side.
 
-**Task Sources**: The skill pulls tasks from two sources:
-
-1. **`TASKS.md`** (primary) — the coordination board agents read/write directly
-2. **GitHub Issues** (supplementary) — richer metadata via labels, milestones, assignees
-
-When both sources exist, merge them: `TASKS.md` is authoritative for agent coordination (claim/handoff), but Issues can surface tasks not yet added to the board.
+**Task Source**: GitHub Projects (the project board with structured fields: Status, Priority, Readiness, Effort, Agent, Workstream, Dependencies). Requires `gh` CLI and `MOLTNET_PROJECT_NUMBER` env var (set in `env.public`).
 
 ## How to Respond
 
@@ -21,86 +16,52 @@ When the user invokes this skill, determine which action they want based on thei
 
 **Triggers**: "what's ready?", "what can we parallelize?", "analyze tasks", "show dependencies", or invoked with no specific request.
 
-Parse `TASKS.md` and GitHub Issues, then classify every available task into one of three categories.
+Query the GitHub Project board and classify every item into one of three categories.
 
 ### Gathering Tasks
 
-#### From TASKS.md
-
-Read `TASKS.md` and extract tasks from Available, Active, and Completed sections as described below.
-
-#### From GitHub Issues
-
-Run:
-
 ```bash
-gh issue list --state open --limit 50 --json number,title,labels,assignees,milestone,body
+gh project item-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json
 ```
 
-For each open issue:
+This returns items with their project fields (Status, Priority, Readiness, Effort, Agent, etc.).
 
-- **Labels** map to task metadata:
-  - `agent-task` or `task` — marks it as an agent-distributable task
-  - `priority:high`, `priority:medium`, `priority:low` — maps to Priority column
-  - `ready` — no unmet dependencies
-  - `blocked` — has unmet dependencies
-  - `workstream:N` or `WS<N>` in the title — maps to workstream
-- **Assignees** — if assigned to a user/bot, treat as Active (equivalent to claimed)
-- **Milestone** — can indicate wave grouping
-- **Body** — look for a `## Dependencies` or `Depends on:` section listing issue numbers or task names. Also look for `## Context Files` listing file paths.
+### Dependency Resolution
 
-#### Merging Sources
+For each item with Status "Todo":
 
-1. Match issues to TASKS.md entries by normalized name (strip `WS\d+:\s*`, lowercase, hyphens).
-2. If a task exists in both: TASKS.md status wins (it's what agents actually read), but enrich with any extra metadata from the issue (labels, body details).
-3. If a task exists only in Issues (with `agent-task` or `task` label): include it in the analysis with a note: `(from issue #N — not yet in TASKS.md)`. The Plan action will offer to add it.
-4. If a task exists only in TASKS.md: use it as-is — not every task needs a corresponding issue.
+1. Read the **Dependencies** text field.
+2. If empty or "none" → **ready**.
+3. If it references issue numbers (e.g., `#42, #45`), check if those issues are closed:
 
-### Dependency Resolution Algorithm
+   ```bash
+   gh issue view <NUMBER> --repo getlarge/themoltnet --json state -q '.state'
+   ```
 
-1. Read the **Completed** section of `TASKS.md`. Extract task names into a set called `completed`. Normalize each name: strip any `WS\d+:\s*` prefix, lowercase, replace spaces with hyphens (e.g., "Observability library" -> "observability-library").
+   - All closed → **ready**
+   - Some open but assigned → **soon** (waiting on active work)
+   - Some open and unassigned → **blocked**
 
-2. Read the **Active** section. Extract task names into a set called `active`. Normalize the same way.
-
-3. For each task in the **Available** section:
-   a. Read its raw **Dependencies** column string.
-   b. If the raw string (trimmed, lowercased) is `none` -> the task is **ready**. Stop here.
-   c. **Split first, normalize second** — detect the delimiter on the raw string:
-   - If it contains `or` (space-or-space): split on `or` into tokens.
-   - Else if it contains `,`: split on `,` into tokens.
-   - Else: treat the whole string as a single token.
-     d. **Normalize each token individually**: trim whitespace, strip any `WS\d+:\s*` prefix, lowercase, replace spaces with hyphens.
-     e. **Evaluate**:
-   - For `or` dependencies (ANY required): if **any one** normalized token is in `completed` -> **ready**. Otherwise if any are in `active` -> **soon**. Otherwise -> **blocked**.
-   - For `,` dependencies (ALL required): if **every** normalized token is in `completed` -> **ready**. If every token is in `completed` or `active` -> **soon**. Otherwise -> **blocked**.
-   - For single-token dependencies: if the token is in `completed` -> **ready**. If in `active` -> **soon**. Otherwise -> **blocked**.
-
-4. Check for **file boundary overlaps**: read the Notes column of ready tasks. If two ready tasks mention the same directory (e.g., both touch `libs/diary-service/`), flag them as a potential parallel conflict.
+4. Check for **file boundary overlaps**: read the issue body's Context Files section. If two ready tasks mention the same directory, flag as a potential conflict.
 
 ### Output Format
 
 ```
 ## Task Analysis
 
-### Sources
-- TASKS.md: <N> available, <N> active, <N> completed
-- GitHub Issues: <N> open with agent-task label (<N> new, not in TASKS.md)
+### Board Summary
+- Todo: <N> | In Progress: <N> | Done: <N>
 
 ### Ready (can start now)
-- **<Task Name>** [<Priority>] — <Notes snippet>
+- **<Task Name>** #<N> [<Priority>] [<Effort>]
   Dependencies: none (or all satisfied)
-  File scope: <directories from Notes>
-  Issue: #<N> (if linked) or (TASKS.md only)
+  Context: <files from issue body>
 
 ### Soon (waiting on active work)
-- **<Task Name>** [<Priority>] — waiting on: <active task(s)>
+- **<Task Name>** #<N> [<Priority>] — waiting on: #<dep issue(s)>
 
 ### Blocked (dependencies not started)
-- **<Task Name>** [<Priority>] — needs: <missing dep(s)>
-
-### Not in TASKS.md (from Issues only)
-- **<Issue Title>** #<N> [<priority label>] — <body excerpt>
-  (Add to TASKS.md to make available for agents)
+- **<Task Name>** #<N> [<Priority>] — needs: #<dep issue(s)>
 
 ### Potential Conflicts
 - <Task A> and <Task B> both touch <directory> — consider sequencing
@@ -119,12 +80,11 @@ Present a **wave-based distribution plan**:
 ### Wave Planning Logic
 
 1. Take all **ready** tasks from the analysis.
-2. If any ready tasks came from Issues only (not in TASKS.md), ask: "These tasks from GitHub Issues aren't in TASKS.md yet. Add them to the board?" If yes, append them to the Available section of `TASKS.md` with columns populated from the issue metadata, commit, and push.
-3. Remove any with file boundary conflicts (move the conflicting one to wave 2).
-4. Sort remaining by priority: high > medium > low.
-5. Present as Wave 1.
-6. For **soon** tasks, estimate they'll become ready after Wave 1 completes. Present as Wave 2 candidates.
-7. Note any **blocked** tasks that need manual intervention.
+2. Remove any with file boundary conflicts (move the conflicting one to wave 2).
+3. Sort remaining by priority: high > medium > low.
+4. Present as Wave 1.
+5. For **soon** tasks, estimate they'll become ready after Wave 1 completes. Present as Wave 2 candidates.
+6. Note any **blocked** tasks that need manual intervention.
 
 ### Output Format
 
@@ -247,7 +207,7 @@ For each spawned task, generate a self-contained agent prompt and present it as 
 
 ### Prompt Generation
 
-For each task, build a prompt from TASKS.md columns:
+For each task, build a prompt from the project board item and its linked issue:
 
 ```
 You are an agent working on MoltNet. Your task: <Task Name>.
@@ -364,7 +324,7 @@ Gather and present:
 
    Flag any `agent/*` or `claude/*` remote branches that are fully merged into main — these are leftover from previous waves and can be deleted.
 
-6. **TASKS.md current state**: re-read and summarize Active vs Available.
+6. **Project board state**: query the board and summarize Todo vs In Progress vs Done.
 
 ### Output Format
 
@@ -482,5 +442,4 @@ After cleanup, show:
 - The repo name for worktree paths is derived from the repo root directory name (currently `themoltnet`).
 - Agent prompts should be self-contained — the agent starts fresh with no prior context.
 - When running shell commands, use absolute or repo-relative paths. The orchestrate script is at `scripts/orchestrate.sh`.
-- **GitHub Issues are supplementary**. If `gh` is not available or the repo has no issues, skip the Issues source silently and work from `TASKS.md` alone. Never fail because Issues couldn't be fetched.
-- When adding issue-sourced tasks to `TASKS.md`, use the same table format as existing entries. Derive the Dependencies column from the issue body's dependency section (or `none` if absent).
+- **GitHub Projects is required**. If `gh` is not available or `MOLTNET_PROJECT_NUMBER` is not set, tell the user to set up the project board first (`./scripts/setup-project.sh`).

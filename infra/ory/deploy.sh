@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploy Ory project configuration.
 #
-# Loads public config from .env.public and secrets from .env (encrypted
+# Loads public config from env.public and secrets from .env (encrypted
 # via dotenvx), substitutes them into project.json, and optionally pushes
 # to Ory Network via the CLI.
 #
@@ -9,11 +9,11 @@
 # never needs to be stored or encrypted in any .env file.
 #
 # Usage:
-#   npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh              # dry run
-#   npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply       # push to Ory
+#   npx @dotenvx/dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh              # dry run
+#   npx @dotenvx/dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply       # push to Ory
 #
 # In CI (no .env.keys file):
-#   DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f .env.public -f .env -- ./infra/ory/deploy.sh --apply
+#   DOTENV_PRIVATE_KEY="<key>" npx @dotenvx/dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply
 
 set -euo pipefail
 
@@ -31,7 +31,7 @@ fi
 export IDENTITY_SCHEMA_BASE64
 IDENTITY_SCHEMA_BASE64="$(base64 -w0 "$SCHEMA_FILE" 2>/dev/null || base64 "$SCHEMA_FILE")"
 
-# --- Validate required vars (injected by dotenvx from .env.public + .env) ---
+# --- Validate required vars (injected by dotenvx from env.public + .env) ---
 missing=()
 for var in BASE_DOMAIN APP_BASE_URL API_BASE_URL OIDC_PAIRWISE_SALT ORY_ACTION_API_KEY; do
   if [[ -z "${!var:-}" ]]; then
@@ -43,7 +43,7 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   echo "ERROR: Missing environment variables: ${missing[*]}" >&2
   echo "" >&2
   echo "Run this script through dotenvx:" >&2
-  echo "  npx @dotenvx/dotenvx run -f .env.public -f .env -- $0" >&2
+  echo "  npx @dotenvx/dotenvx run -f env.public -f .env -- $0" >&2
   exit 1
 fi
 
@@ -71,12 +71,12 @@ echo ""
 # --- Optionally apply to Ory Network ---
 if [[ "${1:-}" != "--apply" ]]; then
   echo "Dry run — not applying to Ory Network."
-  echo "To apply: npx @dotenvx/dotenvx run -f .env.public -f .env -- $0 --apply"
+  echo "To apply: npx @dotenvx/dotenvx run -f env.public -f .env -- $0 --apply"
   exit 0
 fi
 
 if [[ -z "${ORY_PROJECT_ID:-}" ]]; then
-  echo "ERROR: ORY_PROJECT_ID must be set in .env.public for --apply" >&2
+  echo "ERROR: ORY_PROJECT_ID must be set in env.public for --apply" >&2
   exit 1
 fi
 

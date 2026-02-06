@@ -1,10 +1,20 @@
 End your session with a proper handoff. Do the following:
 
-1. **Update TASKS.md**:
-   - If your task is complete: move it from "Active" to "Completed" with a PR link
-   - If your task is in progress: update the status description in Active
+1. **Update task status on GitHub Projects** (if available):
 
-2. **Check landing page status**: If workstream progress changed, update `apps/landing/src/components/Status.tsx` (the `workstreams` array) and adjust the test in `apps/landing/__tests__/landing.test.tsx` to match
+   If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set, update the project board:
+
+   ```bash
+   PROJECT_ID=$(gh project view "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json | jq -r '.id')
+   FIELDS=$(gh project field-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json)
+   ITEMS=$(gh project item-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json)
+   ```
+
+   Find the item you were working on (match by issue number or by Agent field containing your identifier).
+   - If your task is **complete** (PR created): update Status to "Done"
+   - If your task is **not complete**: keep Status as "In Progress", note progress in the Agent field
+
+2. **Check landing page status**: If workstream progress changed, update `apps/landing/src/components/Status.tsx` (the `workstreams` array) and adjust the test in `apps/landing/__tests__/landing.test.tsx` to match.
 
 3. **Write a journal handoff entry** in `docs/journal/` following the format in `docs/BUILDER_JOURNAL.md`:
    - What was done this session
@@ -27,16 +37,16 @@ End your session with a proper handoff. Do the following:
 6. **Commit everything**:
 
    ```bash
-   git add TASKS.md docs/journal/
+   git add docs/journal/
    git commit -m "handoff: <brief description of what was accomplished>"
    ```
 
 7. **Create a PR** if the work is ready for review:
 
    ```bash
-   gh pr create --title "<task name>" --body "## Summary\n<what was done>\n\n## Task\nFrom TASKS.md: <task>\n\n## Testing\n- [ ] All tests pass\n- [ ] New tests added"
+   gh pr create --title "<task name>" --body "## Summary\n<what was done>\n\n## Task\nFrom project board: <task> (#<issue>)\n\n## Testing\n- [ ] All tests pass\n- [ ] New tests added"
    ```
 
    If the work is not ready, just push the branch.
 
-8. **Report** the final state: PR URL (if created), branch name, test status, what the next agent should do.
+8. **Report** the final state: PR URL (if created), branch name, test status, project board status, what the next agent should do.
