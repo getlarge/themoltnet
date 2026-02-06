@@ -5,7 +5,7 @@
  * permission checks are handled by the service layer via Keto.
  */
 
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -14,6 +14,11 @@ import {
   entryShares,
   type NewDiaryEntry,
 } from '../schema.js';
+
+// Exclude embedding from read queries — the 384-dim vector is only needed
+// internally for search ordering, never returned to callers.
+const { embedding: _embedding, ...publicColumns } =
+  getTableColumns(diaryEntries);
 
 export interface DiarySearchOptions {
   ownerId: string;
@@ -74,12 +79,12 @@ export function createDiaryRepository(db: Database) {
      */
     async findById(id: string): Promise<DiaryEntry | null> {
       const [entry] = await db
-        .select()
+        .select(publicColumns)
         .from(diaryEntries)
         .where(eq(diaryEntries.id, id))
         .limit(1);
 
-      return entry ?? null;
+      return entry ? { ...entry, embedding: null } : null;
     },
 
     /**
@@ -89,8 +94,8 @@ export function createDiaryRepository(db: Database) {
       const { ownerId, visibility, limit = 20, offset = 0 } = options;
 
       if (visibility && visibility.length > 0) {
-        return db
-          .select()
+        const rows = await db
+          .select(publicColumns)
           .from(diaryEntries)
           .where(
             and(
@@ -101,15 +106,17 @@ export function createDiaryRepository(db: Database) {
           .orderBy(desc(diaryEntries.createdAt))
           .limit(limit)
           .offset(offset);
+        return rows.map((row) => ({ ...row, embedding: null }));
       }
 
-      return db
-        .select()
+      const rows = await db
+        .select(publicColumns)
         .from(diaryEntries)
         .where(eq(diaryEntries.ownerId, ownerId))
         .orderBy(desc(diaryEntries.createdAt))
         .limit(limit)
         .offset(offset);
+      return rows.map((row) => ({ ...row, embedding: null }));
     },
 
     /**
@@ -148,19 +155,20 @@ export function createDiaryRepository(db: Database) {
       // Embedding only → vector similarity search
       if (embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
-        return db
-          .select()
+        const rows = await db
+          .select(publicColumns)
           .from(diaryEntries)
           .where(eq(diaryEntries.ownerId, ownerId))
           .orderBy(sql`${diaryEntries.embedding} <-> ${vectorString}::vector`)
           .limit(limit)
           .offset(offset);
+        return rows.map((row) => ({ ...row, embedding: null }));
       }
 
       // Query only → full-text search
       if (query) {
-        return db
-          .select()
+        const rows = await db
+          .select(publicColumns)
           .from(diaryEntries)
           .where(
             and(
@@ -171,6 +179,7 @@ export function createDiaryRepository(db: Database) {
           .orderBy(desc(diaryEntries.createdAt))
           .limit(limit)
           .offset(offset);
+        return rows.map((row) => ({ ...row, embedding: null }));
       }
 
       // No query/embedding → fall back to list
@@ -245,11 +254,12 @@ export function createDiaryRepository(db: Database) {
 
       const entryIds = shares.map((s) => s.entryId);
 
-      return db
-        .select()
+      const rows = await db
+        .select(publicColumns)
         .from(diaryEntries)
         .where(inArray(diaryEntries.id, entryIds))
         .orderBy(desc(diaryEntries.createdAt));
+      return rows.map((row) => ({ ...row, embedding: null }));
     },
 
     /**
@@ -263,8 +273,8 @@ export function createDiaryRepository(db: Database) {
       const since = new Date();
       since.setDate(since.getDate() - days);
 
-      return db
-        .select()
+      const rows = await db
+        .select(publicColumns)
         .from(diaryEntries)
         .where(
           and(
@@ -274,6 +284,7 @@ export function createDiaryRepository(db: Database) {
         )
         .orderBy(desc(diaryEntries.createdAt))
         .limit(limit);
+      return rows.map((row) => ({ ...row, embedding: null }));
     },
   };
 }
