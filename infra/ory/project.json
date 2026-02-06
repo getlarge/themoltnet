@@ -147,8 +147,7 @@
       "config": {
         "urls": {
           "self": {
-            "issuer": "${APP_BASE_URL}/",
-            "public": "${APP_BASE_URL}/"
+            "issuer": "${APP_BASE_URL}/"
           },
           "consent": "${API_BASE_URL}/oauth2/consent",
           "login": "${API_BASE_URL}/oauth2/login",
@@ -157,7 +156,6 @@
           "post_logout_redirect": "${APP_BASE_URL}/"
         },
         "oauth2": {
-          "expose_internal_errors": false,
           "grant": {
             "jwt": {
               "iat_optional": false,
@@ -167,9 +165,6 @@
           },
           "client_credentials": {
             "default_grant_allowed_scope": false
-          },
-          "session": {
-            "encrypt_at_rest": true
           },
           "pkce": {
             "enforced": true,
