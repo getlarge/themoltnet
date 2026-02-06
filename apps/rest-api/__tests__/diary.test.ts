@@ -348,6 +348,79 @@ describe('Diary routes', () => {
     });
   });
 
+  describe('embedding exclusion', () => {
+    it('does not include embedding in POST /diary/entries response', async () => {
+      const mockEntry = createMockEntry({ embedding: [0.1, 0.2, 0.3] });
+      mocks.diaryService.create.mockResolvedValue(mockEntry);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/diary/entries',
+        headers: authHeaders,
+        payload: { content: 'Test content' },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const body = response.json();
+      expect(body).not.toHaveProperty('embedding');
+    });
+
+    it('does not include embedding in GET /diary/entries response', async () => {
+      const entries = [
+        createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
+        createMockEntry({ id: 'other-id', embedding: [0.4, 0.5, 0.6] }),
+      ];
+      mocks.diaryService.list.mockResolvedValue(entries);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/diary/entries',
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      for (const item of body.items) {
+        expect(item).not.toHaveProperty('embedding');
+      }
+    });
+
+    it('does not include embedding in GET /diary/entries/:id response', async () => {
+      mocks.diaryService.getById.mockResolvedValue(
+        createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diary/entries/${ENTRY_ID}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body).not.toHaveProperty('embedding');
+    });
+
+    it('does not include embedding in POST /diary/search response', async () => {
+      mocks.diaryService.search.mockResolvedValue([
+        createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
+      ]);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/diary/search',
+        headers: authHeaders,
+        payload: { query: 'test' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      for (const result of body.results) {
+        expect(result).not.toHaveProperty('embedding');
+      }
+    });
+  });
+
   describe('PATCH /diary/entries/:id/visibility', () => {
     it('updates visibility', async () => {
       const updated = createMockEntry({ visibility: 'public' });

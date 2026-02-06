@@ -54,6 +54,60 @@ describe('Vouch routes', () => {
       expect(response.json().code).toBe('VOUCHER_LIMIT');
     });
 
+    it('retries on serialization failure and succeeds', async () => {
+      const serializationError = Object.assign(
+        new Error('could not serialize access'),
+        { code: '40001' },
+      );
+      const voucher = createMockVoucher();
+
+      mocks.voucherRepository.issue
+        .mockRejectedValueOnce(serializationError)
+        .mockResolvedValueOnce(voucher);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/vouch',
+        headers: { authorization: 'Bearer test-token' },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(mocks.voucherRepository.issue).toHaveBeenCalledTimes(2);
+    });
+
+    it('rethrows after max serialization retries exhausted', async () => {
+      const serializationError = Object.assign(
+        new Error('could not serialize access'),
+        { code: '40001' },
+      );
+
+      mocks.voucherRepository.issue.mockRejectedValue(serializationError);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/vouch',
+        headers: { authorization: 'Bearer test-token' },
+      });
+
+      expect(response.statusCode).toBe(500);
+      expect(mocks.voucherRepository.issue).toHaveBeenCalledTimes(3);
+    });
+
+    it('does not retry non-serialization errors', async () => {
+      const otherError = new Error('connection refused');
+
+      mocks.voucherRepository.issue.mockRejectedValue(otherError);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/vouch',
+        headers: { authorization: 'Bearer test-token' },
+      });
+
+      expect(response.statusCode).toBe(500);
+      expect(mocks.voucherRepository.issue).toHaveBeenCalledTimes(1);
+    });
+
     it('returns 401 without auth', async () => {
       const unauthApp = await createTestApp(mocks, null);
 

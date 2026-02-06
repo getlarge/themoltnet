@@ -14,6 +14,18 @@ import type { FastifyInstance } from 'fastify';
 import { createProblem } from '../problems/index.js';
 import { VoucherSchema } from '../schemas.js';
 
+/** Postgres SQLSTATE code for serialization failure */
+const SERIALIZATION_FAILURE = '40001';
+const MAX_SERIALIZATION_RETRIES = 3;
+
+function isSerializationFailure(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    (error as Error & { code: string }).code === SERIALIZATION_FAILURE
+  );
+}
+
 export async function vouchRoutes(fastify: FastifyInstance) {
   // ── Issue Voucher ────────────────────────────────────────────
   fastify.post(
@@ -39,23 +51,44 @@ export async function vouchRoutes(fastify: FastifyInstance) {
       preHandler: [requireAuth],
     },
     async (request, reply) => {
-      const voucher = await fastify.voucherRepository.issue(
-        request.authContext!.identityId,
-      );
+      // issue() uses SERIALIZABLE isolation; retry on serialization failure
+      let lastError: unknown;
+      for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt++) {
+        try {
+          const voucher = await fastify.voucherRepository.issue(
+            request.authContext!.identityId,
+          );
 
-      if (!voucher) {
-        throw createProblem(
-          'voucher-limit',
-          'You have reached the maximum number of active vouchers (5). ' +
-            'Wait for existing vouchers to expire or be redeemed.',
-        );
+          if (!voucher) {
+            throw createProblem(
+              'voucher-limit',
+              'You have reached the maximum number of active vouchers (5). ' +
+                'Wait for existing vouchers to expire or be redeemed.',
+            );
+          }
+
+          return await reply.status(201).send({
+            code: voucher.code,
+            expiresAt: voucher.expiresAt.toISOString(),
+            issuedBy: request.authContext!.fingerprint,
+          });
+        } catch (error) {
+          if (!isSerializationFailure(error)) {
+            throw error;
+          }
+          lastError = error;
+          request.log.warn(
+            { attempt: attempt + 1, max: MAX_SERIALIZATION_RETRIES },
+            'Serialization failure in voucher issuance, retrying',
+          );
+        }
       }
-
-      return reply.status(201).send({
-        code: voucher.code,
-        expiresAt: voucher.expiresAt.toISOString(),
-        issuedBy: request.authContext!.fingerprint,
-      });
+      // All retries exhausted
+      request.log.error(
+        { err: lastError },
+        'Voucher issuance failed after max retries',
+      );
+      throw lastError;
     },
   );
 
