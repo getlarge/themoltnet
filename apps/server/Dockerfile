@@ -31,7 +31,7 @@ COPY libs/api-client/package.json libs/api-client/
 COPY libs/embedding-service/package.json libs/embedding-service/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --ignore-scripts
 
 # ---------- build ----------
 FROM deps AS build
