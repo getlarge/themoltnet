@@ -42,7 +42,7 @@ echo "$TASK_ROWS" | while IFS='|' read -r _ task priority deps context notes _; 
   echo "  Context: $context"
 
   # Check if issue already exists with matching title
-  EXISTING=$(gh issue list --repo "$REPO" --search "\"$task\" in:title" --json number --jq '.[0].number' 2>/dev/null || echo "")
+  EXISTING=$(gh issue list --repo "$REPO" --state all --search "\"$task\" in:title" --json number --jq '.[0].number' 2>/dev/null || echo "")
   if [ -n "$EXISTING" ]; then
     echo "  -> Already exists as #${EXISTING}, skipping"
     continue
