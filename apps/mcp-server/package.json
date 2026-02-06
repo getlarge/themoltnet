@@ -13,18 +13,22 @@
   },
   "scripts": {
     "build": "vite build",
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
     "test": "vitest run",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
+    "@sinclair/typebox": "catalog:",
+    "fastify": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "pino-pretty": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "tsx": "catalog:",

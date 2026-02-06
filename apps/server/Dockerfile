@@ -5,8 +5,7 @@
 
 # ---------- base ----------
 FROM node:22-slim AS base
-ARG NPM_STRICT_SSL=true
-RUN npm config set strict-ssl ${NPM_STRICT_SSL} && npm install -g pnpm@10.28.1
+RUN npm install -g pnpm@10.28.1
 WORKDIR /app
 
 # ---------- deps ----------

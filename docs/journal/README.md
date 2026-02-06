@@ -66,3 +66,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-06 | correction | [DBOS Atomicity Fix](2026-02-06-01-dbos-atomicity-fix.md)                                                         |
 | 2026-02-06 | handoff    | [pnpm + TS References + Vite SSR Builds](2026-02-06-01-pnpm-ts-references-vite-ssr.md)                            |
 | 2026-02-06 | handoff    | [GitHub Projects Agent Sync](2026-02-06-02-github-projects-agent-sync.md)                                         |
+| 2026-02-06 | handoff    | [Harden Docker Images](2026-02-06-03-harden-docker-images.md)                                                     |

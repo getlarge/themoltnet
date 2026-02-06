@@ -224,7 +224,7 @@ services:
   # ==========================================================================
   mailslurper:
     image: oryd/mailslurper:latest-smtps
-    profiles: [dev]
+    profiles: [dev, ci]
     ports:
       - '1025:1025' # SMTP
       - '4436:4436' # Web UI
@@ -234,35 +234,24 @@ services:
   # ==========================================================================
   # Application Services (ci profile only)
   # ==========================================================================
-  rest-api:
+  server:
     build:
       context: .
-      dockerfile: apps/rest-api/Dockerfile
+      dockerfile: apps/server/Dockerfile
     profiles: [ci]
     ports:
-      - '${REST_API_PORT:-8000}:8000'
+      - '${SERVER_PORT:-8080}:8080'
     environment:
       NODE_ENV: production
-      PORT: '8000'
-      DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
-      KRATOS_PUBLIC_URL: http://kratos:4433
-      KRATOS_ADMIN_URL: http://kratos:4434
-      HYDRA_PUBLIC_URL: http://hydra:4444
-      HYDRA_ADMIN_URL: http://hydra:4445
-      KETO_READ_URL: http://keto:4466
-      KETO_WRITE_URL: http://keto:4467
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
-    depends_on:
-      app-db:
-        condition: service_healthy
-      kratos:
-        condition: service_healthy
-      hydra:
-        condition: service_healthy
-      keto:
-        condition: service_healthy
+      PORT: '8080'
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8000/health']
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/healthz').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -279,13 +268,19 @@ services:
     environment:
       NODE_ENV: production
       PORT: '8001'
-      REST_API_URL: http://rest-api:8000
+      REST_API_URL: http://server:8080
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on:
-      rest-api:
+      server:
         condition: service_healthy
     healthcheck:
-      test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8001/health']
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8001/healthz').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
