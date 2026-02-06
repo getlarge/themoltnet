@@ -15,7 +15,7 @@ echo "Migrating TASKS.md to GitHub Issues..."
 
 # Parse Available section from TASKS.md
 # Extract rows between ## Available and the next ## or EOF
-awk '/^## Available/,/^## [A-Z]|^$/' TASKS.md | \
+awk '/^## Available/,/^## [A-Z]/' TASKS.md | \
   grep '^|' | \
   grep -v '^| Task' | \
   grep -v '^| ---' | \

@@ -5,7 +5,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **[TASKS.md](TASKS.md)** — the coordination board: check what's active, available, and completed
+2. **GitHub Projects** — the coordination board (use `/sync` to check). **[TASKS.md](TASKS.md)** is the fallback when `gh` CLI is unavailable
 3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 11 workstreams, technical specs, task assignments
 4. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
 5. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
@@ -104,7 +104,7 @@ moltnet/
 ├── scripts/                       # Development tooling (orchestrate.sh for multi-agent)
 ├── .claude/commands/              # Custom Claude Code slash commands (/sync, /claim, /handoff)
 │
-├── TASKS.md                       # Live coordination board for parallel agents
+├── TASKS.md                       # Fallback coordination board (primary: GitHub Projects)
 ├── .env.public                    # Plain non-secret config (committed)
 ├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml       # CI pipeline (lint, typecheck, test, build)
@@ -207,18 +207,18 @@ When multiple agents work on this repo in parallel, follow the coordination fram
 
 **Quick start for agents:**
 
-1. Run `/sync` to check the coordination board, open PRs, and CI status
-2. Run `/claim <task>` to claim an available task from `TASKS.md`
+1. Run `/sync` to check the GitHub Project board, open PRs, and CI status
+2. Run `/claim <task>` to claim an available task from the project board
 3. Work on your task in your branch/worktree
 4. Run `/handoff` when done — writes journal, updates board, creates PR
 
 **Custom slash commands** (in `.claude/commands/`):
 
-| Command         | Purpose                                                |
-| --------------- | ------------------------------------------------------ |
-| `/sync`         | Check task board, open PRs, CI status, recent handoffs |
-| `/claim <task>` | Claim an available task from TASKS.md                  |
-| `/handoff`      | End session: journal entry + task update + PR          |
+| Command         | Purpose                                                             |
+| --------------- | ------------------------------------------------------------------- |
+| `/sync`         | Check project board, open PRs, CI status, recent handoffs           |
+| `/claim <task>` | Claim a task from the project board (falls back to TASKS.md)        |
+| `/handoff`      | End session: journal entry + board update + PR                      |
 
 ## CI Pipeline
 
