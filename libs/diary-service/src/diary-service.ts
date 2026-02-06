@@ -27,9 +27,10 @@
  * ## Transaction Discipline
  *
  * When DBOS DataSource is available:
- * - DB writes run inside `dataSource.runTransaction()` for atomic persistence
- * - Keto relationship mutations run as durable workflows with automatic retry
- * - Pattern: DB commit first, then fire durable Keto workflow (eventual consistency)
+ * - DB writes AND workflow scheduling run inside `dataSource.runTransaction()`
+ * - Keto relationship mutations are durable workflows with automatic retry
+ * - CRITICAL: Workflow scheduling MUST happen inside the transaction callback.
+ *   Scheduling outside creates a crash window where DB commits but Keto is never updated.
  *
  * When DBOS is not available (fallback):
  * - Uses repository transactions with synchronous Keto calls
@@ -96,19 +97,24 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       };
 
       // When DBOS is available, use durable transactions + workflows
+      // CRITICAL: Workflow scheduling MUST happen inside runTransaction for atomicity.
+      // If scheduled outside, a crash between DB commit and workflow start would leave
+      // the entry without Keto permissions.
       if (dataSource) {
-        const entry = await dataSource.runTransaction(
-          async () => diaryRepository.create(entryData, dataSource.client),
+        return dataSource.runTransaction(
+          async () => {
+            const entry = await diaryRepository.create(
+              entryData,
+              dataSource.client,
+            );
+            await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(
+              entry.id,
+              input.ownerId,
+            );
+            return entry;
+          },
           { name: 'diary.create' },
         );
-
-        // Fire durable Keto workflow (retries automatically on failure)
-        await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(
-          entry.id,
-          input.ownerId,
-        );
-
-        return entry;
       }
 
       // Fallback: repository transaction with synchronous Keto call
@@ -197,18 +203,17 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!allowed) return false;
 
       // When DBOS is available, use durable transactions + workflows
+      // CRITICAL: Workflow scheduling MUST happen inside runTransaction for atomicity.
       if (dataSource) {
-        const deleted = await dataSource.runTransaction(
-          async () => diaryRepository.delete(id, dataSource.client),
+        return dataSource.runTransaction(
+          async () => {
+            const deleted = await diaryRepository.delete(id, dataSource.client);
+            if (!deleted) return false;
+            await DBOS.startWorkflow(ketoWorkflows.removeEntryRelations)(id);
+            return true;
+          },
           { name: 'diary.delete' },
         );
-
-        if (!deleted) return false;
-
-        // Fire durable Keto workflow (retries automatically on failure)
-        await DBOS.startWorkflow(ketoWorkflows.removeEntryRelations)(id);
-
-        return true;
       }
 
       // Fallback: repository transaction with synchronous Keto call
@@ -230,27 +235,25 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!canShare) return false;
 
       // When DBOS is available, use durable transactions + workflows
+      // CRITICAL: Workflow scheduling MUST happen inside runTransaction for atomicity.
       if (dataSource) {
-        const shared = await dataSource.runTransaction(
-          async () =>
-            diaryRepository.share(
+        return dataSource.runTransaction(
+          async () => {
+            const shared = await diaryRepository.share(
               entryId,
               sharedBy,
               sharedWith,
               dataSource.client,
-            ),
+            );
+            if (!shared) return false;
+            await DBOS.startWorkflow(ketoWorkflows.grantViewer)(
+              entryId,
+              sharedWith,
+            );
+            return true;
+          },
           { name: 'diary.share' },
         );
-
-        if (!shared) return false;
-
-        // Fire durable Keto workflow (retries automatically on failure)
-        await DBOS.startWorkflow(ketoWorkflows.grantViewer)(
-          entryId,
-          sharedWith,
-        );
-
-        return true;
       }
 
       // Fallback: repository transaction with synchronous Keto call

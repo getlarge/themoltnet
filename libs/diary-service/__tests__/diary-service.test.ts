@@ -656,7 +656,46 @@ describe('DiaryService (DBOS mode)', () => {
       );
     });
 
-    it('fires durable Keto workflow after transaction commits', async () => {
+    it('calls startWorkflow INSIDE runTransaction callback (atomicity)', async () => {
+      const executionOrder: string[] = [];
+      const mockEntry = createMockEntry();
+
+      dataSource.runTransaction.mockImplementation(async (fn) => {
+        executionOrder.push('transaction-start');
+        const result = await fn();
+        executionOrder.push('transaction-end');
+        return result;
+      });
+
+      repo.create.mockResolvedValue(mockEntry);
+      embeddings.embedPassage.mockResolvedValue([]);
+      mockStartWorkflow.mockReturnValue(async () => {
+        executionOrder.push('workflow-started');
+      });
+
+      await service.create({ ownerId: OWNER_ID, content: 'Test' });
+
+      expect(executionOrder).toEqual([
+        'transaction-start',
+        'workflow-started',
+        'transaction-end',
+      ]);
+    });
+
+    it('propagates workflow error (causing transaction rollback)', async () => {
+      const mockEntry = createMockEntry();
+      repo.create.mockResolvedValue(mockEntry);
+      embeddings.embedPassage.mockResolvedValue([]);
+      mockStartWorkflow.mockReturnValue(async () => {
+        throw new Error('Workflow failed');
+      });
+
+      await expect(
+        service.create({ ownerId: OWNER_ID, content: 'Test' }),
+      ).rejects.toThrow('Workflow failed');
+    });
+
+    it('fires durable Keto workflow with correct args', async () => {
       const mockEntry = createMockEntry();
       repo.create.mockResolvedValue(mockEntry);
       embeddings.embedPassage.mockResolvedValue([]);
@@ -690,6 +729,43 @@ describe('DiaryService (DBOS mode)', () => {
       expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
     });
 
+    it('calls startWorkflow INSIDE runTransaction callback (atomicity)', async () => {
+      const executionOrder: string[] = [];
+
+      dataSource.runTransaction.mockImplementation(async (fn) => {
+        executionOrder.push('transaction-start');
+        const result = await fn();
+        executionOrder.push('transaction-end');
+        return result;
+      });
+
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(true);
+      mockStartWorkflow.mockReturnValue(async () => {
+        executionOrder.push('workflow-started');
+      });
+
+      await service.delete(ENTRY_ID, OWNER_ID);
+
+      expect(executionOrder).toEqual([
+        'transaction-start',
+        'workflow-started',
+        'transaction-end',
+      ]);
+    });
+
+    it('propagates workflow error (causing transaction rollback)', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(true);
+      mockStartWorkflow.mockReturnValue(async () => {
+        throw new Error('Workflow failed');
+      });
+
+      await expect(service.delete(ENTRY_ID, OWNER_ID)).rejects.toThrow(
+        'Workflow failed',
+      );
+    });
+
     it('does not fire workflow when delete returns false', async () => {
       permissions.canDeleteEntry.mockResolvedValue(true);
       repo.delete.mockResolvedValue(false);
@@ -717,6 +793,43 @@ describe('DiaryService (DBOS mode)', () => {
       });
       expect(mockWorkflowFn).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
       expect(permissions.grantViewer).not.toHaveBeenCalled();
+    });
+
+    it('calls startWorkflow INSIDE runTransaction callback (atomicity)', async () => {
+      const executionOrder: string[] = [];
+
+      dataSource.runTransaction.mockImplementation(async (fn) => {
+        executionOrder.push('transaction-start');
+        const result = await fn();
+        executionOrder.push('transaction-end');
+        return result;
+      });
+
+      permissions.canShareEntry.mockResolvedValue(true);
+      repo.share.mockResolvedValue(true);
+      mockStartWorkflow.mockReturnValue(async () => {
+        executionOrder.push('workflow-started');
+      });
+
+      await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
+
+      expect(executionOrder).toEqual([
+        'transaction-start',
+        'workflow-started',
+        'transaction-end',
+      ]);
+    });
+
+    it('propagates workflow error (causing transaction rollback)', async () => {
+      permissions.canShareEntry.mockResolvedValue(true);
+      repo.share.mockResolvedValue(true);
+      mockStartWorkflow.mockReturnValue(async () => {
+        throw new Error('Workflow failed');
+      });
+
+      await expect(
+        service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID),
+      ).rejects.toThrow('Workflow failed');
     });
 
     it('does not fire workflow when share returns false', async () => {
