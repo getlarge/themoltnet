@@ -29,7 +29,7 @@ if [[ ! -f "$SCHEMA_FILE" ]]; then
   exit 1
 fi
 export IDENTITY_SCHEMA_BASE64
-IDENTITY_SCHEMA_BASE64="$(base64 -w0 "$SCHEMA_FILE" 2>/dev/null || base64 "$SCHEMA_FILE")"
+IDENTITY_SCHEMA_BASE64="$(base64 -w0 "$SCHEMA_FILE" 2>/dev/null || base64 -i "$SCHEMA_FILE")"
 
 # --- Validate required vars (injected by dotenvx from env.public + .env) ---
 missing=()
@@ -76,15 +76,40 @@ if [[ "${1:-}" != "--apply" ]]; then
 fi
 
 if [[ -z "${ORY_PROJECT_ID:-}" ]]; then
-  echo "ERROR: ORY_PROJECT_ID must be set in env.public for --apply" >&2
+  echo "ERROR: ORY_PROJECT_ID must be set for --apply" >&2
   exit 1
 fi
 
-if ! command -v ory &>/dev/null; then
-  echo "ERROR: ory CLI not found. Install from https://www.ory.sh/docs/guides/cli/installation" >&2
+if [[ -z "${ORY_WORKSPACE_API_KEY:-}" ]]; then
+  echo "ERROR: ORY_WORKSPACE_API_KEY must be set for --apply" >&2
   exit 1
 fi
+
+ORY_API_URL="https://api.console.ory.sh"
+
+RESPONSE_FILE="${SCRIPT_DIR}/project.response.json"
 
 echo "Applying config to Ory project: $ORY_PROJECT_ID ..."
-ory update project "$ORY_PROJECT_ID" --file "$OUTPUT_FILE"
-echo "Done."
+HTTP_CODE=$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" \
+  -X PUT "${ORY_API_URL}/projects/${ORY_PROJECT_ID}" \
+  -H "Authorization: Bearer ${ORY_WORKSPACE_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d @"$OUTPUT_FILE")
+
+if [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]]; then
+  echo "Done. (HTTP $HTTP_CODE)"
+  # Show any warnings from Ory
+  node -e '
+    const r = require(process.argv[1]);
+    if (r.warnings?.length) {
+      console.log("Warnings:");
+      r.warnings.forEach(w => console.log("  -", w.message));
+    }
+  ' "$RESPONSE_FILE" 2>/dev/null || true
+  rm -f "$RESPONSE_FILE"
+else
+  echo "ERROR: Ory API returned HTTP $HTTP_CODE" >&2
+  cat "$RESPONSE_FILE" >&2
+  rm -f "$RESPONSE_FILE"
+  exit 1
+fi

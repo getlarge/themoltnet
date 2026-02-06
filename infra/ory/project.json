@@ -32,7 +32,7 @@
             "password": {
               "enabled": true,
               "config": {
-                "haveibeenpwned_enabled": false,
+                "haveibeenpwned_enabled": true,
                 "min_password_length": 16,
                 "identifier_similarity_check_enabled": false
               }
@@ -135,7 +135,9 @@
         "session": {
           "lifespan": "720h",
           "cookie": {
-            "same_site": "Lax"
+            "same_site": "Lax",
+            "secure": true,
+            "http_only": true
           }
         },
         "courier": {}
@@ -145,8 +147,7 @@
       "config": {
         "urls": {
           "self": {
-            "issuer": "${APP_BASE_URL}/",
-            "public": "${APP_BASE_URL}/"
+            "issuer": "${APP_BASE_URL}/"
           },
           "consent": "${API_BASE_URL}/oauth2/consent",
           "login": "${API_BASE_URL}/oauth2/login",
@@ -155,22 +156,18 @@
           "post_logout_redirect": "${APP_BASE_URL}/"
         },
         "oauth2": {
-          "expose_internal_errors": false,
           "grant": {
             "jwt": {
               "iat_optional": false,
               "jti_optional": false,
-              "max_ttl": "720h"
+              "max_ttl": "2h"
             }
           },
           "client_credentials": {
-            "default_grant_allowed_scope": true
-          },
-          "session": {
-            "encrypt_at_rest": true
+            "default_grant_allowed_scope": false
           },
           "pkce": {
-            "enforced": false,
+            "enforced": true,
             "enforced_for_public_clients": true
           }
         },

@@ -141,8 +141,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Ory resolved config (contains secrets)
+# Ory resolved/response configs (contain secrets)
 infra/ory/project.resolved.json
+infra/ory/project.response.json
 .git.worktree.bak
 .pnpm-store/
 
