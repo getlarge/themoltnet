@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
-    ssr: 'src/index.ts',
+    ssr: 'src/main.ts',
     outDir: 'dist',
   },
 });

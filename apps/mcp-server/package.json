@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "vite build",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/main.ts",
     "start": "node dist/index.js",
     "test": "vitest run",
     "typecheck": "tsc -b --emitDeclarationOnly",
@@ -21,10 +21,14 @@
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
+    "@sinclair/typebox": "catalog:",
+    "fastify": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "pino-pretty": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "tsx": "catalog:",
