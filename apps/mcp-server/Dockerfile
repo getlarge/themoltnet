@@ -2,15 +2,10 @@
 #
 # Build from repo root:
 #   docker build -f apps/mcp-server/Dockerfile .
-#
-# NOTE: The app currently exports a factory function but lacks a main.ts
-# that starts a server. This Dockerfile targets `node dist/index.js` which
-# will work once a main.ts entry point is added.
 
 # ---------- base ----------
-FROM node:20-slim AS base
-ARG NPM_STRICT_SSL=true
-RUN npm config set strict-ssl ${NPM_STRICT_SSL} && npm install -g pnpm@10.28.1
+FROM node:22-slim AS base
+RUN npm install -g pnpm@10.28.1
 WORKDIR /app
 
 # ---------- deps ----------
@@ -20,8 +15,9 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
 
 # Copy all workspace package.json files to leverage Docker layer caching
-COPY apps/rest-api/package.json apps/rest-api/
 COPY apps/mcp-server/package.json apps/mcp-server/
+COPY apps/server/package.json apps/server/
+COPY apps/rest-api/package.json apps/rest-api/
 COPY apps/landing/package.json apps/landing/
 COPY libs/observability/package.json libs/observability/
 COPY libs/crypto-service/package.json libs/crypto-service/
@@ -31,9 +27,10 @@ COPY libs/models/package.json libs/models/
 COPY libs/auth/package.json libs/auth/
 COPY libs/diary-service/package.json libs/diary-service/
 COPY libs/api-client/package.json libs/api-client/
+COPY libs/embedding-service/package.json libs/embedding-service/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --ignore-scripts
 
 # ---------- build ----------
 FROM deps AS build
@@ -43,27 +40,22 @@ COPY . .
 
 RUN pnpm --filter @moltnet/mcp-server run build
 
+# Extract mcp-server with production-only dependencies
+RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /app/deploy
+
 # ---------- production ----------
-FROM base AS production
+# No pnpm needed at runtime — just node
+FROM node:22-slim AS production
 
 ENV NODE_ENV=production
+WORKDIR /app
 
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./
-COPY --from=build /app/pnpm-workspace.yaml ./
-
-# App dist + source (exports point to ./src/index.ts for workspace packages)
-COPY --from=build /app/apps/mcp-server/dist ./apps/mcp-server/dist
-COPY --from=build /app/apps/mcp-server/package.json ./apps/mcp-server/
-
-# Workspace libs source (resolved via pnpm workspace symlinks → src)
-COPY --from=build /app/libs ./libs
-
-# Workspace node_modules (contains symlinks to workspace packages)
-COPY --from=build /app/apps/mcp-server/node_modules ./apps/mcp-server/node_modules
-
-WORKDIR /app/apps/mcp-server
+# MCP server with production-only dependencies (via pnpm deploy)
+COPY --from=build /app/deploy ./
 
 EXPOSE 8001
 
-CMD ["node", "dist/index.js"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "fetch('http://localhost:8001/healthz').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+
+CMD ["node", "dist/main.js"]
