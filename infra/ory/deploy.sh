@@ -85,31 +85,9 @@ if [[ -z "${ORY_WORKSPACE_API_KEY:-}" ]]; then
   exit 1
 fi
 
-ORY_API_URL="https://api.console.ory.sh"
-
-RESPONSE_FILE="${SCRIPT_DIR}/project.response.json"
-
 echo "Applying config to Ory project: $ORY_PROJECT_ID ..."
-HTTP_CODE=$(curl -s -o "$RESPONSE_FILE" -w "%{http_code}" \
-  -X PUT "${ORY_API_URL}/projects/${ORY_PROJECT_ID}" \
-  -H "Authorization: Bearer ${ORY_WORKSPACE_API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d @"$OUTPUT_FILE")
-
-if [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]]; then
-  echo "Done. (HTTP $HTTP_CODE)"
-  # Show any warnings from Ory
-  node -e '
-    const r = require(process.argv[1]);
-    if (r.warnings?.length) {
-      console.log("Warnings:");
-      r.warnings.forEach(w => console.log("  -", w.message));
-    }
-  ' "$RESPONSE_FILE" 2>/dev/null || true
-  rm -f "$RESPONSE_FILE"
-else
-  echo "ERROR: Ory API returned HTTP $HTTP_CODE" >&2
-  cat "$RESPONSE_FILE" >&2
-  rm -f "$RESPONSE_FILE"
-  exit 1
-fi
+# Run ory from /tmp to prevent it from auto-loading the encrypted .env in the
+# repo root, and unset ORY_PROJECT_API_KEY which conflicts with the workspace key.
+(cd /tmp && unset ORY_PROJECT_API_KEY && \
+  ory update project "$ORY_PROJECT_ID" --file "$OUTPUT_FILE" --yes)
+echo "Done."

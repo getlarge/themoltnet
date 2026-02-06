@@ -70,4 +70,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-06 | progress   | [Embedding Vector Leakage Fix](2026-02-06-04-embedding-vector-leakage-fix.md)                                     |
 | 2026-02-06 | handoff    | [Voucher Race Condition Fix](2026-02-06-05-voucher-race-condition-fix.md)                                         |
 | 2026-02-06 | handoff    | [Harden Ory Network Config](2026-02-06-04-harden-ory-configs.md)                                                  |
+| 2026-02-06 | discovery  | [Ory CLI auto-loads .env, breaking dotenvx](2026-02-06-06-ory-cli-dotenvx-fix.md)                                 |
 | 2026-02-06 | handoff    | [Combined Server Deploy](2026-02-06-06-combined-server-deploy.md)                                                 |

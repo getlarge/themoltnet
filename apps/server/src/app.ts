@@ -169,9 +169,15 @@ export async function bootstrap(
       wildcard: false,
     });
 
-    // SPA fallback: serve index.html for unmatched GET requests
+    // SPA fallback: serve index.html for browser navigation only.
+    // API clients (Accept: application/json) get a proper JSON 404.
     app.setNotFoundHandler((request, reply) => {
-      if (request.method === 'GET') {
+      const accept = request.headers.accept ?? '';
+      if (
+        request.method === 'GET' &&
+        accept.includes('text/html') &&
+        !accept.includes('application/json')
+      ) {
         return reply.sendFile('index.html');
       }
       return reply.status(404).send({ error: 'Not Found' });
