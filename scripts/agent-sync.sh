@@ -115,6 +115,7 @@ case "$ACTION" in
 
     READY_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "Todo")] | length')
     IN_PROGRESS_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "In Progress")] | length')
+    IN_REVIEW_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "In Review")] | length')
     DONE_COUNT=$(echo "$ITEMS" | jq '[.items[] | select(.status == "Done")] | length')
 
     READY_LIST=$(echo "$ITEMS" | jq -r \
@@ -125,14 +126,21 @@ case "$ACTION" in
       '[.items[] | select(.status == "In Progress")] | .[] | "- \(.title) (agent: \(.agent // "unassigned"))"' \
       2>/dev/null || echo "- none")
 
+    IN_REVIEW_LIST=$(echo "$ITEMS" | jq -r \
+      '[.items[] | select(.status == "In Review")] | .[] | "- \(.title) (#\(.content.number // "?"))"' \
+      2>/dev/null || echo "- none")
+
     CONTEXT="GitHub Project Board (#${PROJECT_NUMBER}):
-Ready: ${READY_COUNT} items | In Progress: ${IN_PROGRESS_COUNT} | Done: ${DONE_COUNT}
+Ready: ${READY_COUNT} items | In Progress: ${IN_PROGRESS_COUNT} | In Review: ${IN_REVIEW_COUNT} | Done: ${DONE_COUNT}
 
 Available tasks (Ready for Agent):
 ${READY_LIST}
 
 Currently in progress:
 ${IN_PROGRESS_LIST}
+
+In review:
+${IN_REVIEW_LIST}
 
 Use /claim <issue-number> to claim a task. Use /sync for full board state."
 

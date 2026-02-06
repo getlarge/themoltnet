@@ -165,7 +165,7 @@ if [ ${#DISABLED_WORKFLOWS[@]} -gt 0 ]; then
   echo "  Pull request merged     → Set Status to 'Done'"
   echo "  Item added to project   → Set Status to 'Todo'"
   echo "  Item reopened           → Set Status to 'In Progress'"
-  echo "  Pull request linked     → Set Status to 'In Progress'"
+  echo "  Pull request linked     → Set Status to 'In Review'"
   echo "  Code review approved    → Set Status to 'Done'"
   echo "  Code changes requested  → Set Status to 'In Progress'"
   echo "  Auto-close issue        → When Status is 'Done', close issue"

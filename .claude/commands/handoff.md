@@ -11,7 +11,8 @@ End your session with a proper handoff. Do the following:
    ```
 
    Find the item you were working on (match by issue number or by Agent field containing your identifier).
-   - If your task is **complete** (PR created): update Status to "Done"
+   - If your task is **complete and PR created**: update Status to "In Review"
+   - If your task is **complete and PR merged**: update Status to "Done"
    - If your task is **not complete**: keep Status as "In Progress", note progress in the Agent field
 
 2. **Check landing page status**: If workstream progress changed, update `apps/landing/src/components/Status.tsx` (the `workstreams` array) and adjust the test in `apps/landing/__tests__/landing.test.tsx` to match.

@@ -94,15 +94,15 @@ GitHub Projects v2 is the coordination mechanism. It provides structured fields,
 
 ### Project Board Fields
 
-| Field            | Type          | Options                                             | Purpose                                          |
-| ---------------- | ------------- | --------------------------------------------------- | ------------------------------------------------ |
-| **Status**       | Single Select | `Todo`, `In Progress`, `Done`                       | Workflow state (default GitHub Project statuses) |
-| **Priority**     | Single Select | `P0: Critical`, `P1: High`, `P2: Medium`, `P3: Low` | Urgency                                          |
-| **Readiness**    | Single Select | `Draft`, `Needs Spec`, `Ready for Agent`            | Triage gate                                      |
-| **Effort**       | Single Select | `XS`, `S`, `M`, `L`, `XL`                           | Scope signal for agents                          |
-| **Agent**        | Text          | freetext                                            | Which agent/session claimed it                   |
-| **Workstream**   | Single Select | `WS1`–`WS11`                                        | Maps to FREEDOM_PLAN.md                          |
-| **Dependencies** | Text          | Issue references like `#42, #45`                    | Blocks tracking                                  |
+| Field            | Type          | Options                                             | Purpose                        |
+| ---------------- | ------------- | --------------------------------------------------- | ------------------------------ |
+| **Status**       | Single Select | `Todo`, `In Progress`, `In Review`, `Done`          | Workflow state                 |
+| **Priority**     | Single Select | `P0: Critical`, `P1: High`, `P2: Medium`, `P3: Low` | Urgency                        |
+| **Readiness**    | Single Select | `Draft`, `Needs Spec`, `Ready for Agent`            | Triage gate                    |
+| **Effort**       | Single Select | `XS`, `S`, `M`, `L`, `XL`                           | Scope signal for agents        |
+| **Agent**        | Text          | freetext                                            | Which agent/session claimed it |
+| **Workstream**   | Single Select | `WS1`–`WS11`                                        | Maps to FREEDOM_PLAN.md        |
+| **Dependencies** | Text          | Issue references like `#42, #45`                    | Blocks tracking                |
 
 ### How Agents Interact with the Board
 

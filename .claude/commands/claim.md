@@ -15,7 +15,7 @@ If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set:
    Search items for matching issue number or title substring.
 
 2. **Validate readiness**:
-   - The item's Status must be "Todo" (not "In Progress", "Done", etc.)
+   - The item's Status must be "Todo" (not "In Progress", "In Review", "Done", etc.)
    - Warn if Readiness is not "Ready for Agent" — the task may not be well-specified
    - Check the Dependencies text field — if it references issue numbers, verify those issues are closed
 
