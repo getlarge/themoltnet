@@ -367,9 +367,33 @@ importers:
       '@fastify/static':
         specifier: 'catalog:'
         version: 9.0.0
-      '@sinclair/typebox':
+      '@moltnet/auth':
+        specifier: workspace:*
+        version: link:../../libs/auth
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../../libs/database
+      '@moltnet/diary-service':
+        specifier: workspace:*
+        version: link:../../libs/diary-service
+      '@moltnet/embedding-service':
+        specifier: workspace:*
+        version: link:../../libs/embedding-service
+      '@moltnet/observability':
+        specifier: workspace:*
+        version: link:../../libs/observability
+      '@moltnet/rest-api':
+        specifier: workspace:*
+        version: link:../rest-api
+      '@ory/client':
         specifier: 'catalog:'
-        version: 0.32.35
+        version: 1.22.22
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.29.5(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@types/react@19.2.10)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)(react@19.2.4)
       fastify:
         specifier: 'catalog:'
         version: 5.7.4

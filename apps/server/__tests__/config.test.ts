@@ -1,44 +1,35 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadServerConfig } from '../src/config.js';
+import { loadCombinedConfig } from '../src/config.js';
 
-describe('loadServerConfig', () => {
-  it('should apply defaults when env is empty', () => {
-    const config = loadServerConfig({});
-    expect(config.PORT).toBe(8080);
-    expect(config.NODE_ENV).toBe('development');
-    expect(config.STATIC_DIR).toBeUndefined();
+describe('loadCombinedConfig', () => {
+  it('should include staticDir from STATIC_DIR env var', () => {
+    const config = loadCombinedConfig({
+      STATIC_DIR: '/some/path',
+      ORY_ACTION_API_KEY: 'test-key',
+      RECOVERY_CHALLENGE_SECRET: 'secret-at-least-16-chars',
+    });
+    expect(config.staticDir).toBe('/some/path');
   });
 
-  it('should parse PORT from string to number', () => {
-    const config = loadServerConfig({ PORT: '3000' });
-    expect(config.PORT).toBe(3000);
+  it('should set staticDir to undefined when STATIC_DIR is empty', () => {
+    const config = loadCombinedConfig({
+      STATIC_DIR: '',
+      ORY_ACTION_API_KEY: 'test-key',
+      RECOVERY_CHALLENGE_SECRET: 'secret-at-least-16-chars',
+    });
+    expect(config.staticDir).toBeUndefined();
   });
 
-  it('should accept valid NODE_ENV values', () => {
-    expect(loadServerConfig({ NODE_ENV: 'production' }).NODE_ENV).toBe(
-      'production',
-    );
-    expect(loadServerConfig({ NODE_ENV: 'test' }).NODE_ENV).toBe('test');
-    expect(loadServerConfig({ NODE_ENV: 'development' }).NODE_ENV).toBe(
-      'development',
-    );
-  });
-
-  it('should throw on invalid NODE_ENV', () => {
-    expect(() => loadServerConfig({ NODE_ENV: 'staging' })).toThrow(
-      'Invalid server config',
-    );
-  });
-
-  it('should accept STATIC_DIR when provided', () => {
-    const config = loadServerConfig({ STATIC_DIR: '/some/path' });
-    expect(config.STATIC_DIR).toBe('/some/path');
-  });
-
-  it('should ignore empty string values', () => {
-    const config = loadServerConfig({ PORT: '', NODE_ENV: '' });
-    expect(config.PORT).toBe(8080);
-    expect(config.NODE_ENV).toBe('development');
+  it('should delegate to REST API config loaders', () => {
+    const config = loadCombinedConfig({
+      PORT: '9000',
+      NODE_ENV: 'production',
+      ORY_ACTION_API_KEY: 'test-key',
+      RECOVERY_CHALLENGE_SECRET: 'secret-at-least-16-chars',
+    });
+    expect(config.server.PORT).toBe(9000);
+    expect(config.server.NODE_ENV).toBe('production');
+    expect(config.webhook.ORY_ACTION_API_KEY).toBe('test-key');
   });
 });

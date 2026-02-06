@@ -11,6 +11,8 @@ primary_region = "fra"  # Frankfurt — EU data residency
 [env]
   PORT = "8080"
   NODE_ENV = "production"
+  ORY_PROJECT_URL = "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com"
+  CORS_ORIGINS = "https://themolt.net,https://api.themolt.net"
 
 [http_service]
   internal_port = 8080
@@ -29,10 +31,10 @@ primary_region = "fra"  # Frankfurt — EU data residency
   grace_period = "30s"
   interval = "30s"
   method = "GET"
-  path = "/healthz"
+  path = "/health"
   timeout = "5s"
 
 [[vm]]
-  memory = "256mb"
+  memory = "1gb"
   cpu_kind = "shared"
   cpus = 1
