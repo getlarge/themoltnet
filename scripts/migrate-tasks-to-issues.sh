@@ -13,19 +13,25 @@ PROJECT_OWNER="${MOLTNET_PROJECT_OWNER:-getlarge}"
 
 echo "Migrating TASKS.md to GitHub Issues..."
 
-# Parse Available section from TASKS.md
-# Extract rows between ## Available and the next ## or EOF
-awk '/^## Available/,/^## [A-Z]/' TASKS.md | \
-  grep '^|' | \
-  grep -v '^| Task' | \
-  grep -v '^| ---' | \
-while IFS='|' read -r _ task priority deps context notes _; do
-  # Trim whitespace
-  task=$(echo "$task" | xargs)
-  priority=$(echo "$priority" | xargs)
-  deps=$(echo "$deps" | xargs)
-  context=$(echo "$context" | xargs)
-  notes=$(echo "$notes" | xargs)
+# Parse Available section from TASKS.md (from ## Available header to EOF)
+# Note: "## Available" is the last section so we read to EOF with ,0
+TASK_ROWS=$(awk '/^## Available/,0' TASKS.md | grep '^|' | grep -v '^| Task' | grep -v '^| ---' || true)
+
+if [ -z "$TASK_ROWS" ]; then
+  echo "No available tasks found in TASKS.md."
+  echo "Migration complete (nothing to migrate)."
+  exit 0
+fi
+
+trim() { local s="$1"; s="${s#"${s%%[![:space:]]*}"}"; s="${s%"${s##*[![:space:]]}"}"; echo "$s"; }
+
+echo "$TASK_ROWS" | while IFS='|' read -r _ task priority deps context notes _; do
+  # Trim whitespace (pure bash — xargs chokes on backticks in markdown)
+  task=$(trim "$task")
+  priority=$(trim "$priority")
+  deps=$(trim "$deps")
+  context=$(trim "$context")
+  notes=$(trim "$notes")
 
   if [ -z "$task" ]; then continue; fi
 

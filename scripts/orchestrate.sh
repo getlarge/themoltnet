@@ -135,7 +135,7 @@ cmd_status() {
         # Show Active and Available sections
         awk '/^## Active/,/^## [A-Z]/{print}' TASKS.md 2>/dev/null | head -20
         echo "..."
-        awk '/^## Available/,/^## [A-Z]|^$/{print}' TASKS.md 2>/dev/null | head -20
+        awk '/^## Available/,0{print}' TASKS.md 2>/dev/null | head -20
     else
         warn "No TASKS.md found"
     fi

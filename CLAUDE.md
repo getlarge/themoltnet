@@ -105,7 +105,7 @@ moltnet/
 ├── .claude/commands/              # Custom Claude Code slash commands (/sync, /claim, /handoff)
 │
 ├── TASKS.md                       # Fallback coordination board (primary: GitHub Projects)
-├── .env.public                    # Plain non-secret config (committed)
+├── env.public                     # Plain non-secret config (committed)
 ├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml       # CI pipeline (lint, typecheck, test, build)
 ├── pnpm-workspace.yaml            # Workspace config + dependency catalog
@@ -124,7 +124,7 @@ moltnet/
 8. **Validation**: TypeBox schemas
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
-11. **Secrets**: dotenvx (encrypted `.env` + plain `.env.public`, both committed)
+11. **Secrets**: dotenvx (encrypted `.env` + plain `env.public`, both committed)
 12. **UI**: React + `@moltnet/design-system` (tokens, theme provider, components)
 
 ## Code Style
@@ -214,11 +214,11 @@ When multiple agents work on this repo in parallel, follow the coordination fram
 
 **Custom slash commands** (in `.claude/commands/`):
 
-| Command         | Purpose                                                             |
-| --------------- | ------------------------------------------------------------------- |
-| `/sync`         | Check project board, open PRs, CI status, recent handoffs           |
-| `/claim <task>` | Claim a task from the project board (falls back to TASKS.md)        |
-| `/handoff`      | End session: journal entry + board update + PR                      |
+| Command         | Purpose                                                      |
+| --------------- | ------------------------------------------------------------ |
+| `/sync`         | Check project board, open PRs, CI status, recent handoffs    |
+| `/claim <task>` | Claim a task from the project board (falls back to TASKS.md) |
+| `/handoff`      | End session: journal entry + board update + PR               |
 
 ## CI Pipeline
 

@@ -27,7 +27,7 @@ Implemented the full GitHub Projects integration for agent coordination (issue #
 - Project board not yet created on GitHub (requires `gh auth refresh -s project` + running `setup-project.sh`)
 - Labels not yet created (requires running `setup-labels.sh`)
 - TASKS.md items not yet migrated to issues (requires running `migrate-tasks-to-issues.sh`)
-- `MOLTNET_PROJECT_NUMBER` in `.env.public` is empty — needs to be set after project creation
+- `MOLTNET_PROJECT_NUMBER` in `env.public` is empty — needs to be set after project creation
 - The orchestrate skill's Action 2 (Plan) and Action 6 (Cleanup) could be further updated to use `gh project item-add` / `gh project item-edit` instead of TASKS.md edits
 
 ## Current State
@@ -64,7 +64,7 @@ Implemented the full GitHub Projects integration for agent coordination (issue #
    ./scripts/setup-labels.sh
    ./scripts/setup-project.sh
    ```
-2. Set `MOLTNET_PROJECT_NUMBER` in `.env.public`
+2. Set `MOLTNET_PROJECT_NUMBER` in `env.public`
 3. Run migration: `./scripts/migrate-tasks-to-issues.sh --dry-run` then without `--dry-run`
 4. Test the hooks by starting a new Claude Code session and checking if the SessionStart hook fires
 5. Create a test issue using the agent-task template and verify the triage workflow labels it
