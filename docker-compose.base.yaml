@@ -46,9 +46,6 @@ services:
     command: migrate sql -e --yes
     environment:
       DSN: postgres://kratos:kratos_secret@kratos-postgres:5432/kratosdb?sslmode=disable
-    depends_on:
-      kratos-postgres:
-        condition: service_healthy
     restart: on-failure
 
   kratos:
@@ -93,9 +90,6 @@ services:
     command: migrate sql -e --yes
     environment:
       DSN: postgres://hydra:hydra_secret@hydra-postgres:5432/hydradb?sslmode=disable
-    depends_on:
-      hydra-postgres:
-        condition: service_healthy
     restart: on-failure
 
   hydra:
@@ -144,9 +138,6 @@ services:
     volumes:
       - ./infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
-    depends_on:
-      keto-postgres:
-        condition: service_healthy
     restart: on-failure
   keto:
     image: oryd/keto:v0.14.0
@@ -214,15 +205,6 @@ services:
       KETO_READ_URL: http://keto:4466
       KETO_WRITE_URL: http://keto:4467
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
-    depends_on:
-      app-db:
-        condition: service_healthy
-      kratos:
-        condition: service_healthy
-      hydra:
-        condition: service_healthy
-      keto:
-        condition: service_healthy
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8000/health']
       interval: 10s
@@ -243,9 +225,6 @@ services:
       PORT: '8001'
       REST_API_URL: http://rest-api:8000
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
-    depends_on:
-      rest-api:
-        condition: service_healthy
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:8001/health']
       interval: 10s
