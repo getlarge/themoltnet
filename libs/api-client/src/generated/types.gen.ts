@@ -19,6 +19,7 @@ export type ProblemDetails = {
     | 'INVALID_SIGNATURE'
     | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
@@ -38,6 +39,7 @@ export type ValidationProblemDetails = {
     | 'INVALID_SIGNATURE'
     | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
+    | 'SERIALIZATION_EXHAUSTED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
@@ -195,6 +197,10 @@ export type ListDiaryEntriesErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type ListDiaryEntriesError =
@@ -227,6 +233,10 @@ export type CreateDiaryEntryErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type CreateDiaryEntryError =
@@ -260,6 +270,10 @@ export type DeleteDiaryEntryErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type DeleteDiaryEntryError =
@@ -293,6 +307,10 @@ export type GetDiaryEntryErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type GetDiaryEntryError = GetDiaryEntryErrors[keyof GetDiaryEntryErrors];
@@ -330,6 +348,10 @@ export type UpdateDiaryEntryErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type UpdateDiaryEntryError =
@@ -362,6 +384,10 @@ export type SearchDiaryErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type SearchDiaryError = SearchDiaryErrors[keyof SearchDiaryErrors];
@@ -391,6 +417,10 @@ export type ReflectDiaryErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type ReflectDiaryError = ReflectDiaryErrors[keyof ReflectDiaryErrors];
@@ -429,6 +459,10 @@ export type ShareDiaryEntryErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type ShareDiaryEntryError =
@@ -458,6 +492,10 @@ export type GetSharedWithMeErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type GetSharedWithMeError =
@@ -493,6 +531,10 @@ export type SetDiaryEntryVisibilityErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type SetDiaryEntryVisibilityError =
@@ -522,6 +564,10 @@ export type GetAgentProfileErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type GetAgentProfileError =
@@ -554,6 +600,10 @@ export type VerifyAgentSignatureErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type VerifyAgentSignatureError =
@@ -585,6 +635,10 @@ export type GetWhoamiErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type GetWhoamiError = GetWhoamiErrors[keyof GetWhoamiErrors];
@@ -609,6 +663,16 @@ export type VerifyCryptoSignatureData = {
   url: '/crypto/verify';
 };
 
+export type VerifyCryptoSignatureErrors = {
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type VerifyCryptoSignatureError =
+  VerifyCryptoSignatureErrors[keyof VerifyCryptoSignatureErrors];
+
 export type VerifyCryptoSignatureResponses = {
   /**
    * Default Response
@@ -631,6 +695,10 @@ export type GetCryptoIdentityErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type GetCryptoIdentityError =
@@ -667,6 +735,10 @@ export type RequestRecoveryChallengeErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type RequestRecoveryChallengeError =
@@ -715,6 +787,10 @@ export type VerifyRecoveryChallengeErrors = {
   /**
    * Default Response
    */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
   502: ProblemDetails;
 };
 
@@ -747,6 +823,10 @@ export type IssueVoucherErrors = {
    * Default Response
    */
   429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type IssueVoucherError = IssueVoucherErrors[keyof IssueVoucherErrors];
@@ -773,6 +853,10 @@ export type ListActiveVouchersErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
 };
 
 export type ListActiveVouchersError =
@@ -796,6 +880,15 @@ export type GetTrustGraphData = {
   query?: never;
   url: '/vouch/graph';
 };
+
+export type GetTrustGraphErrors = {
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetTrustGraphError = GetTrustGraphErrors[keyof GetTrustGraphErrors];
 
 export type GetTrustGraphResponses = {
   /**

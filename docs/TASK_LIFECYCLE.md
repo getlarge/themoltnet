@@ -8,15 +8,15 @@ This document describes the automated task lifecycle system built on Claude Code
 
 ## Participants
 
-| Actor | What it is | Role |
-|---|---|---|
-| **Agent** | Claude Code session | Claims tasks, writes code, writes signal file, responds to prompts |
-| **Hook (`on-stop`)** | `agent-sync.sh on-stop`, runs after every agent response | Creates PRs, closes issues, syncs board status |
-| **Hook (`on-idle`)** | `agent-sync.sh on-idle`, runs when session is idle | Polls CI checks, detects PR merge, prompts agent |
-| **Hook (`session-start`)** | `agent-sync.sh session-start`, runs once on startup | Injects project board context into session |
-| **Signal File** | `.agent-claim.json` in project root | Ephemeral state machine driving hook behavior |
-| **GitHub** | Issues, PRs, Actions CI, Projects board | Source of truth for tasks, code review, CI status |
-| **Human** | The orchestrator | Merges PRs, confirms issue closure, spawns agents |
+| Actor                      | What it is                                               | Role                                                               |
+| -------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Agent**                  | Claude Code session                                      | Claims tasks, writes code, writes signal file, responds to prompts |
+| **Hook (`on-stop`)**       | `agent-sync.sh on-stop`, runs after every agent response | Creates PRs, closes issues, syncs board status                     |
+| **Hook (`on-idle`)**       | `agent-sync.sh on-idle`, runs when session is idle       | Polls CI checks, detects PR merge, prompts agent                   |
+| **Hook (`session-start`)** | `agent-sync.sh session-start`, runs once on startup      | Injects project board context into session                         |
+| **Signal File**            | `.agent-claim.json` in project root                      | Ephemeral state machine driving hook behavior                      |
+| **GitHub**                 | Issues, PRs, Actions CI, Projects board                  | Source of truth for tasks, code review, CI status                  |
+| **Human**                  | The orchestrator                                         | Merges PRs, confirms issue closure, spawns agents                  |
 
 ---
 
@@ -26,24 +26,24 @@ This document describes the automated task lifecycle system built on Claude Code
 stateDiagram-v2
     [*] --> coding : /claim writes signal file
 
-    coding --> coding : on-stop skips sync<br/>(status unchanged)
-    coding --> ready_for_pr : Agent runs /handoff<br/>(sets phase + summary)
+    coding --> coding : on-stop skips sync\n(status unchanged)
+    coding --> ready_for_pr : Agent runs /handoff\n(sets phase + summary)
 
-    ready_for_pr --> pr_created : on-stop calls create_pr()<br/>(gh pr create, board → In Review)
-    ready_for_pr --> ready_for_pr : on-stop fails<br/>(missing branch/summary)
+    ready_for_pr --> pr_created : on-stop calls create_pr()\n(gh pr create, board → In Review)
+    ready_for_pr --> ready_for_pr : on-stop fails\n(missing branch/summary)
 
-    pr_created --> checks_running : on-idle calls poll_checks()<br/>(CI still running or failing)
+    pr_created --> checks_running : on-idle calls poll_checks()\n(CI still running or failing)
     pr_created --> merged_detected : on-idle detects PR merged
 
-    checks_running --> checks_running : on-idle re-polls<br/>(2 min backoff)
+    checks_running --> checks_running : on-idle re-polls\n(2 min backoff)
     checks_running --> merged_detected : on-idle detects PR merged
 
-    merged_detected --> done : Agent writes phase: done<br/>(after user confirms)
+    merged_detected --> done : Agent writes phase done\n(after user confirms)
 
-    done --> [*] : on-stop calls close_issue_and_cleanup()<br/>(close issue, board → Done, delete file)
+    done --> [*] : on-stop calls close_issue_and_cleanup()\n(close issue, board → Done, delete file)
 
     state merged_detected {
-        [*] --> prompted : Hook emits "Should I close issue #N?"
+        [*] --> prompted : Hook emits Should I close issue N?
         prompted --> user_confirms : User says yes
         user_confirms --> [*]
     }
@@ -72,7 +72,7 @@ sequenceDiagram
     GH-->>A: Item found: issue #42
     A->>PB: Status → "In Progress", Agent → "edouard-1738..."
     A->>GH: gh issue edit 42 --add-assignee @me
-    A->>SF: Write .agent-claim.json<br/>phase: "coding"
+    A->>SF: Write .agent-claim.json (phase: "coding")
 
     Note over H,PB: Phase 2 — Coding
 
@@ -88,7 +88,7 @@ sequenceDiagram
     H->>A: /handoff
     A->>A: Write journal, run validation
     A->>GH: git push -u origin claude/fix-thing-42
-    A->>SF: Update signal file<br/>phase: "ready_for_pr"<br/>summary: "Fix race condition in voucher redemption"
+    A->>SF: Update signal file (phase: "ready_for_pr", summary: "Fix race condition...")
 
     Note right of A: Agent's response ends, triggering on-stop
 
@@ -96,11 +96,11 @@ sequenceDiagram
     SF-->>SH: phase: "ready_for_pr"
     SH->>GH: gh pr view (check idempotency)
     GH-->>SH: No existing PR
-    SH->>GH: gh pr create --title "Fix race condition..."<br/>--body (mission integrity checklist)
+    SH->>GH: gh pr create --title "Fix race condition..." --body (checklist)
     GH-->>SH: PR #107 created
-    SH->>SF: phase → "pr_created"<br/>pr_number → 107
+    SH->>SF: phase → "pr_created", pr_number → 107
     SH->>PB: Status → "In Review"
-    SH-->>A: additionalContext: "PR #107 created: <url>"
+    SH-->>A: additionalContext: "PR #107 created: [url]"
 
     Note over H,PB: Phase 4 — CI Check Polling
 
@@ -111,7 +111,7 @@ sequenceDiagram
         GH-->>IH: state: OPEN
         IH->>GH: gh pr checks 107
         GH-->>IH: lint: pass, typecheck: pending, test: pass
-        IH->>SF: phase → "checks_running"<br/>last_check_poll → now
+        IH->>SF: phase → "checks_running", last_check_poll → now
         IH-->>A: additionalContext: "CI: 2/3 passed, 1 running..."
     end
 
@@ -165,31 +165,31 @@ The `.agent-claim.json` file is the only state the hooks inspect. It is ephemera
 }
 ```
 
-| Field | Type | Written by | Purpose |
-|---|---|---|---|
-| `schema_version` | number | `/claim` | Schema version for forward compatibility (currently `1`) |
-| `item_id` | string | `/claim` | GitHub Projects item ID for board updates |
-| `issue_number` | number | `/claim` | GitHub issue to close at end of lifecycle |
-| `branch` | string | `/claim` | Git branch name, used for PR creation |
-| `agent_id` | string | `/claim` | Session identifier for the Agent field on the board |
-| `phase` | string | Agent + hooks | State machine driver (see phases below) |
-| `summary` | string | `/handoff` | PR title — populated when transitioning to `ready_for_pr` |
-| `status` | string | Agent + hooks | Project board Status value to sync |
-| `pr_number` | number/null | `create_pr()` | PR number, populated after PR creation |
-| `last_check_poll` | ISO string/null | `poll_checks()` | Timestamp of last CI poll for 2-min backoff |
-| `last_synced_status` | string/null | `sync_board_status()` | Last status synced to board — skips redundant API calls |
+| Field                | Type            | Written by            | Purpose                                                   |
+| -------------------- | --------------- | --------------------- | --------------------------------------------------------- |
+| `schema_version`     | number          | `/claim`              | Schema version for forward compatibility (currently `1`)  |
+| `item_id`            | string          | `/claim`              | GitHub Projects item ID for board updates                 |
+| `issue_number`       | number          | `/claim`              | GitHub issue to close at end of lifecycle                 |
+| `branch`             | string          | `/claim`              | Git branch name, used for PR creation                     |
+| `agent_id`           | string          | `/claim`              | Session identifier for the Agent field on the board       |
+| `phase`              | string          | Agent + hooks         | State machine driver (see phases below)                   |
+| `summary`            | string          | `/handoff`            | PR title — populated when transitioning to `ready_for_pr` |
+| `status`             | string          | Agent + hooks         | Project board Status value to sync                        |
+| `pr_number`          | number/null     | `create_pr()`         | PR number, populated after PR creation                    |
+| `last_check_poll`    | ISO string/null | `poll_checks()`       | Timestamp of last CI poll for 2-min backoff               |
+| `last_synced_status` | string/null     | `sync_board_status()` | Last status synced to board — skips redundant API calls   |
 
 ---
 
 ## Phase Reference
 
-| Phase | Set by | Triggers | Board Status |
-|---|---|---|---|
-| `coding` | Agent via `/claim` | on-stop: sync status to board | In Progress |
-| `ready_for_pr` | Agent via `/handoff` | on-stop: `create_pr()` | In Progress → In Review |
-| `pr_created` | `create_pr()` | on-idle: `poll_checks()` or `check_merged_and_close()` | In Review |
-| `checks_running` | `poll_checks()` | on-idle: re-poll (2 min backoff) | In Review |
-| `done` | Agent (after user confirms) | on-stop: `close_issue_and_cleanup()` | Done |
+| Phase            | Set by                      | Triggers                                               | Board Status            |
+| ---------------- | --------------------------- | ------------------------------------------------------ | ----------------------- |
+| `coding`         | Agent via `/claim`          | on-stop: sync status to board                          | In Progress             |
+| `ready_for_pr`   | Agent via `/handoff`        | on-stop: `create_pr()`                                 | In Progress → In Review |
+| `pr_created`     | `create_pr()`               | on-idle: `poll_checks()` or `check_merged_and_close()` | In Review               |
+| `checks_running` | `poll_checks()`             | on-idle: re-poll (2 min backoff)                       | In Review               |
+| `done`           | Agent (after user confirms) | on-stop: `close_issue_and_cleanup()`                   | Done                    |
 
 ---
 
@@ -256,30 +256,42 @@ Hooks are declared in `.claude/settings.json`:
 ```json
 {
   "hooks": {
-    "SessionStart": [{
-      "matcher": "startup",
-      "hooks": [{
-        "type": "command",
-        "command": "... agent-sync.sh session-start",
-        "timeout": 30000
-      }]
-    }],
-    "Stop": [{
-      "matcher": "",
-      "hooks": [{
-        "type": "command",
-        "command": "... agent-sync.sh on-stop",
-        "timeout": 30000
-      }]
-    }],
-    "Notification": [{
-      "matcher": "idle_prompt",
-      "hooks": [{
-        "type": "command",
-        "command": "... agent-sync.sh on-idle",
-        "timeout": 30000
-      }]
-    }]
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "... agent-sync.sh session-start",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "... agent-sync.sh on-stop",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "... agent-sync.sh on-idle",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -337,14 +349,14 @@ If `.agent-claim.json` doesn't exist, the hooks fall back to the original behavi
 
 ## Files Involved
 
-| File | Purpose |
-|---|---|
-| `scripts/agent-sync.sh` | Hook script — all lifecycle logic |
-| `.claude/commands/claim.md` | `/claim` slash command — step 6 writes signal file |
+| File                          | Purpose                                               |
+| ----------------------------- | ----------------------------------------------------- |
+| `scripts/agent-sync.sh`       | Hook script — all lifecycle logic                     |
+| `.claude/commands/claim.md`   | `/claim` slash command — step 6 writes signal file    |
 | `.claude/commands/handoff.md` | `/handoff` slash command — step 7 sets `ready_for_pr` |
-| `.claude/settings.json` | Hook configuration + bash permissions |
-| `.gitignore` | Ensures `.agent-claim.json` is not committed |
-| `.agent-claim.json` | Ephemeral signal file (gitignored) |
+| `.claude/settings.json`       | Hook configuration + bash permissions                 |
+| `.gitignore`                  | Ensures `.agent-claim.json` is not committed          |
+| `.agent-claim.json`           | Ephemeral signal file (gitignored)                    |
 
 ---
 
@@ -355,17 +367,20 @@ If `.agent-claim.json` doesn't exist, the hooks fall back to the original behavi
 1. **Signal file creation** — run `/claim 42`, verify `.agent-claim.json` exists with `phase: coding`
 
 2. **PR creation** — write a signal file manually and run the hook:
+
    ```bash
    echo '{"schema_version":1,"item_id":"TEST","issue_number":42,"branch":"claude/test","agent_id":"test","phase":"ready_for_pr","summary":"Test PR","status":"In Review","pr_number":null,"last_check_poll":null,"last_synced_status":null}' > .agent-claim.json
    echo '{}' | CLAUDE_PROJECT_DIR=. MOLTNET_PROJECT_NUMBER=1 ./scripts/agent-sync.sh on-stop
    ```
 
 3. **Check polling** — create a real PR, set phase to `pr_created` with the PR number, then:
+
    ```bash
    echo '{}' | CLAUDE_PROJECT_DIR=. MOLTNET_PROJECT_NUMBER=1 ./scripts/agent-sync.sh on-idle
    ```
 
 4. **Issue closure** — merge the PR, set `phase: done`, then:
+
    ```bash
    echo '{}' | CLAUDE_PROJECT_DIR=. MOLTNET_PROJECT_NUMBER=1 ./scripts/agent-sync.sh on-stop
    ```

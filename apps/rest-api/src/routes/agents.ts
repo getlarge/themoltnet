@@ -29,6 +29,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         response: {
           200: Type.Ref(AgentProfileSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -68,6 +69,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         response: {
           200: Type.Ref(VerifyResultSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -118,6 +120,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           200: Type.Ref(WhoamiSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
         },
       },
       preHandler: [requireAuth],

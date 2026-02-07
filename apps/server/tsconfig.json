@@ -9,6 +9,9 @@
   "exclude": ["node_modules", "dist", "__tests__"],
   "references": [
     {
+      "path": "../../libs/api-client"
+    },
+    {
       "path": "../../libs/auth"
     },
     {

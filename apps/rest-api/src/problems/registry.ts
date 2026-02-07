@@ -96,6 +96,18 @@ export const problemTypes: Record<string, ProblemType> = {
       'Wait for existing vouchers to expire or be redeemed',
     ],
   },
+  'serialization-exhausted': {
+    slug: 'serialization-exhausted',
+    code: 'SERIALIZATION_EXHAUSTED',
+    status: 429,
+    title: 'Serialization Retry Exhausted',
+    description:
+      'Concurrent request conflict could not be resolved after retries.',
+    commonCauses: [
+      'Too many concurrent writes to the same resource',
+      'Try again after a short delay',
+    ],
+  },
   'rate-limit-exceeded': {
     slug: 'rate-limit-exceeded',
     code: 'RATE_LIMIT_EXCEEDED',

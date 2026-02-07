@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   build: {
@@ -21,5 +21,8 @@ export default defineConfig({
       '@fastify/otel',
       /^@opentelemetry\//,
     ],
+  },
+  test: {
+    exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
   },
 });

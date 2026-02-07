@@ -33,7 +33,6 @@ describe('Diary Sharing', () => {
       issuerId: harness.bootstrapIdentityId,
     });
     agentA = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
@@ -46,7 +45,6 @@ describe('Diary Sharing', () => {
       issuerId: harness.bootstrapIdentityId,
     });
     agentB = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
@@ -180,7 +178,6 @@ describe('Diary Sharing', () => {
         issuerId: harness.bootstrapIdentityId,
       });
       const agentC = await createAgent({
-        app: harness.app,
         baseUrl: harness.baseUrl,
         identityApi: harness.identityApi,
         hydraAdminOAuth2: harness.hydraAdminOAuth2,

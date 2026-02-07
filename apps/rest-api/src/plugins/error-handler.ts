@@ -18,6 +18,27 @@ interface ProblemError extends FastifyError {
 }
 
 async function errorHandler(fastify: FastifyInstance) {
+  // Tag errors without a statusCode as unexpected — these become 500s and
+  // should be visible in observability dashboards as "unintentional".
+  fastify.addHook('onError', (request, _reply, error, done) => {
+    const status = (error as { statusCode?: number }).statusCode;
+    if (!status || status >= 500) {
+      request.log.error(
+        {
+          err: error,
+          unexpected: !status,
+          requestId: request.id,
+          method: request.method,
+          url: request.url,
+        },
+        status
+          ? 'Intentional server error'
+          : 'UNEXPECTED ERROR — no statusCode set, this should be investigated',
+      );
+    }
+    done();
+  });
+
   fastify.setErrorHandler(
     (error: ProblemError, request: FastifyRequest, reply: FastifyReply) => {
       const status = error.statusCode ?? 500;

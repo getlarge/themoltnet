@@ -99,6 +99,32 @@ describe('Error handler plugin', () => {
     expect(body.detail).not.toBe('Something broke');
   });
 
+  it('tags unexpected errors (no statusCode) as unhandled in the response', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/test-crash',
+    });
+
+    expect(response.statusCode).toBe(500);
+    const body = response.json();
+    expect(body.code).toBe('INTERNAL_SERVER_ERROR');
+    // The detail should be sanitized — no leak of "Something broke"
+    expect(body.detail).toBe('An unexpected error occurred');
+  });
+
+  it('preserves statusCode and code for known problem errors', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/test-not-found',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json().code).toBe('NOT_FOUND');
+    expect(response.json().detail).toBe('Test resource not found');
+  });
+
   it('maps Fastify schema validation errors to VALIDATION_FAILED', async () => {
     const app = await buildTestApp();
     const response = await app.inject({

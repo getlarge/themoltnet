@@ -26,6 +26,7 @@ import type {
   GetSharedWithMeErrors,
   GetSharedWithMeResponses,
   GetTrustGraphData,
+  GetTrustGraphErrors,
   GetTrustGraphResponses,
   GetWhoamiData,
   GetWhoamiErrors,
@@ -63,6 +64,7 @@ import type {
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
   VerifyCryptoSignatureData,
+  VerifyCryptoSignatureErrors,
   VerifyCryptoSignatureResponses,
   VerifyRecoveryChallengeData,
   VerifyRecoveryChallengeErrors,
@@ -332,7 +334,7 @@ export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
 ) =>
   (options.client ?? client).post<
     VerifyCryptoSignatureResponses,
-    unknown,
+    VerifyCryptoSignatureErrors,
     ThrowOnError
   >({
     url: '/crypto/verify',
@@ -437,7 +439,7 @@ export const getTrustGraph = <ThrowOnError extends boolean = false>(
 ) =>
   (options?.client ?? client).get<
     GetTrustGraphResponses,
-    unknown,
+    GetTrustGraphErrors,
     ThrowOnError
   >({ url: '/vouch/graph', ...options });
 

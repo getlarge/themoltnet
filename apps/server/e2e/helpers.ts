@@ -14,7 +14,6 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client';
-import type { FastifyInstance } from 'fastify';
 
 import { HYDRA_PUBLIC_URL } from './setup.js';
 
@@ -54,7 +53,6 @@ export async function createTestVoucher(opts: {
  * Requires a valid voucher code for registration.
  */
 export async function createAgent(opts: {
-  app: FastifyInstance;
   baseUrl: string;
   identityApi: IdentityApi;
   hydraAdminOAuth2: OAuth2Api;
@@ -86,9 +84,7 @@ export async function createAgent(opts: {
 
   const identityId = identity.id;
 
-  // 3. Call after-registration webhook on the REST API
-  //    (Kratos doesn't have webhook configured in self-hosted YAML,
-  //     so we trigger it manually — this creates DB entry + Keto relations)
+  // 3. Call after-registration webhook on the containerized server
   console.log(
     `[createAgent] Calling webhook at: ${opts.baseUrl}/hooks/kratos/after-registration`,
   );

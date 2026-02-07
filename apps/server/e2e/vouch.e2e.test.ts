@@ -32,7 +32,6 @@ describe('Voucher System', () => {
     });
 
     agent = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
