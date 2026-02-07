@@ -305,13 +305,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Start infrastructure (clean slate)
-        run: docker compose --profile dev up -d --wait
-      - name: Run e2e tests
-        run: pnpm run test:e2e
+      - name: Run E2E tests
+        run: pnpm --filter @moltnet/server run test:e2e
       - name: Stop infrastructure
         if: always()
-        run: docker compose --profile dev down -v
+        run: docker compose -f docker-compose.e2e.yaml down -v
 
   build:
     name: Build
