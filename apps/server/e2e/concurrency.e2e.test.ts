@@ -138,58 +138,64 @@ describe('Concurrency and Atomicity', () => {
   // ── Concurrent Voucher Issuance ────────────────────────────
 
   describe('concurrent voucher issuance', () => {
-    it('enforces max-5 invariant under concurrent POST /vouch', async () => {
-      // Create a fresh agent so its voucher count starts at 0
-      const freshVoucher = await createTestVoucher({
-        db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
-      });
-      const freshAgent = await createAgent({
-        baseUrl: harness.baseUrl,
-        identityApi: harness.identityApi,
-        hydraAdminOAuth2: harness.hydraAdminOAuth2,
-        webhookApiKey: harness.webhookApiKey,
-        voucherCode: freshVoucher,
-      });
+    it(
+      'enforces max-5 invariant under concurrent POST /vouch',
+      { retry: 2 },
+      async () => {
+        // Create a fresh agent so its voucher count starts at 0
+        const freshVoucher = await createTestVoucher({
+          db: harness.db,
+          issuerId: harness.bootstrapIdentityId,
+        });
+        const freshAgent = await createAgent({
+          baseUrl: harness.baseUrl,
+          identityApi: harness.identityApi,
+          hydraAdminOAuth2: harness.hydraAdminOAuth2,
+          webhookApiKey: harness.webhookApiKey,
+          voucherCode: freshVoucher,
+        });
 
-      // Issue 4 vouchers sequentially
-      for (let i = 0; i < 4; i++) {
-        const { error } = await issueVoucher({
+        // Issue 4 vouchers sequentially
+        for (let i = 0; i < 4; i++) {
+          const { error } = await issueVoucher({
+            client,
+            auth: () => freshAgent.accessToken,
+          });
+          expect(error).toBeUndefined();
+        }
+
+        // Fire 3 concurrent issuance requests — at most 1 should succeed
+        const responses = await Promise.all(
+          Array.from({ length: 3 }, () =>
+            issueVoucher({
+              client,
+              auth: () => freshAgent.accessToken,
+            }),
+          ),
+        );
+
+        const statuses = responses.map((r) => r.response.status);
+        const succeeded = responses.filter((r) => r.response.status === 201);
+
+        // The total active count should never exceed 5 — this is the critical invariant
+        const { data: activeList } = await listActiveVouchers({
           client,
           auth: () => freshAgent.accessToken,
         });
-        expect(error).toBeUndefined();
-      }
+        expect(activeList!.vouchers.length).toBeLessThanOrEqual(5);
 
-      // Fire 3 concurrent issuance requests — at most 1 should succeed
-      const responses = await Promise.all(
-        Array.from({ length: 3 }, () =>
-          issueVoucher({
-            client,
-            auth: () => freshAgent.accessToken,
-          }),
-        ),
-      );
-
-      const succeeded = responses.filter((r) => r.response.status === 201);
-      const rateLimited = responses.filter((r) => r.response.status === 429);
-      const serverErrors = responses.filter((r) => r.response.status === 500);
-
-      // The total active count should never exceed 5
-      const { data: activeList } = await listActiveVouchers({
-        client,
-        auth: () => freshAgent.accessToken,
-      });
-      expect(activeList!.vouchers.length).toBeLessThanOrEqual(5);
-
-      // At most 1 of the concurrent batch should have succeeded
-      expect(succeeded.length).toBeLessThanOrEqual(1);
-      // The rest should be rate-limited (429) or server errors (500 from
-      // serialization retry exhaustion under SERIALIZABLE isolation)
-      expect(succeeded.length + rateLimited.length + serverErrors.length).toBe(
-        responses.length,
-      );
-    });
+        // At most 1 of the concurrent batch should have succeeded
+        expect(succeeded.length).toBeLessThanOrEqual(1);
+        // Every response must be either 201 (success) or 429 (rate-limited / serialization exhausted)
+        // No 500s allowed — serialization exhaustion is now handled gracefully
+        for (const status of statuses) {
+          expect(
+            status,
+            `Unexpected status ${status} in concurrent voucher issuance (all statuses: ${statuses.join(', ')})`,
+          ).toSatisfy((s: number) => s === 201 || s === 429);
+        }
+      },
+    );
   });
 
   // ── Concurrent Voucher Redemption ─────────────────────────

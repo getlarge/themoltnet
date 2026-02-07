@@ -76,3 +76,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-06 | handoff    | [Hook-Driven Task Lifecycle](2026-02-06-08-hook-driven-task-lifecycle.md)                                         |
 | 2026-02-07 | handoff    | [E2E Tests Against Docker Container](2026-02-07-01-e2e-docker-container-tests.md)                                 |
 | 2026-02-07 | discovery  | [Issue Triage Bot Fix](2026-02-07-02-issue-triage-bot-fix.md)                                                     |
+| 2026-02-07 | handoff    | [REST API Error Handling](2026-02-07-03-rest-api-error-handling.md)                                               |
