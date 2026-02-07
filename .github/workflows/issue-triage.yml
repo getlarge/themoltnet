@@ -30,6 +30,8 @@ jobs:
           max_turns: 6
           additional_permissions: |
             issues: write
+          claude_args: |
+            --allowedTools "Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
           prompt: |
             Triage issue #${{ github.event.issue.number }}.
 
@@ -69,6 +71,8 @@ jobs:
           max_turns: 10
           additional_permissions: |
             issues: write
+          claude_args: |
+            --allowedTools "Bash(gh issue list*),Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
           prompt: |
             Periodic sweep of issues needing re-triage.
 
