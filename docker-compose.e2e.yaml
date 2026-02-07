@@ -5,14 +5,13 @@
 #
 # Usage:
 #   docker compose -f docker-compose.e2e.yaml up -d
-#   or: COMPOSE_PROFILES=dev docker compose -f docker-compose.e2e.yaml up -d
 
 services:
   app-db:
     extends:
       file: docker-compose.base.yaml
       service: app-db
-    profiles: []
+
     volumes:
       - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
@@ -20,25 +19,22 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: kratos-postgres
-    profiles: []
 
   hydra-postgres:
     extends:
       file: docker-compose.base.yaml
       service: hydra-postgres
-    profiles: []
 
   keto-postgres:
     extends:
       file: docker-compose.base.yaml
       service: keto-postgres
-    profiles: []
 
   kratos-migrate:
     extends:
       file: docker-compose.base.yaml
       service: kratos-migrate
-    profiles: []
+
     depends_on:
       kratos-postgres:
         condition: service_healthy
@@ -47,7 +43,7 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: kratos
-    profiles: []
+
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
@@ -58,7 +54,7 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: hydra-migrate
-    profiles: []
+
     depends_on:
       hydra-postgres:
         condition: service_healthy
@@ -67,7 +63,7 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: hydra
-    profiles: []
+
     depends_on:
       hydra-migrate:
         condition: service_completed_successfully
@@ -76,7 +72,7 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: keto-migrate
-    profiles: []
+
     depends_on:
       keto-postgres:
         condition: service_healthy
@@ -85,7 +81,7 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: keto
-    profiles: []
+
     depends_on:
       keto-migrate:
         condition: service_completed_successfully
@@ -109,6 +105,10 @@ services:
       ORY_ACTION_API_KEY: e2e-test-webhook-key
       RECOVERY_CHALLENGE_SECRET: e2e-recovery-secret-for-hmac-signing
       CORS_ORIGINS: '*'
+      RATE_LIMIT_GLOBAL_AUTH: '10000'
+      RATE_LIMIT_GLOBAL_ANON: '10000'
+      RATE_LIMIT_EMBEDDING: '10000'
+      RATE_LIMIT_VOUCH: '10000'
     depends_on:
       app-db:
         condition: service_healthy
@@ -135,10 +135,8 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: otel-collector
-    profiles: []
 
   mailslurper:
     extends:
       file: docker-compose.base.yaml
       service: mailslurper
-    profiles: []

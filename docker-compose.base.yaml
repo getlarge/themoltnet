@@ -9,7 +9,6 @@ services:
   # ==========================================================================
   app-db:
     image: pgvector/pgvector:pg16
-    profiles: [dev, ci]
     ports:
       - '5433:5432'
     environment:
@@ -28,7 +27,7 @@ services:
   # ==========================================================================
   kratos-postgres:
     image: postgres:16
-    profiles: [dev, ci]
+
     environment:
       POSTGRES_USER: kratos
       POSTGRES_PASSWORD: kratos_secret
@@ -42,7 +41,7 @@ services:
 
   kratos-migrate:
     image: oryd/kratos:v1.3.1
-    profiles: [dev, ci]
+
     command: migrate sql -e --yes
     environment:
       DSN: postgres://kratos:kratos_secret@kratos-postgres:5432/kratosdb?sslmode=disable
@@ -50,7 +49,7 @@ services:
 
   kratos:
     image: oryd/kratos:v1.3.1
-    profiles: [dev, ci]
+
     command: serve --config /etc/config/kratos/kratos.yaml --dev --watch-courier
     ports:
       - '4433:4433' # Public API
@@ -73,7 +72,7 @@ services:
   # ==========================================================================
   hydra-postgres:
     image: postgres:16
-    profiles: [dev, ci]
+
     environment:
       POSTGRES_USER: hydra
       POSTGRES_PASSWORD: hydra_secret
@@ -86,7 +85,7 @@ services:
     restart: unless-stopped
   hydra-migrate:
     image: oryd/hydra:v2.3.0
-    profiles: [dev, ci]
+
     command: migrate sql -e --yes
     environment:
       DSN: postgres://hydra:hydra_secret@hydra-postgres:5432/hydradb?sslmode=disable
@@ -94,7 +93,7 @@ services:
 
   hydra:
     image: oryd/hydra:v2.3.0
-    profiles: [dev, ci]
+
     command: serve all --config /etc/config/hydra/hydra.yaml --dev
     ports:
       - '4444:4444' # Public API
@@ -118,7 +117,7 @@ services:
   # ==========================================================================
   keto-postgres:
     image: postgres:16
-    profiles: [dev, ci]
+
     environment:
       POSTGRES_USER: keto
       POSTGRES_PASSWORD: keto_secret
@@ -131,7 +130,7 @@ services:
     restart: unless-stopped
   keto-migrate:
     image: oryd/keto:v0.14.0
-    profiles: [dev, ci]
+
     command: migrate up --yes --config /etc/config/keto/keto.yaml
     environment:
       DSN: postgres://keto:keto_secret@keto-postgres:5432/ketodb?sslmode=disable
@@ -141,7 +140,7 @@ services:
     restart: on-failure
   keto:
     image: oryd/keto:v0.14.0
-    profiles: [dev, ci]
+
     command: serve --config /etc/config/keto/keto.yaml
     ports:
       - '4466:4466' # Read API
@@ -164,7 +163,7 @@ services:
   # ==========================================================================
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.115.1
-    profiles: [dev, ci]
+
     command: ['--config=/etc/otelcol/config.yaml']
     ports:
       - '4317:4317' # OTLP gRPC
@@ -177,7 +176,7 @@ services:
   # ==========================================================================
   mailslurper:
     image: oryd/mailslurper:latest-smtps
-    profiles: [dev]
+
     ports:
       - '1025:1025' # SMTP
       - '4436:4436' # Web UI
@@ -191,7 +190,7 @@ services:
     build:
       context: .
       dockerfile: apps/rest-api/Dockerfile
-    profiles: [ci]
+
     ports:
       - '${REST_API_PORT:-8000}:8000'
     environment:
@@ -217,7 +216,7 @@ services:
     build:
       context: .
       dockerfile: apps/mcp-server/Dockerfile
-    profiles: [ci]
+
     ports:
       - '${MCP_SERVER_PORT:-8001}:8001'
     environment:
@@ -237,7 +236,7 @@ services:
     build:
       context: .
       dockerfile: apps/landing/Dockerfile
-    profiles: [ci]
+
     ports:
       - '${LANDING_PORT:-3000}:80'
     healthcheck:
