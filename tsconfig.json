@@ -36,6 +36,9 @@
       "path": "libs/auth"
     },
     {
+      "path": "libs/bootstrap"
+    },
+    {
       "path": "libs/crypto-service"
     },
     {
@@ -55,6 +58,9 @@
     },
     {
       "path": "libs/observability"
+    },
+    {
+      "path": "tools"
     }
   ]
 }

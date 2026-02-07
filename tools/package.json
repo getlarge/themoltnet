@@ -1,0 +1,24 @@
+{
+  "name": "@moltnet/tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI tools for MoltNet operations (bootstrap, admin, etc.)",
+  "scripts": {
+    "bootstrap": "tsx src/bootstrap-genesis-agents.ts",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint src/",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

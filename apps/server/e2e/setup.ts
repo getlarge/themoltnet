@@ -5,20 +5,18 @@
  * bootstrapping in-process. Database and Ory admin clients connect via
  * localhost port mappings for test scaffolding (bootstrap identity, vouchers).
  *
+ * Uses @moltnet/bootstrap to create the genesis agent, proving the bootstrap
+ * library works against the real Docker Compose infrastructure.
+ *
  * Requires: `docker compose -f docker-compose.e2e.yaml up -d --build`
  */
 
+import { createOryClients, type OryClients } from '@moltnet/auth';
 import {
-  createOryClients,
-  createPermissionChecker,
-  type OryClients,
-} from '@moltnet/auth';
-import { cryptoService } from '@moltnet/crypto-service';
-import {
-  createAgentRepository,
-  createDatabase,
-  type Database,
-} from '@moltnet/database';
+  type BootstrapConfig,
+  bootstrapGenesisAgents,
+} from '@moltnet/bootstrap';
+import { createDatabase, type Database } from '@moltnet/database';
 import {
   Configuration,
   FrontendApi,
@@ -117,44 +115,35 @@ export async function createTestHarness(): Promise<TestHarness> {
   const { oryClients, identityApi, hydraAdminOAuth2, kratosPublicFrontend } =
     createE2eOryClients();
 
-  const agentRepository = createAgentRepository(db);
-
-  const permissionChecker = createPermissionChecker(
-    oryClients.permission,
-    oryClients.relationship,
-  );
-
-  // Create a bootstrap identity in Kratos for issuing test vouchers
-  const bootstrapKeyPair = await cryptoService.generateKeyPair();
-
-  const { data: bootstrapIdentity } = await identityApi.createIdentity({
-    createIdentityBody: {
-      schema_id: 'moltnet_agent',
-      traits: {
-        public_key: bootstrapKeyPair.publicKey,
-        voucher_code: 'bootstrap-genesis',
-      },
-      credentials: {
-        password: {
-          config: {
-            password: 'bootstrap-password',
-          },
-        },
-      },
+  // Use @moltnet/bootstrap to create the genesis agent — same code path
+  // as production bootstrap, proving the library works against real infra.
+  const bootstrapConfig: BootstrapConfig = {
+    databaseUrl: DATABASE_URL,
+    ory: {
+      mode: 'split',
+      kratosAdminUrl: KRATOS_ADMIN_URL,
+      hydraAdminUrl: HYDRA_ADMIN_URL,
+      hydraPublicUrl: HYDRA_PUBLIC_URL,
+      ketoReadUrl: KETO_READ_URL,
+      ketoWriteUrl: KETO_WRITE_URL,
     },
+  };
+
+  const result = await bootstrapGenesisAgents({
+    config: bootstrapConfig,
+    db,
+    names: ['E2E-Bootstrap'],
+    scopes: 'diary:read diary:write crypto:sign agent:profile',
+    log: (msg) => console.log(`[E2E] ${msg}`),
   });
 
-  // Create the agent entry in the database (bypass webhook voucher check)
-  await agentRepository.upsert({
-    identityId: bootstrapIdentity.id,
-    publicKey: bootstrapKeyPair.publicKey,
-    fingerprint: bootstrapKeyPair.fingerprint,
-  });
+  if (result.agents.length === 0) {
+    const errorMsg = result.errors.map((e) => e.error).join('; ');
+    throw new Error(`Bootstrap genesis agent failed: ${errorMsg}`);
+  }
 
-  // Register in Keto for permissions
-  await permissionChecker.registerAgent(bootstrapIdentity.id);
-
-  console.log(`[E2E] Bootstrap identity created: ${bootstrapIdentity.id}`);
+  const bootstrapAgent = result.agents[0];
+  console.log(`[E2E] Bootstrap identity created: ${bootstrapAgent.identityId}`);
 
   return {
     db,
@@ -164,7 +153,7 @@ export async function createTestHarness(): Promise<TestHarness> {
     hydraAdminOAuth2,
     kratosPublicFrontend,
     webhookApiKey: WEBHOOK_API_KEY,
-    bootstrapIdentityId: bootstrapIdentity.id,
+    bootstrapIdentityId: bootstrapAgent.identityId,
     async teardown() {
       await pool.end();
     },
