@@ -75,7 +75,7 @@ describe('Vouch routes', () => {
       expect(mocks.voucherRepository.issue).toHaveBeenCalledTimes(2);
     });
 
-    it('rethrows after max serialization retries exhausted', async () => {
+    it('returns 429 after max serialization retries exhausted', async () => {
       const serializationError = Object.assign(
         new Error('could not serialize access'),
         { code: '40001' },
@@ -89,8 +89,12 @@ describe('Vouch routes', () => {
         headers: { authorization: 'Bearer test-token' },
       });
 
-      expect(response.statusCode).toBe(500);
-      expect(mocks.voucherRepository.issue).toHaveBeenCalledTimes(3);
+      expect(response.statusCode).toBe(429);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('SERIALIZATION_EXHAUSTED');
+      expect(mocks.voucherRepository.issue).toHaveBeenCalledTimes(5);
     });
 
     it('does not retry non-serialization errors', async () => {
