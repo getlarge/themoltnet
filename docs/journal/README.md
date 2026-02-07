@@ -74,3 +74,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-06 | handoff    | [Combined Server Deploy](2026-02-06-06-combined-server-deploy.md)                                                 |
 | 2026-02-06 | progress   | [Upgrade Drizzle ORM/Kit and DBOS SDK](2026-02-06-07-upgrade-drizzle-dbos.md)                                     |
 | 2026-02-06 | handoff    | [Hook-Driven Task Lifecycle](2026-02-06-08-hook-driven-task-lifecycle.md)                                         |
+| 2026-02-07 | handoff    | [eslint-plugin-boundaries for Workspace Boundaries](2026-02-07-01-eslint-plugin-boundaries.md)                    |
