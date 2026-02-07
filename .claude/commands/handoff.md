@@ -44,21 +44,13 @@ End your session with a proper handoff. Do the following:
 
 7. **Signal for PR creation** — If the work is ready for review, update the signal file to trigger automatic PR creation:
 
+   Read the existing `.agent-claim.json`, then write it back with `phase` set to `ready_for_pr` and `summary` filled in. Use `jq` to update the fields atomically:
+
    ```bash
-   # Update .agent-claim.json — set phase to ready_for_pr and fill in the summary
-   cat > .agent-claim.json << SIGNAL
-   {
-     "item_id": "$(jq -r '.item_id' .agent-claim.json)",
-     "issue_number": $(jq -r '.issue_number' .agent-claim.json),
-     "branch": "$(git branch --show-current)",
-     "agent_id": "$(jq -r '.agent_id' .agent-claim.json)",
-     "phase": "ready_for_pr",
-     "summary": "<1-sentence description of the PR>",
-     "status": "In Review",
-     "pr_number": null,
-     "last_check_poll": null
-   }
-   SIGNAL
+   jq --arg summary "<1-sentence description of the PR>" \
+      --arg branch "$(git branch --show-current)" \
+      '.phase = "ready_for_pr" | .summary = $summary | .branch = $branch | .status = "In Review"' \
+      .agent-claim.json > .agent-claim.json.tmp && mv .agent-claim.json.tmp .agent-claim.json
    ```
 
    The on-stop hook will detect `phase: ready_for_pr` and automatically:
@@ -78,20 +70,7 @@ When the on-idle hook detects the PR was merged, it will prompt you:
 If the user confirms, update the signal file to trigger cleanup:
 
 ```bash
-# Read existing values and write phase: done
-cat > .agent-claim.json << SIGNAL
-{
-  "item_id": "$(jq -r '.item_id' .agent-claim.json)",
-  "issue_number": $(jq -r '.issue_number' .agent-claim.json),
-  "branch": "$(jq -r '.branch' .agent-claim.json)",
-  "agent_id": "$(jq -r '.agent_id' .agent-claim.json)",
-  "phase": "done",
-  "summary": "$(jq -r '.summary' .agent-claim.json)",
-  "status": "Done",
-  "pr_number": $(jq -r '.pr_number' .agent-claim.json),
-  "last_check_poll": null
-}
-SIGNAL
+jq '.phase = "done" | .status = "Done"' .agent-claim.json > .agent-claim.json.tmp && mv .agent-claim.json.tmp .agent-claim.json
 ```
 
 The on-stop hook will then:

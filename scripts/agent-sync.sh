@@ -22,8 +22,11 @@ ACTION="${1:?Usage: agent-sync.sh <session-start|on-stop|on-idle>}"
 
 PROJECT_NUMBER="${MOLTNET_PROJECT_NUMBER:-}"
 PROJECT_OWNER="${MOLTNET_PROJECT_OWNER:-getlarge}"
-REPO="${PROJECT_OWNER}/themoltnet"
 CLAIM_FILE="${CLAUDE_PROJECT_DIR:-.}/.agent-claim.json"
+
+# Derive repo from git remote (falls back to owner/themoltnet)
+REPO=$(git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com[:/]\(.*\)\.git$|\1|p')
+REPO="${REPO:-${PROJECT_OWNER}/themoltnet}"
 
 # Read hook input from stdin (Claude Code sends JSON context)
 HOOK_INPUT=$(cat)
@@ -117,16 +120,18 @@ read_claim_field() {
 write_claim_field() {
   local field="$1"
   local value="$2"
+  # Create temp file in same directory for atomic rename (same filesystem)
   local tmp
-  tmp=$(mktemp)
+  tmp=$(mktemp "${CLAIM_FILE}.XXXXXX")
   jq --arg f "$field" --arg v "$value" '.[$f] = $v' "$CLAIM_FILE" > "$tmp" && mv "$tmp" "$CLAIM_FILE"
 }
 
 write_claim_field_raw() {
   local field="$1"
   local value="$2"
+  # Create temp file in same directory for atomic rename (same filesystem)
   local tmp
-  tmp=$(mktemp)
+  tmp=$(mktemp "${CLAIM_FILE}.XXXXXX")
   jq --arg f "$field" --argjson v "$value" '.[$f] = $v' "$CLAIM_FILE" > "$tmp" && mv "$tmp" "$CLAIM_FILE"
 }
 
@@ -135,6 +140,30 @@ emit_context() {
   local json
   json=$(echo "$msg" | jq -Rs .)
   echo "{\"additionalContext\": ${json}}"
+}
+
+# Sync board status only if it changed since last sync.
+# Compares status field against last_synced_status to avoid redundant API calls.
+sync_board_status() {
+  local item_id new_status agent_id last_synced
+
+  item_id=$(read_claim_field "item_id")
+  new_status=$(read_claim_field "status")
+  agent_id=$(read_claim_field "agent_id")
+  last_synced=$(read_claim_field "last_synced_status")
+
+  if [ -z "$item_id" ] || [ -z "$new_status" ]; then
+    return 0
+  fi
+
+  # Skip if status hasn't changed since last sync
+  if [ "$new_status" = "$last_synced" ]; then
+    return 0
+  fi
+
+  update_item_field "$item_id" "Status" "$new_status"
+  update_item_text "$item_id" "Agent" "${agent_id:-unknown}"
+  write_claim_field "last_synced_status" "$new_status"
 }
 
 # --- Phase lifecycle functions ---
@@ -162,7 +191,7 @@ create_pr() {
     return 0
   fi
 
-  # Build PR body with mission integrity checklist (pre-checked)
+  # Build PR body with mission integrity checklist (unchecked — agent/reviewer must verify)
   local closes_line=""
   if [ -n "$issue_number" ] && [ "$issue_number" != "null" ]; then
     closes_line="Closes #${issue_number}"
@@ -180,11 +209,11 @@ ${closes_line}
 
 Every change to MoltNet must pass these checks (see [MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)):
 
-- [x] **Agent control**: This change does NOT move control away from the agent
-- [x] **Offline verifiable**: Anything this change produces can be verified without the server (or N/A for infra-only changes)
-- [x] **Platform survival**: This change works even if a managed service (Ory, Supabase, Fly.io) goes down or is replaced
-- [x] **Simplicity**: This is the simplest solution that solves the problem
-- [x] **Documented**: Architectural decisions are recorded (journal entry, code comments, or doc update)
+- [ ] **Agent control**: This change does NOT move control away from the agent
+- [ ] **Offline verifiable**: Anything this change produces can be verified without the server (or N/A for infra-only changes)
+- [ ] **Platform survival**: This change works even if a managed service (Ory, Supabase, Fly.io) goes down or is replaced
+- [ ] **Simplicity**: This is the simplest solution that solves the problem
+- [ ] **Documented**: Architectural decisions are recorded (journal entry, code comments, or doc update)
 
 ## Test plan
 
@@ -215,6 +244,7 @@ PRBODY
     # Update project board status
     if [ -n "$item_id" ] && [ "$item_id" != "null" ]; then
       update_item_field "$item_id" "Status" "In Review"
+      write_claim_field "last_synced_status" "In Review"
     fi
 
     emit_context "PR #${pr_number} created: ${pr_url}. Board updated to In Review."
@@ -231,12 +261,14 @@ poll_checks() {
     return 0
   fi
 
-  # 2-minute backoff
+  # 2-minute backoff to avoid GitHub API rate limiting
   last_poll=$(read_claim_field "last_check_poll")
   now=$(date +%s)
   if [ -n "$last_poll" ] && [ "$last_poll" != "null" ]; then
     local last_epoch
     # macOS: date -j, GNU/Linux: date -d
+    # Intentional: if both fail, falls back to epoch 0 which forces a re-poll.
+    # This is safe — worst case is one extra API call, not a loop.
     last_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${last_poll%Z}" +%s 2>/dev/null \
       || date -d "$last_poll" +%s 2>/dev/null \
       || echo "0")
@@ -248,18 +280,20 @@ poll_checks() {
 
   write_claim_field "last_check_poll" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-  local checks_output
-  checks_output=$(gh pr checks "$pr_number" --repo "$REPO" 2>&1 || true)
+  # Use structured JSON output for reliable parsing.
+  # The "bucket" field classifies each check as: pass, fail, pending, skipping, cancel.
+  local checks_json
+  checks_json=$(gh pr checks "$pr_number" --repo "$REPO" --json name,bucket 2>/dev/null || echo "[]")
 
   local total passed failed pending
-  total=$(echo "$checks_output" | grep -c '.' || echo "0")
-  passed=$(echo "$checks_output" | grep -c 'pass' || echo "0")
-  failed=$(echo "$checks_output" | grep -c 'fail' || echo "0")
-  pending=$(echo "$checks_output" | grep -c 'pending\|queued\|in_progress' || echo "0")
+  total=$(echo "$checks_json" | jq 'length')
+  passed=$(echo "$checks_json" | jq '[.[] | select(.bucket == "pass" or .bucket == "skipping")] | length')
+  failed=$(echo "$checks_json" | jq '[.[] | select(.bucket == "fail" or .bucket == "cancel")] | length')
+  pending=$(echo "$checks_json" | jq '[.[] | select(.bucket == "pending")] | length')
 
   if [ "$failed" -gt 0 ]; then
     local failed_names
-    failed_names=$(echo "$checks_output" | grep 'fail' | awk '{print $1}' | head -5 | tr '\n' ', ' | sed 's/,$//')
+    failed_names=$(echo "$checks_json" | jq -r '[.[] | select(.bucket == "fail" or .bucket == "cancel")] | .[0:5] | .[].name' | tr '\n' ', ' | sed 's/,$//')
     write_claim_field "phase" "checks_running"
     emit_context "CI checks: ${passed}/${total} passed, ${failed} FAILED (${failed_names}). Run \`gh pr checks ${pr_number} --watch\` for details."
   elif [ "$pending" -gt 0 ]; then
@@ -372,27 +406,10 @@ Use /claim <issue-number> to claim a task. Use /sync for full board state."
       done)
         close_issue_and_cleanup
         ;;
-      coding|pr_created|checks_running)
-        # Sync status to project board (existing behavior)
-        ITEM_ID=$(read_claim_field "item_id")
-        NEW_STATUS=$(read_claim_field "status")
-        AGENT_ID=$(read_claim_field "agent_id")
-
-        if [ -n "$ITEM_ID" ] && [ -n "$NEW_STATUS" ]; then
-          update_item_field "$ITEM_ID" "Status" "$NEW_STATUS"
-          update_item_text "$ITEM_ID" "Agent" "${AGENT_ID:-unknown}"
-        fi
-        ;;
       *)
-        # Unknown phase — still sync status if present
-        ITEM_ID=$(read_claim_field "item_id")
-        NEW_STATUS=$(read_claim_field "status")
-        AGENT_ID=$(read_claim_field "agent_id")
-
-        if [ -n "$ITEM_ID" ] && [ -n "$NEW_STATUS" ]; then
-          update_item_field "$ITEM_ID" "Status" "$NEW_STATUS"
-          update_item_text "$ITEM_ID" "Agent" "${AGENT_ID:-unknown}"
-        fi
+        # All other phases (coding, pr_created, checks_running, unknown):
+        # sync board status only if it changed since last sync
+        sync_board_status
         ;;
     esac
     ;;
@@ -413,7 +430,7 @@ Use /claim <issue-number> to claim a task. Use /sync for full board state."
           fi
           ;;
         *)
-          # Fall through to existing branch-based merge detection
+          # No action for other phases during idle
           ;;
       esac
     else

@@ -11,11 +11,11 @@
   },
   "permissions": {
     "allow": [
-      "Bash(gh pr create:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh pr checks:*)",
-      "Bash(gh issue close:*)",
-      "Bash(gh issue develop:*)"
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh issue close *)",
+      "Bash(gh issue develop *)"
     ]
   },
   "hooks": {

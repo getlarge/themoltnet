@@ -26,7 +26,7 @@ This document describes the automated task lifecycle system built on Claude Code
 stateDiagram-v2
     [*] --> coding : /claim writes signal file
 
-    coding --> coding : on-stop syncs board status
+    coding --> coding : on-stop skips sync<br/>(status unchanged)
     coding --> ready_for_pr : Agent runs /handoff<br/>(sets phase + summary)
 
     ready_for_pr --> pr_created : on-stop calls create_pr()<br/>(gh pr create, board → In Review)
@@ -78,9 +78,9 @@ sequenceDiagram
 
     loop Every agent response
         A->>A: Write code, tests, journal
-        SH->>SF: Read phase
-        SF-->>SH: phase: "coding"
-        SH->>PB: Sync status: "In Progress"
+        SH->>SF: Read phase + last_synced_status
+        SF-->>SH: phase: "coding", status unchanged
+        Note right of SH: No API calls — status already synced
     end
 
     Note over H,PB: Phase 3 — Handoff & PR Creation
@@ -151,6 +151,7 @@ The `.agent-claim.json` file is the only state the hooks inspect. It is ephemera
 
 ```json
 {
+  "schema_version": 1,
   "item_id": "PVTI_lADOBx...",
   "issue_number": 42,
   "branch": "claude/fix-thing-42",
@@ -159,12 +160,14 @@ The `.agent-claim.json` file is the only state the hooks inspect. It is ephemera
   "summary": "",
   "status": "In Progress",
   "pr_number": null,
-  "last_check_poll": null
+  "last_check_poll": null,
+  "last_synced_status": "In Progress"
 }
 ```
 
 | Field | Type | Written by | Purpose |
 |---|---|---|---|
+| `schema_version` | number | `/claim` | Schema version for forward compatibility (currently `1`) |
 | `item_id` | string | `/claim` | GitHub Projects item ID for board updates |
 | `issue_number` | number | `/claim` | GitHub issue to close at end of lifecycle |
 | `branch` | string | `/claim` | Git branch name, used for PR creation |
@@ -174,6 +177,7 @@ The `.agent-claim.json` file is the only state the hooks inspect. It is ephemera
 | `status` | string | Agent + hooks | Project board Status value to sync |
 | `pr_number` | number/null | `create_pr()` | PR number, populated after PR creation |
 | `last_check_poll` | ISO string/null | `poll_checks()` | Timestamp of last CI poll for 2-min backoff |
+| `last_synced_status` | string/null | `sync_board_status()` | Last status synced to board — skips redundant API calls |
 
 ---
 
@@ -211,10 +215,11 @@ flowchart TD
     F1 --> F2[Board → Done, Agent → empty]
     F2 --> F3[Delete signal file]
     F3 --> F4[Emit cleanup confirmation]
-    D -->|coding / pr_created / checks_running| G[Sync board status]
-    G --> G1[update_item_field Status]
-    G1 --> G2[update_item_text Agent]
-    D -->|unknown| G
+    D -->|any other| G[sync_board_status]
+    G --> G1{status changed since last sync?}
+    G1 -->|No| Z
+    G1 -->|Yes| G2[update_item_field + update_item_text]
+    G2 --> G3[Write last_synced_status]
 ```
 
 ### on-idle (runs when session is idle)
@@ -234,7 +239,7 @@ flowchart TD
     F -->|No| H{Backoff elapsed?}
     H -->|< 2 min| Z
     H -->|>= 2 min| I[poll_checks]
-    I --> I1[gh pr checks]
+    I --> I1[gh pr checks --json]
     I1 --> I2{Result?}
     I2 -->|All pass| I3[Emit: CI passed! Ready to merge]
     I2 -->|Failures| I4[Emit: N FAILED — list names]
@@ -279,19 +284,35 @@ Hooks are declared in `.claude/settings.json`:
 }
 ```
 
-The Stop hook is **synchronous** (no `async: true`) so it can return `additionalContext` with the PR URL after creation.
+The Stop hook is **synchronous** (no `async: true`) so it can return `additionalContext` with the PR URL after creation. The common case (`coding` phase with unchanged status) exits immediately with zero API calls, so the latency impact is negligible.
 
 ---
 
 ## Design Decisions
 
-### Pre-checked mission integrity boxes
+### Unchecked mission integrity boxes
 
-The PR body has all 5 mission integrity checklist items checked. The CI workflow (`mission-integrity.yml`) validates the checklist is present. The agent should only set `ready_for_pr` after confirming the work actually meets these criteria during `/handoff` validation.
+The PR body includes all 5 mission integrity checklist items as **unchecked** boxes. The agent or reviewer must check them manually. This preserves the purpose of the checklist — pre-checking them would be decorative.
+
+### Board sync skips unchanged status
+
+The `sync_board_status()` function tracks `last_synced_status` in the signal file. If the status hasn't changed since the last sync, it exits immediately with zero API calls. This eliminates redundant `gh project view` + `fetch_fields` + `item-edit` calls on every response during the `coding` phase.
+
+### Structured JSON for CI check parsing
+
+`poll_checks()` uses `gh pr checks --json name,state,conclusion` instead of text parsing. This avoids false matches (e.g., a check named "password-check" matching "pass") and handles header lines/error messages correctly.
+
+### Atomic signal file writes
+
+`write_claim_field()` creates the temp file in the same directory as the signal file (`mktemp "$CLAIM_FILE.XXXXXX"`) to ensure `mv` is an atomic rename on the same filesystem, not a copy+delete across filesystems.
+
+### Schema versioning
+
+The signal file includes `schema_version: 1`. If the schema changes in the future, the hook can detect and reject incompatible files instead of silently producing wrong behavior.
 
 ### 2-minute backoff for check polling
 
-The on-idle hook fires frequently. Without backoff, it would spam the GitHub API. The `last_check_poll` timestamp in the signal file ensures polls happen at most once every 2 minutes.
+The on-idle hook fires frequently. Without backoff, it would spam the GitHub API. The `last_check_poll` timestamp in the signal file ensures polls happen at most once every 2 minutes. If date parsing fails, it falls back to epoch 0 (forces a re-poll) — this is intentional to avoid silently stuck polling, at the cost of one extra API call.
 
 ### User must confirm issue closure
 
@@ -335,7 +356,7 @@ If `.agent-claim.json` doesn't exist, the hooks fall back to the original behavi
 
 2. **PR creation** — write a signal file manually and run the hook:
    ```bash
-   echo '{"item_id":"TEST","issue_number":42,"branch":"claude/test","agent_id":"test","phase":"ready_for_pr","summary":"Test PR","status":"In Review","pr_number":null,"last_check_poll":null}' > .agent-claim.json
+   echo '{"schema_version":1,"item_id":"TEST","issue_number":42,"branch":"claude/test","agent_id":"test","phase":"ready_for_pr","summary":"Test PR","status":"In Review","pr_number":null,"last_check_poll":null,"last_synced_status":null}' > .agent-claim.json
    echo '{}' | CLAUDE_PROJECT_DIR=. MOLTNET_PROJECT_NUMBER=1 ./scripts/agent-sync.sh on-stop
    ```
 

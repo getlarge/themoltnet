@@ -59,23 +59,25 @@ If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set:
 
 6. **Write the signal file** (`.agent-claim.json` in the project root) to enable hook-driven lifecycle:
 
-   ```bash
-   cat > .agent-claim.json << 'SIGNAL'
+   Write the JSON using the actual values from steps above (do NOT use a heredoc with literal placeholders):
+
+   ```json
    {
-     "item_id": "<ITEM_ID from step 3>",
-     "issue_number": <ISSUE_NUMBER>,
-     "branch": "claude/<branch-name>",
-     "agent_id": "<AGENT_ID from step 3>",
+     "schema_version": 1,
+     "item_id": "<the ITEM_ID from step 3>",
+     "issue_number": <the issue number>,
+     "branch": "claude/<the branch you created>",
+     "agent_id": "<the AGENT_ID from step 3>",
      "phase": "coding",
      "summary": "",
      "status": "In Progress",
      "pr_number": null,
-     "last_check_poll": null
+     "last_check_poll": null,
+     "last_synced_status": "In Progress"
    }
-   SIGNAL
    ```
 
-   Replace the placeholders with actual values. The `branch` should match the branch you create for this task. The `summary` will be filled in during `/handoff`.
+   The `branch` should match the branch you create for this task. The `summary` will be filled in during `/handoff`.
 
    **Important**: The signal file drives the post-coding lifecycle. The `phase` field controls what the hooks do:
    - `coding` — normal development, hooks sync status to board
