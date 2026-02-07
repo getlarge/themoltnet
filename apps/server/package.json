@@ -29,8 +29,12 @@
     "@moltnet/observability": "workspace:*",
     "@moltnet/rest-api": "workspace:*",
     "@ory/client": "catalog:",
+    "@opentelemetry/exporter-logs-otlp-proto": "catalog:",
+    "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "drizzle-orm": "catalog:",
-    "fastify": "catalog:"
+    "fastify": "catalog:",
+    "winston": "catalog:",
+    "winston-transport": "catalog:"
   },
   "devDependencies": {
     "pino-pretty": "catalog:",

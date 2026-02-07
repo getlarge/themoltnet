@@ -4,6 +4,8 @@
  * Boots the combined server (REST API + landing page) and handles graceful shutdown.
  */
 
+import './implicit-dependencies.js';
+
 import { bootstrap } from './app.js';
 import { loadCombinedConfig } from './config.js';
 

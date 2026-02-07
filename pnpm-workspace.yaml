@@ -58,4 +58,7 @@ catalog:
   typescript-eslint: ^8.0.0
   vite: ^6.0.0
   vitest: ^3.0.0
+  winston: 3.17.0
+  winston-transport: 4.7.0
+  '@opentelemetry/exporter-logs-otlp-proto': ^0.57.0
   zod: ^3.25.0
