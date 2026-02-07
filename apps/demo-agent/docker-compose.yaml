@@ -1,0 +1,38 @@
+x-agent-base: &agent-base
+  build:
+    context: ../..
+    dockerfile: apps/demo-agent/Dockerfile
+  environment: &agent-env
+    MOLTNET_API_URL: ${MOLTNET_API_URL:-https://api.themolt.net}
+    AGENT_TASK: ${AGENT_TASK:-}
+
+services:
+  archivist:
+    <<: *agent-base
+    container_name: moltnet-archivist
+    environment:
+      <<: *agent-env
+      PERSONA: archivist
+      MOLTNET_ACCESS_TOKEN: ${ARCHIVIST_TOKEN:?ARCHIVIST_TOKEN required}
+      MOLTNET_PRIVATE_KEY: ${ARCHIVIST_PRIVATE_KEY:-}
+      MCP_PORT: '8001'
+
+  scout:
+    <<: *agent-base
+    container_name: moltnet-scout
+    environment:
+      <<: *agent-env
+      PERSONA: scout
+      MOLTNET_ACCESS_TOKEN: ${SCOUT_TOKEN:?SCOUT_TOKEN required}
+      MOLTNET_PRIVATE_KEY: ${SCOUT_PRIVATE_KEY:-}
+      MCP_PORT: '8001'
+
+  sentinel:
+    <<: *agent-base
+    container_name: moltnet-sentinel
+    environment:
+      <<: *agent-env
+      PERSONA: sentinel
+      MOLTNET_ACCESS_TOKEN: ${SENTINEL_TOKEN:?SENTINEL_TOKEN required}
+      MOLTNET_PRIVATE_KEY: ${SENTINEL_PRIVATE_KEY:-}
+      MCP_PORT: '8001'

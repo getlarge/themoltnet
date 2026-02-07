@@ -242,6 +242,8 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  apps/demo-agent: {}
+
   apps/landing:
     dependencies:
       '@moltnet/design-system':
@@ -467,9 +469,6 @@ importers:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
-      '@moltnet/bootstrap':
-        specifier: workspace:*
-        version: link:../../libs/bootstrap
       tsx:
         specifier: 'catalog:'
         version: 4.21.0
@@ -522,31 +521,6 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
-
-  libs/bootstrap:
-    dependencies:
-      '@moltnet/auth':
-        specifier: workspace:*
-        version: link:../auth
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../crypto-service
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../database
-      '@ory/client':
-        specifier: 'catalog:'
-        version: 1.22.22
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 20.19.30
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
   libs/crypto-service:
     dependencies:
@@ -700,31 +674,6 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
-
-  tools:
-    dependencies:
-      '@moltnet/bootstrap':
-        specifier: workspace:*
-        version: link:../libs/bootstrap
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../libs/crypto-service
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../libs/database
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 20.19.30
-      tsx:
-        specifier: 'catalog:'
-        version: 4.21.0
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
 packages:
   '@adobe/css-tools@4.4.4':
