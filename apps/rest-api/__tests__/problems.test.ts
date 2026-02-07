@@ -27,7 +27,7 @@ describe('Problem type documentation routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(Array.isArray(body)).toBe(true);
-      expect(body.length).toBeGreaterThanOrEqual(9);
+      expect(body.length).toBeGreaterThanOrEqual(10);
 
       const first = body[0];
       expect(first).toHaveProperty('type');

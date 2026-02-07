@@ -28,6 +28,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         }),
         response: {
           200: Type.Ref(CryptoVerifyResultSchema),
+          500: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -62,6 +63,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         response: {
           200: Type.Ref(CryptoIdentitySchema),
           401: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
         },
       },
       preHandler: [requireAuth],
