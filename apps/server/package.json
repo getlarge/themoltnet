@@ -33,11 +33,14 @@
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "drizzle-orm": "catalog:",
     "fastify": "catalog:",
+    "pino": "catalog:",
+    "pino-opentelemetry-transport": "catalog:",
+    "pino-pretty": "catalog:",
+    "thread-stream": "catalog:",
     "winston": "catalog:",
     "winston-transport": "catalog:"
   },
   "devDependencies": {
-    "pino-pretty": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
