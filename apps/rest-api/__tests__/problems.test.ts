@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { problemTypes } from '../src/problems/registry.js';
 import {
   createMockServices,
   createTestApp,
@@ -74,6 +75,23 @@ describe('Problem type documentation routes', () => {
       );
       const body = response.json();
       expect(body.code).toBe('NOT_FOUND');
+    });
+  });
+});
+
+describe('Problem type registry', () => {
+  it('includes serialization-exhausted problem type', () => {
+    expect(problemTypes['serialization-exhausted']).toEqual({
+      slug: 'serialization-exhausted',
+      code: 'SERIALIZATION_EXHAUSTED',
+      status: 429,
+      title: 'Serialization Retry Exhausted',
+      description:
+        'Concurrent request conflict could not be resolved after retries.',
+      commonCauses: [
+        'Too many concurrent writes to the same resource',
+        'Try again after a short delay',
+      ],
     });
   });
 });
