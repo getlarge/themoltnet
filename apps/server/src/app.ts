@@ -106,6 +106,11 @@ export async function bootstrap(
   const oryClients = createOryClients({
     baseUrl: oryUrls.hydraAdminUrl,
     apiKey: oryUrls.apiKey,
+    kratosPublicUrl: oryUrls.kratosPublicUrl,
+    kratosAdminUrl: oryUrls.kratosAdminUrl,
+    hydraAdminUrl: oryUrls.hydraAdminUrl,
+    ketoReadUrl: oryUrls.ketoPublicUrl,
+    ketoWriteUrl: oryUrls.ketoAdminUrl,
   });
 
   // ── Repositories ───────────────────────────────────────────────
