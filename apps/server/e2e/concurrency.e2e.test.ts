@@ -38,7 +38,6 @@ describe('Concurrency and Atomicity', () => {
     });
 
     agent = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
@@ -146,7 +145,6 @@ describe('Concurrency and Atomicity', () => {
         issuerId: harness.bootstrapIdentityId,
       });
       const freshAgent = await createAgent({
-        app: harness.app,
         baseUrl: harness.baseUrl,
         identityApi: harness.identityApi,
         hydraAdminOAuth2: harness.hydraAdminOAuth2,
@@ -289,7 +287,6 @@ describe('Concurrency and Atomicity', () => {
       });
 
       agentB = await createAgent({
-        app: harness.app,
         baseUrl: harness.baseUrl,
         identityApi: harness.identityApi,
         hydraAdminOAuth2: harness.hydraAdminOAuth2,

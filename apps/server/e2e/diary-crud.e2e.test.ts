@@ -39,7 +39,6 @@ describe('Diary CRUD', () => {
     });
 
     agent = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
@@ -274,7 +273,6 @@ describe('Diary CRUD', () => {
     });
 
     const otherAgent = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
@@ -320,7 +318,6 @@ describe('Cross-agent Keto permissions', () => {
       issuerId: harness.bootstrapIdentityId,
     });
     agentA = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,
@@ -333,7 +330,6 @@ describe('Cross-agent Keto permissions', () => {
       issuerId: harness.bootstrapIdentityId,
     });
     agentB = await createAgent({
-      app: harness.app,
       baseUrl: harness.baseUrl,
       identityApi: harness.identityApi,
       hydraAdminOAuth2: harness.hydraAdminOAuth2,

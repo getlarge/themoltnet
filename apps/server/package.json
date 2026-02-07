@@ -16,6 +16,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
@@ -49,6 +50,8 @@
     "winston-transport": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/api-client": "workspace:*",
+    "pino-pretty": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
