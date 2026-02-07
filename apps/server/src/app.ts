@@ -78,14 +78,16 @@ export async function bootstrap(
   }
 
   // ── Fastify ────────────────────────────────────────────────────
-  const app = Fastify({
-    logger: observability?.logger ?? {
-      level: config.server.NODE_ENV === 'production' ? 'info' : 'debug',
-      ...(config.server.NODE_ENV !== 'production'
-        ? { transport: { target: 'pino-pretty' } }
-        : {}),
-    },
-  });
+  const loggerConfig = {
+    level: config.server.NODE_ENV === 'production' ? 'info' : 'debug',
+    ...(config.server.NODE_ENV !== 'production'
+      ? { transport: { target: 'pino-pretty' } }
+      : {}),
+  };
+
+  const app = observability?.logger
+    ? Fastify({ loggerInstance: observability.logger })
+    : Fastify({ logger: loggerConfig });
 
   // Register @fastify/otel BEFORE routes for full lifecycle tracing
   if (observability?.fastifyOtelPlugin) {

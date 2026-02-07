@@ -9,14 +9,17 @@ export default defineConfig({
     // drizzle-orm: ships pure ESM with no default export; Vite's CJS interop
     // incorrectly generates a default import when externalizing it.
     noExternal: ['drizzle-orm'],
-    // pino: uses __dirname for worker thread resolution — cannot be bundled
-    // in ESM. Must stay external so Node resolves it from node_modules.
+    // pino: uses __dirname for worker thread resolution.
+    // @opentelemetry: instrumentation hooks use require.cache (CJS-only).
+    // Both must stay external so Node resolves them from node_modules.
     external: [
       'pino',
       'pino-worker',
       'pino-pretty',
       'pino-opentelemetry-transport',
       'thread-stream',
+      '@fastify/otel',
+      /^@opentelemetry\//,
     ],
   },
 });
