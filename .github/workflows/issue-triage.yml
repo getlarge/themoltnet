@@ -27,41 +27,31 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          max_turns: 6
           additional_permissions: |
             issues: write
           prompt: |
-            You are the MoltNet issue triage agent. Review issue #${{ github.event.issue.number }}.
+            Triage issue #${{ github.event.issue.number }}.
 
-            Read the issue body and check these quality criteria:
+            Step 1: Fetch the issue (one call only):
+            gh issue view ${{ github.event.issue.number }}
 
-            1. **Acceptance criteria**: The issue body contains a "Done when",
-               "Acceptance criteria", or checklist section defining what "done" looks like.
-            2. **Context files**: The issue body references specific files or directories
-               in the repo (paths like `libs/auth/`, `apps/rest-api/src/`, etc.).
-            3. **Dependencies declared**: The issue body explicitly lists dependencies
-               (e.g., "Depends on #42") or states "No dependencies".
-            4. **Single responsibility**: The issue describes one coherent task,
-               not multiple unrelated changes.
-            5. **Scoped effort**: The work is achievable in a single agent session
-               (roughly 1-4 hours, not a multi-week epic).
+            Step 2: Evaluate these 5 quality criteria as pass/fail:
+            1. Acceptance criteria — has "Done when", checklist, or acceptance criteria section
+            2. Context files — references specific repo paths (e.g. `libs/auth/`, `apps/rest-api/src/`)
+            3. Dependencies declared — lists deps (e.g. "Depends on #42") or states "No dependencies"
+            4. Single responsibility — one coherent task, not multiple unrelated changes
+            5. Scoped effort — achievable in one agent session (1-4 hours)
 
-            Evaluate each criterion as pass/fail with a brief explanation.
+            Step 3: Apply labels and comment based on results.
 
-            **If ALL 5 pass:**
-            ```bash
-            gh issue edit ${{ github.event.issue.number }} --add-label "ready-for-agent"
-            gh issue edit ${{ github.event.issue.number }} --remove-label "needs-spec"
-            ```
-            Comment: "Triage: all quality criteria pass. Ready for agent pickup."
-            List which criteria passed.
+            If ALL 5 pass, run these commands:
+            gh issue edit ${{ github.event.issue.number }} --add-label "ready-for-agent" --remove-label "needs-spec"
+            gh issue comment ${{ github.event.issue.number }} --body "Triage: all quality criteria pass. Ready for agent pickup. <criteria results>"
 
-            **If ANY fail:**
-            ```bash
-            gh issue edit ${{ github.event.issue.number }} --add-label "needs-spec"
-            gh issue edit ${{ github.event.issue.number }} --remove-label "ready-for-agent"
-            ```
-            Comment: "Triage: this issue needs more detail."
-            List which criteria failed and what's needed.
+            If ANY fail, run these commands:
+            gh issue edit ${{ github.event.issue.number }} --add-label "needs-spec" --remove-label "ready-for-agent"
+            gh issue comment ${{ github.event.issue.number }} --body "Triage: this issue needs more detail. <criteria results with what's missing>"
 
   triage-sweep:
     if: github.event_name == 'schedule'
@@ -76,20 +66,25 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          max_turns: 10
           additional_permissions: |
             issues: write
           prompt: |
-            You are the MoltNet issue triage agent running a periodic sweep.
+            Periodic sweep of issues needing re-triage.
 
-            List open issues with the `needs-spec` label:
-            ```bash
+            Step 1: List open issues with needs-spec label:
             gh issue list --state open --label "needs-spec" --limit 20 --json number,title,updatedAt
-            ```
 
-            For each, check if it was updated since the last triage comment.
-            If it now meets all 5 quality criteria (acceptance criteria, context files,
-            dependencies declared, single responsibility, scoped effort):
-            - Remove `needs-spec`, add `ready-for-agent`
-            - Comment noting it now passes
+            Step 2: For each issue, run: gh issue view <number>
+            Check if it now meets all 5 quality criteria:
+            1. Acceptance criteria (has "Done when" / checklist)
+            2. Context files (references repo paths)
+            3. Dependencies declared
+            4. Single responsibility
+            5. Scoped effort (1-4 hours)
 
-            Only re-check `needs-spec` issues. Skip `ready-for-agent` issues.
+            Step 3: For issues that now pass all criteria:
+            gh issue edit <number> --add-label "ready-for-agent" --remove-label "needs-spec"
+            gh issue comment <number> --body "Re-triage: all criteria now pass. Ready for agent pickup."
+
+            Skip issues that still fail criteria. Only re-check needs-spec issues.

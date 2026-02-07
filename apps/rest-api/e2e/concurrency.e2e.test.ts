@@ -175,6 +175,7 @@ describe('Concurrency and Atomicity', () => {
 
       const succeeded = responses.filter((r) => r.response.status === 201);
       const rateLimited = responses.filter((r) => r.response.status === 429);
+      const serverErrors = responses.filter((r) => r.response.status === 500);
 
       // The total active count should never exceed 5
       const { data: activeList } = await listActiveVouchers({
@@ -185,8 +186,11 @@ describe('Concurrency and Atomicity', () => {
 
       // At most 1 of the concurrent batch should have succeeded
       expect(succeeded.length).toBeLessThanOrEqual(1);
-      // The rest should be rate-limited (429) or server errors
-      expect(succeeded.length + rateLimited.length).toBe(responses.length);
+      // The rest should be rate-limited (429) or server errors (500 from
+      // serialization retry exhaustion under SERIALIZABLE isolation)
+      expect(succeeded.length + rateLimited.length + serverErrors.length).toBe(
+        responses.length,
+      );
     });
   });
 
