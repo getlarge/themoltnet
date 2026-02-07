@@ -32,7 +32,11 @@ import {
   observabilityPlugin,
 } from '@moltnet/observability';
 import { registerApiRoutes, resolveOryUrls } from '@moltnet/rest-api';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, {
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
+} from 'fastify';
 
 import type { CombinedConfig } from './config.js';
 
@@ -85,9 +89,11 @@ export async function bootstrap(
       : {}),
   };
 
-  const app = observability?.logger
-    ? Fastify({ loggerInstance: observability.logger })
-    : Fastify({ logger: loggerConfig });
+  const app = (
+    observability?.logger
+      ? Fastify({ loggerInstance: observability.logger })
+      : Fastify({ logger: loggerConfig })
+  ) as FastifyInstance;
 
   // Register @fastify/otel BEFORE routes for full lifecycle tracing
   if (observability?.fastifyOtelPlugin) {
@@ -178,7 +184,7 @@ export async function bootstrap(
 
     // SPA fallback: serve index.html for browser navigation only.
     // API clients (Accept: application/json) get a proper JSON 404.
-    app.setNotFoundHandler((request, reply) => {
+    app.setNotFoundHandler((request: FastifyRequest, reply: FastifyReply) => {
       const accept = request.headers.accept ?? '';
       if (
         request.method === 'GET' &&
