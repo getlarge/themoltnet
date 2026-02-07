@@ -5,13 +5,13 @@
 #
 # Usage:
 #   docker compose -f docker-compose.e2e.yaml up -d
-#   or: COMPOSE_PROFILES=dev docker compose -f docker-compose.e2e.yaml up -d
 
 services:
   app-db:
     extends:
       file: docker-compose.base.yaml
       service: app-db
+
     volumes:
       - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
 
@@ -35,10 +35,15 @@ services:
       file: docker-compose.base.yaml
       service: kratos-migrate
 
+    depends_on:
+      kratos-postgres:
+        condition: service_healthy
+
   kratos:
     extends:
       file: docker-compose.base.yaml
       service: kratos
+
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
@@ -50,10 +55,15 @@ services:
       file: docker-compose.base.yaml
       service: hydra-migrate
 
+    depends_on:
+      hydra-postgres:
+        condition: service_healthy
+
   hydra:
     extends:
       file: docker-compose.base.yaml
       service: hydra
+
     depends_on:
       hydra-migrate:
         condition: service_completed_successfully
@@ -63,13 +73,63 @@ services:
       file: docker-compose.base.yaml
       service: keto-migrate
 
+    depends_on:
+      keto-postgres:
+        condition: service_healthy
+
   keto:
     extends:
       file: docker-compose.base.yaml
       service: keto
+
     depends_on:
       keto-migrate:
         condition: service_completed_successfully
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    ports:
+      - '8080:8080'
+    environment:
+      NODE_ENV: production
+      PORT: '8080'
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@app-db:5432/moltnet
+      ORY_KRATOS_PUBLIC_URL: http://kratos:4433
+      ORY_KRATOS_ADMIN_URL: http://kratos:4434
+      ORY_HYDRA_PUBLIC_URL: http://hydra:4444
+      ORY_HYDRA_ADMIN_URL: http://hydra:4445
+      ORY_KETO_PUBLIC_URL: http://keto:4466
+      ORY_KETO_ADMIN_URL: http://keto:4467
+      ORY_ACTION_API_KEY: e2e-test-webhook-key
+      RECOVERY_CHALLENGE_SECRET: e2e-recovery-secret-for-hmac-signing
+      CORS_ORIGINS: '*'
+      RATE_LIMIT_GLOBAL_AUTH: '10000'
+      RATE_LIMIT_GLOBAL_ANON: '10000'
+      RATE_LIMIT_EMBEDDING: '10000'
+      RATE_LIMIT_VOUCH: '10000'
+    depends_on:
+      app-db:
+        condition: service_healthy
+      kratos:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+      keto:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 30s
 
   otel-collector:
     extends:

@@ -27,11 +27,11 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          max_turns: 6
+          allowed_bots: 'claude[bot]'
           additional_permissions: |
             issues: write
           claude_args: |
-            --allowedTools "Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
+            --max-turns 6 --allowedTools "Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
           prompt: |
             Triage issue #${{ github.event.issue.number }}.
 
@@ -68,11 +68,11 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          max_turns: 10
+          allowed_bots: 'claude[bot]'
           additional_permissions: |
             issues: write
           claude_args: |
-            --allowedTools "Bash(gh issue list*),Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
+            --max-turns 10 --allowedTools "Bash(gh issue list*),Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
           prompt: |
             Periodic sweep of issues needing re-triage.
 

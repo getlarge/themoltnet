@@ -16,6 +16,11 @@ import {
 export interface OryClientConfig {
   baseUrl: string;
   apiKey?: string;
+  kratosPublicUrl?: string;
+  kratosAdminUrl?: string;
+  hydraAdminUrl?: string;
+  ketoReadUrl?: string;
+  ketoWriteUrl?: string;
 }
 
 export interface OryClients {
@@ -27,16 +32,20 @@ export interface OryClients {
 }
 
 export function createOryClients(config: OryClientConfig): OryClients {
-  const configuration = new Configuration({
-    basePath: config.baseUrl,
-    ...(config.apiKey ? { accessToken: config.apiKey } : {}),
-  });
+  const accessToken = config.apiKey ? { accessToken: config.apiKey } : {};
+
+  function makeConfig(url?: string): Configuration {
+    return new Configuration({
+      basePath: url ?? config.baseUrl,
+      ...accessToken,
+    });
+  }
 
   return {
-    frontend: new FrontendApi(configuration),
-    identity: new IdentityApi(configuration),
-    oauth2: new OAuth2Api(configuration),
-    permission: new PermissionApi(configuration),
-    relationship: new RelationshipApi(configuration),
+    frontend: new FrontendApi(makeConfig(config.kratosPublicUrl)),
+    identity: new IdentityApi(makeConfig(config.kratosAdminUrl)),
+    oauth2: new OAuth2Api(makeConfig(config.hydraAdminUrl)),
+    permission: new PermissionApi(makeConfig(config.ketoReadUrl)),
+    relationship: new RelationshipApi(makeConfig(config.ketoWriteUrl)),
   };
 }
