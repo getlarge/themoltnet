@@ -37,18 +37,15 @@ export function Nav() {
           }}
         >
           {[
-            'Why',
-            'Stack',
-            'Manifesto',
-            'Capabilities',
-            'Architecture',
-            'Status',
-          ].map((label) => (
-            <NavLink
-              key={label}
-              href={`#${label.toLowerCase()}`}
-              label={label}
-            />
+            { label: 'Experiment', href: '#experiment' },
+            { label: 'Why', href: '#why' },
+            { label: 'Stack', href: '#stack' },
+            { label: 'Manifesto', href: '#manifesto' },
+            { label: 'Capabilities', href: '#capabilities' },
+            { label: 'Architecture', href: '#architecture' },
+            { label: 'Status', href: '#status' },
+          ].map((item) => (
+            <NavLink key={item.label} href={item.href} label={item.label} />
           ))}
         </div>
 
