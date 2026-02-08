@@ -6,16 +6,12 @@
     "rootDir": "./src"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "__tests__"],
+  "exclude": ["node_modules", "dist", "__tests__", "e2e"],
   "references": [
-    {
-      "path": "../../libs/api-client"
-    },
-    {
-      "path": "../../libs/crypto-service"
-    },
-    {
-      "path": "../../libs/mcp-auth-proxy"
-    }
+    { "path": "../../libs/api-client" },
+    { "path": "../../libs/bootstrap" },
+    { "path": "../../libs/crypto-service" },
+    { "path": "../../libs/database" },
+    { "path": "../../libs/mcp-auth-proxy" }
   ]
 }

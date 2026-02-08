@@ -7,7 +7,7 @@ import mcpPlugin from '@getlarge/fastify-mcp';
 import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
 import Fastify, { type FastifyInstance } from 'fastify';
 
-import type { McpServerConfig } from './config.js';
+import { type McpServerConfig, resolveHydraUrls } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
@@ -48,38 +48,37 @@ function cleanDcrResponse(response: DCRResponse): DCRResponse {
 
 function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
   const authEnabled = config.AUTH_ENABLED === true;
-  const projectUrl = config.ORY_PROJECT_URL;
+  const hydra = resolveHydraUrls(config);
 
-  if (!authEnabled || !projectUrl) {
+  if (!authEnabled || !hydra) {
     return { enabled: false };
   }
 
-  const projectApiKey = config.ORY_PROJECT_API_KEY;
   const resourceUri =
     config.MCP_RESOURCE_URI ?? `http://localhost:${config.PORT}`;
 
   return {
     enabled: true,
-    authorizationServers: [projectUrl],
+    authorizationServers: [hydra.publicUrl],
     resourceUri,
     excludedPaths: ['/healthz'],
     tokenValidation: {
-      jwksUri: `${projectUrl}/.well-known/jwks.json`,
-      introspectionEndpoint: projectApiKey
-        ? `${projectUrl}/admin/oauth2/introspect`
+      jwksUri: `${hydra.publicUrl}/.well-known/jwks.json`,
+      introspectionEndpoint: hydra.apiKey
+        ? `${hydra.adminUrl}/admin/oauth2/introspect`
         : undefined,
-      introspectionAuth: projectApiKey
-        ? { type: 'bearer' as const, token: projectApiKey }
+      introspectionAuth: hydra.apiKey
+        ? { type: 'bearer' as const, token: hydra.apiKey }
         : undefined,
     },
     oauth2Client: {
-      authorizationServer: projectUrl,
+      authorizationServer: hydra.publicUrl,
       resourceUri,
       scopes: ['openid'],
       dynamicRegistration: true,
     },
     dcrHooks: {
-      upstreamEndpoint: `${projectUrl}/oauth2/register`,
+      upstreamEndpoint: `${hydra.publicUrl}/oauth2/register`,
       onRequest: (request: DCRRequest, log) => {
         log.info({ dcrRequest: request }, 'DCR: forwarding request to Ory');
         return request;
