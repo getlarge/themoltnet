@@ -128,11 +128,70 @@ export interface AgentVoucher {
   createdAt: Date;
 }
 
+export interface SigningRequestRepository {
+  create(
+    input: {
+      agentId: string;
+      message: string;
+      expiresAt?: Date;
+      workflowId?: string;
+    },
+    tx?: unknown,
+  ): Promise<SigningRequestRecord>;
+  findById(id: string): Promise<SigningRequestRecord | null>;
+  list(options: {
+    agentId: string;
+    status?: string[];
+    limit?: number;
+    offset?: number;
+  }): Promise<{ items: SigningRequestRecord[]; total: number }>;
+  updateStatus(
+    id: string,
+    updates: Partial<
+      Pick<
+        SigningRequestRecord,
+        'status' | 'signature' | 'valid' | 'completedAt' | 'workflowId'
+      >
+    >,
+  ): Promise<SigningRequestRecord | null>;
+  countByAgent(agentId: string): Promise<number>;
+}
+
+export interface SigningRequestRecord {
+  id: string;
+  agentId: string;
+  message: string;
+  nonce: string;
+  status: 'pending' | 'completed' | 'expired';
+  signature: string | null;
+  valid: boolean | null;
+  workflowId: string | null;
+  createdAt: Date;
+  expiresAt: Date;
+  completedAt: Date | null;
+}
+
+/**
+ * Minimal DataSource interface for durable transactions.
+ * Matches the diary-service DataSource shape to avoid importing @moltnet/database.
+ */
+export interface DataSource {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any;
+  runTransaction<T>(
+    fn: () => Promise<T>,
+    options?: { name?: string },
+  ): Promise<T>;
+}
+
 declare module 'fastify' {
   interface FastifyInstance {
     diaryService: DiaryService;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;
     voucherRepository: VoucherRepository;
+    signingRequestRepository: SigningRequestRepository;
+    signingTimeoutSeconds: number;
+    dataSource: DataSource;
   }
 }

@@ -11,6 +11,8 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('VOUCHER_LIMIT'),
   Type.Literal('RATE_LIMIT_EXCEEDED'),
   Type.Literal('SERIALIZATION_EXHAUSTED'),
+  Type.Literal('SIGNING_REQUEST_EXPIRED'),
+  Type.Literal('SIGNING_REQUEST_ALREADY_COMPLETED'),
   Type.Literal('UPSTREAM_ERROR'),
   Type.Literal('INTERNAL_SERVER_ERROR'),
 ]);

@@ -145,6 +145,45 @@ export const CryptoIdentitySchema = Type.Object(
   { $id: 'CryptoIdentity' },
 );
 
+// ── Signing Requests ─────────────────────────────────────────
+
+export const SigningRequestSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    agentId: Type.String({ format: 'uuid' }),
+    message: Type.String(),
+    nonce: Type.String({ format: 'uuid' }),
+    status: Type.Union([
+      Type.Literal('pending'),
+      Type.Literal('completed'),
+      Type.Literal('expired'),
+    ]),
+    signature: Type.Union([Type.String(), Type.Null()]),
+    valid: Type.Union([Type.Boolean(), Type.Null()]),
+    createdAt: Type.String({ format: 'date-time' }),
+    expiresAt: Type.String({ format: 'date-time' }),
+    completedAt: Type.Union([
+      Type.String({ format: 'date-time' }),
+      Type.Null(),
+    ]),
+  },
+  { $id: 'SigningRequest' },
+);
+
+export const SigningRequestListSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(SigningRequestSchema)),
+    total: Type.Number(),
+    limit: Type.Number(),
+    offset: Type.Number(),
+  },
+  { $id: 'SigningRequestList' },
+);
+
+export const SigningRequestParamsSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+});
+
 // ── Recovery ────────────────────────────────────────────────
 
 export const RecoveryChallengeResponseSchema = Type.Object(
@@ -225,4 +264,6 @@ export const sharedSchemas = [
   RecoveryVerifyResponseSchema,
   VoucherSchema,
   HealthSchema,
+  SigningRequestSchema,
+  SigningRequestListSchema,
 ];
