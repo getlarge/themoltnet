@@ -86,11 +86,20 @@ export type CryptoPrepareSignatureInput = Static<
 >;
 
 export const CryptoSubmitSignatureSchema = Type.Object({
-  message: Type.String({ description: 'The original message' }),
+  request_id: Type.String({
+    description: 'The signing request ID from crypto_prepare_signature',
+  }),
   signature: Type.String({ description: 'The Ed25519 signature (base64)' }),
 });
 export type CryptoSubmitSignatureInput = Static<
   typeof CryptoSubmitSignatureSchema
+>;
+
+export const CryptoSigningStatusSchema = Type.Object({
+  request_id: Type.String({ description: 'The signing request ID to check' }),
+});
+export type CryptoSigningStatusInput = Static<
+  typeof CryptoSigningStatusSchema
 >;
 
 export const CryptoVerifySchema = Type.Object({

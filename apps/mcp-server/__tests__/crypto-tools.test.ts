@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   handleCryptoPrepareSignature,
+  handleCryptoSigningStatus,
   handleCryptoSubmitSignature,
   handleCryptoVerify,
 } from '../src/crypto-tools.js';
@@ -16,11 +17,18 @@ import {
 } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
-  getCryptoIdentity: vi.fn(),
+  createSigningRequest: vi.fn(),
+  submitSignature: vi.fn(),
+  getSigningRequest: vi.fn(),
   verifyAgentSignature: vi.fn(),
 }));
 
-import { getCryptoIdentity, verifyAgentSignature } from '@moltnet/api-client';
+import {
+  createSigningRequest,
+  getSigningRequest,
+  submitSignature,
+  verifyAgentSignature,
+} from '@moltnet/api-client';
 
 describe('Crypto tools', () => {
   let deps: McpDeps;
@@ -33,9 +41,15 @@ describe('Crypto tools', () => {
   });
 
   describe('crypto_prepare_signature', () => {
-    it('returns an envelope with identity info', async () => {
-      vi.mocked(getCryptoIdentity).mockResolvedValue(
-        sdkOk({ fingerprint: 'fp:abc123' }) as never,
+    it('creates a signing request and returns envelope', async () => {
+      vi.mocked(createSigningRequest).mockResolvedValue(
+        sdkOk({
+          id: 'req-123',
+          message: 'Hello, world!',
+          nonce: 'nonce-abc',
+          status: 'pending',
+          expiresAt: '2026-02-07T10:05:00Z',
+        }) as never,
       );
 
       const result = await handleCryptoPrepareSignature(
@@ -44,11 +58,16 @@ describe('Crypto tools', () => {
         context,
       );
 
-      expect(getCryptoIdentity).toHaveBeenCalled();
+      expect(createSigningRequest).toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('request_id', 'req-123');
       expect(parsed).toHaveProperty('message', 'Hello, world!');
-      expect(parsed).toHaveProperty('signer_fingerprint', 'fp:abc123');
-      expect(parsed).toHaveProperty('instructions');
+      expect(parsed).toHaveProperty('nonce', 'nonce-abc');
+      expect(parsed).toHaveProperty(
+        'signing_payload',
+        'Hello, world!.nonce-abc',
+      );
+      expect(parsed).toHaveProperty('status', 'pending');
     });
 
     it('returns error when not authenticated', async () => {
@@ -61,77 +80,114 @@ describe('Crypto tools', () => {
 
       expect(result.isError).toBe(true);
     });
-  });
 
-  describe('crypto_submit_signature', () => {
-    it('verifies a valid signature against known public key', async () => {
-      vi.mocked(getCryptoIdentity).mockResolvedValue(
-        sdkOk({ fingerprint: 'fp:abc123' }) as never,
-      );
-      vi.mocked(verifyAgentSignature).mockResolvedValue(
-        sdkOk({ valid: true }) as never,
+    it('returns error when API call fails', async () => {
+      vi.mocked(createSigningRequest).mockResolvedValue(
+        sdkErr(
+          { error: 'Internal', message: 'Server error', statusCode: 500 },
+          500,
+        ) as never,
       );
 
-      const result = await handleCryptoSubmitSignature(
-        { message: 'Hello', signature: 'sig123' },
+      const result = await handleCryptoPrepareSignature(
+        { message: 'test' },
         deps,
         context,
       );
 
-      expect(getCryptoIdentity).toHaveBeenCalled();
-      expect(verifyAgentSignature).toHaveBeenCalledWith(
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe('crypto_submit_signature', () => {
+    it('submits a signature and returns result', async () => {
+      vi.mocked(submitSignature).mockResolvedValue(
+        sdkOk({
+          id: 'req-123',
+          status: 'completed',
+          valid: true,
+        }) as never,
+      );
+
+      const result = await handleCryptoSubmitSignature(
+        { request_id: 'req-123', signature: 'ed25519:sig123' },
+        deps,
+        context,
+      );
+
+      expect(submitSignature).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { fingerprint: 'fp:abc123' },
-          body: { message: 'Hello', signature: 'sig123' },
+          path: { id: 'req-123' },
+          body: { signature: 'ed25519:sig123' },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('valid', true);
-      expect(parsed).toHaveProperty('signer_fingerprint', 'fp:abc123');
-    });
-
-    it('reports invalid signature', async () => {
-      vi.mocked(getCryptoIdentity).mockResolvedValue(
-        sdkOk({ fingerprint: 'fp:abc123' }) as never,
-      );
-      vi.mocked(verifyAgentSignature).mockResolvedValue(
-        sdkOk({ valid: false }) as never,
-      );
-
-      const result = await handleCryptoSubmitSignature(
-        { message: 'Hello', signature: 'bad-sig' },
-        deps,
-        context,
-      );
-
-      const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('valid', false);
+      expect(parsed).toHaveProperty('status', 'completed');
     });
 
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleCryptoSubmitSignature(
-        { message: 'test', signature: 'sig' },
+        { request_id: 'req-123', signature: 'sig' },
         deps,
         unauthContext,
       );
 
       expect(result.isError).toBe(true);
     });
+  });
 
-    it('returns error when identity lookup fails', async () => {
-      vi.mocked(getCryptoIdentity).mockResolvedValue(
-        sdkOk({ fingerprint: undefined }) as never,
+  describe('crypto_signing_status', () => {
+    it('returns signing request status', async () => {
+      vi.mocked(getSigningRequest).mockResolvedValue(
+        sdkOk({
+          id: 'req-123',
+          status: 'pending',
+          valid: null,
+          message: 'Hello',
+          expiresAt: '2026-02-07T10:05:00Z',
+        }) as never,
       );
 
-      const result = await handleCryptoSubmitSignature(
-        { message: 'test', signature: 'sig' },
+      const result = await handleCryptoSigningStatus(
+        { request_id: 'req-123' },
+        deps,
+        context,
+      );
+
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('status', 'pending');
+      expect(parsed).toHaveProperty('request_id', 'req-123');
+    });
+
+    it('returns error when not found', async () => {
+      vi.mocked(getSigningRequest).mockResolvedValue(
+        sdkErr(
+          { error: 'Not Found', message: 'Not found', statusCode: 404 },
+          404,
+        ) as never,
+      );
+
+      const result = await handleCryptoSigningStatus(
+        { request_id: 'nonexistent' },
         deps,
         context,
       );
 
       expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('identity');
+      expect(getTextContent(result)).toContain('not found');
+    });
+
+    it('returns error when not authenticated', async () => {
+      const unauthContext = createMockContext(null);
+      const result = await handleCryptoSigningStatus(
+        { request_id: 'req-123' },
+        deps,
+        unauthContext,
+      );
+
+      expect(result.isError).toBe(true);
     });
   });
 

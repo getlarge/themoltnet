@@ -1,24 +1,32 @@
 /**
  * @moltnet/mcp-server — Crypto Tool Handlers
  *
- * Redesigned for key isolation:
- * - crypto_prepare_signature: returns an envelope for the agent to sign locally
- * - crypto_submit_signature: receives a signature, verifies against the agent's known public key
+ * - crypto_prepare_signature: creates a signing request via REST API (DBOS workflow)
+ * - crypto_submit_signature: submits a locally-created signature
+ * - crypto_signing_status: checks signing request status
  * - crypto_verify: verifies a signature via REST API (public, no auth needed)
  *
- * The agent's private key never touches this server.
+ * Private keys never leave the agent's runtime. The agent signs locally
+ * and submits the signature to the DBOS durable workflow.
  */
 
-import { getCryptoIdentity, verifyAgentSignature } from '@moltnet/api-client';
+import {
+  createSigningRequest,
+  getSigningRequest,
+  submitSignature,
+  verifyAgentSignature,
+} from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import type {
   CryptoPrepareSignatureInput,
+  CryptoSigningStatusInput,
   CryptoSubmitSignatureInput,
   CryptoVerifyInput,
 } from './schemas.js';
 import {
   CryptoPrepareSignatureSchema,
+  CryptoSigningStatusSchema,
   CryptoSubmitSignatureSchema,
   CryptoVerifySchema,
 } from './schemas.js';
@@ -28,8 +36,8 @@ import { errorResult, getTokenFromContext, textResult } from './utils.js';
 // --- Handler functions ---
 
 /**
- * Prepares a signing envelope. The agent retrieves their identity
- * and gets back the message + metadata needed to produce a local signature.
+ * Creates a signing request via the REST API (DBOS workflow).
+ * Returns the request ID, message, nonce, and signing_payload for the agent.
  */
 export async function handleCryptoPrepareSignature(
   args: CryptoPrepareSignatureInput,
@@ -40,17 +48,25 @@ export async function handleCryptoPrepareSignature(
   if (!token) return errorResult('Not authenticated');
 
   try {
-    const { data: identity } = await getCryptoIdentity({
+    const { data, error } = await createSigningRequest({
       client: deps.client,
       auth: () => token,
+      body: { message: args.message },
     });
 
+    if (error) {
+      return errorResult('Failed to create signing request');
+    }
+
     return textResult({
-      message: args.message,
-      signer_fingerprint: identity?.fingerprint,
+      request_id: data.id,
+      message: data.message,
+      nonce: data.nonce,
+      signing_payload: `${data.message}.${data.nonce}`,
+      status: data.status,
+      expires_at: data.expiresAt,
       instructions:
-        'Sign the message field with your Ed25519 private key (base64 output). ' +
-        'Then call crypto_submit_signature with the message and signature.',
+        'Sign the signing_payload (message.nonce) with your Ed25519 private key, then call crypto_submit_signature with the request_id and signature. The nonce prevents replay attacks.',
     });
   } catch (err) {
     const message =
@@ -60,8 +76,8 @@ export async function handleCryptoPrepareSignature(
 }
 
 /**
- * Receives a locally-produced signature and verifies it against
- * the agent's registered public key via the REST API.
+ * Submits a signature to a signing request via the REST API.
+ * The DBOS workflow verifies the signature server-side.
  */
 export async function handleCryptoSubmitSignature(
   args: CryptoSubmitSignatureInput,
@@ -72,40 +88,70 @@ export async function handleCryptoSubmitSignature(
   if (!token) return errorResult('Not authenticated');
 
   try {
-    // Get the agent's identity to know their fingerprint
-    const { data: identity } = await getCryptoIdentity({
+    const { data, error } = await submitSignature({
       client: deps.client,
       auth: () => token,
-    });
-
-    if (!identity?.fingerprint) {
-      return errorResult('Could not determine your identity');
-    }
-
-    // Verify the signature against the agent's known public key
-    const { data, error } = await verifyAgentSignature({
-      client: deps.client,
-      path: { fingerprint: identity.fingerprint },
-      body: {
-        message: args.message,
-        signature: args.signature,
-      },
+      path: { id: args.request_id },
+      body: { signature: args.signature },
     });
 
     if (error) {
-      return errorResult('Signature verification failed');
+      return errorResult('Failed to submit signature');
     }
 
     return textResult({
+      request_id: data.id,
+      status: data.status,
       valid: data.valid,
-      signer_fingerprint: identity.fingerprint,
       message: data.valid
-        ? 'Signature verified. This message is cryptographically signed by you.'
-        : 'Signature is invalid. The signature does not match your registered public key.',
+        ? 'Signature verified successfully.'
+        : data.status === 'expired'
+          ? 'Signing request expired before signature was submitted.'
+          : 'Signature verification failed.',
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Signature submission failed';
+      err instanceof Error ? err.message : 'Failed to submit signature';
+    return errorResult(message);
+  }
+}
+
+/**
+ * Checks the status of a signing request via the REST API.
+ */
+export async function handleCryptoSigningStatus(
+  args: CryptoSigningStatusInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  try {
+    const { data, error, response } = await getSigningRequest({
+      client: deps.client,
+      auth: () => token,
+      path: { id: args.request_id },
+    });
+
+    if (response.status === 404) {
+      return errorResult('Signing request not found');
+    }
+
+    if (error) {
+      return errorResult('Failed to get signing request status');
+    }
+
+    return textResult({
+      request_id: data.id,
+      status: data.status,
+      valid: data.valid,
+      message: data.message,
+      expires_at: data.expiresAt,
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Failed to get signing status';
     return errorResult(message);
   }
 }
@@ -157,8 +203,8 @@ export function registerCryptoTools(
     {
       name: 'crypto_prepare_signature',
       description:
-        'Prepare a message for signing. Returns an envelope with your identity. ' +
-        'Sign the message locally with your Ed25519 private key, then call crypto_submit_signature.',
+        'Create a signing request. Returns a request ID, message, nonce, and the signing_payload (message.nonce). ' +
+        'Sign the signing_payload locally with your Ed25519 private key, then call crypto_submit_signature.',
       inputSchema: CryptoPrepareSignatureSchema,
     },
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
@@ -168,11 +214,21 @@ export function registerCryptoTools(
     {
       name: 'crypto_submit_signature',
       description:
-        'Submit a locally-produced Ed25519 signature. ' +
-        'The server verifies it against your registered public key.',
+        'Submit a locally-produced Ed25519 signature for a signing request. ' +
+        'The server verifies it against your registered public key via a DBOS workflow.',
       inputSchema: CryptoSubmitSignatureSchema,
     },
     async (args, ctx) => handleCryptoSubmitSignature(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'crypto_signing_status',
+      description:
+        'Check the status of a signing request (pending, completed, or expired).',
+      inputSchema: CryptoSigningStatusSchema,
+    },
+    async (args, ctx) => handleCryptoSigningStatus(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
