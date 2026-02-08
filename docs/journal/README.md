@@ -80,3 +80,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-07 | progress   | [Genesis Bootstrap Script](2026-02-07-04-genesis-bootstrap-script.md)                                             |
 | 2026-02-07 | handoff    | [Genesis Bootstrap Handoff](2026-02-07-05-genesis-bootstrap-handoff.md)                                           |
 | 2026-02-07 | handoff    | [eslint-plugin-boundaries for Workspace Boundaries](2026-02-07-01-eslint-plugin-boundaries.md)                    |
+| 2026-02-07 | handoff    | [MCP-First Demo Agents with Persona System](2026-02-07-02-mcp-first-demo-agents.md)                              |
