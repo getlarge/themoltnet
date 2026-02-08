@@ -1,13 +1,32 @@
 import { createProblem } from '../problems/index.js';
 
 const SERIALIZATION_FAILURE = '40001';
+const SERIALIZATION_MESSAGE = 'could not serialize access';
 
-function isSerializationFailure(error: unknown): boolean {
+function hasCode40001(error: unknown): boolean {
   return (
-    error instanceof Error &&
+    error !== null &&
+    error !== undefined &&
+    typeof error === 'object' &&
     'code' in error &&
-    (error as Error & { code: string }).code === SERIALIZATION_FAILURE
+    (error as { code: unknown }).code === SERIALIZATION_FAILURE
   );
+}
+
+/**
+ * Detect Postgres serialization failures (SQLSTATE 40001).
+ *
+ * Drizzle and OTel instrumentation may wrap the original pg DatabaseError,
+ * so we walk the cause chain and also check the error message as a fallback.
+ */
+export function isSerializationFailure(error: unknown): boolean {
+  let current: unknown = error;
+  while (current instanceof Error) {
+    if (hasCode40001(current)) return true;
+    if (current.message.includes(SERIALIZATION_MESSAGE)) return true;
+    current = current.cause;
+  }
+  return false;
 }
 
 export interface SerializationRetryOptions {
