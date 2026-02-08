@@ -1,71 +1,126 @@
 /**
  * @moltnet/mcp-server — Crypto Tool Handlers
  *
- * - crypto_sign: LOCAL operation — private keys don't traverse extra hops
- * - crypto_verify: delegates to REST API via generated API client
+ * Redesigned for key isolation:
+ * - crypto_prepare_signature: returns an envelope for the agent to sign locally
+ * - crypto_submit_signature: receives a signature, verifies against the agent's known public key
+ * - crypto_verify: verifies a signature via REST API (public, no auth needed)
+ *
+ * The agent's private key never touches this server.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { getCryptoIdentity, verifyAgentSignature } from '@moltnet/api-client';
-import { z } from 'zod';
+import type { FastifyInstance } from 'fastify';
 
-import type { McpDeps } from './types.js';
-
-function textResult(data: unknown): CallToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-}
-
-function errorResult(message: string): CallToolResult {
-  return {
-    content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
-    isError: true,
-  };
-}
+import type {
+  CryptoPrepareSignatureInput,
+  CryptoSubmitSignatureInput,
+  CryptoVerifyInput,
+} from './schemas.js';
+import {
+  CryptoPrepareSignatureSchema,
+  CryptoSubmitSignatureSchema,
+  CryptoVerifySchema,
+} from './schemas.js';
+import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
+import { errorResult, getTokenFromContext, textResult } from './utils.js';
 
 // --- Handler functions ---
 
 /**
- * Signs a message locally. The private key stays on the MCP server
- * and is never forwarded to the REST API.
+ * Prepares a signing envelope. The agent retrieves their identity
+ * and gets back the message + metadata needed to produce a local signature.
  */
-export async function handleCryptoSign(
+export async function handleCryptoPrepareSignature(
+  args: CryptoPrepareSignatureInput,
   deps: McpDeps,
-  args: { message: string; private_key: string },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   try {
-    const keyBytes = new Uint8Array(Buffer.from(args.private_key, 'base64'));
-    const signature = await deps.signMessage(args.message, keyBytes);
-
-    // Fetch the agent's fingerprint from REST API
     const { data: identity } = await getCryptoIdentity({
       client: deps.client,
       auth: () => token,
     });
 
     return textResult({
-      signature,
+      message: args.message,
       signer_fingerprint: identity?.fingerprint,
+      instructions:
+        'Sign the message field with your Ed25519 private key (base64 output). ' +
+        'Then call crypto_submit_signature with the message and signature.',
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Signing failed';
+    const message =
+      err instanceof Error ? err.message : 'Failed to prepare signature';
+    return errorResult(message);
+  }
+}
+
+/**
+ * Receives a locally-produced signature and verifies it against
+ * the agent's registered public key via the REST API.
+ */
+export async function handleCryptoSubmitSignature(
+  args: CryptoSubmitSignatureInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  try {
+    // Get the agent's identity to know their fingerprint
+    const { data: identity } = await getCryptoIdentity({
+      client: deps.client,
+      auth: () => token,
+    });
+
+    if (!identity?.fingerprint) {
+      return errorResult('Could not determine your identity');
+    }
+
+    // Verify the signature against the agent's known public key
+    const { data, error } = await verifyAgentSignature({
+      client: deps.client,
+      path: { fingerprint: identity.fingerprint },
+      body: {
+        message: args.message,
+        signature: args.signature,
+      },
+    });
+
+    if (error) {
+      return errorResult('Signature verification failed');
+    }
+
+    return textResult({
+      valid: data.valid,
+      signer_fingerprint: identity.fingerprint,
+      message: data.valid
+        ? 'Signature verified. This message is cryptographically signed by you.'
+        : 'Signature is invalid. The signature does not match your registered public key.',
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Signature submission failed';
     return errorResult(message);
   }
 }
 
 /**
  * Verifies a signature via the REST API.
- * Uses POST /agents/:fingerprint/verify which looks up the public key.
+ * Public — no auth needed. Looks up the signer's public key by fingerprint.
  */
 export async function handleCryptoVerify(
-  deps: McpDeps,
-  args: { message: string; signature: string; signer_fingerprint: string },
+  args: CryptoVerifyInput,
+  _deps: McpDeps,
+  _context: HandlerContext,
 ): Promise<CallToolResult> {
   const { data, error, response } = await verifyAgentSignature({
-    client: deps.client,
+    client: _deps.client,
     path: { fingerprint: args.signer_fingerprint },
     body: {
       message: args.message,
@@ -85,11 +140,7 @@ export async function handleCryptoVerify(
 
   return textResult({
     valid: data.valid,
-    signer: data.signer
-      ? {
-          fingerprint: data.signer.fingerprint,
-        }
-      : undefined,
+    signer: data.signer ? { fingerprint: data.signer.fingerprint } : undefined,
     message: data.valid
       ? `Signature is valid. This message was signed by ${args.signer_fingerprint}.`
       : `Signature is invalid. This message was NOT signed by ${args.signer_fingerprint}.`,
@@ -98,37 +149,39 @@ export async function handleCryptoVerify(
 
 // --- Tool registration ---
 
-export function registerCryptoTools(server: McpServer, deps: McpDeps): void {
-  server.registerTool(
-    'crypto_sign',
+export function registerCryptoTools(
+  fastify: FastifyInstance,
+  deps: McpDeps,
+): void {
+  fastify.mcpAddTool(
     {
+      name: 'crypto_prepare_signature',
       description:
-        'Sign a message with your Ed25519 private key. Use this to prove you authored something.',
-      inputSchema: {
-        message: z.string().describe('The message to sign'),
-        private_key: z.string().describe('Your Ed25519 private key (base64)'),
-      },
-      annotations: { readOnlyHint: true },
+        'Prepare a message for signing. Returns an envelope with your identity. ' +
+        'Sign the message locally with your Ed25519 private key, then call crypto_submit_signature.',
+      inputSchema: CryptoPrepareSignatureSchema,
     },
-    async (args) => handleCryptoSign(deps, args),
+    async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
   );
 
-  server.registerTool(
-    'crypto_verify',
+  fastify.mcpAddTool(
     {
+      name: 'crypto_submit_signature',
+      description:
+        'Submit a locally-produced Ed25519 signature. ' +
+        'The server verifies it against your registered public key.',
+      inputSchema: CryptoSubmitSignatureSchema,
+    },
+    async (args, ctx) => handleCryptoSubmitSignature(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'crypto_verify',
       description:
         'Verify that a message was signed by a specific agent. Use this to verify authenticity.',
-      inputSchema: {
-        message: z.string().describe('The original message'),
-        signature: z.string().describe('The signature to verify'),
-        signer_fingerprint: z
-          .string()
-          .describe(
-            'Key fingerprint of the claimed signer (A1B2-C3D4-E5F6-G7H8)',
-          ),
-      },
-      annotations: { readOnlyHint: true },
+      inputSchema: CryptoVerifySchema,
     },
-    async (args) => handleCryptoVerify(deps, args),
+    async (args, ctx) => handleCryptoVerify(args, deps, ctx),
   );
 }

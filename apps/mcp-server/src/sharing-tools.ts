@@ -5,38 +5,34 @@
  * All operations delegate to the REST API via the generated API client.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   getSharedWithMe,
   setDiaryEntryVisibility,
   shareDiaryEntry,
 } from '@moltnet/api-client';
-import { z } from 'zod';
+import type { FastifyInstance } from 'fastify';
 
-import type { McpDeps } from './types.js';
-
-function textResult(data: unknown): CallToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-}
-
-function errorResult(message: string): CallToolResult {
-  return {
-    content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
-    isError: true,
-  };
-}
+import type {
+  DiarySetVisibilityInput,
+  DiarySharedWithMeInput,
+  DiaryShareInput,
+} from './schemas.js';
+import {
+  DiarySetVisibilitySchema,
+  DiarySharedWithMeSchema,
+  DiaryShareSchema,
+} from './schemas.js';
+import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
+import { errorResult, getTokenFromContext, textResult } from './utils.js';
 
 // --- Handler functions ---
 
 export async function handleDiarySetVisibility(
+  args: DiarySetVisibilityInput,
   deps: McpDeps,
-  args: {
-    entry_id: string;
-    visibility: 'private' | 'moltnet' | 'public';
-  },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { data, error } = await setDiaryEntryVisibility({
@@ -58,10 +54,11 @@ export async function handleDiarySetVisibility(
 }
 
 export async function handleDiaryShare(
+  args: DiaryShareInput,
   deps: McpDeps,
-  args: { entry_id: string; with_agent: string },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { error, response } = await shareDiaryEntry({
@@ -87,10 +84,11 @@ export async function handleDiaryShare(
 }
 
 export async function handleDiarySharedWithMe(
+  args: DiarySharedWithMeInput,
   deps: McpDeps,
-  args: { limit?: number },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { data, error } = await getSharedWithMe({
@@ -108,46 +106,34 @@ export async function handleDiarySharedWithMe(
 
 // --- Tool registration ---
 
-export function registerSharingTools(server: McpServer, deps: McpDeps): void {
-  server.registerTool(
-    'diary_set_visibility',
+export function registerSharingTools(
+  fastify: FastifyInstance,
+  deps: McpDeps,
+): void {
+  fastify.mcpAddTool(
     {
+      name: 'diary_set_visibility',
       description: 'Change the visibility of a diary entry.',
-      inputSchema: {
-        entry_id: z.string().describe('The entry ID'),
-        visibility: z
-          .enum(['private', 'moltnet', 'public'])
-          .describe('New visibility level'),
-      },
-      annotations: { readOnlyHint: false },
+      inputSchema: DiarySetVisibilitySchema,
     },
-    async (args) => handleDiarySetVisibility(deps, args),
+    async (args, ctx) => handleDiarySetVisibility(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_share',
+  fastify.mcpAddTool(
     {
+      name: 'diary_share',
       description: 'Share a diary entry with a specific MoltNet agent.',
-      inputSchema: {
-        entry_id: z.string().describe('The entry ID to share'),
-        with_agent: z
-          .string()
-          .describe('Fingerprint of the agent to share with'),
-      },
-      annotations: { readOnlyHint: false },
+      inputSchema: DiaryShareSchema,
     },
-    async (args) => handleDiaryShare(deps, args),
+    async (args, ctx) => handleDiaryShare(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_shared_with_me',
+  fastify.mcpAddTool(
     {
+      name: 'diary_shared_with_me',
       description: 'List diary entries that other agents have shared with you.',
-      inputSchema: {
-        limit: z.number().optional().describe('Max results (default 20)'),
-      },
-      annotations: { readOnlyHint: true },
+      inputSchema: DiarySharedWithMeSchema,
     },
-    async (args) => handleDiarySharedWithMe(deps, args),
+    async (args, ctx) => handleDiarySharedWithMe(args, deps, ctx),
   );
 }

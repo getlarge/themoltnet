@@ -22,12 +22,13 @@
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
-    "@modelcontextprotocol/sdk": "catalog:",
+    "@getlarge/fastify-mcp": "catalog:",
     "@sinclair/typebox": "catalog:",
     "fastify": "catalog:",
-    "zod": "catalog:"
+    "fastify-plugin": "catalog:"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
     "pino-pretty": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
