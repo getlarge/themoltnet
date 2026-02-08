@@ -19,45 +19,32 @@ If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set:
    - Warn if Readiness is not "Ready for Agent" — the task may not be well-specified
    - Check the Dependencies text field — if it references issue numbers, verify those issues are closed
 
-3. **Claim the task** by updating project fields:
+3. **Claim the task** by assigning the issue and tagging the Agent field:
 
-   Get the project ID and field IDs:
-
-   ```bash
-   PROJECT_ID=$(gh project view "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json | jq -r '.id')
-   FIELDS=$(gh project field-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json)
-   ```
-
-   Update Status to "In Progress":
-
-   ```bash
-   STATUS_FIELD_ID=$(echo "$FIELDS" | jq -r '.fields[] | select(.name == "Status") | .id')
-   IN_PROGRESS_ID=$(echo "$FIELDS" | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Progress") | .id')
-   gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$IN_PROGRESS_ID"
-   ```
-
-   Update Agent field with session identifier:
-
-   ```bash
-   AGENT_FIELD_ID=$(echo "$FIELDS" | jq -r '.fields[] | select(.name == "Agent") | .id')
-   AGENT_ID="$(whoami)-$(date +%s)"
-   gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" --field-id "$AGENT_FIELD_ID" --text "$AGENT_ID"
-   ```
-
-4. **Assign the issue** (if it's a GitHub issue):
+   Assign the issue — this triggers the `project-automation.yml` GitHub Actions workflow which automatically moves Status to "In Progress":
 
    ```bash
    gh issue edit <NUMBER> --add-assignee "@me"
    ```
 
-5. **Confirm the claim** and summarize:
+   Update the Agent field with a session identifier so other agents know who claimed it:
+
+   ```bash
+   PROJECT_ID=$(gh project view "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json | jq -r '.id')
+   FIELDS=$(gh project field-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json)
+   AGENT_FIELD_ID=$(echo "$FIELDS" | jq -r '.fields[] | select(.name == "Agent") | .id')
+   AGENT_ID="$(whoami)-$(date +%s)"
+   gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" --field-id "$AGENT_FIELD_ID" --text "$AGENT_ID"
+   ```
+
+4. **Confirm the claim** and summarize:
    - Task title and issue number
    - Priority and effort fields
    - Context files (from issue body)
    - Dependencies status
    - What to do next
 
-6. **Write the signal file** (`.agent-claim.json` in the project root) to enable hook-driven lifecycle:
+5. **Write the signal file** (`.agent-claim.json` in the project root) to enable hook-driven lifecycle:
 
    Write the JSON using the actual values from steps above (do NOT use a heredoc with literal placeholders):
 

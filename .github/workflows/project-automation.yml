@@ -1,0 +1,140 @@
+name: Project Automation
+
+on:
+  issues:
+    types: [assigned]
+
+env:
+  PROJECT_NUMBER: ${{ vars.MOLTNET_PROJECT_NUMBER || '3' }}
+  PROJECT_OWNER: ${{ vars.MOLTNET_PROJECT_OWNER || 'getlarge' }}
+
+jobs:
+  move-to-in-progress:
+    name: Move to In Progress
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move assigned issue to In Progress
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_PROJECT_TOKEN }}
+          script: |
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+            // NOTE: getlarge is a user account, not an org. If migrated to
+            // an org, change the GraphQL query from user() to organization().
+            const owner = process.env.PROJECT_OWNER;
+
+            // Find the project item for this issue
+            const query = `query($owner: String!, $number: Int!, $cursor: String) {
+              user(login: $owner) {
+                projectV2(number: $number) {
+                  id
+                  items(first: 100, after: $cursor) {
+                    nodes {
+                      id
+                      content {
+                        ... on Issue {
+                          number
+                        }
+                      }
+                      fieldValueByName(name: "Status") {
+                        ... on ProjectV2ItemFieldSingleSelectValue {
+                          name
+                        }
+                      }
+                    }
+                    pageInfo {
+                      hasNextPage
+                      endCursor
+                    }
+                  }
+                  field(name: "Status") {
+                    ... on ProjectV2SingleSelectField {
+                      id
+                      options {
+                        id
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            }`;
+
+            const issueNumber = context.payload.issue.number;
+            let cursor = null;
+            let item = null;
+            let projectId = null;
+            let statusField = null;
+
+            // Paginate through project items to find the matching issue
+            while (!item) {
+              const result = await github.graphql(query, {
+                owner,
+                number: projectNumber,
+                cursor,
+              });
+
+              const project = result.user.projectV2;
+              projectId = project.id;
+              statusField = project.field;
+
+              item = project.items.nodes.find(
+                (n) => n.content?.number === issueNumber
+              );
+
+              if (!item && project.items.pageInfo.hasNextPage) {
+                cursor = project.items.pageInfo.endCursor;
+              } else {
+                break;
+              }
+            }
+
+            if (!item) {
+              core.info(`Issue #${issueNumber} not found on project board — skipping.`);
+              return;
+            }
+
+            const currentStatus = item.fieldValueByName?.name;
+            if (currentStatus === 'In Progress') {
+              core.info(`Issue #${issueNumber} is already In Progress — skipping.`);
+              return;
+            }
+
+            if (currentStatus !== 'Todo') {
+              core.info(`Issue #${issueNumber} has status "${currentStatus}" — only moving from Todo. Skipping.`);
+              return;
+            }
+
+            if (!statusField?.options) {
+              core.setFailed('Status field not found or has no options. Check project configuration.');
+              return;
+            }
+
+            const inProgressOption = statusField.options.find(
+              (o) => o.name === 'In Progress'
+            );
+            if (!inProgressOption) {
+              core.setFailed('Could not find "In Progress" option in Status field.');
+              return;
+            }
+
+            // Update the item status
+            const mutation = `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $projectId
+                itemId: $itemId
+                fieldId: $fieldId
+                value: { singleSelectOptionId: $optionId }
+              }) {
+                projectV2Item { id }
+              }
+            }`;
+
+            await github.graphql(mutation, {
+              projectId,
+              itemId: item.id,
+              fieldId: statusField.id,
+              optionId: inProgressOption.id,
+            });
+
+            core.info(`Moved issue #${issueNumber} to In Progress on project board.`);
