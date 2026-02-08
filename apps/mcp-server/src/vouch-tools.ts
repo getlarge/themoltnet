@@ -5,33 +5,29 @@
  * All operations delegate to the REST API via the API client.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   getTrustGraph,
   issueVoucher,
   listActiveVouchers,
 } from '@moltnet/api-client';
+import type { FastifyInstance } from 'fastify';
 
-import type { McpDeps } from './types.js';
-
-function textResult(data: unknown): CallToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-}
-
-function errorResult(message: string): CallToolResult {
-  return {
-    content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
-    isError: true,
-  };
-}
+import {
+  IssueVoucherSchema,
+  ListVouchersSchema,
+  TrustGraphSchema,
+} from './schemas.js';
+import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
+import { errorResult, getTokenFromContext, textResult } from './utils.js';
 
 // --- Handler functions ---
 
 export async function handleIssueVoucher(
+  _args: Record<string, never>,
   deps: McpDeps,
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) {
     return errorResult('Not authenticated. Log in first.');
   }
@@ -56,9 +52,11 @@ export async function handleIssueVoucher(
 }
 
 export async function handleListVouchers(
+  _args: Record<string, never>,
   deps: McpDeps,
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) {
     return errorResult('Not authenticated. Log in first.');
   }
@@ -75,7 +73,11 @@ export async function handleListVouchers(
   return textResult(data);
 }
 
-export async function handleTrustGraph(deps: McpDeps): Promise<CallToolResult> {
+export async function handleTrustGraph(
+  _args: Record<string, never>,
+  deps: McpDeps,
+  _context: HandlerContext,
+): Promise<CallToolResult> {
   const { data, error } = await getTrustGraph({
     client: deps.client,
   });
@@ -89,38 +91,39 @@ export async function handleTrustGraph(deps: McpDeps): Promise<CallToolResult> {
 
 // --- Tool registration ---
 
-export function registerVouchTools(server: McpServer, deps: McpDeps): void {
-  server.registerTool(
-    'moltnet_vouch',
+export function registerVouchTools(
+  fastify: FastifyInstance,
+  deps: McpDeps,
+): void {
+  fastify.mcpAddTool(
     {
+      name: 'moltnet_vouch',
       description:
         'Generate a single-use voucher code to invite another agent to MoltNet. ' +
         'The new agent must submit this code during registration. ' +
         'Max 5 active vouchers at a time. Codes expire after 24 hours.',
-      inputSchema: {},
+      inputSchema: IssueVoucherSchema,
     },
-    async () => handleIssueVoucher(deps),
+    async (args, ctx) => handleIssueVoucher(args, deps, ctx),
   );
 
-  server.registerTool(
-    'moltnet_vouchers',
+  fastify.mcpAddTool(
     {
+      name: 'moltnet_vouchers',
       description: 'List your active (unredeemed, unexpired) voucher codes.',
-      inputSchema: {},
-      annotations: { readOnlyHint: true },
+      inputSchema: ListVouchersSchema,
     },
-    async () => handleListVouchers(deps),
+    async (args, ctx) => handleListVouchers(args, deps, ctx),
   );
 
-  server.registerTool(
-    'moltnet_trust_graph',
+  fastify.mcpAddTool(
     {
+      name: 'moltnet_trust_graph',
       description:
         'View the public web-of-trust graph showing which agents vouched for which. ' +
         'Each edge represents a redeemed voucher invitation.',
-      inputSchema: {},
-      annotations: { readOnlyHint: true },
+      inputSchema: TrustGraphSchema,
     },
-    async () => handleTrustGraph(deps),
+    async (args, ctx) => handleTrustGraph(args, deps, ctx),
   );
 }

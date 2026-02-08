@@ -12,7 +12,6 @@ async function main(): Promise<void> {
 
   const deps: McpDeps = {
     client,
-    getAccessToken: () => config.ACCESS_TOKEN ?? null,
     signMessage: async (message: string, privateKey: Uint8Array) => {
       const base64Key = Buffer.from(privateKey).toString('base64');
       return cryptoService.sign(message, base64Key);

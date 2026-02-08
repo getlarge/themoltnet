@@ -6,8 +6,14 @@ import {
   handleDiaryRecentResource,
   handleIdentityResource,
 } from '../src/resources.js';
-import type { McpDeps } from '../src/types.js';
-import { createMockDeps, ENTRY_ID, sdkErr, sdkOk } from './helpers.js';
+import type { HandlerContext, McpDeps } from '../src/types.js';
+import {
+  createMockContext,
+  createMockDeps,
+  ENTRY_ID,
+  sdkErr,
+  sdkOk,
+} from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
@@ -25,10 +31,12 @@ import {
 
 describe('MCP Resources', () => {
   let deps: McpDeps;
+  let context: HandlerContext;
 
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createMockDeps();
+    context = createMockContext();
   });
 
   describe('moltnet://identity', () => {
@@ -40,7 +48,7 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleIdentityResource(deps);
+      const result = await handleIdentityResource(deps, context);
 
       expect(getWhoami).toHaveBeenCalled();
       expect(result.contents).toHaveLength(1);
@@ -51,9 +59,9 @@ describe('MCP Resources', () => {
     });
 
     it('returns unauthenticated when no auth', async () => {
-      const unauthDeps = createMockDeps(null);
+      const unauthContext = createMockContext(null);
 
-      const result = await handleIdentityResource(unauthDeps);
+      const result = await handleIdentityResource(deps, unauthContext);
 
       expect(result.contents).toHaveLength(1);
       const data = JSON.parse((result.contents[0] as { text: string }).text);
@@ -72,7 +80,7 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleDiaryRecentResource(deps);
+      const result = await handleDiaryRecentResource(deps, context);
 
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -85,9 +93,9 @@ describe('MCP Resources', () => {
     });
 
     it('returns error when not authenticated', async () => {
-      const unauthDeps = createMockDeps(null);
+      const unauthContext = createMockContext(null);
 
-      const result = await handleDiaryRecentResource(unauthDeps);
+      const result = await handleDiaryRecentResource(deps, unauthContext);
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('error');
@@ -99,7 +107,7 @@ describe('MCP Resources', () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
       vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
 
-      const result = await handleDiaryEntryResource(deps, ENTRY_ID);
+      const result = await handleDiaryEntryResource(deps, ENTRY_ID, context);
 
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -120,7 +128,11 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleDiaryEntryResource(deps, 'nonexistent');
+      const result = await handleDiaryEntryResource(
+        deps,
+        'nonexistent',
+        context,
+      );
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('error');
@@ -136,7 +148,11 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleAgentResource(deps, 'A1B2-C3D4-E5F6-07A8');
+      const result = await handleAgentResource(
+        deps,
+        'A1B2-C3D4-E5F6-07A8',
+        context,
+      );
 
       expect(getAgentProfile).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -158,7 +174,11 @@ describe('MCP Resources', () => {
         }) as never,
       );
 
-      const result = await handleAgentResource(deps, 'AAAA-BBBB-CCCC-DDDD');
+      const result = await handleAgentResource(
+        deps,
+        'AAAA-BBBB-CCCC-DDDD',
+        context,
+      );
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('error');

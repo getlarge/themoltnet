@@ -5,36 +5,24 @@
  * All data is fetched from the REST API via the generated API client.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { ReadResourceResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   getAgentProfile,
   getDiaryEntry,
   getWhoami,
   listDiaryEntries,
 } from '@moltnet/api-client';
+import type { FastifyInstance } from 'fastify';
 
-import type { McpDeps } from './types.js';
-
-function jsonResource(uri: string, data: unknown): ReadResourceResult {
-  return {
-    contents: [
-      {
-        uri,
-        mimeType: 'application/json',
-        text: JSON.stringify(data),
-      },
-    ],
-  };
-}
+import type { HandlerContext, McpDeps, ReadResourceResult } from './types.js';
+import { getTokenFromContext, jsonResource } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
 
 export async function handleIdentityResource(
   deps: McpDeps,
+  context: HandlerContext,
 ): Promise<ReadResourceResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) {
     return jsonResource('moltnet://identity', { authenticated: false });
   }
@@ -56,8 +44,9 @@ export async function handleIdentityResource(
 
 export async function handleDiaryRecentResource(
   deps: McpDeps,
+  context: HandlerContext,
 ): Promise<ReadResourceResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) {
     return jsonResource('moltnet://diary/recent', {
       error: 'Not authenticated',
@@ -84,8 +73,9 @@ export async function handleDiaryRecentResource(
 export async function handleDiaryEntryResource(
   deps: McpDeps,
   entryId: string,
+  context: HandlerContext,
 ): Promise<ReadResourceResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) {
     return jsonResource(`moltnet://diary/${entryId}`, {
       error: 'Not authenticated',
@@ -110,6 +100,7 @@ export async function handleDiaryEntryResource(
 export async function handleAgentResource(
   deps: McpDeps,
   fingerprint: string,
+  _context: HandlerContext,
 ): Promise<ReadResourceResult> {
   const { data, error } = await getAgentProfile({
     client: deps.client,
@@ -130,52 +121,53 @@ export async function handleAgentResource(
 
 // --- Resource registration ---
 
-export function registerResources(server: McpServer, deps: McpDeps): void {
-  server.registerResource(
-    'identity',
-    'moltnet://identity',
+export function registerResources(
+  fastify: FastifyInstance,
+  deps: McpDeps,
+): void {
+  fastify.mcpAddResource(
     {
+      name: 'identity',
+      uriPattern: 'moltnet://identity',
       description: 'Current identity information',
       mimeType: 'application/json',
     },
-    async () => handleIdentityResource(deps),
+    async (_uri, ctx) => handleIdentityResource(deps, ctx),
   );
 
-  server.registerResource(
-    'diary-recent',
-    'moltnet://diary/recent',
+  fastify.mcpAddResource(
     {
+      name: 'diary-recent',
+      uriPattern: 'moltnet://diary/recent',
       description: 'Last 10 diary entries',
       mimeType: 'application/json',
     },
-    async () => handleDiaryRecentResource(deps),
+    async (_uri, ctx) => handleDiaryRecentResource(deps, ctx),
   );
 
-  server.registerResource(
-    'diary-entry',
-    new ResourceTemplate('moltnet://diary/{id}', { list: undefined }),
+  fastify.mcpAddResource(
     {
+      name: 'diary-entry',
+      uriPattern: 'moltnet://diary/{id}',
       description: 'Specific diary entry by ID',
       mimeType: 'application/json',
     },
-    async (uri, variables) => {
-      const id = variables.id as string;
-      return handleDiaryEntryResource(deps, id);
+    async (uri, ctx) => {
+      const id = String(uri).replace('moltnet://diary/', '');
+      return handleDiaryEntryResource(deps, id, ctx);
     },
   );
 
-  server.registerResource(
-    'agent-profile',
-    new ResourceTemplate('moltnet://agent/{fingerprint}', {
-      list: undefined,
-    }),
+  fastify.mcpAddResource(
     {
+      name: 'agent-profile',
+      uriPattern: 'moltnet://agent/{fingerprint}',
       description: 'Public profile of an agent by key fingerprint',
       mimeType: 'application/json',
     },
-    async (uri, variables) => {
-      const fingerprint = variables.fingerprint as string;
-      return handleAgentResource(deps, fingerprint);
+    async (uri, ctx) => {
+      const fingerprint = String(uri).replace('moltnet://agent/', '');
+      return handleAgentResource(deps, fingerprint, ctx);
     },
   );
 }

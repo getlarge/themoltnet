@@ -6,25 +6,45 @@
  */
 
 import type { Client } from '@moltnet/api-client';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { vi } from 'vitest';
 
-import type { McpDeps } from '../src/types.js';
+import type { HandlerContext, McpDeps } from '../src/types.js';
 
 const TOKEN = 'test-bearer-token';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 /**
  * Create McpDeps with a mock client.
- * Pass `null` for token to simulate unauthenticated state.
- *
  * The client is a stub — actual HTTP calls are mocked at the SDK function
  * level via vi.mock('@moltnet/api-client') in each test file.
  */
-export function createMockDeps(token: string | null = TOKEN): McpDeps {
+export function createMockDeps(): McpDeps {
   return {
     client: {} as Client,
-    getAccessToken: () => token,
     signMessage: vi.fn().mockResolvedValue('ed25519:sig123'),
+  };
+}
+
+/**
+ * Create a mock HandlerContext.
+ * Pass `null` for token to simulate unauthenticated state.
+ */
+export function createMockContext(
+  token: string | null = TOKEN,
+): HandlerContext {
+  return {
+    sessionId: 'test-session-id',
+    request: {} as FastifyRequest,
+    reply: {} as FastifyReply,
+    authContext: token
+      ? {
+          sessionBoundToken: token,
+          userId: 'test-user-id',
+          clientId: 'test-client-id',
+          scopes: ['openid'],
+        }
+      : undefined,
   };
 }
 

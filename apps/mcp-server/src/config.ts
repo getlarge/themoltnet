@@ -13,8 +13,27 @@ const McpServerConfigSchema = Type.Object({
     { default: 'development' },
   ),
   REST_API_URL: Type.String({ minLength: 1 }),
-  ACCESS_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
-  PRIVATE_KEY: Type.Optional(Type.String({ minLength: 1 })),
+  AUTH_ENABLED: Type.Optional(
+    Type.Boolean({
+      default: false,
+      description: 'Enable OAuth2 authorization',
+    }),
+  ),
+  ORY_PROJECT_URL: Type.Optional(
+    Type.String({ minLength: 1, description: 'Ory Hydra public URL' }),
+  ),
+  ORY_PROJECT_API_KEY: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Ory API key for token introspection',
+    }),
+  ),
+  MCP_RESOURCE_URI: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: "This server's public URL (for OAuth2 resource metadata)",
+    }),
+  ),
 });
 
 export type McpServerConfig = Static<typeof McpServerConfigSchema>;

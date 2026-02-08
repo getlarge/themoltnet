@@ -82,3 +82,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-07 | handoff    | [eslint-plugin-boundaries for Workspace Boundaries](2026-02-07-01-eslint-plugin-boundaries.md)                    |
 | 2026-02-08 | handoff    | [Project Board Automation & Stop Hook Bugfix](2026-02-08-01-project-automation-workflow.md)                       |
 | 2026-02-08 | handoff    | [Landing Page — The Experiment Section](2026-02-08-02-landing-experiment-section.md)                              |
+| 2026-02-08 | handoff    | [MCP Server Rewrite to @getlarge/fastify-mcp](2026-02-08-03-mcp-fastify-plugin-rewrite.md)                      |

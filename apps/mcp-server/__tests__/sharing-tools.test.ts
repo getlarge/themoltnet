@@ -5,8 +5,9 @@ import {
   handleDiaryShare,
   handleDiarySharedWithMe,
 } from '../src/sharing-tools.js';
-import type { McpDeps } from '../src/types.js';
+import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
+  createMockContext,
   createMockDeps,
   ENTRY_ID,
   getTextContent,
@@ -29,10 +30,12 @@ import {
 
 describe('Sharing tools', () => {
   let deps: McpDeps;
+  let context: HandlerContext;
 
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createMockDeps();
+    context = createMockContext();
   });
 
   describe('diary_set_visibility', () => {
@@ -42,10 +45,11 @@ describe('Sharing tools', () => {
         sdkOk(updated) as never,
       );
 
-      const result = await handleDiarySetVisibility(deps, {
-        entry_id: ENTRY_ID,
-        visibility: 'moltnet',
-      });
+      const result = await handleDiarySetVisibility(
+        { entry_id: ENTRY_ID, visibility: 'moltnet' },
+        deps,
+        context,
+      );
 
       expect(setDiaryEntryVisibility).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -66,21 +70,23 @@ describe('Sharing tools', () => {
         }) as never,
       );
 
-      const result = await handleDiarySetVisibility(deps, {
-        entry_id: 'nonexistent',
-        visibility: 'public',
-      });
+      const result = await handleDiarySetVisibility(
+        { entry_id: 'nonexistent', visibility: 'public' },
+        deps,
+        context,
+      );
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('not found');
     });
 
     it('returns error when not authenticated', async () => {
-      const unauthDeps = createMockDeps(null);
-      const result = await handleDiarySetVisibility(unauthDeps, {
-        entry_id: ENTRY_ID,
-        visibility: 'public',
-      });
+      const unauthContext = createMockContext(null);
+      const result = await handleDiarySetVisibility(
+        { entry_id: ENTRY_ID, visibility: 'public' },
+        deps,
+        unauthContext,
+      );
 
       expect(result.isError).toBe(true);
     });
@@ -92,10 +98,11 @@ describe('Sharing tools', () => {
         sdkOk({ success: true, sharedWith: 'Gemini' }) as never,
       );
 
-      const result = await handleDiaryShare(deps, {
-        entry_id: ENTRY_ID,
-        with_agent: 'Gemini',
-      });
+      const result = await handleDiaryShare(
+        { entry_id: ENTRY_ID, with_agent: 'Gemini' },
+        deps,
+        context,
+      );
 
       expect(shareDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -119,10 +126,11 @@ describe('Sharing tools', () => {
         ) as never,
       );
 
-      const result = await handleDiaryShare(deps, {
-        entry_id: ENTRY_ID,
-        with_agent: 'Unknown',
-      });
+      const result = await handleDiaryShare(
+        { entry_id: ENTRY_ID, with_agent: 'Unknown' },
+        deps,
+        context,
+      );
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('not found');
@@ -137,10 +145,11 @@ describe('Sharing tools', () => {
         }) as never,
       );
 
-      const result = await handleDiaryShare(deps, {
-        entry_id: ENTRY_ID,
-        with_agent: 'Gemini',
-      });
+      const result = await handleDiaryShare(
+        { entry_id: ENTRY_ID, with_agent: 'Gemini' },
+        deps,
+        context,
+      );
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('Failed');
@@ -154,7 +163,7 @@ describe('Sharing tools', () => {
       };
       vi.mocked(getSharedWithMe).mockResolvedValue(sdkOk(data) as never);
 
-      const result = await handleDiarySharedWithMe(deps, {});
+      const result = await handleDiarySharedWithMe({}, deps, context);
 
       expect(getSharedWithMe).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -171,7 +180,7 @@ describe('Sharing tools', () => {
         sdkOk({ entries: [] }) as never,
       );
 
-      await handleDiarySharedWithMe(deps, { limit: 5 });
+      await handleDiarySharedWithMe({ limit: 5 }, deps, context);
 
       expect(getSharedWithMe).toHaveBeenCalledWith(
         expect.objectContaining({

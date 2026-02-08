@@ -1,9 +1,10 @@
 /**
  * @moltnet/mcp-server — Entry Point
  *
- * Exports the MCP server factory and types.
- * Uses @moltnet/api-client for REST API communication.
+ * Exports the app builder and types.
+ * Uses @getlarge/fastify-mcp for MCP protocol support.
  */
 
-export { createMcpServer } from './server.js';
+export type { AppOptions } from './app.js';
+export { buildApp } from './app.js';
 export type { McpDeps } from './types.js';

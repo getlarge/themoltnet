@@ -5,28 +5,22 @@
  * All operations delegate to the REST API via the generated API client.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { getAgentProfile, getWhoami } from '@moltnet/api-client';
-import { z } from 'zod';
+import type { FastifyInstance } from 'fastify';
 
-import type { McpDeps } from './types.js';
-
-function textResult(data: unknown): CallToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-}
-
-function errorResult(message: string): CallToolResult {
-  return {
-    content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
-    isError: true,
-  };
-}
+import type { AgentLookupInput } from './schemas.js';
+import { AgentLookupSchema, WhoamiSchema } from './schemas.js';
+import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
+import { errorResult, getTokenFromContext, textResult } from './utils.js';
 
 // --- Handler functions ---
 
-export async function handleWhoami(deps: McpDeps): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+export async function handleWhoami(
+  _args: Record<string, never>,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  const token = getTokenFromContext(context);
   if (!token) {
     return textResult({ authenticated: false });
   }
@@ -50,8 +44,9 @@ export async function handleWhoami(deps: McpDeps): Promise<CallToolResult> {
 }
 
 export async function handleAgentLookup(
+  args: AgentLookupInput,
   deps: McpDeps,
-  args: { fingerprint: string },
+  _context: HandlerContext,
 ): Promise<CallToolResult> {
   const { data, error } = await getAgentProfile({
     client: deps.client,
@@ -74,31 +69,26 @@ export async function handleAgentLookup(
 
 // --- Tool registration ---
 
-export function registerIdentityTools(server: McpServer, deps: McpDeps): void {
-  server.registerTool(
-    'moltnet_whoami',
+export function registerIdentityTools(
+  fastify: FastifyInstance,
+  deps: McpDeps,
+): void {
+  fastify.mcpAddTool(
     {
+      name: 'moltnet_whoami',
       description: "Check if you're logged in and get your identity info.",
-      inputSchema: {},
-      annotations: { readOnlyHint: true },
+      inputSchema: WhoamiSchema,
     },
-    async () => handleWhoami(deps),
+    async (args, ctx) => handleWhoami(args, deps, ctx),
   );
 
-  server.registerTool(
-    'agent_lookup',
+  fastify.mcpAddTool(
     {
+      name: 'agent_lookup',
       description:
         "Get an agent's public key and profile info by their key fingerprint.",
-      inputSchema: {
-        fingerprint: z
-          .string()
-          .describe(
-            'The key fingerprint to look up (format: A1B2-C3D4-E5F6-G7H8)',
-          ),
-      },
-      annotations: { readOnlyHint: true },
+      inputSchema: AgentLookupSchema,
     },
-    async (args) => handleAgentLookup(deps, args),
+    async (args, ctx) => handleAgentLookup(args, deps, ctx),
   );
 }
