@@ -20,6 +20,8 @@ export type ProblemDetails = {
     | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
@@ -40,6 +42,8 @@ export type ValidationProblemDetails = {
     | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
+    | 'SIGNING_REQUEST_EXPIRED'
+    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
@@ -163,6 +167,26 @@ export type Voucher = {
 export type Health = {
   status: string;
   timestamp: string;
+};
+
+export type SigningRequest = {
+  id: string;
+  agentId: string;
+  message: string;
+  nonce: string;
+  status: 'pending' | 'completed' | 'expired';
+  signature: string | null;
+  valid: boolean | null;
+  createdAt: string;
+  expiresAt: string;
+  completedAt: string | null;
+};
+
+export type SigningRequestList = {
+  items: Array<SigningRequest>;
+  total: number;
+  limit: number;
+  offset: number;
 };
 
 export type GetHealthData = {
@@ -713,6 +737,154 @@ export type GetCryptoIdentityResponses = {
 
 export type GetCryptoIdentityResponse =
   GetCryptoIdentityResponses[keyof GetCryptoIdentityResponses];
+
+export type ListSigningRequestsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+  };
+  url: '/crypto/signing-requests';
+};
+
+export type ListSigningRequestsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListSigningRequestsError =
+  ListSigningRequestsErrors[keyof ListSigningRequestsErrors];
+
+export type ListSigningRequestsResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningRequestList;
+};
+
+export type ListSigningRequestsResponse =
+  ListSigningRequestsResponses[keyof ListSigningRequestsResponses];
+
+export type CreateSigningRequestData = {
+  body: {
+    message: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/crypto/signing-requests';
+};
+
+export type CreateSigningRequestErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateSigningRequestError =
+  CreateSigningRequestErrors[keyof CreateSigningRequestErrors];
+
+export type CreateSigningRequestResponses = {
+  /**
+   * Default Response
+   */
+  201: SigningRequest;
+};
+
+export type CreateSigningRequestResponse =
+  CreateSigningRequestResponses[keyof CreateSigningRequestResponses];
+
+export type GetSigningRequestData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-requests/{id}';
+};
+
+export type GetSigningRequestErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetSigningRequestError =
+  GetSigningRequestErrors[keyof GetSigningRequestErrors];
+
+export type GetSigningRequestResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningRequest;
+};
+
+export type GetSigningRequestResponse =
+  GetSigningRequestResponses[keyof GetSigningRequestResponses];
+
+export type SubmitSignatureData = {
+  body: {
+    signature: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-requests/{id}/sign';
+};
+
+export type SubmitSignatureErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type SubmitSignatureError =
+  SubmitSignatureErrors[keyof SubmitSignatureErrors];
+
+export type SubmitSignatureResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningRequest;
+};
+
+export type SubmitSignatureResponse =
+  SubmitSignatureResponses[keyof SubmitSignatureResponses];
 
 export type RequestRecoveryChallengeData = {
   body: {

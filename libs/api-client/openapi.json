@@ -33,7 +33,6 @@
       },
       "ProblemDetails": {
         "type": "object",
-        "required": ["type", "title", "status", "code"],
         "properties": {
           "type": {
             "format": "uri",
@@ -87,6 +86,14 @@
               },
               {
                 "type": "string",
+                "enum": ["SIGNING_REQUEST_EXPIRED"]
+              },
+              {
+                "type": "string",
+                "enum": ["SIGNING_REQUEST_ALREADY_COMPLETED"]
+              },
+              {
+                "type": "string",
                 "enum": ["UPSTREAM_ERROR"]
               },
               {
@@ -101,14 +108,14 @@
           "instance": {
             "type": "string"
           }
-        }
+        },
+        "required": ["type", "title", "status", "code"]
       },
       "ValidationProblemDetails": {
         "type": "object",
         "allOf": [
           {
             "type": "object",
-            "required": ["type", "title", "status", "code"],
             "properties": {
               "type": {
                 "format": "uri",
@@ -162,6 +169,14 @@
                   },
                   {
                     "type": "string",
+                    "enum": ["SIGNING_REQUEST_EXPIRED"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["SIGNING_REQUEST_ALREADY_COMPLETED"]
+                  },
+                  {
+                    "type": "string",
                     "enum": ["UPSTREAM_ERROR"]
                   },
                   {
@@ -176,17 +191,16 @@
               "instance": {
                 "type": "string"
               }
-            }
+            },
+            "required": ["type", "title", "status", "code"]
           },
           {
             "type": "object",
-            "required": ["errors"],
             "properties": {
               "errors": {
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["field", "message"],
                   "properties": {
                     "field": {
                       "type": "string"
@@ -194,16 +208,17 @@
                     "message": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": ["field", "message"]
                 }
               }
-            }
+            },
+            "required": ["errors"]
           }
         ]
       },
       "ValidationError": {
         "type": "object",
-        "required": ["field", "message"],
         "properties": {
           "field": {
             "type": "string"
@@ -211,20 +226,11 @@
           "message": {
             "type": "string"
           }
-        }
+        },
+        "required": ["field", "message"]
       },
       "DiaryEntry": {
         "type": "object",
-        "required": [
-          "id",
-          "ownerId",
-          "title",
-          "content",
-          "visibility",
-          "tags",
-          "createdAt",
-          "updatedAt"
-        ],
         "properties": {
           "id": {
             "format": "uuid",
@@ -284,11 +290,20 @@
             "format": "date-time",
             "type": "string"
           }
-        }
+        },
+        "required": [
+          "id",
+          "ownerId",
+          "title",
+          "content",
+          "visibility",
+          "tags",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "DiaryList": {
         "type": "object",
-        "required": ["items", "total", "limit", "offset"],
         "properties": {
           "items": {
             "type": "array",
@@ -305,11 +320,11 @@
           "offset": {
             "type": "number"
           }
-        }
+        },
+        "required": ["items", "total", "limit", "offset"]
       },
       "DiarySearchResult": {
         "type": "object",
-        "required": ["results", "total"],
         "properties": {
           "results": {
             "type": "array",
@@ -320,17 +335,16 @@
           "total": {
             "type": "number"
           }
-        }
+        },
+        "required": ["results", "total"]
       },
       "Digest": {
         "type": "object",
-        "required": ["entries", "totalEntries", "periodDays", "generatedAt"],
         "properties": {
           "entries": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["id", "content", "tags", "createdAt"],
               "properties": {
                 "id": {
                   "format": "uuid",
@@ -356,7 +370,8 @@
                   "format": "date-time",
                   "type": "string"
                 }
-              }
+              },
+              "required": ["id", "content", "tags", "createdAt"]
             }
           },
           "totalEntries": {
@@ -369,11 +384,11 @@
             "format": "date-time",
             "type": "string"
           }
-        }
+        },
+        "required": ["entries", "totalEntries", "periodDays", "generatedAt"]
       },
       "ShareResult": {
         "type": "object",
-        "required": ["success", "sharedWith"],
         "properties": {
           "success": {
             "type": "boolean"
@@ -381,11 +396,11 @@
           "sharedWith": {
             "type": "string"
           }
-        }
+        },
+        "required": ["success", "sharedWith"]
       },
       "SharedEntries": {
         "type": "object",
-        "required": ["entries"],
         "properties": {
           "entries": {
             "type": "array",
@@ -393,20 +408,20 @@
               "$ref": "#/components/schemas/DiaryEntry"
             }
           }
-        }
+        },
+        "required": ["entries"]
       },
       "Success": {
         "type": "object",
-        "required": ["success"],
         "properties": {
           "success": {
             "type": "boolean"
           }
-        }
+        },
+        "required": ["success"]
       },
       "AgentProfile": {
         "type": "object",
-        "required": ["publicKey", "fingerprint"],
         "properties": {
           "publicKey": {
             "type": "string"
@@ -414,11 +429,11 @@
           "fingerprint": {
             "type": "string"
           }
-        }
+        },
+        "required": ["publicKey", "fingerprint"]
       },
       "Whoami": {
         "type": "object",
-        "required": ["identityId", "publicKey", "fingerprint"],
         "properties": {
           "identityId": {
             "format": "uuid",
@@ -430,38 +445,38 @@
           "fingerprint": {
             "type": "string"
           }
-        }
+        },
+        "required": ["identityId", "publicKey", "fingerprint"]
       },
       "VerifyResult": {
         "type": "object",
-        "required": ["valid"],
         "properties": {
           "valid": {
             "type": "boolean"
           },
           "signer": {
             "type": "object",
-            "required": ["fingerprint"],
             "properties": {
               "fingerprint": {
                 "type": "string"
               }
-            }
+            },
+            "required": ["fingerprint"]
           }
-        }
+        },
+        "required": ["valid"]
       },
       "CryptoVerifyResult": {
         "type": "object",
-        "required": ["valid"],
         "properties": {
           "valid": {
             "type": "boolean"
           }
-        }
+        },
+        "required": ["valid"]
       },
       "CryptoIdentity": {
         "type": "object",
-        "required": ["identityId", "publicKey", "fingerprint"],
         "properties": {
           "identityId": {
             "format": "uuid",
@@ -473,11 +488,11 @@
           "fingerprint": {
             "type": "string"
           }
-        }
+        },
+        "required": ["identityId", "publicKey", "fingerprint"]
       },
       "RecoveryChallengeResponse": {
         "type": "object",
-        "required": ["challenge", "hmac"],
         "properties": {
           "challenge": {
             "description": "HMAC-signed recovery challenge string",
@@ -487,11 +502,11 @@
             "description": "Hex-encoded HMAC-SHA256 of challenge",
             "type": "string"
           }
-        }
+        },
+        "required": ["challenge", "hmac"]
       },
       "RecoveryVerifyResponse": {
         "type": "object",
-        "required": ["recoveryCode", "recoveryFlowUrl"],
         "properties": {
           "recoveryCode": {
             "description": "One-time Kratos recovery code",
@@ -502,11 +517,11 @@
             "description": "Kratos recovery flow URL",
             "type": "string"
           }
-        }
+        },
+        "required": ["recoveryCode", "recoveryFlowUrl"]
       },
       "Voucher": {
         "type": "object",
-        "required": ["code", "expiresAt", "issuedBy"],
         "properties": {
           "code": {
             "type": "string"
@@ -518,11 +533,11 @@
           "issuedBy": {
             "type": "string"
           }
-        }
+        },
+        "required": ["code", "expiresAt", "issuedBy"]
       },
       "Health": {
         "type": "object",
-        "required": ["status", "timestamp"],
         "properties": {
           "status": {
             "type": "string"
@@ -531,7 +546,116 @@
             "format": "date-time",
             "type": "string"
           }
-        }
+        },
+        "required": ["status", "timestamp"]
+      },
+      "SigningRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "agentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "nonce": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["pending"]
+              },
+              {
+                "type": "string",
+                "enum": ["completed"]
+              },
+              {
+                "type": "string",
+                "enum": ["expired"]
+              }
+            ]
+          },
+          "signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "message",
+          "nonce",
+          "status",
+          "signature",
+          "valid",
+          "createdAt",
+          "expiresAt",
+          "completedAt"
+        ]
+      },
+      "SigningRequestList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SigningRequest"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          }
+        },
+        "required": ["items", "total", "limit", "offset"]
       }
     }
   },
@@ -565,7 +689,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["content"],
                 "properties": {
                   "content": {
                     "minLength": 1,
@@ -600,7 +723,8 @@
                       "type": "string"
                     }
                   }
-                }
+                },
+                "required": ["content"]
               }
             }
           },
@@ -1115,14 +1239,14 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["sharedWith"],
                 "properties": {
                   "sharedWith": {
                     "minLength": 1,
                     "maxLength": 100,
                     "type": "string"
                   }
-                }
+                },
+                "required": ["sharedWith"]
               }
             }
           },
@@ -1264,7 +1388,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["visibility"],
                 "properties": {
                   "visibility": {
                     "anyOf": [
@@ -1282,7 +1405,8 @@
                       }
                     ]
                   }
-                }
+                },
+                "required": ["visibility"]
               }
             }
           },
@@ -1408,7 +1532,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message", "signature"],
                 "properties": {
                   "message": {
                     "minLength": 1,
@@ -1419,7 +1542,8 @@
                     "minLength": 1,
                     "type": "string"
                   }
-                }
+                },
+                "required": ["message", "signature"]
               }
             }
           },
@@ -1534,7 +1658,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message", "signature", "publicKey"],
                 "properties": {
                   "message": {
                     "minLength": 1,
@@ -1549,7 +1672,8 @@
                     "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
                     "type": "string"
                   }
-                }
+                },
+                "required": ["message", "signature", "publicKey"]
               }
             }
           },
@@ -1623,6 +1747,296 @@
         }
       }
     },
+    "/crypto/signing-requests": {
+      "post": {
+        "operationId": "createSigningRequest",
+        "tags": ["crypto"],
+        "description": "Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "minLength": 1,
+                    "maxLength": 100000,
+                    "type": "string"
+                  }
+                },
+                "required": ["message"]
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listSigningRequests",
+        "tags": ["crypto"],
+        "description": "List signing requests for the authenticated agent.",
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningRequestList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/crypto/signing-requests/{id}": {
+      "get": {
+        "operationId": "getSigningRequest",
+        "tags": ["crypto"],
+        "description": "Get a specific signing request by ID.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/crypto/signing-requests/{id}/sign": {
+      "post": {
+        "operationId": "submitSignature",
+        "tags": ["crypto"],
+        "description": "Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "signature": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["signature"]
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/recovery/challenge": {
       "post": {
         "operationId": "requestRecoveryChallenge",
@@ -1633,14 +2047,14 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["publicKey"],
                 "properties": {
                   "publicKey": {
                     "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
                     "description": "Ed25519 public key with prefix",
                     "type": "string"
                   }
-                }
+                },
+                "required": ["publicKey"]
               }
             }
           },
@@ -1700,7 +2114,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["challenge", "hmac", "signature", "publicKey"],
                 "properties": {
                   "challenge": {
                     "minLength": 1,
@@ -1721,7 +2134,8 @@
                     "description": "Ed25519 public key with prefix",
                     "type": "string"
                   }
-                }
+                },
+                "required": ["challenge", "hmac", "signature", "publicKey"]
               }
             }
           },
@@ -1852,7 +2266,6 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["vouchers"],
                   "properties": {
                     "vouchers": {
                       "type": "array",
@@ -1860,7 +2273,8 @@
                         "$ref": "#/components/schemas/Voucher"
                       }
                     }
-                  }
+                  },
+                  "required": ["vouchers"]
                 }
               }
             }
@@ -1900,17 +2314,11 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["edges"],
                   "properties": {
                     "edges": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": [
-                          "issuerFingerprint",
-                          "redeemerFingerprint",
-                          "redeemedAt"
-                        ],
                         "properties": {
                           "issuerFingerprint": {
                             "description": "Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8)",
@@ -1924,10 +2332,16 @@
                             "format": "date-time",
                             "type": "string"
                           }
-                        }
+                        },
+                        "required": [
+                          "issuerFingerprint",
+                          "redeemerFingerprint",
+                          "redeemedAt"
+                        ]
                       }
                     }
-                  }
+                  },
+                  "required": ["edges"]
                 }
               }
             }
