@@ -17,8 +17,10 @@ import type {
   AgentRepository,
   AgentVoucher,
   CryptoService,
+  DataSource,
   DiaryEntry,
   DiaryService,
+  SigningRequestRepository,
   VoucherRepository,
 } from '../src/types.js';
 
@@ -94,8 +96,15 @@ export interface MockServices {
   voucherRepository: {
     [K in keyof VoucherRepository]: ReturnType<typeof vi.fn>;
   };
+  signingRequestRepository: {
+    [K in keyof SigningRequestRepository]: ReturnType<typeof vi.fn>;
+  };
   permissionChecker: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
+  };
+  dataSource: {
+    client: object;
+    runTransaction: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -130,6 +139,13 @@ export function createMockServices(): MockServices {
       listActiveByIssuer: vi.fn(),
       getTrustGraph: vi.fn(),
     },
+    signingRequestRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      list: vi.fn(),
+      updateStatus: vi.fn(),
+      countByAgent: vi.fn(),
+    },
     permissionChecker: {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
@@ -140,6 +156,10 @@ export function createMockServices(): MockServices {
       revokeViewer: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
+    },
+    dataSource: {
+      client: { __mock: 'transactionalClient' },
+      runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     },
   };
 }
@@ -181,6 +201,9 @@ export async function createTestApp(
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
+    signingRequestRepository:
+      mocks.signingRequestRepository as unknown as SigningRequestRepository,
+    dataSource: mocks.dataSource as unknown as DataSource,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
     tokenValidator: mockTokenValidator,
     webhookApiKey: TEST_WEBHOOK_API_KEY,
