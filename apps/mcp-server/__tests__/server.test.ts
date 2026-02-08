@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
 import { createMockDeps } from './helpers.js';
@@ -120,5 +120,74 @@ describe('buildApp', () => {
     expect(response.statusCode).toBe(200);
 
     await app.close();
+  });
+
+  it('does not register auth proxy when CLIENT_CREDENTIALS_PROXY is false', async () => {
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+        CLIENT_CREDENTIALS_PROXY: false,
+        ORY_PROJECT_URL: 'https://hydra.example.com',
+      },
+      deps,
+      logger: false,
+    });
+
+    // Should work without any OIDC discovery calls
+    const response = await app.inject({
+      method: 'GET',
+      url: '/healthz',
+    });
+
+    expect(response.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it('registers auth proxy when CLIENT_CREDENTIALS_PROXY is true', async () => {
+    const fetchSpy: Mock = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    // Mock OIDC discovery (called during plugin registration)
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          token_endpoint: 'https://hydra.example.com/oauth2/token',
+          issuer: 'https://hydra.example.com/',
+        }),
+    });
+
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+        CLIENT_CREDENTIALS_PROXY: true,
+        ORY_PROJECT_URL: 'https://hydra.example.com',
+      },
+      deps,
+      logger: false,
+    });
+
+    // OIDC discovery should have been called during registration
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://hydra.example.com/.well-known/openid-configuration',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+
+    // App should still work — healthz bypasses auth
+    const response = await app.inject({
+      method: 'GET',
+      url: '/healthz',
+    });
+
+    expect(response.statusCode).toBe(200);
+    await app.close();
+    vi.restoreAllMocks();
   });
 });

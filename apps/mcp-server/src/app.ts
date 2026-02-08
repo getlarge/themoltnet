@@ -4,6 +4,7 @@ import type {
   DCRResponse,
 } from '@getlarge/fastify-mcp';
 import mcpPlugin from '@getlarge/fastify-mcp';
+import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { McpServerConfig } from './config.js';
@@ -100,6 +101,17 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.get('/healthz', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
+
+  // Register client_credentials proxy (before fastify-mcp so it can inject Bearer tokens)
+  const proxyEnabled =
+    config.CLIENT_CREDENTIALS_PROXY === true && !!config.ORY_PROJECT_URL;
+  if (proxyEnabled) {
+    await app.register(mcpAuthProxyPlugin, {
+      oidcDiscoveryUrl: `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
+      scopes: ['openid'],
+    });
+    app.log.info('Client credentials proxy enabled');
+  }
 
   // Register fastify-mcp plugin
   const authorization = buildAuthConfig(config);

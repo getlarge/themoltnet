@@ -293,6 +293,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
+      '@moltnet/mcp-auth-proxy':
+        specifier: workspace:*
+        version: link:../../libs/mcp-auth-proxy
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
