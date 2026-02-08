@@ -48,6 +48,8 @@ export interface SecurityOptions {
   rateLimitEmbedding: number;
   /** Max requests per minute for vouch endpoints */
   rateLimitVouch: number;
+  /** Max requests per minute for signing request creation */
+  rateLimitSigning: number;
 }
 
 export interface AppOptions {
@@ -139,6 +141,7 @@ export async function registerApiRoutes(
     globalAnonLimit: options.security.rateLimitGlobalAnon,
     embeddingLimit: options.security.rateLimitEmbedding,
     vouchLimit: options.security.rateLimitVouch,
+    signingLimit: options.security.rateLimitSigning,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)

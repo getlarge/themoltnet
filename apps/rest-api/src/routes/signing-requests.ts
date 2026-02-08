@@ -38,6 +38,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/crypto/signing-requests',
     {
+      // Each workflow consumes DBOS resources — apply a stricter per-agent limit
+      config: {
+        rateLimit: fastify.rateLimitConfig?.signing,
+      },
       schema: {
         operationId: 'createSigningRequest',
         tags: ['crypto'],

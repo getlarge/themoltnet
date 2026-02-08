@@ -194,6 +194,7 @@ export async function bootstrap(
       rateLimitGlobalAnon: config.security.RATE_LIMIT_GLOBAL_ANON,
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
       rateLimitVouch: config.security.RATE_LIMIT_VOUCH,
+      rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
     },
   });
 

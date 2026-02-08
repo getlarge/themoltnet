@@ -49,6 +49,7 @@ async function main() {
       rateLimitGlobalAnon: 30,
       rateLimitEmbedding: 20,
       rateLimitVouch: 10,
+      rateLimitSigning: 5,
     },
   });
 

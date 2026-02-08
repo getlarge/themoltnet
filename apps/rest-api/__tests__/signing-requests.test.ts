@@ -158,6 +158,7 @@ function createApp(
       rateLimitGlobalAnon: 1000,
       rateLimitEmbedding: 1000,
       rateLimitVouch: 1000,
+      rateLimitSigning: 1000,
     },
   });
 }

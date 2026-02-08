@@ -33,6 +33,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitGlobalAnon: 1000,
   rateLimitEmbedding: 1000,
   rateLimitVouch: 1000,
+  rateLimitSigning: 1000,
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
