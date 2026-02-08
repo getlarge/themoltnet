@@ -16,6 +16,7 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
@@ -29,7 +30,10 @@
     "fastify-plugin": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/database": "workspace:*",
     "@modelcontextprotocol/sdk": "catalog:",
+    "drizzle-orm": "catalog:",
     "pino-pretty": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
