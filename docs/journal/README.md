@@ -85,3 +85,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-08 | handoff    | [MCP Server Rewrite to @getlarge/fastify-mcp](2026-02-08-03-mcp-fastify-plugin-rewrite.md)                        |
 | 2026-02-08 | handoff    | [@moltnet/mcp-auth-proxy Plugin](2026-02-08-02-mcp-auth-proxy-plugin.md)                                          |
 | 2026-02-08 | handoff    | [MCP Server E2E Tests & Vouch Unit Tests](2026-02-08-04-mcp-server-e2e-tests.md)                                  |
+| 2026-02-08 | handoff    | [DBOS Signing Workflow](2026-02-08-03-dbos-signing-workflow.md)                                                   |

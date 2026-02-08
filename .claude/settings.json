@@ -11,11 +11,22 @@
   },
   "permissions": {
     "allow": [
+      "Bash(gh issue close *)",
+      "Bash(gh issue create *)",
+      "Bash(gh issue develop *)",
+      "Bash(gh issue view *)",
+      "Bash(gh pr checks *)",
       "Bash(gh pr create *)",
       "Bash(gh pr view *)",
-      "Bash(gh pr checks *)",
-      "Bash(gh issue close *)",
-      "Bash(gh issue develop *)"
+      "Bash(gh run view*)",
+      "Bash(gh project item-add *)",
+      "Bash(gh project field-list *)",
+      "WebFetch(domain:www.ory.com)",
+      "WebFetch(domain:docs.dbos.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:google.aip.dev)",
+      "WebFetch(domain:nx.dev)",
+      "Bash(pnpm run typecheck *)"
     ]
   },
   "hooks": {
