@@ -21,8 +21,10 @@ import {
   createAgentRepository,
   createDatabase,
   createDiaryRepository,
+  createSigningRequestRepository,
   createVoucherRepository,
   type DatabaseConnection,
+  getDataSource,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
 import { createEmbeddingService } from '@moltnet/embedding-service';
@@ -123,6 +125,10 @@ export async function bootstrap(
   const agentRepository = createAgentRepository(dbConnection.db);
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
+  const signingRequestRepository = createSigningRequestRepository(
+    dbConnection.db,
+  );
+  const dataSource = getDataSource();
 
   // ── Services ───────────────────────────────────────────────────
   const permissionChecker = createPermissionChecker(
@@ -138,6 +144,7 @@ export async function bootstrap(
     diaryRepository,
     permissionChecker,
     embeddingService,
+    dataSource,
   });
 
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
@@ -150,6 +157,8 @@ export async function bootstrap(
     agentRepository,
     cryptoService,
     voucherRepository,
+    signingRequestRepository,
+    dataSource,
     permissionChecker,
     tokenValidator,
     webhookApiKey: config.webhook.ORY_ACTION_API_KEY,
