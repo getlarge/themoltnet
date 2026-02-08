@@ -129,15 +129,12 @@ export interface AgentVoucher {
 }
 
 export interface SigningRequestRepository {
-  create(
-    input: {
-      agentId: string;
-      message: string;
-      expiresAt?: Date;
-      workflowId?: string;
-    },
-    tx?: unknown,
-  ): Promise<SigningRequestRecord>;
+  create(input: {
+    agentId: string;
+    message: string;
+    expiresAt?: Date;
+    workflowId?: string;
+  }): Promise<SigningRequestRecord>;
   findById(id: string): Promise<SigningRequestRecord | null>;
   list(options: {
     agentId: string;

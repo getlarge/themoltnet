@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  _resetSigningWorkflowsForTesting,
   initSigningWorkflows,
   setSigningKeyLookup,
   setSigningRequestPersistence,
@@ -47,6 +48,7 @@ import { DBOS } from '@dbos-inc/dbos-sdk';
 describe('Signing Workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetSigningWorkflowsForTesting();
   });
 
   describe('initSigningWorkflows', () => {
@@ -60,6 +62,7 @@ describe('Signing Workflows', () => {
     });
 
     it('is idempotent — calling twice does not double-register', () => {
+      initSigningWorkflows();
       const stepCallCount = vi.mocked(DBOS.registerStep).mock.calls.length;
       initSigningWorkflows();
       // Should not have registered additional steps

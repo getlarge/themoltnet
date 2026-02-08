@@ -15,28 +15,28 @@ import {
   signingRequests,
 } from '../schema.js';
 
-/** Default signing request TTL: 5 minutes */
-const SIGNING_REQUEST_TTL_MS = 5 * 60 * 1000;
+/** Allowed values for the signing request status filter */
+const VALID_STATUSES = new Set<string>(['pending', 'completed', 'expired']);
 
+type SigningRequestStatus = 'pending' | 'completed' | 'expired';
+
+// TODO: Use AsyncLocalStorage for implicit transaction propagation instead of
+// explicit tx params. See: https://github.com/drizzle-team/drizzle-orm/issues/543
+// and https://github.com/nickdeis/drizzle-transaction-context
 export function createSigningRequestRepository(db: Database) {
   return {
     async create(
       input: Pick<NewSigningRequest, 'agentId' | 'message'> & {
-        expiresAt?: Date;
+        expiresAt: Date;
         workflowId?: string;
       },
-      tx?: Database,
     ): Promise<SigningRequest> {
-      const executor = tx ?? db;
-      const expiresAt =
-        input.expiresAt ?? new Date(Date.now() + SIGNING_REQUEST_TTL_MS);
-
-      const [request] = await executor
+      const [request] = await db
         .insert(signingRequests)
         .values({
           agentId: input.agentId,
           message: input.message,
-          expiresAt,
+          expiresAt: input.expiresAt,
           workflowId: input.workflowId,
         })
         .returning();
@@ -56,7 +56,7 @@ export function createSigningRequestRepository(db: Database) {
 
     async list(options: {
       agentId: string;
-      status?: string[];
+      status?: SigningRequestStatus[];
       limit?: number;
       offset?: number;
     }): Promise<{ items: SigningRequest[]; total: number }> {
@@ -64,12 +64,7 @@ export function createSigningRequestRepository(db: Database) {
 
       const conditions = [eq(signingRequests.agentId, agentId)];
       if (status && status.length > 0) {
-        conditions.push(
-          inArray(
-            signingRequests.status,
-            status as ('pending' | 'completed' | 'expired')[],
-          ),
-        );
+        conditions.push(inArray(signingRequests.status, status));
       }
 
       const where = and(...conditions);
@@ -120,6 +115,20 @@ export function createSigningRequestRepository(db: Database) {
       return value;
     },
   };
+}
+
+/**
+ * Filter and validate status strings against the allowed enum values.
+ * Returns only valid statuses, discarding empty strings and unknown values.
+ */
+export function parseStatusFilter(
+  raw: string,
+): SigningRequestStatus[] | undefined {
+  const statuses = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => VALID_STATUSES.has(s)) as SigningRequestStatus[];
+  return statuses.length > 0 ? statuses : undefined;
 }
 
 export type SigningRequestRepository = ReturnType<

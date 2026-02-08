@@ -9,7 +9,7 @@
  * Unlike diary entries, signing requests don't use Keto relationships.
  * Ownership is enforced by comparing `signingRequest.agentId` against
  * the authenticated `identityId` from the JWT. This is sufficient because:
- * - Requests are ephemeral (5-min TTL) — Keto cleanup on expiry adds complexity for no gain
+ * - Requests are ephemeral (configurable TTL) — Keto cleanup on expiry adds complexity for no gain
  * - Single-owner, no sharing — no viewer/editor relations needed
  * - The only permission is "am I the creator?" — a direct field comparison
  *
@@ -18,7 +18,7 @@
  */
 
 import { requireAuth } from '@moltnet/auth';
-import { DBOS, signingWorkflows } from '@moltnet/database';
+import { DBOS, parseStatusFilter, signingWorkflows } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -57,15 +57,18 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { message } = request.body as { message: string };
       const agentId = request.authContext!.identityId;
+      const timeoutSeconds = fastify.signingTimeoutSeconds;
+      const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);
 
       // CRITICAL: DB insert + workflow start inside runTransaction for atomicity.
       // If the workflow start fails, the DB row is rolled back.
       const signingRequest = await fastify.dataSource.runTransaction(
         async () => {
-          const created = await fastify.signingRequestRepository.create(
-            { agentId, message },
-            fastify.dataSource.client,
-          );
+          const created = await fastify.signingRequestRepository.create({
+            agentId,
+            message,
+            expiresAt,
+          });
 
           const workflowHandle = await DBOS.startWorkflow(
             signingWorkflows.requestSignature,
@@ -113,9 +116,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         status?: string;
       };
 
-      const statusFilter = status
-        ? status.split(',').map((s) => s.trim())
-        : undefined;
+      const statusFilter = status ? parseStatusFilter(status) : undefined;
 
       const { items, total } = await fastify.signingRequestRepository.list({
         agentId: request.authContext!.identityId,
@@ -202,7 +203,12 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Signing request not found');
       }
 
-      if (signingRequest.status === 'expired') {
+      // Check expiry server-side (workflow may not have expired it yet)
+      if (
+        signingRequest.status === 'expired' ||
+        (signingRequest.expiresAt &&
+          new Date(signingRequest.expiresAt).getTime() <= Date.now())
+      ) {
         throw createProblem(
           'signing-request-expired',
           'This signing request has expired',

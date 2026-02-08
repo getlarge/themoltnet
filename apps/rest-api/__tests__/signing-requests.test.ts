@@ -60,8 +60,8 @@ function createMockSigningRequest(
     signature: null,
     valid: null,
     workflowId: 'workflow-123',
-    createdAt: new Date('2026-02-07T10:00:00Z'),
-    expiresAt: new Date('2026-02-07T10:05:00Z'),
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 300_000),
     completedAt: null,
     ...overrides,
   };
@@ -194,7 +194,6 @@ describe('Signing request routes', () => {
           agentId: OWNER_ID,
           message: 'Hello, world!',
         }),
-        { __mock: 'transactionalClient' },
       );
     });
 
@@ -330,7 +329,10 @@ describe('Signing request routes', () => {
     });
 
     it('returns 409 for already completed request', async () => {
-      const completed = createMockSigningRequest({ status: 'completed' });
+      const completed = createMockSigningRequest({
+        status: 'completed',
+        expiresAt: new Date(Date.now() + 60_000),
+      });
       signingRepo.findById.mockResolvedValue(completed);
 
       const response = await app.inject({

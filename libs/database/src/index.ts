@@ -37,6 +37,7 @@ export {
 } from './repositories/diary.repository.js';
 export {
   createSigningRequestRepository,
+  parseStatusFilter,
   type SigningRequestRepository,
 } from './repositories/signing-request.repository.js';
 export {

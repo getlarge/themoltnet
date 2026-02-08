@@ -278,3 +278,8 @@ export const signingWorkflows = {
     return _workflows.requestSignature;
   },
 };
+
+/** @internal Reset module state for testing. */
+export function _resetSigningWorkflowsForTesting(): void {
+  _workflows = null;
+}
