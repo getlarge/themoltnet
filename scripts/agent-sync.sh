@@ -340,8 +340,12 @@ close_issue_and_cleanup() {
   fi
 
   if [ -n "$item_id" ] && [ "$item_id" != "null" ]; then
-    update_item_field "$item_id" "Status" "Done" || true
-    update_item_text "$item_id" "Agent" "" || true
+    # Best-effort board updates — cleanup must proceed even if these fail
+    # (common case: "no changes to make" when Agent field is already empty)
+    update_item_field "$item_id" "Status" "Done" \
+      || echo "Warning: failed to update board Status to Done" >&2
+    update_item_text "$item_id" "Agent" "" \
+      || echo "Warning: failed to clear Agent field (may already be empty)" >&2
   fi
 
   rm -f "$CLAIM_FILE"

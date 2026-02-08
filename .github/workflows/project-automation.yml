@@ -4,6 +4,10 @@ on:
   issues:
     types: [assigned]
 
+env:
+  PROJECT_NUMBER: ${{ vars.MOLTNET_PROJECT_NUMBER || '3' }}
+  PROJECT_OWNER: ${{ vars.MOLTNET_PROJECT_OWNER || 'getlarge' }}
+
 jobs:
   move-to-in-progress:
     name: Move to In Progress
@@ -14,8 +18,10 @@ jobs:
         with:
           github-token: ${{ secrets.GH_PROJECT_TOKEN }}
           script: |
-            const projectNumber = 3;
-            const owner = 'getlarge';
+            const projectNumber = Number(process.env.PROJECT_NUMBER);
+            // NOTE: getlarge is a user account, not an org. If migrated to
+            // an org, change the GraphQL query from user() to organization().
+            const owner = process.env.PROJECT_OWNER;
 
             // Find the project item for this issue
             const query = `query($owner: String!, $number: Int!, $cursor: String) {
@@ -96,6 +102,11 @@ jobs:
 
             if (currentStatus !== 'Todo') {
               core.info(`Issue #${issueNumber} has status "${currentStatus}" — only moving from Todo. Skipping.`);
+              return;
+            }
+
+            if (!statusField?.options) {
+              core.setFailed('Status field not found or has no options. Check project configuration.');
               return;
             }
 
