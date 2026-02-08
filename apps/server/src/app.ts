@@ -4,6 +4,10 @@
  * Initializes all services (database, Ory, diary, crypto, auth, observability)
  * and registers both the REST API routes and the static landing page on a
  * single Fastify instance.
+ *
+ * DBOS lifecycle is handled by the DBOS plugin from @moltnet/rest-api.
+ * The plugin requires cryptoService, agentRepository, signingRequestRepository,
+ * and permissionChecker to be decorated before it registers.
  */
 
 import { existsSync } from 'node:fs';
@@ -33,7 +37,11 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
-import { registerApiRoutes, resolveOryUrls } from '@moltnet/rest-api';
+import {
+  dbosPlugin,
+  registerApiRoutes,
+  resolveOryUrls,
+} from '@moltnet/rest-api';
 import Fastify, {
   type FastifyInstance,
   type FastifyReply,
@@ -128,13 +136,26 @@ export async function bootstrap(
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
-  const dataSource = getDataSource();
 
   // ── Services ───────────────────────────────────────────────────
   const permissionChecker = createPermissionChecker(
     oryClients.permission,
     oryClients.relationship,
   );
+
+  // ── Pre-decorate services required by DBOS plugin ──────────────
+  app.decorate('cryptoService', cryptoService);
+  app.decorate('agentRepository', agentRepository);
+  app.decorate('signingRequestRepository', signingRequestRepository);
+  app.decorate('permissionChecker', permissionChecker);
+
+  // ── DBOS Plugin (handles full lifecycle) ───────────────────────
+  await app.register(dbosPlugin, {
+    databaseUrl: config.database.DATABASE_URL,
+    systemDatabaseUrl: config.database.DBOS_SYSTEM_DATABASE_URL,
+  });
+
+  const dataSource = getDataSource();
 
   const embeddingService = createEmbeddingService({
     logger: app.log,
@@ -152,6 +173,9 @@ export async function bootstrap(
   });
 
   // ── REST API routes ────────────────────────────────────────────
+  // Services already decorated by DBOS plugin (dataSource) and above
+  // (cryptoService, agentRepository, signingRequestRepository, permissionChecker)
+  // are skipped by registerApiRoutes via hasDecorator guards.
   await registerApiRoutes(app, {
     diaryService,
     agentRepository,

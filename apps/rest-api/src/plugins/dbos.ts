@@ -31,7 +31,10 @@ import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 
 export interface DBOSPluginOptions {
+  /** Application database URL — used by DrizzleDataSource for app tables */
   databaseUrl: string;
+  /** DBOS system database URL — workflow state, step results (separate schema) */
+  systemDatabaseUrl: string;
   signingTimeoutSeconds?: number;
 }
 
@@ -39,17 +42,25 @@ async function dbosPlugin(
   fastify: FastifyInstance,
   options: DBOSPluginOptions,
 ): Promise<void> {
-  const { databaseUrl } = options;
+  const { databaseUrl, systemDatabaseUrl } = options;
 
-  // permissionChecker is decorated by authPlugin — it implements KetoRelationshipWriter
-  if (!fastify.permissionChecker) {
-    throw new Error(
-      'DBOS plugin requires authPlugin to be registered first (needs permissionChecker)',
-    );
+  // Precondition checks: these decorations must exist before DBOS init
+  const required = [
+    'permissionChecker',
+    'cryptoService',
+    'agentRepository',
+    'signingRequestRepository',
+  ] as const;
+  for (const dep of required) {
+    if (!fastify[dep]) {
+      throw new Error(
+        `DBOS plugin requires '${dep}' to be decorated before registration`,
+      );
+    }
   }
 
   // 1. Configure DBOS (must be first, before workflow registration)
-  configureDBOS();
+  configureDBOS(systemDatabaseUrl);
 
   // 2. Register Keto workflows (must be after config, before launch)
   initKetoWorkflows();
@@ -73,8 +84,8 @@ async function dbosPlugin(
     setSigningTimeoutSeconds(options.signingTimeoutSeconds);
   }
 
-  // 6. Initialize DBOS data source
-  await initDBOS({ databaseUrl });
+  // 6. Initialize DBOS data source (app tables via databaseUrl, system via systemDatabaseUrl)
+  await initDBOS({ databaseUrl, systemDatabaseUrl });
 
   // 7. Launch DBOS (starts runtime, recovers interrupted workflows)
   await launchDBOS();

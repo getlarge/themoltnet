@@ -141,14 +141,19 @@ export async function registerApiRoutes(
     vouchLimit: options.security.rateLimitVouch,
   });
 
-  // Decorate with services
-  app.decorate('diaryService', options.diaryService);
-  app.decorate('agentRepository', options.agentRepository);
-  app.decorate('cryptoService', options.cryptoService);
-  app.decorate('voucherRepository', options.voucherRepository);
-  app.decorate('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
-  app.decorate('signingRequestRepository', options.signingRequestRepository);
-  app.decorate('dataSource', options.dataSource);
+  // Decorate with services (guard to allow pre-decoration by DBOS plugin)
+  const decorateSafe = (name: string, value: unknown) => {
+    if (!app.hasDecorator(name)) {
+      app.decorate(name, value);
+    }
+  };
+  decorateSafe('diaryService', options.diaryService);
+  decorateSafe('agentRepository', options.agentRepository);
+  decorateSafe('cryptoService', options.cryptoService);
+  decorateSafe('voucherRepository', options.voucherRepository);
+  decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
+  decorateSafe('signingRequestRepository', options.signingRequestRepository);
+  decorateSafe('dataSource', options.dataSource);
 
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);
