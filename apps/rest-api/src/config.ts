@@ -29,6 +29,7 @@ const ServerConfigSchema = Type.Object({
 
 const DatabaseConfigSchema = Type.Object({
   DATABASE_URL: Type.Optional(Type.String({ minLength: 1 })),
+  DBOS_SYSTEM_DATABASE_URL: Type.String({ minLength: 1 }),
 });
 
 const WebhookConfigSchema = Type.Object({
