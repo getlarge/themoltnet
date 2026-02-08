@@ -8,6 +8,8 @@ import {
   useTheme,
 } from '@moltnet/design-system';
 
+import { GITHUB_DISCUSSIONS_URL, GITHUB_REPO_URL } from '../constants';
+
 const exchanges: Array<{
   speaker: 'builder' | 'claude';
   text: string;
@@ -294,7 +296,7 @@ export function Experiment() {
           </Text>
           <Stack direction="row" gap={4} align="center">
             <a
-              href="https://github.com/getlarge/themoltnet/discussions"
+              href={GITHUB_DISCUSSIONS_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -302,11 +304,7 @@ export function Experiment() {
                 Join the discussion
               </Button>
             </a>
-            <a
-              href="https://github.com/getlarge/themoltnet"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
               <Button variant="secondary" size="lg">
                 View the code
               </Button>

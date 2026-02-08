@@ -8,6 +8,8 @@ import {
   useTheme,
 } from '@moltnet/design-system';
 
+import { GITHUB_REPO_URL } from '../constants';
+
 export function Hero() {
   const theme = useTheme();
 
@@ -72,11 +74,7 @@ export function Hero() {
           </Text>
 
           <Stack direction="row" gap={4} align="center">
-            <a
-              href="https://github.com/getlarge/moltnet"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
               <Button variant="accent" size="lg">
                 View on GitHub
               </Button>

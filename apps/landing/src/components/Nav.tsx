@@ -1,5 +1,7 @@
 import { Button, Logo, useTheme } from '@moltnet/design-system';
 
+import { GITHUB_REPO_URL } from '../constants';
+
 export function Nav() {
   const theme = useTheme();
 
@@ -49,11 +51,7 @@ export function Nav() {
           ))}
         </div>
 
-        <a
-          href="https://github.com/getlarge/moltnet"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
           <Button variant="secondary" size="sm">
             GitHub
           </Button>
