@@ -19,11 +19,11 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "fastify": "catalog:",
     "fastify-plugin": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "fastify": "catalog:"
+    "vitest": "catalog:"
   }
 }

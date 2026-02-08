@@ -354,6 +354,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../../libs/database
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
@@ -370,9 +373,6 @@ importers:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../../libs/database
       '@moltnet/diary-service':
         specifier: workspace:*
         version: link:../../libs/diary-service
@@ -656,13 +656,13 @@ importers:
 
   libs/mcp-auth-proxy:
     dependencies:
+      fastify:
+        specifier: 'catalog:'
+        version: 5.7.4
       fastify-plugin:
         specifier: 'catalog:'
         version: 5.1.0
     devDependencies:
-      fastify:
-        specifier: 'catalog:'
-        version: 5.7.4
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
