@@ -1,11 +1,24 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { withSerializationRetry } from '../src/utils/serialization-retry.js';
+import {
+  isSerializationFailure,
+  withSerializationRetry,
+} from '../src/utils/serialization-retry.js';
 
 function makeSerializationError(): Error & { code: string } {
   return Object.assign(new Error('could not serialize access'), {
     code: '40001',
   });
+}
+
+/** Simulates how Drizzle wraps pg errors in DrizzleQueryError */
+function makeDrizzleWrappedError(): Error {
+  const pgError = makeSerializationError();
+  const drizzleError = new Error(
+    `Failed query: INSERT INTO agent_vouchers ...\nparams: [...]`,
+  );
+  drizzleError.cause = pgError;
+  return drizzleError;
 }
 
 describe('withSerializationRetry', () => {
@@ -90,5 +103,57 @@ describe('withSerializationRetry', () => {
       withSerializationRetry(fn, { maxRetries: 7 }),
     ).rejects.toMatchObject({ code: 'SERIALIZATION_EXHAUSTED' });
     expect(fn).toHaveBeenCalledTimes(7);
+  });
+
+  it('retries when Drizzle wraps the pg error in cause chain', async () => {
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(makeDrizzleWrappedError())
+      .mockResolvedValueOnce('ok');
+
+    const result = await withSerializationRetry(fn);
+    expect(result).toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns 429 when Drizzle-wrapped errors exhaust retries', async () => {
+    const fn = vi.fn().mockRejectedValue(makeDrizzleWrappedError());
+
+    try {
+      await withSerializationRetry(fn, { maxRetries: 3 });
+      expect.unreachable('should have thrown');
+    } catch (error: unknown) {
+      const err = error as Error & { statusCode: number; code: string };
+      expect(err.statusCode).toBe(429);
+      expect(err.code).toBe('SERIALIZATION_EXHAUSTED');
+      expect(fn).toHaveBeenCalledTimes(3);
+    }
+  });
+});
+
+describe('isSerializationFailure', () => {
+  it('detects direct pg error with code 40001', () => {
+    expect(isSerializationFailure(makeSerializationError())).toBe(true);
+  });
+
+  it('detects Drizzle-wrapped error via cause chain', () => {
+    expect(isSerializationFailure(makeDrizzleWrappedError())).toBe(true);
+  });
+
+  it('detects error by message when code is missing', () => {
+    const error = new Error(
+      'could not serialize access due to concurrent update',
+    );
+    expect(isSerializationFailure(error)).toBe(true);
+  });
+
+  it('rejects unrelated errors', () => {
+    expect(isSerializationFailure(new Error('connection refused'))).toBe(false);
+  });
+
+  it('rejects non-error values', () => {
+    expect(isSerializationFailure(null)).toBe(false);
+    expect(isSerializationFailure('40001')).toBe(false);
+    expect(isSerializationFailure(undefined)).toBe(false);
   });
 });

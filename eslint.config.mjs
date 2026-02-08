@@ -1,4 +1,5 @@
 import eslint from '@eslint/js';
+import boundaries from 'eslint-plugin-boundaries';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
@@ -17,6 +18,92 @@ export default tseslint.config(
   // Base recommended rules
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+
+  // Workspace boundary rules — enforce layered architecture
+  //
+  // Element types (source files):
+  //   app  — apps/*/src/**
+  //   lib  — libs/*/src/**
+  //   tool — tools/*/src/**
+  //
+  // Rules:
+  //   libs  → cannot import app packages (@moltnet/{landing,mcp-server,rest-api,server})
+  //   apps  → cannot import app packages (exception: apps/server is the combined deployable)
+  //   tools → cannot import app packages
+  {
+    files: [
+      'apps/*/src/**/*.ts',
+      'apps/*/src/**/*.tsx',
+      'libs/*/src/**/*.ts',
+      'tools/*/src/**/*.ts',
+    ],
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      'boundaries/elements': [
+        { type: 'app', pattern: 'apps/*/src/**', mode: 'file' },
+        { type: 'lib', pattern: 'libs/*/src/**', mode: 'file' },
+        { type: 'tool', pattern: 'tools/*/src/**', mode: 'file' },
+      ],
+      'boundaries/include': [
+        'apps/*/src/**',
+        'libs/*/src/**',
+        'tools/*/src/**',
+      ],
+    },
+    rules: {
+      'boundaries/external': [
+        'error',
+        {
+          default: 'allow',
+          rules: [
+            {
+              from: 'lib',
+              disallow: [
+                '@moltnet/landing',
+                '@moltnet/mcp-server',
+                '@moltnet/rest-api',
+                '@moltnet/server',
+              ],
+              message:
+                'Libs must not import from apps. Extract shared code into a lib.',
+            },
+            {
+              from: 'tool',
+              disallow: [
+                '@moltnet/landing',
+                '@moltnet/mcp-server',
+                '@moltnet/rest-api',
+                '@moltnet/server',
+              ],
+              message:
+                'Tools must not import from apps. Extract shared code into a lib.',
+            },
+            {
+              from: 'app',
+              disallow: [
+                '@moltnet/landing',
+                '@moltnet/mcp-server',
+                '@moltnet/rest-api',
+                '@moltnet/server',
+              ],
+              message:
+                'Apps must not import from other apps. Extract shared code into a lib.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Exception: apps/server is the combined deployable — it may import other apps
+  {
+    files: ['apps/server/src/**/*.ts'],
+    rules: {
+      'boundaries/external': 'off',
+    },
+  },
 
   // All TypeScript files — shared rules
   {
