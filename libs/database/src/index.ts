@@ -36,13 +36,28 @@ export {
   type DiarySearchOptions,
 } from './repositories/diary.repository.js';
 export {
+  createSigningRequestRepository,
+  type SigningRequestRepository,
+} from './repositories/signing-request.repository.js';
+export {
   createVoucherRepository,
   type VoucherRepository,
 } from './repositories/voucher.repository.js';
 export * from './schema.js';
 export {
+  type AgentKeyLookup,
   initKetoWorkflows,
+  initSigningWorkflows,
   type KetoRelationshipWriter,
   ketoWorkflows,
   setKetoRelationshipWriter,
+  setSigningKeyLookup,
+  setSigningRequestPersistence,
+  setSigningTimeoutSeconds,
+  setSigningVerifier,
+  type SignatureVerifier,
+  type SigningEnvelope,
+  type SigningRequestPersistence,
+  type SigningResult,
+  signingWorkflows,
 } from './workflows/index.js';
