@@ -340,8 +340,8 @@ close_issue_and_cleanup() {
   fi
 
   if [ -n "$item_id" ] && [ "$item_id" != "null" ]; then
-    update_item_field "$item_id" "Status" "Done"
-    update_item_text "$item_id" "Agent" ""
+    update_item_field "$item_id" "Status" "Done" || true
+    update_item_text "$item_id" "Agent" "" || true
   fi
 
   rm -f "$CLAIM_FILE"

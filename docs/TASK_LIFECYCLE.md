@@ -16,6 +16,7 @@ This document describes the automated task lifecycle system built on Claude Code
 | **Hook (`session-start`)** | `agent-sync.sh session-start`, runs once on startup      | Injects project board context into session                         |
 | **Signal File**            | `.agent-claim.json` in project root                      | Ephemeral state machine driving hook behavior                      |
 | **GitHub**                 | Issues, PRs, Actions CI, Projects board                  | Source of truth for tasks, code review, CI status                  |
+| **GH Actions (project)**   | `.github/workflows/project-automation.yml`               | Moves board Status to "In Progress" when issue is assigned         |
 | **Human**                  | The orchestrator                                         | Merges PRs, confirms issue closure, spawns agents                  |
 
 ---
@@ -70,8 +71,9 @@ sequenceDiagram
     H->>A: /claim 42
     A->>GH: gh project item-list (find task)
     GH-->>A: Item found: issue #42
-    A->>PB: Status → "In Progress", Agent → "edouard-1738..."
     A->>GH: gh issue edit 42 --add-assignee @me
+    GH->>PB: project-automation.yml: Status → "In Progress"
+    A->>PB: Agent → "edouard-1738..."
     A->>SF: Write .agent-claim.json (phase: "coding")
 
     Note over H,PB: Phase 2 — Coding
@@ -249,6 +251,38 @@ flowchart TD
 
 ---
 
+## GitHub Projects Automation
+
+### Built-in Workflows
+
+GitHub Projects v2 provides built-in workflows with fixed triggers. These are configured in the project settings UI (not code). All are enabled:
+
+| Workflow                     | Trigger                              | Action           |
+| ---------------------------- | ------------------------------------ | ---------------- |
+| Item added to project        | Issue/PR added to board              | Status → Todo    |
+| Item closed                  | Issue closed                         | Status → Done    |
+| Item reopened                | Issue reopened                       | Status → Todo    |
+| Pull request merged          | PR merged                            | Status → Done    |
+| Pull request linked to issue | PR linked via closing keyword        | _(configurable)_ |
+| Code changes requested       | Review requests changes on linked PR | _(configurable)_ |
+| Auto-add to project          | Issues matching filter               | Added to board   |
+| Auto-add sub-issues          | Sub-issues of board items            | Added to board   |
+| Auto-close issue             | Status set to Done                   | Issue closed     |
+
+**Notable gap**: there is no built-in "When assigned, move to In Progress" workflow. GitHub Projects v2 does not support custom built-in workflow triggers.
+
+### Custom Automation via GitHub Actions
+
+To fill the gap above, `.github/workflows/project-automation.yml` triggers on `issues: [assigned]`:
+
+1. Finds the issue on the project board via GraphQL
+2. Checks current status is "Todo" (skips if already "In Progress" or other)
+3. Updates Status to "In Progress" via `updateProjectV2ItemFieldValue` mutation
+
+This workflow requires a `GH_PROJECT_TOKEN` repo secret — a PAT with `project` read/write scope (the default `GITHUB_TOKEN` lacks project access).
+
+---
+
 ## Hook Configuration
 
 Hooks are declared in `.claude/settings.json`:
@@ -349,14 +383,15 @@ If `.agent-claim.json` doesn't exist, the hooks fall back to the original behavi
 
 ## Files Involved
 
-| File                          | Purpose                                               |
-| ----------------------------- | ----------------------------------------------------- |
-| `scripts/agent-sync.sh`       | Hook script — all lifecycle logic                     |
-| `.claude/commands/claim.md`   | `/claim` slash command — step 6 writes signal file    |
-| `.claude/commands/handoff.md` | `/handoff` slash command — step 7 sets `ready_for_pr` |
-| `.claude/settings.json`       | Hook configuration + bash permissions                 |
-| `.gitignore`                  | Ensures `.agent-claim.json` is not committed          |
-| `.agent-claim.json`           | Ephemeral signal file (gitignored)                    |
+| File                                       | Purpose                                                       |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| `scripts/agent-sync.sh`                    | Hook script — all lifecycle logic                             |
+| `.github/workflows/project-automation.yml` | GH Actions — moves board to "In Progress" on issue assignment |
+| `.claude/commands/claim.md`                | `/claim` slash command — step 5 writes signal file            |
+| `.claude/commands/handoff.md`              | `/handoff` slash command — step 7 sets `ready_for_pr`         |
+| `.claude/settings.json`                    | Hook configuration + bash permissions                         |
+| `.gitignore`                               | Ensures `.agent-claim.json` is not committed                  |
+| `.agent-claim.json`                        | Ephemeral signal file (gitignored)                            |
 
 ---
 
