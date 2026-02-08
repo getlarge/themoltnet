@@ -25,12 +25,15 @@ import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { problemRoutes } from './routes/problems.js';
 import { recoveryRoutes } from './routes/recovery.js';
+import { signingRequestRoutes } from './routes/signing-requests.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
 import type {
   AgentRepository,
   CryptoService,
+  DataSource,
   DiaryService,
+  SigningRequestRepository,
   VoucherRepository,
 } from './types.js';
 
@@ -52,6 +55,10 @@ export interface AppOptions {
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   voucherRepository: VoucherRepository;
+  /** Signing request repository + dataSource are required together (DBOS) */
+  signingRequestRepository: SigningRequestRepository;
+  dataSource: DataSource;
+  signingTimeoutSeconds?: number;
   permissionChecker: PermissionChecker;
   tokenValidator: TokenValidator;
   webhookApiKey: string;
@@ -139,6 +146,9 @@ export async function registerApiRoutes(
   app.decorate('agentRepository', options.agentRepository);
   app.decorate('cryptoService', options.cryptoService);
   app.decorate('voucherRepository', options.voucherRepository);
+  app.decorate('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
+  app.decorate('signingRequestRepository', options.signingRequestRepository);
+  app.decorate('dataSource', options.dataSource);
 
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);
@@ -150,6 +160,7 @@ export async function registerApiRoutes(
   await app.register(diaryRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
+  await app.register(signingRequestRoutes);
   await app.register(recoveryRoutes, {
     recoverySecret: options.recoverySecret,
     identityClient: options.oryClients.identity,

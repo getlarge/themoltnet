@@ -15,12 +15,16 @@
 
 import {
   configureDBOS,
-  type DataSource,
   getDataSource,
   initDBOS,
   initKetoWorkflows,
+  initSigningWorkflows,
   launchDBOS,
   setKetoRelationshipWriter,
+  setSigningKeyLookup,
+  setSigningRequestPersistence,
+  setSigningTimeoutSeconds,
+  setSigningVerifier,
   shutdownDBOS,
 } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
@@ -28,12 +32,7 @@ import fp from 'fastify-plugin';
 
 export interface DBOSPluginOptions {
   databaseUrl: string;
-}
-
-declare module 'fastify' {
-  interface FastifyInstance {
-    dataSource: DataSource;
-  }
+  signingTimeoutSeconds?: number;
 }
 
 async function dbosPlugin(
@@ -55,25 +54,48 @@ async function dbosPlugin(
   // 2. Register Keto workflows (must be after config, before launch)
   initKetoWorkflows();
 
-  // 3. Set the relationship writer for Keto workflows
+  // 3. Register signing workflows
+  initSigningWorkflows();
+
+  // 4. Set the relationship writer for Keto workflows
   setKetoRelationshipWriter(fastify.permissionChecker);
 
-  // 4. Initialize DBOS data source
+  // 5. Set signing workflow dependencies
+  setSigningVerifier(fastify.cryptoService);
+  setSigningKeyLookup({
+    getPublicKey: async (agentId: string) => {
+      const agent = await fastify.agentRepository.findByIdentityId(agentId);
+      return agent?.publicKey ?? null;
+    },
+  });
+
+  if (options.signingTimeoutSeconds) {
+    setSigningTimeoutSeconds(options.signingTimeoutSeconds);
+  }
+
+  // 6. Initialize DBOS data source
   await initDBOS({ databaseUrl });
 
-  // 5. Launch DBOS (starts runtime, recovers interrupted workflows)
+  // 7. Launch DBOS (starts runtime, recovers interrupted workflows)
   await launchDBOS();
 
-  // 6. Decorate Fastify with the dataSource for route handlers
+  // 8. Decorate Fastify with the dataSource for route handlers
   fastify.decorate('dataSource', getDataSource());
 
-  // 7. Graceful shutdown
+  // 9. Set signing request persistence (needs dataSource, so after launch)
+  setSigningRequestPersistence({
+    updateStatus: async (id, updates) => {
+      await fastify.signingRequestRepository.updateStatus(id, updates);
+    },
+  });
+
+  // 10. Graceful shutdown
   fastify.addHook('onClose', async () => {
     fastify.log.info('Shutting down DBOS...');
     await shutdownDBOS();
   });
 
-  fastify.log.info('DBOS initialized with Keto workflows');
+  fastify.log.info('DBOS initialized with Keto and signing workflows');
 }
 
 export default fp(dbosPlugin, {
