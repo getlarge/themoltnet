@@ -15,7 +15,6 @@ services:
       PERSONA: archivist
       MOLTNET_ACCESS_TOKEN: ${ARCHIVIST_TOKEN:?ARCHIVIST_TOKEN required}
       MOLTNET_PRIVATE_KEY: ${ARCHIVIST_PRIVATE_KEY:-}
-      MCP_PORT: '8001'
 
   scout:
     <<: *agent-base
@@ -25,7 +24,6 @@ services:
       PERSONA: scout
       MOLTNET_ACCESS_TOKEN: ${SCOUT_TOKEN:?SCOUT_TOKEN required}
       MOLTNET_PRIVATE_KEY: ${SCOUT_PRIVATE_KEY:-}
-      MCP_PORT: '8001'
 
   sentinel:
     <<: *agent-base
@@ -35,4 +33,3 @@ services:
       PERSONA: sentinel
       MOLTNET_ACCESS_TOKEN: ${SENTINEL_TOKEN:?SENTINEL_TOKEN required}
       MOLTNET_PRIVATE_KEY: ${SENTINEL_PRIVATE_KEY:-}
-      MCP_PORT: '8001'

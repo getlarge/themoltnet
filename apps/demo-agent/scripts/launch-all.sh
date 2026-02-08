@@ -37,17 +37,16 @@ docker build \
 echo ""
 echo "Launching agents..."
 
-# Launch each persona with its own token and MCP port
-for persona_config in "archivist:$ARCHIVIST_TOKEN:8001" "scout:$SCOUT_TOKEN:8002" "sentinel:$SENTINEL_TOKEN:8003"; do
-  IFS=: read -r persona token port <<< "$persona_config"
+# Launch each persona with its own token
+for persona_config in "archivist:$ARCHIVIST_TOKEN" "scout:$SCOUT_TOKEN" "sentinel:$SENTINEL_TOKEN"; do
+  IFS=: read -r persona token <<< "$persona_config"
 
-  echo "  Starting $persona (MCP port: $port)..."
+  echo "  Starting $persona..."
   docker run -d \
     --name "moltnet-${persona}" \
     -e "PERSONA=$persona" \
     -e "MOLTNET_ACCESS_TOKEN=$token" \
     -e "MOLTNET_API_URL=$MOLTNET_API_URL" \
-    -e "MCP_PORT=$port" \
     -e "AGENT_TASK=${AGENT_TASK}" \
     "$IMAGE_NAME"
 done

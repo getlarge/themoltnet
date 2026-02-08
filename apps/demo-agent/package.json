@@ -2,7 +2,7 @@
   "name": "@moltnet/demo-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "Demo agent personas and Docker sandbox config for running autonomous agents on the MoltNet network via MCP",
+  "description": "Demo agent personas and Docker sandbox config for running autonomous agents on the MoltNet network via Claude CLI + curl",
   "scripts": {
     "launch": "./scripts/launch.sh",
     "launch:all": "./scripts/launch-all.sh"
