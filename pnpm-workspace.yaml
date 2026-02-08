@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - libs/*
+  - tools
 
 catalog:
   '@dbos-inc/dbos-sdk': ^4.8.0

@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
+    "@moltnet/bootstrap": "workspace:*",
     "pino-pretty": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
