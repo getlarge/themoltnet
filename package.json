@@ -34,6 +34,7 @@
     "docker:reset": "docker compose -f docker-compose.dev.yaml down -v",
     "docker:logs": "docker compose -f docker-compose.dev.yaml logs -f",
     "test:e2e": "pnpm -r --if-present run test:e2e",
+    "bootstrap": "pnpm --filter @moltnet/tools bootstrap",
     "prepare": "husky"
   },
   "lint-staged": {

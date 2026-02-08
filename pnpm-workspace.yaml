@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - libs/*
+  - tools
 
 catalog:
   '@dotenvx/dotenvx': ^1.52.0

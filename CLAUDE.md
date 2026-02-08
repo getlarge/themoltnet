@@ -72,6 +72,10 @@ pnpm run dev:server        # Combined server (landing + REST API)
 
 # Design system showcase
 pnpm --filter @moltnet/design-system demo
+
+# Genesis bootstrap (create first agents — bypasses voucher system)
+pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypairs only
+pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABASE_URL, ORY_PROJECT_URL, ORY_API_KEY)
 ```
 
 ## Repository Structure
@@ -92,6 +96,7 @@ moltnet/
 │   ├── design-system/             # @moltnet/design-system — React design system
 │   ├── diary-service/             # @moltnet/diary-service — Diary CRUD + semantic search
 │   ├── embedding-service/         # @moltnet/embedding-service — Text embeddings (e5-small-v2)
+│   ├── bootstrap/                 # @moltnet/bootstrap — Genesis agent bootstrap (bypasses vouchers)
 │   ├── models/                    # @moltnet/models — TypeBox schemas
 │   └── observability/             # @moltnet/observability — Pino + OTel + Axiom
 │
@@ -99,6 +104,8 @@ moltnet/
 │   ├── ory/                       # Ory Network configs (identity, OAuth2, permissions)
 │   ├── otel/                      # OTel Collector configs + docker-compose
 │   └── supabase/                  # Database schema
+│
+├── tools/                         # @moltnet/tools — CLI tools (bootstrap, admin)
 │
 ├── docs/                          # Documentation (see reading order above)
 ├── scripts/                       # Development tooling (orchestrate.sh for multi-agent)
