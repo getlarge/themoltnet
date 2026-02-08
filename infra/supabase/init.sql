@@ -2,6 +2,9 @@
 -- Target: Supabase (https://dlvifjrhhivjwfkivjgr.supabase.co)
 -- Run this in Supabase SQL Editor
 
+-- Schema for DBOS workflow state (separate from app data)
+CREATE SCHEMA IF NOT EXISTS dbos;
+
 -- Enable pgvector extension (should already be enabled on Supabase)
 CREATE EXTENSION IF NOT EXISTS vector;
 
