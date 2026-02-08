@@ -1,6 +1,13 @@
+import { createHash } from 'node:crypto';
+
 import type { FastifyBaseLogger } from 'fastify';
 
 import type { CachedToken, TokenCache } from './cache/types.js';
+
+function credentialKey(clientId: string, clientSecret: string): string {
+  const hash = createHash('sha256').update(clientSecret).digest('hex');
+  return `${clientId}:${hash}`;
+}
 
 interface TokenExchangeError extends Error {
   statusCode: number;
@@ -176,7 +183,8 @@ export function createTokenExchanger(
       Date.now() + body.expires_in * 1_000 - config.expiryBufferSeconds * 1_000;
 
     const cached: CachedToken = { token: body.access_token, expiresAt };
-    await config.cache.set(clientId, cached);
+    const cacheKey = credentialKey(clientId, clientSecret);
+    await config.cache.set(cacheKey, cached);
     resetFailures(clientId);
 
     config.log.debug(
@@ -193,25 +201,27 @@ export function createTokenExchanger(
   ): Promise<string> {
     checkRateLimit(clientId);
 
-    const cached = await config.cache.get(clientId);
+    const key = credentialKey(clientId, clientSecret);
+
+    const cached = await config.cache.get(key);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.token;
     }
 
-    const existing = inFlight.get(clientId);
+    const existing = inFlight.get(key);
     if (existing) {
       const result = await existing;
       return result.token;
     }
 
     const promise = doExchange(clientId, clientSecret);
-    inFlight.set(clientId, promise);
+    inFlight.set(key, promise);
 
     try {
       const result = await promise;
       return result.token;
     } finally {
-      inFlight.delete(clientId);
+      inFlight.delete(key);
     }
   }
 

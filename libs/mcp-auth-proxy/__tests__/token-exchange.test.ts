@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { FastifyBaseLogger } from 'fastify';
 import {
   afterEach,
@@ -16,6 +18,11 @@ import {
   discoverTokenEndpoint,
   type TokenExchanger,
 } from '../src/token-exchange.js';
+
+function testCredentialKey(clientId: string, clientSecret: string): string {
+  const hash = createHash('sha256').update(clientSecret).digest('hex');
+  return `${clientId}:${hash}`;
+}
 
 function mockLogger(): FastifyBaseLogger {
   return {
@@ -249,7 +256,8 @@ describe('createTokenExchanger', () => {
   });
 
   it('should return cached token without calling fetch', async () => {
-    await cache.set('client-1', {
+    const key = testCredentialKey('client-1', 'secret-1');
+    await cache.set(key, {
       token: 'cached-token',
       expiresAt: 2_000_000,
     });
@@ -262,7 +270,8 @@ describe('createTokenExchanger', () => {
   });
 
   it('should re-exchange when cache is expired', async () => {
-    await cache.set('client-1', {
+    const key = testCredentialKey('client-1', 'secret-1');
+    await cache.set(key, {
       token: 'old-token',
       expiresAt: 500_000,
     });
@@ -294,6 +303,51 @@ describe('createTokenExchanger', () => {
     expect(t1).toBe('deduped-token');
     expect(t2).toBe('deduped-token');
     expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
+  it('should not serve cached token to a different secret', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(mockTokenResponse('token-for-correct-secret'))
+      .mockResolvedValueOnce(mockTokenResponse('token-for-wrong-secret'));
+    exchanger = makeExchanger();
+
+    const t1 = await exchanger.exchange('client-1', 'correct-secret');
+    expect(t1).toBe('token-for-correct-secret');
+
+    // Same clientId, different secret — must NOT reuse cached token
+    const t2 = await exchanger.exchange('client-1', 'wrong-secret');
+    expect(t2).toBe('token-for-wrong-secret');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('should not deduplicate concurrent exchanges with different secrets', async () => {
+    let resolve1: (v: Response) => void;
+    let resolve2: (v: Response) => void;
+    fetchSpy
+      .mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolve1 = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolve2 = resolve;
+        }),
+      );
+    exchanger = makeExchanger();
+
+    const p1 = exchanger.exchange('client-1', 'secret-a');
+    const p2 = exchanger.exchange('client-1', 'secret-b');
+
+    resolve1!(mockTokenResponse('token-a'));
+    resolve2!(mockTokenResponse('token-b'));
+
+    const [t1, t2] = await Promise.all([p1, p2]);
+
+    expect(t1).toBe('token-a');
+    expect(t2).toBe('token-b');
+    // Two different secrets → two separate fetch calls
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it('should rate limit after max failures', async () => {
