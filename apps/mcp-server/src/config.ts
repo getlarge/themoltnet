@@ -20,7 +20,23 @@ const McpServerConfigSchema = Type.Object({
     }),
   ),
   ORY_PROJECT_URL: Type.Optional(
-    Type.String({ minLength: 1, description: 'Ory Hydra public URL' }),
+    Type.String({
+      minLength: 1,
+      description:
+        'Ory Network project URL (fallback when individual URLs are not set)',
+    }),
+  ),
+  ORY_HYDRA_PUBLIC_URL: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Ory Hydra public URL (JWKS, DCR, authorization server)',
+    }),
+  ),
+  ORY_HYDRA_ADMIN_URL: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Ory Hydra admin URL (token introspection)',
+    }),
   ),
   ORY_PROJECT_API_KEY: Type.Optional(
     Type.String({
@@ -81,4 +97,28 @@ export function loadConfig(
     McpServerConfigSchema,
     pickEnv(McpServerConfigSchema, env),
   );
+}
+
+export interface ResolvedHydraUrls {
+  publicUrl: string;
+  adminUrl: string;
+  apiKey?: string;
+}
+
+export function resolveHydraUrls(
+  config: McpServerConfig,
+): ResolvedHydraUrls | null {
+  const fallback = config.ORY_PROJECT_URL;
+  const publicUrl = config.ORY_HYDRA_PUBLIC_URL ?? fallback;
+  const adminUrl = config.ORY_HYDRA_ADMIN_URL ?? fallback;
+
+  if (!publicUrl) {
+    return null;
+  }
+
+  return {
+    publicUrl,
+    adminUrl: adminUrl ?? publicUrl,
+    apiKey: config.ORY_PROJECT_API_KEY,
+  };
 }
