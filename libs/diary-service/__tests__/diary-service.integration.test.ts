@@ -87,6 +87,10 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       diaryRepository: setup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
       embeddingService,
+      dataSource: {
+        client: db,
+        runTransaction: async (fn) => fn(),
+      },
     });
   });
 
