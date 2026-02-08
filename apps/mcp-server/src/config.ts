@@ -34,6 +34,13 @@ const McpServerConfigSchema = Type.Object({
       description: "This server's public URL (for OAuth2 resource metadata)",
     }),
   ),
+  CLIENT_CREDENTIALS_PROXY: Type.Optional(
+    Type.Boolean({
+      default: false,
+      description:
+        'Enable client_credentials proxy for headless agent auth via X-Client-Id/X-Client-Secret headers',
+    }),
+  ),
 });
 
 export type McpServerConfig = Static<typeof McpServerConfigSchema>;

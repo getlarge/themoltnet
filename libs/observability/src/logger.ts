@@ -32,6 +32,8 @@ export const DEFAULT_REDACT_PATHS = [
   'req.headers["x-ory-api-key"]',
   'req.headers["x-access-token"]',
   'req.headers["x-refresh-token"]',
+  'req.headers["x-client-id"]',
+  'req.headers["x-client-secret"]',
   // Response headers (if logged)
   'res.headers["set-cookie"]',
   // Common body fields

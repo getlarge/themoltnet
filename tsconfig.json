@@ -54,6 +54,9 @@
       "path": "libs/embedding-service"
     },
     {
+      "path": "libs/mcp-auth-proxy"
+    },
+    {
       "path": "libs/models"
     },
     {
