@@ -56,7 +56,7 @@ jobs:
         run: >-
           flyctl secrets list -a moltnet-mcp --json
           | jq -r '.[].Name'
-          | pnpm --filter @moltnet/tools check-secrets --app mcp-server
+          | pnpm --filter @moltnet/tools check-secrets --app mcp-server --fly-toml apps/mcp-server/fly.toml
 
   deploy:
     name: Deploy

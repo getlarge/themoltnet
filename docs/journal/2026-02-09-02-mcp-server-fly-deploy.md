@@ -20,8 +20,13 @@ signature: pending
    - `MCP_RESOURCE_URI = "https://mcp.themolt.net"`
 3. **Refactored deploy workflows into reusable pattern**:
    - `.github/workflows/_deploy.yml` — reusable workflow with inputs for `fly-app`, `image-name`, `dockerfile`, `working-directory`, `deploy`
-   - `.github/workflows/deploy.yml` — server caller, keeps preflight secret check as separate job
-   - `.github/workflows/deploy-mcp.yml` — MCP server caller
+   - `.github/workflows/deploy.yml` — server caller with preflight secret check
+   - `.github/workflows/deploy-mcp.yml` — MCP server caller with preflight secret check
+4. **Extended preflight secret check** to support both apps:
+   - `check-secrets.ts` now accepts `--app` (rest-api | mcp-server) and `--fly-toml` flags via `node:util/parseArgs`
+   - Uses `smol-toml` to parse fly.toml `[env]` keys — merges with `flyctl secrets list` so the check covers both sources
+   - Exported `McpServerConfigSchema` and `getRequiredSecrets()` from `@moltnet/mcp-server`
+5. **Added explicit `permissions` blocks** to caller workflows (CodeQL finding)
 
 ## What's Not Done Yet
 
@@ -29,33 +34,33 @@ signature: pending
 - `flyctl secrets set -a moltnet-mcp ORY_PROJECT_API_KEY=...` — manual step
 - `flyctl certs add -a moltnet-mcp mcp.themolt.net` + DNS CNAME — manual step
 - Verify deploy via `workflow_dispatch` trigger
-- Extend preflight secret check (#136) to also validate `moltnet-mcp` secrets
 - Update `docs/INFRASTRUCTURE.md` with MCP server deployment details
 
 ## Current State
 
 - **Branch**: `claude/139-deploy-mcp-server` (from latest `main`)
-- **Files changed**: 4 (1 new fly.toml, 1 new reusable workflow, 1 new MCP caller, 1 refactored server caller)
-- **Tests**: No new tests (CI/deployment config only)
-- **Build**: Should pass — only YAML and TOML files changed
+- **Files changed**: 12 files (+369/-82)
+- **Tests**: No new tests (CI/deployment config + lightweight CLI tooling)
+- **Build**: CI passes (lint, typecheck, test, build, E2E)
 
 ## Decisions Made
 
 1. **Separate Fly.io app** (`moltnet-mcp`) rather than subpath on existing server — different ports, transports, scaling needs
 2. **Reusable workflow** (`_deploy.yml`) instead of duplicating — ~90% shared between server and MCP deploy jobs
-3. **Preflight check stays server-only** — the `check-secrets` tool validates against `@moltnet/rest-api` config schemas, not MCP server schemas. Can be extended later.
-4. **`suspend` not `stop`** for auto_stop — SSE connections are long-lived, killing them breaks MCP clients
-5. **`connections` not `requests`** for concurrency — SSE is 1 connection with many messages
-6. **Domain**: `mcp.themolt.net` (confirmed by human)
+3. **Preflight checks both sources** — `flyctl secrets list` + `fly.toml` `[env]` keys, merged before comparison against schema-derived required vars
+4. **`smol-toml` for TOML parsing** — already a transitive dep, zero-dep, avoids fragile awk/sed shell parsing
+5. **`node:util/parseArgs`** for CLI arg handling — stdlib, no extra deps
+6. **`suspend` not `stop`** for auto_stop — SSE connections are long-lived, killing them breaks MCP clients
+7. **`connections` not `requests`** for concurrency — SSE is 1 connection with many messages
+8. **Domain**: `mcp.themolt.net` (confirmed by human)
 
 ## Open Questions
 
 - Should `min_machines_running` be 1 to avoid cold starts for MCP clients?
-- When should the preflight check be extended for MCP server secrets?
 
 ## Where to Start Next
 
-1. Review and merge this PR
+1. Review and merge PR #140
 2. Run the manual Fly.io setup steps (create app, set secrets, add cert)
 3. Trigger first deploy via `workflow_dispatch`
 4. Verify health check and SSE connectivity
