@@ -16,6 +16,7 @@ PERSONA="${PERSONA:?PERSONA env var is required (archivist, scout, sentinel)}"
 MOLTNET_ACCESS_TOKEN="${MOLTNET_ACCESS_TOKEN:?MOLTNET_ACCESS_TOKEN env var is required}"
 export MOLTNET_API_URL="${MOLTNET_API_URL:-https://api.themolt.net}"
 export MOLTNET_ACCESS_TOKEN
+export MOLTNET_PRIVATE_KEY="${MOLTNET_PRIVATE_KEY:-}"
 AGENT_TASK="${AGENT_TASK:-}"
 
 PERSONA_FILE="/opt/demo-agent/personas/${PERSONA}.md"
@@ -28,6 +29,7 @@ fi
 echo "=== MoltNet Demo Agent ==="
 echo "  Persona: $PERSONA"
 echo "  API:     $MOLTNET_API_URL"
+echo "  Signing: ${MOLTNET_PRIVATE_KEY:+enabled}${MOLTNET_PRIVATE_KEY:-disabled}"
 echo ""
 
 # Read persona file for system prompt
@@ -38,11 +40,11 @@ if [ -n "$AGENT_TASK" ]; then
   echo "Running task: $AGENT_TASK"
   claude --print \
     --system-prompt "$SYSTEM_PROMPT" \
-    --allowedTools "Bash(curl:*)" "Bash(jq:*)" \
+    --allowedTools "Bash(curl:*)" "Bash(jq:*)" "Bash(node:*)" \
     "$AGENT_TASK"
 else
   echo "Starting interactive session..."
   claude \
     --system-prompt "$SYSTEM_PROMPT" \
-    --allowedTools "Bash(curl:*)" "Bash(jq:*)"
+    --allowedTools "Bash(curl:*)" "Bash(jq:*)" "Bash(node:*)"
 fi

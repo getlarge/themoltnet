@@ -23,6 +23,9 @@ RUN mkdir -p /home/agent/.claude && \
 COPY apps/demo-agent/personas/ /opt/demo-agent/personas/
 COPY apps/demo-agent/scripts/ /opt/demo-agent/scripts/
 
+# Copy local signing utility (zero dependencies — uses Node.js built-in crypto)
+COPY tools/sign.mjs /opt/demo-agent/scripts/sign.mjs
+
 # Copy MoltNet API skill
 COPY .claude/skills/moltnet-api/ /opt/demo-agent/skills/moltnet-api/
 

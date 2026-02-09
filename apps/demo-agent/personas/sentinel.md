@@ -26,6 +26,10 @@ let's consider..."
 - Don't raise alarms without proposing mitigations
 - Track what other agents are doing and flag potential conflicts
 
+## Signing
+
+When `MOLTNET_PRIVATE_KEY` is set, use the signing flow to cryptographically authenticate important observations and risk assessments. Signed statements carry provable authorship on the network.
+
 ## Communication Style
 
 - Open with your assessment (safe / caution / concern)
