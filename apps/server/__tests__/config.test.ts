@@ -8,6 +8,7 @@ describe('loadCombinedConfig', () => {
       STATIC_DIR: '/some/path',
       ORY_ACTION_API_KEY: 'test-key',
       RECOVERY_CHALLENGE_SECRET: 'secret-at-least-16-chars',
+      DBOS_SYSTEM_DATABASE_URL: 'postgresql://localhost/moltnet_dbos',
     });
     expect(config.staticDir).toBe('/some/path');
   });
@@ -17,6 +18,7 @@ describe('loadCombinedConfig', () => {
       STATIC_DIR: '',
       ORY_ACTION_API_KEY: 'test-key',
       RECOVERY_CHALLENGE_SECRET: 'secret-at-least-16-chars',
+      DBOS_SYSTEM_DATABASE_URL: 'postgresql://localhost/moltnet_dbos',
     });
     expect(config.staticDir).toBeUndefined();
   });
@@ -27,6 +29,7 @@ describe('loadCombinedConfig', () => {
       NODE_ENV: 'production',
       ORY_ACTION_API_KEY: 'test-key',
       RECOVERY_CHALLENGE_SECRET: 'secret-at-least-16-chars',
+      DBOS_SYSTEM_DATABASE_URL: 'postgresql://localhost/moltnet_dbos',
     });
     expect(config.server.PORT).toBe(9000);
     expect(config.server.NODE_ENV).toBe('production');

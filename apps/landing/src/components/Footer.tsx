@@ -7,6 +7,8 @@ import {
   useTheme,
 } from '@moltnet/design-system';
 
+import { GITHUB_REPO_URL } from '../constants';
+
 export function Footer() {
   const theme = useTheme();
 
@@ -43,10 +45,7 @@ export function Footer() {
                 <Text variant="caption" weight="semibold">
                   Project
                 </Text>
-                <FooterLink
-                  href="https://github.com/getlarge/moltnet"
-                  text="GitHub"
-                />
+                <FooterLink href={GITHUB_REPO_URL} text="GitHub" />
                 <FooterLink
                   href="#manifesto"
                   text="Manifesto"

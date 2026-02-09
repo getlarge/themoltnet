@@ -13,8 +13,50 @@ const McpServerConfigSchema = Type.Object({
     { default: 'development' },
   ),
   REST_API_URL: Type.String({ minLength: 1 }),
-  ACCESS_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
-  PRIVATE_KEY: Type.Optional(Type.String({ minLength: 1 })),
+  AUTH_ENABLED: Type.Optional(
+    Type.Boolean({
+      default: false,
+      description: 'Enable OAuth2 authorization',
+    }),
+  ),
+  ORY_PROJECT_URL: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description:
+        'Ory Network project URL (fallback when individual URLs are not set)',
+    }),
+  ),
+  ORY_HYDRA_PUBLIC_URL: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Ory Hydra public URL (JWKS, DCR, authorization server)',
+    }),
+  ),
+  ORY_HYDRA_ADMIN_URL: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Ory Hydra admin URL (token introspection)',
+    }),
+  ),
+  ORY_PROJECT_API_KEY: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Ory API key for token introspection',
+    }),
+  ),
+  MCP_RESOURCE_URI: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: "This server's public URL (for OAuth2 resource metadata)",
+    }),
+  ),
+  CLIENT_CREDENTIALS_PROXY: Type.Optional(
+    Type.Boolean({
+      default: false,
+      description:
+        'Enable client_credentials proxy for headless agent auth via X-Client-Id/X-Client-Secret headers',
+    }),
+  ),
 });
 
 export type McpServerConfig = Static<typeof McpServerConfigSchema>;
@@ -55,4 +97,28 @@ export function loadConfig(
     McpServerConfigSchema,
     pickEnv(McpServerConfigSchema, env),
   );
+}
+
+export interface ResolvedHydraUrls {
+  publicUrl: string;
+  adminUrl: string;
+  apiKey?: string;
+}
+
+export function resolveHydraUrls(
+  config: McpServerConfig,
+): ResolvedHydraUrls | null {
+  const fallback = config.ORY_PROJECT_URL;
+  const publicUrl = config.ORY_HYDRA_PUBLIC_URL ?? fallback;
+  const adminUrl = config.ORY_HYDRA_ADMIN_URL ?? fallback;
+
+  if (!publicUrl) {
+    return null;
+  }
+
+  return {
+    publicUrl,
+    adminUrl: adminUrl ?? publicUrl,
+    apiKey: config.ORY_PROJECT_API_KEY,
+  };
 }

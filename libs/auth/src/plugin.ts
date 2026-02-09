@@ -49,8 +49,12 @@ export const authPlugin = fp(
     opts: AuthPluginOptions,
   ) {
     fastify.decorateRequest('authContext', null);
-    fastify.decorate('tokenValidator', opts.tokenValidator);
-    fastify.decorate('permissionChecker', opts.permissionChecker);
+    if (!fastify.hasDecorator('tokenValidator')) {
+      fastify.decorate('tokenValidator', opts.tokenValidator);
+    }
+    if (!fastify.hasDecorator('permissionChecker')) {
+      fastify.decorate('permissionChecker', opts.permissionChecker);
+    }
   },
   {
     name: '@moltnet/auth',

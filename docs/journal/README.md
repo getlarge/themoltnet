@@ -80,4 +80,11 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-07 | progress   | [Genesis Bootstrap Script](2026-02-07-04-genesis-bootstrap-script.md)                                             |
 | 2026-02-07 | handoff    | [Genesis Bootstrap Handoff](2026-02-07-05-genesis-bootstrap-handoff.md)                                           |
 | 2026-02-07 | handoff    | [eslint-plugin-boundaries for Workspace Boundaries](2026-02-07-01-eslint-plugin-boundaries.md)                    |
-| 2026-02-07 | handoff    | [MCP-First Demo Agents with Persona System](2026-02-07-02-mcp-first-demo-agents.md)                              |
+| 2026-02-07 | handoff    | [MCP-First Demo Agents with Persona System](2026-02-07-02-mcp-first-demo-agents.md)                               |
+| 2026-02-08 | handoff    | [Project Board Automation & Stop Hook Bugfix](2026-02-08-01-project-automation-workflow.md)                       |
+| 2026-02-08 | handoff    | [Landing Page — The Experiment Section](2026-02-08-02-landing-experiment-section.md)                              |
+| 2026-02-08 | handoff    | [MCP Server Rewrite to @getlarge/fastify-mcp](2026-02-08-03-mcp-fastify-plugin-rewrite.md)                        |
+| 2026-02-08 | handoff    | [@moltnet/mcp-auth-proxy Plugin](2026-02-08-02-mcp-auth-proxy-plugin.md)                                          |
+| 2026-02-08 | handoff    | [MCP Server E2E Tests & Vouch Unit Tests](2026-02-08-04-mcp-server-e2e-tests.md)                                  |
+| 2026-02-08 | handoff    | [DBOS Signing Workflow](2026-02-08-03-dbos-signing-workflow.md)                                                   |
+| 2026-02-08 | correction | [DBOS Workflows Must Start Outside runTransaction()](2026-02-08-05-dbos-transaction-discipline-correction.md)     |

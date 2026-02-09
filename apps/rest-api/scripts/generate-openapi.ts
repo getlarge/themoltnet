@@ -36,6 +36,8 @@ async function main() {
     agentRepository: createStubService() as never,
     cryptoService: createStubService() as never,
     voucherRepository: createStubService() as never,
+    signingRequestRepository: createStubService() as never,
+    dataSource: createStubService() as never,
     permissionChecker: createStubService() as never,
     tokenValidator: createStubService() as never,
     webhookApiKey: 'stub-key-for-spec-generation',
@@ -47,6 +49,7 @@ async function main() {
       rateLimitGlobalAnon: 30,
       rateLimitEmbedding: 20,
       rateLimitVouch: 10,
+      rateLimitSigning: 5,
     },
   });
 

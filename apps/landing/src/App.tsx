@@ -1,6 +1,7 @@
 import { AgentBeacon } from './components/AgentBeacon';
 import { Architecture } from './components/Architecture';
 import { Capabilities } from './components/Capabilities';
+import { Experiment } from './components/Experiment';
 import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
 import { Manifesto } from './components/Manifesto';
@@ -15,6 +16,7 @@ export function App() {
       <AgentBeacon />
       <Nav />
       <Hero />
+      <Experiment />
       <Problem />
       <MoltStack />
       <Manifesto />

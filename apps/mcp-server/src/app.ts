@@ -1,12 +1,20 @@
-import { randomUUID } from 'node:crypto';
-
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
+import type {
+  AuthorizationConfig,
+  DCRRequest,
+  DCRResponse,
+} from '@getlarge/fastify-mcp';
+import mcpPlugin from '@getlarge/fastify-mcp';
+import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
 import Fastify, { type FastifyInstance } from 'fastify';
 
-import type { McpServerConfig } from './config.js';
-import { createMcpServer } from './server.js';
+import { type McpServerConfig, resolveHydraUrls } from './config.js';
+import { registerCryptoTools } from './crypto-tools.js';
+import { registerDiaryTools } from './diary-tools.js';
+import { registerIdentityTools } from './identity-tools.js';
+import { registerResources } from './resources.js';
+import { registerSharingTools } from './sharing-tools.js';
 import type { McpDeps } from './types.js';
+import { registerVouchTools } from './vouch-tools.js';
 
 export interface AppOptions {
   config: McpServerConfig;
@@ -14,93 +22,125 @@ export interface AppOptions {
   logger?: boolean | object;
 }
 
+/**
+ * Clean DCR response to remove empty/null fields that break Claude Code's Zod validation.
+ * Claude Code expects optional URI fields to be valid URLs or absent, not empty strings.
+ */
+function cleanDcrResponse(response: DCRResponse): DCRResponse {
+  const cleaned = { ...response };
+  const uriFields = [
+    'client_uri',
+    'logo_uri',
+    'tos_uri',
+    'policy_uri',
+    'jwks_uri',
+  ] as const;
+  for (const field of uriFields) {
+    if (cleaned[field] === '' || cleaned[field] === null) {
+      delete cleaned[field];
+    }
+  }
+  if (cleaned.contacts === null) {
+    delete cleaned.contacts;
+  }
+  return cleaned;
+}
+
+function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
+  const authEnabled = config.AUTH_ENABLED === true;
+  const hydra = resolveHydraUrls(config);
+
+  if (!authEnabled || !hydra) {
+    return { enabled: false };
+  }
+
+  const resourceUri =
+    config.MCP_RESOURCE_URI ?? `http://localhost:${config.PORT}`;
+
+  return {
+    enabled: true,
+    authorizationServers: [hydra.publicUrl],
+    resourceUri,
+    excludedPaths: ['/healthz'],
+    tokenValidation: {
+      jwksUri: `${hydra.publicUrl}/.well-known/jwks.json`,
+      introspectionEndpoint: hydra.apiKey
+        ? `${hydra.adminUrl}/admin/oauth2/introspect`
+        : undefined,
+      introspectionAuth: hydra.apiKey
+        ? { type: 'bearer' as const, token: hydra.apiKey }
+        : undefined,
+    },
+    oauth2Client: {
+      authorizationServer: hydra.publicUrl,
+      resourceUri,
+      scopes: ['openid'],
+      dynamicRegistration: true,
+    },
+    dcrHooks: {
+      upstreamEndpoint: `${hydra.publicUrl}/oauth2/register`,
+      onRequest: (request: DCRRequest, log) => {
+        log.info({ dcrRequest: request }, 'DCR: forwarding request to Ory');
+        return request;
+      },
+      onResponse: (response: DCRResponse, _request: DCRRequest, log) => {
+        log.info({ dcrResponse: response }, 'DCR: received response from Ory');
+        return cleanDcrResponse(response);
+      },
+    },
+  };
+}
+
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
-  const { config: _config, deps, logger = true } = options;
+  const { config, deps, logger = true } = options;
 
   const app = Fastify({ logger });
 
-  // Health check
+  // Health check (excluded from auth)
   app.get('/healthz', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
 
-  // Session storage
-  const transports = new Map<string, StreamableHTTPServerTransport>();
+  // Register client_credentials proxy (before fastify-mcp so it can inject Bearer tokens)
+  const proxyEnabled =
+    config.CLIENT_CREDENTIALS_PROXY === true && !!config.ORY_PROJECT_URL;
+  if (proxyEnabled) {
+    await app.register(mcpAuthProxyPlugin, {
+      oidcDiscoveryUrl: `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
+      scopes: ['openid'],
+    });
+    app.log.info('Client credentials proxy enabled');
+  }
 
-  // MCP POST endpoint — initialization + JSON-RPC requests
-  app.post('/mcp', async (request, reply) => {
-    const sessionId = request.headers['mcp-session-id'] as string | undefined;
+  // Register fastify-mcp plugin
+  const authorization = buildAuthConfig(config);
+  if (authorization.enabled) {
+    app.log.info(
+      {
+        authorizationServers: authorization.authorizationServers,
+        resourceUri: authorization.resourceUri,
+      },
+      'OAuth2 authorization enabled',
+    );
+  } else {
+    app.log.info('OAuth2 authorization disabled');
+  }
 
-    let transport: StreamableHTTPServerTransport;
-
-    if (sessionId) {
-      const existing = transports.get(sessionId);
-      if (!existing) {
-        return reply.status(400).send({
-          jsonrpc: '2.0',
-          error: { code: -32000, message: 'Bad Request: No valid session ID' },
-          id: null,
-        });
-      }
-      transport = existing;
-    } else if (isInitializeRequest(request.body)) {
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (sid) => {
-          transports.set(sid, transport);
-        },
-      });
-
-      transport.onclose = () => {
-        const sid = transport.sessionId;
-        if (sid) transports.delete(sid);
-      };
-
-      const server = createMcpServer(deps);
-      await server.connect(transport);
-      await transport.handleRequest(request.raw, reply.raw, request.body);
-      return reply;
-    } else {
-      return reply.status(400).send({
-        jsonrpc: '2.0',
-        error: { code: -32000, message: 'Bad Request: No valid session ID' },
-        id: null,
-      });
-    }
-
-    await transport.handleRequest(request.raw, reply.raw, request.body);
-    return reply;
+  await app.register(mcpPlugin, {
+    serverInfo: { name: 'moltnet', version: '0.1.0' },
+    capabilities: { tools: {}, resources: {} },
+    enableSSE: true,
+    sessionStore: 'memory',
+    authorization,
   });
 
-  // MCP GET endpoint — SSE streams
-  app.get('/mcp', async (request, reply) => {
-    const sessionId = request.headers['mcp-session-id'] as string | undefined;
-    const transport = sessionId ? transports.get(sessionId) : undefined;
-    if (!transport) {
-      return reply.status(400).send('Invalid or missing session ID');
-    }
-    await transport.handleRequest(request.raw, reply.raw);
-    return reply;
-  });
-
-  // MCP DELETE endpoint — session termination
-  app.delete('/mcp', async (request, reply) => {
-    const sessionId = request.headers['mcp-session-id'] as string | undefined;
-    const transport = sessionId ? transports.get(sessionId) : undefined;
-    if (!transport) {
-      return reply.status(400).send('Invalid or missing session ID');
-    }
-    await transport.handleRequest(request.raw, reply.raw);
-    return reply;
-  });
-
-  // Clean up transports on server close
-  app.addHook('onClose', async () => {
-    for (const [, t] of transports) {
-      await t.close();
-    }
-    transports.clear();
-  });
+  // Register tools and resources
+  registerDiaryTools(app, deps);
+  registerSharingTools(app, deps);
+  registerCryptoTools(app, deps);
+  registerIdentityTools(app, deps);
+  registerVouchTools(app, deps);
+  registerResources(app, deps);
 
   return app;
 }

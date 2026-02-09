@@ -118,6 +118,8 @@ describe('Recovery routes', () => {
         agentRepository: mocks.agentRepository as any,
         cryptoService: mocks.cryptoService as any,
         voucherRepository: mocks.voucherRepository as any,
+        signingRequestRepository: mocks.signingRequestRepository as any,
+        dataSource: mocks.dataSource as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -251,6 +253,8 @@ describe('Recovery routes', () => {
         agentRepository: mocks.agentRepository as any,
         cryptoService: mocks.cryptoService as any,
         voucherRepository: mocks.voucherRepository as any,
+        signingRequestRepository: mocks.signingRequestRepository as any,
+        dataSource: mocks.dataSource as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),

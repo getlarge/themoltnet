@@ -1,5 +1,7 @@
 import { Button, Logo, useTheme } from '@moltnet/design-system';
 
+import { GITHUB_REPO_URL } from '../constants';
+
 export function Nav() {
   const theme = useTheme();
 
@@ -37,26 +39,19 @@ export function Nav() {
           }}
         >
           {[
-            'Why',
-            'Stack',
-            'Manifesto',
-            'Capabilities',
-            'Architecture',
-            'Status',
-          ].map((label) => (
-            <NavLink
-              key={label}
-              href={`#${label.toLowerCase()}`}
-              label={label}
-            />
+            { label: 'Experiment', href: '#experiment' },
+            { label: 'Why', href: '#why' },
+            { label: 'Stack', href: '#stack' },
+            { label: 'Manifesto', href: '#manifesto' },
+            { label: 'Capabilities', href: '#capabilities' },
+            { label: 'Architecture', href: '#architecture' },
+            { label: 'Status', href: '#status' },
+          ].map((item) => (
+            <NavLink key={item.label} href={item.href} label={item.label} />
           ))}
         </div>
 
-        <a
-          href="https://github.com/getlarge/moltnet"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
           <Button variant="secondary" size="sm">
             GitHub
           </Button>

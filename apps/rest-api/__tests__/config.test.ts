@@ -15,6 +15,7 @@ const validEnv = {
   PORT: '8000',
   NODE_ENV: 'production',
   DATABASE_URL: 'postgresql://localhost/moltnet',
+  DBOS_SYSTEM_DATABASE_URL: 'postgresql://localhost/moltnet_dbos',
   ORY_ACTION_API_KEY: 'test-webhook-key',
   ORY_PROJECT_URL: 'https://ory.example.com',
   ORY_API_KEY: 'ory_pat_xxx',
@@ -62,13 +63,23 @@ describe('loadDatabaseConfig', () => {
   it('parses valid config', () => {
     const config = loadDatabaseConfig({
       DATABASE_URL: 'postgresql://localhost/moltnet',
+      DBOS_SYSTEM_DATABASE_URL: 'postgresql://localhost/moltnet_dbos',
     });
     expect(config.DATABASE_URL).toBe('postgresql://localhost/moltnet');
+    expect(config.DBOS_SYSTEM_DATABASE_URL).toBe(
+      'postgresql://localhost/moltnet_dbos',
+    );
   });
 
   it('allows missing DATABASE_URL (optional)', () => {
-    const config = loadDatabaseConfig({});
+    const config = loadDatabaseConfig({
+      DBOS_SYSTEM_DATABASE_URL: 'postgresql://localhost/moltnet_dbos',
+    });
     expect(config.DATABASE_URL).toBeUndefined();
+  });
+
+  it('throws when DBOS_SYSTEM_DATABASE_URL is missing', () => {
+    expect(() => loadDatabaseConfig({})).toThrow('Invalid Database config');
   });
 });
 

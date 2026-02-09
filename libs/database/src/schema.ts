@@ -6,6 +6,7 @@
  */
 
 import {
+  boolean,
   index,
   pgEnum,
   pgTable,
@@ -213,6 +214,67 @@ export const agentVouchers = pgTable(
   }),
 );
 
+// Signing request status enum
+export const signingRequestStatusEnum = pgEnum('signing_request_status', [
+  'pending',
+  'completed',
+  'expired',
+]);
+
+/**
+ * Signing Requests Table
+ *
+ * Durable signing workflow: the server creates a signing request,
+ * the agent signs locally, and submits the signature back.
+ * Private keys never leave the agent's runtime.
+ */
+export const signingRequests = pgTable(
+  'signing_requests',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    // The agent who must sign (Ory Kratos identity ID)
+    agentId: uuid('agent_id').notNull(),
+
+    // The message to be signed
+    message: text('message').notNull(),
+
+    // Unique nonce to prevent replay attacks
+    nonce: uuid('nonce').defaultRandom().notNull(),
+
+    // Workflow status
+    status: signingRequestStatusEnum('status').default('pending').notNull(),
+
+    // The submitted signature (null until signed)
+    signature: text('signature'),
+
+    // Whether the signature was verified as valid (null until verified)
+    valid: boolean('valid'),
+
+    // DBOS workflow ID for durable execution
+    workflowId: text('workflow_id'),
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // Find requests by agent and status (common query pattern)
+    agentStatusIdx: index('signing_requests_agent_status_idx').on(
+      table.agentId,
+      table.status,
+    ),
+
+    // Lookup by DBOS workflow ID
+    workflowIdx: uniqueIndex('signing_requests_workflow_idx').on(
+      table.workflowId,
+    ),
+  }),
+);
+
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
@@ -222,3 +284,5 @@ export type AgentKey = typeof agentKeys.$inferSelect;
 export type NewAgentKey = typeof agentKeys.$inferInsert;
 export type AgentVoucher = typeof agentVouchers.$inferSelect;
 export type NewAgentVoucher = typeof agentVouchers.$inferInsert;
+export type SigningRequest = typeof signingRequests.$inferSelect;
+export type NewSigningRequest = typeof signingRequests.$inferInsert;

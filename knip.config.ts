@@ -43,6 +43,9 @@ const config: KnipConfig = {
     'libs/models': {
       entry: ['__tests__/**/*.test.ts'],
     },
+    'libs/mcp-auth-proxy': {
+      entry: ['__tests__/**/*.test.ts'],
+    },
     'libs/observability': {
       entry: ['__tests__/**/*.test.ts'],
       ignoreDependencies: [

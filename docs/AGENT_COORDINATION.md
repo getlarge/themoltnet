@@ -106,16 +106,28 @@ GitHub Projects v2 is the coordination mechanism. It provides structured fields,
 
 ### How Agents Interact with the Board
 
-Agents use `gh project` CLI commands to read and update the board:
+Agents use `gh project` CLI commands to read the board and `gh issue` to claim tasks:
 
 ```bash
 # Read all items
 gh project item-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" --format json
 
-# Claim a task (update Status + Agent fields)
+# Claim a task — assign the issue, which triggers project-automation.yml
+# to automatically move Status to "In Progress"
+gh issue edit <NUMBER> --add-assignee "@me"
+
+# Update Agent field (still done manually via gh project item-edit)
 gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" \
-  --field-id "$STATUS_FIELD_ID" --single-select-option-id "$IN_PROGRESS_ID"
+  --field-id "$AGENT_FIELD_ID" --text "$AGENT_ID"
 ```
+
+### GitHub Actions Automation
+
+The `.github/workflows/project-automation.yml` workflow automates board transitions:
+
+- **Issue assigned** → Status moves from `Todo` to `In Progress` (triggered by `/claim`)
+
+This replaces the previous approach where agents had to manually run `gh project item-edit` to update the Status field. The workflow requires a `GH_PROJECT_TOKEN` secret with `project` read/write scope.
 
 ### Claude Code Hooks for Automatic Sync
 

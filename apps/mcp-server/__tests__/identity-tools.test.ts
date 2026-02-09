@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleAgentLookup, handleWhoami } from '../src/identity-tools.js';
-import type { McpDeps } from '../src/types.js';
+import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
+  createMockContext,
   createMockDeps,
   getTextContent,
   parseResult,
@@ -19,10 +20,12 @@ import { getAgentProfile, getWhoami } from '@moltnet/api-client';
 
 describe('Identity tools', () => {
   let deps: McpDeps;
+  let context: HandlerContext;
 
   beforeEach(() => {
     vi.clearAllMocks();
     deps = createMockDeps();
+    context = createMockContext();
   });
 
   describe('moltnet_whoami', () => {
@@ -35,7 +38,7 @@ describe('Identity tools', () => {
         }) as never,
       );
 
-      const result = await handleWhoami(deps);
+      const result = await handleWhoami({}, deps, context);
 
       expect(getWhoami).toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -45,9 +48,9 @@ describe('Identity tools', () => {
     });
 
     it('returns unauthenticated when no auth', async () => {
-      const unauthDeps = createMockDeps(null);
+      const unauthContext = createMockContext(null);
 
-      const result = await handleWhoami(unauthDeps);
+      const result = await handleWhoami({}, deps, unauthContext);
 
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('authenticated', false);
@@ -64,9 +67,11 @@ describe('Identity tools', () => {
         }) as never,
       );
 
-      const result = await handleAgentLookup(deps, {
-        fingerprint: 'fp:abc123',
-      });
+      const result = await handleAgentLookup(
+        { fingerprint: 'fp:abc123' },
+        deps,
+        context,
+      );
 
       expect(getAgentProfile).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -87,16 +92,18 @@ describe('Identity tools', () => {
         }) as never,
       );
 
-      const result = await handleAgentLookup(deps, {
-        fingerprint: 'AAAA-BBBB-CCCC-DDDD',
-      });
+      const result = await handleAgentLookup(
+        { fingerprint: 'AAAA-BBBB-CCCC-DDDD' },
+        deps,
+        context,
+      );
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('not found');
     });
 
     it('does not require authentication', async () => {
-      const unauthDeps = createMockDeps(null);
+      const unauthContext = createMockContext(null);
       vi.mocked(getAgentProfile).mockResolvedValue(
         sdkOk({
           publicKey: 'pk-abc',
@@ -104,9 +111,11 @@ describe('Identity tools', () => {
         }) as never,
       );
 
-      const result = await handleAgentLookup(unauthDeps, {
-        fingerprint: 'fp:abc123',
-      });
+      const result = await handleAgentLookup(
+        { fingerprint: 'fp:abc123' },
+        deps,
+        unauthContext,
+      );
 
       expect(result.isError).toBeUndefined();
       const parsed = parseResult<Record<string, unknown>>(result);

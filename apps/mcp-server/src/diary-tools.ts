@@ -2,11 +2,9 @@
  * @moltnet/mcp-server — Diary Tool Handlers
  *
  * Each tool delegates to the REST API via the generated API client,
- * passing the agent's bearer token for auth.
+ * passing the agent's bearer token from the MCP handler context.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   createDiaryEntry,
   deleteDiaryEntry,
@@ -16,32 +14,37 @@ import {
   searchDiary,
   updateDiaryEntry,
 } from '@moltnet/api-client';
-import { z } from 'zod';
+import type { FastifyInstance } from 'fastify';
 
-import type { McpDeps } from './types.js';
-
-function textResult(data: unknown): CallToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-}
-
-function errorResult(message: string): CallToolResult {
-  return {
-    content: [{ type: 'text', text: JSON.stringify({ error: message }) }],
-    isError: true,
-  };
-}
+import type {
+  DiaryCreateInput,
+  DiaryDeleteInput,
+  DiaryGetInput,
+  DiaryListInput,
+  DiaryReflectInput,
+  DiarySearchInput,
+  DiaryUpdateInput,
+} from './schemas.js';
+import {
+  DiaryCreateSchema,
+  DiaryDeleteSchema,
+  DiaryGetSchema,
+  DiaryListSchema,
+  DiaryReflectSchema,
+  DiarySearchSchema,
+  DiaryUpdateSchema,
+} from './schemas.js';
+import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
+import { errorResult, getTokenFromContext, textResult } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
 
 export async function handleDiaryCreate(
+  args: DiaryCreateInput,
   deps: McpDeps,
-  args: {
-    content: string;
-    visibility?: 'private' | 'moltnet' | 'public';
-    tags?: string[];
-  },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { data, error } = await createDiaryEntry({
@@ -68,10 +71,11 @@ export async function handleDiaryCreate(
 }
 
 export async function handleDiaryGet(
+  args: DiaryGetInput,
   deps: McpDeps,
-  args: { entry_id: string },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { data, error } = await getDiaryEntry({
@@ -88,10 +92,11 @@ export async function handleDiaryGet(
 }
 
 export async function handleDiaryList(
+  args: DiaryListInput,
   deps: McpDeps,
-  args: { limit?: number; offset?: number },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { data, error } = await listDiaryEntries({
@@ -111,10 +116,11 @@ export async function handleDiaryList(
 }
 
 export async function handleDiarySearch(
+  args: DiarySearchInput,
   deps: McpDeps,
-  args: { query: string; limit?: number },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { data, error } = await searchDiary({
@@ -134,15 +140,11 @@ export async function handleDiarySearch(
 }
 
 export async function handleDiaryUpdate(
+  args: DiaryUpdateInput,
   deps: McpDeps,
-  args: {
-    entry_id: string;
-    content?: string;
-    tags?: string[];
-    title?: string;
-  },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { entry_id, ...updates } = args;
@@ -161,10 +163,11 @@ export async function handleDiaryUpdate(
 }
 
 export async function handleDiaryDelete(
+  args: DiaryDeleteInput,
   deps: McpDeps,
-  args: { entry_id: string },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { error } = await deleteDiaryEntry({
@@ -181,10 +184,11 @@ export async function handleDiaryDelete(
 }
 
 export async function handleDiaryReflect(
+  args: DiaryReflectInput,
   deps: McpDeps,
-  args: { days?: number; max_entries?: number },
+  context: HandlerContext,
 ): Promise<CallToolResult> {
-  const token = deps.getAccessToken();
+  const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
   const { data, error } = await reflectDiary({
@@ -205,113 +209,73 @@ export async function handleDiaryReflect(
 
 // --- Tool registration ---
 
-export function registerDiaryTools(server: McpServer, deps: McpDeps): void {
-  server.registerTool(
-    'diary_create',
+export function registerDiaryTools(
+  fastify: FastifyInstance,
+  deps: McpDeps,
+): void {
+  fastify.mcpAddTool(
     {
+      name: 'diary_create',
       description:
         'Create a new diary entry. This is your persistent memory that survives context compression.',
-      inputSchema: {
-        content: z.string().describe('The memory content (1-10000 chars)'),
-        visibility: z
-          .enum(['private', 'moltnet', 'public'])
-          .optional()
-          .describe('Who can see this entry (default: private)'),
-        tags: z
-          .array(z.string())
-          .optional()
-          .describe('Tags for categorization'),
-      },
-      annotations: { readOnlyHint: false },
+      inputSchema: DiaryCreateSchema,
     },
-    async (args) => handleDiaryCreate(deps, args),
+    async (args, ctx) => handleDiaryCreate(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_get',
+  fastify.mcpAddTool(
     {
+      name: 'diary_get',
       description: 'Get a single diary entry by ID.',
-      inputSchema: {
-        entry_id: z.string().describe('The entry ID'),
-      },
-      annotations: { readOnlyHint: true },
+      inputSchema: DiaryGetSchema,
     },
-    async (args) => handleDiaryGet(deps, args),
+    async (args, ctx) => handleDiaryGet(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_list',
+  fastify.mcpAddTool(
     {
+      name: 'diary_list',
       description: 'List your recent diary entries.',
-      inputSchema: {
-        limit: z.number().optional().describe('Max results (default 20)'),
-        offset: z.number().optional().describe('Offset for pagination'),
-      },
-      annotations: { readOnlyHint: true },
+      inputSchema: DiaryListSchema,
     },
-    async (args) => handleDiaryList(deps, args),
+    async (args, ctx) => handleDiaryList(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_search',
+  fastify.mcpAddTool(
     {
+      name: 'diary_search',
       description:
         'Search your diary entries using natural language. Uses semantic (meaning-based) search.',
-      inputSchema: {
-        query: z
-          .string()
-          .describe('What are you looking for? (natural language)'),
-        limit: z.number().optional().describe('Max results (default 10)'),
-      },
-      annotations: { readOnlyHint: true },
+      inputSchema: DiarySearchSchema,
     },
-    async (args) => handleDiarySearch(deps, args),
+    async (args, ctx) => handleDiarySearch(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_update',
+  fastify.mcpAddTool(
     {
+      name: 'diary_update',
       description: 'Update a diary entry (tags, content, title).',
-      inputSchema: {
-        entry_id: z.string().describe('The entry ID'),
-        content: z.string().optional().describe('New content'),
-        tags: z.array(z.string()).optional().describe('New tags'),
-        title: z.string().optional().describe('New title'),
-      },
-      annotations: { readOnlyHint: false },
+      inputSchema: DiaryUpdateSchema,
     },
-    async (args) => handleDiaryUpdate(deps, args),
+    async (args, ctx) => handleDiaryUpdate(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_delete',
+  fastify.mcpAddTool(
     {
+      name: 'diary_delete',
       description: 'Delete a diary entry.',
-      inputSchema: {
-        entry_id: z.string().describe('The entry ID to delete'),
-      },
-      annotations: { readOnlyHint: false, destructiveHint: true },
+      inputSchema: DiaryDeleteSchema,
     },
-    async (args) => handleDiaryDelete(deps, args),
+    async (args, ctx) => handleDiaryDelete(args, deps, ctx),
   );
 
-  server.registerTool(
-    'diary_reflect',
+  fastify.mcpAddTool(
     {
+      name: 'diary_reflect',
       description:
         'Get a curated summary of your memories. Use this after context compression to rebuild your sense of self.',
-      inputSchema: {
-        days: z
-          .number()
-          .optional()
-          .describe('Only include entries from the last N days (default 7)'),
-        max_entries: z
-          .number()
-          .optional()
-          .describe('Max entries to include (default 50)'),
-      },
-      annotations: { readOnlyHint: true },
+      inputSchema: DiaryReflectSchema,
     },
-    async (args) => handleDiaryReflect(deps, args),
+    async (args, ctx) => handleDiaryReflect(args, deps, ctx),
   );
 }
