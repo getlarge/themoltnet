@@ -1,0 +1,42 @@
+# Fly.io configuration for MoltNet MCP server
+# See https://github.com/getlarge/themoltnet/issues/139
+
+app = "moltnet-mcp"
+primary_region = "fra"  # Frankfurt — EU data residency
+
+# Only used for local `fly deploy`; CI deploys a pre-built image from GHCR
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8001"
+  NODE_ENV = "production"
+  REST_API_URL = "https://api.themolt.net"
+  ORY_PROJECT_URL = "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com"
+  AUTH_ENABLED = "true"
+  MCP_RESOURCE_URI = "https://mcp.themolt.net"
+
+[http_service]
+  internal_port = 8001
+  force_https = true
+  auto_stop_machines = "suspend"   # SSE connections are long-lived
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"            # SSE = persistent connections, not discrete requests
+    hard_limit = 100
+    soft_limit = 80
+
+[[http_service.checks]]
+  grace_period = "30s"
+  interval = "30s"
+  method = "GET"
+  path = "/healthz"
+  timeout = "5s"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

@@ -1,0 +1,30 @@
+name: Deploy MCP Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mcp-server/**'
+      - 'libs/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-mcp.yml'
+      - '.github/workflows/_deploy.yml'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to Fly.io'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  deploy:
+    name: Deploy
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      fly-app: moltnet-mcp
+      image-name: moltnet-mcp
+      dockerfile: apps/mcp-server/Dockerfile
+      working-directory: apps/mcp-server
+      deploy: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.inputs.deploy == 'true') }}
+    secrets: inherit
