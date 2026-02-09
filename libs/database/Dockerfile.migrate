@@ -54,9 +54,13 @@ FROM node:22-slim AS production
 ENV NODE_ENV=production
 WORKDIR /app
 
-COPY --from=build /app/deploy ./
+RUN groupadd -r migrate && useradd -r -g migrate migrate
+
+COPY --from=build --chown=migrate:migrate /app/deploy ./
 
 # Copy migration SQL files (not included in tsc output)
-COPY --from=build /app/libs/database/drizzle ./drizzle
+COPY --from=build --chown=migrate:migrate /app/libs/database/drizzle ./drizzle
+
+USER migrate
 
 CMD ["node", "dist/migrate-cli.js"]

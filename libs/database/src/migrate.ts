@@ -14,7 +14,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * both in source (`src/`) and compiled (`dist/`) contexts.
  */
 export async function runMigrations(databaseUrl: string): Promise<void> {
-  const pool = new Pool({ connectionString: databaseUrl, max: 1 });
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    max: 1,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 5_000,
+  });
   const db = drizzle(pool);
 
   // In source: src/ → ../drizzle/
@@ -24,6 +29,7 @@ export async function runMigrations(databaseUrl: string): Promise<void> {
   try {
     await migrate(db, { migrationsFolder });
   } finally {
-    await pool.end();
+    // Swallow pool cleanup errors so they don't mask migration failures
+    await pool.end().catch(() => {});
   }
 }

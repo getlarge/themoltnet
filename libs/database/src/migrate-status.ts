@@ -46,7 +46,12 @@ async function main(): Promise<void> {
     await readFile(journalPath, 'utf-8'),
   ) as Journal;
 
-  const pool = new Pool({ connectionString: databaseUrl, max: 1 });
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    max: 1,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 5_000,
+  });
 
   try {
     // Check if the migrations table exists
