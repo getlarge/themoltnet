@@ -15,7 +15,9 @@
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
-    "@moltnet/rest-api": "workspace:*"
+    "@moltnet/mcp-server": "workspace:*",
+    "@moltnet/rest-api": "workspace:*",
+    "smol-toml": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

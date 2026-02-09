@@ -162,6 +162,9 @@ catalogs:
     react-dom:
       specifier: ^19.0.0
       version: 19.2.4
+    smol-toml:
+      specifier: ^1.6.0
+      version: 1.6.0
     thread-stream:
       specifier: ^3.1.0
       version: 3.1.0
@@ -743,9 +746,15 @@ importers:
       '@moltnet/database':
         specifier: workspace:*
         version: link:../libs/database
+      '@moltnet/mcp-server':
+        specifier: workspace:*
+        version: link:../apps/mcp-server
       '@moltnet/rest-api':
         specifier: workspace:*
         version: link:../apps/rest-api
+      smol-toml:
+        specifier: 'catalog:'
+        version: 1.6.0
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
