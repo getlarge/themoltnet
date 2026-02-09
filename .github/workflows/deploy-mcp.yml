@@ -55,7 +55,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: >-
           flyctl secrets list -a moltnet-mcp --json
-          | jq -r '.[].Name'
+          | jq -r '.[].name'
           | pnpm --filter @moltnet/tools check-secrets --app mcp-server --fly-toml apps/mcp-server/fly.toml
 
   deploy:
