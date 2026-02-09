@@ -743,6 +743,9 @@ importers:
       '@moltnet/database':
         specifier: workspace:*
         version: link:../libs/database
+      '@moltnet/mcp-server':
+        specifier: workspace:*
+        version: link:../apps/mcp-server
       '@moltnet/rest-api':
         specifier: workspace:*
         version: link:../apps/rest-api

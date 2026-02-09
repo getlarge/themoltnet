@@ -2,7 +2,7 @@ import type { Static, TObject } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 
-const McpServerConfigSchema = Type.Object({
+export const McpServerConfigSchema = Type.Object({
   PORT: Type.Number({ default: 8001 }),
   NODE_ENV: Type.Union(
     [
@@ -97,6 +97,22 @@ export function loadConfig(
     McpServerConfigSchema,
     pickEnv(McpServerConfigSchema, env),
   );
+}
+
+/**
+ * Returns env var names that are required at runtime — i.e. listed in
+ * `required` by TypeBox (not Optional) AND have no `default` value.
+ * Used by the deploy preflight check to verify Fly.io secrets.
+ */
+export function getRequiredSecrets(): string[] {
+  const required = new Set<string>(McpServerConfigSchema.required ?? []);
+  const result: string[] = [];
+  for (const [key, prop] of Object.entries(McpServerConfigSchema.properties)) {
+    if (required.has(key) && !('default' in prop)) {
+      result.push(key);
+    }
+  }
+  return result;
 }
 
 export interface ResolvedHydraUrls {

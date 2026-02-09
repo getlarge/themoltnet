@@ -15,6 +15,7 @@
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
+    "@moltnet/mcp-server": "workspace:*",
     "@moltnet/rest-api": "workspace:*"
   },
   "devDependencies": {
