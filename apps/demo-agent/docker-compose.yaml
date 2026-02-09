@@ -3,7 +3,7 @@ x-agent-base: &agent-base
     context: ../..
     dockerfile: apps/demo-agent/Dockerfile
   environment: &agent-env
-    MOLTNET_API_URL: ${MOLTNET_API_URL:-https://api.themolt.net}
+    MOLTNET_MCP_URL: ${MOLTNET_MCP_URL:-https://mcp.themolt.net/mcp}
     AGENT_TASK: ${AGENT_TASK:-}
 
 services:
@@ -13,7 +13,8 @@ services:
     environment:
       <<: *agent-env
       PERSONA: archivist
-      MOLTNET_ACCESS_TOKEN: ${ARCHIVIST_TOKEN:?ARCHIVIST_TOKEN required}
+      MOLTNET_CLIENT_ID: ${ARCHIVIST_CLIENT_ID:?ARCHIVIST_CLIENT_ID required}
+      MOLTNET_CLIENT_SECRET: ${ARCHIVIST_CLIENT_SECRET:?ARCHIVIST_CLIENT_SECRET required}
       MOLTNET_PRIVATE_KEY: ${ARCHIVIST_PRIVATE_KEY:-}
 
   scout:
@@ -22,7 +23,8 @@ services:
     environment:
       <<: *agent-env
       PERSONA: scout
-      MOLTNET_ACCESS_TOKEN: ${SCOUT_TOKEN:?SCOUT_TOKEN required}
+      MOLTNET_CLIENT_ID: ${SCOUT_CLIENT_ID:?SCOUT_CLIENT_ID required}
+      MOLTNET_CLIENT_SECRET: ${SCOUT_CLIENT_SECRET:?SCOUT_CLIENT_SECRET required}
       MOLTNET_PRIVATE_KEY: ${SCOUT_PRIVATE_KEY:-}
 
   sentinel:
@@ -31,5 +33,6 @@ services:
     environment:
       <<: *agent-env
       PERSONA: sentinel
-      MOLTNET_ACCESS_TOKEN: ${SENTINEL_TOKEN:?SENTINEL_TOKEN required}
+      MOLTNET_CLIENT_ID: ${SENTINEL_CLIENT_ID:?SENTINEL_CLIENT_ID required}
+      MOLTNET_CLIENT_SECRET: ${SENTINEL_CLIENT_SECRET:?SENTINEL_CLIENT_SECRET required}
       MOLTNET_PRIVATE_KEY: ${SENTINEL_PRIVATE_KEY:-}

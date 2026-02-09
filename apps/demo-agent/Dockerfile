@@ -2,12 +2,6 @@ FROM docker/sandbox-templates:claude-code
 
 USER root
 
-# Install tools needed by curl-based API skill
-RUN apt-get update && apt-get install -y \
-    jq \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
 # Pre-create persistent volume and set ownership
 RUN mkdir -p /mnt/claude-data && \
     chown -R agent:agent /mnt/claude-data
@@ -26,7 +20,7 @@ COPY apps/demo-agent/scripts/ /opt/demo-agent/scripts/
 # Copy local signing utility (zero dependencies — uses Node.js built-in crypto)
 COPY tools/sign.mjs /opt/demo-agent/scripts/sign.mjs
 
-# Copy MoltNet API skill
+# Copy MoltNet API skill (signing flow orchestration)
 COPY .claude/skills/moltnet-api/ /opt/demo-agent/skills/moltnet-api/
 
 # Make scripts executable
