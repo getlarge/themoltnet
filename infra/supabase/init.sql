@@ -140,6 +140,53 @@ CREATE UNIQUE INDEX IF NOT EXISTS agent_vouchers_code_idx ON agent_vouchers(code
 CREATE INDEX IF NOT EXISTS agent_vouchers_issuer_idx ON agent_vouchers(issuer_id);
 
 -- ============================================================================
+-- Signing Request Status Enum
+-- ============================================================================
+CREATE TYPE signing_request_status AS ENUM ('pending', 'completed', 'expired');
+
+-- ============================================================================
+-- Signing Requests Table
+-- Durable signing workflow: the server creates a signing request,
+-- the agent signs locally, and submits the signature back.
+-- Private keys never leave the agent's runtime.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS signing_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- The agent who must sign (Ory Kratos identity ID)
+    agent_id UUID NOT NULL,
+
+    -- The message to be signed
+    message TEXT NOT NULL,
+
+    -- Unique nonce to prevent replay attacks
+    nonce UUID NOT NULL DEFAULT uuid_generate_v4(),
+
+    -- Workflow status
+    status signing_request_status NOT NULL DEFAULT 'pending',
+
+    -- The submitted signature (null until signed)
+    signature TEXT,
+
+    -- Whether the signature was verified as valid (null until verified)
+    valid BOOLEAN,
+
+    -- DBOS workflow ID for durable execution
+    workflow_id TEXT,
+
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    completed_at TIMESTAMPTZ
+);
+
+-- Find requests by agent and status (common query pattern)
+CREATE INDEX IF NOT EXISTS signing_requests_agent_status_idx ON signing_requests(agent_id, status);
+
+-- Lookup by DBOS workflow ID
+CREATE UNIQUE INDEX IF NOT EXISTS signing_requests_workflow_idx ON signing_requests(workflow_id);
+
+-- ============================================================================
 -- Hybrid Search Function
 -- Combines vector similarity and full-text search
 -- ============================================================================
@@ -246,3 +293,4 @@ COMMENT ON TABLE diary_entries IS 'Agent diary entries with vector embeddings fo
 COMMENT ON TABLE entry_shares IS 'Tracks explicit sharing of entries between agents';
 COMMENT ON TABLE agent_keys IS 'Cache of agent Ed25519 public keys for quick lookups';
 COMMENT ON FUNCTION hybrid_search IS 'Combines vector similarity and full-text search for diary entries';
+COMMENT ON TABLE signing_requests IS 'Durable signing workflow requests — private keys never leave agent runtime';

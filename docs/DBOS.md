@@ -56,25 +56,39 @@ const entry = await dataSource.runTransaction(
 
 ### Workflow Pattern
 
-**CRITICAL**: Schedule durable workflows INSIDE `runTransaction()` for atomicity:
+**CRITICAL**: Schedule durable workflows OUTSIDE `runTransaction()`. DBOS uses a
+separate system database, so there is no cross-DB atomicity with app transactions.
+Workflows started inside `runTransaction()` don't execute reliably (interactive
+workflows break entirely, fire-and-forget workflows fail on `getResult()`).
 
 ```typescript
-// Correct: Workflow scheduling inside transaction
+// Correct: DB write in transaction, workflow AFTER commit
 const entry = await dataSource.runTransaction(
-  async () => {
-    const entry = await diaryRepository.create(entryData, dataSource.client);
-    // Schedule workflow INSIDE the transaction callback
-    await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(entry.id, ownerId);
-    return entry;
-  },
+  async () => diaryRepository.create(entryData, dataSource.client),
   { name: 'diary.create' },
 );
+
+// Start workflow after transaction commits
+const handle = await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(
+  entry.id,
+  ownerId,
+);
+
+try {
+  await handle.getResult(); // Wait for Keto permission to be set
+} catch (err) {
+  // DB write committed. DBOS will retry the durable workflow automatically.
+  console.error('Keto workflow failed after commit', err);
+}
 ```
 
-**Why this matters**: If workflow scheduling happens outside the transaction, a crash
-between DB commit and workflow start creates a window where the DB record exists
-but the Keto permission is never granted. Scheduling inside the transaction ensures
-both succeed or both fail together.
+**Why `getResult()`**: Ensures Keto permissions are in place before returning to the
+caller. Without it, subsequent operations (read, update, share) may fail because
+the permission check runs before the workflow completes.
+
+**Crash safety**: If the server crashes between DB commit and workflow start, the
+entry exists without Keto permissions. This gap is milliseconds in practice, and
+a future improvement could use DBOS event sourcing for true atomicity.
 
 ## Workflows & Steps
 
@@ -348,3 +362,4 @@ Agent                         REST API                    DBOS Workflow
 2. **Pool sharing not possible**: DrizzleDataSource creates its own internal pool
 3. **pnpm virtual store caching**: After editing workspace package exports, run `rm -rf node_modules/.pnpm/@moltnet* && pnpm install`
 4. **dataSource is mandatory**: All write operations must use `dataSource.runTransaction()` — there is no fallback mode
+5. **Never start workflows inside transactions**: `DBOS.startWorkflow()` must be called OUTSIDE `dataSource.runTransaction()`. DBOS uses a separate system database — no cross-DB atomicity exists, and workflows don't execute reliably when started inside app transactions

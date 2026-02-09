@@ -64,31 +64,25 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       const timeoutSeconds = fastify.signingTimeoutSeconds;
       const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);
 
-      // CRITICAL: DB insert + workflow start inside runTransaction for atomicity.
-      // If the workflow start fails, the DB row is rolled back.
-      const signingRequest = await fastify.dataSource.runTransaction(
-        async () => {
-          const created = await fastify.signingRequestRepository.create({
-            agentId,
-            message,
-            expiresAt,
-          });
+      // Insert the signing request row first
+      const created = await fastify.signingRequestRepository.create({
+        agentId,
+        message,
+        expiresAt,
+      });
 
-          const workflowHandle = await DBOS.startWorkflow(
-            signingWorkflows.requestSignature,
-            { workflowID: `signing-${created.id}` },
-          )(created.id, agentId, message, created.nonce);
+      // Start the DBOS workflow (must be outside runTransaction so recv/send work)
+      const workflowHandle = await DBOS.startWorkflow(
+        signingWorkflows.requestSignature,
+        { workflowID: `signing-${created.id}` },
+      )(created.id, agentId, message, created.nonce);
 
-          await fastify.signingRequestRepository.updateStatus(created.id, {
-            workflowId: workflowHandle.workflowID,
-          });
+      // Persist the workflow ID for later send() calls
+      await fastify.signingRequestRepository.updateStatus(created.id, {
+        workflowId: workflowHandle.workflowID,
+      });
 
-          return created;
-        },
-        { name: 'signing.createRequest' },
-      );
-
-      return reply.status(201).send(signingRequest);
+      return reply.status(201).send(created);
     },
   );
 
