@@ -48,11 +48,26 @@ export default async function setup() {
   }
 
   // Start with e2e config — includes the server container
-  execSync('docker compose -f docker-compose.e2e.yaml up -d --build', {
-    cwd: composeCwd,
-    stdio: 'inherit',
-    timeout: 300_000, // 5 min for image build + startup
-  });
+  try {
+    execSync('docker compose -f docker-compose.e2e.yaml up -d --build', {
+      cwd: composeCwd,
+      stdio: 'inherit',
+      timeout: 300_000, // 5 min for image build + startup
+    });
+  } catch (err) {
+    // Capture server container logs before re-throwing
+    // eslint-disable-next-line no-console
+    console.error('[E2E Setup] Docker Compose up failed. Server logs:');
+    try {
+      execSync('docker compose -f docker-compose.e2e.yaml logs server', {
+        cwd: composeCwd,
+        stdio: 'inherit',
+      });
+    } catch {
+      // Best-effort log capture
+    }
+    throw err;
+  }
 
   // Wait for Ory services and the server container to be healthy
   // eslint-disable-next-line no-console

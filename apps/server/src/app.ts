@@ -4,6 +4,10 @@
  * Initializes all services (database, Ory, diary, crypto, auth, observability)
  * and registers both the REST API routes and the static landing page on a
  * single Fastify instance.
+ *
+ * DBOS lifecycle is handled by the DBOS plugin from @moltnet/rest-api.
+ * The plugin requires cryptoService, agentRepository, signingRequestRepository,
+ * and permissionChecker to be decorated before it registers.
  */
 
 import { existsSync } from 'node:fs';
@@ -21,8 +25,10 @@ import {
   createAgentRepository,
   createDatabase,
   createDiaryRepository,
+  createSigningRequestRepository,
   createVoucherRepository,
   type DatabaseConnection,
+  getDataSource,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
 import { createEmbeddingService } from '@moltnet/embedding-service';
@@ -31,7 +37,11 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
-import { registerApiRoutes, resolveOryUrls } from '@moltnet/rest-api';
+import {
+  dbosPlugin,
+  registerApiRoutes,
+  resolveOryUrls,
+} from '@moltnet/rest-api';
 import Fastify, {
   type FastifyInstance,
   type FastifyReply,
@@ -123,12 +133,29 @@ export async function bootstrap(
   const agentRepository = createAgentRepository(dbConnection.db);
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
+  const signingRequestRepository = createSigningRequestRepository(
+    dbConnection.db,
+  );
 
   // ── Services ───────────────────────────────────────────────────
   const permissionChecker = createPermissionChecker(
     oryClients.permission,
     oryClients.relationship,
   );
+
+  // ── Pre-decorate services required by DBOS plugin ──────────────
+  app.decorate('cryptoService', cryptoService);
+  app.decorate('agentRepository', agentRepository);
+  app.decorate('signingRequestRepository', signingRequestRepository);
+  app.decorate('permissionChecker', permissionChecker);
+
+  // ── DBOS Plugin (handles full lifecycle) ───────────────────────
+  await app.register(dbosPlugin, {
+    databaseUrl: config.database.DATABASE_URL,
+    systemDatabaseUrl: config.database.DBOS_SYSTEM_DATABASE_URL,
+  });
+
+  const dataSource = getDataSource();
 
   const embeddingService = createEmbeddingService({
     logger: app.log,
@@ -138,6 +165,7 @@ export async function bootstrap(
     diaryRepository,
     permissionChecker,
     embeddingService,
+    dataSource,
   });
 
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
@@ -145,11 +173,16 @@ export async function bootstrap(
   });
 
   // ── REST API routes ────────────────────────────────────────────
+  // Services already decorated by DBOS plugin (dataSource) and above
+  // (cryptoService, agentRepository, signingRequestRepository, permissionChecker)
+  // are skipped by registerApiRoutes via hasDecorator guards.
   await registerApiRoutes(app, {
     diaryService,
     agentRepository,
     cryptoService,
     voucherRepository,
+    signingRequestRepository,
+    dataSource,
     permissionChecker,
     tokenValidator,
     webhookApiKey: config.webhook.ORY_ACTION_API_KEY,
@@ -161,6 +194,7 @@ export async function bootstrap(
       rateLimitGlobalAnon: config.security.RATE_LIMIT_GLOBAL_ANON,
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
       rateLimitVouch: config.security.RATE_LIMIT_VOUCH,
+      rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
     },
   });
 

@@ -9,6 +9,25 @@ import type {
   PermissionChecker,
 } from '../src/types.js';
 
+// ── DBOS mock (hoisted by vitest, applies to all tests) ──────────────
+const { mockWorkflowFn, mockStartWorkflow } = vi.hoisted(() => {
+  const mockHandle = { getResult: vi.fn().mockResolvedValue(undefined) };
+  const mockWorkflowFn = vi.fn().mockResolvedValue(mockHandle);
+  const mockStartWorkflow = vi.fn().mockReturnValue(mockWorkflowFn);
+  return { mockWorkflowFn, mockStartWorkflow };
+});
+
+vi.mock('@moltnet/database', () => ({
+  DBOS: {
+    startWorkflow: mockStartWorkflow,
+  },
+  ketoWorkflows: {
+    grantOwnership: { name: 'keto.grantOwnership' },
+    removeEntryRelations: { name: 'keto.removeEntryRelations' },
+    grantViewer: { name: 'keto.grantViewer' },
+  },
+}));
+
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
@@ -76,21 +95,34 @@ describe('DiaryService', () => {
   let repo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
+  let dataSource: {
+    client: object;
+    runTransaction: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     repo = createMockDiaryRepository();
     permissions = createMockPermissionChecker();
     embeddings = createMockEmbeddingService();
+    dataSource = {
+      client: { __mock: 'transactionalClient' },
+      runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    };
+
+    mockStartWorkflow.mockClear();
+    mockWorkflowFn.mockClear();
+    mockStartWorkflow.mockReturnValue(mockWorkflowFn);
 
     service = createDiaryService({
       diaryRepository: repo as unknown as DiaryRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
       embeddingService: embeddings as unknown as EmbeddingService,
+      dataSource: dataSource as unknown as DataSource,
     });
   });
 
   describe('create', () => {
-    it('creates entry with embedding and grants ownership in transaction', async () => {
+    it('creates entry with embedding inside transaction and schedules Keto workflow', async () => {
       const mockEntry = createMockEntry({ embedding: MOCK_EMBEDDING });
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(mockEntry);
@@ -101,7 +133,10 @@ describe('DiaryService', () => {
       });
 
       expect(result).toEqual(mockEntry);
-      expect(repo.transaction).toHaveBeenCalledTimes(1);
+      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { name: 'diary.create' },
+      );
       expect(embeddings.embedPassage).toHaveBeenCalledWith(
         'Test diary entry content',
       );
@@ -114,12 +149,14 @@ describe('DiaryService', () => {
           tags: undefined,
           embedding: MOCK_EMBEDDING,
         },
-        expect.anything(),
+        dataSource.client,
       );
-      expect(permissions.grantOwnership).toHaveBeenCalledWith(
-        mockEntry.id,
-        OWNER_ID,
-      );
+      expect(mockStartWorkflow).toHaveBeenCalledWith({
+        name: 'keto.grantOwnership',
+      });
+      expect(mockWorkflowFn).toHaveBeenCalledWith(mockEntry.id, OWNER_ID);
+      // Sync permissionChecker should NOT be called — DBOS handles this
+      expect(permissions.grantOwnership).not.toHaveBeenCalled();
     });
 
     it('creates entry with all optional fields', async () => {
@@ -158,7 +195,7 @@ describe('DiaryService', () => {
       expect(result).toEqual(mockEntry);
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: undefined }),
-        expect.anything(),
+        dataSource.client,
       );
     });
 
@@ -173,22 +210,80 @@ describe('DiaryService', () => {
 
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ visibility: 'private' }),
-        expect.anything(),
+        dataSource.client,
       );
     });
 
-    it('rolls back DB if grantOwnership fails', async () => {
+    it('starts Keto workflow AFTER transaction commits', async () => {
+      const executionOrder: string[] = [];
+      const mockEntry = createMockEntry();
+
+      dataSource.runTransaction.mockImplementation(async (fn) => {
+        executionOrder.push('transaction-start');
+        const result = await fn();
+        executionOrder.push('transaction-end');
+        return result;
+      });
+
+      repo.create.mockResolvedValue(mockEntry);
+      embeddings.embedPassage.mockResolvedValue([]);
+      const mockHandle = {
+        getResult: vi.fn().mockImplementation(async () => {
+          executionOrder.push('workflow-completed');
+        }),
+      };
+      mockStartWorkflow.mockReturnValue(async () => {
+        executionOrder.push('workflow-started');
+        return mockHandle;
+      });
+
+      await service.create({ ownerId: OWNER_ID, content: 'Test' });
+
+      // Workflow starts AFTER transaction, then getResult() awaited
+      expect(executionOrder).toEqual([
+        'transaction-start',
+        'transaction-end',
+        'workflow-started',
+        'workflow-completed',
+      ]);
+    });
+
+    it('propagates startWorkflow error after transaction committed', async () => {
       const mockEntry = createMockEntry();
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(mockEntry);
-      permissions.grantOwnership.mockRejectedValue(
-        new Error('Keto unavailable'),
-      );
-      repo.transaction.mockImplementation(async (fn) => fn({}));
+      mockStartWorkflow.mockReturnValue(async () => {
+        throw new Error('Workflow failed');
+      });
 
       await expect(
         service.create({ ownerId: OWNER_ID, content: 'Test' }),
-      ).rejects.toThrow('Keto unavailable');
+      ).rejects.toThrow('Workflow failed');
+    });
+
+    it('logs getResult() error but still returns entry', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      const mockEntry = createMockEntry();
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(mockEntry);
+      const mockHandle = {
+        getResult: vi.fn().mockRejectedValue(new Error('Keto unavailable')),
+      };
+      mockStartWorkflow.mockReturnValue(vi.fn().mockResolvedValue(mockHandle));
+
+      const result = await service.create({
+        ownerId: OWNER_ID,
+        content: 'Test',
+      });
+
+      expect(result).toEqual(mockEntry);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Keto grantOwnership workflow failed after commit',
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
     });
   });
 
@@ -398,7 +493,7 @@ describe('DiaryService', () => {
   });
 
   describe('delete', () => {
-    it('checks Keto permission then deletes in transaction', async () => {
+    it('checks Keto permission then deletes in transaction with durable workflow', async () => {
       permissions.canDeleteEntry.mockResolvedValue(true);
       repo.delete.mockResolvedValue(true);
 
@@ -409,9 +504,17 @@ describe('DiaryService', () => {
         ENTRY_ID,
         OWNER_ID,
       );
-      expect(repo.transaction).toHaveBeenCalledTimes(1);
-      expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID, expect.anything());
-      expect(permissions.removeEntryRelations).toHaveBeenCalledWith(ENTRY_ID);
+      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { name: 'diary.delete' },
+      );
+      expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID, dataSource.client);
+      expect(mockStartWorkflow).toHaveBeenCalledWith({
+        name: 'keto.removeEntryRelations',
+      });
+      expect(mockWorkflowFn).toHaveBeenCalledWith(ENTRY_ID);
+      // Sync permissionChecker should NOT be called — DBOS handles this
+      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
     });
 
     it('returns false when Keto denies delete', async () => {
@@ -421,20 +524,7 @@ describe('DiaryService', () => {
 
       expect(result).toBe(false);
       expect(repo.delete).not.toHaveBeenCalled();
-      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
-    });
-
-    it('rolls back DB if removeEntryRelations fails', async () => {
-      permissions.canDeleteEntry.mockResolvedValue(true);
-      repo.delete.mockResolvedValue(true);
-      permissions.removeEntryRelations.mockRejectedValue(
-        new Error('Keto unavailable'),
-      );
-      repo.transaction.mockImplementation(async (fn) => fn({}));
-
-      await expect(service.delete(ENTRY_ID, OWNER_ID)).rejects.toThrow(
-        'Keto unavailable',
-      );
+      expect(mockStartWorkflow).not.toHaveBeenCalled();
     });
 
     it('returns false when entry does not exist in DB', async () => {
@@ -444,12 +534,77 @@ describe('DiaryService', () => {
       const result = await service.delete(ENTRY_ID, OWNER_ID);
 
       expect(result).toBe(false);
-      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
+      expect(mockStartWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('starts Keto workflow AFTER transaction commits', async () => {
+      const executionOrder: string[] = [];
+
+      dataSource.runTransaction.mockImplementation(async (fn) => {
+        executionOrder.push('transaction-start');
+        const result = await fn();
+        executionOrder.push('transaction-end');
+        return result;
+      });
+
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(true);
+      const mockHandle = {
+        getResult: vi.fn().mockImplementation(async () => {
+          executionOrder.push('workflow-completed');
+        }),
+      };
+      mockStartWorkflow.mockReturnValue(async () => {
+        executionOrder.push('workflow-started');
+        return mockHandle;
+      });
+
+      await service.delete(ENTRY_ID, OWNER_ID);
+
+      expect(executionOrder).toEqual([
+        'transaction-start',
+        'transaction-end',
+        'workflow-started',
+        'workflow-completed',
+      ]);
+    });
+
+    it('propagates startWorkflow error after transaction committed', async () => {
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(true);
+      mockStartWorkflow.mockReturnValue(async () => {
+        throw new Error('Workflow failed');
+      });
+
+      await expect(service.delete(ENTRY_ID, OWNER_ID)).rejects.toThrow(
+        'Workflow failed',
+      );
+    });
+
+    it('logs getResult() error but still returns true', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      repo.delete.mockResolvedValue(true);
+      const mockHandle = {
+        getResult: vi.fn().mockRejectedValue(new Error('Keto unavailable')),
+      };
+      mockStartWorkflow.mockReturnValue(vi.fn().mockResolvedValue(mockHandle));
+
+      const result = await service.delete(ENTRY_ID, OWNER_ID);
+
+      expect(result).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Keto removeEntryRelations workflow failed after commit',
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
     });
   });
 
   describe('share', () => {
-    it('shares entry in transaction and grants viewer permission', async () => {
+    it('shares entry in transaction and schedules viewer workflow', async () => {
       permissions.canShareEntry.mockResolvedValue(true);
       repo.share.mockResolvedValue(true);
 
@@ -460,17 +615,22 @@ describe('DiaryService', () => {
         ENTRY_ID,
         OWNER_ID,
       );
-      expect(repo.transaction).toHaveBeenCalledTimes(1);
+      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { name: 'diary.share' },
+      );
       expect(repo.share).toHaveBeenCalledWith(
         ENTRY_ID,
         OWNER_ID,
         OTHER_AGENT_ID,
-        expect.anything(),
+        dataSource.client,
       );
-      expect(permissions.grantViewer).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OTHER_AGENT_ID,
-      );
+      expect(mockStartWorkflow).toHaveBeenCalledWith({
+        name: 'keto.grantViewer',
+      });
+      expect(mockWorkflowFn).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
+      // Sync permissionChecker should NOT be called — DBOS handles this
+      expect(permissions.grantViewer).not.toHaveBeenCalled();
     });
 
     it('returns false when agent lacks share permission', async () => {
@@ -489,18 +649,72 @@ describe('DiaryService', () => {
       const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
 
       expect(result).toBe(false);
-      expect(permissions.grantViewer).not.toHaveBeenCalled();
+      expect(mockStartWorkflow).not.toHaveBeenCalled();
     });
 
-    it('rolls back DB if grantViewer fails', async () => {
+    it('starts Keto workflow AFTER transaction commits', async () => {
+      const executionOrder: string[] = [];
+
+      dataSource.runTransaction.mockImplementation(async (fn) => {
+        executionOrder.push('transaction-start');
+        const result = await fn();
+        executionOrder.push('transaction-end');
+        return result;
+      });
+
       permissions.canShareEntry.mockResolvedValue(true);
       repo.share.mockResolvedValue(true);
-      permissions.grantViewer.mockRejectedValue(new Error('Keto unavailable'));
-      repo.transaction.mockImplementation(async (fn) => fn({}));
+      const mockHandle = {
+        getResult: vi.fn().mockImplementation(async () => {
+          executionOrder.push('workflow-completed');
+        }),
+      };
+      mockStartWorkflow.mockReturnValue(async () => {
+        executionOrder.push('workflow-started');
+        return mockHandle;
+      });
+
+      await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
+
+      expect(executionOrder).toEqual([
+        'transaction-start',
+        'transaction-end',
+        'workflow-started',
+        'workflow-completed',
+      ]);
+    });
+
+    it('propagates startWorkflow error after transaction committed', async () => {
+      permissions.canShareEntry.mockResolvedValue(true);
+      repo.share.mockResolvedValue(true);
+      mockStartWorkflow.mockReturnValue(async () => {
+        throw new Error('Workflow failed');
+      });
 
       await expect(
         service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID),
-      ).rejects.toThrow('Keto unavailable');
+      ).rejects.toThrow('Workflow failed');
+    });
+
+    it('logs getResult() error but still returns true', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      permissions.canShareEntry.mockResolvedValue(true);
+      repo.share.mockResolvedValue(true);
+      const mockHandle = {
+        getResult: vi.fn().mockRejectedValue(new Error('Keto unavailable')),
+      };
+      mockStartWorkflow.mockReturnValue(vi.fn().mockResolvedValue(mockHandle));
+
+      const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
+
+      expect(result).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Keto grantViewer workflow failed after commit',
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
     });
   });
 
@@ -567,279 +781,6 @@ describe('DiaryService', () => {
 
       expect(result.entries).toHaveLength(0);
       expect(result.totalEntries).toBe(0);
-    });
-  });
-});
-
-// ── DBOS Transaction Mode Tests ────────────────────────────────────────
-// These tests verify the DBOS path is correctly triggered when dataSource
-// is provided, ensuring durable workflows are used instead of sync calls.
-
-// Hoisted mocks for DBOS module - vi.hoisted runs before vi.mock
-const { mockWorkflowFn, mockStartWorkflow } = vi.hoisted(() => {
-  const mockWorkflowFn = vi.fn().mockResolvedValue(undefined);
-  const mockStartWorkflow = vi.fn().mockReturnValue(mockWorkflowFn);
-  return { mockWorkflowFn, mockStartWorkflow };
-});
-
-vi.mock('@moltnet/database', () => ({
-  DBOS: {
-    startWorkflow: mockStartWorkflow,
-  },
-  ketoWorkflows: {
-    grantOwnership: { name: 'keto.grantOwnership' },
-    removeEntryRelations: { name: 'keto.removeEntryRelations' },
-    grantViewer: { name: 'keto.grantViewer' },
-  },
-}));
-
-describe('DiaryService (DBOS mode)', () => {
-  let service: DiaryService;
-  let repo: ReturnType<typeof createMockDiaryRepository>;
-  let permissions: ReturnType<typeof createMockPermissionChecker>;
-  let embeddings: ReturnType<typeof createMockEmbeddingService>;
-  let dataSource: {
-    client: object;
-    runTransaction: ReturnType<typeof vi.fn>;
-  };
-
-  beforeEach(() => {
-    repo = createMockDiaryRepository();
-    permissions = createMockPermissionChecker();
-    embeddings = createMockEmbeddingService();
-
-    // Mock dataSource with runTransaction
-    dataSource = {
-      client: { __mock: 'transactionalClient' },
-      runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
-    };
-
-    // Reset mocks
-    mockStartWorkflow.mockClear();
-    mockWorkflowFn.mockClear();
-    mockStartWorkflow.mockReturnValue(mockWorkflowFn);
-
-    service = createDiaryService({
-      diaryRepository: repo as unknown as DiaryRepository,
-      permissionChecker: permissions as unknown as PermissionChecker,
-      embeddingService: embeddings as unknown as EmbeddingService,
-      dataSource: dataSource as unknown as DataSource,
-    });
-  });
-
-  describe('create (DBOS mode)', () => {
-    it('uses dataSource.runTransaction instead of repo.transaction', async () => {
-      const mockEntry = createMockEntry();
-      repo.create.mockResolvedValue(mockEntry);
-      embeddings.embedPassage.mockResolvedValue([]);
-
-      await service.create({ ownerId: OWNER_ID, content: 'Test' });
-
-      expect(dataSource.runTransaction).toHaveBeenCalledTimes(1);
-      expect(dataSource.runTransaction).toHaveBeenCalledWith(
-        expect.any(Function),
-        { name: 'diary.create' },
-      );
-      expect(repo.transaction).not.toHaveBeenCalled();
-    });
-
-    it('passes dataSource.client to repo.create', async () => {
-      const mockEntry = createMockEntry();
-      repo.create.mockResolvedValue(mockEntry);
-      embeddings.embedPassage.mockResolvedValue([]);
-
-      await service.create({ ownerId: OWNER_ID, content: 'Test' });
-
-      expect(repo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ ownerId: OWNER_ID, content: 'Test' }),
-        dataSource.client,
-      );
-    });
-
-    it('calls startWorkflow INSIDE runTransaction callback (atomicity)', async () => {
-      const executionOrder: string[] = [];
-      const mockEntry = createMockEntry();
-
-      dataSource.runTransaction.mockImplementation(async (fn) => {
-        executionOrder.push('transaction-start');
-        const result = await fn();
-        executionOrder.push('transaction-end');
-        return result;
-      });
-
-      repo.create.mockResolvedValue(mockEntry);
-      embeddings.embedPassage.mockResolvedValue([]);
-      mockStartWorkflow.mockReturnValue(async () => {
-        executionOrder.push('workflow-started');
-      });
-
-      await service.create({ ownerId: OWNER_ID, content: 'Test' });
-
-      expect(executionOrder).toEqual([
-        'transaction-start',
-        'workflow-started',
-        'transaction-end',
-      ]);
-    });
-
-    it('propagates workflow error (causing transaction rollback)', async () => {
-      const mockEntry = createMockEntry();
-      repo.create.mockResolvedValue(mockEntry);
-      embeddings.embedPassage.mockResolvedValue([]);
-      mockStartWorkflow.mockReturnValue(async () => {
-        throw new Error('Workflow failed');
-      });
-
-      await expect(
-        service.create({ ownerId: OWNER_ID, content: 'Test' }),
-      ).rejects.toThrow('Workflow failed');
-    });
-
-    it('fires durable Keto workflow with correct args', async () => {
-      const mockEntry = createMockEntry();
-      repo.create.mockResolvedValue(mockEntry);
-      embeddings.embedPassage.mockResolvedValue([]);
-
-      await service.create({ ownerId: OWNER_ID, content: 'Test' });
-
-      expect(mockStartWorkflow).toHaveBeenCalledWith({
-        name: 'keto.grantOwnership',
-      });
-      expect(mockWorkflowFn).toHaveBeenCalledWith(mockEntry.id, OWNER_ID);
-      // Sync permissionChecker should NOT be called in DBOS mode
-      expect(permissions.grantOwnership).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('delete (DBOS mode)', () => {
-    it('uses dataSource.runTransaction and fires durable workflow', async () => {
-      permissions.canDeleteEntry.mockResolvedValue(true);
-      repo.delete.mockResolvedValue(true);
-
-      await service.delete(ENTRY_ID, OWNER_ID);
-
-      expect(dataSource.runTransaction).toHaveBeenCalledWith(
-        expect.any(Function),
-        { name: 'diary.delete' },
-      );
-      expect(mockStartWorkflow).toHaveBeenCalledWith({
-        name: 'keto.removeEntryRelations',
-      });
-      expect(mockWorkflowFn).toHaveBeenCalledWith(ENTRY_ID);
-      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
-    });
-
-    it('calls startWorkflow INSIDE runTransaction callback (atomicity)', async () => {
-      const executionOrder: string[] = [];
-
-      dataSource.runTransaction.mockImplementation(async (fn) => {
-        executionOrder.push('transaction-start');
-        const result = await fn();
-        executionOrder.push('transaction-end');
-        return result;
-      });
-
-      permissions.canDeleteEntry.mockResolvedValue(true);
-      repo.delete.mockResolvedValue(true);
-      mockStartWorkflow.mockReturnValue(async () => {
-        executionOrder.push('workflow-started');
-      });
-
-      await service.delete(ENTRY_ID, OWNER_ID);
-
-      expect(executionOrder).toEqual([
-        'transaction-start',
-        'workflow-started',
-        'transaction-end',
-      ]);
-    });
-
-    it('propagates workflow error (causing transaction rollback)', async () => {
-      permissions.canDeleteEntry.mockResolvedValue(true);
-      repo.delete.mockResolvedValue(true);
-      mockStartWorkflow.mockReturnValue(async () => {
-        throw new Error('Workflow failed');
-      });
-
-      await expect(service.delete(ENTRY_ID, OWNER_ID)).rejects.toThrow(
-        'Workflow failed',
-      );
-    });
-
-    it('does not fire workflow when delete returns false', async () => {
-      permissions.canDeleteEntry.mockResolvedValue(true);
-      repo.delete.mockResolvedValue(false);
-
-      const result = await service.delete(ENTRY_ID, OWNER_ID);
-
-      expect(result).toBe(false);
-      expect(mockStartWorkflow).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('share (DBOS mode)', () => {
-    it('uses dataSource.runTransaction and fires durable workflow', async () => {
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(true);
-
-      await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
-
-      expect(dataSource.runTransaction).toHaveBeenCalledWith(
-        expect.any(Function),
-        { name: 'diary.share' },
-      );
-      expect(mockStartWorkflow).toHaveBeenCalledWith({
-        name: 'keto.grantViewer',
-      });
-      expect(mockWorkflowFn).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
-      expect(permissions.grantViewer).not.toHaveBeenCalled();
-    });
-
-    it('calls startWorkflow INSIDE runTransaction callback (atomicity)', async () => {
-      const executionOrder: string[] = [];
-
-      dataSource.runTransaction.mockImplementation(async (fn) => {
-        executionOrder.push('transaction-start');
-        const result = await fn();
-        executionOrder.push('transaction-end');
-        return result;
-      });
-
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(true);
-      mockStartWorkflow.mockReturnValue(async () => {
-        executionOrder.push('workflow-started');
-      });
-
-      await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
-
-      expect(executionOrder).toEqual([
-        'transaction-start',
-        'workflow-started',
-        'transaction-end',
-      ]);
-    });
-
-    it('propagates workflow error (causing transaction rollback)', async () => {
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(true);
-      mockStartWorkflow.mockReturnValue(async () => {
-        throw new Error('Workflow failed');
-      });
-
-      await expect(
-        service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID),
-      ).rejects.toThrow('Workflow failed');
-    });
-
-    it('does not fire workflow when share returns false', async () => {
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(false);
-
-      const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
-
-      expect(result).toBe(false);
-      expect(mockStartWorkflow).not.toHaveBeenCalled();
     });
   });
 });

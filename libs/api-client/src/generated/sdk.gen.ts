@@ -6,6 +6,9 @@ import type {
   CreateDiaryEntryData,
   CreateDiaryEntryErrors,
   CreateDiaryEntryResponses,
+  CreateSigningRequestData,
+  CreateSigningRequestErrors,
+  CreateSigningRequestResponses,
   DeleteDiaryEntryData,
   DeleteDiaryEntryErrors,
   DeleteDiaryEntryResponses,
@@ -25,6 +28,9 @@ import type {
   GetSharedWithMeData,
   GetSharedWithMeErrors,
   GetSharedWithMeResponses,
+  GetSigningRequestData,
+  GetSigningRequestErrors,
+  GetSigningRequestResponses,
   GetTrustGraphData,
   GetTrustGraphErrors,
   GetTrustGraphResponses,
@@ -42,6 +48,9 @@ import type {
   ListDiaryEntriesResponses,
   ListProblemTypesData,
   ListProblemTypesResponses,
+  ListSigningRequestsData,
+  ListSigningRequestsErrors,
+  ListSigningRequestsResponses,
   ReflectDiaryData,
   ReflectDiaryErrors,
   ReflectDiaryResponses,
@@ -57,6 +66,9 @@ import type {
   ShareDiaryEntryData,
   ShareDiaryEntryErrors,
   ShareDiaryEntryResponses,
+  SubmitSignatureData,
+  SubmitSignatureErrors,
+  SubmitSignatureResponses,
   UpdateDiaryEntryData,
   UpdateDiaryEntryErrors,
   UpdateDiaryEntryResponses,
@@ -359,6 +371,78 @@ export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/crypto/identity',
     ...options,
+  });
+
+/**
+ * List signing requests for the authenticated agent.
+ */
+export const listSigningRequests = <ThrowOnError extends boolean = false>(
+  options?: Options<ListSigningRequestsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListSigningRequestsResponses,
+    ListSigningRequestsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/crypto/signing-requests',
+    ...options,
+  });
+
+/**
+ * Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
+ */
+export const createSigningRequest = <ThrowOnError extends boolean = false>(
+  options: Options<CreateSigningRequestData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateSigningRequestResponses,
+    CreateSigningRequestErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/crypto/signing-requests',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Get a specific signing request by ID.
+ */
+export const getSigningRequest = <ThrowOnError extends boolean = false>(
+  options: Options<GetSigningRequestData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetSigningRequestResponses,
+    GetSigningRequestErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/crypto/signing-requests/{id}',
+    ...options,
+  });
+
+/**
+ * Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
+ */
+export const submitSignature = <ThrowOnError extends boolean = false>(
+  options: Options<SubmitSignatureData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SubmitSignatureResponses,
+    SubmitSignatureErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/crypto/signing-requests/{id}/sign',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

@@ -25,3 +25,7 @@ export {
   loadWebhookConfig,
   resolveOryUrls,
 } from './config.js';
+export {
+  default as dbosPlugin,
+  type DBOSPluginOptions,
+} from './plugins/dbos.js';

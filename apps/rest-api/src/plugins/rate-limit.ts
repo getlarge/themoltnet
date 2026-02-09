@@ -20,6 +20,8 @@ export interface RateLimitPluginOptions {
   embeddingLimit: number;
   /** Max requests per minute for vouch endpoints (default: 10) */
   vouchLimit: number;
+  /** Max requests per minute for signing request creation (default: 5) */
+  signingLimit: number;
 }
 
 /**
@@ -41,8 +43,13 @@ async function rateLimitPluginImpl(
   fastify: FastifyInstance,
   options: RateLimitPluginOptions,
 ) {
-  const { globalAuthLimit, globalAnonLimit, embeddingLimit, vouchLimit } =
-    options;
+  const {
+    globalAuthLimit,
+    globalAnonLimit,
+    embeddingLimit,
+    vouchLimit,
+    signingLimit,
+  } = options;
 
   // Register global rate limiter
   await fastify.register(rateLimit, {
@@ -103,6 +110,10 @@ async function rateLimitPluginImpl(
       max: vouchLimit,
       timeWindow: '1 minute',
     },
+    signing: {
+      max: signingLimit,
+      timeWindow: '1 minute',
+    },
   });
 }
 
@@ -116,6 +127,7 @@ declare module 'fastify' {
     rateLimitConfig: {
       embedding: { max: number; timeWindow: string };
       vouch: { max: number; timeWindow: string };
+      signing: { max: number; timeWindow: string };
     };
   }
 }

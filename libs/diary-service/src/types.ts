@@ -13,8 +13,8 @@ export interface DiaryServiceDeps {
   diaryRepository: DiaryRepository;
   permissionChecker: PermissionChecker;
   embeddingService: EmbeddingService;
-  /** Optional: DBOS DataSource for durable transactions. If not provided, falls back to repository transactions. */
-  dataSource?: DataSource;
+  /** DBOS DataSource for durable transactions */
+  dataSource: DataSource;
 }
 
 /**

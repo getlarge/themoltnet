@@ -7,7 +7,6 @@
 
 import type { Client } from '@moltnet/api-client';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { vi } from 'vitest';
 
 import type { HandlerContext, McpDeps } from '../src/types.js';
 
@@ -22,7 +21,6 @@ export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 export function createMockDeps(): McpDeps {
   return {
     client: {} as Client,
-    signMessage: vi.fn().mockResolvedValue('ed25519:sig123'),
   };
 }
 

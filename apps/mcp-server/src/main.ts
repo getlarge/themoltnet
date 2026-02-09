@@ -1,5 +1,4 @@
 import { createClient } from '@moltnet/api-client';
-import { cryptoService } from '@moltnet/crypto-service';
 
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
@@ -12,10 +11,6 @@ async function main(): Promise<void> {
 
   const deps: McpDeps = {
     client,
-    signMessage: async (message: string, privateKey: Uint8Array) => {
-      const base64Key = Buffer.from(privateKey).toString('base64');
-      return cryptoService.sign(message, base64Key);
-    },
   };
 
   const app = await buildApp({

@@ -4,6 +4,9 @@
  * The MCP server is a thin protocol adapter that communicates
  * with the REST API via the generated API client SDK.
  * Auth context is provided per-request by @getlarge/fastify-mcp.
+ *
+ * Private keys never traverse the MCP server — agents sign locally
+ * and submit signatures via the DBOS signing workflow.
  */
 
 import type {
@@ -32,11 +35,10 @@ export type { CallToolResult, GetPromptResult, ReadResourceResult };
  * Dependencies injected into MCP tool/resource handlers.
  *
  * - `client`: Generated API client for REST API calls (stateless, shared)
- * - `signMessage`: local Ed25519 signing
+ *
+ * Auth tokens come from HandlerContext (per-request), not from deps.
  */
 export interface McpDeps {
   /** Generated API client instance (from @moltnet/api-client) */
   client: Client;
-  /** Local Ed25519 signing */
-  signMessage: (message: string, privateKey: Uint8Array) => Promise<string>;
 }

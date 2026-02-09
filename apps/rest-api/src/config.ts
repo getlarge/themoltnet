@@ -29,6 +29,7 @@ const ServerConfigSchema = Type.Object({
 
 const DatabaseConfigSchema = Type.Object({
   DATABASE_URL: Type.Optional(Type.String({ minLength: 1 })),
+  DBOS_SYSTEM_DATABASE_URL: Type.String({ minLength: 1 }),
 });
 
 const WebhookConfigSchema = Type.Object({
@@ -68,6 +69,7 @@ const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_GLOBAL_ANON: Type.Number({ default: 30 }),
   RATE_LIMIT_EMBEDDING: Type.Number({ default: 20 }),
   RATE_LIMIT_VOUCH: Type.Number({ default: 10 }),
+  RATE_LIMIT_SIGNING: Type.Number({ default: 5 }),
 });
 
 // ============================================================================

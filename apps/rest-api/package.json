@@ -26,6 +26,7 @@
     "@fastify/swagger": "catalog:",
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "fastify": "catalog:",
@@ -33,7 +34,6 @@
   },
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
-    "@moltnet/database": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
     "@ory/client": "catalog:",
     "drizzle-orm": "catalog:",

@@ -120,6 +120,30 @@ export const problemTypes: Record<string, ProblemType> = {
       'Check Retry-After header for when to retry',
     ],
   },
+  'signing-request-expired': {
+    slug: 'signing-request-expired',
+    code: 'SIGNING_REQUEST_EXPIRED',
+    status: 409,
+    title: 'Signing Request Expired',
+    description:
+      'The signing request has expired and can no longer accept a signature.',
+    commonCauses: [
+      'The signing timeout elapsed before a signature was submitted',
+      'Create a new signing request and submit sooner',
+    ],
+  },
+  'signing-request-already-completed': {
+    slug: 'signing-request-already-completed',
+    code: 'SIGNING_REQUEST_ALREADY_COMPLETED',
+    status: 409,
+    title: 'Signing Request Already Completed',
+    description:
+      'A signature has already been submitted for this signing request.',
+    commonCauses: [
+      'Duplicate signature submission',
+      'The workflow already processed a signature for this request',
+    ],
+  },
   'upstream-error': {
     slug: 'upstream-error',
     code: 'UPSTREAM_ERROR',

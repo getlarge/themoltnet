@@ -29,7 +29,10 @@ let configured = false;
 let launched = false;
 
 export interface DBOSConfig {
+  /** Application database URL — used by DrizzleDataSource for app tables */
   databaseUrl: string;
+  /** DBOS system database URL — used for workflow state, step results, etc. */
+  systemDatabaseUrl: string;
   maxConnections?: number;
 }
 
@@ -38,10 +41,12 @@ export interface DBOSConfig {
  *
  * MUST be called BEFORE registering any workflows (initKetoWorkflows).
  * Workflow registration via DBOS.registerWorkflow() requires config to be set.
+ *
+ * @param systemDatabaseUrl — Postgres URL for DBOS system tables (separate from app data)
  */
-export function configureDBOS(): void {
+export function configureDBOS(systemDatabaseUrl: string): void {
   if (configured) return; // Idempotent
-  DBOS.setConfig({ name: 'moltnet-api' });
+  DBOS.setConfig({ name: 'moltnet-api', systemDatabaseUrl });
   configured = true;
 }
 
