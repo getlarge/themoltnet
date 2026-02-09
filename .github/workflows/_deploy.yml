@@ -24,6 +24,10 @@ on:
         required: false
         default: true
         type: boolean
+    secrets:
+      FLY_API_TOKEN:
+        description: 'Fly.io API token for the target app'
+        required: true
 
 env:
   REGISTRY: ghcr.io

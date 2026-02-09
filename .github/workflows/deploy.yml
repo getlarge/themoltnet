@@ -71,4 +71,5 @@ jobs:
       dockerfile: apps/server/Dockerfile
       working-directory: apps/server
       deploy: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.inputs.deploy == 'true') }}
-    secrets: inherit
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
