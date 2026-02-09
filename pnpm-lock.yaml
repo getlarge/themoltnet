@@ -743,6 +743,9 @@ importers:
       '@moltnet/database':
         specifier: workspace:*
         version: link:../libs/database
+      '@moltnet/rest-api':
+        specifier: workspace:*
+        version: link:../apps/rest-api
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
