@@ -107,7 +107,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   if (proxyEnabled) {
     await app.register(mcpAuthProxyPlugin, {
       oidcDiscoveryUrl: `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
-      scopes: ['openid'],
+      scopes: [],
     });
     app.log.info('Client credentials proxy enabled');
   }
