@@ -63,4 +63,4 @@ COPY --from=build --chown=migrate:migrate /app/libs/database/drizzle ./drizzle
 
 USER migrate
 
-CMD ["node", "dist/migrate-cli.js"]
+CMD ["node", "dist/src/migrate-cli.js"]

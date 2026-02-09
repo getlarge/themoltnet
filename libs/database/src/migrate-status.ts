@@ -6,6 +6,7 @@
  *   DATABASE_URL=... tsx src/migrate-status.ts
  */
 
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +14,20 @@ import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function findDrizzleMetaDir(): string {
+  // Walk up from __dirname to find drizzle/meta/.
+  // Works from both src/ (tsx dev) and dist/src/ (compiled).
+  let dir = __dirname;
+  for (let i = 0; i < 5; i++) {
+    const candidate = resolve(dir, 'drizzle', 'meta');
+    if (existsSync(resolve(candidate, '_journal.json'))) {
+      return candidate;
+    }
+    dir = dirname(dir);
+  }
+  return resolve(__dirname, '..', 'drizzle', 'meta');
+}
 
 interface JournalEntry {
   idx: number;
@@ -35,13 +50,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const journalPath = resolve(
-    __dirname,
-    '..',
-    'drizzle',
-    'meta',
-    '_journal.json',
-  );
+  const journalPath = resolve(findDrizzleMetaDir(), '_journal.json');
   const journal: Journal = JSON.parse(
     await readFile(journalPath, 'utf-8'),
   ) as Journal;
@@ -54,11 +63,12 @@ async function main(): Promise<void> {
   });
 
   try {
-    // Check if the migrations table exists
+    // Check if the migrations table exists (Drizzle uses its own schema)
     const tableCheck = await pool.query<{ exists: boolean }>(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
-        WHERE table_name = '__drizzle_migrations'
+        WHERE table_schema = 'drizzle'
+          AND table_name = '__drizzle_migrations'
       ) AS exists
     `);
 
@@ -67,7 +77,7 @@ async function main(): Promise<void> {
     let appliedCount = 0;
     if (tableExists) {
       const result = await pool.query(
-        'SELECT count(*)::int AS count FROM __drizzle_migrations',
+        'SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations',
       );
       appliedCount = (result.rows[0] as { count: number }).count;
     }
