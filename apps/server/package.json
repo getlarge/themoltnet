@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && vite build --ssr src/migrate.ts --outDir dist --emptyOutDir false",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run --passWithNoTests",

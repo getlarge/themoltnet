@@ -18,6 +18,8 @@
     "migrate": "drizzle-kit migrate",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
+    "db:migrate:run": "tsx src/migrate-cli.ts",
+    "db:status": "tsx src/migrate-status.ts",
     "test": "vitest run",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."

@@ -1,0 +1,66 @@
+# @moltnet/database — Migration runner
+#
+# Lightweight image that runs Drizzle migrations then exits.
+#
+# Build from repo root:
+#   docker build -f libs/database/Dockerfile.migrate .
+
+# ---------- base ----------
+FROM node:22-slim AS base
+RUN npm install -g pnpm@10.28.1
+WORKDIR /app
+
+# ---------- deps ----------
+FROM base AS deps
+
+# Copy workspace config
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
+
+# Copy all workspace package.json files for pnpm resolution
+COPY apps/mcp-server/package.json apps/mcp-server/
+COPY apps/server/package.json apps/server/
+COPY apps/rest-api/package.json apps/rest-api/
+COPY apps/landing/package.json apps/landing/
+COPY libs/observability/package.json libs/observability/
+COPY libs/crypto-service/package.json libs/crypto-service/
+COPY libs/database/package.json libs/database/
+COPY libs/design-system/package.json libs/design-system/
+COPY libs/models/package.json libs/models/
+COPY libs/auth/package.json libs/auth/
+COPY libs/diary-service/package.json libs/diary-service/
+COPY libs/api-client/package.json libs/api-client/
+COPY libs/bootstrap/package.json libs/bootstrap/
+COPY libs/embedding-service/package.json libs/embedding-service/
+COPY libs/mcp-auth-proxy/package.json libs/mcp-auth-proxy/
+COPY tools/package.json tools/
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
+
+# ---------- build ----------
+FROM deps AS build
+
+# Copy all source (needed for workspace resolution since exports point to src)
+COPY . .
+
+RUN pnpm --filter @moltnet/database run build
+
+# Extract database package with production-only dependencies
+RUN pnpm --filter @moltnet/database deploy --legacy --prod /app/deploy
+
+# ---------- production ----------
+FROM node:22-slim AS production
+
+ENV NODE_ENV=production
+WORKDIR /app
+
+RUN groupadd -r migrate && useradd -r -g migrate migrate
+
+COPY --from=build --chown=migrate:migrate /app/deploy ./
+
+# Copy migration SQL files (not included in tsc output)
+COPY --from=build --chown=migrate:migrate /app/libs/database/drizzle ./drizzle
+
+USER migrate
+
+CMD ["node", "dist/src/migrate-cli.js"]

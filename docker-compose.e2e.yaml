@@ -12,8 +12,13 @@ services:
       file: docker-compose.base.yaml
       service: app-db
 
-    volumes:
-      - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+  app-db-migrate:
+    extends:
+      file: docker-compose.base.yaml
+      service: app-db-migrate
+    depends_on:
+      app-db:
+        condition: service_healthy
 
   kratos-postgres:
     extends:
@@ -114,6 +119,8 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
+      app-db-migrate:
+        condition: service_completed_successfully
       kratos:
         condition: service_healthy
       hydra:

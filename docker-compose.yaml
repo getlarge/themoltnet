@@ -26,13 +26,27 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-moltnet}
     volumes:
       - app-db-data:/var/lib/postgresql/data
-      - ./infra/supabase/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-moltnet}']
       interval: 5s
       timeout: 3s
       retries: 5
     restart: unless-stopped
+
+  # ==========================================================================
+  # Application Database Migrations — Drizzle
+  # ==========================================================================
+  app-db-migrate:
+    build:
+      context: .
+      dockerfile: libs/database/Dockerfile.migrate
+    profiles: [dev, ci]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
+    depends_on:
+      app-db:
+        condition: service_healthy
+    restart: on-failure
 
   # ==========================================================================
   # Ory Kratos — Identity Management

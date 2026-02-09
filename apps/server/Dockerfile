@@ -63,6 +63,10 @@ COPY --from=build /app/deploy ./
 # Landing page build output → /app/public (matched by resolveStaticDir)
 COPY --from=build /app/apps/landing/dist ./public
 
+# Migration SQL files for Fly.io release_command
+# findMigrationsFolder() walks up from dist/ → /app/ and finds drizzle/meta/_journal.json
+COPY --from=build /app/libs/database/drizzle ./drizzle
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \

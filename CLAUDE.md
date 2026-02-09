@@ -142,6 +142,26 @@ moltnet/
 - Repository pattern for database access
 - ESLint (`@typescript-eslint/recommended`) + Prettier (single quotes, trailing commas, 80 width)
 
+## Database Schema Changes
+
+Schema is managed by Drizzle migrations in `libs/database/drizzle/`. **Every change to `libs/database/src/schema.ts` MUST be followed by generating a migration:**
+
+```bash
+pnpm db:generate                    # Auto-generate migration from schema diff
+pnpm db:generate -- --custom --name <name>  # Empty file for custom SQL (functions, triggers, special indexes)
+```
+
+Review the generated SQL in `libs/database/drizzle/` before committing. Migrations are applied automatically by the `app-db-migrate` Docker service on startup.
+
+**Commands:**
+
+- `pnpm db:migrate:run` — Apply pending migrations (needs `DATABASE_URL`)
+- `pnpm db:status` — Show applied vs pending migrations (needs `DATABASE_URL`)
+
+**After adding migrations**, reset local Docker volumes: `pnpm docker:reset`
+
+See `libs/database/drizzle/README.md` for the full workflow, rollback strategy, and production baselining.
+
 ## TypeScript Configuration Rules
 
 - **NEVER use `paths` aliases** in any `tsconfig.json` (root or workspace). Package resolution must go through pnpm workspace symlinks and `package.json` `exports`, not TypeScript path mappings.

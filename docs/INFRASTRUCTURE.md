@@ -194,6 +194,20 @@ npx @dotenvx/dotenvx run -f .env -- bash -c '
 
 To verify: `fly secrets list --app <app-name>`
 
+### Database migrations
+
+Migrations run automatically on every server deploy via Fly.io `release_command`. The server image includes `dist/migrate.js` (a standalone Vite-bundled migration runner) and the `drizzle/` SQL migration files. Fly.io runs `node dist/migrate.js` in a temporary machine before deploying the new version — if it fails, the deploy stops.
+
+```bash
+# Check migration output in deploy logs
+fly logs --app moltnet
+
+# Run migrations manually via SSH
+fly ssh console --app moltnet -C "node dist/migrate.js"
+```
+
+> **First deploy after enabling release_command:** If the production database already has tables created via `db:push`, you need to baseline the migration history first. Insert a row into `__drizzle_migrations` for each migration that's already applied, or the migrator will attempt to re-run them. See `libs/database/drizzle/README.md` for the baselining procedure.
+
 ### Deploy steps
 
 **CI deploy (automatic):** pushing to `main` triggers the deploy workflows:
