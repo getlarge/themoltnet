@@ -14,6 +14,9 @@ primary_region = "fra"  # Frankfurt — EU data residency
   ORY_PROJECT_URL = "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com"
   CORS_ORIGINS = "https://themolt.net,https://api.themolt.net"
 
+[deploy]
+  release_command = "node dist/migrate.js"
+
 [http_service]
   internal_port = 8080
   force_https = true
