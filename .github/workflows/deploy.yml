@@ -19,10 +19,16 @@ on:
         default: true
         type: boolean
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   preflight:
     name: Preflight
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || github.event.inputs.deploy == 'true')

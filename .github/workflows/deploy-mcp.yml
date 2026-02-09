@@ -17,6 +17,10 @@ on:
         default: true
         type: boolean
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   deploy:
     name: Deploy
