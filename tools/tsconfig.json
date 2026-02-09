@@ -9,6 +9,9 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     {
+      "path": "../apps/rest-api"
+    },
+    {
       "path": "../libs/bootstrap"
     },
     {

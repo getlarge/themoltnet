@@ -15,6 +15,7 @@ export type {
   WebhookConfig,
 } from './config.js';
 export {
+  getRequiredSecrets,
   loadConfig,
   loadDatabaseConfig,
   loadObservabilityConfig,

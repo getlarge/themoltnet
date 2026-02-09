@@ -6,6 +6,7 @@
   "description": "CLI tools for MoltNet operations (bootstrap, admin, etc.)",
   "scripts": {
     "bootstrap": "tsx src/bootstrap-genesis-agents.ts",
+    "check-secrets": "tsx src/check-secrets.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
@@ -13,7 +14,8 @@
   "dependencies": {
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/database": "workspace:*"
+    "@moltnet/database": "workspace:*",
+    "@moltnet/rest-api": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
