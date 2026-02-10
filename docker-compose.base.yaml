@@ -23,6 +23,17 @@ services:
     restart: unless-stopped
 
   # ==========================================================================
+  # Application Database Migrations — Drizzle
+  # ==========================================================================
+  app-db-migrate:
+    build:
+      context: .
+      dockerfile: libs/database/Dockerfile.migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
+    restart: on-failure
+
+  # ==========================================================================
   # Ory Kratos — Identity Management
   # ==========================================================================
   kratos-postgres:

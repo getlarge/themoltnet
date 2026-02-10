@@ -25,6 +25,7 @@ export {
   launchDBOS,
   shutdownDBOS,
 } from './dbos.js';
+export { runMigrations } from './migrate.js';
 export {
   type AgentRepository,
   createAgentRepository,

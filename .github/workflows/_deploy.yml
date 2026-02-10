@@ -1,0 +1,117 @@
+name: _deploy
+
+on:
+  workflow_call:
+    inputs:
+      fly-app:
+        description: 'Fly.io app name'
+        required: true
+        type: string
+      image-name:
+        description: 'Container image name (under ghcr.io/<owner>/)'
+        required: true
+        type: string
+      dockerfile:
+        description: 'Path to Dockerfile (relative to repo root)'
+        required: true
+        type: string
+      working-directory:
+        description: 'Directory containing fly.toml'
+        required: true
+        type: string
+      deploy:
+        description: 'Whether to deploy to Fly.io'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      FLY_API_TOKEN:
+        description: 'Fly.io API token for the target app'
+        required: true
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Fly.io CLI
+        if: github.event_name != 'pull_request'
+        uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # v1.5
+
+      - name: Log in to Fly.io registry
+        if: github.event_name != 'pull_request'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl auth docker
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.image-name }}
+            registry.fly.io/${{ inputs.fly-app }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ inputs.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Fly.io
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      inputs.deploy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # v1.5
+
+      - name: Deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: ${{ inputs.working-directory }}
+        run: flyctl deploy --image registry.fly.io/${{ inputs.fly-app }}:${{ github.sha }}

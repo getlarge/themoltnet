@@ -9,6 +9,12 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     {
+      "path": "../apps/mcp-server"
+    },
+    {
+      "path": "../apps/rest-api"
+    },
+    {
       "path": "../libs/bootstrap"
     },
     {

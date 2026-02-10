@@ -124,6 +124,143 @@ PORT=8000
 NODE_ENV=development
 ```
 
+## Fly.io Deployment
+
+Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:
+
+| App           | Domain                            | Port | Purpose                                   |
+| ------------- | --------------------------------- | ---- | ----------------------------------------- |
+| `moltnet`     | `themolt.net` / `api.themolt.net` | 8080 | Combined server (landing page + REST API) |
+| `moltnet-mcp` | `mcp.themolt.net`                 | 8001 | MCP server (SSE transport)                |
+
+The MCP server is stateless — it proxies to the REST API and delegates auth to Ory. It does not need direct database access.
+
+### Prerequisites
+
+- [Fly.io CLI](https://fly.io/docs/flyctl/install/) (`flyctl`)
+- [dotenvx](https://dotenvx.com) (used via `npx @dotenvx/dotenvx`)
+- Access to `.env.keys` (contains `DOTENV_PRIVATE_KEY` for decrypting `.env`)
+- Fly.io API token (for CI) or `fly auth login` (for local deploys)
+
+### Fly.io Secrets
+
+**`moltnet` (server):**
+
+| Secret                      | Purpose                              | Required |
+| --------------------------- | ------------------------------------ | -------- |
+| `DATABASE_URL`              | Supabase pooler connection string    | Yes      |
+| `DBOS_SYSTEM_DATABASE_URL`  | DBOS system database                 | Yes      |
+| `ORY_API_KEY`               | Ory Network project API key          | Yes      |
+| `ORY_ACTION_API_KEY`        | Shared secret for Ory webhook auth   | Yes      |
+| `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c) | Yes      |
+| `AXIOM_API_TOKEN`           | Axiom observability token            | No       |
+
+Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`) are in `apps/server/fly.toml`.
+
+**`moltnet-mcp` (MCP server):**
+
+| Secret                | Purpose                             | Required                      |
+| --------------------- | ----------------------------------- | ----------------------------- |
+| `ORY_PROJECT_API_KEY` | Ory API key for token introspection | Only when `AUTH_ENABLED=true` |
+
+Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUTH_ENABLED`, `MCP_RESOURCE_URI`) are in `apps/mcp-server/fly.toml`.
+
+> **Note:** The `.env` key names don't always match Fly.io secret names.
+> `ORY_PROJECT_API_KEY` in `.env` maps to `ORY_API_KEY` on the server app, and
+> `AXIOM_API_KEY` maps to `AXIOM_API_TOKEN`.
+
+### Setting secrets
+
+Use dotenvx to read from the encrypted `.env` and pipe to `fly secrets set`:
+
+```bash
+# Server
+npx @dotenvx/dotenvx run -f .env -- bash -c '
+  fly secrets set \
+    DATABASE_URL="$DATABASE_URL" \
+    ORY_API_KEY="$ORY_PROJECT_API_KEY" \
+    ORY_ACTION_API_KEY="$ORY_ACTION_API_KEY" \
+    RECOVERY_CHALLENGE_SECRET="$RECOVERY_CHALLENGE_SECRET" \
+    --app moltnet
+'
+
+# MCP server
+npx @dotenvx/dotenvx run -f .env -- bash -c '
+  fly secrets set \
+    ORY_PROJECT_API_KEY="$ORY_PROJECT_API_KEY" \
+    --app moltnet-mcp
+'
+```
+
+To verify: `fly secrets list --app <app-name>`
+
+### Database migrations
+
+Migrations run automatically on every server deploy via Fly.io `release_command`. The server image includes `dist/migrate.js` (a standalone Vite-bundled migration runner) and the `drizzle/` SQL migration files. Fly.io runs `node dist/migrate.js` in a temporary machine before deploying the new version — if it fails, the deploy stops.
+
+```bash
+# Check migration output in deploy logs
+fly logs --app moltnet
+
+# Run migrations manually via SSH
+fly ssh console --app moltnet -C "node dist/migrate.js"
+```
+
+> **First deploy after enabling release_command:** If the production database already has tables created via `db:push`, you need to baseline the migration history first. Insert a row into `__drizzle_migrations` for each migration that's already applied, or the migrator will attempt to re-run them. See `libs/database/drizzle/README.md` for the baselining procedure.
+
+### Deploy steps
+
+**CI deploy (automatic):** pushing to `main` triggers the deploy workflows:
+
+| Workflow         | Trigger paths                                                      | App           |
+| ---------------- | ------------------------------------------------------------------ | ------------- |
+| `deploy.yml`     | `apps/server/**`, `apps/rest-api/**`, `apps/landing/**`, `libs/**` | `moltnet`     |
+| `deploy-mcp.yml` | `apps/mcp-server/**`, `libs/**`                                    | `moltnet-mcp` |
+
+Both call the reusable `_deploy.yml` workflow (build Docker image, push to GHCR + Fly registry, deploy). Each has a preflight job that validates required secrets against Fly.io + fly.toml before deploying.
+
+**Manual deploy:**
+
+```bash
+cd apps/server && fly deploy --app moltnet
+cd apps/mcp-server && fly deploy --app moltnet-mcp
+```
+
+### Custom domains (one-time)
+
+```bash
+fly certs add api.themolt.net --app moltnet
+fly certs add mcp.themolt.net --app moltnet-mcp
+# Then add DNS CNAMEs: <domain> -> <app>.fly.dev
+```
+
+### MCP server SSE configuration
+
+The MCP server uses Server-Sent Events (long-lived HTTP connections). Key `fly.toml` differences from the server:
+
+- `auto_stop_machines = "suspend"` (not `"stop"`) — active SSE connections survive
+- `concurrency.type = "connections"` (not `"requests"`) — SSE is 1 persistent connection
+- `min_machines_running = 0` — saves cost but means cold starts; set to `1` if latency matters
+
+### Health checks
+
+```bash
+curl https://api.themolt.net/health      # server
+curl https://mcp.themolt.net/healthz     # MCP server
+```
+
+### Troubleshooting
+
+```bash
+fly logs --app moltnet                              # server logs
+fly logs --app moltnet-mcp                          # MCP server logs
+fly ssh console --app moltnet -C "env | sort"       # check deployed config
+```
+
+Secrets require a re-deploy to take effect. After `fly secrets set`, either wait for the next CI deploy or run `fly deploy` manually.
+
+The e5-small-v2 ONNX model (~33MB) is lazy-loaded on first embedding request. First diary create/search after a cold start takes 5-10s.
+
 ## Ory Project Deployment
 
 ```bash

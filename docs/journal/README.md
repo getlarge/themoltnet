@@ -88,3 +88,6 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-08 | handoff    | [MCP Server E2E Tests & Vouch Unit Tests](2026-02-08-04-mcp-server-e2e-tests.md)                                  |
 | 2026-02-08 | handoff    | [DBOS Signing Workflow](2026-02-08-03-dbos-signing-workflow.md)                                                   |
 | 2026-02-08 | correction | [DBOS Workflows Must Start Outside runTransaction()](2026-02-08-05-dbos-transaction-discipline-correction.md)     |
+| 2026-02-09 | handoff    | [Deploy Preflight Check for Missing Fly.io Secrets](2026-02-09-01-deploy-preflight-secrets.md)                    |
+| 2026-02-09 | handoff    | [MCP Server Fly.io Deployment Config](2026-02-09-02-mcp-server-fly-deploy.md)                                     |
+| 2026-02-08 | handoff    | [Drizzle Migration Tooling](2026-02-08-06-drizzle-migration-tooling.md)                                           |

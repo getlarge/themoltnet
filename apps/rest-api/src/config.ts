@@ -15,7 +15,7 @@ import { Value } from '@sinclair/typebox/value';
 // Schemas
 // ============================================================================
 
-const ServerConfigSchema = Type.Object({
+export const ServerConfigSchema = Type.Object({
   PORT: Type.Number({ default: 8000 }),
   NODE_ENV: Type.Union(
     [
@@ -27,20 +27,20 @@ const ServerConfigSchema = Type.Object({
   ),
 });
 
-const DatabaseConfigSchema = Type.Object({
+export const DatabaseConfigSchema = Type.Object({
   DATABASE_URL: Type.Optional(Type.String({ minLength: 1 })),
   DBOS_SYSTEM_DATABASE_URL: Type.String({ minLength: 1 }),
 });
 
-const WebhookConfigSchema = Type.Object({
+export const WebhookConfigSchema = Type.Object({
   ORY_ACTION_API_KEY: Type.String({ minLength: 1 }),
 });
 
-const RecoveryConfigSchema = Type.Object({
+export const RecoveryConfigSchema = Type.Object({
   RECOVERY_CHALLENGE_SECRET: Type.String({ minLength: 16 }),
 });
 
-const OryConfigSchema = Type.Object({
+export const OryConfigSchema = Type.Object({
   ORY_PROJECT_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KRATOS_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
@@ -51,14 +51,14 @@ const OryConfigSchema = Type.Object({
   ORY_KETO_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
 });
 
-const ObservabilityConfigSchema = Type.Object({
+export const ObservabilityConfigSchema = Type.Object({
   AXIOM_API_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
   AXIOM_LOGS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
   AXIOM_TRACES_DATASET: Type.Optional(Type.String({ minLength: 1 })),
   AXIOM_METRICS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
 });
 
-const SecurityConfigSchema = Type.Object({
+export const SecurityConfigSchema = Type.Object({
   // CORS origins (comma-separated)
   CORS_ORIGINS: Type.String({
     default:
@@ -222,6 +222,38 @@ export function loadConfig(
     recovery: loadRecoveryConfig(env),
     security: loadSecurityConfig(env),
   };
+}
+
+// ============================================================================
+// Required secrets introspection
+// ============================================================================
+
+const allSchemas: TObject[] = [
+  ServerConfigSchema,
+  DatabaseConfigSchema,
+  WebhookConfigSchema,
+  RecoveryConfigSchema,
+  OryConfigSchema,
+  ObservabilityConfigSchema,
+  SecurityConfigSchema,
+];
+
+/**
+ * Returns env var names that are required at runtime — i.e. listed in
+ * `required` by TypeBox (not Optional) AND have no `default` value.
+ * Used by the deploy preflight check to verify Fly.io secrets.
+ */
+export function getRequiredSecrets(): string[] {
+  const result: string[] = [];
+  for (const schema of allSchemas) {
+    const required = new Set<string>(schema.required ?? []);
+    for (const [key, prop] of Object.entries(schema.properties)) {
+      if (required.has(key) && !('default' in prop)) {
+        result.push(key);
+      }
+    }
+  }
+  return result;
 }
 
 // ============================================================================

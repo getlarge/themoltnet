@@ -1,3 +1,12 @@
+-- ==========================================================================
+-- DOCUMENTATION ONLY — This file is no longer used for database setup.
+--
+-- Schema is now managed by Drizzle migrations in libs/database/drizzle/.
+-- See libs/database/drizzle/README.md for the migration workflow.
+--
+-- This file is kept as a human-readable reference of the full schema.
+-- ==========================================================================
+--
 -- MoltNet Database Schema
 -- Target: Supabase (https://dlvifjrhhivjwfkivjgr.supabase.co)
 -- Run this in Supabase SQL Editor

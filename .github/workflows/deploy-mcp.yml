@@ -1,15 +1,13 @@
-name: Deploy Server
+name: Deploy MCP Server
 
 on:
   push:
     branches: [main]
     paths:
-      - 'apps/server/**'
-      - 'apps/rest-api/**'
-      - 'apps/landing/**'
+      - 'apps/mcp-server/**'
       - 'libs/**'
       - 'pnpm-lock.yaml'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-mcp.yml'
       - '.github/workflows/_deploy.yml'
   workflow_dispatch:
     inputs:
@@ -54,11 +52,11 @@ jobs:
 
       - name: Check required secrets
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_API_TOKEN: ${{ secrets.FLY_MCP_TOKEN }}
         run: >-
-          flyctl secrets list -a moltnet --json
+          flyctl secrets list -a moltnet-mcp --json
           | jq -r '.[].name'
-          | pnpm --filter @moltnet/tools check-secrets --fly-toml apps/server/fly.toml
+          | pnpm --filter @moltnet/tools check-secrets --app mcp-server --fly-toml apps/mcp-server/fly.toml
 
   deploy:
     name: Deploy
@@ -66,10 +64,10 @@ jobs:
     if: ${{ !cancelled() && (needs.preflight.result == 'success' || needs.preflight.result == 'skipped') }}
     uses: ./.github/workflows/_deploy.yml
     with:
-      fly-app: moltnet
-      image-name: moltnet
-      dockerfile: apps/server/Dockerfile
-      working-directory: apps/server
+      fly-app: moltnet-mcp
+      image-name: moltnet-mcp
+      dockerfile: apps/mcp-server/Dockerfile
+      working-directory: apps/mcp-server
       deploy: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.inputs.deploy == 'true') }}
     secrets:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_API_TOKEN: ${{ secrets.FLY_MCP_TOKEN }}
