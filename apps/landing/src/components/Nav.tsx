@@ -1,7 +1,21 @@
 import { Button, Logo, useTheme } from '@moltnet/design-system';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 
 import { GITHUB_REPO_URL } from '../constants';
+
+function useIsMobile(breakpoint = 640) {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    setMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return mobile;
+}
 
 type NavItem =
   | { label: string; href: string; type: 'anchor' }
@@ -18,6 +32,7 @@ const navItems: NavItem[] = [
 
 export function Nav() {
   const theme = useTheme();
+  const mobile = useIsMobile();
 
   return (
     <nav
@@ -41,15 +56,31 @@ export function Nav() {
           padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
         }}
       >
-        <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-          <Logo variant="wordmark" size={28} glow={false} />
+        <Link
+          href="/"
+          style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}
+        >
+          <Logo
+            variant={mobile ? 'mark' : 'wordmark'}
+            size={mobile ? 24 : 28}
+            glow={false}
+          />
         </Link>
 
         <div
+          className="nav-links"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: theme.spacing[8],
+            gap: theme.spacing[5],
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
+            margin: `0 ${theme.spacing[4]}`,
+            maskImage:
+              'linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent)',
+            WebkitMaskImage:
+              'linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent)',
           }}
         >
           {navItems.map((item) =>
@@ -65,7 +96,12 @@ export function Nav() {
           )}
         </div>
 
-        <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
+        <a
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ flexShrink: 0 }}
+        >
           <Button variant="secondary" size="sm">
             GitHub
           </Button>
@@ -80,6 +116,7 @@ function linkStyle(theme: ReturnType<typeof useTheme>) {
     fontSize: theme.font.size.sm,
     color: theme.color.text.muted,
     transition: `color ${theme.transition.fast}`,
+    whiteSpace: 'nowrap' as const,
   };
 }
 
