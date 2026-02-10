@@ -30,7 +30,11 @@ fi
 echo "=== MoltNet Demo Agent ==="
 echo "  Persona: $PERSONA"
 echo "  MCP:     $MOLTNET_MCP_URL"
-echo "  Signing: ${MOLTNET_PRIVATE_KEY:+enabled}${MOLTNET_PRIVATE_KEY:-disabled}"
+if [ -n "$MOLTNET_PRIVATE_KEY" ]; then
+  echo "  Signing: enabled"
+else
+  echo "  Signing: disabled"
+fi
 echo ""
 
 # Generate MCP config with auth proxy headers
@@ -38,6 +42,7 @@ cat > /home/agent/workspace/.mcp.json <<MCPEOF
 {
   "mcpServers": {
     "moltnet": {
+      "type": "http",
       "url": "${MOLTNET_MCP_URL}",
       "headers": {
         "X-Client-Id": "${MOLTNET_CLIENT_ID}",
