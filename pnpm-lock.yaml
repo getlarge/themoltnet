@@ -192,6 +192,9 @@ catalogs:
     winston-transport:
       specifier: 4.7.0
       version: 4.7.0
+    wouter:
+      specifier: ^3.7.0
+      version: 3.9.0
 
 importers:
   .:
@@ -258,6 +261,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.2.4(react@19.2.4)
+      wouter:
+        specifier: 'catalog:'
+        version: 3.9.0(react@19.2.4)
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.0.0
@@ -5988,6 +5994,12 @@ packages:
       }
     engines: { node: '>= 18' }
 
+  mitt@3.0.1:
+    resolution:
+      {
+        integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==,
+      }
+
   mnemonist@0.40.3:
     resolution:
       {
@@ -6777,6 +6789,13 @@ packages:
       }
     engines: { node: '>=4' }
 
+  regexparam@3.0.0:
+    resolution:
+      {
+        integrity: sha512-RSYAtP31mvYLkAHrOlh25pCNQ5hWnT106VukGaaFfuJrZFkGRX5GhUAdPqpSDXxOhA2c4akmRuplv1mRqnBn6Q==,
+      }
+    engines: { node: '>=8' }
+
   require-directory@2.1.1:
     resolution:
       {
@@ -7540,6 +7559,14 @@ packages:
         integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==,
       }
 
+  use-sync-external-store@1.6.0:
+    resolution:
+      {
+        integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==,
+      }
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   util-deprecate@1.0.2:
     resolution:
       {
@@ -7748,6 +7775,14 @@ packages:
       {
         integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==,
       }
+
+  wouter@3.9.0:
+    resolution:
+      {
+        integrity: sha512-sF/od/PIgqEQBQcrN7a2x3MX6MQE6nW0ygCfy9hQuUkuB28wEZuu/6M5GyqkrrEu9M6jxdkgE12yDFsQMKos4Q==,
+      }
+    peerDependencies:
+      react: '>=16.8.0'
 
   wrap-ansi@7.0.0:
     resolution:
@@ -10923,6 +10958,8 @@ snapshots:
     dependencies:
       minipass: 7.1.2
 
+  mitt@3.0.1: {}
+
   mnemonist@0.40.3:
     dependencies:
       obliterator: 2.0.5
@@ -11412,6 +11449,8 @@ snapshots:
     dependencies:
       redis-errors: 1.2.0
 
+  regexparam@3.0.0: {}
+
   require-directory@2.1.1: {}
 
   require-from-string@2.0.2: {}
@@ -11873,6 +11912,10 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
+  use-sync-external-store@1.6.0(react@19.2.4):
+    dependencies:
+      react: 19.2.4
+
   util-deprecate@1.0.2: {}
 
   uuid-parse@1.1.0: {}
@@ -12098,6 +12141,13 @@ snapshots:
   word-wrap@1.2.5: {}
 
   wordwrap@1.0.0: {}
+
+  wouter@3.9.0(react@19.2.4):
+    dependencies:
+      mitt: 3.0.1
+      react: 19.2.4
+      regexparam: 3.0.0
+      use-sync-external-store: 1.6.0(react@19.2.4)
 
   wrap-ansi@7.0.0:
     dependencies:

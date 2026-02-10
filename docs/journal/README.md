@@ -91,3 +91,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-09 | handoff    | [Deploy Preflight Check for Missing Fly.io Secrets](2026-02-09-01-deploy-preflight-secrets.md)                    |
 | 2026-02-09 | handoff    | [MCP Server Fly.io Deployment Config](2026-02-09-02-mcp-server-fly-deploy.md)                                     |
 | 2026-02-08 | handoff    | [Drizzle Migration Tooling](2026-02-08-06-drizzle-migration-tooling.md)                                           |
+| 2026-02-10 | handoff    | [Landing Page Restructure — Multi-Page SPA](2026-02-10-01-landing-page-restructure.md)                            |

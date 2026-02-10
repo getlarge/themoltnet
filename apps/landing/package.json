@@ -14,7 +14,8 @@
   "dependencies": {
     "@moltnet/design-system": "workspace:*",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "wouter": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",

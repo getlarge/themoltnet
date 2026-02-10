@@ -13,3 +13,7 @@ a {
   text-decoration: none;
   color: inherit;
 }
+
+.nav-links::-webkit-scrollbar {
+  display: none;
+}

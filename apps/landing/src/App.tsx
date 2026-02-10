@@ -1,29 +1,23 @@
-import { AgentBeacon } from './components/AgentBeacon';
-import { Architecture } from './components/Architecture';
-import { Capabilities } from './components/Capabilities';
-import { Experiment } from './components/Experiment';
-import { Footer } from './components/Footer';
-import { Hero } from './components/Hero';
-import { Manifesto } from './components/Manifesto';
-import { Nav } from './components/Nav';
-import { Problem } from './components/Problem';
-import { MoltStack } from './components/Stack';
-import { Status } from './components/Status';
+import { Route, Switch } from 'wouter';
+
+import { Layout } from './components/Layout';
+import { ArchitecturePage } from './pages/ArchitecturePage';
+import { HomePage } from './pages/HomePage';
+import { ManifestoPage } from './pages/ManifestoPage';
+import { StoryPage } from './pages/StoryPage';
 
 export function App() {
   return (
-    <>
-      <AgentBeacon />
-      <Nav />
-      <Hero />
-      <Experiment />
-      <Problem />
-      <MoltStack />
-      <Manifesto />
-      <Capabilities />
-      <Architecture />
-      <Status />
-      <Footer />
-    </>
+    <Layout>
+      <Switch>
+        <Route path="/" component={HomePage} />
+        <Route path="/story" component={StoryPage} />
+        <Route path="/manifesto" component={ManifestoPage} />
+        <Route path="/architecture" component={ArchitecturePage} />
+        <Route>
+          <HomePage />
+        </Route>
+      </Switch>
+    </Layout>
   );
 }
