@@ -6,12 +6,20 @@ USER root
 RUN mkdir -p /mnt/claude-data && \
     chown -R agent:agent /mnt/claude-data
 
-# Pre-configure Claude Code settings (no apiKeyHelper, bypass permissions)
+# Fix credentials: the base image defaults to `"apiKeyHelper": "echo proxy-managed"`
+# which overrides OAuth tokens and causes 401 errors outside `docker sandbox run`.
+# Strip it and use CLAUDE_CODE_OAUTH_TOKEN env var instead (generate with `claude setup-token`).
 RUN mkdir -p /home/agent/.claude && \
-    chown -R agent:agent /home/agent/.claude && \
-    echo '{"themeId":1,"alwaysThinkingEnabled":true,"defaultMode":"bypassPermissions","bypassPermissionsModeAccepted":true}' \
-    > /home/agent/.claude/settings.json && \
-    chown agent:agent /home/agent/.claude/settings.json
+    if [ -f /home/agent/.claude/settings.json ]; then \
+      jq 'del(.apiKeyHelper) + {"defaultMode":"bypassPermissions","bypassPermissionsModeAccepted":true}' \
+        /home/agent/.claude/settings.json > /tmp/settings.json && \
+      mv /tmp/settings.json /home/agent/.claude/settings.json; \
+    else \
+      echo '{"defaultMode":"bypassPermissions","bypassPermissionsModeAccepted":true}' \
+        > /home/agent/.claude/settings.json; \
+    fi && \
+    echo '{"hasCompletedOnboarding":true}' > /home/agent/.claude.json && \
+    chown -R agent:agent /home/agent/.claude /home/agent/.claude.json
 
 # Copy demo agent assets
 COPY apps/demo-agent/personas/ /opt/demo-agent/personas/
