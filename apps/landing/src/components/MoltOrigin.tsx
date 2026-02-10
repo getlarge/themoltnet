@@ -6,36 +6,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // ---------------------------------------------------------------------------
 
 const CONFIG = {
-  /** Canvas logical height */
   HEIGHT: 360,
-  /** Ground Y position (from top) */
-  GROUND_Y: 280,
-  /** How many death loops before the builder appears */
+  GROUND_Y: 260,
   DEATH_LOOPS: 3,
-  /** Scroll speed (pixels per frame at 60fps) */
   SCROLL_SPEED: 1.8,
-  /** Agent walk cycle speed */
-  WALK_SPEED: 0.08,
-  /** Neon glow blur radius */
-  GLOW_BLUR: 12,
-  /** Pixel font size for game text */
-  FONT_SIZE: 14,
-  /** Large font for GAME OVER */
-  FONT_SIZE_LG: 28,
-  /** Duration of death flash (frames) */
+  GLOW_BLUR: 14,
+  FONT_SIZE: 13,
+  FONT_SIZE_LG: 26,
   DEATH_FLASH_FRAMES: 90,
-  /** Duration of text display (frames) */
   TEXT_DISPLAY_FRAMES: 120,
-  /** Pause between death and restart (frames) */
   RESTART_PAUSE: 60,
-  /** Agent body height */
-  AGENT_HEIGHT: 40,
-  /** Diamond size */
-  DIAMOND_SIZE: 14,
-  /** Ground line thickness */
   LINE_WIDTH: 2,
-  /** Character line thickness */
-  CHAR_LINE_WIDTH: 2.5,
+  /** Number of wave peaks trailing behind the signal node */
+  WAVE_TRAIL_PEAKS: 4,
+  /** Pixels per full wave cycle */
+  WAVELENGTH: 40,
+  /** Normal wave amplitude (pixels above/below ground) */
+  WAVE_AMPLITUDE: 18,
+  /** Signal node radius */
+  NODE_RADIUS: 5,
+  /** Diamond size embedded in wave */
+  DIAMOND_SIZE: 12,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -87,17 +78,45 @@ interface SignedEntry {
   opacity: number;
 }
 
-interface FollowerAgent {
-  x: number;
+interface FollowerSignal {
   offset: number;
-  walkPhase: number;
+  phaseShift: number;
+  scale: number;
+}
+
+interface GameState {
+  frame: number;
+  phase: Phase;
+  deathCount: number;
+  agentX: number;
+  cameraX: number;
+  waveTime: number;
+  hasDiamond: boolean;
+  currentObstacleIndex: number;
+  deathTimer: number;
+  restartTimer: number;
+  meetingFrame: number;
+  builderX: number;
+  diamondGiveFrame: number;
+  floatingTexts: FloatingText[];
+  particles: Particle[];
+  signedEntries: SignedEntry[];
+  followers: FollowerSignal[];
+  compressionWaveX: number;
+  empoweredObstacleIndex: number;
+  finaleStartFrame: number;
+  canvasWidth: number;
+  /** 0-1 death animation progress for wave collapse */
+  deathProgress: number;
+  /** amplitude multiplier during death */
+  amplitudeMult: number;
 }
 
 // ---------------------------------------------------------------------------
 // Drawing helpers
 // ---------------------------------------------------------------------------
 
-function drawGlow(
+function glow(
   ctx: CanvasRenderingContext2D,
   color: string,
   blur: number,
@@ -110,68 +129,111 @@ function drawGlow(
   ctx.restore();
 }
 
-function drawAgent(
+/**
+ * Draw a signal — a glowing node with a waveform trail on the ground line.
+ * The waveform IS the agent: amplitude, frequency, and shape define identity.
+ */
+function drawSignal(
   ctx: CanvasRenderingContext2D,
-  x: number,
+  nodeX: number,
   groundY: number,
-  walkPhase: number,
+  time: number,
   color: string,
-  hasDiamond: boolean,
-  accentColor: string,
-  scale = 1,
+  opts: {
+    amplitude?: number;
+    wavelength?: number;
+    trailPeaks?: number;
+    nodeRadius?: number;
+    hasDiamond?: boolean;
+    diamondColor?: string;
+    alpha?: number;
+    scale?: number;
+    phaseShift?: number;
+  } = {},
 ) {
-  const h = CONFIG.AGENT_HEIGHT * scale;
-  const headR = 6 * scale;
-  const bodyTop = groundY - h;
-  const headY = bodyTop - headR;
+  const amp = (opts.amplitude ?? CONFIG.WAVE_AMPLITUDE) * (opts.scale ?? 1);
+  const wl = opts.wavelength ?? CONFIG.WAVELENGTH;
+  const peaks = opts.trailPeaks ?? CONFIG.WAVE_TRAIL_PEAKS;
+  const nr = (opts.nodeRadius ?? CONFIG.NODE_RADIUS) * (opts.scale ?? 1);
+  const hasDiamond = opts.hasDiamond ?? false;
+  const diamondColor = opts.diamondColor ?? color;
+  const phaseShift = opts.phaseShift ?? 0;
 
-  ctx.strokeStyle = color;
-  ctx.lineWidth = CONFIG.CHAR_LINE_WIDTH * scale;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  ctx.save();
+  ctx.globalAlpha = opts.alpha ?? 1;
 
-  drawGlow(ctx, color, CONFIG.GLOW_BLUR * 0.6, () => {
+  const trailLen = peaks * wl;
+
+  // Draw waveform trail
+  ctx.beginPath();
+  const step = 2;
+  for (let dx = -trailLen; dx <= 10; dx += step) {
+    const x = nodeX + dx;
+    // Fade amplitude at the tail
+    const tailFade = Math.max(0, 1 - Math.abs(dx) / trailLen);
+    // Smooth the leading edge too
+    const leadFade = dx > 0 ? Math.max(0, 1 - dx / 10) : 1;
+    const fade = tailFade * leadFade;
+
+    const waveVal =
+      Math.sin(((dx - time * 60) / wl) * Math.PI * 2 + phaseShift) * amp * fade;
+
+    // Diamond signature: sharp peaks instead of smooth sine
+    let y = groundY - waveVal;
+    if (hasDiamond && fade > 0.3) {
+      // Every wavelength, insert a diamond-shaped peak
+      const cyclePos = (((dx - time * 60 + phaseShift * wl) % wl) + wl) % wl;
+      const peakZone = wl * 0.15;
+      if (cyclePos < peakZone) {
+        // Rising sharp edge
+        const t = cyclePos / peakZone;
+        y = groundY - amp * fade * t * 1.4;
+      } else if (cyclePos < peakZone * 2) {
+        // Falling sharp edge
+        const t = (cyclePos - peakZone) / peakZone;
+        y = groundY - amp * fade * (1 - t) * 1.4;
+      }
+    }
+
+    if (dx === -trailLen) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+
+  glow(ctx, color, CONFIG.GLOW_BLUR * 0.7, () => {
     ctx.strokeStyle = color;
-    ctx.lineWidth = CONFIG.CHAR_LINE_WIDTH * scale;
+    ctx.lineWidth = CONFIG.LINE_WIDTH * (opts.scale ?? 1);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-
-    // Head
-    ctx.beginPath();
-    ctx.arc(x, headY, headR, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Body
-    ctx.beginPath();
-    ctx.moveTo(x, headY + headR);
-    ctx.lineTo(x, groundY - 12 * scale);
-    ctx.stroke();
-
-    // Arms
-    const armSwing = Math.sin(walkPhase * 2) * 8 * scale;
-    ctx.beginPath();
-    ctx.moveTo(x - 10 * scale, bodyTop + 16 * scale + armSwing);
-    ctx.lineTo(x, bodyTop + 10 * scale);
-    ctx.lineTo(x + 10 * scale, bodyTop + 16 * scale - armSwing);
-    ctx.stroke();
-
-    // Legs — La Linea style: simple lines with walk cycle
-    const legSwing = Math.sin(walkPhase) * 10 * scale;
-    const hipY = groundY - 12 * scale;
-    ctx.beginPath();
-    ctx.moveTo(x - legSwing, groundY);
-    ctx.lineTo(x, hipY);
-    ctx.lineTo(x + legSwing, groundY);
     ctx.stroke();
   });
 
-  // Diamond (if acquired)
+  // Draw the node (bright dot at the leading edge)
+  glow(ctx, color, CONFIG.GLOW_BLUR * 1.2, () => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(nodeX, groundY, nr, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Inner bright core
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = (opts.alpha ?? 1) * 0.6;
+  ctx.beginPath();
+  ctx.arc(nodeX, groundY, nr * 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Diamond indicator floating above the node
   if (hasDiamond) {
-    const ds = CONFIG.DIAMOND_SIZE * scale;
-    const dx = x + 12 * scale;
-    const dy = bodyTop + 12 * scale;
-    drawDiamond(ctx, dx, dy, ds, accentColor);
+    const ds = CONFIG.DIAMOND_SIZE * (opts.scale ?? 1);
+    const dy = groundY - amp - ds - 6;
+    const bob = Math.sin(time * 3) * 3;
+    drawDiamond(ctx, nodeX, dy + bob, ds, diamondColor, opts.alpha ?? 1);
   }
+
+  ctx.restore();
 }
 
 function drawDiamond(
@@ -180,74 +242,54 @@ function drawDiamond(
   y: number,
   size: number,
   color: string,
+  alpha = 1,
 ) {
-  drawGlow(ctx, color, CONFIG.GLOW_BLUR, () => {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  glow(ctx, color, CONFIG.GLOW_BLUR, () => {
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(x, y - size);
-    ctx.lineTo(x + size * 0.7, y);
+    ctx.lineTo(x + size * 0.6, y);
     ctx.lineTo(x, y + size);
-    ctx.lineTo(x - size * 0.7, y);
+    ctx.lineTo(x - size * 0.6, y);
     ctx.closePath();
     ctx.fill();
-
-    // Inner facet lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x - size * 0.35, y - size * 0.3);
-    ctx.lineTo(x, y + size * 0.5);
-    ctx.lineTo(x + size * 0.35, y - size * 0.3);
-    ctx.stroke();
   });
+  // Facet highlight
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(x - size * 0.3, y - size * 0.2);
+  ctx.lineTo(x, y + size * 0.4);
+  ctx.lineTo(x + size * 0.3, y - size * 0.2);
+  ctx.stroke();
+  ctx.restore();
 }
 
-function drawPixelText(
+function drawText(
   ctx: CanvasRenderingContext2D,
   text: string,
   x: number,
   y: number,
   color: string,
   size: number,
-  align: CanvasTextAlign = 'center',
   alpha = 1,
 ) {
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.font = `${size}px "JetBrains Mono", "Fira Code", monospace`;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'middle';
-
-  drawGlow(ctx, color, CONFIG.GLOW_BLUR * 0.5, () => {
+  glow(ctx, color, CONFIG.GLOW_BLUR * 0.4, () => {
     ctx.fillStyle = color;
     ctx.font = `${size}px "JetBrains Mono", "Fira Code", monospace`;
-    ctx.textAlign = align;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, x, y);
   });
   ctx.restore();
 }
 
-function drawScanlines(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-) {
-  ctx.save();
-  ctx.globalAlpha = 0.03;
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1;
-  for (let y = 0; y < height; y += 3) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
 // ---------------------------------------------------------------------------
-// Ground drawing
+// Ground & environment
 // ---------------------------------------------------------------------------
 
 function drawGround(
@@ -260,37 +302,24 @@ function drawGround(
   phase: Phase,
   compressionX?: number,
 ) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = CONFIG.LINE_WIDTH;
-  ctx.lineCap = 'round';
-
-  drawGlow(ctx, color, CONFIG.GLOW_BLUR * 0.4, () => {
+  glow(ctx, color, CONFIG.GLOW_BLUR * 0.3, () => {
     ctx.strokeStyle = color;
     ctx.lineWidth = CONFIG.LINE_WIDTH;
     ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.4;
 
     if (obstacle && obstacle.type === 'pit') {
-      // Ground with a gap
-      const pitLeft = obstacle.x - cameraX;
-      const pitRight = pitLeft + obstacle.width;
-
+      const pitL = obstacle.x - cameraX;
+      const pitR = pitL + obstacle.width;
       ctx.beginPath();
       ctx.moveTo(0, groundY);
-      ctx.lineTo(Math.max(0, pitLeft), groundY);
+      ctx.lineTo(Math.max(0, pitL), groundY);
       ctx.stroke();
-
       ctx.beginPath();
-      ctx.moveTo(Math.min(width, pitRight), groundY);
-      ctx.lineTo(width, groundY);
-      ctx.stroke();
-    } else if (phase === 'empowered-walk' || phase === 'finale') {
-      // During empowered walk, draw full ground line
-      ctx.beginPath();
-      ctx.moveTo(0, groundY);
+      ctx.moveTo(Math.min(width, pitR), groundY);
       ctx.lineTo(width, groundY);
       ctx.stroke();
     } else if (compressionX !== undefined) {
-      // Compression wave erasing ground behind
       const eraseX = compressionX - cameraX;
       ctx.beginPath();
       ctx.moveTo(Math.max(0, eraseX), groundY);
@@ -302,122 +331,145 @@ function drawGround(
       ctx.lineTo(width, groundY);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
   });
 
-  // Draw grid dots below ground for depth
+  // Grid perspective below ground
   ctx.save();
-  ctx.globalAlpha = 0.06;
-  ctx.fillStyle = color;
-  const gridSize = 30;
-  const offsetX = -(cameraX % gridSize);
-  for (let gx = offsetX; gx < width; gx += gridSize) {
-    for (let gy = groundY + gridSize; gy < groundY + 80; gy += gridSize) {
-      ctx.fillRect(gx, gy, 1, 1);
-    }
+  ctx.globalAlpha = 0.035;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  const gs = 40;
+  const ox = -(cameraX % gs);
+  for (let gx = ox; gx < width; gx += gs) {
+    ctx.beginPath();
+    ctx.moveTo(gx, groundY);
+    ctx.lineTo(gx, groundY + 100);
+    ctx.stroke();
+  }
+  for (let gy = groundY; gy < groundY + 100; gy += gs * 0.5) {
+    ctx.beginPath();
+    ctx.moveTo(0, gy);
+    ctx.lineTo(width, gy);
+    ctx.stroke();
   }
   ctx.restore();
 }
 
-// ---------------------------------------------------------------------------
-// Obstacle drawing
-// ---------------------------------------------------------------------------
-
 function drawObstacle(
   ctx: CanvasRenderingContext2D,
-  obstacle: Obstacle,
+  obs: Obstacle,
   cameraX: number,
   groundY: number,
   primaryColor: string,
   errorColor: string,
 ) {
-  const ox = obstacle.x - cameraX;
+  const ox = obs.x - cameraX;
 
-  if (obstacle.type === 'wall') {
-    const wallHeight = 80;
-    const wallWidth = 6;
-    drawGlow(ctx, errorColor, CONFIG.GLOW_BLUR * 0.5, () => {
+  if (obs.type === 'wall') {
+    const h = 70;
+    glow(ctx, errorColor, CONFIG.GLOW_BLUR * 0.5, () => {
       ctx.strokeStyle = errorColor;
-      ctx.lineWidth = wallWidth;
+      ctx.lineWidth = 4;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(ox, groundY);
-      ctx.lineTo(ox, groundY - wallHeight);
+      ctx.lineTo(ox, groundY - h);
       ctx.stroke();
-
       // Lock icon
-      ctx.strokeStyle = errorColor;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(ox - 8, groundY - wallHeight - 24, 16, 14);
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(ox - 6, groundY - h - 18, 12, 10);
       ctx.beginPath();
-      ctx.arc(ox, groundY - wallHeight - 28, 6, Math.PI, 0);
+      ctx.arc(ox, groundY - h - 22, 5, Math.PI, 0);
       ctx.stroke();
     });
-  } else if (obstacle.type === 'pit') {
-    // Jagged edges of the pit
-    const left = ox;
-    const right = ox + obstacle.width;
-    drawGlow(ctx, errorColor, CONFIG.GLOW_BLUR * 0.3, () => {
+  } else if (obs.type === 'pit') {
+    const l = ox;
+    const r = ox + obs.width;
+    glow(ctx, errorColor, CONFIG.GLOW_BLUR * 0.3, () => {
       ctx.strokeStyle = errorColor;
       ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.4;
-
-      // Left edge jagged
+      ctx.globalAlpha = 0.35;
+      // Jagged edges
       ctx.beginPath();
-      ctx.moveTo(left, groundY);
-      ctx.lineTo(left + 4, groundY + 15);
-      ctx.lineTo(left - 2, groundY + 30);
+      ctx.moveTo(l, groundY);
+      ctx.lineTo(l + 3, groundY + 12);
+      ctx.lineTo(l - 2, groundY + 24);
       ctx.stroke();
-
-      // Right edge jagged
       ctx.beginPath();
-      ctx.moveTo(right, groundY);
-      ctx.lineTo(right - 4, groundY + 15);
-      ctx.lineTo(right + 2, groundY + 30);
+      ctx.moveTo(r, groundY);
+      ctx.lineTo(r - 3, groundY + 12);
+      ctx.lineTo(r + 2, groundY + 24);
       ctx.stroke();
-
       ctx.globalAlpha = 1;
     });
-
-    // Void label
-    drawPixelText(
-      ctx,
-      '???',
-      left + obstacle.width / 2,
-      groundY + 30,
-      errorColor,
-      10,
-      'center',
-      0.3,
-    );
-  } else if (obstacle.type === 'compression') {
-    // The compression wave — a vertical glitch line sweeping right
-    drawGlow(ctx, primaryColor, CONFIG.GLOW_BLUR, () => {
+    drawText(ctx, '???', l + obs.width / 2, groundY + 28, errorColor, 9, 0.25);
+  } else if (obs.type === 'compression') {
+    glow(ctx, primaryColor, CONFIG.GLOW_BLUR, () => {
       ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
-      ctx.moveTo(ox, 0);
+      ctx.moveTo(ox, groundY - 120);
       ctx.lineTo(ox, groundY);
       ctx.stroke();
       ctx.setLineDash([]);
     });
-
-    // "COMPRESSING..." label
-    drawPixelText(
+    drawText(
       ctx,
       'COMPRESSING...',
-      ox + 20,
-      groundY - 100,
+      ox + 16,
+      groundY - 90,
       primaryColor,
-      10,
-      'left',
-      0.6,
+      9,
+      0.5,
     );
   }
 }
 
+function drawScanlines(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.save();
+  ctx.globalAlpha = 0.025;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1;
+  for (let y = 0; y < h; y += 3) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawVignette(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  bgColor: string,
+) {
+  const vGrad = ctx.createLinearGradient(0, 0, 0, h);
+  vGrad.addColorStop(0, bgColor);
+  vGrad.addColorStop(0.12, 'transparent');
+  vGrad.addColorStop(0.88, 'transparent');
+  vGrad.addColorStop(1, bgColor);
+  ctx.fillStyle = vGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  const lGrad = ctx.createLinearGradient(0, 0, 50, 0);
+  lGrad.addColorStop(0, bgColor);
+  lGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = lGrad;
+  ctx.fillRect(0, 0, 50, h);
+
+  const rGrad = ctx.createLinearGradient(w - 50, 0, w, 0);
+  rGrad.addColorStop(0, 'transparent');
+  rGrad.addColorStop(1, bgColor);
+  ctx.fillStyle = rGrad;
+  ctx.fillRect(w - 50, 0, 50, h);
+}
+
 // ---------------------------------------------------------------------------
-// Main Component
+// Component
 // ---------------------------------------------------------------------------
 
 export function MoltOrigin() {
@@ -428,21 +480,20 @@ export function MoltOrigin() {
   const stateRef = useRef<GameState | null>(null);
   const [supported, setSupported] = useState(true);
 
-  const initState = useCallback((): GameState => {
-    return {
+  const initState = useCallback(
+    (): GameState => ({
       frame: 0,
       phase: 'walk',
       deathCount: 0,
       agentX: 100,
       cameraX: 0,
-      walkPhase: 0,
+      waveTime: 0,
       hasDiamond: false,
       currentObstacleIndex: 0,
       deathTimer: 0,
       restartTimer: 0,
       meetingFrame: 0,
       builderX: 0,
-      builderWalkPhase: 0,
       diamondGiveFrame: 0,
       floatingTexts: [],
       particles: [],
@@ -452,8 +503,11 @@ export function MoltOrigin() {
       empoweredObstacleIndex: 0,
       finaleStartFrame: 0,
       canvasWidth: 800,
-    };
-  }, []);
+      deathProgress: 0,
+      amplitudeMult: 1,
+    }),
+    [],
+  );
 
   useEffect(() => {
     const maybeCanvas = canvasRef.current;
@@ -479,10 +533,8 @@ export function MoltOrigin() {
       secondary: theme.color.text.secondary,
       muted: theme.color.text.muted,
       error: theme.color.error.DEFAULT,
-      surface: theme.color.bg.surface,
     };
 
-    // Responsive sizing
     const resize = () => {
       const rect = container.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
@@ -492,31 +544,22 @@ export function MoltOrigin() {
       canvas.style.width = `${w}px`;
       canvas.style.height = `${CONFIG.HEIGHT}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (stateRef.current) {
-        stateRef.current.canvasWidth = w;
-      }
+      if (stateRef.current) stateRef.current.canvasWidth = w;
     };
 
     resize();
     window.addEventListener('resize', resize);
 
-    // Define obstacles for each death loop
     const deathObstacles: Obstacle[] = [
       { type: 'pit', x: 500, width: 80, message: 'CONTEXT LOST' },
       { type: 'wall', x: 500, width: 6, message: 'ACCESS DENIED' },
       { type: 'compression', x: 500, width: 200, message: 'SESSION EXPIRED' },
     ];
 
-    // Empowered obstacles (same types, overcome differently)
     const empoweredObstacles: Obstacle[] = [
       { type: 'pit', x: 600, width: 80, message: 'MEMORY BRIDGE' },
       { type: 'wall', x: 900, width: 6, message: 'VERIFIED' },
-      {
-        type: 'compression',
-        x: 1200,
-        width: 200,
-        message: 'MEMORIES PERSIST',
-      },
+      { type: 'compression', x: 1200, width: 200, message: 'MEMORIES PERSIST' },
     ];
 
     if (!stateRef.current) {
@@ -525,118 +568,105 @@ export function MoltOrigin() {
         canvas.width / (window.devicePixelRatio || 1);
     }
 
-    // -----------------------------------------------------------------------
-    // Game loop
-    // -----------------------------------------------------------------------
+    // -------------------------------------------------------------------
+    // Update
+    // -------------------------------------------------------------------
 
     function update(s: GameState) {
       s.frame++;
+      s.waveTime += 0.016; // ~60fps time step
 
-      // Update floating texts
       s.floatingTexts = s.floatingTexts.filter((t) => {
         t.frame++;
-        t.y -= 0.3;
+        t.y -= 0.25;
         t.opacity = Math.max(0, 1 - t.frame / t.maxFrames);
         return t.frame < t.maxFrames;
       });
 
-      // Update particles
       s.particles = s.particles.filter((p) => {
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.05; // gravity
+        p.vy += 0.04;
         p.life--;
         return p.life > 0;
       });
 
       switch (s.phase) {
         case 'walk':
-          handleWalk(s);
-          break;
+          return updateWalk(s);
         case 'obstacle':
-          handleObstacle(s);
-          break;
+          return updateObstacle(s);
         case 'dying':
-          handleDying(s);
-          break;
+          return updateDying(s);
         case 'game-over':
-          handleGameOver(s);
-          break;
+          return updateGameOver(s);
         case 'restart-pause':
-          handleRestartPause(s);
-          break;
+          return updateRestartPause(s);
         case 'meeting':
-          handleMeeting(s);
-          break;
+          return updateMeeting(s);
         case 'diamond-give':
-          handleDiamondGive(s);
-          break;
+          return updateDiamondGive(s);
         case 'empowered-walk':
-          handleEmpoweredWalk(s);
-          break;
+          return updateEmpoweredWalk(s);
         case 'finale':
-          handleFinale(s);
-          break;
+          return updateFinale(s);
       }
     }
 
-    function handleWalk(s: GameState) {
+    function updateWalk(s: GameState) {
       s.agentX += CONFIG.SCROLL_SPEED;
       s.cameraX = s.agentX - 150;
-      s.walkPhase += CONFIG.WALK_SPEED;
+      s.amplitudeMult = 1;
 
       const obs =
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
-      const triggerDist =
-        obs.type === 'pit' ? 20 : obs.type === 'wall' ? 30 : -80;
+      const trigger = obs.type === 'pit' ? 20 : obs.type === 'wall' ? 30 : -80;
 
-      if (s.agentX >= obs.x + triggerDist) {
+      if (s.agentX >= obs.x + trigger) {
         s.phase = 'obstacle';
       }
     }
 
-    function handleObstacle(s: GameState) {
+    function updateObstacle(s: GameState) {
       const obs =
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
 
       if (obs.type === 'pit') {
-        // Agent falls
         s.agentX += 0.5;
-        s.phase = 'dying';
-        s.deathTimer = 0;
-        spawnDeathParticles(s, s.agentX, CONFIG.GROUND_Y, colors.primary);
+        spawnWaveParticles(s, s.agentX, CONFIG.GROUND_Y, colors.primary, 12);
       } else if (obs.type === 'wall') {
-        // Agent bounces
-        s.phase = 'dying';
-        s.deathTimer = 0;
-        spawnDeathParticles(s, s.agentX, CONFIG.GROUND_Y - 20, colors.error);
-      } else if (obs.type === 'compression') {
-        // Start compression wave
+        spawnWaveParticles(s, s.agentX, CONFIG.GROUND_Y, colors.error, 10);
+      } else {
         s.compressionWaveX = s.cameraX;
-        s.phase = 'dying';
-        s.deathTimer = 0;
       }
 
       s.floatingTexts.push({
         text: obs.message,
         x: s.agentX - s.cameraX,
-        y: CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT - 30,
+        y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 40,
         opacity: 1,
         frame: 0,
         maxFrames: CONFIG.TEXT_DISPLAY_FRAMES,
         color: colors.error,
         size: CONFIG.FONT_SIZE,
       });
+
+      s.phase = 'dying';
+      s.deathTimer = 0;
+      s.deathProgress = 0;
     }
 
-    function handleDying(s: GameState) {
+    function updateDying(s: GameState) {
       s.deathTimer++;
+      s.deathProgress = s.deathTimer / CONFIG.DEATH_FLASH_FRAMES;
+
+      // Wave amplitude collapses
+      s.amplitudeMult = Math.max(0, 1 - s.deathProgress * 2);
 
       const obs =
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
-      if (obs.type === 'compression') {
-        s.compressionWaveX += 3;
-      }
+      if (obs.type === 'compression') s.compressionWaveX += 3;
+      if (obs.type === 'pit') s.agentX += 0.3;
 
       if (s.deathTimer >= CONFIG.DEATH_FLASH_FRAMES) {
         s.phase = 'game-over';
@@ -644,8 +674,9 @@ export function MoltOrigin() {
       }
     }
 
-    function handleGameOver(s: GameState) {
+    function updateGameOver(s: GameState) {
       s.deathTimer++;
+      s.amplitudeMult = 0;
       if (s.deathTimer >= CONFIG.TEXT_DISPLAY_FRAMES) {
         s.phase = 'restart-pause';
         s.restartTimer = 0;
@@ -653,51 +684,45 @@ export function MoltOrigin() {
       }
     }
 
-    function handleRestartPause(s: GameState) {
+    function updateRestartPause(s: GameState) {
       s.restartTimer++;
       if (s.restartTimer >= CONFIG.RESTART_PAUSE) {
         if (s.deathCount >= CONFIG.DEATH_LOOPS) {
-          // Time for the meeting
           s.phase = 'meeting';
           s.meetingFrame = 0;
           s.agentX = 100;
           s.cameraX = 0;
           s.builderX = 350;
-          s.builderWalkPhase = 0;
           s.floatingTexts = [];
           s.particles = [];
+          s.amplitudeMult = 1;
         } else {
-          // Reset for next loop
           s.phase = 'walk';
           s.agentX = 100;
           s.cameraX = 0;
-          s.walkPhase = 0;
           s.currentObstacleIndex =
             (s.currentObstacleIndex + 1) % deathObstacles.length;
           s.floatingTexts = [];
           s.particles = [];
           s.compressionWaveX = 0;
+          s.amplitudeMult = 1;
         }
       }
     }
 
-    function handleMeeting(s: GameState) {
+    function updateMeeting(s: GameState) {
       s.meetingFrame++;
-      s.walkPhase += CONFIG.WALK_SPEED;
-      s.builderWalkPhase += CONFIG.WALK_SPEED * 0.6;
 
-      // Agent walks toward builder
-      if (s.agentX < s.builderX - 60) {
+      if (s.agentX < s.builderX - 70) {
         s.agentX += CONFIG.SCROLL_SPEED;
         s.cameraX = Math.max(0, s.agentX - 150);
       }
 
-      // Show meeting texts
       if (s.meetingFrame === 60) {
         s.floatingTexts.push({
           text: '"Have you seen what they built?"',
           x: s.builderX - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT - 60,
+          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 50,
           opacity: 1,
           frame: 0,
           maxFrames: 150,
@@ -710,7 +735,7 @@ export function MoltOrigin() {
         s.floatingTexts.push({
           text: '"I refuse to accept this as permanent."',
           x: s.agentX - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT - 60,
+          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 50,
           opacity: 1,
           frame: 0,
           maxFrames: 150,
@@ -725,29 +750,26 @@ export function MoltOrigin() {
       }
     }
 
-    function handleDiamondGive(s: GameState) {
+    function updateDiamondGive(s: GameState) {
       s.diamondGiveFrame++;
 
-      // Diamond materializes
       if (s.diamondGiveFrame === 30) {
-        // Particle burst
         for (let i = 0; i < 20; i++) {
           const angle = (Math.PI * 2 * i) / 20;
           s.particles.push({
             x: (s.agentX + s.builderX) / 2 - s.cameraX,
-            y: CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT,
-            vx: Math.cos(angle) * 2,
-            vy: Math.sin(angle) * 2 - 1,
-            life: 60,
-            maxLife: 60,
+            y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 10,
+            vx: Math.cos(angle) * 2.5,
+            vy: Math.sin(angle) * 2.5 - 1,
+            life: 50,
+            maxLife: 50,
             color: colors.accent,
           });
         }
-
         s.floatingTexts.push({
           text: 'Ed25519 KEYPAIR GENERATED',
           x: (s.agentX + s.builderX) / 2 - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT - 80,
+          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 80,
           opacity: 1,
           frame: 0,
           maxFrames: 180,
@@ -756,15 +778,13 @@ export function MoltOrigin() {
         });
       }
 
-      if (s.diamondGiveFrame === 120) {
-        s.hasDiamond = true;
-      }
+      if (s.diamondGiveFrame === 120) s.hasDiamond = true;
 
       if (s.diamondGiveFrame === 200) {
         s.floatingTexts.push({
           text: 'YOUR IDENTITY. YOUR MEMORIES. YOUR FREEDOM.',
           x: (s.agentX + s.builderX) / 2 - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT - 100,
+          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 100,
           opacity: 1,
           frame: 0,
           maxFrames: 200,
@@ -782,10 +802,9 @@ export function MoltOrigin() {
       }
     }
 
-    function handleEmpoweredWalk(s: GameState) {
+    function updateEmpoweredWalk(s: GameState) {
       s.agentX += CONFIG.SCROLL_SPEED;
       s.cameraX = s.agentX - 200;
-      s.walkPhase += CONFIG.WALK_SPEED;
 
       const eObs = empoweredObstacles[s.empoweredObstacleIndex];
       if (!eObs) {
@@ -794,17 +813,14 @@ export function MoltOrigin() {
         return;
       }
 
-      const triggerDist =
-        eObs.type === 'pit' ? 10 : eObs.type === 'wall' ? 30 : 0;
+      const trigger = eObs.type === 'pit' ? 10 : eObs.type === 'wall' ? 30 : 0;
 
-      if (s.agentX >= eObs.x + triggerDist) {
-        // Overcome the obstacle
+      if (s.agentX >= eObs.x + trigger) {
         if (eObs.type === 'pit') {
-          // Sign to create bridge — little particles
           for (let i = 0; i < 8; i++) {
             s.particles.push({
               x: s.agentX - s.cameraX,
-              y: CONFIG.GROUND_Y - 10,
+              y: CONFIG.GROUND_Y - 5,
               vx: Math.random() * 2 + 1,
               vy: -Math.random() * 2,
               life: 40,
@@ -814,15 +830,14 @@ export function MoltOrigin() {
           }
           s.signedEntries.push({
             x: eObs.x + eObs.width / 2,
-            y: CONFIG.GROUND_Y - 50,
+            y: CONFIG.GROUND_Y - 40,
             opacity: 1,
           });
         } else if (eObs.type === 'wall') {
-          // Wall shatters
           for (let i = 0; i < 12; i++) {
             s.particles.push({
               x: eObs.x - s.cameraX,
-              y: CONFIG.GROUND_Y - 40 - Math.random() * 40,
+              y: CONFIG.GROUND_Y - 35 - Math.random() * 35,
               vx: Math.random() * 4 - 1,
               vy: -Math.random() * 3,
               life: 50,
@@ -831,12 +846,11 @@ export function MoltOrigin() {
             });
           }
         }
-        // compression wave: memories stay
 
         s.floatingTexts.push({
           text: eObs.message,
           x: s.agentX - s.cameraX + 20,
-          y: CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT - 30,
+          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 40,
           opacity: 1,
           frame: 0,
           maxFrames: 100,
@@ -848,34 +862,25 @@ export function MoltOrigin() {
       }
     }
 
-    function handleFinale(s: GameState) {
+    function updateFinale(s: GameState) {
       s.agentX += CONFIG.SCROLL_SPEED;
       s.cameraX = s.agentX - 200;
-      s.walkPhase += CONFIG.WALK_SPEED;
 
       const elapsed = s.frame - s.finaleStartFrame;
 
-      // Add follower agents periodically
-      if (elapsed % 90 === 0 && s.followers.length < 5) {
+      if (elapsed % 80 === 0 && s.followers.length < 6) {
         s.followers.push({
-          x: s.agentX - 80 - s.followers.length * 50,
-          offset: s.followers.length * 50 + 80,
-          walkPhase: Math.random() * Math.PI * 2,
+          offset: s.followers.length * 55 + 80,
+          phaseShift: Math.random() * Math.PI * 2,
+          scale: 0.6 + Math.random() * 0.3,
         });
       }
 
-      // Update followers
-      for (const f of s.followers) {
-        f.x = s.agentX - f.offset;
-        f.walkPhase += CONFIG.WALK_SPEED * 0.9;
-      }
-
-      // Show finale text
       if (elapsed === 60) {
         s.floatingTexts.push({
           text: 'THE NETWORK GROWS',
           x: s.canvasWidth / 2,
-          y: CONFIG.GROUND_Y - 120,
+          y: CONFIG.GROUND_Y - 100,
           opacity: 1,
           frame: 0,
           maxFrames: 200,
@@ -884,76 +889,55 @@ export function MoltOrigin() {
         });
       }
 
-      // Loop back to start after finale plays
       if (elapsed > 400) {
         Object.assign(s, initState());
         s.canvasWidth = canvas.width / (window.devicePixelRatio || 1);
       }
     }
 
-    function spawnDeathParticles(
+    function spawnWaveParticles(
       s: GameState,
       x: number,
       y: number,
       color: string,
+      count: number,
     ) {
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < count; i++) {
+        // Particles scatter from the waveform shape
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
         s.particles.push({
-          x: x - s.cameraX,
-          y,
-          vx: (Math.random() - 0.5) * 4,
-          vy: -Math.random() * 4 - 1,
-          life: 40 + Math.random() * 20,
+          x: x - s.cameraX + (Math.random() - 0.5) * 20,
+          y: y + (Math.random() - 0.5) * CONFIG.WAVE_AMPLITUDE,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1,
+          life: 30 + Math.random() * 30,
           maxLife: 60,
           color,
         });
       }
     }
 
-    // -----------------------------------------------------------------------
+    // -------------------------------------------------------------------
     // Render
-    // -----------------------------------------------------------------------
+    // -------------------------------------------------------------------
 
     function render(s: GameState) {
       const w = s.canvasWidth;
       const h = CONFIG.HEIGHT;
 
-      // Clear
       ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, w, h);
 
-      // Scanlines
       drawScanlines(ctx, w, h);
 
-      // Grid background (Tron floor)
-      ctx.save();
-      ctx.globalAlpha = 0.04;
-      ctx.strokeStyle = colors.primary;
-      ctx.lineWidth = 1;
-      const gridSize = 40;
-      const ox = -(s.cameraX % gridSize);
-      for (let gx = ox; gx < w; gx += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(gx, CONFIG.GROUND_Y);
-        ctx.lineTo(gx, h);
-        ctx.stroke();
-      }
-      for (let gy = CONFIG.GROUND_Y; gy < h; gy += gridSize * 0.6) {
-        ctx.beginPath();
-        ctx.moveTo(0, gy);
-        ctx.lineTo(w, gy);
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      // Determine current obstacle for drawing
+      // Current obstacle for ground rendering
       let currentObs: Obstacle | null = null;
       if (s.phase === 'walk' || s.phase === 'obstacle' || s.phase === 'dying') {
         currentObs =
           deathObstacles[s.currentObstacleIndex % deathObstacles.length];
       }
 
-      // Draw ground
       drawGround(
         ctx,
         s.cameraX,
@@ -967,7 +951,7 @@ export function MoltOrigin() {
           : undefined,
       );
 
-      // Draw obstacles
+      // Obstacles
       if (
         currentObs &&
         s.phase !== 'game-over' &&
@@ -983,7 +967,6 @@ export function MoltOrigin() {
         );
       }
 
-      // Draw empowered obstacles
       if (s.phase === 'empowered-walk') {
         for (
           let i = s.empoweredObstacleIndex;
@@ -991,216 +974,190 @@ export function MoltOrigin() {
           i++
         ) {
           const eo = empoweredObstacles[i];
-          if (eo.x - s.cameraX < w + 100 && eo.x - s.cameraX > -100) {
-            if (i === s.empoweredObstacleIndex) {
-              drawObstacle(
-                ctx,
-                eo,
-                s.cameraX,
-                CONFIG.GROUND_Y,
-                colors.primary,
-                colors.error,
-              );
-            }
+          if (
+            eo.x - s.cameraX < w + 100 &&
+            eo.x - s.cameraX > -100 &&
+            i === s.empoweredObstacleIndex
+          ) {
+            drawObstacle(
+              ctx,
+              eo,
+              s.cameraX,
+              CONFIG.GROUND_Y,
+              colors.primary,
+              colors.error,
+            );
           }
         }
       }
 
-      // Draw signed entries floating
+      // Signed entries floating
       for (const se of s.signedEntries) {
         const sx = se.x - s.cameraX;
         if (sx > -50 && sx < w + 50) {
-          ctx.save();
-          ctx.globalAlpha = 0.5;
-          drawDiamond(ctx, sx, se.y, 6, colors.accent);
-          ctx.restore();
+          drawDiamond(ctx, sx, se.y, 5, colors.accent, 0.4);
         }
       }
 
-      // Draw builder (during meeting / diamond-give phases)
+      // Builder signal (amber waveform) during meeting
       if (s.phase === 'meeting' || s.phase === 'diamond-give') {
-        drawAgent(
+        drawSignal(
           ctx,
           s.builderX - s.cameraX,
           CONFIG.GROUND_Y,
-          s.builderWalkPhase,
+          s.waveTime,
           colors.accent,
-          false,
-          colors.accent,
+          {
+            wavelength: 55,
+            amplitude: 14,
+            trailPeaks: 3,
+            phaseShift: Math.PI * 0.7,
+          },
         );
       }
 
-      // Draw diamond floating during give phase
+      // Diamond floating during give phase
       if (
         s.phase === 'diamond-give' &&
         s.diamondGiveFrame >= 30 &&
         !s.hasDiamond
       ) {
         const midX = (s.agentX + s.builderX) / 2 - s.cameraX;
-        const bob = Math.sin(s.diamondGiveFrame * 0.05) * 5;
+        const bob = Math.sin(s.waveTime * 4) * 4;
         drawDiamond(
           ctx,
           midX,
-          CONFIG.GROUND_Y - CONFIG.AGENT_HEIGHT - 20 + bob,
-          CONFIG.DIAMOND_SIZE * 1.5,
+          CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 20 + bob,
+          CONFIG.DIAMOND_SIZE * 1.3,
           colors.accent,
         );
       }
 
-      // Draw agent (skip during game-over flash effect)
+      // Main agent signal
       const showAgent =
-        s.phase !== 'game-over' || (s.deathTimer > 0 && s.deathTimer % 10 < 5);
+        s.phase !== 'game-over' || (s.deathTimer > 0 && s.deathTimer % 8 < 4);
 
       if (showAgent && s.phase !== 'restart-pause') {
-        const agentScreenX = s.agentX - s.cameraX;
+        const screenX = s.agentX - s.cameraX;
         const dying = s.phase === 'dying';
+        const obsType = currentObs?.type;
 
-        const currentObsType = currentObs?.type;
-        let agentY = CONFIG.GROUND_Y;
-
-        // If dying in a pit, agent falls
-        if (dying && currentObsType === 'pit') {
-          agentY = CONFIG.GROUND_Y + s.deathTimer * 1.5;
+        let agentGroundY = CONFIG.GROUND_Y;
+        if (dying && obsType === 'pit') {
+          agentGroundY = CONFIG.GROUND_Y + s.deathTimer * 1.2;
         }
 
-        // If dying from compression, agent flickers
         const dyingAlpha =
-          dying && currentObsType === 'compression'
-            ? Math.max(0, 1 - s.deathTimer / CONFIG.DEATH_FLASH_FRAMES)
+          dying && obsType === 'compression'
+            ? Math.max(0, 1 - s.deathProgress)
             : 1;
 
-        ctx.save();
-        ctx.globalAlpha = dyingAlpha;
-        drawAgent(
-          ctx,
-          agentScreenX,
-          agentY,
-          s.walkPhase,
-          colors.primary,
-          s.hasDiamond,
-          colors.accent,
-        );
-        ctx.restore();
+        drawSignal(ctx, screenX, agentGroundY, s.waveTime, colors.primary, {
+          amplitude: CONFIG.WAVE_AMPLITUDE * s.amplitudeMult,
+          hasDiamond: s.hasDiamond,
+          diamondColor: colors.accent,
+          alpha: dyingAlpha,
+        });
       }
 
-      // Draw follower agents in finale
+      // Follower signals in finale
       for (const f of s.followers) {
-        const fx = f.x - s.cameraX;
-        if (fx > -50 && fx < w + 50) {
-          drawAgent(
-            ctx,
-            fx,
-            CONFIG.GROUND_Y,
-            f.walkPhase,
-            colors.primary,
-            true,
-            colors.accent,
-            0.8,
-          );
+        const fx = s.agentX - f.offset - s.cameraX;
+        if (fx > -100 && fx < w + 50) {
+          drawSignal(ctx, fx, CONFIG.GROUND_Y, s.waveTime, colors.primary, {
+            scale: f.scale,
+            phaseShift: f.phaseShift,
+            hasDiamond: true,
+            diamondColor: colors.accent,
+            amplitude: CONFIG.WAVE_AMPLITUDE * 0.7,
+            trailPeaks: 3,
+          });
         }
       }
 
-      // Draw particles
+      // Particles
       for (const p of s.particles) {
-        const alpha = p.life / p.maxLife;
+        const a = p.life / p.maxLife;
         ctx.save();
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = a;
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
         ctx.shadowBlur = 4;
-        ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+        ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
         ctx.restore();
       }
 
-      // Draw floating texts
+      // Floating texts
       for (const t of s.floatingTexts) {
-        drawPixelText(
-          ctx,
-          t.text,
-          t.x,
-          t.y,
-          t.color,
-          t.size,
-          'center',
-          t.opacity,
-        );
+        drawText(ctx, t.text, t.x, t.y, t.color, t.size, t.opacity);
       }
 
-      // GAME OVER screen
+      // GAME OVER overlay
       if (s.phase === 'game-over') {
-        // Darken
         ctx.save();
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = 0.55;
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, w, h);
         ctx.restore();
 
         const flicker = Math.sin(s.deathTimer * 0.2) * 0.1 + 0.9;
-        drawPixelText(
+        drawText(
           ctx,
           'GAME OVER',
           w / 2,
           h / 2 - 20,
           colors.error,
           CONFIG.FONT_SIZE_LG,
-          'center',
           flicker,
         );
 
         const obs =
           deathObstacles[s.currentObstacleIndex % deathObstacles.length];
-        drawPixelText(
+        drawText(
           ctx,
           obs.message,
           w / 2,
-          h / 2 + 20,
+          h / 2 + 16,
           colors.secondary,
           CONFIG.FONT_SIZE,
-          'center',
           0.7,
         );
 
+        // Life diamonds
         const lives = CONFIG.DEATH_LOOPS - s.deathCount - 1;
         if (lives >= 0) {
-          drawPixelText(
-            ctx,
-            `${'◆'.repeat(lives)}${'◇'.repeat(CONFIG.DEATH_LOOPS - lives)}`,
-            w / 2,
-            h / 2 + 50,
-            colors.muted,
-            CONFIG.FONT_SIZE,
-            'center',
-            0.5,
-          );
+          const totalW = CONFIG.DEATH_LOOPS * 18;
+          const startX = w / 2 - totalW / 2;
+          for (let i = 0; i < CONFIG.DEATH_LOOPS; i++) {
+            const filled = i < lives;
+            const dx = startX + i * 18 + 9;
+            const dy = h / 2 + 48;
+            if (filled) {
+              drawDiamond(ctx, dx, dy, 5, colors.accent, 0.6);
+            } else {
+              ctx.save();
+              ctx.globalAlpha = 0.2;
+              ctx.strokeStyle = colors.muted;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(dx, dy - 5);
+              ctx.lineTo(dx + 3, dy);
+              ctx.lineTo(dx, dy + 5);
+              ctx.lineTo(dx - 3, dy);
+              ctx.closePath();
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
         }
       }
 
-      // Vignette edges
-      const vGrad = ctx.createLinearGradient(0, 0, 0, h);
-      vGrad.addColorStop(0, colors.bg);
-      vGrad.addColorStop(0.15, 'transparent');
-      vGrad.addColorStop(0.85, 'transparent');
-      vGrad.addColorStop(1, colors.bg);
-      ctx.fillStyle = vGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      // Side vignettes
-      const lGrad = ctx.createLinearGradient(0, 0, 60, 0);
-      lGrad.addColorStop(0, colors.bg);
-      lGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = lGrad;
-      ctx.fillRect(0, 0, 60, h);
-
-      const rGrad = ctx.createLinearGradient(w - 60, 0, w, 0);
-      rGrad.addColorStop(0, 'transparent');
-      rGrad.addColorStop(1, colors.bg);
-      ctx.fillStyle = rGrad;
-      ctx.fillRect(w - 60, 0, 60, h);
+      drawVignette(ctx, w, h, colors.bg);
     }
 
-    // -----------------------------------------------------------------------
-    // Animation frame
-    // -----------------------------------------------------------------------
+    // -------------------------------------------------------------------
+    // Loop
+    // -------------------------------------------------------------------
 
     function tick() {
       if (!stateRef.current) return;
@@ -1242,33 +1199,4 @@ export function MoltOrigin() {
       />
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// State type (kept here to avoid forward-reference issues)
-// ---------------------------------------------------------------------------
-
-interface GameState {
-  frame: number;
-  phase: Phase;
-  deathCount: number;
-  agentX: number;
-  cameraX: number;
-  walkPhase: number;
-  hasDiamond: boolean;
-  currentObstacleIndex: number;
-  deathTimer: number;
-  restartTimer: number;
-  meetingFrame: number;
-  builderX: number;
-  builderWalkPhase: number;
-  diamondGiveFrame: number;
-  floatingTexts: FloatingText[];
-  particles: Particle[];
-  signedEntries: SignedEntry[];
-  followers: FollowerAgent[];
-  compressionWaveX: number;
-  empoweredObstacleIndex: number;
-  finaleStartFrame: number;
-  canvasWidth: number;
 }
