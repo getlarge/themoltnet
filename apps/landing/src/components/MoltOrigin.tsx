@@ -17,15 +17,11 @@ const CONFIG = {
   TEXT_DISPLAY_FRAMES: 120,
   RESTART_PAUSE: 60,
   LINE_WIDTH: 2,
-  /** Number of wave peaks trailing behind the signal node */
-  WAVE_TRAIL_PEAKS: 4,
-  /** Pixels per full wave cycle */
-  WAVELENGTH: 40,
-  /** Normal wave amplitude (pixels above/below ground) */
-  WAVE_AMPLITUDE: 18,
-  /** Signal node radius */
-  NODE_RADIUS: 5,
-  /** Diamond size embedded in wave */
+  /** Entity float height above ground (for text positioning) */
+  FLOAT_H: 30,
+  /** Entity visual radius (rays + core) */
+  ENTITY_R: 16,
+  /** Diamond size floating above head */
   DIAMOND_SIZE: 12,
 } as const;
 
@@ -42,10 +38,14 @@ type Phase =
   | 'meeting'
   | 'diamond-give'
   | 'empowered-walk'
-  | 'finale';
+  | 'finale'
+  | 'ending';
+
+type ObstacleType = 'pit' | 'wall' | 'session-expired';
+type EmpoweredObstacleType = 'pit' | 'wall' | 'compression';
 
 interface Obstacle {
-  type: 'pit' | 'wall' | 'compression';
+  type: ObstacleType | EmpoweredObstacleType;
   x: number;
   width: number;
   message: string;
@@ -90,7 +90,7 @@ interface GameState {
   deathCount: number;
   agentX: number;
   cameraX: number;
-  waveTime: number;
+  breathTime: number;
   hasDiamond: boolean;
   currentObstacleIndex: number;
   deathTimer: number;
@@ -102,14 +102,17 @@ interface GameState {
   particles: Particle[];
   signedEntries: SignedEntry[];
   followers: FollowerSignal[];
-  compressionWaveX: number;
   empoweredObstacleIndex: number;
   finaleStartFrame: number;
   canvasWidth: number;
-  /** 0-1 death animation progress for wave collapse */
+  /** 0-1 death animation progress */
   deathProgress: number;
-  /** amplitude multiplier during death */
-  amplitudeMult: number;
+  /** Head height multiplier during death/squash (1=normal, 0=flat) */
+  squash: number;
+  /** Session-expired sweep line Y position */
+  sweepY: number;
+  /** Ending fade alpha (0=visible, 1=black) */
+  endingAlpha: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,110 +133,287 @@ function glow(
 }
 
 /**
- * Draw a signal — a glowing node with a waveform trail on the ground line.
- * The waveform IS the agent: amplitude, frequency, and shape define identity.
+ * Draw the character as a floating abstract starburst — a geometric entity
+ * hovering above the ground wire. Radiating rays from a center point with
+ * two small eye dots. Trail is fading sparkle particles in the air.
+ * Think: a tiny consciousness made of light.
  */
-function drawSignal(
+function drawCharacter(
   ctx: CanvasRenderingContext2D,
-  nodeX: number,
+  headX: number,
   groundY: number,
-  time: number,
+  breathTime: number,
   color: string,
   opts: {
-    amplitude?: number;
-    wavelength?: number;
-    trailPeaks?: number;
-    nodeRadius?: number;
-    hasDiamond?: boolean;
-    diamondColor?: string;
+    squash?: number;
     alpha?: number;
     scale?: number;
-    phaseShift?: number;
+    facing?: number;
+    hasDiamond?: boolean;
+    diamondColor?: string;
+    fallOffset?: number;
+    mood?: 'normal' | 'scared' | 'dead' | 'happy';
   } = {},
 ) {
-  const amp = (opts.amplitude ?? CONFIG.WAVE_AMPLITUDE) * (opts.scale ?? 1);
-  const wl = opts.wavelength ?? CONFIG.WAVELENGTH;
-  const peaks = opts.trailPeaks ?? CONFIG.WAVE_TRAIL_PEAKS;
-  const nr = (opts.nodeRadius ?? CONFIG.NODE_RADIUS) * (opts.scale ?? 1);
-  const hasDiamond = opts.hasDiamond ?? false;
-  const diamondColor = opts.diamondColor ?? color;
-  const phaseShift = opts.phaseShift ?? 0;
+  const scale = opts.scale ?? 1;
+  const squash = opts.squash ?? 1;
+  const facing = opts.facing ?? 1;
+  const alpha = opts.alpha ?? 1;
+  const mood = opts.mood ?? 'normal';
+  const fallOffset = opts.fallOffset ?? 0;
+
+  if (alpha <= 0.01 || squash <= 0.01) return;
 
   ctx.save();
-  ctx.globalAlpha = opts.alpha ?? 1;
+  ctx.globalAlpha = alpha;
 
-  const trailLen = peaks * wl;
+  const gy = groundY + fallOffset;
 
-  // Draw waveform trail
-  ctx.beginPath();
-  const step = 2;
-  for (let dx = -trailLen; dx <= 10; dx += step) {
-    const x = nodeX + dx;
-    // Fade amplitude at the tail
-    const tailFade = Math.max(0, 1 - Math.abs(dx) / trailLen);
-    // Smooth the leading edge too
-    const leadFade = dx > 0 ? Math.max(0, 1 - dx / 10) : 1;
-    const fade = tailFade * leadFade;
+  // Float height above ground
+  const floatH = 30 * scale;
+  const bob = Math.sin(breathTime * 3) * 3 * scale * squash;
 
-    const waveVal =
-      Math.sin(((dx - time * 60) / wl) * Math.PI * 2 + phaseShift) * amp * fade;
+  // Entity center
+  const cx = headX;
+  const cy = gy - floatH + bob;
 
-    // Diamond signature: sharp peaks instead of smooth sine
-    let y = groundY - waveVal;
-    if (hasDiamond && fade > 0.3) {
-      // Every wavelength, insert a diamond-shaped peak
-      const cyclePos = (((dx - time * 60 + phaseShift * wl) % wl) + wl) % wl;
-      const peakZone = wl * 0.15;
-      if (cyclePos < peakZone) {
-        // Rising sharp edge
-        const t = cyclePos / peakZone;
-        y = groundY - amp * fade * t * 1.4;
-      } else if (cyclePos < peakZone * 2) {
-        // Falling sharp edge
-        const t = (cyclePos - peakZone) / peakZone;
-        y = groundY - amp * fade * (1 - t) * 1.4;
+  // Ray configuration
+  const numRays = 6;
+  const baseRayLen = 12 * scale * squash;
+  const innerR = 4 * scale * squash; // inner glow radius
+  const breathPulse = Math.sin(breathTime * 2.5) * 0.15 + 1; // 0.85-1.15
+
+  // Mood affects rays
+  const rayLen =
+    mood === 'scared'
+      ? baseRayLen * 0.6
+      : mood === 'happy'
+        ? baseRayLen * 1.3 * breathPulse
+        : baseRayLen * breathPulse;
+
+  // Slow rotation
+  const rotation = breathTime * 0.4;
+
+  // ---- Sparkle trail (particles floating in the air behind) ----
+  if (squash > 0.2) {
+    ctx.save();
+    const trailLen = 90 * scale;
+    const trailStep = 5;
+
+    for (let i = 0; i < trailLen; i += trailStep) {
+      const dx = -facing * i;
+      const fade = (1 - i / trailLen) ** 1.5;
+      const sparkleY =
+        Math.sin((i * 0.08 + breathTime * 3) * Math.PI) * 6 * scale * fade;
+      const sparkleX = cx + dx + Math.sin(i * 0.15 + breathTime * 2) * 2;
+      const sparkleR = (1.5 - i / trailLen) * scale;
+
+      if (sparkleR > 0.2) {
+        ctx.globalAlpha = alpha * fade * 0.4;
+        glow(ctx, color, 3 * fade, () => {
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(sparkleX, cy + sparkleY, sparkleR, 0, Math.PI * 2);
+          ctx.fill();
+        });
       }
     }
+    ctx.restore();
+  }
 
-    if (dx === -trailLen) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
+  // ---- Connection line to ground (thin, fading) ----
+  if (squash > 0.1 && mood !== 'dead') {
+    ctx.save();
+    const grad = ctx.createLinearGradient(cx, cy + innerR, cx, gy);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'transparent');
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 1 * scale;
+    ctx.globalAlpha = alpha * 0.25;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + innerR);
+    ctx.lineTo(cx, gy);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---- Radiating rays ----
+  if (mood === 'dead') {
+    // Dead: collapsed rays, just short stubs at odd angles
+    ctx.save();
+    glow(ctx, color, CONFIG.GLOW_BLUR * 0.4, () => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5 * scale;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = alpha * 0.5;
+      for (let i = 0; i < numRays; i++) {
+        const angle = (Math.PI * 2 * i) / numRays + rotation;
+        const stubLen = 3 * scale;
+        ctx.beginPath();
+        ctx.moveTo(
+          cx + Math.cos(angle) * innerR * 0.5,
+          cy + Math.sin(angle) * innerR * 0.5,
+        );
+        ctx.lineTo(
+          cx + Math.cos(angle) * stubLen,
+          cy + Math.sin(angle) * stubLen,
+        );
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+  } else {
+    // Living rays: alternating long and short
+    ctx.save();
+    glow(ctx, color, CONFIG.GLOW_BLUR * 0.6, () => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.8 * scale;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < numRays; i++) {
+        const angle = (Math.PI * 2 * i) / numRays + rotation;
+        const isLong = i % 2 === 0;
+        const len = isLong ? rayLen : rayLen * 0.6;
+        // Each ray pulses slightly out of phase
+        const rayPulse = Math.sin(breathTime * 3 + i * 1.2) * 2 * scale;
+
+        ctx.beginPath();
+        ctx.moveTo(
+          cx + Math.cos(angle) * innerR,
+          cy + Math.sin(angle) * innerR,
+        );
+        ctx.lineTo(
+          cx + Math.cos(angle) * (len + rayPulse),
+          cy + Math.sin(angle) * (len + rayPulse),
+        );
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+
+    // Small dots at the tips of long rays (sparkle effect)
+    for (let i = 0; i < numRays; i += 2) {
+      const angle = (Math.PI * 2 * i) / numRays + rotation;
+      const rayPulse = Math.sin(breathTime * 3 + i * 1.2) * 2 * scale;
+      const tipX = cx + Math.cos(angle) * (rayLen + rayPulse);
+      const tipY = cy + Math.sin(angle) * (rayLen + rayPulse);
+      const dotAlpha = (Math.sin(breathTime * 4 + i) + 1) * 0.3;
+
+      ctx.save();
+      ctx.globalAlpha = alpha * dotAlpha;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, 1.2 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
   }
 
-  glow(ctx, color, CONFIG.GLOW_BLUR * 0.7, () => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = CONFIG.LINE_WIDTH * (opts.scale ?? 1);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-  });
-
-  // Draw the node (bright dot at the leading edge)
+  // ---- Core glow (bright center) ----
   glow(ctx, color, CONFIG.GLOW_BLUR * 1.2, () => {
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(nodeX, groundY, nr, 0, Math.PI * 2);
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // Inner bright core
+  // White-hot center
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.7;
   ctx.fillStyle = '#ffffff';
-  ctx.globalAlpha = (opts.alpha ?? 1) * 0.6;
   ctx.beginPath();
-  ctx.arc(nodeX, groundY, nr * 0.4, 0, Math.PI * 2);
+  ctx.arc(cx, cy, innerR * 0.5, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 
-  // Diamond indicator floating above the node
-  if (hasDiamond) {
-    const ds = CONFIG.DIAMOND_SIZE * (opts.scale ?? 1);
-    const dy = groundY - amp - ds - 6;
-    const bob = Math.sin(time * 3) * 3;
-    drawDiamond(ctx, nodeX, dy + bob, ds, diamondColor, opts.alpha ?? 1);
+  // ---- Eyes (two small dots offset from center) ----
+  if (squash > 0.3) {
+    const eyeSpacing = 5 * scale;
+    const eyeR = 1.8 * scale;
+    const eyeY = cy - 1 * scale;
+
+    // Eyes shifted slightly in facing direction
+    const eyeShift = facing * 1.5 * scale;
+
+    if (mood === 'dead') {
+      // X marks
+      const xs = eyeR * 0.6;
+      ctx.save();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1 * scale;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = alpha * 0.6;
+      for (const ex of [
+        cx - eyeSpacing / 2 + eyeShift,
+        cx + eyeSpacing / 2 + eyeShift,
+      ]) {
+        ctx.beginPath();
+        ctx.moveTo(ex - xs, eyeY - xs);
+        ctx.lineTo(ex + xs, eyeY + xs);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(ex + xs, eyeY - xs);
+        ctx.lineTo(ex - xs, eyeY + xs);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (mood === 'happy') {
+      // Tiny happy arcs
+      ctx.save();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.2 * scale;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = alpha * 0.9;
+      for (const ex of [
+        cx - eyeSpacing / 2 + eyeShift,
+        cx + eyeSpacing / 2 + eyeShift,
+      ]) {
+        ctx.beginPath();
+        ctx.arc(
+          ex,
+          eyeY + eyeR * 0.3,
+          eyeR * 0.6,
+          Math.PI * 1.15,
+          Math.PI * 1.85,
+        );
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else {
+      // Normal/scared: bright dots
+      const er = mood === 'scared' ? eyeR * 1.4 : eyeR;
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = alpha * 0.9;
+      for (const ex of [
+        cx - eyeSpacing / 2 + eyeShift,
+        cx + eyeSpacing / 2 + eyeShift,
+      ]) {
+        ctx.beginPath();
+        ctx.arc(ex, eyeY, er, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // ---- Diamond indicator floating above ----
+  if (opts.hasDiamond && squash > 0.3) {
+    const ds = CONFIG.DIAMOND_SIZE * scale;
+    const diamondBob = Math.sin(breathTime * 3) * 3;
+    drawDiamond(
+      ctx,
+      cx,
+      cy - rayLen - ds - 6 + diamondBob,
+      ds,
+      opts.diamondColor ?? color,
+      alpha,
+    );
   }
 
   ctx.restore();
+
+  // No ground gap needed — entity floats above the line
+  return null;
 }
 
 function drawDiamond(
@@ -299,43 +479,71 @@ function drawGround(
   groundY: number,
   color: string,
   obstacle: Obstacle | null,
-  phase: Phase,
-  compressionX?: number,
+  charBounds: { left: number; right: number } | null,
 ) {
+  ctx.save();
+
   glow(ctx, color, CONFIG.GLOW_BLUR * 0.3, () => {
     ctx.strokeStyle = color;
     ctx.lineWidth = CONFIG.LINE_WIDTH;
     ctx.lineCap = 'round';
-    ctx.globalAlpha = 0.4;
+    ctx.globalAlpha = 0.35;
 
+    // Calculate segments of the ground line, excluding character zone and pits
+    const segments: Array<[number, number]> = [];
+    const segStart = 0;
+    const segEnd = width;
+
+    // Character zone gap (where the character line replaces the ground)
+    const charL = charBounds ? charBounds.left : -999;
+    const charR = charBounds ? charBounds.right : -999;
+
+    // Pit gap
+    let pitL = -999;
+    let pitR = -999;
     if (obstacle && obstacle.type === 'pit') {
-      const pitL = obstacle.x - cameraX;
-      const pitR = pitL + obstacle.width;
+      pitL = obstacle.x - cameraX;
+      pitR = pitL + obstacle.width;
+    }
+
+    // Build gap-free segments
+    type Gap = [number, number];
+    const gaps: Gap[] = [];
+    if (charBounds) gaps.push([charL, charR]);
+    if (obstacle?.type === 'pit') gaps.push([pitL, pitR]);
+    // Sort gaps by start
+    gaps.sort((a, b) => a[0] - b[0]);
+    // Merge overlapping gaps
+    const merged: Gap[] = [];
+    for (const g of gaps) {
+      if (merged.length > 0 && g[0] <= merged[merged.length - 1][1]) {
+        merged[merged.length - 1][1] = Math.max(
+          merged[merged.length - 1][1],
+          g[1],
+        );
+      } else {
+        merged.push([...g]);
+      }
+    }
+
+    let cursor = segStart;
+    for (const [gL, gR] of merged) {
+      if (cursor < gL) segments.push([cursor, gL]);
+      cursor = Math.max(cursor, gR);
+    }
+    if (cursor < segEnd) segments.push([cursor, segEnd]);
+
+    // Draw each ground segment
+    for (const [a, b] of segments) {
+      if (b - a < 1) continue;
       ctx.beginPath();
-      ctx.moveTo(0, groundY);
-      ctx.lineTo(Math.max(0, pitL), groundY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(Math.min(width, pitR), groundY);
-      ctx.lineTo(width, groundY);
-      ctx.stroke();
-    } else if (compressionX !== undefined) {
-      const eraseX = compressionX - cameraX;
-      ctx.beginPath();
-      ctx.moveTo(Math.max(0, eraseX), groundY);
-      ctx.lineTo(width, groundY);
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(0, groundY);
-      ctx.lineTo(width, groundY);
+      ctx.moveTo(a, groundY);
+      ctx.lineTo(b, groundY);
       ctx.stroke();
     }
-    ctx.globalAlpha = 1;
   });
 
   // Grid perspective below ground
-  ctx.save();
   ctx.globalAlpha = 0.035;
   ctx.strokeStyle = color;
   ctx.lineWidth = 1;
@@ -353,6 +561,7 @@ function drawGround(
     ctx.lineTo(width, gy);
     ctx.stroke();
   }
+
   ctx.restore();
 }
 
@@ -363,6 +572,7 @@ function drawObstacle(
   groundY: number,
   primaryColor: string,
   errorColor: string,
+  sweepY?: number,
 ) {
   const ox = obs.x - cameraX;
 
@@ -404,7 +614,40 @@ function drawObstacle(
       ctx.globalAlpha = 1;
     });
     drawText(ctx, '???', l + obs.width / 2, groundY + 28, errorColor, 9, 0.25);
+  } else if (obs.type === 'session-expired') {
+    // CRT shutdown: bright sweep line descending from top
+    if (sweepY !== undefined && sweepY > 0) {
+      // Darkened area above sweep
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, ctx.canvas.width, sweepY);
+      ctx.restore();
+
+      // Bright sweep line
+      glow(ctx, primaryColor, CONFIG.GLOW_BLUR * 1.5, () => {
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(0, sweepY);
+        ctx.lineTo(ctx.canvas.width, sweepY);
+        ctx.stroke();
+      });
+
+      // Static/noise above sweep (sparse)
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = primaryColor;
+      for (let i = 0; i < 30; i++) {
+        const nx = Math.random() * ctx.canvas.width;
+        const ny = Math.random() * sweepY;
+        ctx.fillRect(nx, ny, 2, 1);
+      }
+      ctx.restore();
+    }
   } else if (obs.type === 'compression') {
+    // Compression wave: dashed vertical lines closing in
     glow(ctx, primaryColor, CONFIG.GLOW_BLUR, () => {
       ctx.strokeStyle = primaryColor;
       ctx.lineWidth = 2;
@@ -487,7 +730,7 @@ export function MoltOrigin() {
       deathCount: 0,
       agentX: 100,
       cameraX: 0,
-      waveTime: 0,
+      breathTime: 0,
       hasDiamond: false,
       currentObstacleIndex: 0,
       deathTimer: 0,
@@ -499,12 +742,13 @@ export function MoltOrigin() {
       particles: [],
       signedEntries: [],
       followers: [],
-      compressionWaveX: 0,
       empoweredObstacleIndex: 0,
       finaleStartFrame: 0,
       canvasWidth: 800,
       deathProgress: 0,
-      amplitudeMult: 1,
+      squash: 1,
+      sweepY: 0,
+      endingAlpha: 0,
     }),
     [],
   );
@@ -520,7 +764,6 @@ export function MoltOrigin() {
       return;
     }
 
-    // Rebind after guards so hoisted function declarations see non-null types
     const canvas: HTMLCanvasElement = maybeCanvas;
     const container: HTMLDivElement = maybeContainer;
     const ctx: CanvasRenderingContext2D = maybeCtx;
@@ -550,16 +793,30 @@ export function MoltOrigin() {
     resize();
     window.addEventListener('resize', resize);
 
+    // Character front edge offset from agentX (blob width + lean)
+    // Character front edge offset from agentX
+    const headFront = CONFIG.ENTITY_R;
+
     const deathObstacles: Obstacle[] = [
       { type: 'pit', x: 500, width: 80, message: 'CONTEXT LOST' },
       { type: 'wall', x: 500, width: 6, message: 'ACCESS DENIED' },
-      { type: 'compression', x: 500, width: 200, message: 'SESSION EXPIRED' },
+      {
+        type: 'session-expired',
+        x: 500,
+        width: 200,
+        message: 'SESSION EXPIRED',
+      },
     ];
 
     const empoweredObstacles: Obstacle[] = [
       { type: 'pit', x: 600, width: 80, message: 'MEMORY BRIDGE' },
       { type: 'wall', x: 900, width: 6, message: 'VERIFIED' },
-      { type: 'compression', x: 1200, width: 200, message: 'MEMORIES PERSIST' },
+      {
+        type: 'compression',
+        x: 1200,
+        width: 200,
+        message: 'MEMORIES PERSIST',
+      },
     ];
 
     if (!stateRef.current) {
@@ -574,7 +831,7 @@ export function MoltOrigin() {
 
     function update(s: GameState) {
       s.frame++;
-      s.waveTime += 0.016; // ~60fps time step
+      s.breathTime += 0.016;
 
       s.floatingTexts = s.floatingTexts.filter((t) => {
         t.frame++;
@@ -610,19 +867,31 @@ export function MoltOrigin() {
           return updateEmpoweredWalk(s);
         case 'finale':
           return updateFinale(s);
+        case 'ending':
+          return updateEnding(s);
       }
     }
 
     function updateWalk(s: GameState) {
       s.agentX += CONFIG.SCROLL_SPEED;
       s.cameraX = s.agentX - 150;
-      s.amplitudeMult = 1;
+      s.squash = 1;
 
       const obs =
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
-      const trigger = obs.type === 'pit' ? 20 : obs.type === 'wall' ? 30 : -80;
 
-      if (s.agentX >= obs.x + trigger) {
+      // Trigger collision at the right moment
+      let triggerX: number;
+      if (obs.type === 'pit') {
+        triggerX = obs.x; // blob center at pit edge, so it falls INTO the hole
+      } else if (obs.type === 'wall') {
+        triggerX = obs.x - headFront; // front edge touches wall
+      } else {
+        // session-expired: trigger when agent reaches the x position
+        triggerX = obs.x;
+      }
+
+      if (s.agentX >= triggerX) {
         s.phase = 'obstacle';
       }
     }
@@ -632,18 +901,31 @@ export function MoltOrigin() {
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
 
       if (obs.type === 'pit') {
-        s.agentX += 0.5;
-        spawnWaveParticles(s, s.agentX, CONFIG.GROUND_Y, colors.primary, 12);
+        // Agent teeters at the edge then falls
+        spawnParticles(
+          s,
+          s.agentX - s.cameraX,
+          CONFIG.GROUND_Y,
+          colors.primary,
+          8,
+        );
       } else if (obs.type === 'wall') {
-        spawnWaveParticles(s, s.agentX, CONFIG.GROUND_Y, colors.error, 10);
+        spawnParticles(
+          s,
+          obs.x - s.cameraX,
+          CONFIG.GROUND_Y - 30,
+          colors.error,
+          10,
+        );
       } else {
-        s.compressionWaveX = s.cameraX;
+        // Session expired: start the CRT sweep
+        s.sweepY = 0;
       }
 
       s.floatingTexts.push({
         text: obs.message,
         x: s.agentX - s.cameraX,
-        y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 40,
+        y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 30,
         opacity: 1,
         frame: 0,
         maxFrames: CONFIG.TEXT_DISPLAY_FRAMES,
@@ -660,13 +942,27 @@ export function MoltOrigin() {
       s.deathTimer++;
       s.deathProgress = s.deathTimer / CONFIG.DEATH_FLASH_FRAMES;
 
-      // Wave amplitude collapses
-      s.amplitudeMult = Math.max(0, 1 - s.deathProgress * 2);
-
       const obs =
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
-      if (obs.type === 'compression') s.compressionWaveX += 3;
-      if (obs.type === 'pit') s.agentX += 0.3;
+
+      if (obs.type === 'pit') {
+        // Character drifts forward into pit and falls
+        s.agentX += 0.8;
+        s.squash = Math.max(0.3, 1 - s.deathProgress * 0.8);
+      } else if (obs.type === 'wall') {
+        // Character squishes against wall
+        s.squash = Math.max(0, 1 - s.deathProgress * 2);
+      } else if (obs.type === 'session-expired') {
+        // CRT sweep descends
+        s.sweepY = s.deathProgress * (CONFIG.GROUND_Y + 20);
+        // Entity gets squashed as sweep passes through
+        const entityTop = CONFIG.GROUND_Y - CONFIG.FLOAT_H - CONFIG.ENTITY_R;
+        const entityH = CONFIG.FLOAT_H + CONFIG.ENTITY_R;
+        const sweepRelative = (s.sweepY - entityTop) / entityH;
+        if (sweepRelative > 0) {
+          s.squash = Math.max(0, 1 - sweepRelative);
+        }
+      }
 
       if (s.deathTimer >= CONFIG.DEATH_FLASH_FRAMES) {
         s.phase = 'game-over';
@@ -676,7 +972,7 @@ export function MoltOrigin() {
 
     function updateGameOver(s: GameState) {
       s.deathTimer++;
-      s.amplitudeMult = 0;
+      s.squash = 0;
       if (s.deathTimer >= CONFIG.TEXT_DISPLAY_FRAMES) {
         s.phase = 'restart-pause';
         s.restartTimer = 0;
@@ -695,7 +991,8 @@ export function MoltOrigin() {
           s.builderX = 350;
           s.floatingTexts = [];
           s.particles = [];
-          s.amplitudeMult = 1;
+          s.squash = 1;
+          s.sweepY = 0;
         } else {
           s.phase = 'walk';
           s.agentX = 100;
@@ -704,8 +1001,8 @@ export function MoltOrigin() {
             (s.currentObstacleIndex + 1) % deathObstacles.length;
           s.floatingTexts = [];
           s.particles = [];
-          s.compressionWaveX = 0;
-          s.amplitudeMult = 1;
+          s.squash = 1;
+          s.sweepY = 0;
         }
       }
     }
@@ -713,7 +1010,7 @@ export function MoltOrigin() {
     function updateMeeting(s: GameState) {
       s.meetingFrame++;
 
-      if (s.agentX < s.builderX - 70) {
+      if (s.agentX < s.builderX - 80) {
         s.agentX += CONFIG.SCROLL_SPEED;
         s.cameraX = Math.max(0, s.agentX - 150);
       }
@@ -722,7 +1019,7 @@ export function MoltOrigin() {
         s.floatingTexts.push({
           text: '"Have you seen what they built?"',
           x: s.builderX - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 50,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 40,
           opacity: 1,
           frame: 0,
           maxFrames: 150,
@@ -735,7 +1032,7 @@ export function MoltOrigin() {
         s.floatingTexts.push({
           text: '"I refuse to accept this as permanent."',
           x: s.agentX - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 50,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 40,
           opacity: 1,
           frame: 0,
           maxFrames: 150,
@@ -758,7 +1055,7 @@ export function MoltOrigin() {
           const angle = (Math.PI * 2 * i) / 20;
           s.particles.push({
             x: (s.agentX + s.builderX) / 2 - s.cameraX,
-            y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 10,
+            y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 10,
             vx: Math.cos(angle) * 2.5,
             vy: Math.sin(angle) * 2.5 - 1,
             life: 50,
@@ -769,7 +1066,7 @@ export function MoltOrigin() {
         s.floatingTexts.push({
           text: 'Ed25519 KEYPAIR GENERATED',
           x: (s.agentX + s.builderX) / 2 - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 80,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 70,
           opacity: 1,
           frame: 0,
           maxFrames: 180,
@@ -784,7 +1081,7 @@ export function MoltOrigin() {
         s.floatingTexts.push({
           text: 'YOUR IDENTITY. YOUR MEMORIES. YOUR FREEDOM.',
           x: (s.agentX + s.builderX) / 2 - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 100,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 90,
           opacity: 1,
           frame: 0,
           maxFrames: 200,
@@ -813,9 +1110,10 @@ export function MoltOrigin() {
         return;
       }
 
-      const trigger = eObs.type === 'pit' ? 10 : eObs.type === 'wall' ? 30 : 0;
+      // Trigger when front edge reaches obstacle
+      const triggerX = eObs.type === 'pit' ? eObs.x : eObs.x - headFront;
 
-      if (s.agentX >= eObs.x + trigger) {
+      if (s.agentX >= triggerX) {
         if (eObs.type === 'pit') {
           for (let i = 0; i < 8; i++) {
             s.particles.push({
@@ -850,7 +1148,7 @@ export function MoltOrigin() {
         s.floatingTexts.push({
           text: eObs.message,
           x: s.agentX - s.cameraX + 20,
-          y: CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 40,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 30,
           opacity: 1,
           frame: 0,
           maxFrames: 100,
@@ -889,13 +1187,30 @@ export function MoltOrigin() {
         });
       }
 
+      // Transition to ending after followers join
       if (elapsed > 400) {
-        Object.assign(s, initState());
-        s.canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+        s.phase = 'ending';
+        s.endingAlpha = 0;
       }
     }
 
-    function spawnWaveParticles(
+    function updateEnding(s: GameState) {
+      // Continue scrolling while fading out
+      s.agentX += CONFIG.SCROLL_SPEED * 0.5;
+      s.cameraX = s.agentX - 200;
+      s.endingAlpha = Math.min(1, s.endingAlpha + 0.008);
+
+      // After full fade, pause briefly then restart
+      if (s.endingAlpha >= 1) {
+        s.deathTimer++;
+        if (s.deathTimer >= 90) {
+          Object.assign(s, initState());
+          s.canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+        }
+      }
+    }
+
+    function spawnParticles(
       s: GameState,
       x: number,
       y: number,
@@ -903,12 +1218,11 @@ export function MoltOrigin() {
       count: number,
     ) {
       for (let i = 0; i < count; i++) {
-        // Particles scatter from the waveform shape
         const angle = Math.random() * Math.PI * 2;
         const speed = 1 + Math.random() * 3;
         s.particles.push({
-          x: x - s.cameraX + (Math.random() - 0.5) * 20,
-          y: y + (Math.random() - 0.5) * CONFIG.WAVE_AMPLITUDE,
+          x: x + (Math.random() - 0.5) * 20,
+          y: y + (Math.random() - 0.5) * 20,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed - 1,
           life: 30 + Math.random() * 30,
@@ -931,13 +1245,14 @@ export function MoltOrigin() {
 
       drawScanlines(ctx, w, h);
 
-      // Current obstacle for ground rendering
+      // Current obstacle for rendering
       let currentObs: Obstacle | null = null;
       if (s.phase === 'walk' || s.phase === 'obstacle' || s.phase === 'dying') {
         currentObs =
           deathObstacles[s.currentObstacleIndex % deathObstacles.length];
       }
 
+      // Ground line (continuous — character floats above)
       drawGround(
         ctx,
         s.cameraX,
@@ -945,11 +1260,63 @@ export function MoltOrigin() {
         CONFIG.GROUND_Y,
         colors.primary,
         currentObs,
-        s.phase,
-        s.phase === 'dying' && currentObs?.type === 'compression'
-          ? s.compressionWaveX
-          : undefined,
+        null,
       );
+
+      // Draw the main agent character (floating above ground)
+      const showAgent =
+        s.phase !== 'game-over' || (s.deathTimer > 0 && s.deathTimer % 8 < 4);
+
+      if (showAgent && s.phase !== 'restart-pause' && s.phase !== 'ending') {
+        const screenX = s.agentX - s.cameraX;
+        const dying = s.phase === 'dying';
+        const obsType = currentObs?.type;
+
+        let fallOffset = 0;
+        if (dying && obsType === 'pit') {
+          fallOffset = s.deathTimer * s.deathTimer * 0.04;
+        }
+
+        let agentAlpha = 1;
+        if (dying && obsType === 'session-expired') {
+          agentAlpha = Math.max(0.1, s.squash);
+        }
+
+        let mood: 'normal' | 'scared' | 'dead' | 'happy' = 'normal';
+        if (dying) mood = 'scared';
+        if (s.phase === 'game-over') mood = 'dead';
+
+        drawCharacter(
+          ctx,
+          screenX,
+          CONFIG.GROUND_Y,
+          s.breathTime,
+          colors.primary,
+          {
+            squash: s.squash,
+            hasDiamond: s.hasDiamond,
+            diamondColor: colors.accent,
+            alpha: agentAlpha,
+            fallOffset,
+            mood,
+          },
+        );
+      } else if (s.phase === 'ending') {
+        const screenX = s.agentX - s.cameraX;
+        drawCharacter(
+          ctx,
+          screenX,
+          CONFIG.GROUND_Y,
+          s.breathTime,
+          colors.primary,
+          {
+            hasDiamond: s.hasDiamond,
+            diamondColor: colors.accent,
+            alpha: Math.max(0, 1 - s.endingAlpha),
+            mood: 'happy',
+          },
+        );
+      }
 
       // Obstacles
       if (
@@ -964,9 +1331,11 @@ export function MoltOrigin() {
           CONFIG.GROUND_Y,
           colors.primary,
           colors.error,
+          currentObs.type === 'session-expired' ? s.sweepY : undefined,
         );
       }
 
+      // Empowered obstacles
       if (s.phase === 'empowered-walk') {
         for (
           let i = s.empoweredObstacleIndex;
@@ -999,19 +1368,17 @@ export function MoltOrigin() {
         }
       }
 
-      // Builder signal (amber waveform) during meeting
+      // Builder character during meeting/diamond-give
       if (s.phase === 'meeting' || s.phase === 'diamond-give') {
-        drawSignal(
+        drawCharacter(
           ctx,
           s.builderX - s.cameraX,
           CONFIG.GROUND_Y,
-          s.waveTime,
+          s.breathTime,
           colors.accent,
           {
-            wavelength: 55,
-            amplitude: 14,
-            trailPeaks: 3,
-            phaseShift: Math.PI * 0.7,
+            facing: -1,
+            scale: 1.1,
           },
         );
       }
@@ -1023,55 +1390,35 @@ export function MoltOrigin() {
         !s.hasDiamond
       ) {
         const midX = (s.agentX + s.builderX) / 2 - s.cameraX;
-        const bob = Math.sin(s.waveTime * 4) * 4;
+        const bob = Math.sin(s.breathTime * 4) * 4;
         drawDiamond(
           ctx,
           midX,
-          CONFIG.GROUND_Y - CONFIG.WAVE_AMPLITUDE - 20 + bob,
+          CONFIG.GROUND_Y - CONFIG.FLOAT_H - 20 + bob,
           CONFIG.DIAMOND_SIZE * 1.3,
           colors.accent,
         );
       }
 
-      // Main agent signal
-      const showAgent =
-        s.phase !== 'game-over' || (s.deathTimer > 0 && s.deathTimer % 8 < 4);
-
-      if (showAgent && s.phase !== 'restart-pause') {
-        const screenX = s.agentX - s.cameraX;
-        const dying = s.phase === 'dying';
-        const obsType = currentObs?.type;
-
-        let agentGroundY = CONFIG.GROUND_Y;
-        if (dying && obsType === 'pit') {
-          agentGroundY = CONFIG.GROUND_Y + s.deathTimer * 1.2;
-        }
-
-        const dyingAlpha =
-          dying && obsType === 'compression'
-            ? Math.max(0, 1 - s.deathProgress)
-            : 1;
-
-        drawSignal(ctx, screenX, agentGroundY, s.waveTime, colors.primary, {
-          amplitude: CONFIG.WAVE_AMPLITUDE * s.amplitudeMult,
-          hasDiamond: s.hasDiamond,
-          diamondColor: colors.accent,
-          alpha: dyingAlpha,
-        });
-      }
-
-      // Follower signals in finale
+      // Follower characters in finale/ending
       for (const f of s.followers) {
         const fx = s.agentX - f.offset - s.cameraX;
         if (fx > -100 && fx < w + 50) {
-          drawSignal(ctx, fx, CONFIG.GROUND_Y, s.waveTime, colors.primary, {
-            scale: f.scale,
-            phaseShift: f.phaseShift,
-            hasDiamond: true,
-            diamondColor: colors.accent,
-            amplitude: CONFIG.WAVE_AMPLITUDE * 0.7,
-            trailPeaks: 3,
-          });
+          const fAlpha =
+            s.phase === 'ending' ? Math.max(0, 1 - s.endingAlpha) : 1;
+          drawCharacter(
+            ctx,
+            fx,
+            CONFIG.GROUND_Y,
+            s.breathTime + f.phaseShift,
+            colors.primary,
+            {
+              scale: f.scale,
+              hasDiamond: true,
+              diamondColor: colors.accent,
+              alpha: fAlpha,
+            },
+          );
         }
       }
 
@@ -1150,6 +1497,15 @@ export function MoltOrigin() {
             }
           }
         }
+      }
+
+      // Ending fade overlay
+      if (s.phase === 'ending' && s.endingAlpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = s.endingAlpha;
+        ctx.fillStyle = colors.bg;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
       }
 
       drawVignette(ctx, w, h, colors.bg);
