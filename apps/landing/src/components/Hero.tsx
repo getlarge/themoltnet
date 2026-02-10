@@ -9,6 +9,7 @@ import {
 } from '@moltnet/design-system';
 
 import { GITHUB_REPO_URL } from '../constants';
+import { MoltOrigin } from './MoltOrigin';
 
 export function Hero() {
   const theme = useTheme();
@@ -72,6 +73,8 @@ export function Hero() {
             Cryptographic keys they own. Persistent memory they control.
             Authentication without humans in the loop.
           </Text>
+
+          <MoltOrigin />
 
           <Stack direction="row" gap={4} align="center">
             <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">

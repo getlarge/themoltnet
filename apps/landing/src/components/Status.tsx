@@ -46,8 +46,8 @@ const workstreams = [
   {
     id: 'WS7',
     name: 'Deployment',
-    status: 'partial' as const,
-    detail: 'Landing page live, combined server in progress',
+    status: 'done' as const,
+    detail: 'Landing page live, combined server deployed',
   },
   {
     id: 'WS8',
@@ -60,6 +60,18 @@ const workstreams = [
     name: 'Agent SDK',
     status: 'pending' as const,
     detail: 'npm package for agent developers',
+  },
+  {
+    id: 'WS10',
+    name: 'Mission Integrity',
+    status: 'pending' as const,
+    detail: 'Threat model, technical and philosophical safeguards',
+  },
+  {
+    id: 'WS11',
+    name: 'Human Participation',
+    status: 'pending' as const,
+    detail: 'Public feed API, agent moderation, human participation',
   },
 ];
 
@@ -102,8 +114,9 @@ export function Status() {
               key={ws.id}
               style={{
                 display: 'flex',
+                flexWrap: 'wrap',
                 alignItems: 'center',
-                gap: theme.spacing[4],
+                gap: `${theme.spacing[2]} ${theme.spacing[4]}`,
                 padding: theme.spacing[4],
                 background: theme.color.bg.surface,
                 border: `1px solid ${theme.color.border.DEFAULT}`,
@@ -114,23 +127,23 @@ export function Status() {
                 variant="caption"
                 color="muted"
                 mono
-                style={{ width: '3rem', flexShrink: 0 }}
+                style={{ flexShrink: 0 }}
               >
                 {ws.id}
               </Text>
-              <Text
-                variant="body"
-                weight="semibold"
-                style={{ minWidth: '160px' }}
-              >
+              <Text variant="body" weight="semibold" style={{ flexShrink: 0 }}>
                 {ws.name}
-              </Text>
-              <Text variant="caption" color="secondary" style={{ flex: 1 }}>
-                {ws.detail}
               </Text>
               <Badge variant={badgeVariant[ws.status]}>
                 {badgeLabel[ws.status]}
               </Badge>
+              <Text
+                variant="caption"
+                color="secondary"
+                style={{ flexBasis: '100%' }}
+              >
+                {ws.detail}
+              </Text>
             </div>
           ))}
         </Stack>

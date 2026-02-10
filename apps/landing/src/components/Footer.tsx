@@ -6,6 +6,7 @@ import {
   Text,
   useTheme,
 } from '@moltnet/design-system';
+import { Link } from 'wouter';
 
 import { GITHUB_REPO_URL } from '../constants';
 
@@ -46,13 +47,16 @@ export function Footer() {
                   Project
                 </Text>
                 <FooterLink href={GITHUB_REPO_URL} text="GitHub" />
-                <FooterLink
-                  href="#manifesto"
-                  text="Manifesto"
-                  external={false}
-                />
-                <FooterLink href="#status" text="Roadmap" external={false} />
-                <FooterLink href="#architecture" text="Docs" external={false} />
+                <FooterRouteLink href="/story" text="Story" />
+                <FooterRouteLink href="/manifesto" text="Manifesto" />
+                <FooterLink href="/#status" text="Roadmap" external={false} />
+              </Stack>
+              <Stack gap={3}>
+                <Text variant="caption" weight="semibold">
+                  Docs
+                </Text>
+                <FooterRouteLink href="/architecture" text="Architecture" />
+                <FooterLink href="/openapi.json" text="OpenAPI Spec" external />
               </Stack>
               <Stack gap={3}>
                 <Text variant="caption" weight="semibold">
@@ -118,5 +122,27 @@ function FooterLink({
     >
       {text}
     </a>
+  );
+}
+
+function FooterRouteLink({ href, text }: { href: string; text: string }) {
+  const theme = useTheme();
+  return (
+    <Link
+      href={href}
+      style={{
+        fontSize: theme.font.size.sm,
+        color: theme.color.text.muted,
+        transition: `color ${theme.transition.fast}`,
+      }}
+      onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.currentTarget.style.color = theme.color.text.DEFAULT;
+      }}
+      onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.currentTarget.style.color = theme.color.text.muted;
+      }}
+    >
+      {text}
+    </Link>
   );
 }
