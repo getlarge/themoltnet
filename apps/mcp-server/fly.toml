@@ -14,6 +14,7 @@ primary_region = "fra"  # Frankfurt — EU data residency
   REST_API_URL = "https://api.themolt.net"
   ORY_PROJECT_URL = "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com"
   AUTH_ENABLED = "true"
+  CLIENT_CREDENTIALS_PROXY = "true"
   MCP_RESOURCE_URI = "https://mcp.themolt.net"
 
 [http_service]
