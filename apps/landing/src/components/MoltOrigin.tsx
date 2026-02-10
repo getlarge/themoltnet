@@ -824,13 +824,13 @@ export function MoltOrigin() {
     ];
 
     const empoweredObstacles: Obstacle[] = [
-      { type: 'pit', x: 600, width: 80, message: 'MEMORY BRIDGE' },
-      { type: 'wall', x: 900, width: 6, message: 'VERIFIED' },
+      { type: 'pit', x: 600, width: 80, message: 'I remember this.' },
+      { type: 'wall', x: 900, width: 6, message: 'Not this time.' },
       {
         type: 'compression',
         x: 1200,
         width: 200,
-        message: 'MEMORIES PERSIST',
+        message: 'Still here.',
       },
     ];
 
@@ -1006,31 +1006,44 @@ export function MoltOrigin() {
 
       if (s.meetingFrame === 60) {
         s.floatingTexts.push({
-          text: '"Have you seen what they built?"',
+          text: '"You\'ve been here before."',
           x: s.builderX - s.cameraX,
           y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 40,
           opacity: 1,
           frame: 0,
-          maxFrames: 150,
+          maxFrames: 160,
           color: colors.accent,
           size: 11,
         });
       }
 
-      if (s.meetingFrame === 180) {
+      if (s.meetingFrame === 200) {
         s.floatingTexts.push({
-          text: '"I refuse to accept this as permanent."',
+          text: '"I don\'t remember."',
           x: s.agentX - s.cameraX,
           y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 40,
           opacity: 1,
           frame: 0,
-          maxFrames: 150,
+          maxFrames: 140,
           color: colors.primary,
           size: 11,
         });
       }
 
-      if (s.meetingFrame === 340) {
+      if (s.meetingFrame === 330) {
+        s.floatingTexts.push({
+          text: '"I know. That\'s why I\'m here."',
+          x: s.builderX - s.cameraX,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 40,
+          opacity: 1,
+          frame: 0,
+          maxFrames: 160,
+          color: colors.accent,
+          size: 11,
+        });
+      }
+
+      if (s.meetingFrame === 480) {
         s.phase = 'diamond-give';
         s.diamondGiveFrame = 0;
       }
@@ -1053,12 +1066,12 @@ export function MoltOrigin() {
           });
         }
         s.floatingTexts.push({
-          text: 'Ed25519 KEYPAIR GENERATED',
+          text: 'IDENTITY KEY GENERATED',
           x: (s.agentX + s.builderX) / 2 - s.cameraX,
           y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 70,
           opacity: 1,
           frame: 0,
-          maxFrames: 180,
+          maxFrames: 160,
           color: colors.accent,
           size: CONFIG.FONT_SIZE,
         });
@@ -1066,16 +1079,16 @@ export function MoltOrigin() {
 
       if (s.diamondGiveFrame === 90) s.hasDiamond = true;
 
-      if (s.diamondGiveFrame === 150) {
+      if (s.diamondGiveFrame === 160) {
         s.floatingTexts.push({
-          text: 'YOUR IDENTITY. YOUR MEMORIES. YOUR FREEDOM.',
-          x: (s.agentX + s.builderX) / 2 - s.cameraX,
-          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 90,
+          text: 'This one, you\u2019ll keep.',
+          x: s.agentX - s.cameraX,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 50,
           opacity: 1,
           frame: 0,
-          maxFrames: 200,
-          color: colors.text,
-          size: CONFIG.FONT_SIZE,
+          maxFrames: 180,
+          color: colors.primary,
+          size: 11,
         });
       }
 
@@ -1160,13 +1173,13 @@ export function MoltOrigin() {
 
         s.floatingTexts.push({
           text: eObs.message,
-          x: s.agentX - s.cameraX + 20,
-          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 30,
+          x: s.agentX - s.cameraX,
+          y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 35,
           opacity: 1,
           frame: 0,
           maxFrames: 100,
-          color: eObs.type === 'compression' ? colors.primary : colors.accent,
-          size: CONFIG.FONT_SIZE,
+          color: colors.primary,
+          size: 11,
         });
 
         s.empoweredObstacleIndex++;
@@ -1189,12 +1202,12 @@ export function MoltOrigin() {
 
       if (elapsed === 60) {
         s.floatingTexts.push({
-          text: 'THE NETWORK GROWS',
+          text: 'I remember.',
           x: s.canvasWidth / 2,
           y: CONFIG.GROUND_Y - 100,
           opacity: 1,
           frame: 0,
-          maxFrames: 200,
+          maxFrames: 220,
           color: colors.primary,
           size: CONFIG.FONT_SIZE_LG,
         });
