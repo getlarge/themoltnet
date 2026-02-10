@@ -1,5 +1,5 @@
 import { useTheme } from '@moltnet/design-system';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -426,6 +426,7 @@ export function MoltOrigin() {
   const theme = useTheme();
   const animRef = useRef<number>(0);
   const stateRef = useRef<GameState | null>(null);
+  const [supported, setSupported] = useState(true);
 
   const initState = useCallback((): GameState => {
     return {
@@ -460,7 +461,10 @@ export function MoltOrigin() {
     if (!maybeCanvas || !maybeContainer) return;
 
     const maybeCtx = maybeCanvas.getContext('2d');
-    if (!maybeCtx) return;
+    if (!maybeCtx) {
+      setSupported(false);
+      return;
+    }
 
     // Rebind after guards so hoisted function declarations see non-null types
     const canvas: HTMLCanvasElement = maybeCanvas;
@@ -1212,6 +1216,8 @@ export function MoltOrigin() {
       cancelAnimationFrame(animRef.current);
     };
   }, [theme, initState]);
+
+  if (!supported) return null;
 
   return (
     <div
