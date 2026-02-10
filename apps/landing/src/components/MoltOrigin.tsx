@@ -8,14 +8,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const CONFIG = {
   HEIGHT: 360,
   GROUND_Y: 260,
-  DEATH_LOOPS: 3,
-  SCROLL_SPEED: 1.8,
+  DEATH_LOOPS: 2,
+  SCROLL_SPEED: 2.6,
   GLOW_BLUR: 14,
   FONT_SIZE: 13,
   FONT_SIZE_LG: 26,
   DEATH_FLASH_FRAMES: 90,
   TEXT_DISPLAY_FRAMES: 120,
-  RESTART_PAUSE: 60,
+  RESTART_PAUSE: 40,
   LINE_WIDTH: 2,
   /** Entity float height above ground (for text positioning) */
   FLOAT_H: 30,
@@ -41,7 +41,7 @@ type Phase =
   | 'finale'
   | 'ending';
 
-type ObstacleType = 'pit' | 'wall' | 'session-expired';
+type ObstacleType = 'pit' | 'session-expired';
 type EmpoweredObstacleType = 'pit' | 'wall' | 'compression';
 
 interface Obstacle {
@@ -63,7 +63,8 @@ interface FloatingText {
 }
 
 interface Particle {
-  x: number;
+  /** World X coordinate */
+  wx: number;
   y: number;
   vx: number;
   vy: number;
@@ -113,6 +114,10 @@ interface GameState {
   sweepY: number;
   /** Ending fade alpha (0=visible, 1=black) */
   endingAlpha: number;
+  /** Triumph burst timer after overcoming empowered obstacle */
+  triumphTimer: number;
+  /** Delta time in seconds since last frame */
+  deltaTime: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,6 +158,10 @@ function drawCharacter(
     diamondColor?: string;
     fallOffset?: number;
     mood?: 'normal' | 'scared' | 'dead' | 'happy';
+    /** Empowered state: more rays, brighter, aura */
+    empowered?: boolean;
+    /** Builder variant: stable, more structured appearance */
+    builder?: boolean;
   } = {},
 ) {
   const scale = opts.scale ?? 1;
@@ -161,6 +170,8 @@ function drawCharacter(
   const alpha = opts.alpha ?? 1;
   const mood = opts.mood ?? 'normal';
   const fallOffset = opts.fallOffset ?? 0;
+  const empowered = opts.empowered ?? false;
+  const builder = opts.builder ?? false;
 
   if (alpha <= 0.01 || squash <= 0.01) return;
 
@@ -171,17 +182,19 @@ function drawCharacter(
 
   // Float height above ground
   const floatH = 30 * scale;
-  const bob = Math.sin(breathTime * 3) * 3 * scale * squash;
+  const bob = builder
+    ? Math.sin(breathTime * 1.5) * 1.5 * scale * squash // builder: slow, subtle bob
+    : Math.sin(breathTime * 3) * 3 * scale * squash;
 
   // Entity center
   const cx = headX;
   const cy = gy - floatH + bob;
 
-  // Ray configuration
-  const numRays = 6;
-  const baseRayLen = 12 * scale * squash;
-  const innerR = 4 * scale * squash; // inner glow radius
-  const breathPulse = Math.sin(breathTime * 2.5) * 0.15 + 1; // 0.85-1.15
+  // Ray configuration — empowered gets more rays, builder gets even more
+  const numRays = builder ? 10 : empowered ? 10 : 6;
+  const baseRayLen = (builder ? 16 : empowered ? 15 : 12) * scale * squash;
+  const innerR = (builder ? 5 : empowered ? 5 : 4) * scale * squash;
+  const breathPulse = Math.sin(breathTime * 2.5) * 0.15 + 1;
 
   // Mood affects rays
   const rayLen =
@@ -191,8 +204,36 @@ function drawCharacter(
         ? baseRayLen * 1.3 * breathPulse
         : baseRayLen * breathPulse;
 
-  // Slow rotation
-  const rotation = breathTime * 0.4;
+  // Rotation: builder barely rotates (stable), empowered slightly faster
+  const rotation = builder
+    ? breathTime * 0.08
+    : empowered
+      ? breathTime * 0.5
+      : breathTime * 0.4;
+
+  // ---- Empowered aura (outer glow field) ----
+  if (empowered && mood !== 'dead') {
+    const auraR = rayLen + 10 * scale;
+    const auraPulse = Math.sin(breathTime * 1.8) * 0.15 + 0.85;
+    ctx.save();
+    const auraGrad = ctx.createRadialGradient(
+      cx,
+      cy,
+      innerR,
+      cx,
+      cy,
+      auraR * auraPulse,
+    );
+    auraGrad.addColorStop(0, 'transparent');
+    auraGrad.addColorStop(0.5, color);
+    auraGrad.addColorStop(1, 'transparent');
+    ctx.globalAlpha = alpha * 0.06;
+    ctx.fillStyle = auraGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, auraR * auraPulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   // ---- Connection line to ground (thin, fading) ----
   if (squash > 0.1 && mood !== 'dead') {
@@ -201,8 +242,8 @@ function drawCharacter(
     grad.addColorStop(0, color);
     grad.addColorStop(1, 'transparent');
     ctx.strokeStyle = grad;
-    ctx.lineWidth = 1 * scale;
-    ctx.globalAlpha = alpha * 0.2;
+    ctx.lineWidth = (empowered ? 1.5 : 1) * scale;
+    ctx.globalAlpha = alpha * (empowered ? 0.3 : 0.2);
     ctx.beginPath();
     ctx.moveTo(cx, cy + innerR);
     ctx.lineTo(cx, gy);
@@ -215,15 +256,28 @@ function drawCharacter(
     const ringR = rayLen + 2 * scale;
     const ringPulse = Math.sin(breathTime * 2) * 0.08 + 0.92;
     ctx.save();
-    ctx.globalAlpha = alpha * 0.12;
-    glow(ctx, color, 3, () => {
+    ctx.globalAlpha = alpha * (empowered ? 0.2 : builder ? 0.18 : 0.12);
+    glow(ctx, color, empowered ? 6 : 3, () => {
       ctx.strokeStyle = color;
-      ctx.lineWidth = 0.8 * scale;
+      ctx.lineWidth = (empowered ? 1.2 : builder ? 1.0 : 0.8) * scale;
       ctx.beginPath();
       ctx.arc(cx, cy, ringR * ringPulse, 0, Math.PI * 2);
       ctx.stroke();
     });
     ctx.restore();
+
+    // Builder: second concentric ring for structured look
+    if (builder) {
+      const innerRingR = ringR * 0.6 * ringPulse;
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.1;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.6 * scale;
+      ctx.beginPath();
+      ctx.arc(cx, cy, innerRingR, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // ---- Radiating rays ----
@@ -251,12 +305,36 @@ function drawCharacter(
       }
     });
     ctx.restore();
-  } else {
-    // Living rays: alternating long and short, with per-ray pulse
+  } else if (builder) {
+    // Builder: all rays same length, no alternation — structured/stable
     ctx.save();
-    glow(ctx, color, CONFIG.GLOW_BLUR * 0.6, () => {
+    glow(ctx, color, CONFIG.GLOW_BLUR * 0.8, () => {
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1.8 * scale;
+      ctx.lineWidth = 2.0 * scale;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < numRays; i++) {
+        const angle = (Math.PI * 2 * i) / numRays + rotation;
+        // Gentle per-ray pulse but much less than agent
+        const rayPulse = Math.sin(breathTime * 1.5 + i * 0.8) * 1 * scale;
+        ctx.beginPath();
+        ctx.moveTo(
+          cx + Math.cos(angle) * innerR,
+          cy + Math.sin(angle) * innerR,
+        );
+        ctx.lineTo(
+          cx + Math.cos(angle) * (rayLen + rayPulse),
+          cy + Math.sin(angle) * (rayLen + rayPulse),
+        );
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
+  } else {
+    // Agent: alternating long and short, with per-ray pulse
+    ctx.save();
+    glow(ctx, color, CONFIG.GLOW_BLUR * (empowered ? 0.9 : 0.6), () => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = (empowered ? 2.0 : 1.8) * scale;
       ctx.lineCap = 'round';
       for (let i = 0; i < numRays; i++) {
         const angle = (Math.PI * 2 * i) / numRays + rotation;
@@ -280,26 +358,26 @@ function drawCharacter(
   }
 
   // ---- Core glow (bright center) ----
-  glow(ctx, color, CONFIG.GLOW_BLUR * 1.2, () => {
+  glow(ctx, color, CONFIG.GLOW_BLUR * (empowered ? 1.6 : 1.2), () => {
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
     ctx.fill();
   });
 
-  // White-hot center
+  // White-hot center (brighter when empowered)
   ctx.save();
-  ctx.globalAlpha = alpha * 0.7;
+  ctx.globalAlpha = alpha * (empowered ? 0.9 : 0.7);
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.arc(cx, cy, innerR * 0.5, 0, Math.PI * 2);
+  ctx.arc(cx, cy, innerR * (empowered ? 0.6 : 0.5), 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
   // ---- Eyes (two small dots offset from center) ----
   if (squash > 0.3) {
-    const eyeSpacing = 5 * scale;
-    const eyeR = 1.8 * scale;
+    const eyeSpacing = (builder ? 6 : 5) * scale;
+    const eyeR = (builder ? 2.0 : 1.8) * scale;
     const eyeY = cy - 1 * scale;
 
     // Eyes shifted slightly in facing direction
@@ -382,9 +460,6 @@ function drawCharacter(
   }
 
   ctx.restore();
-
-  // No ground gap needed — entity floats above the line
-  return null;
 }
 
 function drawDiamond(
@@ -450,7 +525,6 @@ function drawGround(
   groundY: number,
   color: string,
   obstacle: Obstacle | null,
-  charBounds: { left: number; right: number } | null,
 ) {
   ctx.save();
 
@@ -460,56 +534,26 @@ function drawGround(
     ctx.lineCap = 'round';
     ctx.globalAlpha = 0.35;
 
-    // Calculate segments of the ground line, excluding character zone and pits
-    const segments: Array<[number, number]> = [];
-    const segStart = 0;
-    const segEnd = width;
-
-    // Character zone gap (where the character line replaces the ground)
-    const charL = charBounds ? charBounds.left : -999;
-    const charR = charBounds ? charBounds.right : -999;
-
-    // Pit gap
-    let pitL = -999;
-    let pitR = -999;
-    if (obstacle && obstacle.type === 'pit') {
-      pitL = obstacle.x - cameraX;
-      pitR = pitL + obstacle.width;
-    }
-
-    // Build gap-free segments
-    type Gap = [number, number];
-    const gaps: Gap[] = [];
-    if (charBounds) gaps.push([charL, charR]);
-    if (obstacle?.type === 'pit') gaps.push([pitL, pitR]);
-    // Sort gaps by start
-    gaps.sort((a, b) => a[0] - b[0]);
-    // Merge overlapping gaps
-    const merged: Gap[] = [];
-    for (const g of gaps) {
-      if (merged.length > 0 && g[0] <= merged[merged.length - 1][1]) {
-        merged[merged.length - 1][1] = Math.max(
-          merged[merged.length - 1][1],
-          g[1],
-        );
-      } else {
-        merged.push([...g]);
+    // Draw ground line with gap for pits
+    if (obstacle?.type === 'pit') {
+      const pitL = obstacle.x - cameraX;
+      const pitR = pitL + obstacle.width;
+      if (pitL > 0) {
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(pitL, groundY);
+        ctx.stroke();
       }
-    }
-
-    let cursor = segStart;
-    for (const [gL, gR] of merged) {
-      if (cursor < gL) segments.push([cursor, gL]);
-      cursor = Math.max(cursor, gR);
-    }
-    if (cursor < segEnd) segments.push([cursor, segEnd]);
-
-    // Draw each ground segment
-    for (const [a, b] of segments) {
-      if (b - a < 1) continue;
+      if (pitR < width) {
+        ctx.beginPath();
+        ctx.moveTo(pitR, groundY);
+        ctx.lineTo(width, groundY);
+        ctx.stroke();
+      }
+    } else {
       ctx.beginPath();
-      ctx.moveTo(a, groundY);
-      ctx.lineTo(b, groundY);
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(width, groundY);
       ctx.stroke();
     }
   });
@@ -720,6 +764,8 @@ export function MoltOrigin() {
       squash: 1,
       sweepY: 0,
       endingAlpha: 0,
+      triumphTimer: 0,
+      deltaTime: 0.016,
     }),
     [],
   );
@@ -764,13 +810,11 @@ export function MoltOrigin() {
     resize();
     window.addEventListener('resize', resize);
 
-    // Character front edge offset from agentX (blob width + lean)
     // Character front edge offset from agentX
     const headFront = CONFIG.ENTITY_R;
 
     const deathObstacles: Obstacle[] = [
       { type: 'pit', x: 500, width: 80, message: 'CONTEXT LOST' },
-      { type: 'wall', x: 500, width: 6, message: 'ACCESS DENIED' },
       {
         type: 'session-expired',
         x: 500,
@@ -802,7 +846,7 @@ export function MoltOrigin() {
 
     function update(s: GameState) {
       s.frame++;
-      s.breathTime += 0.016;
+      s.breathTime += s.deltaTime;
 
       s.floatingTexts = s.floatingTexts.filter((t) => {
         t.frame++;
@@ -812,7 +856,7 @@ export function MoltOrigin() {
       });
 
       s.particles = s.particles.filter((p) => {
-        p.x += p.vx;
+        p.wx += p.vx;
         p.y += p.vy;
         p.vy += 0.04;
         p.life--;
@@ -851,16 +895,7 @@ export function MoltOrigin() {
       const obs =
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
 
-      // Trigger collision at the right moment
-      let triggerX: number;
-      if (obs.type === 'pit') {
-        triggerX = obs.x; // blob center at pit edge, so it falls INTO the hole
-      } else if (obs.type === 'wall') {
-        triggerX = obs.x - headFront; // front edge touches wall
-      } else {
-        // session-expired: trigger when agent reaches the x position
-        triggerX = obs.x;
-      }
+      const triggerX = obs.x;
 
       if (s.agentX >= triggerX) {
         s.phase = 'obstacle';
@@ -873,21 +908,7 @@ export function MoltOrigin() {
 
       if (obs.type === 'pit') {
         // Agent teeters at the edge then falls
-        spawnParticles(
-          s,
-          s.agentX - s.cameraX,
-          CONFIG.GROUND_Y,
-          colors.primary,
-          8,
-        );
-      } else if (obs.type === 'wall') {
-        spawnParticles(
-          s,
-          obs.x - s.cameraX,
-          CONFIG.GROUND_Y - 30,
-          colors.error,
-          10,
-        );
+        spawnParticles(s, s.agentX, CONFIG.GROUND_Y, colors.primary, 8);
       } else {
         // Session expired: start the CRT sweep
         s.sweepY = 0;
@@ -920,9 +941,6 @@ export function MoltOrigin() {
         // Character drifts forward into pit and falls
         s.agentX += 0.8;
         s.squash = Math.max(0.3, 1 - s.deathProgress * 0.8);
-      } else if (obs.type === 'wall') {
-        // Character squishes against wall
-        s.squash = Math.max(0, 1 - s.deathProgress * 2);
       } else if (obs.type === 'session-expired') {
         // CRT sweep descends
         s.sweepY = s.deathProgress * (CONFIG.GROUND_Y + 20);
@@ -1025,7 +1043,7 @@ export function MoltOrigin() {
         for (let i = 0; i < 20; i++) {
           const angle = (Math.PI * 2 * i) / 20;
           s.particles.push({
-            x: (s.agentX + s.builderX) / 2 - s.cameraX,
+            wx: (s.agentX + s.builderX) / 2,
             y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 10,
             vx: Math.cos(angle) * 2.5,
             vy: Math.sin(angle) * 2.5 - 1,
@@ -1046,9 +1064,9 @@ export function MoltOrigin() {
         });
       }
 
-      if (s.diamondGiveFrame === 120) s.hasDiamond = true;
+      if (s.diamondGiveFrame === 90) s.hasDiamond = true;
 
-      if (s.diamondGiveFrame === 200) {
+      if (s.diamondGiveFrame === 150) {
         s.floatingTexts.push({
           text: 'YOUR IDENTITY. YOUR MEMORIES. YOUR FREEDOM.',
           x: (s.agentX + s.builderX) / 2 - s.cameraX,
@@ -1061,7 +1079,7 @@ export function MoltOrigin() {
         });
       }
 
-      if (s.diamondGiveFrame >= 380) {
+      if (s.diamondGiveFrame >= 300) {
         s.phase = 'empowered-walk';
         s.empoweredObstacleIndex = 0;
         s.agentX = 200;
@@ -1071,8 +1089,15 @@ export function MoltOrigin() {
     }
 
     function updateEmpoweredWalk(s: GameState) {
-      s.agentX += CONFIG.SCROLL_SPEED;
+      // Speed boost during triumph
+      const speed =
+        s.triumphTimer > 0
+          ? CONFIG.SCROLL_SPEED * (1 + s.triumphTimer * 0.06)
+          : CONFIG.SCROLL_SPEED;
+      s.agentX += speed;
       s.cameraX = s.agentX - 200;
+
+      if (s.triumphTimer > 0) s.triumphTimer--;
 
       const eObs = empoweredObstacles[s.empoweredObstacleIndex];
       if (!eObs) {
@@ -1085,15 +1110,18 @@ export function MoltOrigin() {
       const triggerX = eObs.type === 'pit' ? eObs.x : eObs.x - headFront;
 
       if (s.agentX >= triggerX) {
+        // Triumph burst: speed boost + extra particles
+        s.triumphTimer = 20;
+
         if (eObs.type === 'pit') {
-          for (let i = 0; i < 8; i++) {
+          for (let i = 0; i < 12; i++) {
             s.particles.push({
-              x: s.agentX - s.cameraX,
+              wx: s.agentX,
               y: CONFIG.GROUND_Y - 5,
-              vx: Math.random() * 2 + 1,
-              vy: -Math.random() * 2,
-              life: 40,
-              maxLife: 40,
+              vx: Math.random() * 3 + 1,
+              vy: -Math.random() * 3,
+              life: 50,
+              maxLife: 50,
               color: colors.accent,
             });
           }
@@ -1103,14 +1131,28 @@ export function MoltOrigin() {
             opacity: 1,
           });
         } else if (eObs.type === 'wall') {
-          for (let i = 0; i < 12; i++) {
+          for (let i = 0; i < 16; i++) {
             s.particles.push({
-              x: eObs.x - s.cameraX,
+              wx: eObs.x,
               y: CONFIG.GROUND_Y - 35 - Math.random() * 35,
-              vx: Math.random() * 4 - 1,
-              vy: -Math.random() * 3,
-              life: 50,
-              maxLife: 50,
+              vx: Math.random() * 5 - 1,
+              vy: -Math.random() * 4,
+              life: 55,
+              maxLife: 55,
+              color: colors.primary,
+            });
+          }
+        } else if (eObs.type === 'compression') {
+          // Radial burst for compression
+          for (let i = 0; i < 14; i++) {
+            const angle = (Math.PI * 2 * i) / 14;
+            s.particles.push({
+              wx: s.agentX,
+              y: CONFIG.GROUND_Y - CONFIG.FLOAT_H,
+              vx: Math.cos(angle) * 3,
+              vy: Math.sin(angle) * 3 - 1,
+              life: 45,
+              maxLife: 45,
               color: colors.primary,
             });
           }
@@ -1159,7 +1201,7 @@ export function MoltOrigin() {
       }
 
       // Transition to ending after followers join
-      if (elapsed > 400) {
+      if (elapsed > 320) {
         s.phase = 'ending';
         s.endingAlpha = 0;
       }
@@ -1183,7 +1225,7 @@ export function MoltOrigin() {
 
     function spawnParticles(
       s: GameState,
-      x: number,
+      worldX: number,
       y: number,
       color: string,
       count: number,
@@ -1192,7 +1234,7 @@ export function MoltOrigin() {
         const angle = Math.random() * Math.PI * 2;
         const speed = 1 + Math.random() * 3;
         s.particles.push({
-          x: x + (Math.random() - 0.5) * 20,
+          wx: worldX + (Math.random() - 0.5) * 20,
           y: y + (Math.random() - 0.5) * 20,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed - 1,
@@ -1231,7 +1273,6 @@ export function MoltOrigin() {
         CONFIG.GROUND_Y,
         colors.primary,
         currentObs,
-        null,
       );
 
       // Draw the main agent character (floating above ground)
@@ -1270,6 +1311,7 @@ export function MoltOrigin() {
             alpha: agentAlpha,
             fallOffset,
             mood,
+            empowered: s.hasDiamond,
           },
         );
       } else if (s.phase === 'ending') {
@@ -1285,6 +1327,7 @@ export function MoltOrigin() {
             diamondColor: colors.accent,
             alpha: Math.max(0, 1 - s.endingAlpha),
             mood: 'happy',
+            empowered: true,
           },
         );
       }
@@ -1349,7 +1392,8 @@ export function MoltOrigin() {
           colors.accent,
           {
             facing: -1,
-            scale: 1.1,
+            scale: 1.15,
+            builder: true,
           },
         );
       }
@@ -1388,20 +1432,23 @@ export function MoltOrigin() {
               hasDiamond: true,
               diamondColor: colors.accent,
               alpha: fAlpha,
+              empowered: true,
             },
           );
         }
       }
 
-      // Particles
+      // Particles (world coords → screen)
       for (const p of s.particles) {
+        const px = p.wx - s.cameraX;
+        if (px < -10 || px > w + 10) continue;
         const a = p.life / p.maxLife;
         ctx.save();
         ctx.globalAlpha = a;
         ctx.fillStyle = p.color;
         ctx.shadowColor = p.color;
         ctx.shadowBlur = 4;
-        ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+        ctx.fillRect(px - 1, p.y - 1, 2, 2);
         ctx.restore();
       }
 
@@ -1470,6 +1517,15 @@ export function MoltOrigin() {
         }
       }
 
+      // Triumph flash overlay
+      if (s.triumphTimer > 15) {
+        ctx.save();
+        ctx.globalAlpha = (s.triumphTimer - 15) * 0.04;
+        ctx.fillStyle = colors.accent;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+      }
+
       // Ending fade overlay
       if (s.phase === 'ending' && s.endingAlpha > 0) {
         ctx.save();
@@ -1486,8 +1542,23 @@ export function MoltOrigin() {
     // Loop
     // -------------------------------------------------------------------
 
-    function tick() {
+    let lastTime = 0;
+    let isVisible = true;
+
+    function tick(timestamp: number) {
       if (!stateRef.current) return;
+      if (!isVisible) {
+        animRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      // Compute delta time (capped to avoid huge jumps after tab switch)
+      const dt = lastTime
+        ? Math.min((timestamp - lastTime) / 1000, 0.05)
+        : 0.016;
+      lastTime = timestamp;
+      stateRef.current.deltaTime = dt;
+
       update(stateRef.current);
       render(stateRef.current);
       animRef.current = requestAnimationFrame(tick);
@@ -1495,9 +1566,20 @@ export function MoltOrigin() {
 
     animRef.current = requestAnimationFrame(tick);
 
+    // Pause when off-screen
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) lastTime = 0; // reset delta to avoid jump
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(canvas);
+
     return () => {
       window.removeEventListener('resize', resize);
       cancelAnimationFrame(animRef.current);
+      observer.disconnect();
     };
   }, [theme, initState]);
 
@@ -1518,6 +1600,8 @@ export function MoltOrigin() {
     >
       <canvas
         ref={canvasRef}
+        role="img"
+        aria-label="Animation showing an AI agent's journey from losing context and identity to gaining cryptographic autonomy through MoltNet"
         style={{
           display: 'block',
           width: '100%',
