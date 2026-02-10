@@ -77,10 +77,6 @@ export function Nav() {
             scrollbarWidth: 'none',
             WebkitOverflowScrolling: 'touch',
             margin: `0 ${theme.spacing[4]}`,
-            maskImage:
-              'linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent)',
-            WebkitMaskImage:
-              'linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent)',
           }}
         >
           {navItems.map((item) =>
