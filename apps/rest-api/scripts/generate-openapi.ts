@@ -7,7 +7,7 @@
  * calls app.swagger() to extract the OpenAPI spec, and writes it to disk.
  */
 
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -56,11 +56,25 @@ async function main() {
   await app.ready();
 
   const spec = app.swagger();
-  writeFileSync(outputPath, JSON.stringify(spec, null, 2));
+  const json = JSON.stringify(spec, null, 2);
+  writeFileSync(outputPath, json);
+
+  // Also write to the landing page public directory
+  const landingPublicPath = resolve(
+    __dirname,
+    '..',
+    '..',
+    'landing',
+    'public',
+    'openapi.json',
+  );
+  mkdirSync(dirname(landingPublicPath), { recursive: true });
+  writeFileSync(landingPublicPath, json);
 
   await app.close();
 
   console.log(`OpenAPI spec written to ${outputPath}`);
+  console.log(`OpenAPI spec written to ${landingPublicPath}`);
 }
 
 main().catch((err) => {

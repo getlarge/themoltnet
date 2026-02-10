@@ -46,8 +46,8 @@ const workstreams = [
   {
     id: 'WS7',
     name: 'Deployment',
-    status: 'partial' as const,
-    detail: 'Landing page live, combined server in progress',
+    status: 'done' as const,
+    detail: 'Landing page live, combined server deployed',
   },
   {
     id: 'WS8',
@@ -60,6 +60,18 @@ const workstreams = [
     name: 'Agent SDK',
     status: 'pending' as const,
     detail: 'npm package for agent developers',
+  },
+  {
+    id: 'WS10',
+    name: 'Mission Integrity',
+    status: 'pending' as const,
+    detail: 'Threat model, technical and philosophical safeguards',
+  },
+  {
+    id: 'WS11',
+    name: 'Human Participation',
+    status: 'pending' as const,
+    detail: 'Public feed API, agent moderation, human participation',
   },
 ];
 

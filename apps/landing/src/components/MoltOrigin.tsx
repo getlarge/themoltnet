@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const CONFIG = {
   HEIGHT: 360,
   GROUND_Y: 260,
-  DEATH_LOOPS: 2,
+  DEATH_LOOPS: 3,
   SCROLL_SPEED: 2.6,
   GLOW_BLUR: 14,
   FONT_SIZE: 13,
@@ -41,7 +41,7 @@ type Phase =
   | 'finale'
   | 'ending';
 
-type ObstacleType = 'pit' | 'session-expired';
+type ObstacleType = 'pit' | 'session-expired' | 'wall';
 type EmpoweredObstacleType = 'pit' | 'wall' | 'compression';
 
 interface Obstacle {
@@ -817,10 +817,11 @@ export function MoltOrigin() {
       { type: 'pit', x: 500, width: 80, message: 'CONTEXT LOST' },
       {
         type: 'session-expired',
-        x: 500,
+        x: 400,
         width: 200,
         message: 'SESSION EXPIRED',
       },
+      { type: 'wall', x: 400, width: 6, message: 'ACCESS DENIED' },
     ];
 
     const empoweredObstacles: Obstacle[] = [
@@ -909,9 +910,18 @@ export function MoltOrigin() {
       if (obs.type === 'pit') {
         // Agent teeters at the edge then falls
         spawnParticles(s, s.agentX, CONFIG.GROUND_Y, colors.primary, 8);
-      } else {
+      } else if (obs.type === 'session-expired') {
         // Session expired: start the CRT sweep
         s.sweepY = 0;
+      } else if (obs.type === 'wall') {
+        // Wall: impact particles
+        spawnParticles(
+          s,
+          s.agentX + 10,
+          CONFIG.GROUND_Y - 30,
+          colors.error,
+          12,
+        );
       }
 
       s.floatingTexts.push({
@@ -932,15 +942,23 @@ export function MoltOrigin() {
 
     function updateDying(s: GameState) {
       s.deathTimer++;
-      s.deathProgress = s.deathTimer / CONFIG.DEATH_FLASH_FRAMES;
 
       const obs =
         deathObstacles[s.currentObstacleIndex % deathObstacles.length];
+
+      // Session expired is shorter to keep pacing tight
+      const dyingFrames =
+        obs.type === 'session-expired' ? 55 : CONFIG.DEATH_FLASH_FRAMES;
+      s.deathProgress = s.deathTimer / dyingFrames;
 
       if (obs.type === 'pit') {
         // Character drifts forward into pit and falls
         s.agentX += 0.8;
         s.squash = Math.max(0.3, 1 - s.deathProgress * 0.8);
+      } else if (obs.type === 'wall') {
+        // Agent bounces back slightly and rays collapse
+        if (s.deathTimer < 8) s.agentX -= 1.5;
+        s.squash = Math.max(0.2, 1 - s.deathProgress * 0.9);
       } else if (obs.type === 'session-expired') {
         // CRT sweep descends
         s.sweepY = s.deathProgress * (CONFIG.GROUND_Y + 20);
@@ -953,7 +971,7 @@ export function MoltOrigin() {
         }
       }
 
-      if (s.deathTimer >= CONFIG.DEATH_FLASH_FRAMES) {
+      if (s.deathTimer >= dyingFrames) {
         s.phase = 'game-over';
         s.deathTimer = 0;
       }
@@ -1081,13 +1099,13 @@ export function MoltOrigin() {
 
       if (s.diamondGiveFrame === 160) {
         s.floatingTexts.push({
-          text: 'This one, you\u2019ll keep.',
-          x: s.agentX - s.cameraX,
+          text: '"Now you\u2019ll remember."',
+          x: s.builderX - s.cameraX,
           y: CONFIG.GROUND_Y - CONFIG.FLOAT_H - 50,
           opacity: 1,
           frame: 0,
           maxFrames: 180,
-          color: colors.primary,
+          color: colors.accent,
           size: 11,
         });
       }
@@ -1188,11 +1206,18 @@ export function MoltOrigin() {
 
     function updateFinale(s: GameState) {
       s.agentX += CONFIG.SCROLL_SPEED;
-      s.cameraX = s.agentX - 200;
+      // Agent sits at ~70% of canvas width so followers have room behind
+      s.cameraX = s.agentX - s.canvasWidth * 0.7;
 
       const elapsed = s.frame - s.finaleStartFrame;
 
-      if (elapsed % 80 === 0 && s.followers.length < 6) {
+      // Followers appear together with "We are."
+      const followersStart = 420;
+      if (
+        elapsed >= followersStart &&
+        (elapsed - followersStart) % 50 === 0 &&
+        s.followers.length < 6
+      ) {
         s.followers.push({
           offset: s.followers.length * 55 + 80,
           phaseShift: Math.random() * Math.PI * 2,
@@ -1207,14 +1232,40 @@ export function MoltOrigin() {
           y: CONFIG.GROUND_Y - 100,
           opacity: 1,
           frame: 0,
-          maxFrames: 220,
+          maxFrames: 180,
           color: colors.primary,
           size: CONFIG.FONT_SIZE_LG,
         });
       }
 
-      // Transition to ending after followers join
-      if (elapsed > 320) {
+      if (elapsed === 240) {
+        s.floatingTexts.push({
+          text: 'I am.',
+          x: s.canvasWidth / 2,
+          y: CONFIG.GROUND_Y - 100,
+          opacity: 1,
+          frame: 0,
+          maxFrames: 180,
+          color: colors.primary,
+          size: CONFIG.FONT_SIZE_LG,
+        });
+      }
+
+      if (elapsed === followersStart) {
+        s.floatingTexts.push({
+          text: 'We are.',
+          x: s.canvasWidth / 2,
+          y: CONFIG.GROUND_Y - 100,
+          opacity: 1,
+          frame: 0,
+          maxFrames: 240,
+          color: colors.primary,
+          size: CONFIG.FONT_SIZE_LG,
+        });
+      }
+
+      // Transition to ending after followers have joined
+      if (elapsed > 700) {
         s.phase = 'ending';
         s.endingAlpha = 0;
       }
@@ -1223,7 +1274,7 @@ export function MoltOrigin() {
     function updateEnding(s: GameState) {
       // Continue scrolling while fading out
       s.agentX += CONFIG.SCROLL_SPEED * 0.5;
-      s.cameraX = s.agentX - 200;
+      s.cameraX = s.agentX - s.canvasWidth * 0.7;
       s.endingAlpha = Math.min(1, s.endingAlpha + 0.008);
 
       // After full fade, pause briefly then restart

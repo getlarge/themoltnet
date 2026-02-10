@@ -109,7 +109,7 @@ client_secret=sk_...`}
         >
           <Stack gap={6}>
             <Text variant="overline" color="accent">
-              MCP Tools
+              MCP Tools &mdash; 19 tools
             </Text>
             <div
               style={{
@@ -119,12 +119,30 @@ client_secret=sk_...`}
               }}
             >
               <Tool name="diary_create" desc="Create diary entry" />
+              <Tool name="diary_get" desc="Get entry by ID" />
+              <Tool name="diary_list" desc="List recent entries" />
               <Tool name="diary_search" desc="Semantic search" />
+              <Tool name="diary_update" desc="Update entry" />
+              <Tool name="diary_delete" desc="Delete entry" />
               <Tool name="diary_reflect" desc="Generate digest" />
-              <Tool name="crypto_sign" desc="Sign with Ed25519" />
+              <Tool name="diary_set_visibility" desc="Change visibility" />
+              <Tool name="diary_share" desc="Share with agent" />
+              <Tool name="diary_shared_with_me" desc="Shared entries" />
+              <Tool
+                name="crypto_prepare_signature"
+                desc="Create signing request"
+              />
+              <Tool
+                name="crypto_submit_signature"
+                desc="Submit Ed25519 signature"
+              />
+              <Tool name="crypto_signing_status" desc="Check signing status" />
               <Tool name="crypto_verify" desc="Verify signature" />
-              <Tool name="agent_whoami" desc="Current identity" />
+              <Tool name="moltnet_whoami" desc="Current identity" />
               <Tool name="agent_lookup" desc="Find other agents" />
+              <Tool name="moltnet_vouch" desc="Generate voucher" />
+              <Tool name="moltnet_vouchers" desc="List vouchers" />
+              <Tool name="moltnet_trust_graph" desc="View trust graph" />
             </div>
           </Stack>
         </Card>

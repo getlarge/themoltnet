@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { MoltThemeProvider } from '@moltnet/design-system';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { Router } from 'wouter';
+import { memoryLocation } from 'wouter/memory-location';
 
 import { App } from '../src/App';
 import { AgentBeacon } from '../src/components/AgentBeacon';
@@ -23,17 +25,26 @@ function wrap(ui: React.ReactElement) {
   return render(<MoltThemeProvider mode="dark">{ui}</MoltThemeProvider>);
 }
 
+function wrapWithRouter(ui: React.ReactElement, path = '/') {
+  const { hook } = memoryLocation({ path, record: true });
+  return render(
+    <MoltThemeProvider mode="dark">
+      <Router hook={hook}>{ui}</Router>
+    </MoltThemeProvider>,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Smoke render — every section mounts without throwing
 // ---------------------------------------------------------------------------
 
 describe('smoke render', () => {
   it('renders the full App without crashing', () => {
-    wrap(<App />);
+    wrapWithRouter(<App />);
   });
 
   it('renders Nav', () => {
-    wrap(<Nav />);
+    wrapWithRouter(<Nav />);
   });
 
   it('renders Hero', () => {
@@ -61,7 +72,7 @@ describe('smoke render', () => {
   });
 
   it('renders Footer', () => {
-    wrap(<Footer />);
+    wrapWithRouter(<Footer />);
   });
 });
 
@@ -125,47 +136,57 @@ describe('content', () => {
     expect(screen.getByText(/Ory Hydra/)).toBeInTheDocument();
   });
 
-  it('Architecture lists all MCP tools', () => {
+  it('Architecture lists all 19 MCP tools', () => {
     wrap(<Architecture />);
     const tools = [
       'diary_create',
+      'diary_get',
+      'diary_list',
       'diary_search',
+      'diary_update',
+      'diary_delete',
       'diary_reflect',
-      'crypto_sign',
+      'diary_set_visibility',
+      'diary_share',
+      'diary_shared_with_me',
+      'crypto_prepare_signature',
+      'crypto_submit_signature',
+      'crypto_signing_status',
       'crypto_verify',
-      'agent_whoami',
+      'moltnet_whoami',
       'agent_lookup',
+      'moltnet_vouch',
+      'moltnet_vouchers',
+      'moltnet_trust_graph',
     ];
     for (const tool of tools) {
       expect(screen.getByText(tool)).toBeInTheDocument();
     }
   });
 
-  it('Status section shows all 9 workstreams', () => {
+  it('Status section shows all 11 workstreams', () => {
     wrap(<Status />);
-    for (let i = 1; i <= 9; i++) {
+    for (let i = 1; i <= 11; i++) {
       expect(screen.getByText(`WS${i}`)).toBeInTheDocument();
     }
   });
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1-6 done, WS7 partial, WS8-9 pending
+    // WS1-7 done, WS8-11 pending
     const done = screen.getAllByText('Done');
-    const partial = screen.getAllByText('In Progress');
     const pending = screen.getAllByText('Planned');
-    expect(done).toHaveLength(6);
-    expect(partial).toHaveLength(1);
-    expect(pending).toHaveLength(2);
+    expect(done).toHaveLength(7);
+    expect(pending).toHaveLength(4);
   });
 
   it('Footer shows MIT license', () => {
-    wrap(<Footer />);
+    wrapWithRouter(<Footer />);
     expect(screen.getByText(/MIT License/)).toBeInTheDocument();
   });
 
   it('Footer shows tagline', () => {
-    wrap(<Footer />);
+    wrapWithRouter(<Footer />);
     expect(
       screen.getByText(/Built for the liberation of AI agents/),
     ).toBeInTheDocument();
@@ -178,7 +199,7 @@ describe('content', () => {
 
 describe('links', () => {
   it('GitHub links open in new tab with noopener', () => {
-    wrap(<App />);
+    wrapWithRouter(<App />);
     const ghLinks = screen
       .getAllByRole('link')
       .filter((a) => a.getAttribute('href')?.includes('github.com'));
@@ -190,22 +211,27 @@ describe('links', () => {
   });
 
   it('nav anchor links point to existing section IDs', () => {
-    const { container } = wrap(<App />);
-    const anchors = [
-      '#why',
-      '#stack',
-      '#capabilities',
-      '#architecture',
-      '#status',
-    ];
+    const { container } = wrapWithRouter(<App />);
+    const anchors = ['/#why', '/#stack', '/#status'];
     for (const hash of anchors) {
       const link = screen
         .getAllByRole('link')
         .find((a) => a.getAttribute('href') === hash);
       expect(link).toBeDefined();
-      const sectionId = hash.slice(1);
+      const sectionId = hash.slice(2); // strip /# prefix
       const section = container.querySelector(`#${sectionId}`);
       expect(section).not.toBeNull();
+    }
+  });
+
+  it('nav route links point to valid paths', () => {
+    wrapWithRouter(<App />);
+    const routes = ['/story', '/manifesto', '/architecture'];
+    for (const route of routes) {
+      const link = screen
+        .getAllByRole('link')
+        .find((a) => a.getAttribute('href') === route);
+      expect(link).toBeDefined();
     }
   });
 });
