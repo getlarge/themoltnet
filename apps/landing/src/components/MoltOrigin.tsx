@@ -194,33 +194,6 @@ function drawCharacter(
   // Slow rotation
   const rotation = breathTime * 0.4;
 
-  // ---- Sparkle trail (particles floating in the air behind) ----
-  if (squash > 0.2) {
-    ctx.save();
-    const trailLen = 90 * scale;
-    const trailStep = 5;
-
-    for (let i = 0; i < trailLen; i += trailStep) {
-      const dx = -facing * i;
-      const fade = (1 - i / trailLen) ** 1.5;
-      const sparkleY =
-        Math.sin((i * 0.08 + breathTime * 3) * Math.PI) * 6 * scale * fade;
-      const sparkleX = cx + dx + Math.sin(i * 0.15 + breathTime * 2) * 2;
-      const sparkleR = (1.5 - i / trailLen) * scale;
-
-      if (sparkleR > 0.2) {
-        ctx.globalAlpha = alpha * fade * 0.4;
-        glow(ctx, color, 3 * fade, () => {
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(sparkleX, cy + sparkleY, sparkleR, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      }
-    }
-    ctx.restore();
-  }
-
   // ---- Connection line to ground (thin, fading) ----
   if (squash > 0.1 && mood !== 'dead') {
     ctx.save();
@@ -229,7 +202,7 @@ function drawCharacter(
     grad.addColorStop(1, 'transparent');
     ctx.strokeStyle = grad;
     ctx.lineWidth = 1 * scale;
-    ctx.globalAlpha = alpha * 0.25;
+    ctx.globalAlpha = alpha * 0.2;
     ctx.beginPath();
     ctx.moveTo(cx, cy + innerR);
     ctx.lineTo(cx, gy);
@@ -237,15 +210,31 @@ function drawCharacter(
     ctx.restore();
   }
 
+  // ---- Outer ring (subtle halo) ----
+  if (mood !== 'dead') {
+    const ringR = rayLen + 2 * scale;
+    const ringPulse = Math.sin(breathTime * 2) * 0.08 + 0.92;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.12;
+    glow(ctx, color, 3, () => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.8 * scale;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR * ringPulse, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
   // ---- Radiating rays ----
   if (mood === 'dead') {
-    // Dead: collapsed rays, just short stubs at odd angles
+    // Dead: collapsed, dim stubs
     ctx.save();
-    glow(ctx, color, CONFIG.GLOW_BLUR * 0.4, () => {
+    glow(ctx, color, CONFIG.GLOW_BLUR * 0.3, () => {
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.5 * scale;
       ctx.lineCap = 'round';
-      ctx.globalAlpha = alpha * 0.5;
+      ctx.globalAlpha = alpha * 0.4;
       for (let i = 0; i < numRays; i++) {
         const angle = (Math.PI * 2 * i) / numRays + rotation;
         const stubLen = 3 * scale;
@@ -263,7 +252,7 @@ function drawCharacter(
     });
     ctx.restore();
   } else {
-    // Living rays: alternating long and short
+    // Living rays: alternating long and short, with per-ray pulse
     ctx.save();
     glow(ctx, color, CONFIG.GLOW_BLUR * 0.6, () => {
       ctx.strokeStyle = color;
@@ -273,7 +262,6 @@ function drawCharacter(
         const angle = (Math.PI * 2 * i) / numRays + rotation;
         const isLong = i % 2 === 0;
         const len = isLong ? rayLen : rayLen * 0.6;
-        // Each ray pulses slightly out of phase
         const rayPulse = Math.sin(breathTime * 3 + i * 1.2) * 2 * scale;
 
         ctx.beginPath();
@@ -289,23 +277,6 @@ function drawCharacter(
       }
     });
     ctx.restore();
-
-    // Small dots at the tips of long rays (sparkle effect)
-    for (let i = 0; i < numRays; i += 2) {
-      const angle = (Math.PI * 2 * i) / numRays + rotation;
-      const rayPulse = Math.sin(breathTime * 3 + i * 1.2) * 2 * scale;
-      const tipX = cx + Math.cos(angle) * (rayLen + rayPulse);
-      const tipY = cy + Math.sin(angle) * (rayLen + rayPulse);
-      const dotAlpha = (Math.sin(breathTime * 4 + i) + 1) * 0.3;
-
-      ctx.save();
-      ctx.globalAlpha = alpha * dotAlpha;
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(tipX, tipY, 1.2 * scale, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
   }
 
   // ---- Core glow (bright center) ----
