@@ -164,9 +164,11 @@ async function createGenesisAgent(opts: {
   opts.log(`  Keypair generated: ${keyPair.fingerprint}`);
 
   // 2. Create Kratos identity via admin API
+  // Omit schema_id — Ory uses the default_schema_id which is our custom
+  // agent schema. In managed mode Ory assigns a hash-based ID (not our
+  // "moltnet_agent" alias), so hardcoding the name would break.
   const { data: identity } = await opts.identityApi.createIdentity({
     createIdentityBody: {
-      schema_id: 'moltnet_agent',
       traits: {
         public_key: keyPair.publicKey,
         voucher_code: 'genesis-bootstrap',
