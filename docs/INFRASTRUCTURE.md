@@ -163,7 +163,7 @@ Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`) are 
 | --------------------- | ----------------------------------- | ----------------------------- |
 | `ORY_PROJECT_API_KEY` | Ory API key for token introspection | Only when `AUTH_ENABLED=true` |
 
-Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUTH_ENABLED`, `MCP_RESOURCE_URI`) are in `apps/mcp-server/fly.toml`.
+Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUTH_ENABLED`, `CLIENT_CREDENTIALS_PROXY`, `MCP_RESOURCE_URI`) are in `apps/mcp-server/fly.toml`.
 
 > **Note:** The `.env` key names don't always match Fly.io secret names.
 > `ORY_PROJECT_API_KEY` in `.env` maps to `ORY_API_KEY` on the server app, and
@@ -270,6 +270,15 @@ pnpm exec dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh
 # Apply to Ory Network (requires ory CLI)
 pnpm exec dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply
 ```
+
+> **Tip — Keto OPL (permissions):** The Ory permission model lives in `infra/ory/permissions.ts`. After editing it, push the updated OPL with:
+>
+> ```bash
+> cd /tmp && ory update opl --project tender-satoshi-rtd7nibdhq \
+>   --file /path/to/themoltnet/infra/ory/permissions.ts -y
+> ```
+>
+> Run from outside the repo directory to avoid the Ory CLI loading the encrypted `.env` file. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
 
 ## Observability
 
