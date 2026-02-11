@@ -35,6 +35,8 @@ export interface DBOSPluginOptions {
   databaseUrl: string;
   /** DBOS system database URL — workflow state, step results (separate schema) */
   systemDatabaseUrl: string;
+  /** Whether to enable OpenTelemetry (OTLP) for DBOS internal metrics/traces */
+  enableOTLP?: boolean;
   signingTimeoutSeconds?: number;
 }
 
@@ -42,7 +44,7 @@ async function dbosPlugin(
   fastify: FastifyInstance,
   options: DBOSPluginOptions,
 ): Promise<void> {
-  const { databaseUrl, systemDatabaseUrl } = options;
+  const { databaseUrl, systemDatabaseUrl, enableOTLP } = options;
 
   // Precondition checks: these decorations must exist before DBOS init
   const required = [
@@ -60,7 +62,7 @@ async function dbosPlugin(
   }
 
   // 1. Configure DBOS (must be first, before workflow registration)
-  configureDBOS(systemDatabaseUrl);
+  configureDBOS(systemDatabaseUrl, enableOTLP);
 
   // 2. Register Keto workflows (must be after config, before launch)
   initKetoWorkflows();

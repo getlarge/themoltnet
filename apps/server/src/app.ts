@@ -154,6 +154,7 @@ export async function bootstrap(
   await app.register(dbosPlugin, {
     databaseUrl: config.database.DATABASE_URL,
     systemDatabaseUrl: config.database.DBOS_SYSTEM_DATABASE_URL,
+    enableOTLP: !!observability,
   });
 
   const dataSource = getDataSource();

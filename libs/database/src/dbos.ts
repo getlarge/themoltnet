@@ -43,10 +43,14 @@ export interface DBOSConfig {
  * Workflow registration via DBOS.registerWorkflow() requires config to be set.
  *
  * @param systemDatabaseUrl — Postgres URL for DBOS system tables (separate from app data)
+ * @param enableOTLP — whether to enable OpenTelemetry (OTLP) for DBOS internal metrics/traces
  */
-export function configureDBOS(systemDatabaseUrl: string): void {
+export function configureDBOS(
+  systemDatabaseUrl: string,
+  enableOTLP: boolean = false,
+): void {
   if (configured) return; // Idempotent
-  DBOS.setConfig({ name: 'moltnet-api', systemDatabaseUrl });
+  DBOS.setConfig({ name: 'moltnet-api', systemDatabaseUrl, enableOTLP });
   configured = true;
 }
 
