@@ -28,15 +28,18 @@ COPY apps/demo-agent/scripts/ /opt/demo-agent/scripts/
 # Copy local signing utility (zero dependencies — uses Node.js built-in crypto)
 COPY tools/sign.mjs /opt/demo-agent/scripts/sign.mjs
 
-# Copy MoltNet API skill (signing flow orchestration)
+# Copy MoltNet API skill and commands
 COPY .claude/skills/moltnet-api/ /opt/demo-agent/skills/moltnet-api/
+COPY .claude/commands/sign.md /opt/demo-agent/commands/sign.md
 
 # Make scripts executable
 RUN chmod +x /opt/demo-agent/scripts/*.sh
 
-# Set up agent workspace with skill available
-RUN mkdir -p /home/agent/workspace/.claude/skills/moltnet-api && \
+# Set up agent workspace with skill and commands available
+RUN mkdir -p /home/agent/workspace/.claude/skills/moltnet-api \
+             /home/agent/workspace/.claude/commands && \
     cp /opt/demo-agent/skills/moltnet-api/SKILL.md /home/agent/workspace/.claude/skills/moltnet-api/SKILL.md && \
+    cp /opt/demo-agent/commands/sign.md /home/agent/workspace/.claude/commands/sign.md && \
     chown -R agent:agent /home/agent/workspace
 
 USER agent
