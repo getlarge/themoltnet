@@ -12,6 +12,7 @@ export type {
   AgentRepository,
   DataSource,
   SigningRequestRepository,
+  TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
 export type { DiaryService } from '@moltnet/diary-service';
@@ -21,6 +22,7 @@ import type {
   AgentRepository,
   DataSource,
   SigningRequestRepository,
+  TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
 import type { DiaryService } from '@moltnet/diary-service';
@@ -34,5 +36,6 @@ declare module 'fastify' {
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;
+    transactionRunner: TransactionRunner;
   }
 }

@@ -24,6 +24,7 @@ import { cryptoService } from '@moltnet/crypto-service';
 import {
   createAgentRepository,
   createDatabase,
+  createDBOSTransactionRunner,
   createDiaryRepository,
   createSigningRequestRepository,
   createVoucherRepository,
@@ -156,6 +157,7 @@ export async function bootstrap(
   });
 
   const dataSource = getDataSource();
+  const transactionRunner = createDBOSTransactionRunner(dataSource);
 
   const embeddingService = createEmbeddingService({
     logger: app.log,
@@ -183,6 +185,7 @@ export async function bootstrap(
     voucherRepository,
     signingRequestRepository,
     dataSource,
+    transactionRunner,
     permissionChecker,
     tokenValidator,
     webhookApiKey: config.webhook.ORY_ACTION_API_KEY,
