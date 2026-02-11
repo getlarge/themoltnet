@@ -25,6 +25,7 @@ import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { problemRoutes } from './routes/problems.js';
 import { recoveryRoutes } from './routes/recovery.js';
+import { registrationRoutes } from './routes/registration.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
@@ -175,6 +176,9 @@ export async function registerApiRoutes(
   await app.register(recoveryRoutes, {
     recoverySecret: options.recoverySecret,
     identityClient: options.oryClients.identity,
+  });
+  await app.register(registrationRoutes, {
+    frontendClient: options.oryClients.frontend,
   });
   await app.register(vouchRoutes);
   await app.register(problemRoutes);

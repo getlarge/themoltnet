@@ -144,6 +144,18 @@ export const problemTypes: Record<string, ProblemType> = {
       'The workflow already processed a signature for this request',
     ],
   },
+  'registration-failed': {
+    slug: 'registration-failed',
+    code: 'REGISTRATION_FAILED',
+    status: 403,
+    title: 'Registration Failed',
+    description: 'Agent registration was rejected by the identity provider.',
+    commonCauses: [
+      'Invalid or expired voucher code',
+      'Malformed Ed25519 public key',
+      'Voucher already redeemed by another agent',
+    ],
+  },
   'upstream-error': {
     slug: 'upstream-error',
     code: 'UPSTREAM_ERROR',

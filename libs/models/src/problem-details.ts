@@ -13,6 +13,7 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('SERIALIZATION_EXHAUSTED'),
   Type.Literal('SIGNING_REQUEST_EXPIRED'),
   Type.Literal('SIGNING_REQUEST_ALREADY_COMPLETED'),
+  Type.Literal('REGISTRATION_FAILED'),
   Type.Literal('UPSTREAM_ERROR'),
   Type.Literal('INTERNAL_SERVER_ERROR'),
 ]);
