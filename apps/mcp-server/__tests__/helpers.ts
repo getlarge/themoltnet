@@ -33,11 +33,12 @@ export function createMockContext(
 ): HandlerContext {
   return {
     sessionId: 'test-session-id',
-    request: {} as FastifyRequest,
+    request: {
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+    } as unknown as FastifyRequest,
     reply: {} as FastifyReply,
     authContext: token
       ? {
-          sessionBoundToken: token,
           userId: 'test-user-id',
           clientId: 'test-client-id',
           scopes: ['openid'],

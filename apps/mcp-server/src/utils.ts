@@ -34,5 +34,12 @@ export function jsonResource(uri: string, data: unknown): ReadResourceResult {
 }
 
 export function getTokenFromContext(context: HandlerContext): string | null {
-  return context.authContext?.sessionBoundToken ?? null;
+  // Read the raw Bearer token from the Fastify request headers.
+  // The fastify-mcp plugin passes the request object to tool handlers,
+  // and the auth prehandler has already validated the token at this point.
+  const authHeader = context.request?.headers?.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  return null;
 }
