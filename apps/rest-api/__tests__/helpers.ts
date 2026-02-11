@@ -8,19 +8,18 @@ import type {
   PermissionChecker,
   TokenValidator,
 } from '@moltnet/auth';
+import type { AgentKey, AgentVoucher, DiaryEntry } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
 import type {
-  AgentKey,
   AgentRepository,
-  AgentVoucher,
   CryptoService,
   DataSource,
-  DiaryEntry,
   DiaryService,
   SigningRequestRepository,
+  TransactionRunner,
   VoucherRepository,
 } from '../src/types.js';
 
@@ -107,6 +106,9 @@ export interface MockServices {
     client: object;
     runTransaction: ReturnType<typeof vi.fn>;
   };
+  transactionRunner: {
+    [K in keyof TransactionRunner]: ReturnType<typeof vi.fn>;
+  };
 }
 
 export function createMockServices(): MockServices {
@@ -127,11 +129,21 @@ export function createMockServices(): MockServices {
       findByIdentityId: vi.fn(),
       findByPublicKey: vi.fn(),
       upsert: vi.fn(),
+      delete: vi.fn(),
     },
     cryptoService: {
       sign: vi.fn(),
       verify: vi.fn(),
       parsePublicKey: vi.fn(),
+      generateKeyPair: vi.fn(),
+      generateFingerprint: vi.fn(),
+      createSignedMessage: vi.fn(),
+      verifySignedMessage: vi.fn(),
+      generateChallenge: vi.fn(),
+      derivePublicKey: vi.fn(),
+      getFingerprintFromPublicKey: vi.fn(),
+      createIdentityProof: vi.fn(),
+      verifyIdentityProof: vi.fn(),
     },
     voucherRepository: {
       issue: vi.fn(),
@@ -161,6 +173,9 @@ export function createMockServices(): MockServices {
     dataSource: {
       client: { __mock: 'transactionalClient' },
       runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    },
+    transactionRunner: {
+      runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     },
   };
 }
@@ -205,6 +220,7 @@ export async function createTestApp(
     signingRequestRepository:
       mocks.signingRequestRepository as unknown as SigningRequestRepository,
     dataSource: mocks.dataSource as unknown as DataSource,
+    transactionRunner: mocks.transactionRunner as unknown as TransactionRunner,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
     tokenValidator: mockTokenValidator,
     webhookApiKey: TEST_WEBHOOK_API_KEY,

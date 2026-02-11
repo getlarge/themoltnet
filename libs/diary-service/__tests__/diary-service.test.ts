@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import type {
-  DataSource,
   DiaryEntry,
   DiaryRepository,
   EmbeddingService,
   PermissionChecker,
+  TransactionRunner,
 } from '../src/types.js';
 
 // ── DBOS mock (hoisted by vitest, applies to all tests) ──────────────
@@ -53,7 +53,6 @@ function createMockDiaryRepository(): {
   [K in keyof DiaryRepository]: ReturnType<typeof vi.fn>;
 } {
   return {
-    transaction: vi.fn().mockImplementation((fn) => fn({})),
     create: vi.fn(),
     findById: vi.fn(),
     list: vi.fn(),
@@ -95,18 +94,16 @@ describe('DiaryService', () => {
   let repo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
-  let dataSource: {
-    client: object;
-    runTransaction: ReturnType<typeof vi.fn>;
+  let transactionRunner: {
+    runInTransaction: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     repo = createMockDiaryRepository();
     permissions = createMockPermissionChecker();
     embeddings = createMockEmbeddingService();
-    dataSource = {
-      client: { __mock: 'transactionalClient' },
-      runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    transactionRunner = {
+      runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     };
 
     mockStartWorkflow.mockClear();
@@ -117,7 +114,7 @@ describe('DiaryService', () => {
       diaryRepository: repo as unknown as DiaryRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
       embeddingService: embeddings as unknown as EmbeddingService,
-      dataSource: dataSource as unknown as DataSource,
+      transactionRunner: transactionRunner as unknown as TransactionRunner,
     });
   });
 
@@ -133,24 +130,21 @@ describe('DiaryService', () => {
       });
 
       expect(result).toEqual(mockEntry);
-      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+      expect(transactionRunner.runInTransaction).toHaveBeenCalledWith(
         expect.any(Function),
         { name: 'diary.create' },
       );
       expect(embeddings.embedPassage).toHaveBeenCalledWith(
         'Test diary entry content',
       );
-      expect(repo.create).toHaveBeenCalledWith(
-        {
-          ownerId: OWNER_ID,
-          content: 'Test diary entry content',
-          title: undefined,
-          visibility: 'private',
-          tags: undefined,
-          embedding: MOCK_EMBEDDING,
-        },
-        dataSource.client,
-      );
+      expect(repo.create).toHaveBeenCalledWith({
+        ownerId: OWNER_ID,
+        content: 'Test diary entry content',
+        title: undefined,
+        visibility: 'private',
+        tags: undefined,
+        embedding: MOCK_EMBEDDING,
+      });
       expect(mockStartWorkflow).toHaveBeenCalledWith({
         name: 'keto.grantOwnership',
       });
@@ -195,7 +189,6 @@ describe('DiaryService', () => {
       expect(result).toEqual(mockEntry);
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: undefined }),
-        dataSource.client,
       );
     });
 
@@ -210,7 +203,6 @@ describe('DiaryService', () => {
 
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({ visibility: 'private' }),
-        dataSource.client,
       );
     });
 
@@ -218,7 +210,7 @@ describe('DiaryService', () => {
       const executionOrder: string[] = [];
       const mockEntry = createMockEntry();
 
-      dataSource.runTransaction.mockImplementation(async (fn) => {
+      transactionRunner.runInTransaction.mockImplementation(async (fn) => {
         executionOrder.push('transaction-start');
         const result = await fn();
         executionOrder.push('transaction-end');
@@ -504,11 +496,11 @@ describe('DiaryService', () => {
         ENTRY_ID,
         OWNER_ID,
       );
-      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+      expect(transactionRunner.runInTransaction).toHaveBeenCalledWith(
         expect.any(Function),
         { name: 'diary.delete' },
       );
-      expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID, dataSource.client);
+      expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID);
       expect(mockStartWorkflow).toHaveBeenCalledWith({
         name: 'keto.removeEntryRelations',
       });
@@ -540,7 +532,7 @@ describe('DiaryService', () => {
     it('starts Keto workflow AFTER transaction commits', async () => {
       const executionOrder: string[] = [];
 
-      dataSource.runTransaction.mockImplementation(async (fn) => {
+      transactionRunner.runInTransaction.mockImplementation(async (fn) => {
         executionOrder.push('transaction-start');
         const result = await fn();
         executionOrder.push('transaction-end');
@@ -615,7 +607,7 @@ describe('DiaryService', () => {
         ENTRY_ID,
         OWNER_ID,
       );
-      expect(dataSource.runTransaction).toHaveBeenCalledWith(
+      expect(transactionRunner.runInTransaction).toHaveBeenCalledWith(
         expect.any(Function),
         { name: 'diary.share' },
       );
@@ -623,7 +615,6 @@ describe('DiaryService', () => {
         ENTRY_ID,
         OWNER_ID,
         OTHER_AGENT_ID,
-        dataSource.client,
       );
       expect(mockStartWorkflow).toHaveBeenCalledWith({
         name: 'keto.grantViewer',
@@ -655,7 +646,7 @@ describe('DiaryService', () => {
     it('starts Keto workflow AFTER transaction commits', async () => {
       const executionOrder: string[] = [];
 
-      dataSource.runTransaction.mockImplementation(async (fn) => {
+      transactionRunner.runInTransaction.mockImplementation(async (fn) => {
         executionOrder.push('transaction-start');
         const result = await fn();
         executionOrder.push('transaction-end');

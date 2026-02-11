@@ -14,15 +14,13 @@ import {
   type SigningRequest,
   signingRequests,
 } from '../schema.js';
+import { getExecutor } from '../transaction-context.js';
 
 /** Allowed values for the signing request status filter */
 const VALID_STATUSES = new Set<string>(['pending', 'completed', 'expired']);
 
 type SigningRequestStatus = 'pending' | 'completed' | 'expired';
 
-// TODO: Use AsyncLocalStorage for implicit transaction propagation instead of
-// explicit tx params. See: https://github.com/drizzle-team/drizzle-orm/issues/543
-// and https://github.com/nickdeis/drizzle-transaction-context
 export function createSigningRequestRepository(db: Database) {
   return {
     async create(
@@ -31,7 +29,7 @@ export function createSigningRequestRepository(db: Database) {
         workflowId?: string;
       },
     ): Promise<SigningRequest> {
-      const [request] = await db
+      const [request] = await getExecutor(db)
         .insert(signingRequests)
         .values({
           agentId: input.agentId,
@@ -92,7 +90,7 @@ export function createSigningRequestRepository(db: Database) {
         >
       >,
     ): Promise<SigningRequest | null> {
-      const [updated] = await db
+      const [updated] = await getExecutor(db)
         .update(signingRequests)
         .set(updates)
         .where(eq(signingRequests.id, id))

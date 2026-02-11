@@ -52,7 +52,15 @@ describe('Hook routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json().success).toBe(true);
+      const body = response.json();
+      expect(body.identity.metadata_public).toEqual({
+        fingerprint: expectedFingerprint,
+        public_key: testPublicKey,
+      });
+      expect(mocks.transactionRunner.runInTransaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { name: 'hooks.after-registration' },
+      );
       expect(mocks.voucherRepository.redeem).toHaveBeenCalledWith(
         'a'.repeat(64),
         OWNER_ID,
@@ -85,6 +93,25 @@ describe('Hook routes', () => {
       expect(body.messages[0].messages[0].type).toBe('error');
       expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
       expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
+    });
+
+    it('rolls back transaction when Keto registration fails', async () => {
+      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
+      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
+      mocks.permissionChecker.registerAgent.mockRejectedValue(
+        new Error('Keto unavailable'),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-registration',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: validPayload,
+      });
+
+      expect(response.statusCode).toBe(500);
+      expect(mocks.voucherRepository.redeem).toHaveBeenCalled();
+      expect(mocks.agentRepository.upsert).toHaveBeenCalled();
     });
 
     it('rejects registration with invalid public_key format', async () => {
