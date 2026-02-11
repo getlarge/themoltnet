@@ -32,7 +32,9 @@ const DATABASE_URL = process.env.DATABASE_URL;
 describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   let service: DiaryService;
   let db: Awaited<ReturnType<typeof setupDatabase>>['db']['db'];
-  let dataSource: Awaited<ReturnType<typeof setupDBOS>>['dataSource'];
+  let transactionRunner: Awaited<
+    ReturnType<typeof setupDBOS>
+  >['transactionRunner'];
   let tables: {
     diaryEntries: Awaited<ReturnType<typeof setupDatabase>>['diaryEntries'];
     entryShares: Awaited<ReturnType<typeof setupDatabase>>['entryShares'];
@@ -67,6 +69,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       launchDBOS,
       setKetoRelationshipWriter,
       getDataSource,
+      createDBOSTransactionRunner,
     } = await import('@moltnet/database');
 
     // Initialize DBOS in correct order
@@ -76,7 +79,11 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     await initDBOS({ databaseUrl: url });
     await launchDBOS();
 
-    return { dataSource: getDataSource() };
+    const dataSource = getDataSource();
+    return {
+      dataSource,
+      transactionRunner: createDBOSTransactionRunner(dataSource),
+    };
   }
 
   beforeAll(async () => {
@@ -109,7 +116,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     };
 
     const dbosSetup = await setupDBOS(DATABASE_URL!);
-    dataSource = dbosSetup.dataSource;
+    transactionRunner = dbosSetup.transactionRunner;
 
     const embeddingService = createNoopEmbeddingService();
 
@@ -117,7 +124,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       diaryRepository: dbSetup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
       embeddingService,
-      dataSource,
+      transactionRunner,
     });
   });
 

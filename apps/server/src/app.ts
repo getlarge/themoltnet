@@ -167,7 +167,7 @@ export async function bootstrap(
     diaryRepository,
     permissionChecker,
     embeddingService,
-    dataSource,
+    transactionRunner,
   });
 
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
