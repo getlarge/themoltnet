@@ -11,6 +11,7 @@ import { and, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { agentKeys, type AgentVoucher, agentVouchers } from '../schema.js';
+import { getExecutor } from '../transaction-context.js';
 
 /** Default voucher TTL: 24 hours */
 const VOUCHER_TTL_MS = 24 * 60 * 60 * 1000;
@@ -65,6 +66,7 @@ export function createVoucherRepository(db: Database) {
      *
      * Uses a single atomic UPDATE with all conditions in the WHERE clause.
      * Postgres row-level locking ensures only one concurrent caller can win.
+     * Automatically participates in the active transaction (via ALS).
      */
     async redeem(
       code: string,
@@ -72,7 +74,7 @@ export function createVoucherRepository(db: Database) {
     ): Promise<AgentVoucher | null> {
       const now = new Date();
 
-      const [redeemed] = await db
+      const [redeemed] = await getExecutor(db)
         .update(agentVouchers)
         .set({ redeemedBy, redeemedAt: now })
         .where(

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import type { CachedToken, TokenCache } from './types.js';
 
 export class MemoryTokenCache implements TokenCache {
