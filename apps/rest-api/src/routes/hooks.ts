@@ -75,6 +75,7 @@ const validateWebhookApiKey = (webhookApiKey: string) => {
   };
 };
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function hookRoutes(fastify: FastifyInstance) {
   fastify.log.info('[hookRoutes] Registering webhook routes');
 
@@ -99,6 +100,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
+      // TODO: wrap in a transaction so that if any step fails, the whole registration is rejected, the voucher remains valid, the Keto relationship is not created, etc.
       const { identity } = request.body as {
         identity: {
           id: string;
@@ -141,9 +143,6 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
       }
 
-      // Derive fingerprint server-side from public key
-      const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
-
       // ── Validate and redeem voucher code (web-of-trust gate) ─────
       const voucher = await fastify.voucherRepository.redeem(
         voucher_code,
@@ -178,6 +177,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
         'Registration approved via voucher',
       );
 
+      // Derive fingerprint server-side from public key
+      const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
+
       await fastify.agentRepository.upsert({
         identityId: identity.id,
         publicKey: public_key,
@@ -186,7 +188,17 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
       await fastify.permissionChecker.registerAgent(identity.id);
 
-      return reply.status(200).send({ success: true });
+      // Return identity update for Kratos (requires response.parse: true).
+      // Sets metadata_public so the fingerprint is available on the identity
+      // without an extra DB lookup.
+      return reply.status(200).send({
+        identity: {
+          metadata_public: {
+            fingerprint,
+            public_key: public_key,
+          },
+        },
+      });
     },
   );
 
@@ -279,6 +291,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
+      // TODO: fix inconsistent enrichment.
       const { request: tokenRequest } = request.body as {
         request: {
           client_id: string;

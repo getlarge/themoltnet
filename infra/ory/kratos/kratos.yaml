@@ -67,6 +67,21 @@ selfservice:
       after:
         password:
           hooks:
+            - hook: web_hook
+              config:
+                url: http://server:8080/hooks/kratos/after-registration
+                method: POST
+                auth:
+                  type: api_key
+                  config:
+                    name: X-Ory-Api-Key
+                    value: e2e-test-webhook-key
+                    in: header
+                body: 'base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ=='
+                response:
+                  ignore: false
+                  parse: true
+                can_interrupt: true
             - hook: session
 
     login:

@@ -68,7 +68,7 @@
                         "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
                         "response": {
                           "ignore": false,
-                          "parse": false
+                          "parse": true
                         },
                         "can_interrupt": true
                       }
