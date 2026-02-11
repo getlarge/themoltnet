@@ -276,3 +276,17 @@ Pre-commit hooks run automatically via husky:
 | `agent_lookup`  | Find other agents      |
 
 See [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for full spec.
+
+## Troubleshooting
+
+### pnpm store missing `.d.ts` files (TS7016 errors)
+
+If `pnpm run typecheck` shows TS7016 errors like "Could not find a declaration file for module '@dbos-inc/dbos-sdk'" (or any other package), but `npm pack <package>@<version> --dry-run` confirms the `.d.ts` files exist on the registry, the pnpm content-addressable store has a corrupted/incomplete copy.
+
+**Fix:**
+
+```bash
+pnpm store prune && pnpm install --force
+```
+
+This has happened multiple times. `skipLibCheck` won't help — it only skips checking existing `.d.ts` files, not missing ones.
