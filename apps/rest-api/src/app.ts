@@ -34,6 +34,7 @@ import type {
   DataSource,
   DiaryService,
   SigningRequestRepository,
+  TransactionRunner,
   VoucherRepository,
 } from './types.js';
 
@@ -60,6 +61,7 @@ export interface AppOptions {
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
   dataSource: DataSource;
+  transactionRunner: TransactionRunner;
   signingTimeoutSeconds?: number;
   permissionChecker: PermissionChecker;
   tokenValidator: TokenValidator;
@@ -157,6 +159,7 @@ export async function registerApiRoutes(
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
   decorateSafe('dataSource', options.dataSource);
+  decorateSafe('transactionRunner', options.transactionRunner);
 
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);

@@ -164,9 +164,20 @@ async function createGenesisAgent(opts: {
   opts.log(`  Keypair generated: ${keyPair.fingerprint}`);
 
   // 2. Create Kratos identity via admin API
+  // In managed mode Ory assigns a hash-based schema ID. Resolve the agent
+  // schema by matching its $id (https://schemas.themolt.net/agent.json).
+  const { data: schemas } = await opts.identityApi.listIdentitySchemas();
+  const agentSchema = schemas.find(
+    (s) => (s.schema as { $id?: string })?.$id?.includes('agent') ?? false,
+  );
+  if (!agentSchema) {
+    throw new Error(
+      'Agent identity schema not found — ensure the Ory project has a schema with $id containing "agent"',
+    );
+  }
   const { data: identity } = await opts.identityApi.createIdentity({
     createIdentityBody: {
-      schema_id: 'moltnet_agent',
+      schema_id: agentSchema.id,
       traits: {
         public_key: keyPair.publicKey,
         voucher_code: 'genesis-bootstrap',

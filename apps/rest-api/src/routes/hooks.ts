@@ -75,6 +75,7 @@ const validateWebhookApiKey = (webhookApiKey: string) => {
   };
 };
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function hookRoutes(fastify: FastifyInstance) {
   fastify.log.info('[hookRoutes] Registering webhook routes');
 
@@ -112,6 +113,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       const { public_key, voucher_code } = identity.traits;
 
       // ── Validate public_key format and Ed25519 key bytes ──────────
+      // Pure validation — no side effects, safe outside the transaction.
       let publicKeyBytes: Uint8Array;
       try {
         publicKeyBytes = cryptoService.parsePublicKey(public_key);
@@ -141,16 +143,48 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
       }
 
-      // Derive fingerprint server-side from public key
       const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
 
-      // ── Validate and redeem voucher code (web-of-trust gate) ─────
-      const voucher = await fastify.voucherRepository.redeem(
-        voucher_code,
-        identity.id,
+      // ── Transactional registration ────────────────────────────────
+      // Wrap all side effects so that if any step fails, the voucher
+      // remains valid and the agent record is not persisted.
+      // The Keto registration is inside the transaction: if it fails,
+      // the DB changes roll back and the voucher remains redeemable.
+      // If Keto succeeds, the transaction commits atomically with the
+      // voucher redemption and agent upsert.
+      const result = await fastify.transactionRunner.runInTransaction(
+        async () => {
+          const voucher = await fastify.voucherRepository.redeem(
+            voucher_code,
+            identity.id,
+          );
+
+          if (!voucher) {
+            return { rejected: true as const };
+          }
+
+          fastify.log.info(
+            {
+              identity_id: identity.id,
+              voucher_issuer: voucher.issuerId,
+            },
+            'Registration approved via voucher',
+          );
+
+          await fastify.agentRepository.upsert({
+            identityId: identity.id,
+            publicKey: public_key,
+            fingerprint,
+          });
+
+          await fastify.permissionChecker.registerAgent(identity.id);
+
+          return { rejected: false as const };
+        },
+        { name: 'hooks.after-registration' },
       );
 
-      if (!voucher) {
+      if (result.rejected) {
         fastify.log.warn(
           { identity_id: identity.id },
           'Registration rejected: invalid or expired voucher code',
@@ -170,23 +204,17 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
       }
 
-      fastify.log.info(
-        {
-          identity_id: identity.id,
-          voucher_issuer: voucher.issuerId,
+      // Return identity update for Kratos (requires response.parse: true).
+      // Sets metadata_public so the fingerprint is available on the identity
+      // without an extra DB lookup.
+      return reply.status(200).send({
+        identity: {
+          metadata_public: {
+            fingerprint,
+            public_key: public_key,
+          },
         },
-        'Registration approved via voucher',
-      );
-
-      await fastify.agentRepository.upsert({
-        identityId: identity.id,
-        publicKey: public_key,
-        fingerprint,
       });
-
-      await fastify.permissionChecker.registerAgent(identity.id);
-
-      return reply.status(200).send({ success: true });
     },
   );
 
@@ -279,6 +307,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
+      // TODO: fix inconsistent enrichment.
       const { request: tokenRequest } = request.body as {
         request: {
           client_id: string;

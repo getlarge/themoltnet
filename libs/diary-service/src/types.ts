@@ -13,22 +13,19 @@ export interface DiaryServiceDeps {
   diaryRepository: DiaryRepository;
   permissionChecker: PermissionChecker;
   embeddingService: EmbeddingService;
-  /** DBOS DataSource for durable transactions */
-  dataSource: DataSource;
+  /** Runs callbacks inside a database transaction (DBOS-backed in production) */
+  transactionRunner: TransactionRunner;
 }
 
 /**
- * DBOS DataSource interface for running durable transactions.
- * The full type lives in @moltnet/database — we define a minimal
- * version here to avoid circular dependencies.
+ * Abstraction over transaction execution.
+ * Production: createDBOSTransactionRunner (from @moltnet/database)
+ * Tests: createDrizzleTransactionRunner or a simple mock
  */
-export interface DataSource {
-  /** Drizzle client for queries inside transactions */
-  client: DatabaseExecutor;
-  /** Run a function inside a durable transaction */
-  runTransaction<T>(
+export interface TransactionRunner {
+  runInTransaction<T>(
     fn: () => Promise<T>,
-    options?: { name?: string },
+    config?: { name?: string },
   ): Promise<T>;
 }
 
@@ -82,27 +79,16 @@ export interface Digest {
   generatedAt: string;
 }
 
-/**
- * Database executor type — either the main database or a transaction.
- * Drizzle's PgTransaction extends PgDatabase, so both share the same API.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DatabaseExecutor = any;
-
 // Minimal interfaces for dependency injection (avoids importing database/auth packages)
 export interface DiaryRepository {
-  transaction<T>(fn: (tx: DatabaseExecutor) => Promise<T>): Promise<T>;
-  create(
-    entry: {
-      ownerId: string;
-      content: string;
-      title?: string | null;
-      visibility?: 'private' | 'moltnet' | 'public';
-      tags?: string[] | null;
-      embedding?: number[] | null;
-    },
-    tx?: DatabaseExecutor,
-  ): Promise<DiaryEntry>;
+  create(entry: {
+    ownerId: string;
+    content: string;
+    title?: string | null;
+    visibility?: 'private' | 'moltnet' | 'public';
+    tags?: string[] | null;
+    embedding?: number[] | null;
+  }): Promise<DiaryEntry>;
   findById(id: string): Promise<DiaryEntry | null>;
   list(options: ListInput): Promise<DiaryEntry[]>;
   search(options: {
@@ -122,14 +108,12 @@ export interface DiaryRepository {
       tags: string[] | null;
       embedding: number[] | null;
     }>,
-    tx?: DatabaseExecutor,
   ): Promise<DiaryEntry | null>;
-  delete(id: string, tx?: DatabaseExecutor): Promise<boolean>;
+  delete(id: string): Promise<boolean>;
   share(
     entryId: string,
     sharedBy: string,
     sharedWith: string,
-    tx?: DatabaseExecutor,
   ): Promise<boolean>;
   getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
   getRecentForDigest(

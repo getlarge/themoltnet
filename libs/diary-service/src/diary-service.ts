@@ -26,7 +26,9 @@
  *
  * ## Transaction Discipline
  *
- * DB writes use `dataSource.runTransaction()` for atomicity.
+ * DB writes use `transactionRunner.runInTransaction()` for atomicity.
+ * Repositories participate automatically via AsyncLocalStorage — no
+ * explicit tx passing needed.
  * Keto workflows are started OUTSIDE the transaction because DBOS
  * uses a separate system database — no cross-DB atomicity is possible.
  * `handle.getResult()` is awaited after the transaction commits so
@@ -69,8 +71,12 @@ export interface DiaryService {
 }
 
 export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
-  const { diaryRepository, permissionChecker, embeddingService, dataSource } =
-    deps;
+  const {
+    diaryRepository,
+    permissionChecker,
+    embeddingService,
+    transactionRunner,
+  } = deps;
 
   return {
     async create(input: CreateEntryInput): Promise<DiaryEntry> {
@@ -94,10 +100,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         embedding,
       };
 
-      const entry = await dataSource.runTransaction(
-        async () => {
-          return diaryRepository.create(entryData, dataSource.client);
-        },
+      const entry = await transactionRunner.runInTransaction(
+        async () => diaryRepository.create(entryData),
         { name: 'diary.create' },
       );
 
@@ -195,10 +199,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const allowed = await permissionChecker.canDeleteEntry(id, requesterId);
       if (!allowed) return false;
 
-      const deleted = await dataSource.runTransaction(
-        async () => {
-          return diaryRepository.delete(id, dataSource.client);
-        },
+      const deleted = await transactionRunner.runInTransaction(
+        async () => diaryRepository.delete(id),
         { name: 'diary.delete' },
       );
 
@@ -226,15 +228,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const canShare = await permissionChecker.canShareEntry(entryId, sharedBy);
       if (!canShare) return false;
 
-      const shared = await dataSource.runTransaction(
-        async () => {
-          return diaryRepository.share(
-            entryId,
-            sharedBy,
-            sharedWith,
-            dataSource.client,
-          );
-        },
+      const shared = await transactionRunner.runInTransaction(
+        async () => diaryRepository.share(entryId, sharedBy, sharedWith),
         { name: 'diary.share' },
       );
 

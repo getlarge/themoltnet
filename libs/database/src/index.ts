@@ -47,6 +47,12 @@ export {
 } from './repositories/voucher.repository.js';
 export * from './schema.js';
 export {
+  createDBOSTransactionRunner,
+  createDrizzleTransactionRunner,
+  getExecutor,
+  type TransactionRunner,
+} from './transaction-context.js';
+export {
   type AgentKeyLookup,
   initKetoWorkflows,
   initSigningWorkflows,

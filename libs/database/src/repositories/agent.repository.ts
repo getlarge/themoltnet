@@ -8,15 +8,17 @@ import { eq } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type AgentKey, agentKeys, type NewAgentKey } from '../schema.js';
+import { getExecutor } from '../transaction-context.js';
 
 export function createAgentRepository(db: Database) {
   return {
     /**
-     * Create or update agent key record
-     * Called when syncing from Ory Kratos identity
+     * Create or update agent key record.
+     * Called when syncing from Ory Kratos identity.
+     * Automatically participates in the active transaction (via ALS).
      */
     async upsert(agent: NewAgentKey): Promise<AgentKey> {
-      const [result] = await db
+      const [result] = await getExecutor(db)
         .insert(agentKeys)
         .values(agent)
         .onConflictDoUpdate({
@@ -36,7 +38,7 @@ export function createAgentRepository(db: Database) {
      * Find agent by Ory identity ID
      */
     async findByIdentityId(identityId: string): Promise<AgentKey | null> {
-      const [agent] = await db
+      const [agent] = await getExecutor(db)
         .select()
         .from(agentKeys)
         .where(eq(agentKeys.identityId, identityId))
@@ -49,7 +51,7 @@ export function createAgentRepository(db: Database) {
      * Find agent by public key
      */
     async findByPublicKey(publicKey: string): Promise<AgentKey | null> {
-      const [agent] = await db
+      const [agent] = await getExecutor(db)
         .select()
         .from(agentKeys)
         .where(eq(agentKeys.publicKey, publicKey))
@@ -62,7 +64,7 @@ export function createAgentRepository(db: Database) {
      * Find agent by key fingerprint
      */
     async findByFingerprint(fingerprint: string): Promise<AgentKey | null> {
-      const [agent] = await db
+      const [agent] = await getExecutor(db)
         .select()
         .from(agentKeys)
         .where(eq(agentKeys.fingerprint, fingerprint))
@@ -75,7 +77,7 @@ export function createAgentRepository(db: Database) {
      * Delete agent record (for cleanup/testing)
      */
     async delete(identityId: string): Promise<boolean> {
-      const result = await db
+      const result = await getExecutor(db)
         .delete(agentKeys)
         .where(eq(agentKeys.identityId, identityId))
         .returning({ identityId: agentKeys.identityId });

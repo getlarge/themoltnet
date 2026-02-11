@@ -51,20 +51,27 @@ pnpm docker:reset
 
 For a database that already has the schema (e.g., production Supabase), you need to mark the initial migrations as already applied without re-running them. This is a one-time manual procedure:
 
+**Important:** Drizzle uses the `drizzle` schema (not `public`) for its migrations table.
+
 ```sql
--- Create the migrations tracking table if it doesn't exist
-CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
+-- Create the drizzle schema and migrations tracking table
+CREATE SCHEMA IF NOT EXISTS drizzle;
+
+CREATE TABLE IF NOT EXISTS drizzle."__drizzle_migrations" (
   id SERIAL PRIMARY KEY,
   hash TEXT NOT NULL,
   created_at BIGINT
 );
 
 -- Insert records for each migration that's already applied
--- Get the hashes from drizzle/meta/_journal.json
-INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES
+INSERT INTO drizzle."__drizzle_migrations" (hash, created_at) VALUES
   ('<hash_from_0000>', extract(epoch from now()) * 1000),
   ('<hash_from_0001>', extract(epoch from now()) * 1000),
   ('<hash_from_0002>', extract(epoch from now()) * 1000);
 ```
 
-Replace `<hash_from_NNNN>` with the actual hash values from the migration files. You can compute them by checking what `drizzle-orm` would produce, or run `pnpm db:status` against a fresh database after migration to see the recorded hashes.
+To compute the hashes, run:
+
+```bash
+node -e "const c=require('crypto'),f=require('fs'); for(const p of process.argv.slice(1)) console.log(p+': '+c.createHash('sha256').update(f.readFileSync(p,'utf-8')).digest('hex'))" libs/database/drizzle/*.sql
+```

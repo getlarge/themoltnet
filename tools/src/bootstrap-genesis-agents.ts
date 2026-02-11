@@ -10,7 +10,7 @@
  * Required environment variables (unless --dry-run):
  *   DATABASE_URL        — Postgres connection string
  *   ORY_PROJECT_URL     — Ory Network project URL (base for all Ory APIs)
- *   ORY_API_KEY         — Ory Network API key (admin access)
+ *   ORY_PROJECT_API_KEY  — Ory Network API key (admin access)
  *
  * For split Ory deployments (Docker Compose / E2E), set per-service URLs instead:
  *   ORY_KRATOS_ADMIN_URL, ORY_HYDRA_ADMIN_URL, ORY_HYDRA_PUBLIC_URL,
@@ -62,7 +62,7 @@ Options:
 Environment variables (required unless --dry-run):
   DATABASE_URL            Postgres connection string
   ORY_PROJECT_URL         Ory Network project URL (managed mode)
-  ORY_API_KEY             Ory Network API key (managed mode)
+  ORY_PROJECT_API_KEY     Ory Network API key (managed mode)
 
 For split Ory deployments (Docker Compose):
   ORY_KRATOS_ADMIN_URL    Kratos admin API
@@ -140,7 +140,7 @@ async function main(): Promise<void> {
   // Resolve Ory configuration: managed (single URL) or split (per-service URLs)
   const databaseUrl = requireEnv('DATABASE_URL');
   const oryProjectUrl = optionalEnv('ORY_PROJECT_URL');
-  const oryApiKey = optionalEnv('ORY_API_KEY');
+  const oryApiKey = optionalEnv('ORY_PROJECT_API_KEY');
 
   let config: BootstrapConfig;
 
@@ -148,7 +148,7 @@ async function main(): Promise<void> {
     // Managed Ory Network: single project URL for all APIs
     if (!oryApiKey) {
       console.error(
-        'ORY_API_KEY is required when using ORY_PROJECT_URL (managed mode)',
+        'ORY_PROJECT_API_KEY is required when using ORY_PROJECT_URL (managed mode)',
       );
       process.exit(1);
     }

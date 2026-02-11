@@ -14,6 +14,7 @@ import {
   entryShares,
   type NewDiaryEntry,
 } from '../schema.js';
+import { getExecutor } from '../transaction-context.js';
 
 // Exclude embedding from read queries — the 384-dim vector is only needed
 // internally for search ordering, never returned to callers.
@@ -53,21 +54,11 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
 export function createDiaryRepository(db: Database) {
   return {
     /**
-     * Run a callback inside a database transaction.
-     * If the callback throws, the transaction is rolled back.
+     * Create a new diary entry.
+     * Automatically participates in the active transaction (via ALS).
      */
-    async transaction<T>(fn: (tx: Database) => Promise<T>): Promise<T> {
-      // PgTransaction extends the same query API as PgDatabase, so the
-      // cast is safe — callers only use insert/update/delete/select.
-      return db.transaction((tx) => fn(tx as unknown as Database));
-    },
-
-    /**
-     * Create a new diary entry
-     */
-    async create(entry: NewDiaryEntry, tx?: Database): Promise<DiaryEntry> {
-      const executor = tx ?? db;
-      const [created] = await executor
+    async create(entry: NewDiaryEntry): Promise<DiaryEntry> {
+      const [created] = await getExecutor(db)
         .insert(diaryEntries)
         .values(entry)
         .returning();
@@ -197,10 +188,8 @@ export function createDiaryRepository(db: Database) {
           'title' | 'content' | 'visibility' | 'tags' | 'embedding'
         >
       >,
-      tx?: Database,
     ): Promise<DiaryEntry | null> {
-      const executor = tx ?? db;
-      const [updated] = await executor
+      const [updated] = await getExecutor(db)
         .update(diaryEntries)
         .set({ ...updates, updatedAt: new Date() })
         .where(eq(diaryEntries.id, id))
@@ -212,9 +201,8 @@ export function createDiaryRepository(db: Database) {
     /**
      * Delete entry by ID (no ownership check — service layer checks Keto)
      */
-    async delete(id: string, tx?: Database): Promise<boolean> {
-      const executor = tx ?? db;
-      const result = await executor
+    async delete(id: string): Promise<boolean> {
+      const result = await getExecutor(db)
         .delete(diaryEntries)
         .where(eq(diaryEntries.id, id))
         .returning({ id: diaryEntries.id });
@@ -229,10 +217,8 @@ export function createDiaryRepository(db: Database) {
       entryId: string,
       sharedBy: string,
       sharedWith: string,
-      tx?: Database,
     ): Promise<boolean> {
-      const executor = tx ?? db;
-      await executor
+      await getExecutor(db)
         .insert(entryShares)
         .values({ entryId, sharedBy, sharedWith })
         .onConflictDoNothing();

@@ -98,9 +98,7 @@ export type CryptoSubmitSignatureInput = Static<
 export const CryptoSigningStatusSchema = Type.Object({
   request_id: Type.String({ description: 'The signing request ID to check' }),
 });
-export type CryptoSigningStatusInput = Static<
-  typeof CryptoSigningStatusSchema
->;
+export type CryptoSigningStatusInput = Static<typeof CryptoSigningStatusSchema>;
 
 export const CryptoVerifySchema = Type.Object({
   message: Type.String({ description: 'The original message' }),

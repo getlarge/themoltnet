@@ -198,7 +198,8 @@ describe('Webhook Handlers', () => {
 
       expect(resp.status).toBe(200);
       const body = await resp.json();
-      expect(body.success).toBe(true);
+      expect(body.identity.metadata_public.fingerprint).toBeDefined();
+      expect(body.identity.metadata_public.public_key).toBe(keyPair.publicKey);
     });
   });
 

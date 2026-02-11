@@ -1,185 +1,31 @@
 /**
  * @moltnet/rest-api — Type Definitions
  *
- * Service interfaces injected into the Fastify instance.
+ * Re-exports from source packages. Types are inferred from repository
+ * factories and service interfaces — no manual maintenance needed.
+ *
  * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
-export interface DiaryService {
-  create(input: {
-    ownerId: string;
-    content: string;
-    title?: string;
-    visibility?: 'private' | 'moltnet' | 'public';
-    tags?: string[];
-  }): Promise<DiaryEntry>;
-  getById(id: string, requesterId: string): Promise<DiaryEntry | null>;
-  list(input: {
-    ownerId: string;
-    visibility?: ('private' | 'moltnet' | 'public')[];
-    limit?: number;
-    offset?: number;
-  }): Promise<DiaryEntry[]>;
-  search(input: {
-    ownerId: string;
-    query?: string;
-    visibility?: ('private' | 'moltnet' | 'public')[];
-    limit?: number;
-    offset?: number;
-  }): Promise<DiaryEntry[]>;
-  update(
-    id: string,
-    requesterId: string,
-    updates: {
-      title?: string;
-      content?: string;
-      visibility?: 'private' | 'moltnet' | 'public';
-      tags?: string[];
-    },
-  ): Promise<DiaryEntry | null>;
-  delete(id: string, requesterId: string): Promise<boolean>;
-  share(
-    entryId: string,
-    sharedBy: string,
-    sharedWith: string,
-  ): Promise<boolean>;
-  getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
-  reflect(input: {
-    ownerId: string;
-    days?: number;
-    maxEntries?: number;
-  }): Promise<Digest>;
-}
+export type { CryptoService } from '@moltnet/crypto-service';
+export type {
+  AgentRepository,
+  DataSource,
+  SigningRequestRepository,
+  TransactionRunner,
+  VoucherRepository,
+} from '@moltnet/database';
+export type { DiaryService } from '@moltnet/diary-service';
 
-export interface AgentRepository {
-  findByFingerprint(fingerprint: string): Promise<AgentKey | null>;
-  findByIdentityId(id: string): Promise<AgentKey | null>;
-  findByPublicKey(publicKey: string): Promise<AgentKey | null>;
-  upsert(agent: {
-    identityId: string;
-    publicKey: string;
-    fingerprint: string;
-  }): Promise<AgentKey>;
-}
-
-export interface CryptoService {
-  sign(message: string, privateKeyBase64: string): Promise<string>;
-  verify(
-    message: string,
-    signature: string,
-    publicKey: string,
-  ): Promise<boolean>;
-  parsePublicKey(key: string): Uint8Array;
-}
-
-export interface DiaryEntry {
-  id: string;
-  ownerId: string;
-  title: string | null;
-  content: string;
-  embedding: number[] | null;
-  visibility: 'private' | 'moltnet' | 'public';
-  tags: string[] | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface AgentKey {
-  identityId: string;
-  publicKey: string;
-  fingerprint: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Digest {
-  entries: {
-    id: string;
-    content: string;
-    tags: string[] | null;
-    createdAt: Date;
-  }[];
-  totalEntries: number;
-  periodDays: number;
-  generatedAt: string;
-}
-
-export interface VoucherRepository {
-  issue(issuerId: string): Promise<AgentVoucher | null>;
-  redeem(code: string, redeemedBy: string): Promise<AgentVoucher | null>;
-  findByCode(code: string): Promise<AgentVoucher | null>;
-  listActiveByIssuer(issuerId: string): Promise<AgentVoucher[]>;
-  getTrustGraph(): Promise<
-    {
-      issuerFingerprint: string;
-      redeemerFingerprint: string;
-      redeemedAt: Date;
-    }[]
-  >;
-}
-
-export interface AgentVoucher {
-  id: string;
-  code: string;
-  issuerId: string;
-  redeemedBy: string | null;
-  expiresAt: Date;
-  redeemedAt: Date | null;
-  createdAt: Date;
-}
-
-export interface SigningRequestRepository {
-  create(input: {
-    agentId: string;
-    message: string;
-    expiresAt?: Date;
-    workflowId?: string;
-  }): Promise<SigningRequestRecord>;
-  findById(id: string): Promise<SigningRequestRecord | null>;
-  list(options: {
-    agentId: string;
-    status?: string[];
-    limit?: number;
-    offset?: number;
-  }): Promise<{ items: SigningRequestRecord[]; total: number }>;
-  updateStatus(
-    id: string,
-    updates: Partial<
-      Pick<
-        SigningRequestRecord,
-        'status' | 'signature' | 'valid' | 'completedAt' | 'workflowId'
-      >
-    >,
-  ): Promise<SigningRequestRecord | null>;
-  countByAgent(agentId: string): Promise<number>;
-}
-
-export interface SigningRequestRecord {
-  id: string;
-  agentId: string;
-  message: string;
-  nonce: string;
-  status: 'pending' | 'completed' | 'expired';
-  signature: string | null;
-  valid: boolean | null;
-  workflowId: string | null;
-  createdAt: Date;
-  expiresAt: Date;
-  completedAt: Date | null;
-}
-
-/**
- * Minimal DataSource interface for durable transactions.
- * Matches the diary-service DataSource shape to avoid importing @moltnet/database.
- */
-export interface DataSource {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  client: any;
-  runTransaction<T>(
-    fn: () => Promise<T>,
-    options?: { name?: string },
-  ): Promise<T>;
-}
+import type { CryptoService } from '@moltnet/crypto-service';
+import type {
+  AgentRepository,
+  DataSource,
+  SigningRequestRepository,
+  TransactionRunner,
+  VoucherRepository,
+} from '@moltnet/database';
+import type { DiaryService } from '@moltnet/diary-service';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -190,5 +36,6 @@ declare module 'fastify' {
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;
+    transactionRunner: TransactionRunner;
   }
 }

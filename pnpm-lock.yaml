@@ -248,6 +248,8 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  apps/demo-agent: {}
+
   apps/landing:
     dependencies:
       '@moltnet/design-system':
