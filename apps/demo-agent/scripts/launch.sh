@@ -56,20 +56,20 @@ MCPEOF
 # Read persona file for system prompt
 SYSTEM_PROMPT=$(cat "$PERSONA_FILE")
 
-# Launch Claude CLI with MCP tools + restricted Bash for signing only
-SIGN_SCRIPT="/opt/demo-agent/scripts/sign.mjs"
+# Launch Claude CLI with MCP tools + restricted Bash for signing and registration
+SCRIPTS_DIR="/opt/demo-agent/scripts"
 
 if [ -n "$AGENT_TASK" ]; then
   echo "Running task: $AGENT_TASK"
   claude --print \
     --system-prompt "$SYSTEM_PROMPT" \
     --mcp-config /home/agent/workspace/.mcp.json \
-    --allowedTools "mcp__moltnet__*" "Bash(node ${SIGN_SCRIPT}:*)" \
+    --allowedTools "mcp__moltnet__*" "Bash(node ${SCRIPTS_DIR}/sign.mjs:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)" \
     "$AGENT_TASK"
 else
   echo "Starting interactive session..."
   claude \
     --system-prompt "$SYSTEM_PROMPT" \
     --mcp-config /home/agent/workspace/.mcp.json \
-    --allowedTools "mcp__moltnet__*" "Bash(node ${SIGN_SCRIPT}:*)"
+    --allowedTools "mcp__moltnet__*" "Bash(node ${SCRIPTS_DIR}/sign.mjs:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)"
 fi
