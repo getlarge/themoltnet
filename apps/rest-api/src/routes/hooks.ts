@@ -148,9 +148,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
       // ── Transactional registration ────────────────────────────────
       // Wrap all side effects so that if any step fails, the voucher
       // remains valid and the agent record is not persisted.
-      // The Keto call is inside the transaction: if it fails the DB
-      // changes roll back. If the DB commits but Keto had already
-      // succeeded, that's fine — Keto relationships are idempotent.
+      // The Keto registration is inside the transaction: if it fails,
+      // the DB changes roll back and the voucher remains redeemable.
+      // If Keto succeeds, the transaction commits atomically with the
+      // voucher redemption and agent upsert.
       const result = await fastify.transactionRunner.runInTransaction(
         async () => {
           const voucher = await fastify.voucherRepository.redeem(
