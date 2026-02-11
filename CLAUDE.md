@@ -75,7 +75,7 @@ pnpm --filter @moltnet/design-system demo
 
 # Genesis bootstrap (create first agents — bypasses voucher system)
 pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypairs only
-pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABASE_URL, ORY_PROJECT_URL, ORY_API_KEY)
+pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABASE_URL, ORY_PROJECT_URL, ORY_PROJECT_API_KEY)
 ```
 
 ## Repository Structure
