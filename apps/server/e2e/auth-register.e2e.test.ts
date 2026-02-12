@@ -15,8 +15,10 @@
  * 9. Missing required fields → 400
  */
 
-import { createClient, getWhoami } from '@moltnet/api-client';
+import { createClient, getAgentProfile, getWhoami } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
+import { agentKeys, agentVouchers } from '@moltnet/database';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createTestVoucher } from './helpers.js';
@@ -24,7 +26,10 @@ import {
   createTestHarness,
   HYDRA_PUBLIC_URL,
   type TestHarness,
+  WEBHOOK_API_KEY,
 } from './setup.js';
+
+const PLACEHOLDER_UUID = '00000000-0000-0000-0000-000000000000';
 
 describe('POST /auth/register', () => {
   let harness: TestHarness;
@@ -171,6 +176,153 @@ describe('POST /auth/register', () => {
     expect(data!.identityId).toBe(creds.identityId);
     expect(data!.fingerprint).toBe(creds.fingerprint);
     expect(data!.clientId).toBe(creds.clientId);
+  });
+
+  // ── Identity Correctness ──────────────────────────────────────
+  // These tests verify the fix for the placeholder identity.id bug:
+  // Kratos webhooks receive 00000000-0000-0000-0000-000000000000 as
+  // identity.id. The registration route must set the real identity ID
+  // in the agent record, voucher, and Keto relation.
+
+  it('agent record has real identity ID (not placeholder)', async () => {
+    const keyPair = await cryptoService.generateKeyPair();
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
+    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        public_key: keyPair.publicKey,
+        voucher_code: voucherCode,
+      }),
+    });
+    expect(regRes.status).toBe(200);
+    const creds = (await regRes.json()) as {
+      identityId: string;
+      fingerprint: string;
+    };
+
+    // Verify the agent_keys row has the real identity ID
+    const [agentRow] = await harness.db
+      .select()
+      .from(agentKeys)
+      .where(eq(agentKeys.fingerprint, creds.fingerprint))
+      .limit(1);
+
+    expect(agentRow).toBeDefined();
+    expect(agentRow.identityId).toBe(creds.identityId);
+    expect(agentRow.identityId).not.toBe(PLACEHOLDER_UUID);
+  });
+
+  it('voucher redeemedBy has real identity ID (not placeholder)', async () => {
+    const keyPair = await cryptoService.generateKeyPair();
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
+    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        public_key: keyPair.publicKey,
+        voucher_code: voucherCode,
+      }),
+    });
+    expect(regRes.status).toBe(200);
+    const creds = (await regRes.json()) as { identityId: string };
+
+    // Verify the voucher row has the real identity ID as redeemedBy
+    const [voucherRow] = await harness.db
+      .select()
+      .from(agentVouchers)
+      .where(eq(agentVouchers.code, voucherCode))
+      .limit(1);
+
+    expect(voucherRow).toBeDefined();
+    expect(voucherRow.redeemedBy).toBe(creds.identityId);
+    expect(voucherRow.redeemedBy).not.toBe(PLACEHOLDER_UUID);
+    expect(voucherRow.redeemedAt).not.toBeNull();
+  });
+
+  it('registered agent can be looked up by fingerprint via API', async () => {
+    const keyPair = await cryptoService.generateKeyPair();
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
+    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        public_key: keyPair.publicKey,
+        voucher_code: voucherCode,
+      }),
+    });
+    expect(regRes.status).toBe(200);
+    const creds = (await regRes.json()) as {
+      identityId: string;
+      fingerprint: string;
+      publicKey: string;
+      clientId: string;
+      clientSecret: string;
+    };
+
+    // Get token and look up the agent profile
+    const tokenRes = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: creds.clientId,
+        client_secret: creds.clientSecret,
+      }),
+    });
+    expect(tokenRes.status).toBe(200);
+
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const { data: profile } = await getAgentProfile({
+      client,
+      path: { fingerprint: creds.fingerprint },
+    });
+
+    expect(profile).toBeDefined();
+    expect(profile!.fingerprint).toBe(creds.fingerprint);
+    expect(profile!.publicKey).toBe(creds.publicKey);
+  });
+
+  it('token-exchange webhook rejects grant when claims are missing', async () => {
+    // Call token-exchange with a client ID that has no MoltNet metadata
+    const resp = await fetch(`${harness.baseUrl}/hooks/hydra/token-exchange`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-ory-api-key': WEBHOOK_API_KEY,
+      },
+      body: JSON.stringify({
+        session: {},
+        request: {
+          client_id: 'nonexistent-client',
+          grant_types: ['client_credentials'],
+        },
+      }),
+    });
+
+    // Should return non-200 so Hydra rejects the grant
+    expect(resp.status).toBeGreaterThanOrEqual(400);
   });
 
   // ── Error Cases ─────────────────────────────────────────────

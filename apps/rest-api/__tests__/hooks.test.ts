@@ -39,10 +39,8 @@ describe('Hook routes', () => {
       },
     };
 
-    it('creates agent entry when voucher is valid', async () => {
+    it('redeems voucher without creating agent or Keto relation', async () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',
@@ -61,18 +59,14 @@ describe('Hook routes', () => {
         expect.any(Function),
         { name: 'hooks.after-registration' },
       );
+      // Voucher redeemed without redeemedBy (placeholder identity.id is not used)
       expect(mocks.voucherRepository.redeem).toHaveBeenCalledWith(
         'a'.repeat(64),
-        OWNER_ID,
       );
-      expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
-        identityId: OWNER_ID,
-        publicKey: testPublicKey,
-        fingerprint: expectedFingerprint,
-      });
-      expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
-        OWNER_ID,
-      );
+      // Agent record and Keto relation are NOT created in the webhook —
+      // they are deferred to the registration route which has the real identity ID.
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
+      expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
     });
 
     it('rejects registration with invalid voucher (Ory error format)', async () => {
@@ -95,11 +89,9 @@ describe('Hook routes', () => {
       expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
     });
 
-    it('rolls back transaction when Keto registration fails', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockRejectedValue(
-        new Error('Keto unavailable'),
+    it('rolls back transaction when voucher redeem throws', async () => {
+      mocks.voucherRepository.redeem.mockRejectedValue(
+        new Error('DB unavailable'),
       );
 
       const response = await app.inject({
@@ -111,7 +103,7 @@ describe('Hook routes', () => {
 
       expect(response.statusCode).toBe(500);
       expect(mocks.voucherRepository.redeem).toHaveBeenCalled();
-      expect(mocks.agentRepository.upsert).toHaveBeenCalled();
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
     });
 
     it('rejects registration with invalid public_key format', async () => {
@@ -197,7 +189,7 @@ describe('Hook routes', () => {
       });
     });
 
-    it('falls back to minimal claims when agent not found', async () => {
+    it('rejects grant when agent not found', async () => {
       mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
 
       const response = await app.inject({
@@ -213,12 +205,9 @@ describe('Hook routes', () => {
         },
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(403);
       const body = response.json();
-      expect(body.session.access_token['moltnet:client_id']).toBe(
-        'hydra-client-uuid',
-      );
-      expect(body.session.access_token['moltnet:identity_id']).toBe(OWNER_ID);
+      expect(body.error).toBe('agent_not_found');
     });
   });
 
@@ -276,8 +265,6 @@ describe('Hook routes', () => {
 
     it('accepts request with valid API key', async () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',

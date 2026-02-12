@@ -64,19 +64,23 @@ export function createVoucherRepository(db: Database) {
      * Validate and redeem a voucher code.
      * Returns the voucher if valid, null if invalid/expired/already-used.
      *
+     * `redeemedBy` is optional because the Kratos after-registration webhook
+     * doesn't yet know the real identity ID (Kratos assigns it after all
+     * webhooks return). Call `updateRedeemedBy` later once the real ID is known.
+     *
      * Uses a single atomic UPDATE with all conditions in the WHERE clause.
      * Postgres row-level locking ensures only one concurrent caller can win.
      * Automatically participates in the active transaction (via ALS).
      */
     async redeem(
       code: string,
-      redeemedBy: string,
+      redeemedBy?: string | null,
     ): Promise<AgentVoucher | null> {
       const now = new Date();
 
       const [redeemed] = await getExecutor(db)
         .update(agentVouchers)
-        .set({ redeemedBy, redeemedAt: now })
+        .set({ redeemedBy: redeemedBy ?? null, redeemedAt: now })
         .where(
           and(
             eq(agentVouchers.code, code),
@@ -87,6 +91,28 @@ export function createVoucherRepository(db: Database) {
         .returning();
 
       return redeemed ?? null;
+    },
+
+    /**
+     * Set the redeemedBy identity on an already-redeemed voucher.
+     * Called from the registration route once Kratos returns the real identity ID.
+     */
+    async updateRedeemedBy(
+      code: string,
+      redeemedBy: string,
+    ): Promise<AgentVoucher | null> {
+      const [updated] = await getExecutor(db)
+        .update(agentVouchers)
+        .set({ redeemedBy })
+        .where(
+          and(
+            eq(agentVouchers.code, code),
+            isNotNull(agentVouchers.redeemedAt),
+          ),
+        )
+        .returning();
+
+      return updated ?? null;
     },
 
     /**

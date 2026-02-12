@@ -306,7 +306,7 @@ describe('Webhook Handlers', () => {
       expect(body.session.access_token['moltnet:fingerprint']).toBeDefined();
     });
 
-    it('returns minimal claims for unknown client', async () => {
+    it('rejects grant for unknown client', async () => {
       const resp = await fetch(
         `${harness.baseUrl}/hooks/hydra/token-exchange`,
         {
@@ -325,12 +325,9 @@ describe('Webhook Handlers', () => {
         },
       );
 
-      // Should return 200 with fallback claims (graceful degradation)
-      expect(resp.status).toBe(200);
-      const body = await resp.json();
-      expect(body.session.access_token['moltnet:client_id']).toBe(
-        'nonexistent-client-id',
-      );
+      // Should return non-200 so Hydra rejects the grant
+      // (instead of issuing under-enriched tokens)
+      expect(resp.status).toBeGreaterThanOrEqual(400);
     });
 
     it('rejects missing webhook API key', async () => {

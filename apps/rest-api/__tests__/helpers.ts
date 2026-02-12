@@ -163,6 +163,7 @@ export function createMockServices(): MockServices {
     voucherRepository: {
       issue: vi.fn(),
       redeem: vi.fn(),
+      updateRedeemedBy: vi.fn(),
       findByCode: vi.fn(),
       listActiveByIssuer: vi.fn(),
       getTrustGraph: vi.fn(),
