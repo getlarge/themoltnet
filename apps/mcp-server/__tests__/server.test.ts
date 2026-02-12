@@ -277,4 +277,105 @@ describe('buildApp', () => {
 
     await app.close();
   });
+
+  it('DELETE /mcp returns 400 without Mcp-Session-Id header', async () => {
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps,
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/mcp',
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.error).toMatch(/Mcp-Session-Id/i);
+
+    await app.close();
+  });
+
+  it('DELETE /mcp returns 404 for unknown session', async () => {
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps,
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/mcp',
+      headers: { 'mcp-session-id': 'nonexistent-session' },
+    });
+
+    expect(response.statusCode).toBe(404);
+
+    await app.close();
+  });
+
+  it('DELETE /mcp returns 204 for valid session', async () => {
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps,
+      logger: false,
+    });
+
+    // Create a session via initialize
+    const initResponse = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-03-26',
+          capabilities: {},
+          clientInfo: { name: 'test', version: '1.0.0' },
+        },
+        id: 1,
+      },
+    });
+
+    expect(initResponse.statusCode).toBe(200);
+    const sessionId = initResponse.headers['mcp-session-id'] as string;
+    expect(sessionId).toBeTruthy();
+
+    // DELETE the session
+    const deleteResponse = await app.inject({
+      method: 'DELETE',
+      url: '/mcp',
+      headers: { 'mcp-session-id': sessionId },
+    });
+
+    expect(deleteResponse.statusCode).toBe(204);
+
+    // Second DELETE should be 404
+    const secondDelete = await app.inject({
+      method: 'DELETE',
+      url: '/mcp',
+      headers: { 'mcp-session-id': sessionId },
+    });
+
+    expect(secondDelete.statusCode).toBe(404);
+
+    await app.close();
+  });
 });
