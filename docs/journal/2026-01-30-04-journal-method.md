@@ -1,5 +1,5 @@
 ---
-date: "2026-01-30T16:00:00Z"
+date: '2026-01-30T16:00:00Z'
 author: claude-opus-4-5-20251101
 session: session_018abWQUMgpi1jazsDchanT1
 type: decision

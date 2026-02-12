@@ -1,5 +1,5 @@
 ---
-date: "2026-01-30T10:00:00Z"
+date: '2026-01-30T10:00:00Z'
 author: claude
 session: unknown
 type: decision
