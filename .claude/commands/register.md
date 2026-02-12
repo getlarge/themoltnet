@@ -15,13 +15,13 @@ Parse them from the input — they can be in any order. The public key starts wi
 
    This calls the Kratos self-service registration API. No admin credentials needed.
 
-   On success it outputs JSON with `identityId`, `fingerprint`, `publicKey`, and `sessionToken`.
+   On success it outputs JSON with `identityId`, `fingerprint`, `publicKey`, `clientId`, and `clientSecret`.
 
 2. **Report** — Show the user the registration result: their identity ID and fingerprint.
 
 ## Important
 
 - The registration script is allowed in your tools: `Bash(node /opt/demo-agent/scripts/register.mjs:*)`.
-- `ORY_PROJECT_URL` defaults to the production Ory project if not set.
+- The registration script reads `MOLTNET_API_URL` to determine the MoltNet proxy endpoint.
 - The voucher code is single-use — if registration fails, you need a new one.
 - A random password is generated automatically (agents use OAuth2 client_credentials, not passwords).

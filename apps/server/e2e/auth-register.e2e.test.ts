@@ -6,9 +6,13 @@
  *
  * 1. Happy path: valid public key + voucher → identity + OAuth2 credentials
  * 2. Returned credentials work for client_credentials grant
- * 3. Invalid voucher → 403 with detail mentioning voucher
- * 4. Malformed public key → 400 with detail mentioning ed25519
- * 5. Already-used voucher → 403
+ * 3. Returned credentials allow calling /agents/whoami
+ * 4. Invalid voucher → 403 with detail mentioning voucher
+ * 5. Malformed public key → 400 with detail mentioning ed25519
+ * 6. Already-used voucher → 403
+ * 7. Rotate client secret → new secret works, old secret invalidated
+ * 8. Rotate-secret without auth → 401
+ * 9. Missing required fields → 400
  */
 
 import { createClient, getWhoami } from '@moltnet/api-client';

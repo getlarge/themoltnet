@@ -152,7 +152,6 @@ export const problemTypes: Record<string, ProblemType> = {
     description: 'Agent registration was rejected by the identity provider.',
     commonCauses: [
       'Invalid or expired voucher code',
-      'Malformed Ed25519 public key',
       'Voucher already redeemed by another agent',
     ],
   },
