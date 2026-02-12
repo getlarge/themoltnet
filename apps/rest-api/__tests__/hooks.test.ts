@@ -1,7 +1,16 @@
+import type { OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { buildApp } from '../src/app.js';
+import type {
+  DataSource,
+  DiaryRepository,
+  DiaryService,
+  SigningRequestRepository,
+  TransactionRunner,
+} from '../src/types.js';
 import {
   createMockAgent,
   createMockServices,
@@ -9,6 +18,8 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  TEST_RECOVERY_SECRET,
+  TEST_SECURITY_OPTIONS,
   TEST_WEBHOOK_API_KEY,
 } from './helpers.js';
 
@@ -39,10 +50,9 @@ describe('Hook routes', () => {
       },
     };
 
-    it('creates agent entry when voucher is valid', async () => {
+    it('validates voucher and creates agent record with placeholder ID', async () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',
@@ -70,9 +80,8 @@ describe('Hook routes', () => {
         publicKey: testPublicKey,
         fingerprint: expectedFingerprint,
       });
-      expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
-        OWNER_ID,
-      );
+      // Keto registration happens in the registration route, not here
+      expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
     });
 
     it('rejects registration with invalid voucher (Ory error format)', async () => {
@@ -93,25 +102,6 @@ describe('Hook routes', () => {
       expect(body.messages[0].messages[0].type).toBe('error');
       expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
       expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
-    });
-
-    it('rolls back transaction when Keto registration fails', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockRejectedValue(
-        new Error('Keto unavailable'),
-      );
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/after-registration',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: validPayload,
-      });
-
-      expect(response.statusCode).toBe(500);
-      expect(mocks.voucherRepository.redeem).toHaveBeenCalled();
-      expect(mocks.agentRepository.upsert).toHaveBeenCalled();
     });
 
     it('rejects registration with invalid public_key format', async () => {
@@ -197,7 +187,7 @@ describe('Hook routes', () => {
       });
     });
 
-    it('falls back to minimal claims when agent not found', async () => {
+    it('returns error when agent not found', async () => {
       mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
 
       const response = await app.inject({
@@ -213,12 +203,74 @@ describe('Hook routes', () => {
         },
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(500);
       const body = response.json();
-      expect(body.session.access_token['moltnet:client_id']).toBe(
-        'hydra-client-uuid',
+      expect(body.error).toBe('token_enrichment_failed');
+      expect(body.error_description).toContain('Agent record not found');
+    });
+
+    it('returns error when OAuth2 client has no MoltNet metadata', async () => {
+      const mockOAuth2Api = {
+        getOAuth2Client: vi.fn().mockResolvedValue({
+          data: {
+            client_id: 'test-client-id',
+            metadata: {}, // No identity_id
+          },
+        }),
+      } as unknown as OryClients['oauth2'];
+
+      const mockOryClients: OryClients = {
+        frontend: {} as OryClients['frontend'],
+        identity: {} as OryClients['identity'],
+        oauth2: mockOAuth2Api,
+        permission: {} as OryClients['permission'],
+        relationship: {} as OryClients['relationship'],
+      };
+
+      // Create a new app with this mock
+      const testApp = await buildApp({
+        diaryService: mocks.diaryService as unknown as DiaryService,
+        diaryRepository: mocks.diaryRepository as unknown as DiaryRepository,
+        agentRepository: mocks.agentRepository as unknown as AgentRepository,
+        cryptoService: mocks.cryptoService as unknown as CryptoService,
+        voucherRepository:
+          mocks.voucherRepository as unknown as VoucherRepository,
+        signingRequestRepository:
+          mocks.signingRequestRepository as unknown as SigningRequestRepository,
+        dataSource: mocks.dataSource as unknown as DataSource,
+        transactionRunner:
+          mocks.transactionRunner as unknown as TransactionRunner,
+        permissionChecker:
+          mocks.permissionChecker as unknown as PermissionChecker,
+        tokenValidator: {
+          introspect: vi.fn().mockResolvedValue({ active: false }),
+          resolveAuthContext: vi.fn().mockResolvedValue(null),
+        },
+        webhookApiKey: TEST_WEBHOOK_API_KEY,
+        recoverySecret: TEST_RECOVERY_SECRET,
+        oryClients: mockOryClients,
+        security: TEST_SECURITY_OPTIONS,
+      });
+
+      const response = await testApp.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'test-client-id',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      const body = response.json();
+      expect(body.error).toBe('token_enrichment_failed');
+      expect(body.error_description).toContain(
+        'missing required MoltNet metadata',
       );
-      expect(body.session.access_token['moltnet:identity_id']).toBe(OWNER_ID);
     });
   });
 

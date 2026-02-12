@@ -164,6 +164,7 @@ export function createMockServices(): MockServices {
       issue: vi.fn(),
       redeem: vi.fn(),
       findByCode: vi.fn(),
+      updateRedeemedBy: vi.fn(),
       listActiveByIssuer: vi.fn(),
       getTrustGraph: vi.fn(),
     },

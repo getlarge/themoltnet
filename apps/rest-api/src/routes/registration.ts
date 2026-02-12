@@ -180,19 +180,33 @@ export async function registrationRoutes(
       }
 
       // Step 2.5: Complete registration with real identity ID
-      // The Kratos webhook only validated and redeemed the voucher with
-      // a placeholder ID. Now that we have the real identity ID, we:
-      // 1. Update the voucher's redeemedBy to the real identity ID
-      // 2. Create the agent record in agent_keys
-      // 3. Register the agent in Keto for permission checks
+      // The Kratos webhook created an agent record with a placeholder ID
+      // (00000000-0000-0000-0000-000000000000). Now that we have the real
+      // identity ID, we:
+      // 1. Delete the placeholder agent record (if it exists)
+      // 2. Update the voucher's redeemedBy to the real identity ID
+      // 3. Create/update the agent record with the real identity ID
+      // 4. Register the agent in Keto for permission checks
       try {
+        // Check for placeholder agent record and delete it
+        const placeholderId = '00000000-0000-0000-0000-000000000000';
+        const placeholderAgent =
+          await fastify.agentRepository.findByIdentityId(placeholderId);
+        if (placeholderAgent && placeholderAgent.fingerprint === fingerprint) {
+          await fastify.agentRepository.delete(placeholderId);
+          fastify.log.info(
+            { fingerprint, placeholder_id: placeholderId },
+            'Deleted placeholder agent record',
+          );
+        }
+
         // Update voucher with real identity ID
         await fastify.voucherRepository.updateRedeemedBy(
           voucher_code,
           identityId,
         );
 
-        // Create agent record
+        // Create agent record with real identity ID
         await fastify.agentRepository.upsert({
           identityId,
           publicKey,

@@ -145,13 +145,11 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
       const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
 
-      // ── Voucher validation ────────────────────────────────────────
-      // Only redeem the voucher here. The webhook receives a placeholder
-      // identity.id (00000000-0000-0000-0000-000000000000) because Kratos
-      // assigns the real UUID only after webhooks complete.
-      //
-      // Agent record creation and Keto registration happen in the
-      // registration route after Kratos returns the real identity ID.
+      // ── Voucher validation and agent record creation ──────────────
+      // The webhook receives a placeholder identity.id because Kratos assigns
+      // the real UUID only after webhooks complete. We create the agent record
+      // with this placeholder, and the registration route will update it with
+      // the real identity ID and register the agent in Keto.
       const result = await fastify.transactionRunner.runInTransaction(
         async () => {
           const voucher = await fastify.voucherRepository.redeem(
@@ -169,8 +167,19 @@ export async function hookRoutes(fastify: FastifyInstance) {
               voucher_issuer: voucher.issuerId,
               fingerprint,
             },
-            'Registration approved via voucher (will complete in registration route)',
+            'Voucher validated (will complete in registration route)',
           );
+
+          // Create agent record with placeholder ID
+          // The registration route will fix this with the real ID
+          await fastify.agentRepository.upsert({
+            identityId: identity.id,
+            publicKey: public_key,
+            fingerprint,
+          });
+
+          // Do NOT call registerAgent here - Keto registration happens in
+          // the registration route with the real identity ID
 
           return { rejected: false as const, fingerprint };
         },
