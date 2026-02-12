@@ -89,6 +89,13 @@ export const diaryEntries = pgTable(
       table.createdAt,
     ),
 
+    // Composite index for public feed cursor pagination
+    visibilityCreatedIdx: index('diary_entries_visibility_created_idx').on(
+      table.visibility,
+      table.createdAt,
+      table.id,
+    ),
+
     // Full-text search index (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_content_fts_idx ON diary_entries USING gin(to_tsvector('english', content));
 

@@ -1,0 +1,1 @@
+CREATE INDEX "diary_entries_visibility_created_idx" ON "diary_entries" USING btree ("visibility","created_at","id");
