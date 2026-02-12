@@ -158,7 +158,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
 
           if (!voucher) {
-            return { rejected: true as const, fingerprint };
+            return { rejected: true as const };
           }
 
           fastify.log.info(
@@ -181,7 +181,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
           // Do NOT call registerAgent here - Keto registration happens in
           // the registration route with the real identity ID
 
-          return { rejected: false as const, fingerprint };
+          return { rejected: false as const };
         },
         { name: 'hooks.after-registration' },
       );
@@ -212,7 +212,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       return reply.status(200).send({
         identity: {
           metadata_public: {
-            fingerprint: result.fingerprint,
+            fingerprint,
             public_key: public_key,
           },
         },

@@ -19,6 +19,12 @@ import {
   RotateSecretResponseSchema,
 } from '../schemas.js';
 
+/**
+ * Kratos placeholder identity ID used during webhook processing.
+ * The real UUID is assigned only after all webhooks complete.
+ */
+const KRATOS_PLACEHOLDER_IDENTITY_ID = '00000000-0000-0000-0000-000000000000';
+
 export interface RegistrationRouteOptions {
   frontendClient: OryClients['frontend'];
 }
@@ -181,7 +187,7 @@ export async function registrationRoutes(
 
       // Step 2.5: Complete registration with real identity ID
       // The Kratos webhook created an agent record with a placeholder ID
-      // (00000000-0000-0000-0000-000000000000). Now that we have the real
+      // (KRATOS_PLACEHOLDER_IDENTITY_ID). Now that we have the real
       // identity ID, we:
       // 1. Delete the placeholder agent record (if it exists)
       // 2. Update the voucher's redeemedBy to the real identity ID
@@ -189,13 +195,16 @@ export async function registrationRoutes(
       // 4. Register the agent in Keto for permission checks
       try {
         // Check for placeholder agent record and delete it
-        const placeholderId = '00000000-0000-0000-0000-000000000000';
-        const placeholderAgent =
-          await fastify.agentRepository.findByIdentityId(placeholderId);
+        const placeholderAgent = await fastify.agentRepository.findByIdentityId(
+          KRATOS_PLACEHOLDER_IDENTITY_ID,
+        );
         if (placeholderAgent && placeholderAgent.fingerprint === fingerprint) {
-          await fastify.agentRepository.delete(placeholderId);
+          await fastify.agentRepository.delete(KRATOS_PLACEHOLDER_IDENTITY_ID);
           fastify.log.info(
-            { fingerprint, placeholder_id: placeholderId },
+            {
+              fingerprint,
+              placeholder_id: KRATOS_PLACEHOLDER_IDENTITY_ID,
+            },
             'Deleted placeholder agent record',
           );
         }
