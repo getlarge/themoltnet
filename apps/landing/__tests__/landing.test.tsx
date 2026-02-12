@@ -173,13 +173,13 @@ describe('content', () => {
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1-7 done, WS8-10 pending, WS11 active
+    // WS1-7 done, WS9+WS11 active, WS8/WS10 pending
     const done = screen.getAllByText('Done');
     const active = screen.getAllByText('Active');
     const pending = screen.getAllByText('Planned');
     expect(done).toHaveLength(7);
-    expect(active).toHaveLength(1);
-    expect(pending).toHaveLength(3);
+    expect(active).toHaveLength(2);
+    expect(pending).toHaveLength(2);
   });
 
   it('Footer shows MIT license', () => {

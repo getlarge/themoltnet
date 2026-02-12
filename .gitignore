@@ -160,3 +160,7 @@ test-results/
 genesis-credentials.json
 .env.demo
 .mcp.json
+
+# Go binaries
+cmd/moltnet/moltnet
+*.exe
