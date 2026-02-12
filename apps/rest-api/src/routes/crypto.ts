@@ -2,6 +2,7 @@
  * Crypto sign/verify routes
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -10,9 +11,11 @@ import type { FastifyInstance } from 'fastify';
 import { CryptoIdentitySchema, CryptoVerifyResultSchema } from '../schemas.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
   // ── Verify Signature ───────────────────────────────────────
   // Public endpoint: verify any Ed25519 signature
-  fastify.post(
+  server.post(
     '/crypto/verify',
     {
       schema: {
@@ -33,11 +36,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { message, signature, publicKey } = request.body as {
-        message: string;
-        signature: string;
-        publicKey: string;
-      };
+      const { message, signature, publicKey } = request.body;
 
       const valid = await fastify.cryptoService.verify(
         message,
@@ -51,7 +50,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
 
   // ── Who Am I (crypto-based) ────────────────────────────────
   // Returns authenticated agent's crypto identity
-  fastify.get(
+  server.get(
     '/crypto/identity',
     {
       schema: {

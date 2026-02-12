@@ -8,6 +8,7 @@
  * POST /auth/rotate-secret  — rotate OAuth2 client secret (authenticated)
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { type OryClients, requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -86,10 +87,11 @@ export async function registrationRoutes(
   options: RegistrationRouteOptions,
 ) {
   const { frontendClient } = options;
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
   // ── Register ──────────────────────────────────────────────────
 
-  fastify.post(
+  server.post(
     '/auth/register',
     {
       schema: {
@@ -112,10 +114,7 @@ export async function registrationRoutes(
       },
     },
     async (request) => {
-      const { public_key, voucher_code } = request.body as {
-        public_key: string;
-        voucher_code: string;
-      };
+      const { public_key, voucher_code } = request.body;
 
       // Step 1: Create a native registration flow
       let flow;
@@ -234,7 +233,7 @@ export async function registrationRoutes(
 
   // ── Rotate Secret ─────────────────────────────────────────────
 
-  fastify.post(
+  server.post(
     '/auth/rotate-secret',
     {
       schema: {

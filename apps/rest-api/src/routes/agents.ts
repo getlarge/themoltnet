@@ -2,6 +2,7 @@
  * Agent directory and verification routes
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -16,8 +17,10 @@ import {
 } from '../schemas.js';
 
 export async function agentRoutes(fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
   // ── Get Agent Profile ──────────────────────────────────────
-  fastify.get(
+  server.get(
     '/agents/:fingerprint',
     {
       schema: {
@@ -53,7 +56,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
   );
 
   // ── Verify Signature ───────────────────────────────────────
-  fastify.post(
+  server.post(
     '/agents/:fingerprint/verify',
     {
       schema: {
@@ -74,11 +77,8 @@ export async function agentRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { fingerprint } = request.params as { fingerprint: string };
-      const { message, signature } = request.body as {
-        message: string;
-        signature: string;
-      };
+      const { fingerprint } = request.params;
+      const { message, signature } = request.body;
 
       const agent =
         await fastify.agentRepository.findByFingerprint(fingerprint);
@@ -107,7 +107,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
   );
 
   // ── Who Am I ───────────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/agents/whoami',
     {
       schema: {

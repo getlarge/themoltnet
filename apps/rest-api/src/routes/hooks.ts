@@ -8,6 +8,7 @@
 
 import crypto from 'node:crypto';
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import { Type } from '@sinclair/typebox';
@@ -78,10 +79,11 @@ const validateWebhookApiKey = (webhookApiKey: string) => {
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function hookRoutes(fastify: FastifyInstance) {
   fastify.log.info('[hookRoutes] Registering webhook routes');
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
   const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
   // ── Kratos After Registration ──────────────────────────────
-  fastify.post(
+  server.post(
     '/hooks/kratos/after-registration',
     {
       schema: {
@@ -100,15 +102,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      const { identity } = request.body as {
-        identity: {
-          id: string;
-          traits: {
-            public_key: string;
-            voucher_code: string;
-          };
-        };
-      };
+      const { identity } = request.body;
 
       const { public_key, voucher_code } = identity.traits;
 
@@ -219,7 +213,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
   );
 
   // ── Kratos After Settings ──────────────────────────────────
-  fastify.post(
+  server.post(
     '/hooks/kratos/after-settings',
     {
       schema: {
@@ -237,14 +231,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      const { identity } = request.body as {
-        identity: {
-          id: string;
-          traits: {
-            public_key: string;
-          };
-        };
-      };
+      const { identity } = request.body;
 
       const { public_key } = identity.traits;
 
@@ -308,11 +295,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       // TODO: fix inconsistent enrichment.
-      const { request: tokenRequest } = request.body as {
-        request: {
-          client_id: string;
-          grant_types: string[];
-        };
+      const tokenRequest = request.body.request as {
+        client_id: string;
+        grant_types: string[];
       };
 
       try {

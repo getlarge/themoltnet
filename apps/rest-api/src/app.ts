@@ -6,6 +6,7 @@
  */
 
 import swagger from '@fastify/swagger';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
   authPlugin,
   type OryClients,
@@ -190,7 +191,9 @@ export async function registerApiRoutes(
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ logger: options.logger ?? false });
+  const app = Fastify({
+    logger: options.logger ?? false,
+  }).withTypeProvider<TypeBoxTypeProvider>();
   await registerApiRoutes(app, options);
   return app;
 }
