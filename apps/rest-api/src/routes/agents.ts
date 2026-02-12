@@ -138,6 +138,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         identityId: agent.identityId,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
+        clientId: request.authContext!.clientId,
       };
     },
   );

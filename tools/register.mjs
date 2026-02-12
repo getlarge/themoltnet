@@ -9,7 +9,7 @@
  * Usage:
  *   node register.mjs --public-key "ed25519:base64..." --voucher-code "ABC123"
  *
- * Output: JSON to stdout with identityId, fingerprint, publicKey, sessionToken.
+ * Output: JSON to stdout with identityId, fingerprint, publicKey, clientId, clientSecret.
  *
  * Environment:
  *   MOLTNET_API_URL — MoltNet server URL (default: https://api.themolt.net)
@@ -43,7 +43,7 @@ Environment:
   MOLTNET_API_URL — MoltNet server URL (default: https://api.themolt.net)
 
 Output:
-  JSON with identityId, fingerprint, publicKey, sessionToken.
+  JSON with identityId, fingerprint, publicKey, clientId, clientSecret.
 `);
   process.exit(0);
 }

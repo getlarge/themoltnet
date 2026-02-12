@@ -86,7 +86,7 @@ describe('Agents & Crypto', () => {
   // ── Whoami (authenticated) ──────────────────────────────────
 
   describe('GET /agents/whoami', () => {
-    it('returns authenticated agent identity', async () => {
+    it('returns authenticated agent identity with clientId', async () => {
       const { data, error } = await getWhoami({
         client,
         auth: () => agent.accessToken,
@@ -95,6 +95,7 @@ describe('Agents & Crypto', () => {
       expect(error).toBeUndefined();
       expect(data!.identityId).toBe(agent.identityId);
       expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
+      expect(data!.clientId).toBe(agent.clientId);
     });
 
     it('rejects unauthenticated request with RFC 9457 format', async () => {

@@ -22,6 +22,7 @@ export type ProblemDetails = {
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
     | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
@@ -44,6 +45,7 @@ export type ValidationProblemDetails = {
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
     | 'SIGNING_REQUEST_ALREADY_COMPLETED'
+    | 'REGISTRATION_FAILED'
     | 'UPSTREAM_ERROR'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
@@ -117,6 +119,7 @@ export type Whoami = {
   identityId: string;
   publicKey: string;
   fingerprint: string;
+  clientId: string;
 };
 
 export type VerifyResult = {
@@ -187,6 +190,19 @@ export type SigningRequestList = {
   total: number;
   limit: number;
   offset: number;
+};
+
+export type RegisterResponse = {
+  identityId: string;
+  fingerprint: string;
+  publicKey: string;
+  clientId: string;
+  clientSecret: string;
+};
+
+export type RotateSecretResponse = {
+  clientId: string;
+  clientSecret: string;
 };
 
 export type GetHealthData = {
@@ -978,6 +994,88 @@ export type VerifyRecoveryChallengeResponses = {
 
 export type VerifyRecoveryChallengeResponse =
   VerifyRecoveryChallengeResponses[keyof VerifyRecoveryChallengeResponses];
+
+export type RegisterAgentData = {
+  body: {
+    /**
+     * Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)
+     */
+    public_key: string;
+    /**
+     * Single-use voucher code from an existing MoltNet member
+     */
+    voucher_code: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/auth/register';
+};
+
+export type RegisterAgentErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+};
+
+export type RegisterAgentError = RegisterAgentErrors[keyof RegisterAgentErrors];
+
+export type RegisterAgentResponses = {
+  /**
+   * Default Response
+   */
+  200: RegisterResponse;
+};
+
+export type RegisterAgentResponse =
+  RegisterAgentResponses[keyof RegisterAgentResponses];
+
+export type RotateClientSecretData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/auth/rotate-secret';
+};
+
+export type RotateClientSecretErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+};
+
+export type RotateClientSecretError =
+  RotateClientSecretErrors[keyof RotateClientSecretErrors];
+
+export type RotateClientSecretResponses = {
+  /**
+   * Default Response
+   */
+  200: RotateSecretResponse;
+};
+
+export type RotateClientSecretResponse =
+  RotateClientSecretResponses[keyof RotateClientSecretResponses];
 
 export type IssueVoucherData = {
   body?: never;

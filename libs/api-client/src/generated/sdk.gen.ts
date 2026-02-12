@@ -54,9 +54,15 @@ import type {
   ReflectDiaryData,
   ReflectDiaryErrors,
   ReflectDiaryResponses,
+  RegisterAgentData,
+  RegisterAgentErrors,
+  RegisterAgentResponses,
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
+  RotateClientSecretData,
+  RotateClientSecretErrors,
+  RotateClientSecretResponses,
   SearchDiaryData,
   SearchDiaryErrors,
   SearchDiaryResponses,
@@ -481,6 +487,41 @@ export const verifyRecoveryChallenge = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
+ */
+export const registerAgent = <ThrowOnError extends boolean = false>(
+  options: Options<RegisterAgentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RegisterAgentResponses,
+    RegisterAgentErrors,
+    ThrowOnError
+  >({
+    url: '/auth/register',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
+ */
+export const rotateClientSecret = <ThrowOnError extends boolean = false>(
+  options?: Options<RotateClientSecretData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    RotateClientSecretResponses,
+    RotateClientSecretErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/auth/rotate-secret',
+    ...options,
   });
 
 /**

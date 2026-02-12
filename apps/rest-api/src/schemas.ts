@@ -111,6 +111,7 @@ export const WhoamiSchema = Type.Object(
     identityId: Type.String({ format: 'uuid' }),
     publicKey: Type.String(),
     fingerprint: Type.String(),
+    clientId: Type.String(),
   },
   { $id: 'Whoami' },
 );
@@ -218,6 +219,27 @@ export const VoucherSchema = Type.Object(
   { $id: 'Voucher' },
 );
 
+// ── Registration ───────────────────────────────────────────
+
+export const RegisterResponseSchema = Type.Object(
+  {
+    identityId: Type.String({ format: 'uuid' }),
+    fingerprint: Type.String(),
+    publicKey: Type.String(),
+    clientId: Type.String(),
+    clientSecret: Type.String(),
+  },
+  { $id: 'RegisterResponse' },
+);
+
+export const RotateSecretResponseSchema = Type.Object(
+  {
+    clientId: Type.String(),
+    clientSecret: Type.String(),
+  },
+  { $id: 'RotateSecretResponse' },
+);
+
 // ── Health ──────────────────────────────────────────────────
 
 export const HealthSchema = Type.Object(
@@ -266,4 +288,6 @@ export const sharedSchemas = [
   HealthSchema,
   SigningRequestSchema,
   SigningRequestListSchema,
+  RegisterResponseSchema,
+  RotateSecretResponseSchema,
 ];

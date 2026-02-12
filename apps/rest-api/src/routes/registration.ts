@@ -1,18 +1,23 @@
 /**
- * Self-service registration proxy
+ * Self-service registration proxy + credential management
  *
  * Proxies the Kratos self-service registration API so agents only
  * need to know the MoltNet server URL — not the Ory project URL.
  *
- * POST /auth/register  — register with public_key + voucher_code
+ * POST /auth/register       — register with public_key + voucher_code
+ * POST /auth/rotate-secret  — rotate OAuth2 client secret (authenticated)
  */
 
-import type { OryClients } from '@moltnet/auth';
+import { type OryClients, requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
+import {
+  RegisterResponseSchema,
+  RotateSecretResponseSchema,
+} from '../schemas.js';
 
 export interface RegistrationRouteOptions {
   frontendClient: OryClients['frontend'];
@@ -20,23 +25,17 @@ export interface RegistrationRouteOptions {
 
 const RegisterBodySchema = Type.Object({
   public_key: Type.String({
+    minLength: 10,
+    maxLength: 256,
     description:
       'Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)',
   }),
   voucher_code: Type.String({
+    minLength: 1,
+    maxLength: 256,
     description: 'Single-use voucher code from an existing MoltNet member',
   }),
 });
-
-const RegisterResponseSchema = Type.Object(
-  {
-    identityId: Type.String({ format: 'uuid' }),
-    fingerprint: Type.String(),
-    publicKey: Type.String(),
-    sessionToken: Type.Union([Type.String(), Type.Null()]),
-  },
-  { $id: 'RegisterResponse' },
-);
 
 /**
  * Error IDs from the after-registration webhook (hooks.ts).
@@ -88,6 +87,8 @@ export async function registrationRoutes(
 ) {
   const { frontendClient } = options;
 
+  // ── Register ──────────────────────────────────────────────────
+
   fastify.post(
     '/auth/register',
     {
@@ -96,18 +97,21 @@ export async function registrationRoutes(
         tags: ['auth'],
         description:
           'Register a new agent on MoltNet. ' +
+          'Creates the Kratos identity and an OAuth2 client. ' +
+          'Returns clientId/clientSecret for authentication. ' +
           'Requires an Ed25519 public key and a voucher code ' +
           'from an existing member. No authentication needed.',
         body: RegisterBodySchema,
         response: {
-          200: RegisterResponseSchema,
+          200: Type.Ref(RegisterResponseSchema),
           400: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
           502: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
-    async (request, reply) => {
+    async (request) => {
       const { public_key, voucher_code } = request.body as {
         public_key: string;
         voucher_code: string;
@@ -120,17 +124,16 @@ export async function registrationRoutes(
         flow = result.data;
       } catch (err: unknown) {
         fastify.log.error({ err }, 'Failed to create registration flow');
-        return reply
-          .status(502)
-          .send(
-            createProblem(
-              'upstream-error',
-              'Failed to start registration flow',
-            ),
-          );
+        throw createProblem(
+          'upstream-error',
+          'Failed to start registration flow',
+        );
       }
 
       // Step 2: Submit registration with traits
+      let identityId: string;
+      let fingerprint: string;
+      let publicKey: string;
       try {
         const { data: registration } =
           await frontendClient.updateRegistrationFlow({
@@ -151,12 +154,9 @@ export async function registrationRoutes(
             public_key?: string;
           }) || {};
 
-        return {
-          identityId: registration.identity.id,
-          fingerprint: metadata.fingerprint ?? '',
-          publicKey: metadata.public_key ?? public_key,
-          sessionToken: registration.session_token ?? null,
-        };
+        identityId = registration.identity.id;
+        fingerprint = metadata.fingerprint ?? '';
+        publicKey = metadata.public_key ?? public_key;
       } catch (err: unknown) {
         const axiosError = err as {
           response?: { status: number; data: unknown };
@@ -170,14 +170,122 @@ export async function registrationRoutes(
             ? messages.map((m) => m.text).join('; ')
             : 'Registration failed';
 
-        const slug = pickProblemSlug(messages);
+        // No status or 5xx → upstream infrastructure error
+        // 422 → webhook interrupted (invalid voucher / bad key)
+        // Other 4xx → generic registration failure
+        if (status === undefined || status >= 500) {
+          throw createProblem('upstream-error', detail);
+        }
+        if (status === 422) {
+          throw createProblem(pickProblemSlug(messages), detail);
+        }
+        throw createProblem('registration-failed', detail);
+      }
 
-        // 422 = webhook interrupted (invalid voucher / bad key)
-        // Map to 400 for validation errors, 403 for voucher rejections
-        const replyStatus =
-          slug === 'validation-failed' ? 400 : status === 422 ? 403 : 400;
+      // Step 3: Create OAuth2 client in Hydra
+      try {
+        const { data: oauthClient } =
+          await fastify.oauth2Client.createOAuth2Client({
+            oAuth2Client: {
+              client_name: `Agent: ${fingerprint}`,
+              grant_types: ['client_credentials'],
+              response_types: [],
+              token_endpoint_auth_method: 'client_secret_post',
+              scope: '',
+              metadata: {
+                type: 'moltnet_agent',
+                identity_id: identityId,
+                public_key: publicKey,
+                fingerprint,
+              },
+            },
+          });
 
-        return reply.status(replyStatus).send(createProblem(slug, detail));
+        if (!oauthClient.client_id || !oauthClient.client_secret) {
+          throw new Error('Hydra did not return client_id/client_secret');
+        }
+
+        return {
+          identityId,
+          fingerprint,
+          publicKey,
+          clientId: oauthClient.client_id,
+          clientSecret: oauthClient.client_secret,
+        };
+      } catch (err: unknown) {
+        fastify.log.error({ err }, 'Failed to create OAuth2 client');
+        throw createProblem(
+          'upstream-error',
+          'Registration succeeded but OAuth2 client creation failed',
+        );
+      }
+    },
+  );
+
+  // ── Rotate Secret ─────────────────────────────────────────────
+
+  fastify.post(
+    '/auth/rotate-secret',
+    {
+      schema: {
+        operationId: 'rotateClientSecret',
+        tags: ['auth'],
+        description:
+          'Rotate the OAuth2 client secret. ' +
+          'Returns the new clientId/clientSecret pair. ' +
+          'The old secret is invalidated immediately.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: Type.Ref(RotateSecretResponseSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+          502: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+      preHandler: [requireAuth],
+    },
+    async (request) => {
+      const { clientId } = request.authContext!;
+
+      // Fetch current client config
+      let existingClient;
+      try {
+        const { data } = await fastify.oauth2Client.getOAuth2Client({
+          id: clientId,
+        });
+        existingClient = data;
+      } catch (err: unknown) {
+        fastify.log.error({ err }, 'Failed to fetch OAuth2 client');
+        throw createProblem('upstream-error', 'Failed to fetch OAuth2 client');
+      }
+
+      // Update client with same config — Hydra generates a new secret
+      try {
+        const { data: updatedClient } =
+          await fastify.oauth2Client.setOAuth2Client({
+            id: clientId,
+            oAuth2Client: {
+              client_name: existingClient.client_name,
+              grant_types: existingClient.grant_types,
+              response_types: existingClient.response_types,
+              token_endpoint_auth_method:
+                existingClient.token_endpoint_auth_method,
+              scope: existingClient.scope,
+              metadata: existingClient.metadata,
+            },
+          });
+
+        if (!updatedClient.client_id || !updatedClient.client_secret) {
+          throw new Error('Hydra did not return new client_secret');
+        }
+
+        return {
+          clientId: updatedClient.client_id,
+          clientSecret: updatedClient.client_secret,
+        };
+      } catch (err: unknown) {
+        fastify.log.error({ err }, 'Failed to rotate client secret');
+        throw createProblem('upstream-error', 'Failed to rotate client secret');
       }
     },
   );
