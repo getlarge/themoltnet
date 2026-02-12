@@ -103,6 +103,23 @@ export function createVoucherRepository(db: Database) {
     },
 
     /**
+     * Update the redeemedBy field of a voucher (for fixing placeholder identity IDs).
+     * Used after Kratos assigns the real identity ID post-registration.
+     */
+    async updateRedeemedBy(
+      code: string,
+      newRedeemedBy: string,
+    ): Promise<AgentVoucher | null> {
+      const [updated] = await getExecutor(db)
+        .update(agentVouchers)
+        .set({ redeemedBy: newRedeemedBy })
+        .where(eq(agentVouchers.code, code))
+        .returning();
+
+      return updated ?? null;
+    },
+
+    /**
      * List active (unredeemed, unexpired) vouchers issued by an agent.
      */
     async listActiveByIssuer(issuerId: string): Promise<AgentVoucher[]> {

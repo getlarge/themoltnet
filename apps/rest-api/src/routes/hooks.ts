@@ -145,13 +145,13 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
       const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
 
-      // ── Transactional registration ────────────────────────────────
-      // Wrap all side effects so that if any step fails, the voucher
-      // remains valid and the agent record is not persisted.
-      // The Keto registration is inside the transaction: if it fails,
-      // the DB changes roll back and the voucher remains redeemable.
-      // If Keto succeeds, the transaction commits atomically with the
-      // voucher redemption and agent upsert.
+      // ── Voucher validation ────────────────────────────────────────
+      // Only redeem the voucher here. The webhook receives a placeholder
+      // identity.id (00000000-0000-0000-0000-000000000000) because Kratos
+      // assigns the real UUID only after webhooks complete.
+      //
+      // Agent record creation and Keto registration happen in the
+      // registration route after Kratos returns the real identity ID.
       const result = await fastify.transactionRunner.runInTransaction(
         async () => {
           const voucher = await fastify.voucherRepository.redeem(
@@ -160,33 +160,26 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
 
           if (!voucher) {
-            return { rejected: true as const };
+            return { rejected: true as const, fingerprint };
           }
 
           fastify.log.info(
             {
-              identity_id: identity.id,
+              identity_id_placeholder: identity.id,
               voucher_issuer: voucher.issuerId,
+              fingerprint,
             },
-            'Registration approved via voucher',
+            'Registration approved via voucher (will complete in registration route)',
           );
 
-          await fastify.agentRepository.upsert({
-            identityId: identity.id,
-            publicKey: public_key,
-            fingerprint,
-          });
-
-          await fastify.permissionChecker.registerAgent(identity.id);
-
-          return { rejected: false as const };
+          return { rejected: false as const, fingerprint };
         },
         { name: 'hooks.after-registration' },
       );
 
       if (result.rejected) {
         fastify.log.warn(
-          { identity_id: identity.id },
+          { voucher_code },
           'Registration rejected: invalid or expired voucher code',
         );
         return reply
@@ -210,7 +203,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       return reply.status(200).send({
         identity: {
           metadata_public: {
-            fingerprint,
+            fingerprint: result.fingerprint,
             public_key: public_key,
           },
         },
@@ -307,7 +300,6 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      // TODO: fix inconsistent enrichment.
       const { request: tokenRequest } = request.body as {
         request: {
           client_id: string;
@@ -324,16 +316,14 @@ export async function hookRoutes(fastify: FastifyInstance) {
         );
 
         if (!isMoltNetMetadata(clientData.metadata)) {
-          fastify.log.warn(
+          fastify.log.error(
             { client_id: tokenRequest.client_id },
             'OAuth2 client has no valid MoltNet metadata',
           );
-          return await reply.status(200).send({
-            session: {
-              access_token: {
-                'moltnet:client_id': tokenRequest.client_id,
-              },
-            },
+          return await reply.status(500).send({
+            error: 'token_enrichment_failed',
+            error_description:
+              'OAuth2 client missing required MoltNet metadata',
           });
         }
 
@@ -344,21 +334,17 @@ export async function hookRoutes(fastify: FastifyInstance) {
           await fastify.agentRepository.findByIdentityId(identityId);
 
         if (!agent) {
-          fastify.log.warn(
+          fastify.log.error(
             { identity_id: identityId, client_id: tokenRequest.client_id },
             'No agent found for identity_id',
           );
-          return await reply.status(200).send({
-            session: {
-              access_token: {
-                'moltnet:client_id': tokenRequest.client_id,
-                'moltnet:identity_id': identityId,
-              },
-            },
+          return await reply.status(500).send({
+            error: 'token_enrichment_failed',
+            error_description: 'Agent record not found for identity',
           });
         }
 
-        // Return enriched claims
+        // Return enriched claims - all required fields are present
         return await reply.status(200).send({
           session: {
             access_token: {
@@ -373,13 +359,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
           { error, client_id: tokenRequest.client_id },
           'Error enriching token with agent claims',
         );
-        // Fallback: return minimal claims
-        return reply.status(200).send({
-          session: {
-            access_token: {
-              'moltnet:client_id': tokenRequest.client_id,
-            },
-          },
+        // Return error so Hydra rejects the token grant
+        return reply.status(500).send({
+          error: 'token_enrichment_failed',
+          error_description: 'Failed to enrich token with agent claims',
         });
       }
     },

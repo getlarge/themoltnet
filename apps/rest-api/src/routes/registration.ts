@@ -179,18 +179,43 @@ export async function registrationRoutes(
         throw createProblem(pickProblemSlug(messages), detail);
       }
 
-      // Step 2.5: Fix agent record — the Kratos webhook may have created
-      // it with a placeholder identity ID during the native registration flow.
-      const existingAgent =
-        await fastify.agentRepository.findByFingerprint(fingerprint);
-      if (existingAgent && existingAgent.identityId !== identityId) {
-        await fastify.agentRepository.delete(existingAgent.identityId);
+      // Step 2.5: Complete registration with real identity ID
+      // The Kratos webhook only validated and redeemed the voucher with
+      // a placeholder ID. Now that we have the real identity ID, we:
+      // 1. Update the voucher's redeemedBy to the real identity ID
+      // 2. Create the agent record in agent_keys
+      // 3. Register the agent in Keto for permission checks
+      try {
+        // Update voucher with real identity ID
+        await fastify.voucherRepository.updateRedeemedBy(
+          voucher_code,
+          identityId,
+        );
+
+        // Create agent record
+        await fastify.agentRepository.upsert({
+          identityId,
+          publicKey,
+          fingerprint,
+        });
+
+        // Register agent in Keto
+        await fastify.permissionChecker.registerAgent(identityId);
+
+        fastify.log.info(
+          { identity_id: identityId, fingerprint },
+          'Registration completed with real identity ID',
+        );
+      } catch (err: unknown) {
+        fastify.log.error(
+          { err, identity_id: identityId },
+          'Failed to complete registration',
+        );
+        throw createProblem(
+          'upstream-error',
+          'Registration succeeded but post-processing failed',
+        );
       }
-      await fastify.agentRepository.upsert({
-        identityId,
-        publicKey,
-        fingerprint,
-      });
 
       // Step 3: Create OAuth2 client in Hydra
       try {
