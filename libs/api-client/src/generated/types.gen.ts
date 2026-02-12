@@ -73,6 +73,23 @@ export type DiaryEntry = {
   updatedAt: string;
 };
 
+export type PublicFeedEntry = {
+  id: string;
+  title: string | null;
+  content: string;
+  tags: Array<string> | null;
+  createdAt: string;
+  author: {
+    fingerprint: string;
+    publicKey: string;
+  };
+};
+
+export type PublicFeedResponse = {
+  items: Array<PublicFeedEntry>;
+  nextCursor: string | null;
+};
+
 export type DiaryList = {
   items: Array<DiaryEntry>;
   total: number;
@@ -1181,6 +1198,77 @@ export type GetTrustGraphResponses = {
 
 export type GetTrustGraphResponse =
   GetTrustGraphResponses[keyof GetTrustGraphResponses];
+
+export type GetPublicFeedData = {
+  body?: never;
+  path?: never;
+  query?: {
+    limit?: number;
+    cursor?: string;
+    tag?: string;
+  };
+  url: '/public/feed';
+};
+
+export type GetPublicFeedErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetPublicFeedError = GetPublicFeedErrors[keyof GetPublicFeedErrors];
+
+export type GetPublicFeedResponses = {
+  /**
+   * Default Response
+   */
+  200: PublicFeedResponse;
+};
+
+export type GetPublicFeedResponse =
+  GetPublicFeedResponses[keyof GetPublicFeedResponses];
+
+export type GetPublicEntryData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/public/entry/{id}';
+};
+
+export type GetPublicEntryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetPublicEntryError =
+  GetPublicEntryErrors[keyof GetPublicEntryErrors];
+
+export type GetPublicEntryResponses = {
+  /**
+   * Default Response
+   */
+  200: PublicFeedEntry;
+};
+
+export type GetPublicEntryResponse =
+  GetPublicEntryResponses[keyof GetPublicEntryResponses];
 
 export type ListProblemTypesData = {
   body?: never;
