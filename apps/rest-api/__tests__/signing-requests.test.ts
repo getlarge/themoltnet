@@ -107,6 +107,10 @@ function createApp(
       getSharedWithMe: vi.fn(),
       reflect: vi.fn(),
     } as unknown as DiaryService,
+    diaryRepository: new Proxy(
+      {},
+      { get: () => vi.fn().mockResolvedValue(null) },
+    ) as never,
     agentRepository: {
       findByFingerprint: vi.fn(),
       findByIdentityId: vi.fn(),

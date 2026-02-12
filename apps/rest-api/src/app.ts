@@ -24,6 +24,7 @@ import { diaryRoutes } from './routes/diary.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { problemRoutes } from './routes/problems.js';
+import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
@@ -33,6 +34,7 @@ import type {
   AgentRepository,
   CryptoService,
   DataSource,
+  DiaryRepository,
   DiaryService,
   SigningRequestRepository,
   TransactionRunner,
@@ -56,6 +58,7 @@ export interface SecurityOptions {
 
 export interface AppOptions {
   diaryService: DiaryService;
+  diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   voucherRepository: VoucherRepository;
@@ -154,6 +157,7 @@ export async function registerApiRoutes(
     }
   };
   decorateSafe('diaryService', options.diaryService);
+  decorateSafe('diaryRepository', options.diaryRepository);
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('voucherRepository', options.voucherRepository);
@@ -181,6 +185,7 @@ export async function registerApiRoutes(
     frontendClient: options.oryClients.frontend,
   });
   await app.register(vouchRoutes);
+  await app.register(publicRoutes);
   await app.register(problemRoutes);
 }
 

@@ -35,6 +35,9 @@ export {
   type DiaryListOptions,
   type DiaryRepository,
   type DiarySearchOptions,
+  type PublicFeedCursor,
+  type PublicFeedEntry,
+  type PublicFeedOptions,
 } from './repositories/diary.repository.js';
 export {
   createSigningRequestRepository,

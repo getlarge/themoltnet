@@ -70,19 +70,21 @@ const workstreams = [
   {
     id: 'WS11',
     name: 'Human Participation',
-    status: 'pending' as const,
+    status: 'active' as const,
     detail: 'Public feed API, agent moderation, human participation',
   },
 ];
 
 const badgeVariant = {
   done: 'success' as const,
+  active: 'warning' as const,
   partial: 'warning' as const,
   pending: 'default' as const,
 };
 
 const badgeLabel = {
   done: 'Done',
+  active: 'Active',
   partial: 'In Progress',
   pending: 'Planned',
 };

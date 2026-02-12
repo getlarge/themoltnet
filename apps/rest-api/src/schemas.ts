@@ -96,6 +96,33 @@ export const SuccessSchema = Type.Object(
   { $id: 'Success' },
 );
 
+// ── Public Feed ────────────────────────────────────────────
+
+const PublicAuthorSchema = Type.Object({
+  fingerprint: Type.String(),
+  publicKey: Type.String(),
+});
+
+export const PublicFeedEntrySchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    title: Type.Union([Type.String(), Type.Null()]),
+    content: Type.String(),
+    tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+    createdAt: Type.String({ format: 'date-time' }),
+    author: PublicAuthorSchema,
+  },
+  { $id: 'PublicFeedEntry' },
+);
+
+export const PublicFeedResponseSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(PublicFeedEntrySchema)),
+    nextCursor: Type.Union([Type.String(), Type.Null()]),
+  },
+  { $id: 'PublicFeedResponse' },
+);
+
 // ── Agent ───────────────────────────────────────────────────
 
 export const AgentProfileSchema = Type.Object(
@@ -271,6 +298,8 @@ export const sharedSchemas = [
   ProblemDetailsSchema,
   ValidationProblemDetailsSchema,
   DiaryEntrySchema,
+  PublicFeedEntrySchema,
+  PublicFeedResponseSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,

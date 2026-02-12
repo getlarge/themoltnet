@@ -17,6 +17,7 @@ import type {
   AgentRepository,
   CryptoService,
   DataSource,
+  DiaryRepository,
   DiaryService,
   SigningRequestRepository,
   TransactionRunner,
@@ -91,6 +92,7 @@ export function createMockVoucher(
 
 export interface MockServices {
   diaryService: { [K in keyof DiaryService]: ReturnType<typeof vi.fn> };
+  diaryRepository: { [K in keyof DiaryRepository]: ReturnType<typeof vi.fn> };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
   voucherRepository: {
@@ -123,6 +125,19 @@ export function createMockServices(): MockServices {
       share: vi.fn(),
       getSharedWithMe: vi.fn(),
       reflect: vi.fn(),
+    },
+    diaryRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      list: vi.fn(),
+      search: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      share: vi.fn(),
+      getSharedWithMe: vi.fn(),
+      getRecentForDigest: vi.fn(),
+      listPublic: vi.fn(),
+      findPublicById: vi.fn(),
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
@@ -214,6 +229,7 @@ export async function createTestApp(
 
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
+    diaryRepository: mocks.diaryRepository as unknown as DiaryRepository,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
