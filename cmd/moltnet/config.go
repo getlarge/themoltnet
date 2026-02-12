@@ -46,7 +46,9 @@ func WriteMcpConfig(mcpConfig McpConfig, dir string) (string, error) {
 	existing := make(map[string]json.RawMessage)
 	data, err := os.ReadFile(filePath)
 	if err == nil {
-		_ = json.Unmarshal(data, &existing)
+		if jsonErr := json.Unmarshal(data, &existing); jsonErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: %s contains invalid JSON, overwriting\n", filePath)
+		}
 	}
 
 	// Merge mcpServers

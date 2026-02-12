@@ -2,7 +2,7 @@ import type { RegisterResponse } from '@moltnet/api-client';
 import { createClient, registerAgent } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
 
-import { NetworkError, problemToError } from './errors.js';
+import { NetworkError, problemToError, RegistrationError } from './errors.js';
 
 const DEFAULT_API_URL = 'https://api.themolt.net';
 
@@ -66,22 +66,8 @@ export async function register(
     });
 
     if (result.error) {
-      const error = result.error as {
-        type?: string;
-        title?: string;
-        status?: number;
-        detail?: string;
-      };
-      throw problemToError(
-        {
-          type: error.type ?? 'UNKNOWN',
-          title: error.title ?? 'Registration failed',
-          status: error.status ?? 500,
-          code: 'REGISTRATION_FAILED',
-          detail: error.detail,
-        },
-        error.status ?? 500,
-      );
+      const problem = result.error;
+      throw problemToError(problem, problem.status ?? 500);
     }
 
     if (!result.data) {
@@ -89,10 +75,7 @@ export async function register(
     }
     data = result.data;
   } catch (error) {
-    if (
-      error instanceof NetworkError ||
-      (error as Error).name === 'RegistrationError'
-    ) {
+    if (error instanceof NetworkError || error instanceof RegistrationError) {
       throw error;
     }
     throw new NetworkError(

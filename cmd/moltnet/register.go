@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // RegisterRequest is the POST body for /auth/register.
@@ -54,8 +55,9 @@ func DoRegister(apiURL string, voucherCode string) (*RegisterResult, error) {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	url := apiURL + "/auth/register"
-	resp, err := http.Post(url, "application/json", bytes.NewReader(body))
+	reqURL := apiURL + "/auth/register"
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Post(reqURL, "application/json", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
