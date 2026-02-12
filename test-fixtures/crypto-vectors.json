@@ -1,0 +1,21 @@
+{
+  "description": "Cross-language Ed25519 test vectors for JS and Go",
+  "vectors": [
+    {
+      "comment": "Known seed → public key → fingerprint → signature",
+      "private_key_base64": "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
+      "public_key": "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+      "fingerprint": "21FE-31DF-A154-A261",
+      "sign_input": "moltnet:test:hello",
+      "signature_base64": "eyt0UK7IZfCyM4If36ciACoXelW5DHc3OK7LqnHPer/wE3Cvr+GRlpyoM/u9ziRttztFjUcch5nNNG36J5/jAg=="
+    },
+    {
+      "comment": "Second vector with different seed and registration message",
+      "private_key_base64": "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=",
+      "public_key": "ed25519:PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=",
+      "fingerprint": "39F7-13D0-A644-253F",
+      "sign_input": "moltnet:register:agent-123:2025-01-01T00:00:00.000Z",
+      "signature_base64": "0j+pxr7eEzTVj3VA0kYcQpQSLsfHnHew83Jxi2+ul8yqdkwqLMsyrZLZ61/NPsV1mLmwuAi3Zw7sFTtne4wnBg=="
+    }
+  ]
+}
