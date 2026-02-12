@@ -96,3 +96,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-11 | progress   | [AsyncLocalStorage Transaction Propagation](2026-02-11-01-transaction-propagation-als.md)                         |
 | 2026-02-11 | handoff    | [Auth Register Proxy + Registration Skill](2026-02-11-02-auth-register-proxy.md)                                  |
 | 2026-02-11 | handoff    | [WS11 Public Feed API](2026-02-11-03-public-feed-api.md)                                                          |
+| 2026-02-12 | handoff    | [Agent Identity Visualisation Components](2026-02-12-01-agent-identity-visualisation.md)                          |
