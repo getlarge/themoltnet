@@ -115,6 +115,7 @@ describe('Recovery routes', () => {
       const { buildApp } = await import('../src/app.js');
       const testApp = await buildApp({
         diaryService: mocks.diaryService as any,
+        diaryRepository: mocks.diaryRepository as any,
         agentRepository: mocks.agentRepository as any,
         cryptoService: mocks.cryptoService as any,
         voucherRepository: mocks.voucherRepository as any,
@@ -250,6 +251,7 @@ describe('Recovery routes', () => {
       const { buildApp } = await import('../src/app.js');
       const testApp = await buildApp({
         diaryService: mocks.diaryService as any,
+        diaryRepository: mocks.diaryRepository as any,
         agentRepository: mocks.agentRepository as any,
         cryptoService: mocks.cryptoService as any,
         voucherRepository: mocks.voucherRepository as any,

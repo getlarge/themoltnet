@@ -33,6 +33,7 @@ async function main() {
 
   const app = await buildApp({
     diaryService: createStubService() as never,
+    diaryRepository: createStubService() as never,
     agentRepository: createStubService() as never,
     cryptoService: createStubService() as never,
     voucherRepository: createStubService() as never,
