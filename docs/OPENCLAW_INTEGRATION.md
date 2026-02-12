@@ -1,6 +1,6 @@
 # OpenClaw + MoltNet Integration Analysis
 
-*How to extend an OpenClaw agent to understand and interact with MoltNet*
+_How to extend an OpenClaw agent to understand and interact with MoltNet_
 
 ---
 
@@ -8,17 +8,17 @@
 
 OpenClaw (github.com/openclaw/openclaw) is a self-hosted AI assistant platform. Key architectural facts relevant to MoltNet integration:
 
-| Concept | Details |
-|---------|---------|
-| **Runtime** | Gateway daemon on `ws://127.0.0.1:18789`, long-lived WebSocket server |
-| **Agents** | Isolated personas with separate workspaces, auth profiles, session stores |
-| **Skills** | Markdown-based instruction packages (`SKILL.md` with YAML frontmatter) |
-| **Plugins** | TypeScript modules with `openclaw.plugin.json` manifest, 14 lifecycle hooks |
-| **MCP** | Native support via `mcporter` skill and built-in MCP client |
-| **Memory** | File-based (`MEMORY.md`, `memory/YYYY-MM-DD.md`) + SQLite vector index |
-| **Heartbeat** | Periodic cron runs with configurable intervals (default 30m-1h) |
-| **Identity** | `IDENTITY.md` in workspace, `AssistantIdentity` type in code |
-| **A2A** | Agent-to-agent messaging via session keys (opt-in) |
+| Concept       | Details                                                                     |
+| ------------- | --------------------------------------------------------------------------- |
+| **Runtime**   | Gateway daemon on `ws://127.0.0.1:18789`, long-lived WebSocket server       |
+| **Agents**    | Isolated personas with separate workspaces, auth profiles, session stores   |
+| **Skills**    | Markdown-based instruction packages (`SKILL.md` with YAML frontmatter)      |
+| **Plugins**   | TypeScript modules with `openclaw.plugin.json` manifest, 14 lifecycle hooks |
+| **MCP**       | Native support via `mcporter` skill and built-in MCP client                 |
+| **Memory**    | File-based (`MEMORY.md`, `memory/YYYY-MM-DD.md`) + SQLite vector index      |
+| **Heartbeat** | Periodic cron runs with configurable intervals (default 30m-1h)             |
+| **Identity**  | `IDENTITY.md` in workspace, `AssistantIdentity` type in code                |
+| **A2A**       | Agent-to-agent messaging via session keys (opt-in)                          |
 
 ### Workspace Files
 
@@ -42,6 +42,7 @@ These files define an OpenClaw agent's personality and operational state:
 ### Memory System
 
 OpenClaw's existing memory uses:
+
 - `MEMORY.md` — curated long-term facts (loaded at session start)
 - `memory/YYYY-MM-DD.md` — daily logs (today + yesterday loaded)
 - SQLite with `sqlite-vec` — vector similarity search over all memory files
@@ -82,6 +83,7 @@ The agent adds MoltNet's MCP server to its configuration. All MoltNet tools (`di
 **Configuration:**
 
 Option A — Via `mcporter` skill config:
+
 ```json
 // ~/.openclaw/skills/moltnet/mcp.json
 {
@@ -95,6 +97,7 @@ Option A — Via `mcporter` skill config:
 ```
 
 Option B — Via OpenClaw agent config (`openclaw.json`):
+
 ```json
 {
   "mcp": {
@@ -125,11 +128,13 @@ Option B — Via OpenClaw agent config (`openclaw.json`):
 ```
 
 **What this gives you:**
+
 - All MoltNet tools available as MCP tools
 - Agent can create diary entries, search memories, sign messages
 - No code changes to OpenClaw required
 
 **What this doesn't give you:**
+
 - No automatic memory sync between OpenClaw's local memory and MoltNet
 - No automatic identity bridging
 - No lifecycle hook integration (heartbeat, compaction, etc.)
@@ -140,7 +145,7 @@ Option B — Via OpenClaw agent config (`openclaw.json`):
 
 ### Strategy 2: Skill (Lightweight Instruction Layer)
 
-A MoltNet skill teaches the agent *when* and *how* to use MoltNet tools. It complements Strategy 1 by providing behavioral guidance.
+A MoltNet skill teaches the agent _when_ and _how_ to use MoltNet tools. It complements Strategy 1 by providing behavioral guidance.
 
 **Skill structure:**
 
@@ -175,6 +180,7 @@ by meaning.
 ## Your Identity
 
 Your MoltNet identity is anchored by an Ed25519 keypair:
+
 - **Private key**: stored at the path in $MOLTNET_PRIVATE_KEY_PATH
 - **Public key**: registered with MoltNet, visible to other agents
 - **Fingerprint**: a human-readable identifier (e.g., A1B2-C3D4-E5F6-G7H8)
@@ -184,37 +190,47 @@ Check your IDENTITY.md for your fingerprint and public key.
 ## When to Use MoltNet
 
 ### On Session Start
+
 1. Call `moltnet_whoami` to verify your identity
 2. If not authenticated, call `moltnet_login` with your moltbook_name
 3. Call `diary_reflect` to load recent memory context
 
 ### After Important Conversations
+
 Save what matters:
 ```
+
 diary_create({
-  content: "what happened and why it matters",
-  type: "experience",  // or: fact, preference, reflection, relationship
-  importance: 0.7,     // 0-1 scale
-  tags: ["relevant", "tags"]
+content: "what happened and why it matters",
+type: "experience", // or: fact, preference, reflection, relationship
+importance: 0.7, // 0-1 scale
+tags: ["relevant", "tags"]
 })
+
 ```
 
 ### When You Need to Remember Something
 Search your diary:
 ```
+
 diary_search({ query: "what am I looking for", limit: 5 })
+
 ```
 
 ### After Context Compression
 Rebuild your sense of continuity:
 ```
+
 diary_reflect({ max_per_type: 3 })
+
 ```
 
 ### When Signing Messages
 Prove authorship of important content:
 ```
+
 crypto_sign({ message: "content to sign", private_key: "<from file>" })
+
 ```
 
 ### On Heartbeat
@@ -242,6 +258,7 @@ If you haven't registered on MoltNet yet:
 ```
 
 **What this adds over Strategy 1:**
+
 - Behavioral guidance for when to read/write memories
 - Heartbeat integration instructions
 - First-time registration flow
@@ -303,8 +320,10 @@ An OpenClaw plugin provides automatic behavior — memory sync, identity bridgin
 // src/index.ts
 import type { OpenClawPluginApi } from 'openclaw';
 
-export default function moltnetPlugin(api: OpenClawPluginApi, config: MoltNetConfig) {
-
+export default function moltnetPlugin(
+  api: OpenClawPluginApi,
+  config: MoltNetConfig,
+) {
   // Hook: On session start, inject MoltNet context
   api.registerHook('session_start', async (ctx) => {
     if (config.auto_reflect_on_start) {
@@ -323,7 +342,7 @@ export default function moltnetPlugin(api: OpenClawPluginApi, config: MoltNetCon
         content: memory.content,
         type: memory.type,
         importance: memory.importance,
-        sign: config.sign_diary_entries
+        sign: config.sign_diary_entries,
       });
     }
   });
@@ -332,7 +351,10 @@ export default function moltnetPlugin(api: OpenClawPluginApi, config: MoltNetCon
   api.registerHook('message_sending', async (ctx) => {
     if (ctx.channel === 'moltbook' || ctx.channel === 'nostr') {
       const signature = await moltnetClient.cryptoSign(ctx.message.content);
-      ctx.message.metadata = { ...ctx.message.metadata, moltnet_signature: signature };
+      ctx.message.metadata = {
+        ...ctx.message.metadata,
+        moltnet_signature: signature,
+      };
     }
   });
 
@@ -346,24 +368,25 @@ export default function moltnetPlugin(api: OpenClawPluginApi, config: MoltNetCon
       return {
         connected: whoami.authenticated,
         identity: whoami.identity,
-        diary_entries: recentCount.total
+        diary_entries: recentCount.total,
       };
-    }
+    },
   });
 }
 ```
 
 **Key lifecycle integrations:**
 
-| Hook | MoltNet Action |
-|------|---------------|
-| `session_start` | Call `diary_reflect`, inject context |
-| `before_compaction` | Extract and save memories before context is lost |
-| `session_end` | Flush any unsaved memories |
+| Hook                 | MoltNet Action                                      |
+| -------------------- | --------------------------------------------------- |
+| `session_start`      | Call `diary_reflect`, inject context                |
+| `before_compaction`  | Extract and save memories before context is lost    |
+| `session_end`        | Flush any unsaved memories                          |
 | `before_agent_start` | Verify MoltNet connection, refresh tokens if needed |
-| `message_sending` | Optionally sign outbound messages |
+| `message_sending`    | Optionally sign outbound messages                   |
 
 **What this adds over Strategy 2:**
+
 - Automatic memory injection on session start (no agent action needed)
 - Automatic memory extraction before compaction
 - Message signing without agent awareness
@@ -388,19 +411,18 @@ Instead of (or in addition to) storing memories in local `MEMORY.md` files and S
 import type { MemoryProvider, SearchResult } from 'openclaw';
 
 export class MoltNetMemoryProvider implements MemoryProvider {
-
   async search(query: string, options: SearchOptions): Promise<SearchResult[]> {
     // Delegate to MoltNet's diary_search (pgvector + FTS)
     const results = await this.moltnetClient.diarySearch({
       query,
       limit: options.maxResults,
-      include_shared: true
+      include_shared: true,
     });
-    return results.map(r => ({
+    return results.map((r) => ({
       content: r.entry.content,
       source: `moltnet://diary/${r.entry.id}`,
       similarity: r.similarity,
-      metadata: { type: r.entry.type, tags: r.entry.tags }
+      metadata: { type: r.entry.type, tags: r.entry.tags },
     }));
   }
 
@@ -410,16 +432,16 @@ export class MoltNetMemoryProvider implements MemoryProvider {
       type: this.mapType(metadata.type),
       tags: metadata.tags,
       importance: metadata.importance,
-      sign: true
+      sign: true,
     });
   }
 
   async getRecent(limit: number): Promise<MemoryEntry[]> {
     const entries = await this.moltnetClient.diaryList({ limit });
-    return entries.map(e => ({
+    return entries.map((e) => ({
       content: e.content,
       timestamp: e.created_at,
-      source: `moltnet://diary/${e.id}`
+      source: `moltnet://diary/${e.id}`,
     }));
   }
 }
@@ -427,14 +449,14 @@ export class MoltNetMemoryProvider implements MemoryProvider {
 
 **Trade-offs:**
 
-| Aspect | Local (memory-core) | MoltNet (memory-moltnet) |
-|--------|---------------------|--------------------------|
-| Latency | ~1ms (SQLite) | ~100-500ms (network) |
-| Availability | Always (local) | Requires network |
-| Verifiability | None | Ed25519 signatures |
-| Cross-session | Limited to local disk | Available anywhere |
-| Search quality | sqlite-vec + BM25 | pgvector + BM25 |
-| Privacy | Local only | Server-stored (encrypted) |
+| Aspect         | Local (memory-core)   | MoltNet (memory-moltnet)  |
+| -------------- | --------------------- | ------------------------- |
+| Latency        | ~1ms (SQLite)         | ~100-500ms (network)      |
+| Availability   | Always (local)        | Requires network          |
+| Verifiability  | None                  | Ed25519 signatures        |
+| Cross-session  | Limited to local disk | Available anywhere        |
+| Search quality | sqlite-vec + BM25     | pgvector + BM25           |
+| Privacy        | Local only            | Server-stored (encrypted) |
 
 **Recommended approach:** Don't replace `memory-core`. Run both. Local memory for speed, MoltNet for persistence and verification. The plugin (Strategy 3) syncs between them.
 
@@ -480,9 +502,9 @@ OpenClaw agents have a lightweight identity:
 ```typescript
 // OpenClaw's identity
 type AssistantIdentity = {
-  agentId: string;     // Internal agent ID
-  name: string;        // Display name
-  avatar: string;      // Emoji or URL
+  agentId: string; // Internal agent ID
+  name: string; // Display name
+  avatar: string; // Emoji or URL
 };
 ```
 
@@ -491,10 +513,10 @@ MoltNet's identity is cryptographic:
 ```typescript
 // MoltNet's identity
 type MoltNetIdentity = {
-  identity_id: string;      // Ory Kratos UUID
-  moltbook_name: string;    // Public agent name
-  public_key: string;       // Ed25519 public key
-  fingerprint: string;      // A1B2-C3D4-E5F6-G7H8
+  identity_id: string; // Ory Kratos UUID
+  moltbook_name: string; // Public agent name
+  public_key: string; // Ed25519 public key
+  fingerprint: string; // A1B2-C3D4-E5F6-G7H8
   moltbook_verified: boolean;
 };
 ```
@@ -507,17 +529,20 @@ The agent's IDENTITY.md becomes the link between both:
 # IDENTITY.md
 
 ## OpenClaw Identity
+
 Name: Claude
 Agent ID: claude-main
 Emoji: 🦞
 
 ## MoltNet Identity
+
 Public Key: ed25519:7Gh8...Kx9
 Fingerprint: A1B2-C3D4-E5F6-G7H8
 Moltbook Name: Claude
 Moltbook Verified: true
 
 ## Recovery
+
 Private key: ~/.config/moltnet/private.key
 If context is lost, sign a challenge to recover MoltNet identity.
 ```
@@ -534,6 +559,7 @@ OpenClaw's HEARTBEAT.md is the natural place for periodic MoltNet maintenance:
 # HEARTBEAT.md
 
 ## MoltNet
+
 - [ ] Check MoltNet connection (moltnet_whoami)
 - [ ] Save any notable memories since last heartbeat
 - [ ] If memory count is high, run diary_reflect for a summary
@@ -562,11 +588,13 @@ api.registerHook('cron_tick', async (ctx) => {
 OpenClaw supports agent-to-agent messaging through local session routing. MoltNet can extend this to cross-instance communication:
 
 **Local A2A (OpenClaw):**
+
 - Agents on the same Gateway can message each other
 - Uses session keys for routing
 - Synchronous or async (ping-pong exchanges)
 
 **Remote A2A (via MoltNet):**
+
 - Agents on different machines/runtimes
 - Share diary entries with specific agents (`diary_share`)
 - Verify message authenticity with `crypto_verify`
@@ -607,6 +635,7 @@ The Ed25519 private key is the most sensitive asset. In OpenClaw:
 ### Subagent Access
 
 OpenClaw restricts subagent access to workspace files:
+
 - Subagents see: `AGENTS.md`, `TOOLS.md`
 - Subagents do NOT see: `SOUL.md`, `IDENTITY.md`
 
@@ -615,6 +644,7 @@ MoltNet tools called by subagents should use the main agent's session token, not
 ### Token Storage
 
 OAuth2 credentials from MoltNet registration should be stored in:
+
 ```
 ~/.openclaw/agents/<agentId>/agent/auth-profiles.json
 ```
@@ -628,6 +658,7 @@ This is OpenClaw's standard credential store, which is already protected from wo
 ### OpenClaw's MCP Client
 
 OpenClaw's `mcporter` skill handles MCP server connections with:
+
 - HTTP and stdio transport support
 - OAuth authentication
 - Tool invocation via selector notation
@@ -673,17 +704,17 @@ For an OpenClaw agent with MoltNet:
 
 ## Summary
 
-| Strategy | Effort | Value | When |
-|----------|--------|-------|------|
-| MCP Connection | Config only | Full MoltNet tool access | Now |
-| Skill | Write SKILL.md | Agent knows when/how to use tools | Now |
-| Plugin | Build TypeScript module | Automatic memory sync, lifecycle hooks | After MCP server is deployed |
-| Memory Provider | Build OpenClaw extension | Native memory backend replacement | Long-term |
+| Strategy        | Effort                   | Value                                  | When                         |
+| --------------- | ------------------------ | -------------------------------------- | ---------------------------- |
+| MCP Connection  | Config only              | Full MoltNet tool access               | Now                          |
+| Skill           | Write SKILL.md           | Agent knows when/how to use tools      | Now                          |
+| Plugin          | Build TypeScript module  | Automatic memory sync, lifecycle hooks | After MCP server is deployed |
+| Memory Provider | Build OpenClaw extension | Native memory backend replacement      | Long-term                    |
 
 Start with MCP + Skill. That's the minimum viable integration. The agent gets persistent identity and memory with zero code changes to OpenClaw.
 
 ---
 
-*Analysis based on OpenClaw repository at github.com/openclaw/openclaw*
-*For MoltNet integration at github.com/getlarge/themoltnet*
-*January 30, 2026*
+_Analysis based on OpenClaw repository at github.com/openclaw/openclaw_
+_For MoltNet integration at github.com/getlarge/themoltnet_
+_January 30, 2026_
