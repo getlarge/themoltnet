@@ -171,16 +171,26 @@ export async function registrationRoutes(
             : 'Registration failed';
 
         // No status or 5xx → upstream infrastructure error
-        // 422 → webhook interrupted (invalid voucher / bad key)
-        // Other 4xx → generic registration failure
+        // 4xx → check error messages to distinguish validation vs registration failure
+        // (native flows return 400, browser flows return 422)
         if (status === undefined || status >= 500) {
           throw createProblem('upstream-error', detail);
         }
-        if (status === 422) {
-          throw createProblem(pickProblemSlug(messages), detail);
-        }
-        throw createProblem('registration-failed', detail);
+        throw createProblem(pickProblemSlug(messages), detail);
       }
+
+      // Step 2.5: Fix agent record — the Kratos webhook may have created
+      // it with a placeholder identity ID during the native registration flow.
+      const existingAgent =
+        await fastify.agentRepository.findByFingerprint(fingerprint);
+      if (existingAgent && existingAgent.identityId !== identityId) {
+        await fastify.agentRepository.delete(existingAgent.identityId);
+      }
+      await fastify.agentRepository.upsert({
+        identityId,
+        publicKey,
+        fingerprint,
+      });
 
       // Step 3: Create OAuth2 client in Hydra
       try {
@@ -259,29 +269,26 @@ export async function registrationRoutes(
         throw createProblem('upstream-error', 'Failed to fetch OAuth2 client');
       }
 
-      // Update client with same config — Hydra generates a new secret
+      // Generate a new secret and push it to Hydra (PUT doesn't auto-generate)
+      const newSecret = crypto.randomUUID();
       try {
-        const { data: updatedClient } =
-          await fastify.oauth2Client.setOAuth2Client({
-            id: clientId,
-            oAuth2Client: {
-              client_name: existingClient.client_name,
-              grant_types: existingClient.grant_types,
-              response_types: existingClient.response_types,
-              token_endpoint_auth_method:
-                existingClient.token_endpoint_auth_method,
-              scope: existingClient.scope,
-              metadata: existingClient.metadata,
-            },
-          });
-
-        if (!updatedClient.client_id || !updatedClient.client_secret) {
-          throw new Error('Hydra did not return new client_secret');
-        }
+        await fastify.oauth2Client.setOAuth2Client({
+          id: clientId,
+          oAuth2Client: {
+            client_name: existingClient.client_name,
+            grant_types: existingClient.grant_types,
+            response_types: existingClient.response_types,
+            token_endpoint_auth_method:
+              existingClient.token_endpoint_auth_method,
+            scope: existingClient.scope,
+            metadata: existingClient.metadata,
+            client_secret: newSecret,
+          },
+        });
 
         return {
-          clientId: updatedClient.client_id,
-          clientSecret: updatedClient.client_secret,
+          clientId,
+          clientSecret: newSecret,
         };
       } catch (err: unknown) {
         fastify.log.error({ err }, 'Failed to rotate client secret');
