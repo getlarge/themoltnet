@@ -157,3 +157,21 @@ export type ListVouchersInput = Static<typeof ListVouchersSchema>;
 
 export const TrustGraphSchema = Type.Object({});
 export type TrustGraphInput = Static<typeof TrustGraphSchema>;
+
+// --- Public Feed schemas ---
+
+export const PublicFeedBrowseSchema = Type.Object({
+  limit: Type.Optional(
+    Type.Number({ description: 'Max entries to return (default 20, max 100)' }),
+  ),
+  cursor: Type.Optional(
+    Type.String({ description: 'Pagination cursor from a previous response' }),
+  ),
+  tag: Type.Optional(Type.String({ description: 'Filter entries by tag' })),
+});
+export type PublicFeedBrowseInput = Static<typeof PublicFeedBrowseSchema>;
+
+export const PublicFeedReadSchema = Type.Object({
+  entry_id: Type.String({ description: 'The public entry ID' }),
+});
+export type PublicFeedReadInput = Static<typeof PublicFeedReadSchema>;

@@ -11,6 +11,7 @@ import { type McpServerConfig, resolveHydraUrls } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
+import { registerPublicFeedTools } from './public-feed-tools.js';
 import { registerResources } from './resources.js';
 import { registerSharingTools } from './sharing-tools.js';
 import type { McpDeps } from './types.js';
@@ -140,6 +141,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerCryptoTools(app, deps);
   registerIdentityTools(app, deps);
   registerVouchTools(app, deps);
+  registerPublicFeedTools(app, deps);
   registerResources(app, deps);
 
   return app;
