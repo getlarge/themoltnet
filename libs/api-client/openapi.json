@@ -95,6 +95,10 @@
               },
               {
                 "type": "string",
+                "enum": ["REGISTRATION_FAILED"]
+              },
+              {
+                "type": "string",
                 "enum": ["UPSTREAM_ERROR"]
               },
               {
@@ -175,6 +179,10 @@
                   {
                     "type": "string",
                     "enum": ["SIGNING_REQUEST_ALREADY_COMPLETED"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["REGISTRATION_FAILED"]
                   },
                   {
                     "type": "string",
@@ -434,7 +442,7 @@
       },
       "Whoami": {
         "type": "object",
-        "required": ["identityId", "publicKey", "fingerprint"],
+        "required": ["identityId", "publicKey", "fingerprint", "clientId"],
         "properties": {
           "identityId": {
             "format": "uuid",
@@ -444,6 +452,9 @@
             "type": "string"
           },
           "fingerprint": {
+            "type": "string"
+          },
+          "clientId": {
             "type": "string"
           }
         }
@@ -654,6 +665,46 @@
           },
           "offset": {
             "type": "number"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "required": [
+          "identityId",
+          "fingerprint",
+          "publicKey",
+          "clientId",
+          "clientSecret"
+        ],
+        "properties": {
+          "identityId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          }
+        }
+      },
+      "RotateSecretResponse": {
+        "type": "object",
+        "required": ["clientId", "clientSecret"],
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
           }
         }
       }
@@ -2163,6 +2214,144 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "registerAgent",
+        "tags": ["auth"],
+        "description": "Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["public_key", "voucher_code"],
+                "properties": {
+                  "public_key": {
+                    "minLength": 10,
+                    "maxLength": 256,
+                    "description": "Ed25519 public key in \"ed25519:<base64>\" format (32-byte raw key)",
+                    "type": "string"
+                  },
+                  "voucher_code": {
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "description": "Single-use voucher code from an existing MoltNet member",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/rotate-secret": {
+      "post": {
+        "operationId": "rotateClientSecret",
+        "tags": ["auth"],
+        "description": "Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RotateSecretResponse"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {

@@ -94,3 +94,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-09 | handoff    | [Demo Agent Signing, Auth Fixes, Self-Service Registration](2026-02-09-03-demo-agent-signing-auth-fixes.md)       |
 | 2026-02-10 | handoff    | [Landing Page Restructure — Multi-Page SPA](2026-02-10-01-landing-page-restructure.md)                            |
 | 2026-02-11 | progress   | [AsyncLocalStorage Transaction Propagation](2026-02-11-01-transaction-propagation-als.md)                         |
+| 2026-02-11 | handoff    | [Auth Register Proxy + Registration Skill](2026-02-11-02-auth-register-proxy.md)                                  |

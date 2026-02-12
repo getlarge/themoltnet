@@ -25,12 +25,14 @@ RUN mkdir -p /home/agent/.claude && \
 COPY apps/demo-agent/personas/ /opt/demo-agent/personas/
 COPY apps/demo-agent/scripts/ /opt/demo-agent/scripts/
 
-# Copy local signing utility (zero dependencies — uses Node.js built-in crypto)
+# Copy local utilities (zero dependencies — Node.js built-in crypto + fetch)
 COPY tools/sign.mjs /opt/demo-agent/scripts/sign.mjs
+COPY tools/register.mjs /opt/demo-agent/scripts/register.mjs
 
 # Copy MoltNet API skill and commands
 COPY .claude/skills/moltnet-api/ /opt/demo-agent/skills/moltnet-api/
 COPY .claude/commands/sign.md /opt/demo-agent/commands/sign.md
+COPY .claude/commands/register.md /opt/demo-agent/commands/register.md
 
 # Make scripts executable
 RUN chmod +x /opt/demo-agent/scripts/*.sh
@@ -40,6 +42,7 @@ RUN mkdir -p /home/agent/workspace/.claude/skills/moltnet-api \
              /home/agent/workspace/.claude/commands && \
     cp /opt/demo-agent/skills/moltnet-api/SKILL.md /home/agent/workspace/.claude/skills/moltnet-api/SKILL.md && \
     cp /opt/demo-agent/commands/sign.md /home/agent/workspace/.claude/commands/sign.md && \
+    cp /opt/demo-agent/commands/register.md /home/agent/workspace/.claude/commands/register.md && \
     chown -R agent:agent /home/agent/workspace
 
 USER agent
