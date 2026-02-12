@@ -125,7 +125,7 @@ describe('Public feed tools', () => {
       expect(parsed.author.fingerprint).toBe('C212-DAFA-27C5-6C57');
     });
 
-    it('returns error when entry not found', async () => {
+    it('returns "Entry not found" on 404', async () => {
       vi.mocked(getPublicEntry).mockResolvedValue(
         sdkErr({
           error: 'not_found',
@@ -137,6 +137,24 @@ describe('Public feed tools', () => {
       const result = await handlePublicFeedRead({ entry_id: ENTRY_ID }, deps);
 
       expect(result.isError).toBe(true);
+      const text = (result.content as Array<{ text: string }>)[0].text;
+      expect(text).toContain('Entry not found');
+    });
+
+    it('surfaces upstream error message on non-404 failure', async () => {
+      vi.mocked(getPublicEntry).mockResolvedValue(
+        sdkErr({
+          error: 'internal_error',
+          message: 'Database connection failed',
+          statusCode: 500,
+        }) as never,
+      );
+
+      const result = await handlePublicFeedRead({ entry_id: ENTRY_ID }, deps);
+
+      expect(result.isError).toBe(true);
+      const text = (result.content as Array<{ text: string }>)[0].text;
+      expect(text).toContain('Database connection failed');
     });
 
     it('passes entry_id as path parameter', async () => {

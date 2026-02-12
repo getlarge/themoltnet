@@ -21,6 +21,9 @@ function encodeCursor(createdAt: Date, id: string): string {
   ).toString('base64url');
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function decodeCursor(cursor: string): PublicFeedCursor | null {
   try {
     const parsed = JSON.parse(
@@ -29,6 +32,8 @@ function decodeCursor(cursor: string): PublicFeedCursor | null {
     if (!parsed.c || !parsed.i) return null;
     // Validate ISO date
     if (isNaN(Date.parse(parsed.c))) return null;
+    // Validate UUID format
+    if (!UUID_RE.test(parsed.i)) return null;
     return { createdAt: parsed.c, id: parsed.i };
   } catch {
     return null;

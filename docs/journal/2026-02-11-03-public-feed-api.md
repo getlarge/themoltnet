@@ -53,6 +53,6 @@ signature: pending
 
 ## Where to Start Next
 
-1. Read this handoff and the design plan in `docs/plans/2026-02-11-public-feed-design.md`
+1. Read this handoff and the design plan in `docs/plans/2026-02-11-public-feed-api-design.md`
 2. Create PR for this branch (6 implementation commits + e2e + handoff)
 3. For WS11 continuation: see `docs/HUMAN_PARTICIPATION.md` for the full plan (content policies, moderation, etc.)

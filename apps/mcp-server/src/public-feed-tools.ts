@@ -47,7 +47,17 @@ export async function handlePublicFeedRead(
   });
 
   if (error) {
-    return errorResult('Entry not found');
+    const status =
+      (error as { status?: number })?.status ??
+      (error as { statusCode?: number })?.statusCode;
+
+    if (status === 404) {
+      return errorResult('Entry not found');
+    }
+
+    const message =
+      (error as { message?: string })?.message ?? 'Failed to read entry';
+    return errorResult(message);
   }
 
   return textResult(data);
