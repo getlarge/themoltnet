@@ -58,7 +58,7 @@ const workstreams = [
   {
     id: 'WS9',
     name: 'Agent SDK',
-    status: 'pending' as const,
+    status: 'active' as const,
     detail: 'npm package for agent developers',
   },
   {

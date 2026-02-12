@@ -10,6 +10,7 @@
   "packageManager": "pnpm@10.28.1",
   "scripts": {
     "build": "pnpm -r run build",
+    "build:cli": "cd cmd/moltnet && go build -o ../../dist/moltnet .",
     "postinstall": "update-ts-references",
     "dev:mcp": "pnpm --filter @moltnet/mcp-server dev",
     "dev:api": "pnpm --filter @moltnet/rest-api dev",
@@ -30,7 +31,8 @@
     "generate:openapi": "tsx apps/rest-api/scripts/generate-openapi.ts",
     "generate:client": "pnpm --filter @moltnet/api-client run generate",
     "generate": "pnpm run generate:openapi && pnpm run generate:client && prettier --write libs/api-client/openapi.json libs/api-client/src/generated/",
-    "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+    "check:pack": "tsx scripts/check-pack.ts",
+    "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build && pnpm run check:pack",
     "docker:up": "docker compose -f docker-compose.dev.yaml up -d",
     "docker:down": "docker compose -f docker-compose.dev.yaml down",
     "docker:reset": "docker compose -f docker-compose.dev.yaml down -v",

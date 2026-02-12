@@ -63,6 +63,9 @@
       "path": "libs/observability"
     },
     {
+      "path": "libs/sdk"
+    },
+    {
       "path": "tools"
     }
   ]
