@@ -7,7 +7,9 @@ export {
   type AgentIdentityMarkProps,
 } from './agent-identity-mark.js';
 export {
+  deriveFingerprintColor,
   deriveIdentityParams,
+  type FingerprintColor,
   generateDeformedRingPath,
   identityColor,
   type IdentityParams,
