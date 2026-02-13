@@ -1,0 +1,33 @@
+name: Deploy Ory Network
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/ory/**'
+
+concurrency:
+  group: deploy-ory
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Ory Config
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Ory CLI
+        run: bash <(curl -s https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b /usr/local/bin ory
+
+      - name: Deploy to Ory Network
+        env:
+          DOTENV_PRIVATE_KEY: ${{ secrets.DOTENV_PRIVATE_KEY }}
+          ORY_PROJECT_ID: ${{ secrets.ORY_PROJECT_ID }}
+          ORY_PROJECT_API_KEY: ${{ secrets.ORY_PROJECT_API_KEY }}
+        run: npx @dotenvx/dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply
