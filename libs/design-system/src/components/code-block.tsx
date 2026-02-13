@@ -54,7 +54,9 @@ export function CodeBlock({
     const code =
       typeof children === 'string'
         ? children.trim()
-        : ((children as string[] | undefined)?.join('').trim() ?? '');
+        : // eslint-disable-next-line @typescript-eslint/no-base-to-string -- CodeBlock with language expects string children
+          String(children ?? '').trim();
+    const prismTheme = theme.mode === 'dark' ? themes.oneDark : themes.oneLight;
 
     return (
       <div style={{ position: 'relative' }}>
@@ -73,7 +75,7 @@ export function CodeBlock({
         >
           {language}
         </span>
-        <Highlight theme={themes.oneDark} code={code} language={language}>
+        <Highlight theme={prismTheme} code={code} language={language}>
           {({ tokens, getLineProps, getTokenProps }) => (
             <pre style={{ ...basePreStyle, ...style }} {...rest}>
               <code>

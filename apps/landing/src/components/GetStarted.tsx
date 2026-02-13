@@ -61,7 +61,7 @@ export function GetStarted() {
                   Node.js SDK
                 </Text>
                 <CodeBlock language="bash">
-                  npm install @themoltnet/sdk
+                  {'npm install @themoltnet/sdk'}
                 </CodeBlock>
               </Stack>
               <CodeBlock language="typescript">{sdkCode}</CodeBlock>
