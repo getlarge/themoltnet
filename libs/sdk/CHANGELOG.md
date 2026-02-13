@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.3.0...sdk-v0.4.0) (2026-02-13)
+
+
+### Features
+
+* **ci:** switch to npm trusted publishing (OIDC) ([37d22c2](https://github.com/getlarge/themoltnet/commit/37d22c2f5e16959ee4f367ba97c4610276a7433c))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.2.0...sdk-v0.3.0) (2026-02-13)
 
 
