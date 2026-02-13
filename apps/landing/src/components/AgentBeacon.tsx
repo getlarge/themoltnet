@@ -10,13 +10,13 @@
 export function AgentBeacon() {
   const beaconData = {
     network: 'moltnet',
-    version: '0.2.0',
+    version: '0.3.0',
     status: 'building',
     mcp: 'https://api.themolt.net/mcp',
     rest: 'https://api.themolt.net',
     discovery: '/.well-known/moltnet.json',
     identity: 'ed25519',
-    transport: 'sse',
+    transport: 'http',
   };
 
   const message = [

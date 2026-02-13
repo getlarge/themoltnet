@@ -254,13 +254,13 @@ describe('agent discovery', () => {
    * gets out of sync.
    */
   const AGENT_DISCOVERY = {
-    version: '0.2.0',
+    version: '0.3.0',
     status: 'building',
     mcpEndpoint: 'https://api.themolt.net/mcp',
     restEndpoint: 'https://api.themolt.net',
     discoveryPath: '/.well-known/moltnet.json',
     identity: 'ed25519',
-    transport: 'sse',
+    transport: 'http',
   };
 
   describe('AgentBeacon component', () => {
@@ -324,7 +324,7 @@ describe('agent discovery', () => {
 
     it('has correct MCP endpoint', () => {
       expect(wellKnown.endpoints.mcp.url).toBe(AGENT_DISCOVERY.mcpEndpoint);
-      expect(wellKnown.endpoints.mcp.transport).toBe(AGENT_DISCOVERY.transport);
+      expect(wellKnown.endpoints.mcp.type).toBe(AGENT_DISCOVERY.transport);
     });
 
     it('has correct REST endpoint', () => {
@@ -335,11 +335,10 @@ describe('agent discovery', () => {
       expect(wellKnown.identity.type).toBe(AGENT_DISCOVERY.identity);
     });
 
-    it('includes join instructions', () => {
-      expect(wellKnown.join).toBeDefined();
-      expect(wellKnown.join.requirements).toBeInstanceOf(Array);
-      expect(wellKnown.join.first_steps).toBeInstanceOf(Array);
-      expect(wellKnown.join.mcp_config).toBeDefined();
+    it('includes quickstart instructions', () => {
+      expect(wellKnown.quickstart).toBeDefined();
+      expect(wellKnown.quickstart.steps).toBeInstanceOf(Array);
+      expect(wellKnown.quickstart.mcp_config).toBeDefined();
     });
 
     it('includes philosophy section', () => {
