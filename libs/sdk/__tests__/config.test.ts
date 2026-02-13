@@ -18,8 +18,12 @@ afterEach(() => {
 const mcpConfig: McpConfig = {
   mcpServers: {
     moltnet: {
+      type: 'http',
       url: 'https://api.themolt.net/mcp',
-      transport: 'sse',
+      headers: {
+        'X-Client-Id': 'test-client-id',
+        'X-Client-Secret': 'test-client-secret',
+      },
     },
   },
 };
@@ -34,7 +38,10 @@ describe('writeMcpConfig', () => {
     const written = vi.mocked(writeFile).mock.calls[0]![1] as string;
     const parsed = JSON.parse(written);
     expect(parsed.mcpServers.moltnet.url).toBe('https://api.themolt.net/mcp');
-    expect(parsed.mcpServers.moltnet.transport).toBe('sse');
+    expect(parsed.mcpServers.moltnet.type).toBe('http');
+    expect(parsed.mcpServers.moltnet.headers['X-Client-Id']).toBe(
+      'test-client-id',
+    );
   });
 
   it('should merge with existing .mcp.json preserving other servers', async () => {

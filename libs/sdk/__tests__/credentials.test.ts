@@ -37,7 +37,14 @@ const mockResult: RegisterResult = {
   },
   mcpConfig: {
     mcpServers: {
-      moltnet: { url: 'https://api.themolt.net/mcp', transport: 'sse' },
+      moltnet: {
+        type: 'http',
+        url: 'https://api.themolt.net/mcp',
+        headers: {
+          'X-Client-Id': 'client-id',
+          'X-Client-Secret': 'client-secret',
+        },
+      },
     },
   },
   apiUrl: 'https://api.themolt.net',
