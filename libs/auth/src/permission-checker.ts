@@ -5,7 +5,7 @@
  * for diary entry access control.
  */
 
-import type { PermissionApi, RelationshipApi } from '@ory/client';
+import type { PermissionApi, RelationshipApi } from '@ory/client-fetch';
 
 import {
   AgentRelation,
@@ -34,7 +34,7 @@ async function checkPermission(
   subjectId: string,
 ): Promise<boolean> {
   try {
-    const { data } = await permissionApi.checkPermission({
+    const data = await permissionApi.checkPermission({
       namespace,
       object,
       relation,

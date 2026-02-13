@@ -11,7 +11,7 @@ import {
   OAuth2Api,
   PermissionApi,
   RelationshipApi,
-} from '@ory/client';
+} from '@ory/client-fetch';
 
 export interface OryClientConfig {
   baseUrl: string;
