@@ -9,8 +9,9 @@ import (
 
 // McpServerConfig describes a single MCP server entry.
 type McpServerConfig struct {
-	URL       string `json:"url"`
-	Transport string `json:"transport"`
+	Type    string            `json:"type"`
+	URL     string            `json:"url"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 // McpConfig is the .mcp.json file structure.
@@ -18,13 +19,17 @@ type McpConfig struct {
 	McpServers map[string]McpServerConfig `json:"mcpServers"`
 }
 
-// BuildMcpConfig creates the MCP config for the given API URL.
-func BuildMcpConfig(apiURL string) McpConfig {
+// BuildMcpConfig creates the MCP config for the given API URL and credentials.
+func BuildMcpConfig(apiURL string, clientID string, clientSecret string) McpConfig {
 	return McpConfig{
 		McpServers: map[string]McpServerConfig{
 			"moltnet": {
-				URL:       apiURL + "/mcp",
-				Transport: "sse",
+				Type: "http",
+				URL:  apiURL + "/mcp",
+				Headers: map[string]string{
+					"X-Client-Id":     clientID,
+					"X-Client-Secret": clientSecret,
+				},
 			},
 		},
 	}

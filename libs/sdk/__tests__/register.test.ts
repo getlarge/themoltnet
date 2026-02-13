@@ -139,20 +139,26 @@ describe('register', () => {
 });
 
 describe('buildMcpConfig', () => {
-  it('should build MCP config with sse transport', () => {
-    const config = buildMcpConfig('https://api.themolt.net');
+  const creds = { clientId: 'test-id', clientSecret: 'test-secret' };
+
+  it('should build MCP config with http type and auth headers', () => {
+    const config = buildMcpConfig('https://api.themolt.net', creds);
     expect(config).toEqual({
       mcpServers: {
         moltnet: {
+          type: 'http',
           url: 'https://api.themolt.net/mcp',
-          transport: 'sse',
+          headers: {
+            'X-Client-Id': 'test-id',
+            'X-Client-Secret': 'test-secret',
+          },
         },
       },
     });
   });
 
   it('should strip trailing slash', () => {
-    const config = buildMcpConfig('https://api.themolt.net/');
+    const config = buildMcpConfig('https://api.themolt.net/', creds);
     expect(config.mcpServers.moltnet.url).toBe('https://api.themolt.net/mcp');
   });
 });
