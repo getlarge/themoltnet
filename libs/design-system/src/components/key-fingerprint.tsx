@@ -12,6 +12,8 @@ export interface KeyFingerprintProps extends Omit<
   size?: Size;
   /** Copy the fingerprint to clipboard on click. */
   copyable?: boolean;
+  /** Optional accent color (hex string) shown as a left-border highlight. */
+  color?: string;
 }
 
 export function KeyFingerprint({
@@ -19,6 +21,7 @@ export function KeyFingerprint({
   label,
   size = 'md',
   copyable,
+  color,
   style,
   ...rest
 }: KeyFingerprintProps) {
@@ -64,6 +67,9 @@ export function KeyFingerprint({
     cursor: copyable ? 'pointer' : 'default',
     userSelect: 'all',
     transition: `background ${theme.transition.fast}`,
+    ...(color
+      ? { borderLeft: `3px solid ${color}`, paddingLeft: theme.spacing[3] }
+      : {}),
   };
 
   return (

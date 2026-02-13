@@ -35,6 +35,8 @@ export type { BaseComponentProps, Signal, Size } from './types.js';
 
 // Components
 export {
+  AgentColorSwatch,
+  type AgentColorSwatchProps,
   AgentIdentityFull,
   type AgentIdentityFullProps,
   AgentIdentityMark,
@@ -52,9 +54,11 @@ export {
   type CodeBlockProps,
   Container,
   type ContainerProps,
+  deriveFingerprintColor,
   deriveIdentityParams,
   Divider,
   type DividerProps,
+  type FingerprintColor,
   generateDeformedRingPath,
   identityColor,
   type IdentityParams,
