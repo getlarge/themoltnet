@@ -2,6 +2,7 @@
  * Diary CRUD, search, sharing, and reflection routes
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -20,11 +21,13 @@ import {
 } from '../schemas.js';
 
 export async function diaryRoutes(fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
   // All diary routes require authentication
-  fastify.addHook('preHandler', requireAuth);
+  server.addHook('preHandler', requireAuth);
 
   // ── Create Entry ───────────────────────────────────────────
-  fastify.post(
+  server.post(
     '/diary/entries',
     {
       schema: {
@@ -54,12 +57,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { content, title, visibility, tags } = request.body as {
-        content: string;
-        title?: string;
-        visibility?: 'private' | 'moltnet' | 'public';
-        tags?: string[];
-      };
+      const { content, title, visibility, tags } = request.body;
 
       const entry = await fastify.diaryService.create({
         ownerId: request.authContext!.identityId,
@@ -74,7 +72,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── List Entries ───────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/diary/entries',
     {
       schema: {
@@ -95,11 +93,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { limit, offset, visibility } = request.query as {
-        limit?: number;
-        offset?: number;
-        visibility?: string;
-      };
+      const { limit, offset, visibility } = request.query;
 
       const visibilityFilter = visibility
         ? (visibility.split(',') as ('private' | 'moltnet' | 'public')[])
@@ -122,7 +116,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Get Entry ──────────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/diary/entries/:id',
     {
       schema: {
@@ -140,7 +134,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
       const entry = await fastify.diaryService.getById(
         id,
         request.authContext!.identityId,
@@ -155,7 +149,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Update Entry ───────────────────────────────────────────
-  fastify.patch(
+  server.patch(
     '/diary/entries/:id',
     {
       schema: {
@@ -189,13 +183,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params as { id: string };
-      const updates = request.body as {
-        title?: string;
-        content?: string;
-        visibility?: 'private' | 'moltnet' | 'public';
-        tags?: string[];
-      };
+      const { id } = request.params;
+      const updates = request.body;
 
       const entry = await fastify.diaryService.update(
         id,
@@ -213,7 +202,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Delete Entry ───────────────────────────────────────────
-  fastify.delete(
+  server.delete(
     '/diary/entries/:id',
     {
       schema: {
@@ -231,7 +220,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
       const deleted = await fastify.diaryService.delete(
         id,
         request.authContext!.identityId,
@@ -247,7 +236,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Search ─────────────────────────────────────────────────
-  fastify.post(
+  server.post(
     '/diary/search',
     {
       // Apply stricter rate limit for embedding-based search
@@ -282,12 +271,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { query, visibility, limit, offset } = request.body as {
-        query?: string;
-        visibility?: ('private' | 'moltnet' | 'public')[];
-        limit?: number;
-        offset?: number;
-      };
+      const { query, visibility, limit, offset } = request.body;
 
       const results = await fastify.diaryService.search({
         ownerId: request.authContext!.identityId,
@@ -302,7 +286,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Reflect ────────────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/diary/reflect',
     {
       schema: {
@@ -323,10 +307,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { days, maxEntries } = request.query as {
-        days?: number;
-        maxEntries?: number;
-      };
+      const { days, maxEntries } = request.query;
 
       const digest = await fastify.diaryService.reflect({
         ownerId: request.authContext!.identityId,
@@ -339,7 +320,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Share Entry ────────────────────────────────────────────
-  fastify.post(
+  server.post(
     '/diary/entries/:id/share',
     {
       schema: {
@@ -361,8 +342,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params as { id: string };
-      const { sharedWith } = request.body as { sharedWith: string };
+      const { id } = request.params;
+      const { sharedWith } = request.body;
 
       const targetAgent =
         await fastify.agentRepository.findByFingerprint(sharedWith);
@@ -388,7 +369,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Shared With Me ─────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/diary/shared-with-me',
     {
       schema: {
@@ -408,7 +389,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { limit } = request.query as { limit?: number };
+      const { limit } = request.query;
       const entries = await fastify.diaryService.getSharedWithMe(
         request.authContext!.identityId,
         limit,
@@ -419,7 +400,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   );
 
   // ── Update Visibility ──────────────────────────────────────
-  fastify.patch(
+  server.patch(
     '/diary/entries/:id/visibility',
     {
       schema: {
@@ -444,10 +425,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params as { id: string };
-      const { visibility } = request.body as {
-        visibility: 'private' | 'moltnet' | 'public';
-      };
+      const { id } = request.params;
+      const { visibility } = request.body;
 
       const entry = await fastify.diaryService.update(
         id,

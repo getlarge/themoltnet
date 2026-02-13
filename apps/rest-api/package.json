@@ -24,6 +24,7 @@
     "@fastify/helmet": "catalog:",
     "@fastify/rate-limit": "catalog:",
     "@fastify/swagger": "catalog:",
+    "@fastify/type-provider-typebox": "catalog:",
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",

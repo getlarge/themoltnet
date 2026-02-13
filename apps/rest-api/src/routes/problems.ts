@@ -5,6 +5,8 @@
  * No authentication required — these serve as machine-readable error docs.
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import {
@@ -25,7 +27,9 @@ function toResponseEntry(pt: ProblemType) {
 }
 
 export async function problemRoutes(fastify: FastifyInstance) {
-  fastify.get(
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
+  server.get(
     '/problems',
     {
       schema: {
@@ -59,24 +63,20 @@ export async function problemRoutes(fastify: FastifyInstance) {
     },
   );
 
-  fastify.get(
+  server.get(
     '/problems/:type',
     {
       schema: {
         operationId: 'getProblemType',
         tags: ['problems'],
         description: 'Get details about a specific problem type (RFC 9457).',
-        params: {
-          type: 'object',
-          properties: {
-            type: { type: 'string' },
-          },
-          required: ['type'],
-        },
+        params: Type.Object({
+          type: Type.String(),
+        }),
       },
     },
     async (request, reply) => {
-      const { type } = request.params as { type: string };
+      const { type } = request.params;
       const problemType = problemTypes[type];
 
       if (!problemType) {
