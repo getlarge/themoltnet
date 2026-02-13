@@ -205,6 +205,8 @@ export async function bootstrap(
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
       rateLimitVouch: config.security.RATE_LIMIT_VOUCH,
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
+      rateLimitRecovery: config.security.RATE_LIMIT_RECOVERY,
+      rateLimitPublicVerify: config.security.RATE_LIMIT_PUBLIC_VERIFY,
     },
   });
 
