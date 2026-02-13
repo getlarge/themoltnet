@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  deriveFingerprintColor,
   deriveIdentityParams,
   generateDeformedRingPath,
   identityColor,
@@ -256,5 +257,93 @@ describe('identityColor', () => {
     const result = identityColor(0, 0, 0);
 
     expect(result).toContain('1)');
+  });
+});
+
+// =====================================================================
+// deriveFingerprintColor
+// =====================================================================
+
+describe('deriveFingerprintColor', () => {
+  // Determinism
+  it('returns identical output for the same fingerprint', () => {
+    const a = deriveFingerprintColor('A1B2-C3D4-E5F6-G7H8');
+    const b = deriveFingerprintColor('A1B2-C3D4-E5F6-G7H8');
+
+    expect(a).toStrictEqual(b);
+  });
+
+  it('produces different output for different fingerprints', () => {
+    const a = deriveFingerprintColor('A1B2-C3D4-E5F6-G7H8');
+    const b = deriveFingerprintColor('FF00-1122-3344-5566');
+
+    expect(a.hex).not.toBe(b.hex);
+  });
+
+  // Raw color extraction
+  it('extracts raw hex from first 6 chars of fingerprint', () => {
+    const result = deriveFingerprintColor('A1B2C3-D4E5-F6G7-H8I9');
+
+    expect(result.raw).toBe('#A1B2C3');
+  });
+
+  it('strips dashes before extracting hex chars', () => {
+    const result = deriveFingerprintColor('A1B2-C3D4-E5F6-G7H8');
+
+    // First 6 chars after stripping dashes: A1B2C3
+    expect(result.raw).toBe('#A1B2C3');
+  });
+
+  // HSL clamping — saturation
+  it('clamps low saturation up to 30%', () => {
+    // #808080 is pure gray: H=0, S=0%, L=50%
+    // After clamping: S→30, L stays 50
+    const result = deriveFingerprintColor('8080-80XX-XXXX-XXXX');
+
+    expect(result.hsl[1]).toBeGreaterThanOrEqual(30);
+  });
+
+  // HSL clamping — lightness
+  it('clamps very dark colors up to 35% lightness', () => {
+    // #0A0A0A → very dark, L≈4%
+    // After clamping: L→35
+    const result = deriveFingerprintColor('0A0A-0AXX-XXXX-XXXX');
+
+    expect(result.hsl[2]).toBeGreaterThanOrEqual(35);
+  });
+
+  it('clamps very light colors down to 65% lightness', () => {
+    // #F5F5F5 → very light, L≈96%
+    // After clamping: L→65
+    const result = deriveFingerprintColor('F5F5-F5XX-XXXX-XXXX');
+
+    expect(result.hsl[2]).toBeLessThanOrEqual(65);
+  });
+
+  // Hue preservation
+  it('preserves hue unchanged', () => {
+    // #FF0000 → H=0, S=100%, L=50% (pure red, already in range)
+    const result = deriveFingerprintColor('FF00-00XX-XXXX-XXXX');
+
+    expect(result.hsl[0]).toBeCloseTo(0, 0);
+  });
+
+  // Output format
+  it('returns hex strings with # prefix and 6 uppercase chars', () => {
+    const result = deriveFingerprintColor('A1B2-C3D4-E5F6-G7H8');
+
+    expect(result.raw).toMatch(/^#[0-9A-F]{6}$/);
+    expect(result.hex).toMatch(/^#[0-9A-F]{6}$/);
+  });
+
+  it('returns hsl tuple with h in [0,360), s in [30,100], l in [35,65]', () => {
+    const result = deriveFingerprintColor('A1B2-C3D4-E5F6-G7H8');
+
+    expect(result.hsl[0]).toBeGreaterThanOrEqual(0);
+    expect(result.hsl[0]).toBeLessThan(360);
+    expect(result.hsl[1]).toBeGreaterThanOrEqual(30);
+    expect(result.hsl[1]).toBeLessThanOrEqual(100);
+    expect(result.hsl[2]).toBeGreaterThanOrEqual(35);
+    expect(result.hsl[2]).toBeLessThanOrEqual(65);
   });
 });
