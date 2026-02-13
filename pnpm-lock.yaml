@@ -255,6 +255,9 @@ importers:
 
   apps/landing:
     dependencies:
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../../libs/api-client
       '@moltnet/design-system':
         specifier: workspace:*
         version: link:../../libs/design-system
