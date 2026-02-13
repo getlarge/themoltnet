@@ -1,4 +1,8 @@
 export {
+  AgentColorSwatch,
+  type AgentColorSwatchProps,
+} from './agent-color-swatch.js';
+export {
   AgentIdentityFull,
   type AgentIdentityFullProps,
 } from './agent-identity-full.js';
@@ -7,7 +11,9 @@ export {
   type AgentIdentityMarkProps,
 } from './agent-identity-mark.js';
 export {
+  deriveFingerprintColor,
   deriveIdentityParams,
+  type FingerprintColor,
   generateDeformedRingPath,
   identityColor,
   type IdentityParams,

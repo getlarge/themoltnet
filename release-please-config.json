@@ -11,7 +11,14 @@
     },
     "cmd/moltnet": {
       "release-type": "go",
-      "component": "cli"
+      "component": "cli",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "/packages/cli/package.json",
+          "jsonpath": "$.version"
+        }
+      ]
     }
   }
 }

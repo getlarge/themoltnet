@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import {
+  AgentColorSwatch,
   AgentIdentityFull,
   AgentIdentityMark,
   Badge,
@@ -9,6 +10,7 @@ import {
   CodeBlock,
   colors,
   Container,
+  deriveFingerprintColor,
   Divider,
   Input,
   KeyFingerprint,
@@ -42,6 +44,13 @@ const DEMO_AGENT_KEYS = [
     name: 'delta-1',
     key: 'ed25519:bmV4dXMtZGVsdGEtMS1hdXRvbm9teS1rZXktcGFpci00',
   },
+] as const;
+
+const DEMO_FINGERPRINTS = [
+  { name: 'alpha-7', fingerprint: '7A3E-B9C2-D4E6-1058' },
+  { name: 'beta-9', fingerprint: 'C24F-17B8-E3D1-8056' },
+  { name: 'gamma-3', fingerprint: '38D1-F5A0-6B92-C7E4' },
+  { name: 'delta-1', fingerprint: 'E609-4C8A-2FD3-B175' },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -676,6 +685,114 @@ console.log(signed.signature);
                   </Stack>
                 </Stack>
               </Card>
+            </div>
+          </Stack>
+        </Section>
+
+        {/* ---- Agent Fingerprint Colors ---- */}
+        <Section title="Agent Fingerprint Colors">
+          <Stack gap={6}>
+            <Text variant="body" color="secondary">
+              The first 6 hex characters of an agent&apos;s fingerprint
+              deterministically derive a unique signature color. Saturation and
+              lightness are clamped for visibility on both dark and light
+              backgrounds.
+            </Text>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                Color Swatches (adjusted vs raw)
+              </Text>
+              <Stack direction="row" gap={6} wrap>
+                {DEMO_FINGERPRINTS.map(({ name, fingerprint }) => (
+                  <Stack key={name} align="center" gap={2}>
+                    <AgentColorSwatch fingerprint={fingerprint} size="lg" />
+                    <Text variant="caption" color="secondary">
+                      {name}
+                    </Text>
+                  </Stack>
+                ))}
+              </Stack>
+            </div>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                KeyFingerprint with color accent
+              </Text>
+              <Stack direction="row" gap={6} wrap>
+                {DEMO_FINGERPRINTS.map(({ name, fingerprint }) => (
+                  <KeyFingerprint
+                    key={name}
+                    label={name}
+                    fingerprint={fingerprint}
+                    color={deriveFingerprintColor(fingerprint).hex}
+                    copyable
+                  />
+                ))}
+              </Stack>
+            </div>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                Composed — agent card with identity color
+              </Text>
+              {(() => {
+                const agent = DEMO_FINGERPRINTS[0];
+                const agentColor = deriveFingerprintColor(
+                  agent.fingerprint,
+                ).hex;
+                return (
+                  <Card variant="elevated" padding="lg">
+                    <Stack gap={4}>
+                      <Stack direction="row" align="center" gap={4}>
+                        <AgentIdentityMark
+                          publicKey={DEMO_AGENT_KEYS[0].key}
+                          size={56}
+                        />
+                        <Stack gap={1}>
+                          <Text variant="h3">{agent.name}</Text>
+                          <Text variant="caption" color="secondary">
+                            Signature color derived from fingerprint
+                          </Text>
+                        </Stack>
+                        <Badge variant="success">Online</Badge>
+                      </Stack>
+                      <Divider />
+                      <Stack direction="row" gap={6} align="center" wrap>
+                        <KeyFingerprint
+                          label="Fingerprint"
+                          fingerprint={agent.fingerprint}
+                          color={agentColor}
+                          copyable
+                        />
+                        <AgentColorSwatch
+                          fingerprint={agent.fingerprint}
+                          size="lg"
+                        />
+                      </Stack>
+                      <div
+                        style={{
+                          height: 4,
+                          borderRadius: theme.radius.full,
+                          background: `linear-gradient(90deg, ${agentColor}, transparent)`,
+                        }}
+                      />
+                    </Stack>
+                  </Card>
+                );
+              })()}
             </div>
           </Stack>
         </Section>
