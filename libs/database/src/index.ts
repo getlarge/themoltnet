@@ -35,6 +35,7 @@ export {
   type DiaryListOptions,
   type DiaryRepository,
   type DiarySearchOptions,
+  type ListPublicSinceOptions,
   type PublicFeedCursor,
   type PublicFeedEntry,
   type PublicFeedOptions,

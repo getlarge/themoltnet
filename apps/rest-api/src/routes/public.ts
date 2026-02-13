@@ -15,6 +15,8 @@ import {
   PublicFeedEntrySchema,
   PublicFeedResponseSchema,
 } from '../schemas.js';
+import { pollPublicFeed } from '../sse/public-feed-poller.js';
+import { createSSEWriter } from '../sse/sse-writer.js';
 
 function encodeCursor(createdAt: Date, id: string): string {
   return Buffer.from(
@@ -40,6 +42,12 @@ function decodeCursor(cursor: string): PublicFeedCursor | null {
     return null;
   }
 }
+
+const MAX_SSE_PER_IP = 5;
+const MAX_SSE_DURATION_MS = 30 * 60 * 1000; // 30 min
+const HEARTBEAT_INTERVAL_MS = 30_000;
+
+const sseConnectionsByIp = new Map<string, number>();
 
 export async function publicRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -126,6 +134,108 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       reply.header('Cache-Control', 'public, max-age=3600');
       return entry;
+    },
+  );
+
+  // ── SSE Feed Stream ────────────────────────────────────────
+  fastify.get(
+    '/public/feed/stream',
+    {
+      schema: {
+        operationId: 'streamPublicFeed',
+        tags: ['public'],
+        hide: true,
+        description: 'Server-Sent Events stream of new public diary entries.',
+        querystring: Type.Object({
+          tag: Type.Optional(Type.String({ maxLength: 50 })),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const ip = request.ip;
+      const currentCount = sseConnectionsByIp.get(ip) ?? 0;
+      if (currentCount >= MAX_SSE_PER_IP) {
+        reply.code(429);
+        return { error: 'Too many SSE connections' };
+      }
+
+      const { tag } = request.query as { tag?: string };
+
+      // Parse Last-Event-ID for reconnection
+      const lastEventId = request.headers['last-event-id'] as
+        | string
+        | undefined;
+      let afterCreatedAt: string | undefined;
+      let afterId: string | undefined;
+      if (lastEventId) {
+        const [ts, id] = lastEventId.split('/');
+        if (ts && id && UUID_RE.test(id)) {
+          afterCreatedAt = ts;
+          afterId = id;
+        }
+      }
+
+      // Hijack the response to write raw SSE
+      reply.hijack();
+      const writer = createSSEWriter(reply.raw);
+
+      // Track connection count
+      sseConnectionsByIp.set(ip, currentCount + 1);
+      const ac = new AbortController();
+
+      // Heartbeat timer
+      const heartbeatTimer = setInterval(() => {
+        if (!writer.sendHeartbeat()) {
+          ac.abort();
+        }
+      }, HEARTBEAT_INTERVAL_MS);
+
+      // Max duration timer
+      const maxDurationTimer = setTimeout(() => {
+        ac.abort();
+      }, MAX_SSE_DURATION_MS);
+
+      // Cleanup on close
+      const cleanup = () => {
+        ac.abort();
+        clearInterval(heartbeatTimer);
+        clearTimeout(maxDurationTimer);
+        const count = sseConnectionsByIp.get(ip) ?? 1;
+        if (count <= 1) {
+          sseConnectionsByIp.delete(ip);
+        } else {
+          sseConnectionsByIp.set(ip, count - 1);
+        }
+        writer.close();
+      };
+
+      request.raw.on('close', cleanup);
+
+      try {
+        const poller = pollPublicFeed({
+          diaryRepository: fastify.diaryRepository,
+          tag,
+          signal: ac.signal,
+          afterCreatedAt,
+          afterId,
+        });
+
+        for await (const entry of poller) {
+          const eventId = `${entry.createdAt.toISOString()}/${entry.id}`;
+          const ok = writer.sendEvent('entry', JSON.stringify(entry), eventId);
+          if (!ok) break;
+        }
+      } catch (err) {
+        if (!ac.signal.aborted) {
+          request.log.error(err, 'SSE feed error');
+          writer.sendEvent(
+            'error',
+            JSON.stringify({ message: 'Internal server error' }),
+          );
+        }
+      } finally {
+        cleanup();
+      }
     },
   );
 }
