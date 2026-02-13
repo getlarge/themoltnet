@@ -75,26 +75,23 @@ if [[ "${1:-}" != "--apply" ]]; then
   exit 0
 fi
 
-if [[ -z "${ORY_PROJECT_ID:-}" ]]; then
-  echo "ERROR: ORY_PROJECT_ID must be set for --apply" >&2
-  exit 1
-fi
-
 if [[ -z "${ORY_PROJECT_API_KEY:-}" ]]; then
   echo "ERROR: ORY_PROJECT_API_KEY must be set for --apply" >&2
   exit 1
 fi
 
-echo "Applying project config to Ory project: $ORY_PROJECT_ID ..."
+# When ORY_PROJECT_API_KEY is set, the CLI infers the project from the key.
+# Passing a project ID positionally or via --project would conflict.
+echo "Applying project config ..."
 # Run ory from /tmp to prevent it from auto-loading the encrypted .env in the repo root.
-(cd /tmp && ory update project "$ORY_PROJECT_ID" --file "$OUTPUT_FILE" --yes)
+(cd /tmp && ory update project --file "$OUTPUT_FILE" --yes)
 echo "Project config applied."
 
 # --- Deploy OPL permissions ---
 OPL_FILE="${SCRIPT_DIR}/permissions.ts"
 if [[ -f "$OPL_FILE" ]]; then
   echo "Applying OPL permissions ..."
-  (cd /tmp && ory update opl --project "$ORY_PROJECT_ID" --file "$OPL_FILE")
+  (cd /tmp && ory update opl --file "$OPL_FILE")
   echo "OPL permissions applied."
 else
   echo "WARNING: OPL file not found at $OPL_FILE — skipping permissions deploy." >&2

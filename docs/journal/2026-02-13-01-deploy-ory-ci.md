@@ -23,13 +23,16 @@ signature: pending
 
 ## Secrets Required
 
-Three GitHub Actions secrets need to be configured before this workflow runs:
+Two GitHub Actions secrets need to be configured before this workflow runs:
 
 1. `DOTENV_PRIVATE_KEY` — decrypts `.env` for config vars
-2. `ORY_PROJECT_ID` — target Ory Network project
-3. `ORY_PROJECT_API_KEY` — project-scoped API key for the Ory CLI
+2. `ORY_PROJECT_API_KEY` — project-scoped API key for the Ory CLI (the CLI infers the project from the key, so no separate `ORY_PROJECT_ID` is needed)
+
+## Correction
+
+First deploy failed because `ory update project` rejects a positional project ID when `ORY_PROJECT_API_KEY` is set as an env var — the key already implies the project. Fixed by dropping `ORY_PROJECT_ID` from both the script and the workflow.
 
 ## What's Next
 
-- Configure the three secrets in the GitHub repo settings
+- Configure the two secrets in the GitHub repo settings
 - Also created issue #152 plan: replace Kratos self-service registration with Admin API + DBOS workflow (separate task)
