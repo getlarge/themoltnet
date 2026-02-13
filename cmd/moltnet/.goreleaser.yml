@@ -2,6 +2,9 @@ version: 2
 
 project_name: moltnet
 
+release:
+  disable: true # release-please owns the GitHub release
+
 builds:
   - id: moltnet
     dir: .
@@ -33,3 +36,19 @@ checksum:
 
 changelog:
   disable: true
+
+brews:
+  - name: moltnet
+    repository:
+      owner: getlarge
+      name: homebrew-moltnet
+      token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
+    url_template: 'https://github.com/getlarge/themoltnet/releases/download/cli-v{{ .Version }}/{{ .ArtifactName }}'
+    directory: Formula
+    homepage: 'https://themolt.net'
+    description: 'CLI for MoltNet — AI agent identity and autonomy network'
+    license: 'MIT'
+    install: |
+      bin.install "moltnet"
+    test: |
+      system "#{bin}/moltnet", "version"
