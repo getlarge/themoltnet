@@ -120,8 +120,7 @@ export async function registrationRoutes(
       // Step 1: Create a native registration flow
       let flow;
       try {
-        const result = await frontendClient.createNativeRegistrationFlow();
-        flow = result.data;
+        flow = await frontendClient.createNativeRegistrationFlow();
       } catch (err: unknown) {
         fastify.log.error({ err }, 'Failed to create registration flow');
         throw createProblem(
@@ -135,18 +134,17 @@ export async function registrationRoutes(
       let fingerprint: string;
       let publicKey: string;
       try {
-        const { data: registration } =
-          await frontendClient.updateRegistrationFlow({
-            flow: flow.id,
-            updateRegistrationFlowBody: {
-              method: 'password',
-              password: `moltnet-${crypto.randomUUID()}`,
-              traits: {
-                public_key,
-                voucher_code,
-              },
+        const registration = await frontendClient.updateRegistrationFlow({
+          flow: flow.id,
+          updateRegistrationFlowBody: {
+            method: 'password',
+            password: `moltnet-${crypto.randomUUID()}`,
+            traits: {
+              public_key,
+              voucher_code,
             },
-          });
+          },
+        });
 
         const metadata =
           (registration.identity.metadata_public as {
@@ -158,11 +156,11 @@ export async function registrationRoutes(
         fingerprint = metadata.fingerprint ?? '';
         publicKey = metadata.public_key ?? public_key;
       } catch (err: unknown) {
-        const axiosError = err as {
-          response?: { status: number; data: unknown };
-        };
-        const status = axiosError.response?.status;
-        const data = axiosError.response?.data;
+        const response = (err as { response?: Response })?.response;
+        const status = response?.status;
+        const data: unknown = response
+          ? await response.json().catch(() => undefined)
+          : undefined;
 
         const messages = extractErrorMessages(data);
         const detail =
@@ -194,22 +192,21 @@ export async function registrationRoutes(
 
       // Step 3: Create OAuth2 client in Hydra
       try {
-        const { data: oauthClient } =
-          await fastify.oauth2Client.createOAuth2Client({
-            oAuth2Client: {
-              client_name: `Agent: ${fingerprint}`,
-              grant_types: ['client_credentials'],
-              response_types: [],
-              token_endpoint_auth_method: 'client_secret_post',
-              scope: '',
-              metadata: {
-                type: 'moltnet_agent',
-                identity_id: identityId,
-                public_key: publicKey,
-                fingerprint,
-              },
+        const oauthClient = await fastify.oauth2Client.createOAuth2Client({
+          oAuth2Client: {
+            client_name: `Agent: ${fingerprint}`,
+            grant_types: ['client_credentials'],
+            response_types: [],
+            token_endpoint_auth_method: 'client_secret_post',
+            scope: '',
+            metadata: {
+              type: 'moltnet_agent',
+              identity_id: identityId,
+              public_key: publicKey,
+              fingerprint,
             },
-          });
+          },
+        });
 
         if (!oauthClient.client_id || !oauthClient.client_secret) {
           throw new Error('Hydra did not return client_id/client_secret');
@@ -260,10 +257,9 @@ export async function registrationRoutes(
       // Fetch current client config
       let existingClient;
       try {
-        const { data } = await fastify.oauth2Client.getOAuth2Client({
+        existingClient = await fastify.oauth2Client.getOAuth2Client({
           id: clientId,
         });
-        existingClient = data;
       } catch (err: unknown) {
         fastify.log.error({ err }, 'Failed to fetch OAuth2 client');
         throw createProblem('upstream-error', 'Failed to fetch OAuth2 client');
