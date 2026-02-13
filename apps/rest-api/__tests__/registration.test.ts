@@ -281,7 +281,7 @@ describe('Registration routes', () => {
       expect(body.detail).toBe('An unexpected error occurred');
     });
 
-    it('returns 500 on unexpected errors', async () => {
+    it('returns 502 on unexpected errors', async () => {
       // Arrange
       mockWorkflowResult.mockRejectedValue(new Error('unexpected'));
 
@@ -296,9 +296,9 @@ describe('Registration routes', () => {
       });
 
       // Assert
-      expect(response.statusCode).toBe(500);
+      expect(response.statusCode).toBe(502);
       const body = response.json();
-      expect(body.code).toBe('INTERNAL_SERVER_ERROR');
+      expect(body.code).toBe('UPSTREAM_ERROR');
     });
   });
 });

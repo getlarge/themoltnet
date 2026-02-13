@@ -104,11 +104,9 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         if (error instanceof RegistrationWorkflowError) {
           throw createProblem('upstream-error', error.message);
         }
+        const message = error instanceof Error ? error.message : String(error);
         fastify.log.error({ error }, 'Registration workflow failed');
-        throw createProblem(
-          'internal-server-error',
-          'Registration failed unexpectedly',
-        );
+        throw createProblem('upstream-error', message);
       }
     },
   );
