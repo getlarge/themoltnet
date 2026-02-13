@@ -8,7 +8,7 @@
  * With EMBEDDING_MODEL=true: uses @moltnet/embedding-service for real
  * vector embeddings and hybrid search testing.
  *
- * Start the test database: docker compose --profile dev up -d app-db
+ * Start the test database: docker compose --env-file .env.local up -d app-db
  * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/diary-service test
  * Run with embeddings: DATABASE_URL=... EMBEDDING_MODEL=true pnpm --filter @moltnet/diary-service test
  */
