@@ -71,6 +71,7 @@ web_modules/
 # env.local.example — local dev template (committed)
 # .env.local — user's local config (gitignored via .env.*.local pattern)
 .env.keys
+.env.local
 .env.*.local
 !.env
 

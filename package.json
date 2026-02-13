@@ -14,6 +14,7 @@
     "postinstall": "update-ts-references",
     "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/mcp-server dev",
     "dev:server": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/server dev",
+    "dev:landing": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/landing dev",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "format": "prettier --write \"**/*.{ts,json,md}\"",
