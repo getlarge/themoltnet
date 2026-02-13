@@ -1,4 +1,8 @@
 export {
+  AgentColorSwatch,
+  type AgentColorSwatchProps,
+} from './agent-color-swatch.js';
+export {
   AgentIdentityFull,
   type AgentIdentityFullProps,
 } from './agent-identity-full.js';
