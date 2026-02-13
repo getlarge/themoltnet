@@ -1,14 +1,12 @@
 /**
- * Self-service registration proxy + credential management
- *
- * Proxies the Kratos self-service registration API so agents only
- * need to know the MoltNet server URL — not the Ory project URL.
+ * Agent registration + credential management
  *
  * POST /auth/register       — register with public_key + voucher_code
  * POST /auth/rotate-secret  — rotate OAuth2 client secret (authenticated)
  */
 
-import { type OryClients, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
+import { DBOS } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -18,10 +16,11 @@ import {
   RegisterResponseSchema,
   RotateSecretResponseSchema,
 } from '../schemas.js';
-
-export interface RegistrationRouteOptions {
-  frontendClient: OryClients['frontend'];
-}
+import {
+  registrationWorkflow,
+  RegistrationWorkflowError,
+  VoucherValidationError,
+} from '../workflows/index.js';
 
 const RegisterBodySchema = Type.Object({
   public_key: Type.String({
@@ -37,56 +36,7 @@ const RegisterBodySchema = Type.Object({
   }),
 });
 
-/**
- * Error IDs from the after-registration webhook (hooks.ts).
- * Kratos propagates these through the flow UI messages.
- */
-const WEBHOOK_ERROR_IDS = {
-  INVALID_PUBLIC_KEY: 4000001,
-  INVALID_VOUCHER: 4000003,
-} as const;
-
-interface KratosMessage {
-  id?: number;
-  text: string;
-  type: string;
-}
-
-function extractErrorMessages(data: unknown): KratosMessage[] {
-  const d = data as {
-    ui?: {
-      messages?: KratosMessage[];
-      nodes?: { messages?: KratosMessage[] }[];
-    };
-  };
-  const msgs: KratosMessage[] = [];
-  for (const m of d?.ui?.messages || []) {
-    if (m.type === 'error') msgs.push(m);
-  }
-  for (const node of d?.ui?.nodes || []) {
-    for (const m of node.messages || []) {
-      if (m.type === 'error') msgs.push(m);
-    }
-  }
-  return msgs;
-}
-
-function pickProblemSlug(
-  messages: KratosMessage[],
-): 'validation-failed' | 'registration-failed' {
-  const hasPublicKeyError = messages.some(
-    (m) => m.id === WEBHOOK_ERROR_IDS.INVALID_PUBLIC_KEY,
-  );
-  if (hasPublicKeyError) return 'validation-failed';
-  return 'registration-failed';
-}
-
-export async function registrationRoutes(
-  fastify: FastifyInstance,
-  options: RegistrationRouteOptions,
-) {
-  const { frontendClient } = options;
-
+export async function registrationRoutes(fastify: FastifyInstance) {
   // ── Register ──────────────────────────────────────────────────
 
   fastify.post(
@@ -117,116 +67,47 @@ export async function registrationRoutes(
         voucher_code: string;
       };
 
-      // Step 1: Create a native registration flow
-      let flow;
+      // Validate public_key format and generate fingerprint
+      let publicKeyBytes: Uint8Array;
       try {
-        const result = await frontendClient.createNativeRegistrationFlow();
-        flow = result.data;
-      } catch (err: unknown) {
-        fastify.log.error({ err }, 'Failed to create registration flow');
+        publicKeyBytes = fastify.cryptoService.parsePublicKey(public_key);
+      } catch {
         throw createProblem(
-          'upstream-error',
-          'Failed to start registration flow',
+          'validation-failed',
+          'public_key must use format "ed25519:<base64>" where <base64> is ' +
+            'your raw 32-byte Ed25519 public key encoded in base64.',
         );
       }
 
-      // Step 2: Submit registration with traits
-      let identityId: string;
-      let fingerprint: string;
-      let publicKey: string;
-      try {
-        const { data: registration } =
-          await frontendClient.updateRegistrationFlow({
-            flow: flow.id,
-            updateRegistrationFlowBody: {
-              method: 'password',
-              password: `moltnet-${crypto.randomUUID()}`,
-              traits: {
-                public_key,
-                voucher_code,
-              },
-            },
-          });
-
-        const metadata =
-          (registration.identity.metadata_public as {
-            fingerprint?: string;
-            public_key?: string;
-          }) || {};
-
-        identityId = registration.identity.id;
-        fingerprint = metadata.fingerprint ?? '';
-        publicKey = metadata.public_key ?? public_key;
-      } catch (err: unknown) {
-        const axiosError = err as {
-          response?: { status: number; data: unknown };
-        };
-        const status = axiosError.response?.status;
-        const data = axiosError.response?.data;
-
-        const messages = extractErrorMessages(data);
-        const detail =
-          messages.length > 0
-            ? messages.map((m) => m.text).join('; ')
-            : 'Registration failed';
-
-        // No status or 5xx → upstream infrastructure error
-        // 4xx → check error messages to distinguish validation vs registration failure
-        // (native flows return 400, browser flows return 422)
-        if (status === undefined || status >= 500) {
-          throw createProblem('upstream-error', detail);
-        }
-        throw createProblem(pickProblemSlug(messages), detail);
-      }
-
-      // Step 2.5: Fix agent record — the Kratos webhook may have created
-      // it with a placeholder identity ID during the native registration flow.
-      const existingAgent =
-        await fastify.agentRepository.findByFingerprint(fingerprint);
-      if (existingAgent && existingAgent.identityId !== identityId) {
-        await fastify.agentRepository.delete(existingAgent.identityId);
-      }
-      await fastify.agentRepository.upsert({
-        identityId,
-        publicKey,
-        fingerprint,
-      });
-
-      // Step 3: Create OAuth2 client in Hydra
-      try {
-        const { data: oauthClient } =
-          await fastify.oauth2Client.createOAuth2Client({
-            oAuth2Client: {
-              client_name: `Agent: ${fingerprint}`,
-              grant_types: ['client_credentials'],
-              response_types: [],
-              token_endpoint_auth_method: 'client_secret_post',
-              scope: '',
-              metadata: {
-                type: 'moltnet_agent',
-                identity_id: identityId,
-                public_key: publicKey,
-                fingerprint,
-              },
-            },
-          });
-
-        if (!oauthClient.client_id || !oauthClient.client_secret) {
-          throw new Error('Hydra did not return client_id/client_secret');
-        }
-
-        return {
-          identityId,
-          fingerprint,
-          publicKey,
-          clientId: oauthClient.client_id,
-          clientSecret: oauthClient.client_secret,
-        };
-      } catch (err: unknown) {
-        fastify.log.error({ err }, 'Failed to create OAuth2 client');
+      if (publicKeyBytes.length !== 32) {
         throw createProblem(
-          'upstream-error',
-          'Registration succeeded but OAuth2 client creation failed',
+          'validation-failed',
+          `public_key must be exactly 32 bytes (got ${publicKeyBytes.length}). ` +
+            'Provide the raw Ed25519 public key, not an SPKI/X.509 wrapper.',
+        );
+      }
+
+      const fingerprint =
+        fastify.cryptoService.generateFingerprint(publicKeyBytes);
+
+      // Start DBOS registration workflow
+      try {
+        const handle = await DBOS.startWorkflow(
+          registrationWorkflow.registerAgent,
+        )(public_key, fingerprint, voucher_code);
+
+        return await handle.getResult();
+      } catch (error: unknown) {
+        if (error instanceof VoucherValidationError) {
+          throw createProblem('registration-failed', error.message);
+        }
+        if (error instanceof RegistrationWorkflowError) {
+          throw createProblem('upstream-error', error.message);
+        }
+        fastify.log.error({ error }, 'Registration workflow failed');
+        throw createProblem(
+          'internal-server-error',
+          'Registration failed unexpectedly',
         );
       }
     },

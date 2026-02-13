@@ -177,9 +177,7 @@ export async function registerApiRoutes(
     recoverySecret: options.recoverySecret,
     identityClient: options.oryClients.identity,
   });
-  await app.register(registrationRoutes, {
-    frontendClient: options.oryClients.frontend,
-  });
+  await app.register(registrationRoutes);
   await app.register(vouchRoutes);
   await app.register(problemRoutes);
 }
