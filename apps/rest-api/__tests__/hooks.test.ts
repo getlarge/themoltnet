@@ -1,5 +1,6 @@
 import { cryptoService } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
+import type { vi } from 'vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -197,7 +198,7 @@ describe('Hook routes', () => {
       });
     });
 
-    it('falls back to minimal claims when agent not found', async () => {
+    it('rejects with 403 when agent not found', async () => {
       mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
 
       const response = await app.inject({
@@ -213,12 +214,63 @@ describe('Hook routes', () => {
         },
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(403);
       const body = response.json();
-      expect(body.session.access_token['moltnet:client_id']).toBe(
-        'hydra-client-uuid',
+      expect(body.error).toBe('agent_not_found');
+    });
+
+    it('rejects with 403 when client has no MoltNet metadata', async () => {
+      // Override the default mock to return client without identity_id
+      (
+        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
+      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+        data: {
+          client_id: 'hydra-client-uuid',
+          metadata: { type: 'not_moltnet' },
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'hydra-client-uuid',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      const body = response.json();
+      expect(body.error).toBe('invalid_client_metadata');
+    });
+
+    it('returns 500 when OAuth2 client fetch fails', async () => {
+      (
+        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
+      ).oauth2Client.getOAuth2Client.mockRejectedValueOnce(
+        new Error('Hydra connection error'),
       );
-      expect(body.session.access_token['moltnet:identity_id']).toBe(OWNER_ID);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'hydra-client-uuid',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+      const body = response.json();
+      expect(body.error).toBe('enrichment_failed');
     });
   });
 
