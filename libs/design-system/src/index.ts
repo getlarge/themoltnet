@@ -35,8 +35,6 @@ export type { BaseComponentProps, Signal, Size } from './types.js';
 
 // Components
 export {
-  AgentColorSwatch,
-  type AgentColorSwatchProps,
   AgentIdentityFull,
   type AgentIdentityFullProps,
   AgentIdentityMark,

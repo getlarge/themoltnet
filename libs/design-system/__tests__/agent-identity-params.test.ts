@@ -7,10 +7,10 @@ import {
   identityColor,
 } from '../src/components/agent-identity-params.js';
 
-// Demo keys used in the showcase — base64-encoded 32-byte strings
-const KEY_ALPHA = 'ed25519:dGhlLW1vbHRuZXQtYWdlbnQtYWxwaGEtNy1rZXktMDE=';
-const KEY_BETA = 'ed25519:Y2xhdWRlLWJldGEtOS1lZDI1NTE5LWlkZW50aXR5LTI=';
-const KEY_GAMMA = 'ed25519:c29waGlhLWdhbW1hLTMtY3J5cHRvLWtleS1wYWlyLTM=';
+// Random 32-byte keys with distributed hues (red-orange, green, blue, magenta)
+const KEY_ALPHA = 'ed25519:fQuJevoiEGBD/U1ZxizBqVmWI5leTjHInhFLJCSipSs=';
+const KEY_BETA = 'ed25519:/kcnNUhJOBBYa8r3RLnp3s9dqh4PpfsPFXYR0yJytD8=';
+const KEY_GAMMA = 'ed25519:Fo4cjw/fkyv7q3CJWgO8bS/6v1xHqMVdqpRxwQ/+8V0=';
 
 describe('deriveIdentityParams', () => {
   // -------------------------------------------------------------------
@@ -142,11 +142,11 @@ describe('deriveIdentityParams', () => {
     expect(p.glowIntensity).toBeLessThanOrEqual(0.45);
   });
 
-  it('keeps coreHue in the amber spectrum (30–58)', () => {
+  it('keeps coreHue in valid hue range (0–360)', () => {
     const p = deriveIdentityParams(KEY_ALPHA);
 
-    expect(p.coreHue).toBeGreaterThanOrEqual(30);
-    expect(p.coreHue).toBeLessThanOrEqual(58);
+    expect(p.coreHue).toBeGreaterThanOrEqual(0);
+    expect(p.coreHue).toBeLessThan(360);
   });
 
   // -------------------------------------------------------------------
@@ -167,6 +167,26 @@ describe('deriveIdentityParams', () => {
     );
 
     expect(prefixes.size).toBe(3);
+  });
+
+  // -------------------------------------------------------------------
+  // Accent hex
+  // -------------------------------------------------------------------
+
+  it('produces a valid hex accent color', () => {
+    const p = deriveIdentityParams(KEY_ALPHA);
+
+    expect(p.accentHex).toMatch(/^#[0-9A-F]{6}$/);
+  });
+
+  it('produces different accent colors for different keys', () => {
+    const accents = new Set(
+      [KEY_ALPHA, KEY_BETA, KEY_GAMMA].map(
+        (k) => deriveIdentityParams(k).accentHex,
+      ),
+    );
+
+    expect(accents.size).toBe(3);
   });
 });
 

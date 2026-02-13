@@ -67,11 +67,13 @@ web_modules/
 
 # dotenv environment variable files
 # .env — encrypted secrets only (committed, validated by dotenvx precommit)
-# env.public — plain non-secret config (committed, renamed from .env.public to avoid dotenvx precommit)
+# env.public — plain non-secret config (committed)
+# env.local.example — local dev template (committed)
+# .env.local — user's local config (gitignored via .env.*.local pattern)
 .env.keys
+.env.local
 .env.*.local
 !.env
-!.env.docker
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

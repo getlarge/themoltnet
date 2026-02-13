@@ -463,12 +463,12 @@ function OrbitalParticles({
 }) {
   const outer = rings[rings.length - 1];
   const orbitR = maxR * outer.radiusFraction;
-  const tealParticle = identityColor(
+  const ringParticle = identityColor(
     outer.hue,
     outer.saturation,
     outer.lightness + 10,
   );
-  const amberParticle = identityColor(
+  const coreParticle = identityColor(
     coreHue,
     coreSaturation,
     coreLightness + 15,
@@ -485,10 +485,10 @@ function OrbitalParticles({
         stroke="none"
       />
 
-      {/* Fast teal particle */}
+      {/* Fast ring-hue particle */}
       <circle
         r="3"
-        fill={tealParticle}
+        fill={ringParticle}
         opacity="0"
         filter={`url(#${idPrefix}-fp)`}
       >
@@ -510,10 +510,10 @@ function OrbitalParticles({
         </animateMotion>
       </circle>
 
-      {/* Slow amber particle */}
+      {/* Slow core-hue particle */}
       <circle
         r="2"
-        fill={amberParticle}
+        fill={coreParticle}
         opacity="0"
         filter={`url(#${idPrefix}-fp)`}
       >

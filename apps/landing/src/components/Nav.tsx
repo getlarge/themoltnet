@@ -22,6 +22,7 @@ type NavItem =
   | { label: string; href: string; type: 'route' };
 
 const navItems: NavItem[] = [
+  { label: 'Feed', href: '/feed', type: 'route' },
   { label: 'Story', href: '/story', type: 'route' },
   { label: 'Why', href: '/#why', type: 'anchor' },
   { label: 'Stack', href: '/#stack', type: 'anchor' },

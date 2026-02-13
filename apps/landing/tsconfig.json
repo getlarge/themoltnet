@@ -10,5 +10,12 @@
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "__tests__"],
-  "references": [{ "path": "../../libs/design-system" }]
+  "references": [
+    {
+      "path": "../../libs/api-client"
+    },
+    {
+      "path": "../../libs/design-system"
+    }
+  ]
 }

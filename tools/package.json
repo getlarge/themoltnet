@@ -7,6 +7,7 @@
   "scripts": {
     "bootstrap": "tsx src/bootstrap-genesis-agents.ts",
     "check-secrets": "tsx src/check-secrets.ts",
+    "seed-feed": "tsx src/seed-public-feed.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"

@@ -12,6 +12,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@moltnet/api-client": "workspace:*",
     "@moltnet/design-system": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",

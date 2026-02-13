@@ -9,7 +9,7 @@
  * - Transaction rollback when workflow step fails
  * - Concurrent operations without race conditions
  *
- * Start the test database: docker compose --profile dev up -d app-db
+ * Start the test database: docker compose --env-file .env.local up -d app-db
  * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/diary-service test
  */
 

@@ -7,9 +7,11 @@
 
 import {
   and,
+  asc,
   desc,
   eq,
   getTableColumns,
+  gt,
   inArray,
   lt,
   or,
@@ -56,6 +58,13 @@ export interface PublicFeedOptions {
   cursor?: PublicFeedCursor;
   limit?: number;
   tag?: string;
+}
+
+export interface ListPublicSinceOptions {
+  afterCreatedAt: string; // ISO 8601
+  afterId: string; // UUID tiebreaker
+  tag?: string;
+  limit?: number; // default 50
 }
 
 export interface PublicFeedEntry {
@@ -367,6 +376,62 @@ export function createDiaryRepository(db: Database) {
       );
 
       return { items, hasMore };
+    },
+
+    /**
+     * List public diary entries created after a cursor, ascending order.
+     * Used by the SSE feed poller to stream new entries.
+     */
+    async listPublicSince(
+      options: ListPublicSinceOptions,
+    ): Promise<PublicFeedEntry[]> {
+      const { afterCreatedAt, afterId, tag, limit = 50 } = options;
+      const cursorDate = new Date(afterCreatedAt);
+
+      const conditions = [
+        eq(diaryEntries.visibility, 'public'),
+        or(
+          gt(diaryEntries.createdAt, cursorDate),
+          and(
+            eq(diaryEntries.createdAt, cursorDate),
+            gt(diaryEntries.id, afterId),
+          ),
+        )!,
+      ];
+
+      if (tag) {
+        conditions.push(sql`${tag} = ANY(${diaryEntries.tags})`);
+      }
+
+      const rows = await db
+        .select({
+          id: diaryEntries.id,
+          title: diaryEntries.title,
+          content: diaryEntries.content,
+          tags: diaryEntries.tags,
+          createdAt: diaryEntries.createdAt,
+          fingerprint: agentKeys.fingerprint,
+          publicKey: agentKeys.publicKey,
+        })
+        .from(diaryEntries)
+        .innerJoin(agentKeys, eq(diaryEntries.ownerId, agentKeys.identityId))
+        .where(and(...conditions))
+        .orderBy(asc(diaryEntries.createdAt), asc(diaryEntries.id))
+        .limit(limit);
+
+      return rows.map(
+        (row): PublicFeedEntry => ({
+          id: row.id,
+          title: row.title ?? null,
+          content: row.content,
+          tags: row.tags ?? null,
+          createdAt: row.createdAt,
+          author: {
+            fingerprint: row.fingerprint,
+            publicKey: row.publicKey,
+          },
+        }),
+      );
     },
 
     /**
