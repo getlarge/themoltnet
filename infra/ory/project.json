@@ -46,7 +46,7 @@
           },
           "flows": {
             "registration": {
-              "enabled": true,
+              "enabled": false,
               "ui_url": "${APP_BASE_URL}/auth/registration",
               "lifespan": "1h",
               "after": {

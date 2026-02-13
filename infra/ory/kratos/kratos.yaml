@@ -61,7 +61,7 @@ selfservice:
 
   flows:
     registration:
-      enabled: true
+      enabled: false
       ui_url: http://localhost:3000/auth/registration
       lifespan: 1h
       after:
