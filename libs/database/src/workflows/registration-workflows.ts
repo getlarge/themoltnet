@@ -16,17 +16,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
 import { DBOS } from '@dbos-inc/dbos-sdk';
-import type { IdentityApi, OAuth2Api } from '@ory/client';
 
 import type { AgentRepository } from '../repositories/agent.repository.js';
 import type { VoucherRepository } from '../repositories/voucher.repository.js';
 
 /**
  * Dependencies injected at runtime.
+ * Using any for Ory API types to avoid direct dependency on @ory/client.
  */
 interface RegistrationDependencies {
-  identityApi: IdentityApi;
-  hydraAdminOAuth2: OAuth2Api;
+  identityApi: any; // IdentityApi from @ory/client
+  hydraAdminOAuth2: any; // OAuth2Api from @ory/client
   agentRepository: AgentRepository;
   voucherRepository: VoucherRepository;
   ketoRegisterAgent: (agentId: string) => Promise<void>;
@@ -104,8 +104,8 @@ let _workflows: {
 export function initRegistrationWorkflows(): void {
   if (_workflows) return; // Already initialized
 
-  // ── Step 1: Validate voucher (transaction) ──────────────────────
-  const validateVoucherStep = DBOS.registerTransaction(
+  // ── Step 1: Validate voucher ────────────────────────────────────
+  const validateVoucherStep = DBOS.registerStep(
     async (
       voucherCode: string,
     ): Promise<{ valid: boolean; issuerId?: string }> => {
@@ -149,8 +149,8 @@ export function initRegistrationWorkflows(): void {
     { name: 'registration.step.createIdentity', ...stepConfig },
   );
 
-  // ── Step 3: Redeem voucher (transaction) ────────────────────────
-  const redeemVoucherStep = DBOS.registerTransaction(
+  // ── Step 3: Redeem voucher ───────────────────────────────────────
+  const redeemVoucherStep = DBOS.registerStep(
     async (voucherCode: string, identityId: string): Promise<void> => {
       const { voucherRepository } = getDeps();
 
@@ -163,8 +163,8 @@ export function initRegistrationWorkflows(): void {
     { name: 'registration.step.redeemVoucher', ...stepConfig },
   );
 
-  // ── Step 4: Create agent record (transaction) ───────────────────
-  const createAgentStep = DBOS.registerTransaction(
+  // ── Step 4: Create agent record ──────────────────────────────────
+  const createAgentStep = DBOS.registerStep(
     async (
       identityId: string,
       publicKey: string,
