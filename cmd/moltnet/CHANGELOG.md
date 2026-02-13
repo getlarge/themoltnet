@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/cli-v0.2.0...cli-v0.2.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* **ci:** goreleaser tag parsing for monorepo prefixed tags ([b87b130](https://github.com/getlarge/themoltnet/commit/b87b130e36e9edbe10051cc972970971a4f1a0e7))
+* **ci:** goreleaser tag parsing for monorepo prefixed tags ([2de3f67](https://github.com/getlarge/themoltnet/commit/2de3f676999ca38c3b213722f53010bbd11711b8))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/cli-v0.1.0...cli-v0.2.0) (2026-02-13)
 
 
