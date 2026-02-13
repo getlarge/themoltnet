@@ -17,6 +17,7 @@
  * `SigningRequest` Keto namespace at that point.
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { DBOS, parseStatusFilter, signingWorkflows } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
@@ -31,11 +32,13 @@ import {
 } from '../schemas.js';
 
 export async function signingRequestRoutes(fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
   // All signing request routes require authentication
-  fastify.addHook('preHandler', requireAuth);
+  server.addHook('preHandler', requireAuth);
 
   // ── Create Signing Request ────────────────────────────────────
-  fastify.post(
+  server.post(
     '/crypto/signing-requests',
     {
       // Each workflow consumes DBOS resources — apply a stricter per-agent limit
@@ -59,7 +62,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { message } = request.body as { message: string };
+      const { message } = request.body;
       const agentId = request.authContext!.identityId;
       const timeoutSeconds = fastify.signingTimeoutSeconds;
       const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);
@@ -87,7 +90,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   );
 
   // ── List Signing Requests ─────────────────────────────────────
-  fastify.get(
+  server.get(
     '/crypto/signing-requests',
     {
       schema: {
@@ -108,11 +111,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { limit, offset, status } = request.query as {
-        limit?: number;
-        offset?: number;
-        status?: string;
-      };
+      const { limit, offset, status } = request.query;
 
       const statusFilter = status ? parseStatusFilter(status) : undefined;
 
@@ -133,7 +132,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   );
 
   // ── Get Signing Request ───────────────────────────────────────
-  fastify.get(
+  server.get(
     '/crypto/signing-requests/:id',
     {
       schema: {
@@ -151,7 +150,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
       const signingRequest =
         await fastify.signingRequestRepository.findById(id);
 
@@ -167,7 +166,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   );
 
   // ── Submit Signature ──────────────────────────────────────────
-  fastify.post(
+  server.post(
     '/crypto/signing-requests/:id/sign',
     {
       schema: {
@@ -190,8 +189,8 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params as { id: string };
-      const { signature } = request.body as { signature: string };
+      const { id } = request.params;
+      const { signature } = request.body;
       const agentId = request.authContext!.identityId;
 
       const signingRequest =

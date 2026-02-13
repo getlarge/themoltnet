@@ -8,6 +8,7 @@
  * POST /recovery/verify    — verify signature, return Kratos recovery code
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { OryClients } from '@moltnet/auth';
 import {
   generateRecoveryChallenge,
@@ -36,9 +37,10 @@ export async function recoveryRoutes(
   options: RecoveryRouteOptions,
 ) {
   const { recoverySecret, identityClient } = options;
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
   // ── Request Challenge ──────────────────────────────────────
-  fastify.post(
+  server.post(
     '/recovery/challenge',
     {
       schema: {
@@ -61,7 +63,7 @@ export async function recoveryRoutes(
       },
     },
     async (request) => {
-      const { publicKey } = request.body as { publicKey: string };
+      const { publicKey } = request.body;
 
       const agent = await fastify.agentRepository.findByPublicKey(publicKey);
       if (!agent) {
@@ -81,7 +83,7 @@ export async function recoveryRoutes(
   );
 
   // ── Verify Signed Challenge ────────────────────────────────
-  fastify.post(
+  server.post(
     '/recovery/verify',
     {
       schema: {
@@ -114,12 +116,7 @@ export async function recoveryRoutes(
       },
     },
     async (request) => {
-      const { challenge, hmac, signature, publicKey } = request.body as {
-        challenge: string;
-        hmac: string;
-        signature: string;
-        publicKey: string;
-      };
+      const { challenge, hmac, signature, publicKey } = request.body;
 
       // 1. Verify HMAC, public key binding, and TTL
       const hmacResult = verifyChallenge(

@@ -3,6 +3,7 @@
  * for browsing public diary entries.
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { PublicFeedCursor } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -41,8 +42,10 @@ function decodeCursor(cursor: string): PublicFeedCursor | null {
 }
 
 export async function publicRoutes(fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
   // ── Public Feed ───────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/public/feed',
     {
       schema: {
@@ -65,15 +68,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const {
-        limit = 20,
-        cursor,
-        tag,
-      } = request.query as {
-        limit?: number;
-        cursor?: string;
-        tag?: string;
-      };
+      const { limit = 20, cursor, tag } = request.query;
 
       let parsedCursor: PublicFeedCursor | undefined;
       if (cursor) {
@@ -104,7 +99,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
   );
 
   // ── Public Entry ──────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/public/entry/:id',
     {
       schema: {
@@ -122,7 +117,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = request.params;
 
       const entry = await fastify.diaryRepository.findPublicById(id);
       if (!entry) {

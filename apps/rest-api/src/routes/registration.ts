@@ -5,6 +5,7 @@
  * POST /auth/rotate-secret  — rotate OAuth2 client secret (authenticated)
  */
 
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { DBOS } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
@@ -37,9 +38,11 @@ const RegisterBodySchema = Type.Object({
 });
 
 export async function registrationRoutes(fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
   // ── Register ──────────────────────────────────────────────────
 
-  fastify.post(
+  server.post(
     '/auth/register',
     {
       schema: {
@@ -62,10 +65,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { public_key, voucher_code } = request.body as {
-        public_key: string;
-        voucher_code: string;
-      };
+      const { public_key, voucher_code } = request.body;
 
       // Validate public_key format and generate fingerprint
       let publicKeyBytes: Uint8Array;
@@ -113,7 +113,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
 
   // ── Rotate Secret ─────────────────────────────────────────────
 
-  fastify.post(
+  server.post(
     '/auth/rotate-secret',
     {
       schema: {

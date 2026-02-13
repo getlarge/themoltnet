@@ -14,6 +14,18 @@ import { Type } from '@sinclair/typebox';
 
 // ── Reusable Atoms ──────────────────────────────────────────
 
+/**
+ * A date-time field that accepts both Date objects (from DB/service layer)
+ * and strings (from JSON). Fastify's serializer converts Date → ISO string
+ * at runtime via fast-json-stringify, so the JSON schema stays `{ type: "string",
+ * format: "date-time" }` and the OpenAPI spec is unchanged.
+ */
+const DateTime = Type.Unsafe<Date | string>(
+  Type.String({ format: 'date-time' }),
+);
+
+const NullableDateTime = Type.Union([DateTime, Type.Null()]);
+
 const VisibilitySchema = Type.Union(
   [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
   { $id: 'Visibility' },
@@ -33,8 +45,8 @@ export const DiaryEntrySchema = Type.Object(
       Type.Literal('public'),
     ]),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
-    createdAt: Type.String({ format: 'date-time' }),
-    updatedAt: Type.String({ format: 'date-time' }),
+    createdAt: DateTime,
+    updatedAt: DateTime,
   },
   { $id: 'DiaryEntry' },
 );
@@ -61,7 +73,7 @@ const DigestEntrySchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   content: Type.String(),
   tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
-  createdAt: Type.String({ format: 'date-time' }),
+  createdAt: DateTime,
 });
 
 export const DigestSchema = Type.Object(
@@ -69,7 +81,7 @@ export const DigestSchema = Type.Object(
     entries: Type.Array(DigestEntrySchema),
     totalEntries: Type.Number(),
     periodDays: Type.Number(),
-    generatedAt: Type.String({ format: 'date-time' }),
+    generatedAt: DateTime,
   },
   { $id: 'Digest' },
 );
@@ -109,7 +121,7 @@ export const PublicFeedEntrySchema = Type.Object(
     title: Type.Union([Type.String(), Type.Null()]),
     content: Type.String(),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
-    createdAt: Type.String({ format: 'date-time' }),
+    createdAt: DateTime,
     author: PublicAuthorSchema,
   },
   { $id: 'PublicFeedEntry' },
@@ -188,12 +200,9 @@ export const SigningRequestSchema = Type.Object(
     ]),
     signature: Type.Union([Type.String(), Type.Null()]),
     valid: Type.Union([Type.Boolean(), Type.Null()]),
-    createdAt: Type.String({ format: 'date-time' }),
-    expiresAt: Type.String({ format: 'date-time' }),
-    completedAt: Type.Union([
-      Type.String({ format: 'date-time' }),
-      Type.Null(),
-    ]),
+    createdAt: DateTime,
+    expiresAt: DateTime,
+    completedAt: NullableDateTime,
   },
   { $id: 'SigningRequest' },
 );
@@ -240,7 +249,7 @@ export const RecoveryVerifyResponseSchema = Type.Object(
 export const VoucherSchema = Type.Object(
   {
     code: Type.String(),
-    expiresAt: Type.String({ format: 'date-time' }),
+    expiresAt: DateTime,
     issuedBy: Type.String(),
   },
   { $id: 'Voucher' },
@@ -272,7 +281,7 @@ export const RotateSecretResponseSchema = Type.Object(
 export const HealthSchema = Type.Object(
   {
     status: Type.String(),
-    timestamp: Type.String({ format: 'date-time' }),
+    timestamp: DateTime,
   },
   { $id: 'Health' },
 );

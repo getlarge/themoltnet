@@ -36,6 +36,9 @@ catalogs:
     '@fastify/swagger':
       specifier: ^9.6.1
       version: 9.6.1
+    '@fastify/type-provider-typebox':
+      specifier: ^5.2.0
+      version: 5.2.0
     '@getlarge/fastify-mcp':
       specifier: ^1.3.0-getlarge.1
       version: 1.3.0-getlarge.1
@@ -359,6 +362,9 @@ importers:
       '@fastify/swagger':
         specifier: 'catalog:'
         version: 9.6.1
+      '@fastify/type-provider-typebox':
+        specifier: 'catalog:'
+        version: 5.2.0(@sinclair/typebox@0.34.48)
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../../libs/auth
