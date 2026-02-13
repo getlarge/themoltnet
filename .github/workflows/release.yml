@@ -79,15 +79,53 @@ jobs:
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
 
+      - name: Generate GitHub App token for Homebrew tap
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: homebrew-moltnet
+
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
-          args: release --clean --skip=publish,validate
+          args: release --clean --skip=validate
           workdir: cmd/moltnet
         env:
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
+          HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload binaries to GitHub Release
-        run: gh release upload "${{ needs.release-please.outputs.cli-tag-name }}" cmd/moltnet/dist/**/*
+        run: |
+          gh release upload "${{ needs.release-please.outputs.cli-tag-name }}" \
+            cmd/moltnet/dist/*.tar.gz \
+            cmd/moltnet/dist/*.zip \
+            cmd/moltnet/dist/checksums.txt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-cli-npm:
+    name: Publish CLI to npm
+    needs: [release-please, release-cli]
+    if: ${{ needs.release-please.outputs.cli-release-created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - run: npm install -g npm@latest
+
+      - name: Publish @themoltnet/cli
+        working-directory: packages/cli
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
