@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.2.0...sdk-v0.3.0) (2026-02-13)
+
+
+### Features
+
+* **ci:** switch to npm trusted publishing (OIDC) ([a382774](https://github.com/getlarge/themoltnet/commit/a382774828a46e637fe39bb5b4071d34bbf485bf))
+
+
+### Bug Fixes
+
+* **ci:** goreleaser tag parsing for monorepo prefixed tags ([b87b130](https://github.com/getlarge/themoltnet/commit/b87b130e36e9edbe10051cc972970971a4f1a0e7))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.1.0...sdk-v0.2.0) (2026-02-13)
 
 
