@@ -31,6 +31,11 @@
     "vite": "catalog:",
     "vitest": "catalog:"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/sdk"
+  },
   "engines": {
     "node": ">=18"
   }
