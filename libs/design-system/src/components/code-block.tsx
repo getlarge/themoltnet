@@ -1,13 +1,18 @@
+import { Highlight, type Language, themes } from 'prism-react-renderer';
+
 import { useTheme } from '../hooks.js';
 import type { BaseComponentProps } from '../types.js';
 
 export interface CodeBlockProps extends BaseComponentProps {
   /** Render as inline <code> instead of a block <pre>. */
   inline?: boolean;
+  /** Language for syntax highlighting (e.g. "typescript", "bash"). */
+  language?: Language;
 }
 
 export function CodeBlock({
   inline,
+  language,
   style,
   children,
   ...rest
@@ -31,7 +36,7 @@ export function CodeBlock({
     );
   }
 
-  const computed: React.CSSProperties = {
+  const basePreStyle: React.CSSProperties = {
     fontFamily: theme.font.family.mono,
     fontSize: theme.font.size.sm,
     lineHeight: theme.font.lineHeight.relaxed,
@@ -43,11 +48,52 @@ export function CodeBlock({
     overflow: 'auto',
     whiteSpace: 'pre',
     margin: 0,
-    ...style,
   };
 
+  if (language) {
+    const code =
+      typeof children === 'string'
+        ? children.trim()
+        : ((children as string[] | undefined)?.join('').trim() ?? '');
+
+    return (
+      <div style={{ position: 'relative' }}>
+        <span
+          style={{
+            position: 'absolute',
+            top: theme.spacing[2],
+            right: theme.spacing[3],
+            fontFamily: theme.font.family.mono,
+            fontSize: theme.font.size.xs,
+            color: theme.color.text.muted,
+            userSelect: 'none',
+            lineHeight: 1,
+            zIndex: 1,
+          }}
+        >
+          {language}
+        </span>
+        <Highlight theme={themes.oneDark} code={code} language={language}>
+          {({ tokens, getLineProps, getTokenProps }) => (
+            <pre style={{ ...basePreStyle, ...style }} {...rest}>
+              <code>
+                {tokens.map((line, i) => (
+                  <div key={i} {...getLineProps({ line })}>
+                    {line.map((token, j) => (
+                      <span key={j} {...getTokenProps({ token })} />
+                    ))}
+                  </div>
+                ))}
+              </code>
+            </pre>
+          )}
+        </Highlight>
+      </div>
+    );
+  }
+
   return (
-    <pre style={computed} {...rest}>
+    <pre style={{ ...basePreStyle, ...style }} {...rest}>
       <code>{children}</code>
     </pre>
   );
