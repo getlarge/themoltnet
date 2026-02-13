@@ -127,5 +127,3 @@ jobs:
       - name: Publish @themoltnet/cli
         working-directory: packages/cli
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
