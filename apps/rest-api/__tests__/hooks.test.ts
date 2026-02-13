@@ -50,10 +50,7 @@ describe('Hook routes', () => {
       },
     };
 
-    it('validates voucher and creates agent record with placeholder ID', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
-      mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-
+    it('validates public key format and returns fingerprint', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/kratos/after-registration',
@@ -67,41 +64,15 @@ describe('Hook routes', () => {
         fingerprint: expectedFingerprint,
         public_key: testPublicKey,
       });
-      expect(mocks.transactionRunner.runInTransaction).toHaveBeenCalledWith(
-        expect.any(Function),
-        { name: 'hooks.after-registration' },
-      );
-      expect(mocks.voucherRepository.redeem).toHaveBeenCalledWith(
-        'a'.repeat(64),
-        OWNER_ID,
-      );
-      expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
-        identityId: OWNER_ID,
-        publicKey: testPublicKey,
-        fingerprint: expectedFingerprint,
-      });
-      // Keto registration happens in the registration route, not here
+      // Webhook no longer does voucher or agent operations
+      expect(mocks.voucherRepository.redeem).not.toHaveBeenCalled();
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
       expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
     });
 
     it('rejects registration with invalid voucher (Ory error format)', async () => {
-      mocks.voucherRepository.redeem.mockResolvedValue(null);
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/after-registration',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: validPayload,
-      });
-
-      expect(response.statusCode).toBe(403);
-      const body = response.json();
-      expect(body.messages).toHaveLength(1);
-      expect(body.messages[0].instance_ptr).toBe('#/traits/voucher_code');
-      expect(body.messages[0].messages[0].id).toBe(4000003);
-      expect(body.messages[0].messages[0].type).toBe('error');
-      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
-      expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
+      // This test is no longer relevant - webhook doesn't validate vouchers
+      // Voucher validation happens in the DBOS workflow now
     });
 
     it('rejects registration with invalid public_key format', async () => {

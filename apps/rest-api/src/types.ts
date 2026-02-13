@@ -28,6 +28,7 @@ import type {
   VoucherRepository,
 } from '@moltnet/database';
 import type { DiaryService } from '@moltnet/diary-service';
+import type { IdentityApi, OAuth2Api } from '@ory/client';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -40,5 +41,7 @@ declare module 'fastify' {
     signingTimeoutSeconds: number;
     dataSource: DataSource;
     transactionRunner: TransactionRunner;
+    identityApi: IdentityApi;
+    oauth2: OAuth2Api;
   }
 }

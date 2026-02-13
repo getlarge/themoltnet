@@ -18,9 +18,11 @@ import {
   getDataSource,
   initDBOS,
   initKetoWorkflows,
+  initRegistrationWorkflows,
   initSigningWorkflows,
   launchDBOS,
   setKetoRelationshipWriter,
+  setRegistrationDependencies,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningTimeoutSeconds,
@@ -52,6 +54,9 @@ async function dbosPlugin(
     'cryptoService',
     'agentRepository',
     'signingRequestRepository',
+    'voucherRepository',
+    'identityApi',
+    'oauth2',
   ] as const;
   for (const dep of required) {
     if (!fastify[dep]) {
@@ -64,16 +69,15 @@ async function dbosPlugin(
   // 1. Configure DBOS (must be first, before workflow registration)
   configureDBOS(systemDatabaseUrl, enableOTLP);
 
-  // 2. Register Keto workflows (must be after config, before launch)
+  // 2. Register workflows (must be after config, before launch)
   initKetoWorkflows();
-
-  // 3. Register signing workflows
   initSigningWorkflows();
+  initRegistrationWorkflows();
 
-  // 4. Set the relationship writer for Keto workflows
+  // 3. Set the relationship writer for Keto workflows
   setKetoRelationshipWriter(fastify.permissionChecker);
 
-  // 5. Set signing workflow dependencies
+  // 4. Set signing workflow dependencies
   setSigningVerifier(fastify.cryptoService);
   setSigningKeyLookup({
     getPublicKey: async (agentId: string) => {
@@ -85,6 +89,18 @@ async function dbosPlugin(
   if (options.signingTimeoutSeconds) {
     setSigningTimeoutSeconds(options.signingTimeoutSeconds);
   }
+
+  // 5. Set registration workflow dependencies
+  setRegistrationDependencies({
+    identityApi: fastify.identityApi,
+    hydraAdminOAuth2: fastify.oauth2,
+    agentRepository: fastify.agentRepository,
+    voucherRepository: fastify.voucherRepository,
+    ketoRegisterAgent: async (agentId: string) => {
+      await fastify.permissionChecker.registerAgent(agentId);
+    },
+    cryptoService: fastify.cryptoService,
+  });
 
   // 6. Initialize DBOS data source (app tables via databaseUrl, system via systemDatabaseUrl)
   await initDBOS({ databaseUrl, systemDatabaseUrl });

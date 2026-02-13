@@ -1,14 +1,16 @@
 /**
- * Self-service registration proxy + credential management
+ * Agent registration using Admin API + DBOS workflow
  *
- * Proxies the Kratos self-service registration API so agents only
- * need to know the MoltNet server URL — not the Ory project URL.
+ * This route uses Kratos Admin API to create identities directly, eliminating
+ * the placeholder identity ID issue. The entire registration process is wrapped
+ * in a DBOS durable workflow with automatic cleanup on failure.
  *
  * POST /auth/register       — register with public_key + voucher_code
  * POST /auth/rotate-secret  — rotate OAuth2 client secret (authenticated)
  */
 
-import { type OryClients, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
+import { DBOS, registrationWorkflows } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -18,16 +20,6 @@ import {
   RegisterResponseSchema,
   RotateSecretResponseSchema,
 } from '../schemas.js';
-
-/**
- * Kratos placeholder identity ID used during webhook processing.
- * The real UUID is assigned only after all webhooks complete.
- */
-const KRATOS_PLACEHOLDER_IDENTITY_ID = '00000000-0000-0000-0000-000000000000';
-
-export interface RegistrationRouteOptions {
-  frontendClient: OryClients['frontend'];
-}
 
 const RegisterBodySchema = Type.Object({
   public_key: Type.String({
@@ -43,56 +35,9 @@ const RegisterBodySchema = Type.Object({
   }),
 });
 
-/**
- * Error IDs from the after-registration webhook (hooks.ts).
- * Kratos propagates these through the flow UI messages.
- */
-const WEBHOOK_ERROR_IDS = {
-  INVALID_PUBLIC_KEY: 4000001,
-  INVALID_VOUCHER: 4000003,
-} as const;
-
-interface KratosMessage {
-  id?: number;
-  text: string;
-  type: string;
-}
-
-function extractErrorMessages(data: unknown): KratosMessage[] {
-  const d = data as {
-    ui?: {
-      messages?: KratosMessage[];
-      nodes?: { messages?: KratosMessage[] }[];
-    };
-  };
-  const msgs: KratosMessage[] = [];
-  for (const m of d?.ui?.messages || []) {
-    if (m.type === 'error') msgs.push(m);
-  }
-  for (const node of d?.ui?.nodes || []) {
-    for (const m of node.messages || []) {
-      if (m.type === 'error') msgs.push(m);
-    }
-  }
-  return msgs;
-}
-
-function pickProblemSlug(
-  messages: KratosMessage[],
-): 'validation-failed' | 'registration-failed' {
-  const hasPublicKeyError = messages.some(
-    (m) => m.id === WEBHOOK_ERROR_IDS.INVALID_PUBLIC_KEY,
-  );
-  if (hasPublicKeyError) return 'validation-failed';
-  return 'registration-failed';
-}
-
 export async function registrationRoutes(
   fastify: FastifyInstance,
-  options: RegistrationRouteOptions,
-) {
-  const { frontendClient } = options;
-
+): Promise<void> {
   // ── Register ──────────────────────────────────────────────────
 
   fastify.post(
@@ -102,11 +47,12 @@ export async function registrationRoutes(
         operationId: 'registerAgent',
         tags: ['auth'],
         description:
-          'Register a new agent on MoltNet. ' +
-          'Creates the Kratos identity and an OAuth2 client. ' +
-          'Returns clientId/clientSecret for authentication. ' +
-          'Requires an Ed25519 public key and a voucher code ' +
-          'from an existing member. No authentication needed.',
+          'Register a new agent on MoltNet using Kratos Admin API. ' +
+          'Creates the Kratos identity, redeems voucher, creates agent record, ' +
+          'registers in Keto, and creates OAuth2 client. ' +
+          'All steps are wrapped in a durable workflow with automatic cleanup on failure. ' +
+          'Requires an Ed25519 public key and a voucher code from an existing member. ' +
+          'No authentication needed.',
         body: RegisterBodySchema,
         response: {
           200: Type.Ref(RegisterResponseSchema),
@@ -123,160 +69,70 @@ export async function registrationRoutes(
         voucher_code: string;
       };
 
-      // Step 1: Create a native registration flow
-      let flow;
+      // Validate public key format before starting workflow
       try {
-        const result = await frontendClient.createNativeRegistrationFlow();
-        flow = result.data;
-      } catch (err: unknown) {
-        fastify.log.error({ err }, 'Failed to create registration flow');
-        throw createProblem(
-          'upstream-error',
-          'Failed to start registration flow',
-        );
-      }
-
-      // Step 2: Submit registration with traits
-      let identityId: string;
-      let fingerprint: string;
-      let publicKey: string;
-      try {
-        const { data: registration } =
-          await frontendClient.updateRegistrationFlow({
-            flow: flow.id,
-            updateRegistrationFlowBody: {
-              method: 'password',
-              password: `moltnet-${crypto.randomUUID()}`,
-              traits: {
-                public_key,
-                voucher_code,
-              },
-            },
-          });
-
-        const metadata =
-          (registration.identity.metadata_public as {
-            fingerprint?: string;
-            public_key?: string;
-          }) || {};
-
-        identityId = registration.identity.id;
-        fingerprint = metadata.fingerprint ?? '';
-        publicKey = metadata.public_key ?? public_key;
-      } catch (err: unknown) {
-        const axiosError = err as {
-          response?: { status: number; data: unknown };
-        };
-        const status = axiosError.response?.status;
-        const data = axiosError.response?.data;
-
-        const messages = extractErrorMessages(data);
-        const detail =
-          messages.length > 0
-            ? messages.map((m) => m.text).join('; ')
-            : 'Registration failed';
-
-        // No status or 5xx → upstream infrastructure error
-        // 4xx → check error messages to distinguish validation vs registration failure
-        // (native flows return 400, browser flows return 422)
-        if (status === undefined || status >= 500) {
-          throw createProblem('upstream-error', detail);
-        }
-        throw createProblem(pickProblemSlug(messages), detail);
-      }
-
-      // Step 2.5: Complete registration with real identity ID
-      // The Kratos webhook created an agent record with a placeholder ID
-      // (KRATOS_PLACEHOLDER_IDENTITY_ID). Now that we have the real
-      // identity ID, we:
-      // 1. Delete the placeholder agent record (if it exists)
-      // 2. Update the voucher's redeemedBy to the real identity ID
-      // 3. Create/update the agent record with the real identity ID
-      // 4. Register the agent in Keto for permission checks
-      try {
-        // Check for placeholder agent record and delete it
-        const placeholderAgent = await fastify.agentRepository.findByIdentityId(
-          KRATOS_PLACEHOLDER_IDENTITY_ID,
-        );
-        if (placeholderAgent && placeholderAgent.fingerprint === fingerprint) {
-          await fastify.agentRepository.delete(KRATOS_PLACEHOLDER_IDENTITY_ID);
-          fastify.log.info(
-            {
-              fingerprint,
-              placeholder_id: KRATOS_PLACEHOLDER_IDENTITY_ID,
-            },
-            'Deleted placeholder agent record',
+        const publicKeyBytes = fastify.cryptoService.parsePublicKey(public_key);
+        if (publicKeyBytes.length !== 32) {
+          throw createProblem(
+            'validation-failed',
+            `public_key must be exactly 32 bytes (got ${publicKeyBytes.length}). ` +
+              'Provide the raw Ed25519 public key, not an SPKI/X.509 wrapper.',
           );
         }
-
-        // Update voucher with real identity ID
-        await fastify.voucherRepository.updateRedeemedBy(
-          voucher_code,
-          identityId,
-        );
-
-        // Create agent record with real identity ID
-        await fastify.agentRepository.upsert({
-          identityId,
-          publicKey,
-          fingerprint,
-        });
-
-        // Register agent in Keto
-        await fastify.permissionChecker.registerAgent(identityId);
-
-        fastify.log.info(
-          { identity_id: identityId, fingerprint },
-          'Registration completed with real identity ID',
-        );
-      } catch (err: unknown) {
-        fastify.log.error(
-          { err, identity_id: identityId },
-          'Failed to complete registration',
-        );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_err) {
         throw createProblem(
-          'upstream-error',
-          'Registration succeeded but post-processing failed',
+          'validation-failed',
+          'public_key must use format "ed25519:<base64>" where <base64> is ' +
+            'your raw 32-byte Ed25519 public key encoded in base64.',
         );
       }
 
-      // Step 3: Create OAuth2 client in Hydra
-      try {
-        const { data: oauthClient } =
-          await fastify.oauth2Client.createOAuth2Client({
-            oAuth2Client: {
-              client_name: `Agent: ${fingerprint}`,
-              grant_types: ['client_credentials'],
-              response_types: [],
-              token_endpoint_auth_method: 'client_secret_post',
-              scope: '',
-              metadata: {
-                type: 'moltnet_agent',
-                identity_id: identityId,
-                public_key: publicKey,
-                fingerprint,
-              },
-            },
-          });
+      // Get identity schema ID
+      const { data: schemas } = await fastify.identityApi.listIdentitySchemas();
+      const agentSchema = schemas.find(
+        (s) => (s.schema as { $id?: string })?.$id?.includes('agent') ?? false,
+      );
+      if (!agentSchema) {
+        throw createProblem(
+          'upstream-error',
+          'Agent identity schema not found in Kratos configuration',
+        );
+      }
 
-        if (!oauthClient.client_id || !oauthClient.client_secret) {
-          throw new Error('Hydra did not return client_id/client_secret');
+      // Start the registration workflow
+      const handle = await DBOS.startWorkflow(
+        registrationWorkflows.registerAgent,
+      )({
+        publicKey: public_key,
+        voucherCode: voucher_code,
+        identitySchemaId: agentSchema.id,
+      });
+
+      // Wait for workflow to complete
+      const result = await handle.getResult();
+
+      // Check if registration succeeded
+      if ('type' in result) {
+        // Error result
+        switch (result.type) {
+          case 'voucher_invalid':
+            throw createProblem('registration-failed', result.message);
+          case 'identity_creation_failed':
+            throw createProblem('upstream-error', result.message);
+          default:
+            throw createProblem('upstream-error', result.message);
         }
-
-        return {
-          identityId,
-          fingerprint,
-          publicKey,
-          clientId: oauthClient.client_id,
-          clientSecret: oauthClient.client_secret,
-        };
-      } catch (err: unknown) {
-        fastify.log.error({ err }, 'Failed to create OAuth2 client');
-        throw createProblem(
-          'upstream-error',
-          'Registration succeeded but OAuth2 client creation failed',
-        );
       }
+
+      // Success!
+      return {
+        identityId: result.identityId,
+        fingerprint: result.fingerprint,
+        publicKey: result.publicKey,
+        clientId: result.clientId,
+        clientSecret: result.clientSecret,
+      };
     },
   );
 

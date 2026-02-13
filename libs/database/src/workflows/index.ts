@@ -22,6 +22,14 @@ export {
   setKetoRelationshipWriter,
 } from './keto-workflows.js';
 export {
+  initRegistrationWorkflows,
+  type RegistrationError,
+  type RegistrationInput,
+  type RegistrationResult,
+  registrationWorkflows,
+  setRegistrationDependencies,
+} from './registration-workflows.js';
+export {
   type AgentKeyLookup,
   initSigningWorkflows,
   setSigningKeyLookup,

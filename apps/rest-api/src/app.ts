@@ -166,9 +166,11 @@ export async function registerApiRoutes(
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);
 
-  // Decorate with webhook config for hook routes
+  // Decorate with webhook config and Ory clients for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);
   app.decorate('oauth2Client', options.oryClients.oauth2);
+  app.decorate('oauth2', options.oryClients.oauth2);
+  app.decorate('identityApi', options.oryClients.identity);
 
   // Register routes
   await app.register(hookRoutes);
@@ -181,9 +183,7 @@ export async function registerApiRoutes(
     recoverySecret: options.recoverySecret,
     identityClient: options.oryClients.identity,
   });
-  await app.register(registrationRoutes, {
-    frontendClient: options.oryClients.frontend,
-  });
+  await app.register(registrationRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(problemRoutes);

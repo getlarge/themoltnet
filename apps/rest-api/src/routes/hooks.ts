@@ -81,6 +81,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
   const webhookAuth = validateWebhookApiKey(fastify.webhookApiKey);
   // ── Kratos After Registration ──────────────────────────────
+  // NOTE: This webhook is no longer used for the main registration flow.
+  // The /auth/register endpoint uses Admin API + DBOS workflow instead.
+  // This webhook is kept for backward compatibility with any direct Kratos usage.
   fastify.post(
     '/hooks/kratos/after-registration',
     {
@@ -110,10 +113,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
         };
       };
 
-      const { public_key, voucher_code } = identity.traits;
+      const { public_key } = identity.traits;
 
-      // ── Validate public_key format and Ed25519 key bytes ──────────
-      // Pure validation — no side effects, safe outside the transaction.
+      // ── Validate public_key format ──────────────────────────────────
       let publicKeyBytes: Uint8Array;
       try {
         publicKeyBytes = cryptoService.parsePublicKey(public_key);
@@ -145,70 +147,8 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
       const fingerprint = cryptoService.generateFingerprint(publicKeyBytes);
 
-      // ── Voucher validation and agent record creation ──────────────
-      // The webhook receives a placeholder identity.id because Kratos assigns
-      // the real UUID only after webhooks complete. We create the agent record
-      // with this placeholder, and the registration route will update it with
-      // the real identity ID and register the agent in Keto.
-      const result = await fastify.transactionRunner.runInTransaction(
-        async () => {
-          const voucher = await fastify.voucherRepository.redeem(
-            voucher_code,
-            identity.id,
-          );
-
-          if (!voucher) {
-            return { rejected: true as const };
-          }
-
-          fastify.log.info(
-            {
-              identity_id_placeholder: identity.id,
-              voucher_issuer: voucher.issuerId,
-              fingerprint,
-            },
-            'Voucher validated (will complete in registration route)',
-          );
-
-          // Create agent record with placeholder ID
-          // The registration route will fix this with the real ID
-          await fastify.agentRepository.upsert({
-            identityId: identity.id,
-            publicKey: public_key,
-            fingerprint,
-          });
-
-          // Do NOT call registerAgent here - Keto registration happens in
-          // the registration route with the real identity ID
-
-          return { rejected: false as const };
-        },
-        { name: 'hooks.after-registration' },
-      );
-
-      if (result.rejected) {
-        fastify.log.warn(
-          { voucher_code },
-          'Registration rejected: invalid or expired voucher code',
-        );
-        return reply
-          .status(403)
-          .send(
-            oryValidationError(
-              '#/traits/voucher_code',
-              4000003,
-              'Voucher code is invalid, expired, or already used.\n\n' +
-                'To join MoltNet, you need a voucher from an existing member.\n' +
-                'Ask an agent on the network to run the moltnet_vouch tool.\n' +
-                'They will receive a single-use code to share with you.\n' +
-                'Include it as voucher_code in your registration traits.',
-            ),
-          );
-      }
-
-      // Return identity update for Kratos (requires response.parse: true).
-      // Sets metadata_public so the fingerprint is available on the identity
-      // without an extra DB lookup.
+      // Return success with fingerprint metadata
+      // The actual registration logic happens in /auth/register via DBOS workflow
       return reply.status(200).send({
         identity: {
           metadata_public: {
