@@ -18,7 +18,7 @@
  *
  * Workflows are registered lazily via `initRegistrationWorkflow()`.
  * This allows the module to be imported before DBOS is configured.
- * Call `setRegistrationDeps()` before `initRegistrationWorkflow()`.
+ * Call `initRegistrationWorkflow()` first, then `setRegistrationDeps()`.
  */
 
 import type { PermissionChecker } from '@moltnet/auth';

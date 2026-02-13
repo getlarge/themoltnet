@@ -34,6 +34,7 @@ vi.mock('@moltnet/database', async (importOriginal) => {
 import {
   initRegistrationWorkflow,
   registrationWorkflow,
+  RegistrationWorkflowError,
   setRegistrationDeps,
   VoucherValidationError,
 } from '../../src/workflows/index.js';
@@ -274,6 +275,60 @@ describe('registration workflow', () => {
           VOUCHER_CODE,
         ),
       ).rejects.toThrow('Voucher has already been redeemed');
+
+      expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('schema resolution', () => {
+    it('throws when no agent identity schema is found', async () => {
+      // Arrange
+      mocks.voucherRepository.findByCode.mockResolvedValue(
+        createValidVoucher(),
+      );
+      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
+        {
+          id: 'other-schema',
+          schema: { $id: 'https://example.com/user.json' },
+        },
+      ]);
+
+      // Act & Assert
+      await expect(
+        registrationWorkflow.registerAgent(
+          PUBLIC_KEY,
+          FINGERPRINT,
+          VOUCHER_CODE,
+        ),
+      ).rejects.toThrow(RegistrationWorkflowError);
+
+      await expect(
+        registrationWorkflow.registerAgent(
+          PUBLIC_KEY,
+          FINGERPRINT,
+          VOUCHER_CODE,
+        ),
+      ).rejects.toThrow('Agent identity schema not found');
+
+      // No identity created
+      expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
+    });
+
+    it('throws when schemas list is empty', async () => {
+      // Arrange
+      mocks.voucherRepository.findByCode.mockResolvedValue(
+        createValidVoucher(),
+      );
+      mocks.identityApi.listIdentitySchemas.mockResolvedValue([]);
+
+      // Act & Assert
+      await expect(
+        registrationWorkflow.registerAgent(
+          PUBLIC_KEY,
+          FINGERPRINT,
+          VOUCHER_CODE,
+        ),
+      ).rejects.toThrow(RegistrationWorkflowError);
 
       expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
     });
