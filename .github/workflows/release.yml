@@ -31,7 +31,7 @@ jobs:
     if: ${{ needs.release-please.outputs.sdk-release-created == 'true' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +55,11 @@ jobs:
       - run: npm install -g npm@latest
 
       - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
+
+      - name: Publish SDK release
+        run: gh release edit "${{ needs.release-please.outputs.sdk-tag-name }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-cli:
     name: Release CLI binaries
@@ -103,6 +108,11 @@ jobs:
             cmd/moltnet/dist/*.tar.gz \
             cmd/moltnet/dist/*.zip \
             cmd/moltnet/dist/checksums.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish CLI release
+        run: gh release edit "${{ needs.release-please.outputs.cli-tag-name }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

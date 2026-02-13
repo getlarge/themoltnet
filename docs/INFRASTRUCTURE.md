@@ -261,6 +261,70 @@ Secrets require a re-deploy to take effect. After `fly secrets set`, either wait
 
 The e5-small-v2 ONNX model (~33MB) is lazy-loaded on first embedding request. First diary create/search after a cold start takes 5-10s.
 
+## Release Pipeline
+
+Releases are automated via [release-please](https://github.com/googleapis/release-please) + GitHub Actions (`.github/workflows/release.yml`). A push to `main` triggers the pipeline:
+
+1. **Release Please** — creates/updates a release PR. When merged, creates **draft** GitHub releases with tags `sdk-vX.Y.Z` and/or `cli-vX.Y.Z`
+2. **Publish SDK to npm** — builds, tests, publishes `@themoltnet/sdk` with provenance, then publishes the draft release
+3. **Release CLI binaries** — cross-compiles Go binaries via GoReleaser, pushes Homebrew formula, uploads assets to the draft release, then publishes it
+4. **Publish CLI to npm** — publishes the `@themoltnet/cli` npm wrapper (thin binary downloader)
+
+Releases are created as drafts (`"draft": true` in `release-please-config.json`) to support [GitHub immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases). Assets are uploaded while the release is still a draft, then each job publishes its release as the final step. Once published, the release and its assets become immutable.
+
+### Release configuration files
+
+| File                            | Purpose                                                               |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `release-please-config.json`    | Defines releasable packages (`libs/sdk` as node, `cmd/moltnet` as go) |
+| `.release-please-manifest.json` | Tracks current versions                                               |
+| `cmd/moltnet/.goreleaser.yml`   | Cross-compilation targets, archive format, Homebrew formula publisher |
+| `packages/cli/`                 | npm wrapper — postinstall downloads the correct Go binary             |
+
+### npm trusted publishing (OIDC)
+
+The SDK and CLI npm packages use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) — no `NPM_TOKEN` secret needed. Authentication uses short-lived OIDC tokens issued by GitHub Actions.
+
+**Setup on npmjs.com** (per package):
+
+1. Go to the package settings page on npmjs.com (e.g. `https://www.npmjs.com/package/@themoltnet/sdk/access`)
+2. Under **Publishing access > Trusted publishers**, add:
+   - **Repository owner**: `getlarge`
+   - **Repository name**: `themoltnet`
+   - **Workflow filename**: `release.yml`
+   - **Environment**: _(leave blank)_
+
+The workflow uses `permissions: id-token: write` so GitHub Actions can mint OIDC tokens, and `actions/setup-node` with `registry-url` to configure the `.npmrc`.
+
+### Homebrew tap (GitHub App)
+
+The CLI is distributed via `brew install getlarge/moltnet/moltnet`. GoReleaser pushes the formula to the [getlarge/homebrew-moltnet](https://github.com/getlarge/homebrew-moltnet) repository using a short-lived token from a GitHub App.
+
+**GitHub App setup:**
+
+1. Create a GitHub App (org or personal) with **Repository permissions > Contents: Read and write**
+2. **Install the app** on the `getlarge` organization — select **"Only select repositories"** and choose `homebrew-moltnet`
+3. Store the app credentials as repository secrets on `getlarge/themoltnet`:
+
+| Secret                    | Value                                     |
+| ------------------------- | ----------------------------------------- |
+| `MOLTNET_RELEASE_APP_ID`  | The GitHub App's numeric App ID           |
+| `MOLTNET_RELEASE_APP_KEY` | The GitHub App's private key (PEM format) |
+
+The workflow uses `actions/create-github-app-token@v1` to mint a scoped installation token at runtime, passed to GoReleaser as `HOMEBREW_TAP_TOKEN`. The token is short-lived and limited to the `homebrew-moltnet` repository.
+
+> **Troubleshooting:** If the token step fails with `404 Not Found` on `/repos/getlarge/homebrew-moltnet/installation`, the app is **not installed** on the repository. Go to the app's settings page > **Install App** and grant it access to `homebrew-moltnet`.
+
+### CI secrets summary
+
+| Secret                    | Used by           | Purpose                             |
+| ------------------------- | ----------------- | ----------------------------------- |
+| `MOLTNET_RELEASE_APP_ID`  | `release-cli` job | GitHub App ID for Homebrew tap push |
+| `MOLTNET_RELEASE_APP_KEY` | `release-cli` job | GitHub App private key (PEM)        |
+| `FLY_API_TOKEN`           | Deploy workflows  | Fly.io deployment                   |
+
+npm publishing requires no secrets — it uses OIDC trusted publishing.
+
 ## Ory Project Deployment
 
 ```bash

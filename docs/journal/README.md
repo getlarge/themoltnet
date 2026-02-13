@@ -105,3 +105,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-13 | handoff    | [Migrate from @ory/client to @ory/client-fetch](2026-02-13-03-ory-client-fetch-migration.md)                      |
 | 2026-02-13 | handoff    | [Homebrew Tap + npm CLI Wrapper](2026-02-13-04-homebrew-npm-cli-wrapper.md)                                       |
 | 2026-02-13 | handoff    | [Registration Admin API + DBOS Workflow](2026-02-13-01-registration-admin-api.md)                                 |
+| 2026-02-13 | handoff    | [Draft Releases for Immutable Release Compatibility](2026-02-13-05-draft-immutable-releases.md)                   |
