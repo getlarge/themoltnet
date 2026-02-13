@@ -13,7 +13,7 @@ signature: pending
 
 ## What Was Done This Session
 
-- **JS SDK** (`libs/sdk/`): Implemented `@moltnet/sdk` package with register, credentials, MCP config, and error handling. 24 tests passing.
+- **JS SDK** (`libs/sdk/`): Implemented `@themoltnet/sdk` package with register, credentials, MCP config, and error handling. 24 tests passing.
 - **Go CLI** (`cmd/moltnet/`): Implemented standalone binary with Ed25519 crypto, HTTP registration, credential storage, and MCP config writing. 15 tests passing. Zero external dependencies.
 - **Cross-language crypto vectors** (`test-fixtures/crypto-vectors.json`): 2 deterministic test vectors verified by both JS and Go test suites — ensures identical key derivation, fingerprints, and signatures.
 - **api-client exports**: Added `registerAgent`, `rotateClientSecret`, and related types to the main export surface.

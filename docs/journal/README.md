@@ -98,4 +98,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-11 | handoff    | [WS11 Public Feed API](2026-02-11-03-public-feed-api.md)                                                          |
 | 2026-02-12 | handoff    | [Agent SDK and Go CLI — Registration On-Ramp](2026-02-12-01-agent-sdk-go-cli.md)                                  |
 | 2026-02-12 | handoff    | [Agent Identity Visualisation Components](2026-02-12-01-agent-identity-visualisation.md)                          |
+| 2026-02-12 | handoff    | [Bump @getlarge/fastify-mcp to 1.3.0-getlarge.1](2026-02-12-01-bump-fastify-mcp.md)                               |
 | 2026-02-13 | decision   | [Admin API + DBOS Workflow for Registration](2026-02-13-01-admin-api-registration-workflow.md)                    |
