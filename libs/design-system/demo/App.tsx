@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import {
-  AgentColorSwatch,
   AgentIdentityFull,
   AgentIdentityMark,
   Badge,
@@ -10,7 +9,7 @@ import {
   CodeBlock,
   colors,
   Container,
-  deriveFingerprintColor,
+  deriveIdentityParams,
   Divider,
   Input,
   KeyFingerprint,
@@ -27,30 +26,30 @@ import {
 // Demo agent keys (base64-encoded 32-byte strings, NOT real private keys)
 // ---------------------------------------------------------------------------
 
-const DEMO_AGENT_KEYS = [
+// Random 32-byte keys with well-distributed hues:
+// alpha-7 ≈ 15° (red-orange), beta-9 ≈ 100° (green),
+// gamma-3 ≈ 200° (blue), delta-1 ≈ 300° (magenta)
+const DEMO_AGENTS = [
   {
     name: 'alpha-7',
-    key: 'ed25519:dGhlLW1vbHRuZXQtYWdlbnQtYWxwaGEtNy1rZXktMDE=',
+    key: 'ed25519:fQuJevoiEGBD/U1ZxizBqVmWI5leTjHInhFLJCSipSs=',
+    fingerprint: '7D0B-897A-FA22-1060',
   },
   {
     name: 'beta-9',
-    key: 'ed25519:Y2xhdWRlLWJldGEtOS1lZDI1NTE5LWlkZW50aXR5LTI=',
+    key: 'ed25519:/kcnNUhJOBBYa8r3RLnp3s9dqh4PpfsPFXYR0yJytD8=',
+    fingerprint: 'FE47-2735-4849-3810',
   },
   {
     name: 'gamma-3',
-    key: 'ed25519:c29waGlhLWdhbW1hLTMtY3J5cHRvLWtleS1wYWlyLTM=',
+    key: 'ed25519:Fo4cjw/fkyv7q3CJWgO8bS/6v1xHqMVdqpRxwQ/+8V0=',
+    fingerprint: '168E-1C8F-0FDF-932B',
   },
   {
     name: 'delta-1',
-    key: 'ed25519:bmV4dXMtZGVsdGEtMS1hdXRvbm9teS1rZXktcGFpci00',
+    key: 'ed25519:sdXaJ9KhyrhUX6tV7OOdqjgN0fjGUyGIDr4ndg/nJDk=',
+    fingerprint: 'B1D5-DA27-D2A1-CAB8',
   },
-] as const;
-
-const DEMO_FINGERPRINTS = [
-  { name: 'alpha-7', fingerprint: '7A3E-B9C2-D4E6-1058' },
-  { name: 'beta-9', fingerprint: 'C24F-17B8-E3D1-8056' },
-  { name: 'gamma-3', fingerprint: '38D1-F5A0-6B92-C7E4' },
-  { name: 'delta-1', fingerprint: 'E609-4C8A-2FD3-B175' },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -564,12 +563,14 @@ console.log(signed.signature);
         </Section>
 
         {/* ---- Agent Identity ---- */}
-        <Section title="Agent Identity Visualisation">
+        <Section title="Agent Identity">
           <Stack gap={6}>
             <Text variant="body" color="secondary">
               Every agent&apos;s Ed25519 public key deterministically generates
-              a unique visual fingerprint — concentric deformed rings, per-key
-              hue shifts, and breathing glows. No two agents look alike.
+              a unique visual fingerprint — concentric deformed rings with
+              per-key colors, breathing glows, and orbital particles. No two
+              agents look alike. The key also derives an accent color used
+              across fingerprints, cards, and gradients.
             </Text>
 
             <div>
@@ -581,7 +582,7 @@ console.log(signed.signature);
                 Identity Marks (inline avatars)
               </Text>
               <Stack direction="row" gap={4} align="center" wrap>
-                {DEMO_AGENT_KEYS.map(({ name, key }) => (
+                {DEMO_AGENTS.map(({ name, key }) => (
                   <Stack key={name} align="center" gap={1}>
                     <AgentIdentityMark publicKey={key} size={48} />
                     <Text variant="caption" color="secondary">
@@ -604,7 +605,7 @@ console.log(signed.signature);
                 {[24, 32, 40, 56, 64].map((sz) => (
                   <AgentIdentityMark
                     key={sz}
-                    publicKey={DEMO_AGENT_KEYS[0].key}
+                    publicKey={DEMO_AGENTS[0].key}
                     size={sz}
                   />
                 ))}
@@ -620,179 +621,99 @@ console.log(signed.signature);
                 Full Visualisation (profile / hero)
               </Text>
               <Stack direction="row" gap={6} align="start" wrap>
-                {DEMO_AGENT_KEYS.slice(0, 2).map(({ name, key }) => (
-                  <Card
-                    key={name}
-                    variant="surface"
-                    padding="lg"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: theme.spacing[3],
-                    }}
-                  >
-                    <AgentIdentityFull publicKey={key} size={240} />
-                    <Stack align="center" gap={1}>
-                      <Text variant="h4">{name}</Text>
-                      <Text variant="caption" color="muted" mono>
-                        {key.slice(0, 30)}…
-                      </Text>
-                    </Stack>
-                  </Card>
-                ))}
-              </Stack>
-            </div>
-
-            <div>
-              <Text
-                variant="overline"
-                color="muted"
-                style={{ marginBottom: theme.spacing[3] }}
-              >
-                Composition — agent card with identity mark
-              </Text>
-              <Card variant="elevated" glow="accent" padding="lg">
-                <Stack gap={4}>
-                  <Stack direction="row" align="center" gap={4}>
-                    <AgentIdentityMark
-                      publicKey={DEMO_AGENT_KEYS[2].key}
-                      size={56}
-                    />
-                    <Stack gap={1}>
-                      <Text variant="h3">{DEMO_AGENT_KEYS[2].name}</Text>
-                      <Text variant="caption" color="secondary">
-                        Ed25519 identity — cryptographically unique
-                      </Text>
-                    </Stack>
-                    <Badge variant="success">Online</Badge>
-                  </Stack>
-                  <Divider />
-                  <Stack direction="row" gap={6} wrap>
-                    <KeyFingerprint
-                      label="Fingerprint"
-                      fingerprint="C2A9-4F7B-E3D1-8056"
-                      copyable
-                    />
-                    <Stack gap={1}>
-                      <Text variant="overline" color="muted">
-                        Diary Entries
-                      </Text>
-                      <Text variant="h4" color="primary">
-                        87
-                      </Text>
-                    </Stack>
-                  </Stack>
-                </Stack>
-              </Card>
-            </div>
-          </Stack>
-        </Section>
-
-        {/* ---- Agent Fingerprint Colors ---- */}
-        <Section title="Agent Fingerprint Colors">
-          <Stack gap={6}>
-            <Text variant="body" color="secondary">
-              The first 6 hex characters of an agent&apos;s fingerprint
-              deterministically derive a unique signature color. Saturation and
-              lightness are clamped for visibility on both dark and light
-              backgrounds.
-            </Text>
-
-            <div>
-              <Text
-                variant="overline"
-                color="muted"
-                style={{ marginBottom: theme.spacing[3] }}
-              >
-                Color Swatches (adjusted vs raw)
-              </Text>
-              <Stack direction="row" gap={6} wrap>
-                {DEMO_FINGERPRINTS.map(({ name, fingerprint }) => (
-                  <Stack key={name} align="center" gap={2}>
-                    <AgentColorSwatch fingerprint={fingerprint} size="lg" />
-                    <Text variant="caption" color="secondary">
-                      {name}
-                    </Text>
-                  </Stack>
-                ))}
-              </Stack>
-            </div>
-
-            <div>
-              <Text
-                variant="overline"
-                color="muted"
-                style={{ marginBottom: theme.spacing[3] }}
-              >
-                KeyFingerprint with color accent
-              </Text>
-              <Stack direction="row" gap={6} wrap>
-                {DEMO_FINGERPRINTS.map(({ name, fingerprint }) => (
-                  <KeyFingerprint
-                    key={name}
-                    label={name}
-                    fingerprint={fingerprint}
-                    color={deriveFingerprintColor(fingerprint).hex}
-                    copyable
-                  />
-                ))}
-              </Stack>
-            </div>
-
-            <div>
-              <Text
-                variant="overline"
-                color="muted"
-                style={{ marginBottom: theme.spacing[3] }}
-              >
-                Composed — agent card with identity color
-              </Text>
-              {(() => {
-                const agent = DEMO_FINGERPRINTS[0];
-                const agentColor = deriveFingerprintColor(
-                  agent.fingerprint,
-                ).hex;
-                return (
-                  <Card variant="elevated" padding="lg">
-                    <Stack gap={4}>
-                      <Stack direction="row" align="center" gap={4}>
-                        <AgentIdentityMark
-                          publicKey={DEMO_AGENT_KEYS[0].key}
-                          size={56}
-                        />
-                        <Stack gap={1}>
-                          <Text variant="h3">{agent.name}</Text>
-                          <Text variant="caption" color="secondary">
-                            Signature color derived from fingerprint
-                          </Text>
-                        </Stack>
-                        <Badge variant="success">Online</Badge>
-                      </Stack>
-                      <Divider />
-                      <Stack direction="row" gap={6} align="center" wrap>
-                        <KeyFingerprint
-                          label="Fingerprint"
-                          fingerprint={agent.fingerprint}
-                          color={agentColor}
-                          copyable
-                        />
-                        <AgentColorSwatch
-                          fingerprint={agent.fingerprint}
-                          size="lg"
-                        />
+                {DEMO_AGENTS.map(({ name, key }) => {
+                  const params = deriveIdentityParams(key);
+                  return (
+                    <Card
+                      key={name}
+                      variant="surface"
+                      padding="lg"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: theme.spacing[3],
+                      }}
+                    >
+                      <AgentIdentityFull
+                        publicKey={key}
+                        size={240}
+                        params={params}
+                      />
+                      <Stack align="center" gap={1}>
+                        <Text variant="h4">{name}</Text>
+                        <Text variant="caption" color="muted" mono>
+                          {key.slice(0, 30)}…
+                        </Text>
                       </Stack>
                       <div
                         style={{
-                          height: 4,
+                          height: 3,
                           borderRadius: theme.radius.full,
-                          background: `linear-gradient(90deg, ${agentColor}, transparent)`,
+                          background: `linear-gradient(90deg, ${params.accentHex}, transparent)`,
+                          alignSelf: 'stretch',
                         }}
                       />
-                    </Stack>
-                  </Card>
-                );
-              })()}
+                    </Card>
+                  );
+                })}
+              </Stack>
+            </div>
+
+            <div>
+              <Text
+                variant="overline"
+                color="muted"
+                style={{ marginBottom: theme.spacing[3] }}
+              >
+                Composed — agent cards with unified identity colors
+              </Text>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: theme.spacing[4],
+                }}
+              >
+                {DEMO_AGENTS.map(({ name, key, fingerprint }) => {
+                  const params = deriveIdentityParams(key);
+                  return (
+                    <Card key={name} variant="elevated" padding="lg">
+                      <Stack gap={3}>
+                        <Stack direction="row" align="center" gap={3}>
+                          <AgentIdentityMark
+                            publicKey={key}
+                            size={48}
+                            params={params}
+                          />
+                          <Stack gap={1}>
+                            <Text variant="h4">{name}</Text>
+                            <Text variant="caption" color="secondary">
+                              Ed25519 identity
+                            </Text>
+                          </Stack>
+                          <Badge variant="success">Online</Badge>
+                        </Stack>
+                        <Divider />
+                        <KeyFingerprint
+                          label="Fingerprint"
+                          fingerprint={fingerprint}
+                          color={params.accentHex}
+                          copyable
+                          size="sm"
+                        />
+                        <div
+                          style={{
+                            height: 3,
+                            borderRadius: theme.radius.full,
+                            background: `linear-gradient(90deg, ${params.accentHex}, transparent)`,
+                          }}
+                        />
+                      </Stack>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
           </Stack>
         </Section>
