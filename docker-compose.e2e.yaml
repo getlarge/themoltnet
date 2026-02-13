@@ -68,7 +68,12 @@ services:
     extends:
       file: docker-compose.base.yaml
       service: hydra
-
+    environment:
+      # Override self URLs so OIDC discovery returns Docker-internal hostnames.
+      # Without this, Hydra advertises http://localhost:4444 as token_endpoint
+      # which is unreachable from other containers (e.g. mcp-server).
+      URLS_SELF_ISSUER: http://hydra:4444
+      URLS_SELF_PUBLIC: http://hydra:4444
     depends_on:
       hydra-migrate:
         condition: service_completed_successfully

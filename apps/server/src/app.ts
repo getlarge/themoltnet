@@ -186,6 +186,7 @@ export async function bootstrap(
   // are skipped by registerApiRoutes via hasDecorator guards.
   await registerApiRoutes(app, {
     diaryService,
+    diaryRepository,
     agentRepository,
     cryptoService,
     voucherRepository,

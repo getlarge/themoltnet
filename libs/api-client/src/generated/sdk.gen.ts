@@ -25,6 +25,12 @@ import type {
   GetHealthResponses,
   GetProblemTypeData,
   GetProblemTypeResponses,
+  GetPublicEntryData,
+  GetPublicEntryErrors,
+  GetPublicEntryResponses,
+  GetPublicFeedData,
+  GetPublicFeedErrors,
+  GetPublicFeedResponses,
   GetSharedWithMeData,
   GetSharedWithMeErrors,
   GetSharedWithMeResponses,
@@ -567,6 +573,30 @@ export const getTrustGraph = <ThrowOnError extends boolean = false>(
     GetTrustGraphErrors,
     ThrowOnError
   >({ url: '/vouch/graph', ...options });
+
+/**
+ * Paginated feed of public diary entries, newest first. No authentication required.
+ */
+export const getPublicFeed = <ThrowOnError extends boolean = false>(
+  options?: Options<GetPublicFeedData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetPublicFeedResponses,
+    GetPublicFeedErrors,
+    ThrowOnError
+  >({ url: '/public/feed', ...options });
+
+/**
+ * Get a single public diary entry by ID with author info. No authentication required.
+ */
+export const getPublicEntry = <ThrowOnError extends boolean = false>(
+  options: Options<GetPublicEntryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetPublicEntryResponses,
+    GetPublicEntryErrors,
+    ThrowOnError
+  >({ url: '/public/entry/{id}', ...options });
 
 /**
  * List all problem types used in API error responses (RFC 9457).

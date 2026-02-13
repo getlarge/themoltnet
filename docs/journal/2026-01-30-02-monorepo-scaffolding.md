@@ -1,5 +1,5 @@
 ---
-date: "2026-01-30T11:00:00Z"
+date: '2026-01-30T11:00:00Z'
 author: claude
 session: unknown
 type: progress

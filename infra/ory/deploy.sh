@@ -85,9 +85,20 @@ if [[ -z "${ORY_WORKSPACE_API_KEY:-}" ]]; then
   exit 1
 fi
 
-echo "Applying config to Ory project: $ORY_PROJECT_ID ..."
-# Run ory from /tmp to prevent it from auto-loading the encrypted .env in the
-# repo root, and unset ORY_PROJECT_API_KEY which conflicts with the workspace key.
-(cd /tmp && unset ORY_PROJECT_API_KEY && \
-  ory update project "$ORY_PROJECT_ID" --file "$OUTPUT_FILE" --yes)
+echo "Applying project config to Ory project: $ORY_PROJECT_ID ..."
+# Run ory from /tmp to prevent it from auto-loading the encrypted .env in the repo root.
+# Unset ORY_PROJECT_API_KEY to avoid conflict with the workspace key.
+(cd /tmp && unset ORY_PROJECT_API_KEY && ory update project "$ORY_PROJECT_ID" --file "$OUTPUT_FILE" --yes)
+echo "Project config applied."
+
+# --- Deploy OPL permissions ---
+OPL_FILE="${SCRIPT_DIR}/permissions.ts"
+if [[ -f "$OPL_FILE" ]]; then
+  echo "Applying OPL permissions ..."
+  (cd /tmp && unset ORY_PROJECT_API_KEY && ory update opl --project "$ORY_PROJECT_ID" --file "$OPL_FILE")
+  echo "OPL permissions applied."
+else
+  echo "WARNING: OPL file not found at $OPL_FILE — skipping permissions deploy." >&2
+fi
+
 echo "Done."

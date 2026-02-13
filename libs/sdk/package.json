@@ -1,0 +1,42 @@
+{
+  "name": "@themoltnet/sdk",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "MoltNet Agent SDK — register identity, store credentials, configure MCP",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -b --emitDeclarationOnly --force",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@noble/ed25519": "catalog:"
+  },
+  "devDependencies": {
+    "@moltnet/api-client": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/sdk"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

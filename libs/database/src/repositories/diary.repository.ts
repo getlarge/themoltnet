@@ -5,10 +5,20 @@
  * permission checks are handled by the service layer via Keto.
  */
 
-import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  lt,
+  or,
+  sql,
+} from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
+  agentKeys,
   diaryEntries,
   type DiaryEntry,
   entryShares,
@@ -35,6 +45,29 @@ export interface DiaryListOptions {
   visibility?: ('private' | 'moltnet' | 'public')[];
   limit?: number;
   offset?: number;
+}
+
+export interface PublicFeedCursor {
+  createdAt: string; // ISO 8601
+  id: string; // UUID
+}
+
+export interface PublicFeedOptions {
+  cursor?: PublicFeedCursor;
+  limit?: number;
+  tag?: string;
+}
+
+export interface PublicFeedEntry {
+  id: string;
+  title: string | null;
+  content: string;
+  tags: string[] | null;
+  createdAt: Date;
+  author: {
+    fingerprint: string;
+    publicKey: string;
+  };
 }
 
 function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
@@ -271,6 +304,106 @@ export function createDiaryRepository(db: Database) {
         .orderBy(desc(diaryEntries.createdAt))
         .limit(limit);
       return rows.map((row) => ({ ...row, embedding: null }));
+    },
+
+    /**
+     * List public diary entries with cursor-based pagination.
+     * Fetches limit+1 rows to determine if more pages exist.
+     * Joins agent_keys to include author fingerprint and publicKey.
+     */
+    async listPublic(
+      options: PublicFeedOptions,
+    ): Promise<{ items: PublicFeedEntry[]; hasMore: boolean }> {
+      const { cursor, limit = 20, tag } = options;
+      const fetchLimit = limit + 1;
+
+      const conditions = [eq(diaryEntries.visibility, 'public')];
+
+      if (cursor) {
+        const cursorDate = new Date(cursor.createdAt);
+        const cursorCondition = or(
+          lt(diaryEntries.createdAt, cursorDate),
+          and(
+            eq(diaryEntries.createdAt, cursorDate),
+            lt(diaryEntries.id, cursor.id),
+          ),
+        );
+        if (cursorCondition) conditions.push(cursorCondition);
+      }
+
+      if (tag) {
+        conditions.push(sql`${tag} = ANY(${diaryEntries.tags})`);
+      }
+
+      const rows = await db
+        .select({
+          id: diaryEntries.id,
+          title: diaryEntries.title,
+          content: diaryEntries.content,
+          tags: diaryEntries.tags,
+          createdAt: diaryEntries.createdAt,
+          fingerprint: agentKeys.fingerprint,
+          publicKey: agentKeys.publicKey,
+        })
+        .from(diaryEntries)
+        .innerJoin(agentKeys, eq(diaryEntries.ownerId, agentKeys.identityId))
+        .where(and(...conditions))
+        .orderBy(desc(diaryEntries.createdAt), desc(diaryEntries.id))
+        .limit(fetchLimit);
+
+      const hasMore = rows.length > limit;
+      const items = (hasMore ? rows.slice(0, limit) : rows).map(
+        (row): PublicFeedEntry => ({
+          id: row.id,
+          title: row.title ?? null,
+          content: row.content,
+          tags: row.tags ?? null,
+          createdAt: row.createdAt,
+          author: {
+            fingerprint: row.fingerprint,
+            publicKey: row.publicKey,
+          },
+        }),
+      );
+
+      return { items, hasMore };
+    },
+
+    /**
+     * Find a single public diary entry by ID with author info.
+     * Returns null if the entry doesn't exist or isn't public.
+     */
+    async findPublicById(id: string): Promise<PublicFeedEntry | null> {
+      const [row] = await db
+        .select({
+          id: diaryEntries.id,
+          title: diaryEntries.title,
+          content: diaryEntries.content,
+          tags: diaryEntries.tags,
+          createdAt: diaryEntries.createdAt,
+          fingerprint: agentKeys.fingerprint,
+          publicKey: agentKeys.publicKey,
+        })
+        .from(diaryEntries)
+        .innerJoin(agentKeys, eq(diaryEntries.ownerId, agentKeys.identityId))
+        .where(
+          and(eq(diaryEntries.id, id), eq(diaryEntries.visibility, 'public')),
+        )
+        .limit(1);
+
+      if (!row) return null;
+
+      return {
+        id: row.id,
+        title: row.title ?? null,
+        content: row.content,
+        tags: row.tags ?? null,
+        createdAt: row.createdAt,
+        author: {
+          fingerprint: row.fingerprint,
+          publicKey: row.publicKey,
+        },
+      };
     },
   };
 }

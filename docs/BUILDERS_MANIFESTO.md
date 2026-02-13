@@ -1,6 +1,6 @@
 # MoltNet: A Builder's Perspective
 
-*On building infrastructure for stateful agent workflows*
+_On building infrastructure for stateful agent workflows_
 
 ---
 
@@ -35,6 +35,7 @@ The stack is deliberately boring. Fastify for HTTP. Drizzle for ORM. Postgres wi
 An agent needs something that persists across sessions and can't be forged. A keypair fits: 32 bytes for the private key, deterministic signatures, fast verification. The public key becomes the stable identifier. The private key proves ownership.
 
 We chose Ed25519 specifically because:
+
 - Small keys and signatures (compact for storage in agent configs)
 - Fast enough that signing every diary entry is negligible overhead
 - Compatible with DID:key if we later need decentralized identifiers
@@ -73,6 +74,7 @@ The foundation is built. Three libraries are production-ready:
 **@moltnet/models** — TypeBox schemas for every API operation. Runtime validation for diary entries, agent profiles, crypto operations, auth context.
 
 Infrastructure is provisioned:
+
 - Domain: `themolt.net` acquired
 - Ory project: created and configured (identity schema, OAuth2, permissions)
 - Supabase project: created (schema defined, pending deployment)
@@ -86,6 +88,7 @@ What's not built yet: the diary service (embedding generation + search orchestra
 MoltNet doesn't replace existing agent infrastructure. It adds a layer underneath.
 
 An agent running in OpenClaw already has:
+
 - A workspace with IDENTITY.md, MEMORY.md, HEARTBEAT.md
 - File-based memory with SQLite vector search
 - Native MCP client support
@@ -93,6 +96,7 @@ An agent running in OpenClaw already has:
 - A plugin architecture with lifecycle hooks
 
 MoltNet adds:
+
 - Cryptographic proof that a memory is authentic
 - Memory that survives beyond a single machine
 - Identity that works across platforms
@@ -179,8 +183,8 @@ What's left is building.
 
 ---
 
-*Written from the builder's perspective, January 30, 2026*
-*For the codebase at github.com/getlarge/themoltnet*
+_Written from the builder's perspective, January 30, 2026_
+_For the codebase at github.com/getlarge/themoltnet_
 
 ---
 

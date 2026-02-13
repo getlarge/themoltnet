@@ -35,6 +35,10 @@ export type { BaseComponentProps, Signal, Size } from './types.js';
 
 // Components
 export {
+  AgentIdentityFull,
+  type AgentIdentityFullProps,
+  AgentIdentityMark,
+  type AgentIdentityMarkProps,
   Badge,
   type BadgeProps,
   type BadgeVariant,
@@ -48,8 +52,13 @@ export {
   type CodeBlockProps,
   Container,
   type ContainerProps,
+  deriveIdentityParams,
   Divider,
   type DividerProps,
+  generateDeformedRingPath,
+  identityColor,
+  type IdentityParams,
+  type IdentityRing,
   Input,
   type InputProps,
   KeyFingerprint,

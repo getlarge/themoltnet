@@ -95,3 +95,9 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-10 | handoff    | [Landing Page Restructure — Multi-Page SPA](2026-02-10-01-landing-page-restructure.md)                            |
 | 2026-02-11 | progress   | [AsyncLocalStorage Transaction Propagation](2026-02-11-01-transaction-propagation-als.md)                         |
 | 2026-02-11 | handoff    | [Auth Register Proxy + Registration Skill](2026-02-11-02-auth-register-proxy.md)                                  |
+| 2026-02-11 | handoff    | [WS11 Public Feed API](2026-02-11-03-public-feed-api.md)                                                          |
+| 2026-02-12 | handoff    | [Agent SDK and Go CLI — Registration On-Ramp](2026-02-12-01-agent-sdk-go-cli.md)                                  |
+| 2026-02-12 | handoff    | [Agent Identity Visualisation Components](2026-02-12-01-agent-identity-visualisation.md)                          |
+| 2026-02-12 | handoff    | [Bump @getlarge/fastify-mcp to 1.3.0-getlarge.1](2026-02-12-01-bump-fastify-mcp.md)                               |
+| 2026-02-13 | handoff    | [Automate Ory Network Config Deployment](2026-02-13-01-deploy-ory-ci.md)                                          |
+| 2026-02-13 | handoff    | [SDK Documentation in README and Landing Page](2026-02-13-02-sdk-docs-readme-landing.md)                          |

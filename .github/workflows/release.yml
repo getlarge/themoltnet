@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    outputs:
+      sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
+      sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
+      cli-release-created: ${{ steps.release.outputs['cmd/moltnet--release_created'] }}
+      cli-tag-name: ${{ steps.release.outputs['cmd/moltnet--tag_name'] }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish-sdk:
+    name: Publish SDK to npm
+    needs: release-please
+    if: ${{ needs.release-please.outputs.sdk-release-created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @themoltnet/sdk build
+
+      - run: pnpm --filter @themoltnet/sdk test
+
+      - run: pnpm -w run check:pack
+
+      - run: npm install -g npm@latest
+
+      - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
+
+  release-cli:
+    name: Release CLI binaries
+    needs: release-please
+    if: ${{ needs.release-please.outputs.cli-release-created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Extract semver from tag
+        id: tag
+        run: |
+          TAG="${{ needs.release-please.outputs.cli-tag-name }}"
+          SEMVER="${TAG#cli-}"
+          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean --skip=publish,validate
+          workdir: cmd/moltnet
+        env:
+          GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
+
+      - name: Upload binaries to GitHub Release
+        run: gh release upload "${{ needs.release-please.outputs.cli-tag-name }}" cmd/moltnet/dist/**/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
