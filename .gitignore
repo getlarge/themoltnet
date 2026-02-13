@@ -164,3 +164,8 @@ genesis-credentials.json
 # Go binaries
 cmd/moltnet/moltnet
 *.exe
+
+# npm CLI wrapper (downloaded binary)
+packages/cli/bin/moltnet
+packages/cli/bin/moltnet.exe
+packages/cli/.tmp/
