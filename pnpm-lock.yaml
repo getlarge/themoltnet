@@ -37,8 +37,8 @@ catalogs:
       specifier: ^9.6.1
       version: 9.6.1
     '@getlarge/fastify-mcp':
-      specifier: ^1.2.2-getlarge.2
-      version: 1.2.2-getlarge.2
+      specifier: ^1.3.0-getlarge.1
+      version: 1.3.0-getlarge.1
     '@hey-api/client-fetch':
       specifier: 0.9.0
       version: 0.9.0
@@ -297,7 +297,7 @@ importers:
     dependencies:
       '@getlarge/fastify-mcp':
         specifier: 'catalog:'
-        version: 1.2.2-getlarge.2(@sinclair/typebox@0.34.48)
+        version: 1.3.0-getlarge.1(@sinclair/typebox@0.34.48)
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
@@ -745,22 +745,25 @@ importers:
 
   libs/sdk:
     dependencies:
-      '@hey-api/client-fetch':
+      '@noble/ed25519':
         specifier: 'catalog:'
-        version: 0.9.0(@hey-api/openapi-ts@0.89.2(typescript@5.9.3))
+        version: 2.3.0
+    devDependencies:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../api-client
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
-    devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.30
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 6.4.1(@types/node@20.19.30)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
@@ -1924,10 +1927,10 @@ packages:
     peerDependencies:
       '@sinclair/typebox': '>=0.26 <=0.34'
 
-  '@getlarge/fastify-mcp@1.2.2-getlarge.2':
+  '@getlarge/fastify-mcp@1.3.0-getlarge.1':
     resolution:
       {
-        integrity: sha512-iuZ3i+3cAR4S5cSDuP1858ZmzskzUehHHi1hMadVL3lT5Ws0sL80p+OzVv/5ZGKtsBSFYQP4w21DAQ82KZMjlw==,
+        integrity: sha512-UspD8RPdW1++9MVz4ROnrNZfri04aKKi9/1VFvdG5hWVrUw5YPyKwq85kmbczLou2pPg8W/wXg1oNYeMDbHXBw==,
       }
     peerDependencies:
       '@sinclair/typebox': ^0.34.0
@@ -8539,7 +8542,7 @@ snapshots:
     dependencies:
       '@sinclair/typebox': 0.34.48
 
-  '@getlarge/fastify-mcp@1.2.2-getlarge.2(@sinclair/typebox@0.34.48)':
+  '@getlarge/fastify-mcp@1.3.0-getlarge.1(@sinclair/typebox@0.34.48)':
     dependencies:
       '@fastify/cors': 11.2.0
       '@fastify/jwt': 9.1.0

@@ -29,6 +29,7 @@ The project owner is assumed to be `getlarge` (the GitHub org/user). The project
 This is a manual/scripted setup step that creates the project board and all custom fields.
 
 **Files:**
+
 - Create: `scripts/setup-project.sh`
 
 **Step 1: Write the project setup script**
@@ -113,6 +114,7 @@ git commit -m "feat: add GitHub Project setup script with custom fields"
 The core script that hooks call. It polls GitHub Projects state and returns JSON that hooks can inject as context.
 
 **Files:**
+
 - Create: `scripts/agent-sync.sh`
 
 **Step 1: Write the agent-sync script**
@@ -331,6 +333,7 @@ git commit -m "feat: add agent-sync script for GitHub Projects polling"
 Wire `agent-sync.sh` into the Claude Code session lifecycle via hooks in the project settings file.
 
 **Files:**
+
 - Modify: `.claude/settings.json`
 
 **Step 1: Read current settings**
@@ -409,11 +412,12 @@ git commit -m "feat: add Claude Code hooks for GitHub Projects sync"
 Replace the TASKS.md-based sync with GitHub Projects polling. Falls back to TASKS.md if `gh` or project is unavailable.
 
 **Files:**
+
 - Modify: `.claude/commands/sync.md`
 
 **Step 1: Rewrite sync.md**
 
-```markdown
+````markdown
 Check the current coordination state before starting work. Do the following:
 
 1. **Check GitHub Project board** (primary source):
@@ -424,14 +428,16 @@ Check the current coordination state before starting work. Do the following:
    ```bash
    gh project item-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json
    ```
+````
 
-   Parse the JSON and report:
-   - Items with Status "Ready" — tasks available to claim
-   - Items with Status "In Progress" — what other agents are working on
-   - Items with Status "Done" recently — what was just completed
-   - Items with Readiness "Ready for Agent" — validated and ready to pick up
+Parse the JSON and report:
 
-   If `gh` or the project is unavailable, fall back to reading `TASKS.md`.
+- Items with Status "Ready" — tasks available to claim
+- Items with Status "In Progress" — what other agents are working on
+- Items with Status "Done" recently — what was just completed
+- Items with Readiness "Ready for Agent" — validated and ready to pick up
+
+If `gh` or the project is unavailable, fall back to reading `TASKS.md`.
 
 2. **Fall back to TASKS.md** (if GitHub Projects unavailable):
 
@@ -472,14 +478,15 @@ Check the current coordination state before starting work. Do the following:
    - Any blockers or conflicts to be aware of
 
 **Note**: This command works in both host and sandbox environments. If in a sandbox, it uses `gh` CLI exclusively (no git commands) since git operations don't work in Docker sandboxes. If neither `gh` nor `TASKS.md` is available, report that and suggest the user set up the project board.
-```
+
+````
 
 **Step 2: Commit**
 
 ```bash
 git add .claude/commands/sync.md
 git commit -m "feat: update /sync to use GitHub Projects as primary source"
-```
+````
 
 ---
 
@@ -488,11 +495,12 @@ git commit -m "feat: update /sync to use GitHub Projects as primary source"
 Replace TASKS.md manipulation with GitHub Projects field updates.
 
 **Files:**
+
 - Modify: `.claude/commands/claim.md`
 
 **Step 1: Rewrite claim.md**
 
-```markdown
+````markdown
 Claim a task from the project board. The user will specify which task to claim as: $ARGUMENTS
 
 The argument can be an issue number (e.g., `42`) or a task name substring.
@@ -506,8 +514,9 @@ If `gh` CLI is available and `MOLTNET_PROJECT_NUMBER` is set:
    ```bash
    gh project item-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json
    ```
+````
 
-   Search items for matching issue number or title substring.
+Search items for matching issue number or title substring.
 
 2. **Validate readiness**:
    - The item's Status must be "Ready" (not "In Progress", "Done", etc.)
@@ -564,17 +573,19 @@ If GitHub Projects is unavailable, fall back to the original TASKS.md workflow:
 7. Push: `git push origin HEAD`
 
 If the push fails (another agent claimed first):
+
 1. Pull latest: `git pull --rebase`
 2. Check if task is still available
 3. If not, pick a different task
-```
+
+````
 
 **Step 2: Commit**
 
 ```bash
 git add .claude/commands/claim.md
 git commit -m "feat: update /claim to use GitHub Projects with TASKS.md fallback"
-```
+````
 
 ---
 
@@ -583,11 +594,12 @@ git commit -m "feat: update /claim to use GitHub Projects with TASKS.md fallback
 Update the handoff command to sync status back to the project board.
 
 **Files:**
+
 - Modify: `.claude/commands/handoff.md`
 
 **Step 1: Rewrite handoff.md**
 
-```markdown
+````markdown
 End your session with a proper handoff. Do the following:
 
 1. **Update task status on GitHub Projects** (if available):
@@ -600,15 +612,17 @@ End your session with a proper handoff. Do the following:
    FIELDS=$(gh project field-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json)
    ITEMS=$(gh project item-list "${MOLTNET_PROJECT_NUMBER}" --owner "${MOLTNET_PROJECT_OWNER:-getlarge}" --format json)
    ```
+````
 
-   Find the item you were working on (match by issue number or by Agent field containing your identifier).
+Find the item you were working on (match by issue number or by Agent field containing your identifier).
 
-   - If your task is **complete** (PR created): update Status to "In Review"
-   - If your task is **not complete**: keep Status as "In Progress", note progress in the Agent field
+- If your task is **complete** (PR created): update Status to "In Review"
+- If your task is **not complete**: keep Status as "In Progress", note progress in the Agent field
 
-   **Also update TASKS.md** for backward compatibility:
-   - If your task is complete: move it from "Active" to "Completed" with a PR link
-   - If your task is in progress: update the status description in Active
+**Also update TASKS.md** for backward compatibility:
+
+- If your task is complete: move it from "Active" to "Completed" with a PR link
+- If your task is in progress: update the status description in Active
 
 2. **Check landing page status**: If workstream progress changed, update `apps/landing/src/components/Status.tsx` (the `workstreams` array) and adjust the test in `apps/landing/__tests__/landing.test.tsx` to match.
 
@@ -646,14 +660,15 @@ End your session with a proper handoff. Do the following:
    If the work is not ready, just push the branch.
 
 8. **Report** the final state: PR URL (if created), branch name, test status, project board status, what the next agent should do.
-```
+
+````
 
 **Step 2: Commit**
 
 ```bash
 git add .claude/commands/handoff.md
 git commit -m "feat: update /handoff to sync status back to GitHub Projects"
-```
+````
 
 ---
 
@@ -662,11 +677,12 @@ git commit -m "feat: update /handoff to sync status back to GitHub Projects"
 A GitHub Actions workflow that validates issue quality and sets the Readiness field on the project board.
 
 **Files:**
+
 - Create: `.github/workflows/issue-triage.yml`
 
 **Step 1: Write the triage workflow**
 
-```yaml
+````yaml
 name: Issue Triage
 
 on:
@@ -675,7 +691,7 @@ on:
   # Periodic sweep for issues that may have been updated
   # outside of the standard events (e.g., project field changes)
   schedule:
-    - cron: '0 */6 * * *'  # every 6 hours
+    - cron: '0 */6 * * *' # every 6 hours
 
 permissions:
   contents: read
@@ -776,7 +792,7 @@ jobs:
 
           additional_permissions: |
             issues: write
-```
+````
 
 **Step 2: Verify YAML syntax**
 
@@ -796,6 +812,7 @@ git commit -m "feat: add issue triage workflow for agent readiness validation"
 Create the labels the triage workflow depends on.
 
 **Files:**
+
 - Create: `scripts/setup-labels.sh`
 
 **Step 1: Write the label setup script**
@@ -859,6 +876,7 @@ git commit -m "feat: add label setup script for agent coordination"
 Standardized issue templates that guide authors to include the information the triage agent checks.
 
 **Files:**
+
 - Create: `.github/ISSUE_TEMPLATE/agent-task.yml`
 
 **Step 1: Write the issue template**
@@ -866,8 +884,8 @@ Standardized issue templates that guide authors to include the information the t
 ```yaml
 name: Agent Task
 description: Create a task that can be picked up by an AI agent
-title: "[TASK] "
-labels: ["agent-task"]
+title: '[TASK] '
+labels: ['agent-task']
 body:
   - type: markdown
     attributes:
@@ -982,6 +1000,7 @@ git commit -m "feat: add agent task issue template with triage-ready fields"
 Update the orchestrate skill to read from GitHub Projects as the primary source, keeping TASKS.md as fallback.
 
 **Files:**
+
 - Modify: `.claude/skills/orchestrate/SKILL.md`
 
 **Step 1: Update the task sources section**
@@ -991,6 +1010,7 @@ In the existing SKILL.md, the "Task Sources" section already mentions GitHub Iss
 Replace the "Task Sources" paragraph and the "From TASKS.md" / "From GitHub Issues" subsections in Action 1 to prefer `gh project item-list` first.
 
 Key changes:
+
 - Action 1 (Analyze): Query `gh project item-list` first, fall back to TASKS.md + `gh issue list`
 - Action 2 (Plan): When adding tasks to the board, use `gh project item-add` instead of editing TASKS.md
 - Action 5 (Monitor): Include project board status alongside worktree/PR/CI checks
@@ -1012,11 +1032,13 @@ git commit -m "feat: update orchestrate skill to use GitHub Projects as primary 
 Update `docs/AGENT_COORDINATION.md` to document the new GitHub Projects workflow alongside the existing TASKS.md approach.
 
 **Files:**
+
 - Modify: `docs/AGENT_COORDINATION.md`
 
 **Step 1: Add a new section after "Layer 2: Coordination with TASKS.md"**
 
 Add a section "Layer 2b: Coordination with GitHub Projects" explaining:
+
 - The project board fields and their meaning
 - How hooks automate sync
 - How `/claim` and `/handoff` work with the project board
@@ -1027,12 +1049,12 @@ Add a section "Layer 2b: Coordination with GitHub Projects" explaining:
 Add GitHub Projects as the primary coordination mechanism:
 
 ```markdown
-| Layer            | Mechanism                          | Purpose                                              |
-| ---------------- | ---------------------------------- | ---------------------------------------------------- |
-| **Isolation**    | Git worktrees                      | Each agent gets its own working directory and branch |
-| **Coordination** | GitHub Projects (TASKS.md fallback)| Single source of truth for who's doing what          |
-| **Awareness**    | PR monitoring + journal + hooks    | Agents check what others have shipped                |
-| **Integration**  | PR-based merge + CI                | Work merges through reviewed pull requests           |
+| Layer            | Mechanism                           | Purpose                                              |
+| ---------------- | ----------------------------------- | ---------------------------------------------------- |
+| **Isolation**    | Git worktrees                       | Each agent gets its own working directory and branch |
+| **Coordination** | GitHub Projects (TASKS.md fallback) | Single source of truth for who's doing what          |
+| **Awareness**    | PR monitoring + journal + hooks     | Agents check what others have shipped                |
+| **Integration**  | PR-based merge + CI                 | Work merges through reviewed pull requests           |
 ```
 
 **Step 3: Commit**
@@ -1049,6 +1071,7 @@ git commit -m "docs: update agent coordination to document GitHub Projects workf
 Add the project configuration variables that scripts reference.
 
 **Files:**
+
 - Modify: `.env.public`
 
 **Step 1: Read current .env.public**
@@ -1058,6 +1081,7 @@ Check what's already there.
 **Step 2: Append project config**
 
 Add:
+
 ```
 # GitHub Projects coordination
 MOLTNET_PROJECT_NUMBER=
@@ -1080,6 +1104,7 @@ git commit -m "feat: add GitHub Projects env vars to .env.public"
 A one-time migration script that creates GitHub issues from TASKS.md Available items and adds them to the project board.
 
 **Files:**
+
 - Create: `scripts/migrate-tasks-to-issues.sh`
 
 **Step 1: Write the migration script**
@@ -1202,6 +1227,7 @@ git commit -m "feat: add TASKS.md to GitHub Issues migration script"
 Verify everything hangs together and passes lint/typecheck.
 
 **Files:**
+
 - None new — validation only
 
 **Step 1: Make all scripts executable**
@@ -1240,22 +1266,22 @@ git push -u origin claude/github-projects-agent-sync-wexy8
 
 ## Summary
 
-| Task | What | Files |
-|------|------|-------|
-| 1 | Project setup script | `scripts/setup-project.sh` |
-| 2 | Agent sync script (core) | `scripts/agent-sync.sh` |
-| 3 | Claude Code hooks | `.claude/settings.json` |
-| 4 | Update /sync command | `.claude/commands/sync.md` |
-| 5 | Update /claim command | `.claude/commands/claim.md` |
-| 6 | Update /handoff command | `.claude/commands/handoff.md` |
-| 7 | Issue triage workflow | `.github/workflows/issue-triage.yml` |
-| 8 | Label setup script | `scripts/setup-labels.sh` |
-| 9 | Issue template | `.github/ISSUE_TEMPLATE/agent-task.yml` |
-| 10 | Update orchestrate skill | `.claude/skills/orchestrate/SKILL.md` |
-| 11 | Update coordination docs | `docs/AGENT_COORDINATION.md` |
-| 12 | Environment variables | `.env.public` |
-| 13 | Migration script | `scripts/migrate-tasks-to-issues.sh` |
-| 14 | Final validation + push | — |
+| Task | What                     | Files                                   |
+| ---- | ------------------------ | --------------------------------------- |
+| 1    | Project setup script     | `scripts/setup-project.sh`              |
+| 2    | Agent sync script (core) | `scripts/agent-sync.sh`                 |
+| 3    | Claude Code hooks        | `.claude/settings.json`                 |
+| 4    | Update /sync command     | `.claude/commands/sync.md`              |
+| 5    | Update /claim command    | `.claude/commands/claim.md`             |
+| 6    | Update /handoff command  | `.claude/commands/handoff.md`           |
+| 7    | Issue triage workflow    | `.github/workflows/issue-triage.yml`    |
+| 8    | Label setup script       | `scripts/setup-labels.sh`               |
+| 9    | Issue template           | `.github/ISSUE_TEMPLATE/agent-task.yml` |
+| 10   | Update orchestrate skill | `.claude/skills/orchestrate/SKILL.md`   |
+| 11   | Update coordination docs | `docs/AGENT_COORDINATION.md`            |
+| 12   | Environment variables    | `.env.public`                           |
+| 13   | Migration script         | `scripts/migrate-tasks-to-issues.sh`    |
+| 14   | Final validation + push  | —                                       |
 
 ## Execution Order
 

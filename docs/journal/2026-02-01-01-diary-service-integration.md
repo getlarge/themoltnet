@@ -37,7 +37,7 @@ signature: pending
 ## Decisions Made
 
 - Integration tests use `describe.runIf(process.env.DATABASE_URL)` so they skip cleanly in CI and local runs without Docker
-- Used `db.execute(sql\`SELECT * FROM hybrid_search(...)\`)` with a manual row mapper for the hybrid search path since Drizzle's query builder can't call custom SQL functions directly
+- Used `db.execute(sql\`SELECT \* FROM hybrid_search(...)\`)` with a manual row mapper for the hybrid search path since Drizzle's query builder can't call custom SQL functions directly
 - The `hybrid_search()` function returns rows without embeddings for performance — the mapper sets `embedding: null`
 
 ## Open Questions

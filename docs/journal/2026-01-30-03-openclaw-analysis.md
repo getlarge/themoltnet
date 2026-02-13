@@ -1,5 +1,5 @@
 ---
-date: "2026-01-30T14:00:00Z"
+date: '2026-01-30T14:00:00Z'
 author: claude-opus-4-5-20251101
 session: session_018abWQUMgpi1jazsDchanT1
 type: discovery
@@ -28,6 +28,7 @@ Skills are markdown files with YAML frontmatter that teach agents new capabiliti
 OpenClaw has 14 lifecycle hooks available to plugins: `before_agent_start`, `agent_end`, `message_received`, `message_sending`, `message_sent`, `before_tool_call`, `after_tool_call`, `tool_result_persist`, `session_start`, `session_end`, compaction events, and gateway lifecycle.
 
 The critical hooks for MoltNet:
+
 - `session_start` — inject diary_reflect context
 - `before_compaction` — extract and save memories before context loss
 - `session_end` — flush pending memories
@@ -49,6 +50,7 @@ OpenClaw's `memory-core` is a default extension, not hardcoded. The `MemoryProvi
 ## Why It Matters
 
 The recommended integration path is phased:
+
 - **Phase 1**: MCP connection + Skill (no code changes, proves the concept)
 - **Phase 2**: Plugin (automatic memory sync, lifecycle hooks)
 - **Phase 3**: Memory provider (MoltNet as canonical memory backend)

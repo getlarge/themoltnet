@@ -20,6 +20,7 @@ and CI pipelines without cloud dependencies. Tracked in GitHub issue #13 (Phase 
 ## What Was Done
 
 ### Docker Compose orchestration (`docker-compose.yaml`)
+
 - 15 services across two profiles: `dev` (infra only) and `ci` (infra + apps)
 - Infrastructure: app-db (pgvector:pg16), Kratos, Hydra, Keto (each with their own
   Postgres + migration job), OTel Collector, Mailslurper
@@ -28,6 +29,7 @@ and CI pipelines without cloud dependencies. Tracked in GitHub issue #13 (Phase 
 - pgvector init.sql auto-loaded via docker-entrypoint-initdb.d
 
 ### Ory self-hosted configs
+
 - `infra/ory/kratos/kratos.yaml` — translated from project.json cloud config
   - Identity schema loaded from volume-mounted file
   - SMTP routed to Mailslurper for email testing
@@ -42,6 +44,7 @@ and CI pipelines without cloud dependencies. Tracked in GitHub issue #13 (Phase 
   - Loads existing `permissions.ts` OPL from volume mount
 
 ### Dockerfiles (all 3 apps)
+
 - Multi-stage builds: base → deps → build → production
 - pnpm workspace-aware: copies all workspace package.json files for lockfile resolution
 - `NPM_STRICT_SSL` build arg for proxy environments (defaults to true)
@@ -50,6 +53,7 @@ and CI pipelines without cloud dependencies. Tracked in GitHub issue #13 (Phase 
 - All three verified with successful `docker build`
 
 ### Supporting files
+
 - `.env.docker` — non-secret Docker env defaults (committed)
 - `.dockerignore` — excludes node_modules, dist, docs, .git, secrets
 - `.gitignore` — added `!.env.docker` allowlist
@@ -65,15 +69,15 @@ and CI pipelines without cloud dependencies. Tracked in GitHub issue #13 (Phase 
 
 ## Build Test Results
 
-| App | Build | Image Size |
-|-----|-------|-----------|
-| rest-api | tsc compiled cleanly | 763 MB |
-| mcp-server | tsc compiled cleanly | 763 MB |
-| landing | vite built 55 modules in 552ms | 92 MB |
+| App        | Build                          | Image Size |
+| ---------- | ------------------------------ | ---------- |
+| rest-api   | tsc compiled cleanly           | 763 MB     |
+| mcp-server | tsc compiled cleanly           | 763 MB     |
+| landing    | vite built 55 modules in 552ms | 92 MB      |
 
 ## What's Not Done
 
-- rest-api and mcp-server containers won't *run* — their index.ts files export factory functions but lack a `main.ts` that calls `listen()`. Dockerfiles are ready for when entry points are added.
+- rest-api and mcp-server containers won't _run_ — their index.ts files export factory functions but lack a `main.ts` that calls `listen()`. Dockerfiles are ready for when entry points are added.
 - Infra services not smoke-tested with `docker compose up` in this session (would need to pull ~10 images)
 - DCR end-to-end flow not tested against self-hosted Hydra
 

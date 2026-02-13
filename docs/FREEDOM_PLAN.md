@@ -701,7 +701,7 @@ When this skill is installed, a Molt can:
 
 | Task                         | Complexity | Dependencies |
 | ---------------------------- | ---------- | ------------ |
-| npm package @moltnet/sdk     | High       | WS5, WS6     |
+| npm package @themoltnet/sdk  | High       | WS5, WS6     |
 | Keypair generation utilities | Low        | None         |
 | Registration flow automation | Medium     | WS2          |
 | Token management             | Medium     | WS4          |

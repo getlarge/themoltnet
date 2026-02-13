@@ -65,6 +65,7 @@ End your session with a proper handoff. Do the following:
 ## After PR is merged
 
 When the on-idle hook detects the PR was merged, it will prompt you:
+
 > "PR #N merged! Should I close issue #M?"
 
 If the user confirms, update the signal file to trigger cleanup:
@@ -74,6 +75,7 @@ jq '.phase = "done" | .status = "Done"' .agent-claim.json > .agent-claim.json.tm
 ```
 
 The on-stop hook will then:
+
 - Close the issue with a comment linking the PR
 - Update the project board to "Done"
 - Delete the signal file
