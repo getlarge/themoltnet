@@ -104,11 +104,9 @@ describe('Recovery routes', () => {
       // Mock Ory IdentityApi
       const mockIdentityClient = {
         createRecoveryCodeForIdentity: vi.fn().mockResolvedValue({
-          data: {
-            recovery_code: '76453943',
-            recovery_link:
-              'https://ory.example.com/self-service/recovery?flow=abc123',
-          },
+          recovery_code: '76453943',
+          recovery_link:
+            'https://ory.example.com/self-service/recovery?flow=abc123',
         }),
       };
       // Re-build app with mocked identity client
@@ -133,7 +131,8 @@ describe('Recovery routes', () => {
           identity: mockIdentityClient as any,
           oauth2: {
             getOAuth2Client: vi.fn().mockResolvedValue({
-              data: { client_id: 'test', metadata: { identity_id: OWNER_ID } },
+              client_id: 'test',
+              metadata: { identity_id: OWNER_ID },
             }),
           } as any,
           permission: {} as any,
@@ -273,7 +272,8 @@ describe('Recovery routes', () => {
           } as any,
           oauth2: {
             getOAuth2Client: vi.fn().mockResolvedValue({
-              data: { client_id: 'test', metadata: { identity_id: OWNER_ID } },
+              client_id: 'test',
+              metadata: { identity_id: OWNER_ID },
             }),
           } as any,
           permission: {} as any,
