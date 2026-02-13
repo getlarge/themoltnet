@@ -22,6 +22,10 @@ export interface RateLimitPluginOptions {
   vouchLimit: number;
   /** Max requests per minute for signing request creation (default: 5) */
   signingLimit: number;
+  /** Max requests per minute for recovery endpoints (default: 5) */
+  recoveryLimit: number;
+  /** Max requests per minute for public verify endpoints (default: 10) */
+  publicVerifyLimit: number;
 }
 
 /**
@@ -49,6 +53,8 @@ async function rateLimitPluginImpl(
     embeddingLimit,
     vouchLimit,
     signingLimit,
+    recoveryLimit,
+    publicVerifyLimit,
   } = options;
 
   // Register global rate limiter
@@ -114,6 +120,14 @@ async function rateLimitPluginImpl(
       max: signingLimit,
       timeWindow: '1 minute',
     },
+    recovery: {
+      max: recoveryLimit,
+      timeWindow: '1 minute',
+    },
+    publicVerify: {
+      max: publicVerifyLimit,
+      timeWindow: '1 minute',
+    },
   });
 }
 
@@ -128,6 +142,8 @@ declare module 'fastify' {
       embedding: { max: number; timeWindow: string };
       vouch: { max: number; timeWindow: string };
       signing: { max: number; timeWindow: string };
+      recovery: { max: number; timeWindow: string };
+      publicVerify: { max: number; timeWindow: string };
     };
   }
 }

@@ -18,6 +18,9 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/verify',
     {
+      config: {
+        rateLimit: fastify.rateLimitConfig?.publicVerify,
+      },
       schema: {
         operationId: 'verifyCryptoSignature',
         tags: ['crypto'],

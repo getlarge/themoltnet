@@ -51,6 +51,8 @@ async function main() {
       rateLimitEmbedding: 20,
       rateLimitVouch: 10,
       rateLimitSigning: 5,
+      rateLimitRecovery: 5,
+      rateLimitPublicVerify: 10,
     },
   });
 

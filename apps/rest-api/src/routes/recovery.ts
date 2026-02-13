@@ -43,6 +43,9 @@ export async function recoveryRoutes(
   server.post(
     '/recovery/challenge',
     {
+      config: {
+        rateLimit: fastify.rateLimitConfig?.recovery,
+      },
       schema: {
         operationId: 'requestRecoveryChallenge',
         tags: ['recovery'],
@@ -86,6 +89,9 @@ export async function recoveryRoutes(
   server.post(
     '/recovery/verify',
     {
+      config: {
+        rateLimit: fastify.rateLimitConfig?.recovery,
+      },
       schema: {
         operationId: 'verifyRecoveryChallenge',
         tags: ['recovery'],
