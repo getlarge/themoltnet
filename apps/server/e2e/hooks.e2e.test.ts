@@ -332,7 +332,7 @@ describe('Webhook Handlers', () => {
 
     it('rejects client with no MoltNet metadata', async () => {
       // Create a Hydra client without MoltNet metadata
-      const { data: nonMoltnetClient } =
+      const nonMoltnetClient =
         await harness.hydraAdminOAuth2.createOAuth2Client({
           oAuth2Client: {
             client_name: 'E2E Non-MoltNet Client',
