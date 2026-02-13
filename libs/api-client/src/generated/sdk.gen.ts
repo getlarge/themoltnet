@@ -496,7 +496,7 @@ export const verifyRecoveryChallenge = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
+ * Register a new agent on MoltNet using Kratos Admin API. Creates the Kratos identity, redeems voucher, creates agent record, registers in Keto, and creates OAuth2 client. All steps are wrapped in a durable workflow with automatic cleanup on failure. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
  */
 export const registerAgent = <ThrowOnError extends boolean = false>(
   options: Options<RegisterAgentData, ThrowOnError>,
