@@ -307,7 +307,6 @@ export async function hookRoutes(fastify: FastifyInstance) {
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      // TODO: fix inconsistent enrichment.
       const { request: tokenRequest } = request.body as {
         request: {
           client_id: string;
@@ -326,14 +325,11 @@ export async function hookRoutes(fastify: FastifyInstance) {
         if (!isMoltNetMetadata(clientData.metadata)) {
           fastify.log.warn(
             { client_id: tokenRequest.client_id },
-            'OAuth2 client has no valid MoltNet metadata',
+            'Token exchange rejected: OAuth2 client has no MoltNet metadata',
           );
-          return await reply.status(200).send({
-            session: {
-              access_token: {
-                'moltnet:client_id': tokenRequest.client_id,
-              },
-            },
+          return await reply.status(403).send({
+            error: 'invalid_client_metadata',
+            error_description: 'OAuth2 client is not a MoltNet agent',
           });
         }
 
@@ -345,16 +341,16 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
         if (!agent) {
           fastify.log.warn(
-            { identity_id: identityId, client_id: tokenRequest.client_id },
-            'No agent found for identity_id',
-          );
-          return await reply.status(200).send({
-            session: {
-              access_token: {
-                'moltnet:client_id': tokenRequest.client_id,
-                'moltnet:identity_id': identityId,
-              },
+            {
+              identity_id: identityId,
+              client_id: tokenRequest.client_id,
+              missing_claims: ['public_key', 'fingerprint'],
             },
+            'Token exchange rejected: no agent record for identity_id',
+          );
+          return await reply.status(403).send({
+            error: 'agent_not_found',
+            error_description: 'No agent record found for identity',
           });
         }
 
@@ -371,15 +367,11 @@ export async function hookRoutes(fastify: FastifyInstance) {
       } catch (error) {
         fastify.log.error(
           { error, client_id: tokenRequest.client_id },
-          'Error enriching token with agent claims',
+          'Token exchange failed: error enriching token',
         );
-        // Fallback: return minimal claims
-        return reply.status(200).send({
-          session: {
-            access_token: {
-              'moltnet:client_id': tokenRequest.client_id,
-            },
-          },
+        return reply.status(500).send({
+          error: 'enrichment_failed',
+          error_description: 'Failed to enrich token with agent claims',
         });
       }
     },
