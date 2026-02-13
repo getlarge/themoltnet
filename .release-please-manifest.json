@@ -1,4 +1,4 @@
 {
-  "libs/sdk": "0.1.0",
-  "cmd/moltnet": "0.1.0"
+  "libs/sdk": "0.2.0",
+  "cmd/moltnet": "0.2.0"
 }
