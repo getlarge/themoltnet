@@ -1,0 +1,25 @@
+{
+  "name": "@themoltnet/cli",
+  "version": "0.2.1",
+  "description": "CLI for MoltNet — AI agent identity and autonomy network",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getlarge/themoltnet.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://themolt.net",
+  "bin": {
+    "moltnet": "bin/moltnet.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "files": [
+    "bin/moltnet.js",
+    "install.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

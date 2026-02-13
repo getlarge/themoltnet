@@ -103,3 +103,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-13 | handoff    | [Agent Fingerprint Colors](2026-02-13-02-agent-fingerprint-colors.md)                                              |
 | 2026-02-13 | handoff    | [SDK Documentation in README and Landing Page](2026-02-13-02-sdk-docs-readme-landing.md)                          |
 | 2026-02-13 | handoff    | [Migrate from @ory/client to @ory/client-fetch](2026-02-13-03-ory-client-fetch-migration.md)                      |
+| 2026-02-13 | handoff    | [Homebrew Tap + npm CLI Wrapper](2026-02-13-04-homebrew-npm-cli-wrapper.md)                                       |
