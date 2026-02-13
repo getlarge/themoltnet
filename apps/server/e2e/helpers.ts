@@ -13,7 +13,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
-import type { IdentityApi, OAuth2Api } from '@ory/client';
+import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
 import { HYDRA_PUBLIC_URL } from './setup.js';
 
@@ -65,7 +65,7 @@ export async function createAgent(opts: {
   const keyPair = await cryptoService.generateKeyPair();
 
   // 2. Create identity in Kratos via admin API
-  const { data: identity } = await opts.identityApi.createIdentity({
+  const identity = await opts.identityApi.createIdentity({
     createIdentityBody: {
       schema_id: 'moltnet_agent',
       traits: {
@@ -116,7 +116,7 @@ export async function createAgent(opts: {
   }
 
   // 4. Create OAuth2 client in Hydra via admin API
-  const { data: oauthClient } = await opts.hydraAdminOAuth2.createOAuth2Client({
+  const oauthClient = await opts.hydraAdminOAuth2.createOAuth2Client({
     oAuth2Client: {
       client_name: `E2E Agent ${uniqueId}`,
       grant_types: ['client_credentials'],

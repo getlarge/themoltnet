@@ -86,14 +86,12 @@ describe('TokenValidator', () => {
     describe('introspect', () => {
       it('returns token info for a valid active opaque token', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read diary:write agent:profile',
-            sub: VALID_CLIENT_ID,
-            exp: Math.floor(Date.now() / 1000) + 3600,
-            ext: MOLTNET_EXT_CLAIMS,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read diary:write agent:profile',
+          sub: VALID_CLIENT_ID,
+          exp: Math.floor(Date.now() / 1000) + 3600,
+          ext: MOLTNET_EXT_CLAIMS,
         });
 
         const result = await validator.introspect(OPAQUE_TOKEN);
@@ -112,7 +110,7 @@ describe('TokenValidator', () => {
 
       it('returns inactive result for revoked/expired token', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: { active: false },
+          active: false,
         });
 
         const result = await validator.introspect(OPAQUE_TOKEN);
@@ -132,12 +130,10 @@ describe('TokenValidator', () => {
 
       it('handles token with empty scope string', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: '',
-            sub: VALID_CLIENT_ID,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: '',
+          sub: VALID_CLIENT_ID,
         });
 
         const result = await validator.introspect(OPAQUE_TOKEN);
@@ -150,11 +146,9 @@ describe('TokenValidator', () => {
 
       it('handles token with no scope field', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            sub: VALID_CLIENT_ID,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          sub: VALID_CLIENT_ID,
         });
 
         const result = await validator.introspect(OPAQUE_TOKEN);
@@ -167,12 +161,10 @@ describe('TokenValidator', () => {
 
       it('handles token with no ext field', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read',
-            sub: VALID_CLIENT_ID,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read',
+          sub: VALID_CLIENT_ID,
         });
 
         const result = await validator.introspect(OPAQUE_TOKEN);
@@ -187,13 +179,11 @@ describe('TokenValidator', () => {
     describe('resolveAuthContext', () => {
       it('resolves auth context from enriched opaque token', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read diary:write',
-            sub: VALID_CLIENT_ID,
-            ext: MOLTNET_EXT_CLAIMS,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read diary:write',
+          sub: VALID_CLIENT_ID,
+          ext: MOLTNET_EXT_CLAIMS,
         });
 
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
@@ -203,13 +193,11 @@ describe('TokenValidator', () => {
 
       it('uses introspection for opaque tokens even when no JWKS configured', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read diary:write',
-            sub: VALID_CLIENT_ID,
-            ext: MOLTNET_EXT_CLAIMS,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read diary:write',
+          sub: VALID_CLIENT_ID,
+          ext: MOLTNET_EXT_CLAIMS,
         });
 
         await validator.resolveAuthContext(OPAQUE_TOKEN);
@@ -222,13 +210,11 @@ describe('TokenValidator', () => {
       it('uses introspection for JWT-shaped tokens when no JWKS configured', async () => {
         const jwtToken = createTestJwt();
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read diary:write',
-            sub: VALID_CLIENT_ID,
-            ext: MOLTNET_EXT_CLAIMS,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read diary:write',
+          sub: VALID_CLIENT_ID,
+          ext: MOLTNET_EXT_CLAIMS,
         });
 
         const result = await validator.resolveAuthContext(jwtToken);
@@ -239,22 +225,18 @@ describe('TokenValidator', () => {
 
       it('falls back to client metadata when token has no ext claims', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read diary:write',
-            sub: VALID_CLIENT_ID,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read diary:write',
+          sub: VALID_CLIENT_ID,
         });
 
         mockOAuth2Api.getOAuth2Client.mockResolvedValue({
-          data: {
-            client_id: VALID_CLIENT_ID,
-            metadata: {
-              identity_id: VALID_IDENTITY_ID,
-              public_key: 'ed25519:AAAA+/bbbb==',
-              fingerprint: 'A1B2-C3D4-E5F6-07A8',
-            },
+          client_id: VALID_CLIENT_ID,
+          metadata: {
+            identity_id: VALID_IDENTITY_ID,
+            public_key: 'ed25519:AAAA+/bbbb==',
+            fingerprint: 'A1B2-C3D4-E5F6-07A8',
           },
         });
 
@@ -268,7 +250,7 @@ describe('TokenValidator', () => {
 
       it('returns null for inactive token', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: { active: false },
+          active: false,
         });
 
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
@@ -278,19 +260,15 @@ describe('TokenValidator', () => {
 
       it('returns null when client metadata is missing identity info', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read',
-            sub: VALID_CLIENT_ID,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read',
+          sub: VALID_CLIENT_ID,
         });
 
         mockOAuth2Api.getOAuth2Client.mockResolvedValue({
-          data: {
-            client_id: VALID_CLIENT_ID,
-            metadata: {},
-          },
+          client_id: VALID_CLIENT_ID,
+          metadata: {},
         });
 
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
@@ -300,12 +278,10 @@ describe('TokenValidator', () => {
 
       it('returns null when getOAuth2Client fails', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            client_id: VALID_CLIENT_ID,
-            scope: 'diary:read',
-            sub: VALID_CLIENT_ID,
-          },
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read',
+          sub: VALID_CLIENT_ID,
         });
 
         mockOAuth2Api.getOAuth2Client.mockRejectedValue(
@@ -319,10 +295,8 @@ describe('TokenValidator', () => {
 
       it('returns null when client_id is missing from introspection', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-          data: {
-            active: true,
-            scope: 'diary:read',
-          },
+          active: true,
+          scope: 'diary:read',
         });
 
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
@@ -343,13 +317,11 @@ describe('TokenValidator', () => {
 
     it('routes ory_at_ prefixed tokens to introspection', async () => {
       mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-        data: {
-          active: true,
-          client_id: VALID_CLIENT_ID,
-          scope: 'diary:read',
-          sub: VALID_CLIENT_ID,
-          ext: MOLTNET_EXT_CLAIMS,
-        },
+        active: true,
+        client_id: VALID_CLIENT_ID,
+        scope: 'diary:read',
+        sub: VALID_CLIENT_ID,
+        ext: MOLTNET_EXT_CLAIMS,
       });
 
       await validator.resolveAuthContext('ory_at_some_opaque_value');
@@ -361,13 +333,11 @@ describe('TokenValidator', () => {
 
     it('routes ory_ht_ prefixed tokens to introspection', async () => {
       mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-        data: {
-          active: true,
-          client_id: VALID_CLIENT_ID,
-          scope: 'diary:read',
-          sub: VALID_CLIENT_ID,
-          ext: MOLTNET_EXT_CLAIMS,
-        },
+        active: true,
+        client_id: VALID_CLIENT_ID,
+        scope: 'diary:read',
+        sub: VALID_CLIENT_ID,
+        ext: MOLTNET_EXT_CLAIMS,
       });
 
       await validator.resolveAuthContext('ory_ht_some_opaque_value');
@@ -379,7 +349,7 @@ describe('TokenValidator', () => {
 
     it('routes unknown-format tokens to introspection', async () => {
       mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-        data: { active: false },
+        active: false,
       });
 
       const result = await validator.resolveAuthContext('random_unknown_token');
@@ -402,13 +372,11 @@ describe('TokenValidator', () => {
       });
 
       mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-        data: {
-          active: true,
-          client_id: VALID_CLIENT_ID,
-          scope: 'diary:read diary:write',
-          sub: VALID_CLIENT_ID,
-          ext: MOLTNET_EXT_CLAIMS,
-        },
+        active: true,
+        client_id: VALID_CLIENT_ID,
+        scope: 'diary:read diary:write',
+        sub: VALID_CLIENT_ID,
+        ext: MOLTNET_EXT_CLAIMS,
       });
 
       const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
@@ -428,13 +396,11 @@ describe('TokenValidator', () => {
       const jwtToken = createTestJwt();
 
       mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-        data: {
-          active: true,
-          client_id: VALID_CLIENT_ID,
-          scope: 'diary:read diary:write',
-          sub: VALID_CLIENT_ID,
-          ext: MOLTNET_EXT_CLAIMS,
-        },
+        active: true,
+        client_id: VALID_CLIENT_ID,
+        scope: 'diary:read diary:write',
+        sub: VALID_CLIENT_ID,
+        ext: MOLTNET_EXT_CLAIMS,
       });
 
       const result = await validator.resolveAuthContext(jwtToken);
@@ -452,7 +418,7 @@ describe('TokenValidator', () => {
       const jwtToken = createTestJwt();
 
       mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
-        data: { active: false },
+        active: false,
       });
 
       const result = await validator.resolveAuthContext(jwtToken);

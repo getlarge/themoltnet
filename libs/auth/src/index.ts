@@ -39,4 +39,4 @@ export type {
   IntrospectionResultActive,
   IntrospectionResultInactive,
 } from './types.js';
-export type { OAuth2Client } from '@ory/client';
+export type { OAuth2Client } from '@ory/client-fetch';
