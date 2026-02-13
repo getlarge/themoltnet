@@ -1,10 +1,11 @@
 # MoltNet Docker Compose — E2E Testing
 #
-# Extends base services WITHOUT volumes for ephemeral e2e tests.
+# Full stack (infra + apps) with ephemeral storage.
 # Data is reset on every restart.
 #
 # Usage:
-#   docker compose -f docker-compose.e2e.yaml up -d
+#   docker compose -f docker-compose.e2e.yaml up -d --build
+#   docker compose -f docker-compose.e2e.yaml down -v
 
 services:
   app-db:
@@ -19,82 +20,88 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
+    restart: on-failure
 
   kratos-postgres:
     extends:
       file: docker-compose.base.yaml
       service: kratos-postgres
 
-  hydra-postgres:
-    extends:
-      file: docker-compose.base.yaml
-      service: hydra-postgres
-
-  keto-postgres:
-    extends:
-      file: docker-compose.base.yaml
-      service: keto-postgres
-
   kratos-migrate:
     extends:
       file: docker-compose.base.yaml
       service: kratos-migrate
-
     depends_on:
       kratos-postgres:
         condition: service_healthy
+    restart: on-failure
 
   kratos:
     extends:
       file: docker-compose.base.yaml
       service: kratos
-
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
       mailslurper:
         condition: service_started
 
+  hydra-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: hydra-postgres
+
   hydra-migrate:
     extends:
       file: docker-compose.base.yaml
       service: hydra-migrate
-
     depends_on:
       hydra-postgres:
         condition: service_healthy
+    restart: on-failure
 
   hydra:
     extends:
       file: docker-compose.base.yaml
       service: hydra
     environment:
-      # Override self URLs so OIDC discovery returns Docker-internal hostnames.
-      # Without this, Hydra advertises http://localhost:4444 as token_endpoint
-      # which is unreachable from other containers (e.g. mcp-server).
       URLS_SELF_ISSUER: http://hydra:4444
       URLS_SELF_PUBLIC: http://hydra:4444
     depends_on:
       hydra-migrate:
         condition: service_completed_successfully
 
+  keto-postgres:
+    extends:
+      file: docker-compose.base.yaml
+      service: keto-postgres
+
   keto-migrate:
     extends:
       file: docker-compose.base.yaml
       service: keto-migrate
-
     depends_on:
       keto-postgres:
         condition: service_healthy
+    restart: on-failure
 
   keto:
     extends:
       file: docker-compose.base.yaml
       service: keto
-
     depends_on:
       keto-migrate:
         condition: service_completed_successfully
+
+  otel-collector:
+    extends:
+      file: docker-compose.base.yaml
+      service: otel-collector
+
+  mailslurper:
+    extends:
+      file: docker-compose.base.yaml
+      service: mailslurper
 
   server:
     build:
@@ -177,13 +184,3 @@ services:
       timeout: 3s
       retries: 15
       start_period: 15s
-
-  otel-collector:
-    extends:
-      file: docker-compose.base.yaml
-      service: otel-collector
-
-  mailslurper:
-    extends:
-      file: docker-compose.base.yaml
-      service: mailslurper
