@@ -28,7 +28,7 @@ catalog:
   '@opentelemetry/sdk-trace-base': ^1.30.0
   '@opentelemetry/sdk-trace-node': ^1.30.0
   '@opentelemetry/semantic-conventions': ^1.28.0
-  '@ory/client': ^1.22.0
+  '@ory/client-fetch': ^1.22.0
   '@getlarge/fastify-mcp': ^1.3.0-getlarge.1
   '@sinclair/typebox': ^0.34.0
   '@types/node': ^20.11.0
