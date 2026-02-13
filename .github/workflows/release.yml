@@ -30,6 +30,9 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.sdk-release-created == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -49,9 +52,9 @@ jobs:
 
       - run: pnpm -w run check:pack
 
-      - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm install -g npm@latest
+
+      - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
 
   release-cli:
     name: Release CLI binaries
@@ -69,10 +72,22 @@ jobs:
         with:
           go-version: '1.22'
 
+      - name: Extract semver from tag
+        id: tag
+        run: |
+          TAG="${{ needs.release-please.outputs.cli-tag-name }}"
+          SEMVER="${TAG#cli-}"
+          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
+
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
-          args: release --clean
+          args: release --clean --skip=publish
           workdir: cmd/moltnet
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
+
+      - name: Upload binaries to GitHub Release
+        run: gh release upload "${{ needs.release-please.outputs.cli-tag-name }}" cmd/moltnet/dist/**/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
