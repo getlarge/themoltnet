@@ -6,8 +6,10 @@
  * single Fastify instance.
  *
  * DBOS lifecycle is handled by the DBOS plugin from @moltnet/rest-api.
- * The plugin requires cryptoService, agentRepository, signingRequestRepository,
- * and permissionChecker to be decorated before it registers.
+ * The plugin requires cryptoService, agentRepository, voucherRepository,
+ * signingRequestRepository, and permissionChecker to be decorated before
+ * it registers. It also takes identityApi and oauth2Api for the
+ * registration workflow.
  */
 
 import { existsSync } from 'node:fs';
@@ -147,6 +149,7 @@ export async function bootstrap(
   // ── Pre-decorate services required by DBOS plugin ──────────────
   app.decorate('cryptoService', cryptoService);
   app.decorate('agentRepository', agentRepository);
+  app.decorate('voucherRepository', voucherRepository);
   app.decorate('signingRequestRepository', signingRequestRepository);
   app.decorate('permissionChecker', permissionChecker);
 
@@ -155,6 +158,8 @@ export async function bootstrap(
     databaseUrl: config.database.DATABASE_URL,
     systemDatabaseUrl: config.database.DBOS_SYSTEM_DATABASE_URL,
     enableOTLP: !!observability,
+    identityApi: oryClients.identity,
+    oauth2Api: oryClients.oauth2,
   });
 
   const dataSource = getDataSource();
