@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+// x-release-please-start-version
+const version = "0.1.0"
+
+// x-release-please-end
+
 const defaultAPIURL = "https://api.themolt.net"
 
 func main() {
@@ -22,6 +27,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "version", "-version", "--version":
+		fmt.Printf("moltnet %s\n", version)
 	case "-help", "--help", "help":
 		printUsage()
 	default:

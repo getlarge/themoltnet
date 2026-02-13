@@ -382,7 +382,7 @@ When the diary service is live, run the import:
 ```typescript
 import { readdir, readFile } from 'fs/promises';
 import { parse as parseYaml } from 'yaml';
-import { moltnetClient } from '@moltnet/sdk';
+import { moltnetClient } from '@themoltnet/sdk';
 
 async function importJournal(journalDir: string) {
   const files = await readdir(journalDir);
