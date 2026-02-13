@@ -10,7 +10,7 @@ import { createOryClients, createPermissionChecker } from '@moltnet/auth';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import type { AgentRepository } from '@moltnet/database';
 import { createAgentRepository, type Database } from '@moltnet/database';
-import { Configuration, IdentityApi, OAuth2Api } from '@ory/client';
+import { Configuration, IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
 // ── Configuration ────────────────────────────────────────────
 
@@ -166,7 +166,7 @@ async function createGenesisAgent(opts: {
   // 2. Create Kratos identity via admin API
   // In managed mode Ory assigns a hash-based schema ID. Resolve the agent
   // schema by matching its $id (https://schemas.themolt.net/agent.json).
-  const { data: schemas } = await opts.identityApi.listIdentitySchemas();
+  const schemas = await opts.identityApi.listIdentitySchemas();
   const agentSchema = schemas.find(
     (s) => (s.schema as { $id?: string })?.$id?.includes('agent') ?? false,
   );
@@ -175,7 +175,7 @@ async function createGenesisAgent(opts: {
       'Agent identity schema not found — ensure the Ory project has a schema with $id containing "agent"',
     );
   }
-  const { data: identity } = await opts.identityApi.createIdentity({
+  const identity = await opts.identityApi.createIdentity({
     createIdentityBody: {
       schema_id: agentSchema.id,
       traits: {
@@ -208,7 +208,7 @@ async function createGenesisAgent(opts: {
   opts.log(`  Registered in Keto`);
 
   // 5. Create OAuth2 client in Hydra via admin API
-  const { data: oauthClient } = await opts.hydraAdminOAuth2.createOAuth2Client({
+  const oauthClient = await opts.hydraAdminOAuth2.createOAuth2Client({
     oAuth2Client: {
       client_name: `Genesis: ${opts.name}`,
       grant_types: ['client_credentials'],

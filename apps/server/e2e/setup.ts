@@ -22,7 +22,7 @@ import {
   FrontendApi,
   IdentityApi,
   OAuth2Api,
-} from '@ory/client';
+} from '@ory/client-fetch';
 import { sql } from 'drizzle-orm';
 
 // ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──

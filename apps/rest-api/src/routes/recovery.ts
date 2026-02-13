@@ -158,7 +158,7 @@ export async function recoveryRoutes(
 
       // 4. Call Kratos Admin API to create recovery code
       try {
-        const { data } = await identityClient.createRecoveryCodeForIdentity({
+        const data = await identityClient.createRecoveryCodeForIdentity({
           createRecoveryCodeForIdentityBody: {
             identity_id: agent.identityId,
             flow_type: 'api',

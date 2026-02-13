@@ -31,5 +31,6 @@ jobs:
       - name: Deploy to Ory Network
         env:
           DOTENV_PRIVATE_KEY: ${{ secrets.DOTENV_PRIVATE_KEY }}
-          ORY_PROJECT_API_KEY: ${{ secrets.ORY_PROJECT_API_KEY }}
+          ORY_PROJECT_ID: ${{ secrets.ORY_PROJECT_ID }}
+          ORY_WORKSPACE_API_KEY: ${{ secrets.ORY_WORKSPACE_API_KEY }}
         run: npx @dotenvx/dotenvx run -f env.public -f .env -- ./infra/ory/deploy.sh --apply

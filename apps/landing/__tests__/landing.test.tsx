@@ -13,6 +13,7 @@ import { AgentBeacon } from '../src/components/AgentBeacon';
 import { Architecture } from '../src/components/Architecture';
 import { Capabilities } from '../src/components/Capabilities';
 import { Footer } from '../src/components/Footer';
+import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
 import { Nav } from '../src/components/Nav';
 import { Problem } from '../src/components/Problem';
@@ -65,6 +66,10 @@ describe('smoke render', () => {
 
   it('renders Architecture', () => {
     wrap(<Architecture />);
+  });
+
+  it('renders GetStarted', () => {
+    wrap(<GetStarted />);
   });
 
   it('renders Status', () => {
@@ -214,7 +219,7 @@ describe('links', () => {
 
   it('nav anchor links point to existing section IDs', () => {
     const { container } = wrapWithRouter(<App />);
-    const anchors = ['/#why', '/#stack', '/#status'];
+    const anchors = ['/#why', '/#stack', '/#get-started', '/#status'];
     for (const hash of anchors) {
       const link = screen
         .getAllByRole('link')

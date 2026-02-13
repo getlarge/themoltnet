@@ -317,11 +317,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
       try {
         // Fetch OAuth2 client metadata from Hydra to get identity_id
-        const { data: clientData } = await fastify.oauth2Client.getOAuth2Client(
-          {
-            id: tokenRequest.client_id,
-          },
-        );
+        const clientData = await fastify.oauth2Client.getOAuth2Client({
+          id: tokenRequest.client_id,
+        });
 
         if (!isMoltNetMetadata(clientData.metadata)) {
           fastify.log.warn(

@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 
 import { createClient, getAgentProfile } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
-import type { RegistrationFlow } from '@ory/client';
+import type { RegistrationFlow } from '@ory/client-fetch';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createTestVoucher } from './helpers.js';
@@ -80,7 +80,7 @@ describe('Self-Service Registration', () => {
     const password = `self-service-${randomUUID()}`;
 
     // Start registration flow with explicit schema selection
-    const { data: flow } =
+    const flow =
       await harness.kratosPublicFrontend.createNativeRegistrationFlow({
         identitySchema: 'moltnet_agent',
       });
@@ -88,7 +88,7 @@ describe('Self-Service Registration', () => {
     expect(flow.id).toBeDefined();
 
     // Submit registration
-    const { data: registration } =
+    const registration =
       await harness.kratosPublicFrontend.updateRegistrationFlow({
         flow: flow.id,
         updateRegistrationFlowBody: {
@@ -126,7 +126,7 @@ describe('Self-Service Registration', () => {
     const keyPair = await cryptoService.generateKeyPair();
     const password = `self-service-${randomUUID()}`;
 
-    const { data: flow } =
+    const flow =
       await harness.kratosPublicFrontend.createNativeRegistrationFlow({
         identitySchema: 'moltnet_agent',
       });
@@ -145,15 +145,14 @@ describe('Self-Service Registration', () => {
       });
       expect.unreachable('Registration should have been rejected');
     } catch (error: unknown) {
-      const axiosError = error as {
-        response?: { status: number; data: unknown };
-      };
-      expect(axiosError.response).toBeDefined();
+      const response = (error as { response?: Response })?.response;
+      expect(response).toBeDefined();
       // Kratos returns 422 when a webhook interrupts the flow
-      expect([400, 422]).toContain(axiosError.response!.status);
+      expect([400, 422]).toContain(response!.status);
 
       // Verify webhook error messages propagated through Kratos
-      const messages = extractFlowMessages(axiosError.response!.data);
+      const body = await response!.json();
+      const messages = extractFlowMessages(body);
       const errorMessages = messages.filter((m) => m.type === 'error');
       expect(errorMessages.length).toBeGreaterThan(0);
 
@@ -172,7 +171,7 @@ describe('Self-Service Registration', () => {
     });
     const password = `self-service-${randomUUID()}`;
 
-    const { data: flow } =
+    const flow =
       await harness.kratosPublicFrontend.createNativeRegistrationFlow({
         identitySchema: 'moltnet_agent',
       });
@@ -191,14 +190,13 @@ describe('Self-Service Registration', () => {
       });
       expect.unreachable('Registration should have been rejected');
     } catch (error: unknown) {
-      const axiosError = error as {
-        response?: { status: number; data: unknown };
-      };
-      expect(axiosError.response).toBeDefined();
-      expect([400, 422]).toContain(axiosError.response!.status);
+      const response = (error as { response?: Response })?.response;
+      expect(response).toBeDefined();
+      expect([400, 422]).toContain(response!.status);
 
       // Verify webhook error messages propagated
-      const messages = extractFlowMessages(axiosError.response!.data);
+      const body = await response!.json();
+      const messages = extractFlowMessages(body);
       const errorMessages = messages.filter((m) => m.type === 'error');
       expect(errorMessages.length).toBeGreaterThan(0);
 
@@ -218,7 +216,7 @@ describe('Self-Service Registration', () => {
       issuerId: harness.bootstrapIdentityId,
     });
 
-    const { data: flow1 } =
+    const flow1 =
       await harness.kratosPublicFrontend.createNativeRegistrationFlow({
         identitySchema: 'moltnet_agent',
       });
@@ -237,7 +235,7 @@ describe('Self-Service Registration', () => {
 
     // Try to reuse the same voucher with a different keypair
     const keyPair2 = await cryptoService.generateKeyPair();
-    const { data: flow2 } =
+    const flow2 =
       await harness.kratosPublicFrontend.createNativeRegistrationFlow({
         identitySchema: 'moltnet_agent',
       });
@@ -256,11 +254,9 @@ describe('Self-Service Registration', () => {
       });
       expect.unreachable('Second registration should have been rejected');
     } catch (error: unknown) {
-      const axiosError = error as {
-        response?: { status: number; data: unknown };
-      };
-      expect(axiosError.response).toBeDefined();
-      expect([400, 422]).toContain(axiosError.response!.status);
+      const response = (error as { response?: Response })?.response;
+      expect(response).toBeDefined();
+      expect([400, 422]).toContain(response!.status);
     }
   });
 
@@ -273,12 +269,12 @@ describe('Self-Service Registration', () => {
       issuerId: harness.bootstrapIdentityId,
     });
 
-    const { data: flow } =
+    const flow =
       await harness.kratosPublicFrontend.createNativeRegistrationFlow({
         identitySchema: 'moltnet_agent',
       });
 
-    const { data: registration } =
+    const registration =
       await harness.kratosPublicFrontend.updateRegistrationFlow({
         flow: flow.id,
         updateRegistrationFlowBody: {
@@ -294,22 +290,21 @@ describe('Self-Service Registration', () => {
     const identityId = registration.identity.id;
 
     // Create OAuth2 client + get token (mirrors production DCR flow)
-    const { data: oauthClient } =
-      await harness.hydraAdminOAuth2.createOAuth2Client({
-        oAuth2Client: {
-          client_name: `E2E Self-Service ${randomUUID()}`,
-          grant_types: ['client_credentials'],
-          response_types: [],
-          token_endpoint_auth_method: 'client_secret_post',
-          scope: 'diary:read diary:write crypto:sign agent:profile',
-          metadata: {
-            type: 'moltnet_agent',
-            identity_id: identityId,
-            public_key: keyPair.publicKey,
-            fingerprint: keyPair.fingerprint,
-          },
+    const oauthClient = await harness.hydraAdminOAuth2.createOAuth2Client({
+      oAuth2Client: {
+        client_name: `E2E Self-Service ${randomUUID()}`,
+        grant_types: ['client_credentials'],
+        response_types: [],
+        token_endpoint_auth_method: 'client_secret_post',
+        scope: 'diary:read diary:write crypto:sign agent:profile',
+        metadata: {
+          type: 'moltnet_agent',
+          identity_id: identityId,
+          public_key: keyPair.publicKey,
+          fingerprint: keyPair.fingerprint,
         },
-      });
+      },
+    });
 
     const tokenResponse = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
       method: 'POST',

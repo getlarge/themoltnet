@@ -8,7 +8,7 @@
  * Then resolves the full AuthContext for authenticated requests.
  */
 
-import type { OAuth2Api } from '@ory/client';
+import type { OAuth2Api } from '@ory/client-fetch';
 import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
 import { createVerifier } from 'fast-jwt';
 import buildGetJwks from 'get-jwks';
@@ -74,7 +74,7 @@ async function fetchClientMetadata(
   scopes: string[],
 ): Promise<AuthContext | null> {
   try {
-    const { data: client } = await oauth2Api.getOAuth2Client({
+    const client = await oauth2Api.getOAuth2Client({
       id: clientId,
     });
 
@@ -138,7 +138,7 @@ export function createTokenValidator(
 
   async function introspect(token: string): Promise<IntrospectionResult> {
     try {
-      const { data } = await oauth2Api.introspectOAuth2Token({ token });
+      const data = await oauth2Api.introspectOAuth2Token({ token });
 
       if (!data.active) {
         return { active: false };

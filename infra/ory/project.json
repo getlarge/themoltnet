@@ -209,18 +209,7 @@
       }
     },
     "permission": {
-      "config": {
-        "namespaces": [
-          {
-            "id": 0,
-            "name": "diary_entries"
-          },
-          {
-            "id": 1,
-            "name": "agents"
-          }
-        ]
-      }
+      "config": {}
     }
   }
 }
