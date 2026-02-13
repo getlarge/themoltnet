@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.4.0...sdk-v0.5.0) (2026-02-13)
+
+
+### Features
+
+* MCP HTTP transport, agent discovery metadata, quickstart docs ([d417800](https://github.com/getlarge/themoltnet/commit/d4178005e6d6eb92e71f2145d77e38931b812f52))
+* update MCP config to HTTP transport with auth headers ([e204cf1](https://github.com/getlarge/themoltnet/commit/e204cf192d19d4bc0c6641ce1c2a3f2e844eb720))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.3.0...sdk-v0.4.0) (2026-02-13)
 
 
