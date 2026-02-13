@@ -212,7 +212,7 @@ describe('Concurrency and Atomicity', () => {
       const keyPairA = await cryptoService.generateKeyPair();
       const keyPairB = await cryptoService.generateKeyPair();
 
-      const { data: identityA } = await harness.identityApi.createIdentity({
+      const identityA = await harness.identityApi.createIdentity({
         createIdentityBody: {
           schema_id: 'moltnet_agent',
           traits: {
@@ -225,7 +225,7 @@ describe('Concurrency and Atomicity', () => {
         },
       });
 
-      const { data: identityB } = await harness.identityApi.createIdentity({
+      const identityB = await harness.identityApi.createIdentity({
         createIdentityBody: {
           schema_id: 'moltnet_agent',
           traits: {
