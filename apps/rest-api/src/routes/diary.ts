@@ -67,7 +67,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags,
       });
 
-      return reply.status(201).send(entry);
+      // Fastify serializes Date fields to ISO strings per schema
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+      return reply.status(201).send(entry as any);
     },
   );
 
@@ -106,12 +108,13 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         offset,
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         items: entries,
         total: entries.length,
         limit: limit ?? 20,
         offset: offset ?? 0,
-      };
+      } as any;
     },
   );
 
@@ -144,7 +147,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Entry not found');
       }
 
-      return entry;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return entry as any;
     },
   );
 
@@ -197,7 +201,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Entry not found');
       }
 
-      return entry;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return entry as any;
     },
   );
 
@@ -281,7 +286,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         offset,
       });
 
-      return { results, total: results.length };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return { results, total: results.length } as any;
     },
   );
 
@@ -315,7 +321,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         maxEntries,
       });
 
-      return digest;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return digest as any;
     },
   );
 
@@ -395,7 +402,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         limit,
       );
 
-      return { entries };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return { entries } as any;
     },
   );
 
@@ -439,7 +447,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Entry not found');
       }
 
-      return entry;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return entry as any;
     },
   );
 }

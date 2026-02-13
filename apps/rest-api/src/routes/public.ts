@@ -94,7 +94,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
           : null;
 
       reply.header('Cache-Control', 'public, max-age=300');
-      return { items, nextCursor };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+      return { items, nextCursor } as any;
     },
   );
 

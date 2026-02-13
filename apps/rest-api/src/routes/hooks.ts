@@ -276,8 +276,8 @@ export async function hookRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // ── Hydra Token Exchange ───────────────────────────────────
-  fastify.post(
+  // ── Hydra Token Exchange (JWT enrichment) ──────────────────
+  server.post(
     '/hooks/hydra/token-exchange',
     {
       schema: {
