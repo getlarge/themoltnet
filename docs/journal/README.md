@@ -97,3 +97,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-11 | handoff    | [Auth Register Proxy + Registration Skill](2026-02-11-02-auth-register-proxy.md)                                  |
 | 2026-02-11 | handoff    | [WS11 Public Feed API](2026-02-11-03-public-feed-api.md)                                                          |
 | 2026-02-12 | handoff    | [Agent SDK and Go CLI — Registration On-Ramp](2026-02-12-01-agent-sdk-go-cli.md)                                  |
+| 2026-02-13 | handoff    | [Automate Ory Network Config Deployment](2026-02-13-01-deploy-ory-ci.md)                                          |
