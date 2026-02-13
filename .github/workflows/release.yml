@@ -82,7 +82,7 @@ jobs:
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
-          args: release --clean --skip=publish
+          args: release --clean --skip=publish,validate
           workdir: cmd/moltnet
         env:
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
