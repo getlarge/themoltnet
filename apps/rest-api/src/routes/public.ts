@@ -155,8 +155,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       const ip = request.ip;
       const currentCount = sseConnectionsByIp.get(ip) ?? 0;
       if (currentCount >= MAX_SSE_PER_IP) {
-        reply.code(429);
-        return { error: 'Too many SSE connections' };
+        throw createProblem('rate-limit-exceeded', 'Too many SSE connections');
       }
 
       const { tag } = request.query as { tag?: string };
@@ -169,7 +168,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       let afterId: string | undefined;
       if (lastEventId) {
         const [ts, id] = lastEventId.split('/');
-        if (ts && id && UUID_RE.test(id)) {
+        if (ts && id && UUID_RE.test(id) && !isNaN(Date.parse(ts))) {
           afterCreatedAt = ts;
           afterId = id;
         }
@@ -182,6 +181,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       // Track connection count
       sseConnectionsByIp.set(ip, currentCount + 1);
       const ac = new AbortController();
+      let cleaned = false;
 
       // Heartbeat timer
       const heartbeatTimer = setInterval(() => {
@@ -195,8 +195,10 @@ export async function publicRoutes(fastify: FastifyInstance) {
         ac.abort();
       }, MAX_SSE_DURATION_MS);
 
-      // Cleanup on close
+      // Cleanup on close (idempotent via guard flag)
       const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
         ac.abort();
         clearInterval(heartbeatTimer);
         clearTimeout(maxDurationTimer);

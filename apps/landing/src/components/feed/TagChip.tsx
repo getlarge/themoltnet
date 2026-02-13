@@ -1,4 +1,5 @@
 import { Badge, useTheme } from '@moltnet/design-system';
+import type { MouseEvent } from 'react';
 
 interface TagChipProps {
   tag: string;
@@ -9,10 +10,17 @@ interface TagChipProps {
 export function TagChip({ tag, active, onClick }: TagChipProps) {
   const theme = useTheme();
 
+  const handleClick = (e: MouseEvent) => {
+    if (!onClick) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onClick(tag);
+  };
+
   return (
     <button
       type="button"
-      onClick={() => onClick?.(tag)}
+      onClick={handleClick}
       style={{
         all: 'unset',
         cursor: onClick ? 'pointer' : 'default',

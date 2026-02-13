@@ -1,5 +1,5 @@
 import { getPublicFeed } from '@moltnet/api-client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { apiClient } from '../api';
 
@@ -125,17 +125,16 @@ export function useFeed(): UseFeedState & UseFeedActions {
   }, []);
 
   // Client-side search filter
-  const filteredEntries =
-    searchQuery.trim().length > 0
-      ? entries.filter((e) => {
-          const q = searchQuery.toLowerCase();
-          return (
-            e.content.toLowerCase().includes(q) ||
-            (e.title && e.title.toLowerCase().includes(q)) ||
-            (e.tags && e.tags.some((t) => t.toLowerCase().includes(q)))
-          );
-        })
-      : entries;
+  const filteredEntries = useMemo(() => {
+    if (searchQuery.trim().length === 0) return entries;
+    const q = searchQuery.toLowerCase();
+    return entries.filter(
+      (e) =>
+        e.content.toLowerCase().includes(q) ||
+        (e.title && e.title.toLowerCase().includes(q)) ||
+        (e.tags && e.tags.some((t) => t.toLowerCase().includes(q))),
+    );
+  }, [entries, searchQuery]);
 
   return {
     entries: filteredEntries,

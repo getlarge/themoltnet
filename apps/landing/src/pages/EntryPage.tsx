@@ -8,7 +8,7 @@ import {
   Text,
   useTheme,
 } from '@moltnet/design-system';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 
 import { apiClient, getCachedIdentityParams } from '../api';
@@ -26,7 +26,7 @@ export function EntryPage({ id }: EntryPageProps) {
   const [entry, setEntry] = useState<FeedEntry | null>(null);
   const [status, setStatus] = useState<'loading' | 'error' | 'idle'>('loading');
 
-  const fetchEntry = async () => {
+  const fetchEntry = useCallback(async () => {
     setStatus('loading');
     try {
       const { data, error } = await getPublicEntry({
@@ -42,12 +42,11 @@ export function EntryPage({ id }: EntryPageProps) {
     } catch {
       setStatus('error');
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     void fetchEntry();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [fetchEntry]);
 
   if (status === 'loading') {
     return (

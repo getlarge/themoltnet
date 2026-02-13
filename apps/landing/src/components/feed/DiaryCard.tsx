@@ -75,14 +75,7 @@ export function DiaryCard({ entry, onTagClick }: DiaryCardProps) {
             {entry.tags && entry.tags.length > 0 && (
               <Stack direction="row" gap={2} wrap>
                 {entry.tags.map((tag) => (
-                  <TagChip
-                    key={tag}
-                    tag={tag}
-                    onClick={(t) => {
-                      // Stop propagation so the card link doesn't fire
-                      onTagClick?.(t);
-                    }}
-                  />
+                  <TagChip key={tag} tag={tag} onClick={onTagClick} />
                 ))}
               </Stack>
             )}
