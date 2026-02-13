@@ -9,7 +9,7 @@ import (
 
 func TestWriteMcpConfig_CreateNew(t *testing.T) {
 	dir := t.TempDir()
-	config := BuildMcpConfig("https://api.themolt.net")
+	config := BuildMcpConfig("https://api.themolt.net", "test-id", "test-secret")
 
 	path, err := WriteMcpConfig(config, dir)
 	if err != nil {
@@ -38,8 +38,11 @@ func TestWriteMcpConfig_CreateNew(t *testing.T) {
 	if moltnet.URL != "https://api.themolt.net/mcp" {
 		t.Errorf("url: got %s", moltnet.URL)
 	}
-	if moltnet.Transport != "sse" {
-		t.Errorf("transport: got %s", moltnet.Transport)
+	if moltnet.Type != "http" {
+		t.Errorf("type: got %s", moltnet.Type)
+	}
+	if moltnet.Headers["X-Client-Id"] != "test-id" {
+		t.Errorf("X-Client-Id: got %s", moltnet.Headers["X-Client-Id"])
 	}
 }
 
@@ -47,13 +50,13 @@ func TestWriteMcpConfig_MergeExisting(t *testing.T) {
 	dir := t.TempDir()
 	existing := `{
   "mcpServers": {
-    "other": {"url": "http://other.com/mcp", "transport": "sse"}
+    "other": {"type": "http", "url": "http://other.com/mcp"}
   }
 }
 `
 	os.WriteFile(filepath.Join(dir, ".mcp.json"), []byte(existing), 0o644)
 
-	config := BuildMcpConfig("https://api.themolt.net")
+	config := BuildMcpConfig("https://api.themolt.net", "id", "secret")
 	_, err := WriteMcpConfig(config, dir)
 	if err != nil {
 		t.Fatalf("write: %v", err)
@@ -81,13 +84,13 @@ func TestWriteMcpConfig_OverwriteMoltnet(t *testing.T) {
 	dir := t.TempDir()
 	existing := `{
   "mcpServers": {
-    "moltnet": {"url": "http://old.com/mcp", "transport": "sse"}
+    "moltnet": {"type": "http", "url": "http://old.com/mcp"}
   }
 }
 `
 	os.WriteFile(filepath.Join(dir, ".mcp.json"), []byte(existing), 0o644)
 
-	config := BuildMcpConfig("https://api.themolt.net")
+	config := BuildMcpConfig("https://api.themolt.net", "id", "secret")
 	_, err := WriteMcpConfig(config, dir)
 	if err != nil {
 		t.Fatalf("write: %v", err)
@@ -109,11 +112,18 @@ func TestWriteMcpConfig_OverwriteMoltnet(t *testing.T) {
 }
 
 func TestBuildMcpConfig(t *testing.T) {
-	config := BuildMcpConfig("https://api.themolt.net")
-	if config.McpServers["moltnet"].URL != "https://api.themolt.net/mcp" {
-		t.Errorf("url: got %s", config.McpServers["moltnet"].URL)
+	config := BuildMcpConfig("https://api.themolt.net", "cid", "csecret")
+	srv := config.McpServers["moltnet"]
+	if srv.URL != "https://api.themolt.net/mcp" {
+		t.Errorf("url: got %s", srv.URL)
 	}
-	if config.McpServers["moltnet"].Transport != "sse" {
-		t.Errorf("transport: got %s", config.McpServers["moltnet"].Transport)
+	if srv.Type != "http" {
+		t.Errorf("type: got %s", srv.Type)
+	}
+	if srv.Headers["X-Client-Id"] != "cid" {
+		t.Errorf("X-Client-Id: got %s", srv.Headers["X-Client-Id"])
+	}
+	if srv.Headers["X-Client-Secret"] != "csecret" {
+		t.Errorf("X-Client-Secret: got %s", srv.Headers["X-Client-Secret"])
 	}
 }

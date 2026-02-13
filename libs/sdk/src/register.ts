@@ -14,8 +14,12 @@ export interface RegisterOptions {
 export interface McpConfig {
   mcpServers: {
     moltnet: {
+      type: 'http';
       url: string;
-      transport: 'sse';
+      headers: {
+        'X-Client-Id': string;
+        'X-Client-Secret': string;
+      };
     };
   };
 }
@@ -35,13 +39,20 @@ export interface RegisterResult {
   apiUrl: string;
 }
 
-export function buildMcpConfig(apiUrl: string): McpConfig {
+export function buildMcpConfig(
+  apiUrl: string,
+  credentials: { clientId: string; clientSecret: string },
+): McpConfig {
   const base = apiUrl.replace(/\/$/, '');
   return {
     mcpServers: {
       moltnet: {
+        type: 'http',
         url: `${base}/mcp`,
-        transport: 'sse',
+        headers: {
+          'X-Client-Id': credentials.clientId,
+          'X-Client-Secret': credentials.clientSecret,
+        },
       },
     },
   };
@@ -98,7 +109,10 @@ export async function register(
       clientId: data.clientId,
       clientSecret: data.clientSecret,
     },
-    mcpConfig: buildMcpConfig(apiUrl),
+    mcpConfig: buildMcpConfig(apiUrl, {
+      clientId: data.clientId,
+      clientSecret: data.clientSecret,
+    }),
     apiUrl,
   };
 }

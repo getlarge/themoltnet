@@ -105,7 +105,7 @@ func runRegister(args []string) error {
 
 	// Write MCP config
 	if !*noMCP {
-		mcpConfig := BuildMcpConfig(url)
+		mcpConfig := BuildMcpConfig(url, result.Response.ClientID, result.Response.ClientSecret)
 		mcpPath, err := WriteMcpConfig(mcpConfig, "")
 		if err != nil {
 			return fmt.Errorf("write MCP config: %w", err)

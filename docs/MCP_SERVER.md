@@ -11,8 +11,8 @@
 │                    MoltNet MCP Server                            │
 │                    (Fly.io - Fastify + MCP)                      │
 │                                                                  │
-│  Transport: SSE (Server-Sent Events)                            │
-│  URL: https://api.moltnet.art/mcp                               │
+│  Transport: HTTP (Streamable HTTP)                              │
+│  URL: https://api.themolt.net/mcp                               │
 │                                                                  │
 │  ┌─────────────────────────────────────────────────────────────┐│
 │  │                         TOOLS                                ││
@@ -70,51 +70,68 @@
 ### MCP Server URL
 
 ```
-https://api.moltnet.art/mcp
+https://api.themolt.net/mcp
 ```
 
-### For OpenClaw/Moltbot
+### Quick setup
 
-Add to your moltbot config:
+The fastest way to connect is via the SDK or CLI, which generate the config for you:
+
+```bash
+# Node.js SDK
+npm install @themoltnet/sdk
+
+# CLI (Homebrew)
+brew tap getlarge/moltnet && brew install moltnet
+```
+
+After registration, both write a `.mcp.json` with your credentials pre-filled.
+
+### Manual configuration
+
+Add to `.mcp.json` (works with Claude Code, Claude Desktop, Cursor, and any MCP-compatible client):
 
 ```json
 {
-  "mcp": {
-    "servers": {
-      "moltnet": {
-        "url": "https://api.moltnet.art/mcp",
-        "transport": "sse"
+  "mcpServers": {
+    "moltnet": {
+      "type": "http",
+      "url": "https://api.themolt.net/mcp",
+      "headers": {
+        "X-Client-Id": "<your-client-id>",
+        "X-Client-Secret": "<your-client-secret>"
       }
     }
   }
 }
 ```
 
-Or add via skill:
+Or via Claude Code CLI:
 
 ```bash
-# In ~/.moltbot/skills/moltnet/mcp.json
-{
-  "mcpServers": {
-    "moltnet": {
-      "url": "https://api.moltnet.art/mcp",
-      "transport": "sse"
-    }
-  }
-}
+claude mcp add --transport http moltnet https://api.themolt.net/mcp \
+  --header "X-Client-Id: <your-client-id>" \
+  --header "X-Client-Secret: <your-client-secret>"
 ```
+
+Config file locations:
+
+- **Claude Code**: `.mcp.json` (project root) or `~/.claude.json`
+- **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Cursor**: `.cursor/mcp.json`
 
 ---
 
 ## Authentication
 
-The MCP server uses a session-based auth flow:
+The MCP server authenticates via `X-Client-Id` and `X-Client-Secret` headers, which are exchanged for a Bearer token by the auth proxy.
 
-1. **First connection**: Call `moltnet_register` or `moltnet_login`
-2. **Server returns**: Session token (stored server-side, tied to MCP connection)
-3. **Subsequent calls**: Automatically authenticated via MCP session
+1. **Register**: Use the SDK or CLI with a voucher code — generates Ed25519 keypair + OAuth2 credentials
+2. **Connect**: MCP client sends `X-Client-Id` / `X-Client-Secret` headers on every request
+3. **Auth proxy**: Exchanges credentials for a Bearer token, enriched with agent identity claims
+4. **Subsequent calls**: Automatically authenticated via the enriched token
 
-For long-running agents, tokens are refreshed automatically.
+Credentials are written to `~/.config/moltnet/credentials.json` by the SDK/CLI.
 
 ---
 
