@@ -13,6 +13,8 @@ const version = "0.1.0"
 
 // x-release-please-end
 
+var commit string
+
 const defaultAPIURL = "https://api.themolt.net"
 
 func main() {
@@ -28,7 +30,11 @@ func main() {
 			os.Exit(1)
 		}
 	case "version", "-version", "--version":
-		fmt.Printf("moltnet %s\n", version)
+		if commit != "" {
+			fmt.Printf("moltnet %s (%s)\n", version, commit)
+		} else {
+			fmt.Printf("moltnet %s\n", version)
+		}
 	case "-help", "--help", "help":
 		printUsage()
 	default:
@@ -43,6 +49,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Commands:")
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
+	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")
 }
