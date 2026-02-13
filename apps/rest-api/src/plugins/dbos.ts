@@ -1,16 +1,21 @@
 /**
  * DBOS Fastify Plugin
  *
- * Initializes DBOS durable execution framework with Keto workflows.
+ * Initializes DBOS durable execution framework with all workflows:
+ * Keto permissions, signing, and registration.
+ *
  * Must be registered after the auth plugin (needs permissionChecker).
  *
  * ## Initialization Order
  *
  * 1. configureDBOS()              — set DBOS runtime config
- * 2. initKetoWorkflows()          — register workflow definitions
- * 3. setKetoRelationshipWriter()  — inject Keto client
- * 4. initDBOS()                   — create data source (optionally with shared pool)
- * 5. launchDBOS()                 — start runtime, recover pending workflows
+ * 2. initKetoWorkflows()          — register Keto workflow definitions
+ * 3. initSigningWorkflows()       — register signing workflow definitions
+ * 4. initRegistrationWorkflow()   — register registration workflow
+ * 5. Set workflow dependencies    — inject clients and services
+ * 6. initDBOS()                   — create data source
+ * 7. launchDBOS()                 — start runtime, recover pending workflows
+ * 8. Set post-launch deps         — signing persistence, registration deps
  */
 
 import {
@@ -27,8 +32,14 @@ import {
   setSigningVerifier,
   shutdownDBOS,
 } from '@moltnet/database';
+import type { IdentityApi, OAuth2Api } from '@ory/client';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
+
+import {
+  initRegistrationWorkflow,
+  setRegistrationDeps,
+} from '../workflows/index.js';
 
 export interface DBOSPluginOptions {
   /** Application database URL — used by DrizzleDataSource for app tables */
@@ -38,6 +49,10 @@ export interface DBOSPluginOptions {
   /** Whether to enable OpenTelemetry (OTLP) for DBOS internal metrics/traces */
   enableOTLP?: boolean;
   signingTimeoutSeconds?: number;
+  /** Kratos Admin API client — for registration workflow */
+  identityApi: IdentityApi;
+  /** Hydra Admin API client — for registration workflow */
+  oauth2Api: OAuth2Api;
 }
 
 async function dbosPlugin(
@@ -51,6 +66,7 @@ async function dbosPlugin(
     'permissionChecker',
     'cryptoService',
     'agentRepository',
+    'voucherRepository',
     'signingRequestRepository',
   ] as const;
   for (const dep of required) {
@@ -70,7 +86,10 @@ async function dbosPlugin(
   // 3. Register signing workflows
   initSigningWorkflows();
 
-  // 4. Set the relationship writer for Keto workflows
+  // 4. Register registration workflow
+  initRegistrationWorkflow();
+
+  // 5. Set the relationship writer for Keto workflows
   setKetoRelationshipWriter(fastify.permissionChecker);
 
   // 5. Set signing workflow dependencies
@@ -102,13 +121,25 @@ async function dbosPlugin(
     },
   });
 
-  // 10. Graceful shutdown
+  // 10. Set registration workflow dependencies (needs dataSource from launch)
+  setRegistrationDeps({
+    identityApi: options.identityApi,
+    oauth2Api: options.oauth2Api,
+    agentRepository: fastify.agentRepository,
+    voucherRepository: fastify.voucherRepository,
+    permissionChecker: fastify.permissionChecker,
+    dataSource: getDataSource(),
+  });
+
+  // 11. Graceful shutdown
   fastify.addHook('onClose', async () => {
     fastify.log.info('Shutting down DBOS...');
     await shutdownDBOS();
   });
 
-  fastify.log.info('DBOS initialized with Keto and signing workflows');
+  fastify.log.info(
+    'DBOS initialized with Keto, signing, and registration workflows',
+  );
 }
 
 export default fp(dbosPlugin, {
