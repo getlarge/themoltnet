@@ -258,9 +258,9 @@ function rgbToHex(r: number, g: number, b: number): string {
  */
 export function deriveFingerprintColor(fingerprint: string): FingerprintColor {
   const hex6 = fingerprint.replace(/-/g, '').slice(0, 6).toUpperCase();
-  const r = parseInt(hex6.slice(0, 2), 16);
-  const g = parseInt(hex6.slice(2, 4), 16);
-  const b = parseInt(hex6.slice(4, 6), 16);
+  const r = parseInt(hex6.slice(0, 2), 16) || 0;
+  const g = parseInt(hex6.slice(2, 4), 16) || 0;
+  const b = parseInt(hex6.slice(4, 6), 16) || 0;
 
   const raw = rgbToHex(r, g, b);
   const [h, s, l] = rgbToHsl(r, g, b);
