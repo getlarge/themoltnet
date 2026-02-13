@@ -210,11 +210,9 @@ export async function createTestApp(
 
   const mockOAuth2Api = {
     getOAuth2Client: vi.fn().mockResolvedValue({
-      data: {
-        client_id: 'test-client-id',
-        metadata: {
-          identity_id: OWNER_ID,
-        },
+      client_id: 'test-client-id',
+      metadata: {
+        identity_id: OWNER_ID,
       },
     }),
   } as unknown as OryClients['oauth2'];

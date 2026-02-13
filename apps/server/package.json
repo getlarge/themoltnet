@@ -29,7 +29,7 @@
     "@moltnet/embedding-service": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@moltnet/rest-api": "workspace:*",
-    "@ory/client": "catalog:",
+    "@ory/client-fetch": "catalog:",
     "@fastify/otel": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/exporter-logs-otlp-proto": "catalog:",

@@ -32,7 +32,7 @@ import {
   setSigningVerifier,
   shutdownDBOS,
 } from '@moltnet/database';
-import type { IdentityApi, OAuth2Api } from '@ory/client';
+import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 

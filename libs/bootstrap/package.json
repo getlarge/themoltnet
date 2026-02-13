@@ -22,7 +22,7 @@
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
-    "@ory/client": "catalog:"
+    "@ory/client-fetch": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

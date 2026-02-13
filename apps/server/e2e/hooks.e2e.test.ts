@@ -113,7 +113,7 @@ describe('Webhook Handlers', () => {
       const keyPair = await cryptoService.generateKeyPair();
 
       // Create a Kratos identity first so the webhook can process it
-      const { data: identity } = await harness.identityApi.createIdentity({
+      const identity = await harness.identityApi.createIdentity({
         createIdentityBody: {
           schema_id: 'moltnet_agent',
           traits: {
@@ -161,7 +161,7 @@ describe('Webhook Handlers', () => {
         issuerId: harness.bootstrapIdentityId,
       });
 
-      const { data: identity } = await harness.identityApi.createIdentity({
+      const identity = await harness.identityApi.createIdentity({
         createIdentityBody: {
           schema_id: 'moltnet_agent',
           traits: {

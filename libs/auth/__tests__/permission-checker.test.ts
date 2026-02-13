@@ -47,7 +47,7 @@ describe('PermissionChecker', () => {
   describe('canViewEntry', () => {
     it('returns true when agent has view permission', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({
-        data: { allowed: true },
+        allowed: true,
       });
 
       const result = await checker.canViewEntry(ENTRY_ID, AGENT_ID);
@@ -63,7 +63,7 @@ describe('PermissionChecker', () => {
 
     it('returns false when agent lacks view permission', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({
-        data: { allowed: false },
+        allowed: false,
       });
 
       const result = await checker.canViewEntry(ENTRY_ID, AGENT_ID);
@@ -85,7 +85,7 @@ describe('PermissionChecker', () => {
   describe('canEditEntry', () => {
     it('returns true when agent is owner', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({
-        data: { allowed: true },
+        allowed: true,
       });
 
       const result = await checker.canEditEntry(ENTRY_ID, AGENT_ID);
@@ -101,7 +101,7 @@ describe('PermissionChecker', () => {
 
     it('returns false when agent is not owner', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({
-        data: { allowed: false },
+        allowed: false,
       });
 
       const result = await checker.canEditEntry(ENTRY_ID, OTHER_AGENT_ID);
@@ -113,7 +113,7 @@ describe('PermissionChecker', () => {
   describe('canDeleteEntry', () => {
     it('checks delete permission', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({
-        data: { allowed: true },
+        allowed: true,
       });
 
       const result = await checker.canDeleteEntry(ENTRY_ID, AGENT_ID);
@@ -131,7 +131,7 @@ describe('PermissionChecker', () => {
   describe('canShareEntry', () => {
     it('checks share permission', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({
-        data: { allowed: true },
+        allowed: true,
       });
 
       const result = await checker.canShareEntry(ENTRY_ID, AGENT_ID);
@@ -148,9 +148,7 @@ describe('PermissionChecker', () => {
 
   describe('grantOwnership', () => {
     it('creates owner relation tuple', async () => {
-      mockRelationshipApi.createRelationship.mockResolvedValue({
-        data: {},
-      });
+      mockRelationshipApi.createRelationship.mockResolvedValue({});
 
       await checker.grantOwnership(ENTRY_ID, AGENT_ID);
 
@@ -177,9 +175,7 @@ describe('PermissionChecker', () => {
 
   describe('grantViewer', () => {
     it('creates viewer relation tuple', async () => {
-      mockRelationshipApi.createRelationship.mockResolvedValue({
-        data: {},
-      });
+      mockRelationshipApi.createRelationship.mockResolvedValue({});
 
       await checker.grantViewer(ENTRY_ID, OTHER_AGENT_ID);
 
@@ -196,9 +192,7 @@ describe('PermissionChecker', () => {
 
   describe('revokeViewer', () => {
     it('deletes viewer relation tuple', async () => {
-      mockRelationshipApi.deleteRelationships.mockResolvedValue({
-        data: {},
-      });
+      mockRelationshipApi.deleteRelationships.mockResolvedValue({});
 
       await checker.revokeViewer(ENTRY_ID, OTHER_AGENT_ID);
 
@@ -213,9 +207,7 @@ describe('PermissionChecker', () => {
 
   describe('registerAgent', () => {
     it('creates agent self relation', async () => {
-      mockRelationshipApi.createRelationship.mockResolvedValue({
-        data: {},
-      });
+      mockRelationshipApi.createRelationship.mockResolvedValue({});
 
       await checker.registerAgent(AGENT_ID);
 
@@ -232,9 +224,7 @@ describe('PermissionChecker', () => {
 
   describe('removeEntryRelations', () => {
     it('deletes all relations for an entry', async () => {
-      mockRelationshipApi.deleteRelationships.mockResolvedValue({
-        data: {},
-      });
+      mockRelationshipApi.deleteRelationships.mockResolvedValue({});
 
       await checker.removeEntryRelations(ENTRY_ID);
 

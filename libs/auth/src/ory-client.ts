@@ -11,7 +11,7 @@ import {
   OAuth2Api,
   PermissionApi,
   RelationshipApi,
-} from '@ory/client';
+} from '@ory/client-fetch';
 
 export interface OryClientConfig {
   baseUrl: string;
@@ -41,9 +41,24 @@ export function createOryClients(config: OryClientConfig): OryClients {
     });
   }
 
+  const identity = new IdentityApi(makeConfig(config.kratosAdminUrl));
+
+  // listIdentitySchemas hits GET /schemas — a public endpoint. When called
+  // via the admin port, Kratos redirects to serve.public.base_url which may
+  // resolve to localhost (unreachable from Docker containers). Delegate to
+  // a public-URL instance so the request goes directly to the public port.
+  if (
+    config.kratosPublicUrl &&
+    config.kratosPublicUrl !== config.kratosAdminUrl
+  ) {
+    const publicIdentity = new IdentityApi(makeConfig(config.kratosPublicUrl));
+    identity.listIdentitySchemas =
+      publicIdentity.listIdentitySchemas.bind(publicIdentity);
+  }
+
   return {
     frontend: new FrontendApi(makeConfig(config.kratosPublicUrl)),
-    identity: new IdentityApi(makeConfig(config.kratosAdminUrl)),
+    identity,
     oauth2: new OAuth2Api(makeConfig(config.hydraAdminUrl)),
     permission: new PermissionApi(makeConfig(config.ketoReadUrl)),
     relationship: new RelationshipApi(makeConfig(config.ketoWriteUrl)),

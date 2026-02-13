@@ -101,4 +101,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-12 | handoff    | [Bump @getlarge/fastify-mcp to 1.3.0-getlarge.1](2026-02-12-01-bump-fastify-mcp.md)                               |
 | 2026-02-13 | handoff    | [Automate Ory Network Config Deployment](2026-02-13-01-deploy-ory-ci.md)                                          |
 | 2026-02-13 | handoff    | [SDK Documentation in README and Landing Page](2026-02-13-02-sdk-docs-readme-landing.md)                          |
+| 2026-02-13 | handoff    | [Migrate from @ory/client to @ory/client-fetch](2026-02-13-03-ory-client-fetch-migration.md)                      |
 | 2026-02-13 | handoff    | [Registration Admin API + DBOS Workflow](2026-02-13-01-registration-admin-api.md)                                 |

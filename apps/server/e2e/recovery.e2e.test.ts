@@ -172,16 +172,17 @@ describe('Recovery Flow', () => {
               code: recoveryData!.recoveryCode,
             },
           });
-        kratosStatus = kratosResponse.status;
-        kratosResponseData = kratosResponse.data as Record<string, unknown>;
+        kratosStatus = 200;
+        kratosResponseData = kratosResponse as unknown as Record<
+          string,
+          unknown
+        >;
       } catch (err: unknown) {
-        // Ory SDK wraps non-2xx responses as AxiosError
-        const axiosErr = err as {
-          response?: { status: number; data: Record<string, unknown> };
-        };
-        if (axiosErr.response) {
-          kratosStatus = axiosErr.response.status;
-          kratosResponseData = axiosErr.response.data;
+        // Ory SDK wraps non-2xx responses as ResponseError
+        const response = (err as { response?: Response })?.response;
+        if (response) {
+          kratosStatus = response.status;
+          kratosResponseData = await response.json();
         } else {
           throw err;
         }

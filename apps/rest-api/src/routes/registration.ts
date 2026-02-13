@@ -141,10 +141,9 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       // Fetch current client config
       let existingClient;
       try {
-        const { data } = await fastify.oauth2Client.getOAuth2Client({
+        existingClient = await fastify.oauth2Client.getOAuth2Client({
           id: clientId,
         });
-        existingClient = data;
       } catch (err: unknown) {
         fastify.log.error({ err }, 'Failed to fetch OAuth2 client');
         throw createProblem('upstream-error', 'Failed to fetch OAuth2 client');

@@ -94,18 +94,14 @@ function createValidVoucher() {
 function setupHappyPath(mocks: MockDeps) {
   mocks.voucherRepository.findByCode.mockResolvedValue(createValidVoucher());
 
-  mocks.identityApi.listIdentitySchemas.mockResolvedValue({
-    data: [
-      {
-        id: 'schema-hash-123',
-        schema: { $id: 'https://schemas.themolt.net/agent.json' },
-      },
-    ],
-  });
+  mocks.identityApi.listIdentitySchemas.mockResolvedValue([
+    {
+      id: 'schema-hash-123',
+      schema: { $id: 'https://schemas.themolt.net/agent.json' },
+    },
+  ]);
 
-  mocks.identityApi.createIdentity.mockResolvedValue({
-    data: { id: IDENTITY_ID },
-  });
+  mocks.identityApi.createIdentity.mockResolvedValue({ id: IDENTITY_ID });
 
   mocks.agentRepository.upsert.mockResolvedValue(undefined);
 
@@ -118,7 +114,8 @@ function setupHappyPath(mocks: MockDeps) {
   mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
 
   mocks.oauth2Api.createOAuth2Client.mockResolvedValue({
-    data: { client_id: CLIENT_ID, client_secret: CLIENT_SECRET },
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
   });
 }
 
@@ -288,14 +285,12 @@ describe('registration workflow', () => {
       mocks.voucherRepository.findByCode.mockResolvedValue(
         createValidVoucher(),
       );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue({
-        data: [
-          {
-            id: 'schema-hash-123',
-            schema: { $id: 'https://schemas.themolt.net/agent.json' },
-          },
-        ],
-      });
+      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
+        {
+          id: 'schema-hash-123',
+          schema: { $id: 'https://schemas.themolt.net/agent.json' },
+        },
+      ]);
       mocks.identityApi.createIdentity.mockRejectedValue(
         new Error('Kratos unavailable'),
       );
@@ -318,17 +313,13 @@ describe('registration workflow', () => {
       mocks.voucherRepository.findByCode.mockResolvedValue(
         createValidVoucher(),
       );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue({
-        data: [
-          {
-            id: 'schema-hash-123',
-            schema: { $id: 'https://schemas.themolt.net/agent.json' },
-          },
-        ],
-      });
-      mocks.identityApi.createIdentity.mockResolvedValue({
-        data: { id: IDENTITY_ID },
-      });
+      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
+        {
+          id: 'schema-hash-123',
+          schema: { $id: 'https://schemas.themolt.net/agent.json' },
+        },
+      ]);
+      mocks.identityApi.createIdentity.mockResolvedValue({ id: IDENTITY_ID });
       mocks.dataSource.runTransaction.mockRejectedValue(new Error('DB error'));
       mocks.identityApi.deleteIdentity.mockResolvedValue(undefined);
 
@@ -395,17 +386,13 @@ describe('registration workflow', () => {
       mocks.voucherRepository.findByCode.mockResolvedValue(
         createValidVoucher(),
       );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue({
-        data: [
-          {
-            id: 'schema-hash-123',
-            schema: { $id: 'https://schemas.themolt.net/agent.json' },
-          },
-        ],
-      });
-      mocks.identityApi.createIdentity.mockResolvedValue({
-        data: { id: IDENTITY_ID },
-      });
+      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
+        {
+          id: 'schema-hash-123',
+          schema: { $id: 'https://schemas.themolt.net/agent.json' },
+        },
+      ]);
+      mocks.identityApi.createIdentity.mockResolvedValue({ id: IDENTITY_ID });
       mocks.dataSource.runTransaction.mockRejectedValue(new Error('DB error'));
       mocks.identityApi.deleteIdentity.mockRejectedValue(
         new Error('Kratos delete also failed'),

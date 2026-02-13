@@ -28,7 +28,7 @@ import {
   DBOS,
   type VoucherRepository,
 } from '@moltnet/database';
-import type { IdentityApi, OAuth2Api } from '@ory/client';
+import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
 // ── Error Classes ──────────────────────────────────────────────
 
@@ -127,7 +127,7 @@ export function initRegistrationWorkflow(): void {
       const { identityApi } = getDeps();
 
       // Resolve the agent schema by matching $id containing "agent"
-      const { data: schemas } = await identityApi.listIdentitySchemas();
+      const schemas = await identityApi.listIdentitySchemas();
       const agentSchema = schemas.find(
         (s) => (s.schema as { $id?: string })?.$id?.includes('agent') ?? false,
       );
@@ -139,7 +139,7 @@ export function initRegistrationWorkflow(): void {
         );
       }
 
-      const { data: identity } = await identityApi.createIdentity({
+      const identity = await identityApi.createIdentity({
         createIdentityBody: {
           schema_id: agentSchema.id,
           traits: {
@@ -189,7 +189,7 @@ export function initRegistrationWorkflow(): void {
     ): Promise<{ clientId: string; clientSecret: string }> => {
       const { oauth2Api } = getDeps();
 
-      const { data: oauthClient } = await oauth2Api.createOAuth2Client({
+      const oauthClient = await oauth2Api.createOAuth2Client({
         oAuth2Client: {
           client_name: `Agent: ${fingerprint}`,
           grant_types: ['client_credentials'],

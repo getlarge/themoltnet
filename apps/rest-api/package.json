@@ -35,7 +35,7 @@
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
-    "@ory/client": "catalog:",
+    "@ory/client-fetch": "catalog:",
     "drizzle-orm": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

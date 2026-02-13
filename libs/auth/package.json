@@ -19,7 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@ory/client": "catalog:",
+    "@ory/client-fetch": "catalog:",
     "fast-jwt": "catalog:",
     "get-jwks": "catalog:",
     "fastify-plugin": "catalog:"
