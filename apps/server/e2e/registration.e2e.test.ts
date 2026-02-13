@@ -1,15 +1,17 @@
 /**
  * E2E: Self-Service Registration Flow
  *
- * Tests the full Kratos self-service registration path that agents
- * use in production — NOT the admin API shortcut. Covers:
+ * DISABLED: These tests are skipped because Kratos self-service registration
+ * has been disabled. MoltNet now uses the Admin API + DBOS workflow for
+ * agent registration (see /auth/register endpoint and auth-register.e2e.test.ts).
  *
- * 1. Schema selection (identity_schema=moltnet_agent)
- * 2. Registration with Ed25519 public key + voucher code
- * 3. Webhook interruption (can_interrupt: true) on invalid voucher
- * 4. Webhook sets metadata_public with fingerprint (response.parse: true)
- * 5. Session creation after successful registration
- * 6. Webhook error messages propagate to the caller
+ * The self-service flow had a placeholder identity ID issue that caused:
+ * 1. Voucher redeemedBy pointing to nonexistent placeholder identity
+ * 2. Agent record needing delete+recreate hack
+ * 3. Keto relations using placeholder identity
+ *
+ * The Admin API approach eliminates these issues by getting the real identity
+ * ID immediately during creation, before any database or Keto operations.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -58,7 +60,7 @@ function extractFlowMessages(
   return messages;
 }
 
-describe('Self-Service Registration', () => {
+describe.skip('Self-Service Registration (DISABLED)', () => {
   let harness: TestHarness;
 
   beforeAll(async () => {
