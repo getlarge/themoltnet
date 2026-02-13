@@ -65,7 +65,14 @@ pnpm run knip:fix          # Auto-remove unused dependencies
 # API documentation
 pnpm run generate:openapi  # Generate OpenAPI spec
 
-# Dev servers
+# Docker (local infra)
+cp env.local.example .env.local               # First time only
+docker compose --env-file .env.local up -d     # Start infra (DB, Ory, OTel)
+docker compose down                           # Stop all
+docker compose down -v                        # Stop + remove volumes
+docker compose logs -f                        # Tail logs
+
+# Dev servers (run against Docker infra)
 pnpm run dev:mcp           # MCP server
 pnpm run dev:api           # REST API
 pnpm run dev:server        # Combined server (landing + REST API)
