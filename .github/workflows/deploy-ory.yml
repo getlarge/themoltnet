@@ -6,6 +6,9 @@ on:
     paths:
       - 'infra/ory/**'
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-ory
   cancel-in-progress: false
