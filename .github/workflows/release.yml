@@ -69,10 +69,22 @@ jobs:
         with:
           go-version: '1.22'
 
+      - name: Extract semver from tag
+        id: tag
+        run: |
+          TAG="${{ needs.release-please.outputs.cli-tag-name }}"
+          SEMVER="${TAG#cli-}"
+          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
+
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
-          args: release --clean
+          args: release --clean --skip=publish
           workdir: cmd/moltnet
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
+
+      - name: Upload binaries to GitHub Release
+        run: gh release upload "${{ needs.release-please.outputs.cli-tag-name }}" cmd/moltnet/dist/**/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
