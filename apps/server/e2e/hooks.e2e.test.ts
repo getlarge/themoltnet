@@ -306,7 +306,7 @@ describe('Webhook Handlers', () => {
       expect(body.session.access_token['moltnet:fingerprint']).toBeDefined();
     });
 
-    it('returns minimal claims for unknown client', async () => {
+    it('returns 500 when client lookup fails', async () => {
       const resp = await fetch(
         `${harness.baseUrl}/hooks/hydra/token-exchange`,
         {
@@ -325,12 +325,45 @@ describe('Webhook Handlers', () => {
         },
       );
 
-      // Should return 200 with fallback claims (graceful degradation)
-      expect(resp.status).toBe(200);
+      expect(resp.status).toBe(500);
       const body = await resp.json();
-      expect(body.session.access_token['moltnet:client_id']).toBe(
-        'nonexistent-client-id',
+      expect(body.error).toBe('enrichment_failed');
+    });
+
+    it('rejects client with no MoltNet metadata', async () => {
+      // Create a Hydra client without MoltNet metadata
+      const { data: nonMoltnetClient } =
+        await harness.hydraAdminOAuth2.createOAuth2Client({
+          oAuth2Client: {
+            client_name: 'E2E Non-MoltNet Client',
+            grant_types: ['client_credentials'],
+            response_types: [],
+            token_endpoint_auth_method: 'client_secret_post',
+            metadata: { type: 'not_moltnet' },
+          },
+        });
+
+      const resp = await fetch(
+        `${harness.baseUrl}/hooks/hydra/token-exchange`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ory-api-key': WEBHOOK_API_KEY,
+          },
+          body: JSON.stringify({
+            session: {},
+            request: {
+              client_id: nonMoltnetClient.client_id,
+              grant_types: ['client_credentials'],
+            },
+          }),
+        },
       );
+
+      expect(resp.status).toBe(403);
+      const body = await resp.json();
+      expect(body.error).toBe('invalid_client_metadata');
     });
 
     it('rejects missing webhook API key', async () => {
