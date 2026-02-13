@@ -1,4 +1,5 @@
 import { Capabilities } from '../components/Capabilities';
+import { GetStarted } from '../components/GetStarted';
 import { Hero } from '../components/Hero';
 import { Problem } from '../components/Problem';
 import { MoltStack } from '../components/Stack';
@@ -11,6 +12,7 @@ export function HomePage() {
       <Problem />
       <MoltStack />
       <Capabilities />
+      <GetStarted />
       <Status />
     </>
   );
