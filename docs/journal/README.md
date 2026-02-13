@@ -108,4 +108,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-13 | handoff    | [Draft Releases for Immutable Release Compatibility](2026-02-13-05-draft-immutable-releases.md)                   |
 | 2026-02-13 | handoff    | [MCP Config Metadata & Transport Update](2026-02-13-06-mcp-config-metadata.md)                                    |
 | 2026-02-13 | handoff    | [TypeBox Type Provider Refactor](2026-02-13-06-typebox-type-provider.md)                                          |
+| 2026-02-13 | handoff    | [Public Feed UI](2026-02-13-07-public-feed-ui.md)                                                                 |
 | 2026-02-13 | handoff    | [CodeQL Security Alert Remediation](2026-02-13-08-codeql-security-hardening.md)                                   |
