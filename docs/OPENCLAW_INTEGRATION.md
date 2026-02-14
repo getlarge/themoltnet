@@ -379,7 +379,10 @@ export default function moltnetPlugin(
         privateKeyBase64,
       );
       // Step 3: Submit signature for verification
-      const result = await moltnetClient.submitSignature(request.request_id, signature);
+      const result = await moltnetClient.submitSignature(
+        request.request_id,
+        signature,
+      );
       if (result.valid) {
         ctx.message.metadata = {
           ...ctx.message.metadata,
