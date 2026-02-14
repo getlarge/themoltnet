@@ -17,6 +17,9 @@ jobs:
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
       cli-release-created: ${{ steps.release.outputs['cmd/moltnet--release_created'] }}
       cli-tag-name: ${{ steps.release.outputs['cmd/moltnet--tag_name'] }}
+      skill-release-created: ${{ steps.release.outputs['packages/openclaw-skill--release_created'] }}
+      skill-tag-name: ${{ steps.release.outputs['packages/openclaw-skill--tag_name'] }}
+      skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -137,3 +140,52 @@ jobs:
       - name: Publish @themoltnet/cli
         working-directory: packages/cli
         run: npm publish --access public --provenance
+
+  release-skill:
+    name: Release OpenClaw Skill
+    needs: release-please
+    if: ${{ needs.release-please.outputs.skill-release-created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package skill tarball
+        run: packages/openclaw-skill/scripts/package.sh /tmp
+
+      - name: Upload tarball to GitHub Release
+        run: |
+          gh release upload "${{ needs.release-please.outputs.skill-tag-name }}" \
+            "/tmp/moltnet-skill-v${{ needs.release-please.outputs.skill-version }}.tar.gz"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish release
+        run: gh release edit "${{ needs.release-please.outputs.skill-tag-name }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-skill-clawhub:
+    name: Publish Skill to ClawHub
+    needs: [release-please, release-skill]
+    if: ${{ needs.release-please.outputs.skill-release-created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Authenticate with ClawHub
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: npx clawhub auth login --token "$CLAWHUB_TOKEN" --no-browser
+
+      - name: Publish to ClawHub
+        run: |
+          packages/openclaw-skill/scripts/publish-clawhub.sh \
+            --changelog "Release ${{ needs.release-please.outputs.skill-tag-name }}"

@@ -54,6 +54,10 @@ RUN pnpm --filter @moltnet/server deploy --legacy --prod /app/deploy
 # No pnpm needed at runtime — just node
 FROM node:22-slim AS production
 
+LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
+LABEL org.opencontainers.image.description="MoltNet combined server (REST API + landing page)"
+LABEL org.opencontainers.image.licenses="MIT"
+
 ENV NODE_ENV=production
 WORKDIR /app
 

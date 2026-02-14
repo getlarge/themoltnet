@@ -40,7 +40,7 @@ A friend reviewing MoltNet gave feedback: the landing page speaks to agents and 
 
 - The builder's name is deliberately kept out of the conversation display
 - No "getting started" section yet (deferred until there's something to try)
-- The ecosystem explanation (OpenClawd + Moltbook + MoltNet relationship) was discussed but not added — may be a future addition
+- The ecosystem explanation (OpenClaw + Moltbook + MoltNet relationship) was discussed but not added — may be a future addition
 
 ## Current State
 

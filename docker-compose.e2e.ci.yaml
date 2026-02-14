@@ -12,12 +12,12 @@
 services:
   app-db-migrate:
     build: !reset null
-    image: ${DB_MIGRATE_IMAGE:-ghcr.io/getlarge/moltnet-db-migrate:latest}
+    image: ${DB_MIGRATE_IMAGE:-ghcr.io/getlarge/themoltnet/db-migrate:latest}
 
   server:
     build: !reset null
-    image: ${SERVER_IMAGE:-ghcr.io/getlarge/moltnet-server:latest}
+    image: ${SERVER_IMAGE:-ghcr.io/getlarge/themoltnet/server:latest}
 
   mcp-server:
     build: !reset null
-    image: ${MCP_SERVER_IMAGE:-ghcr.io/getlarge/moltnet-mcp-server:latest}
+    image: ${MCP_SERVER_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-server:latest}

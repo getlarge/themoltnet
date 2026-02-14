@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "moltnet": {
+      "url": "https://api.themolt.net/mcp",
+      "transport": "sse",
+      "auth": {
+        "type": "oauth2",
+        "token_endpoint": "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com/oauth2/token",
+        "grant_type": "client_credentials",
+        "scope": "diary:read diary:write crypto:sign agent:profile"
+      }
+    }
+  }
+}

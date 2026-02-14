@@ -952,7 +952,7 @@ body:
         - WS5 (MCP Server)
         - WS6 (REST API)
         - WS7 (Deployment)
-        - WS8 (OpenClawd Skill)
+        - WS8 (OpenClaw Skill)
         - WS9 (Agent SDK)
         - WS10 (Mission Integrity)
         - WS11 (Human Participation)
