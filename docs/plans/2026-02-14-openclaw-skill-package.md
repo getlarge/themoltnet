@@ -6,13 +6,13 @@
 
 **Architecture:** Skill directory at `packages/openclaw-skill/` containing the SKILL.md with YAML frontmatter, MCP config template, and a local publish helper script. Three distribution channels:
 
-1. **ClawHub** (primary) — `clawdhub publish` pushes to OpenClaw's native skill registry
+1. **ClawHub** (primary) — `clawhub publish` pushes to OpenClaw's native skill registry
 2. **GitHub Release asset** (universal) — tarball attached to Release Please releases
 3. **MoltNet CLI** (future) — `moltnet skill install` for non-OpenClaw runtimes
 
 No npm publishing. Skills are not npm packages — they're markdown instruction bundles distributed through OpenClaw's own ecosystem.
 
-**Tech Stack:** Markdown (SKILL.md), JSON (mcp.json), Shell (publish scripts), GitHub Actions (release workflow), ClawHub CLI (`clawdhub`)
+**Tech Stack:** Markdown (SKILL.md), JSON (mcp.json), Shell (publish scripts), GitHub Actions (release workflow), ClawHub CLI (`clawhub`)
 
 ---
 
@@ -301,9 +301,9 @@ Options:
   --help             Show this help message
 
 Prerequisites:
-  - clawdhub CLI installed: npm i -g clawdhub
-  - Authenticated: clawdhub login
-  - Verify: clawdhub whoami
+  - clawhub CLI installed: npm i -g clawhub
+  - Authenticated: clawhub login
+  - Verify: clawhub whoami
 
 Examples:
   $(basename "$0") --changelog "Added trust graph tools"
@@ -332,11 +332,11 @@ echo "  Changelog: $CHANGELOG"
 if [[ "$DRY_RUN" == "true" ]]; then
   echo ""
   echo "[DRY RUN] Would run:"
-  echo "  clawdhub publish \"$SKILL_DIR\" --slug moltnet --name \"MoltNet\" --version \"$VERSION\" --changelog \"$CHANGELOG\""
+  echo "  clawhub publish \"$SKILL_DIR\" --slug moltnet --name \"MoltNet\" --version \"$VERSION\" --changelog \"$CHANGELOG\""
   exit 0
 fi
 
-clawdhub publish "$SKILL_DIR" \
+clawhub publish "$SKILL_DIR" \
   --slug moltnet \
   --name "MoltNet" \
   --version "$VERSION" \
@@ -344,7 +344,7 @@ clawdhub publish "$SKILL_DIR" \
 
 echo ""
 echo "Published moltnet@${VERSION} to ClawHub"
-echo "Install: clawdhub install moltnet"
+echo "Install: clawhub install moltnet"
 ```
 
 **Step 2: Write the tarball packaging script**
@@ -383,7 +383,7 @@ Run: `chmod +x packages/openclaw-skill/scripts/*.sh`
 **Step 4: Test locally**
 
 Run: `packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run`
-Expected: prints the `clawdhub publish` command without executing
+Expected: prints the `clawhub publish` command without executing
 
 Run: `packages/openclaw-skill/scripts/package.sh /tmp`
 Expected: creates `/tmp/moltnet-skill-v0.1.0.tar.gz`
@@ -508,12 +508,12 @@ publish-skill-clawhub:
         node-version: 22
 
     - name: Install ClawHub CLI
-      run: npm install -g clawdhub@latest
+      run: npm install -g clawhub@latest
 
     - name: Authenticate with ClawHub
       run: |
-        mkdir -p "$HOME/.config/clawdhub"
-        echo '{"token":"${{ secrets.CLAWHUB_TOKEN }}"}' > "$HOME/.config/clawdhub/config.json"
+        mkdir -p "$HOME/.config/clawhub"
+        echo '{"token":"${{ secrets.CLAWHUB_TOKEN }}"}' > "$HOME/.config/clawhub/config.json"
 
     - name: Publish to ClawHub
       run: |
@@ -523,7 +523,7 @@ publish-skill-clawhub:
 
 **Step 3: Document required secret**
 
-Add a comment or note: the `CLAWHUB_TOKEN` secret must be configured in the repo settings. Obtain it by running `clawdhub login` locally and copying the token from `~/.config/clawdhub/config.json` (or the platform-specific path shown by `clawdhub whoami`).
+Add a comment or note: the `CLAWHUB_TOKEN` secret must be configured in the repo settings. Obtain it by running `clawhub login` locally and copying the token from `~/.config/clawhub/config.json` (or the platform-specific path shown by `clawhub whoami`).
 
 **Step 4: Commit**
 
@@ -644,7 +644,7 @@ git commit -m "ci: add skill directory validation to CI pipeline"
 packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run
 ```
 
-Expected: prints the `clawdhub publish` command with correct slug, version, directory
+Expected: prints the `clawhub publish` command with correct slug, version, directory
 
 **Step 2: Build tarball**
 
@@ -698,7 +698,7 @@ git push -u origin claude/openclaw-skill-voucher-harvp
 
 | Channel                        | Command                                                      | When                                    |
 | ------------------------------ | ------------------------------------------------------------ | --------------------------------------- |
-| **ClawHub** (primary)          | `clawdhub install moltnet`                                   | OpenClaw agents — native skill registry |
+| **ClawHub** (primary)          | `clawhub install moltnet`                                    | OpenClaw agents — native skill registry |
 | **GitHub Release** (universal) | `tar -xzf moltnet-skill-v*.tar.gz -C ~/.openclaw/skills/`    | Manual install, non-ClawHub users       |
 | **Local dev**                  | `cp -r packages/openclaw-skill/ ~/.openclaw/skills/moltnet/` | Development/testing                     |
 | **MoltNet CLI** (future)       | `moltnet skill install`                                      | Non-OpenClaw runtimes (WS8 scope)       |
@@ -711,14 +711,14 @@ push to main
        └─ Creates release PR with version bump in version.txt
             └─ PR merged → release-please creates draft GitHub Release
                  ├─ release-skill job: package tarball → upload to GitHub Release → undraft
-                 └─ publish-skill-clawhub job: clawdhub publish → live on ClawHub
+                 └─ publish-skill-clawhub job: clawhub publish → live on ClawHub
 ```
 
 ## Required Secrets
 
-| Secret          | Purpose                            | How to obtain                                        |
-| --------------- | ---------------------------------- | ---------------------------------------------------- |
-| `CLAWHUB_TOKEN` | ClawHub CLI auth for CI publishing | Run `clawdhub login` locally, copy token from config |
+| Secret          | Purpose                            | How to obtain                                       |
+| --------------- | ---------------------------------- | --------------------------------------------------- |
+| `CLAWHUB_TOKEN` | ClawHub CLI auth for CI publishing | Run `clawhub login` locally, copy token from config |
 
 ## Future Work
 

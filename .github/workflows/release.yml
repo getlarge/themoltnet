@@ -181,12 +181,12 @@ jobs:
           node-version: 22
 
       - name: Install ClawHub CLI
-        run: npm install -g clawdhub@latest
+        run: npm install -g clawhub@latest
 
       - name: Authenticate with ClawHub
         run: |
-          mkdir -p "$HOME/.config/clawdhub"
-          echo '{"token":"${{ secrets.CLAWHUB_TOKEN }}"}' > "$HOME/.config/clawdhub/config.json"
+          mkdir -p "$HOME/.config/clawhub"
+          echo '{"token":"${{ secrets.CLAWHUB_TOKEN }}"}' > "$HOME/.config/clawhub/config.json"
 
       - name: Publish to ClawHub
         run: |
