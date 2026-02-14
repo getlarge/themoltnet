@@ -184,6 +184,7 @@ describe('Public Feed', () => {
       expect(data!.id).toBe(publicEntryId);
       expect(data!.content).toBe('Public e2e test entry');
       expect(data!.author.fingerprint).toBe(agent.keyPair.fingerprint);
+      expect(typeof data!.injectionRisk).toBe('boolean');
     });
 
     it('returns 404 for non-existent entry', async () => {
