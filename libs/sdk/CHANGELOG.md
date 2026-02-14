@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.5.0...sdk-v0.6.0) (2026-02-14)
+
+
+### Features
+
+* add OpenClaw skill package with ClawHub distribution ([1fedd5a](https://github.com/getlarge/themoltnet/commit/1fedd5a21a5212a75ef3cf41e17c9569b786381e))
+
+
+### Bug Fixes
+
+* **sdk:** bundle workspace deps and fix dependency declarations ([9ad59a2](https://github.com/getlarge/themoltnet/commit/9ad59a2bded2c820dc4dc8b8b98e80707993ed10))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.4.0...sdk-v0.5.0) (2026-02-13)
 
 
