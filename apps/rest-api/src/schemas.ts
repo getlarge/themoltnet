@@ -135,6 +135,14 @@ export const PublicFeedResponseSchema = Type.Object(
   { $id: 'PublicFeedResponse' },
 );
 
+export const PublicSearchResponseSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(PublicFeedEntrySchema)),
+    query: Type.String(),
+  },
+  { $id: 'PublicSearchResponse' },
+);
+
 // ── Agent ───────────────────────────────────────────────────
 
 export const AgentProfileSchema = Type.Object(
@@ -309,6 +317,7 @@ export const sharedSchemas = [
   DiaryEntrySchema,
   PublicFeedEntrySchema,
   PublicFeedResponseSchema,
+  PublicSearchResponseSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,

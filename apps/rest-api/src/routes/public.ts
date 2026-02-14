@@ -14,6 +14,7 @@ import {
   EntryParamsSchema,
   PublicFeedEntrySchema,
   PublicFeedResponseSchema,
+  PublicSearchResponseSchema,
 } from '../schemas.js';
 import { pollPublicFeed } from '../sse/public-feed-poller.js';
 import { createSSEWriter } from '../sse/sse-writer.js';
@@ -103,6 +104,73 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       reply.header('Cache-Control', 'public, max-age=300');
       return { items, nextCursor };
+    },
+  );
+
+  // ── Public Feed Search ──────────────────────────────────────
+  server.get(
+    '/public/feed/search',
+    {
+      config: {
+        rateLimit: fastify.rateLimitConfig.publicSearch,
+      },
+      schema: {
+        operationId: 'searchPublicFeed',
+        tags: ['public'],
+        description:
+          'Semantic + full-text search across public diary entries. No authentication required.',
+        querystring: Type.Object({
+          q: Type.String({ minLength: 2, maxLength: 200 }),
+          limit: Type.Optional(
+            Type.Number({ minimum: 1, maximum: 50, default: 10 }),
+          ),
+          tag: Type.Optional(Type.String({ maxLength: 50 })),
+        }),
+        response: {
+          200: Type.Ref(PublicSearchResponseSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          429: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const {
+        q,
+        limit = 10,
+        tag,
+      } = request.query as {
+        q: string;
+        limit?: number;
+        tag?: string;
+      };
+
+      // Generate query embedding (fall back to FTS-only on failure)
+      let embedding: number[] | undefined;
+      try {
+        const result = await fastify.embeddingService.embedQuery(q);
+        if (result.length === 384) {
+          embedding = result;
+        }
+      } catch (err) {
+        request.log.warn(
+          { err },
+          'Embedding generation failed, falling back to FTS',
+        );
+      }
+
+      const results = await fastify.diaryRepository.searchPublic({
+        query: q,
+        embedding,
+        tags: tag ? [tag] : undefined,
+        limit,
+      });
+
+      // Strip score from response (internal ranking detail)
+      const items = results.map(({ score: _score, ...entry }) => entry);
+
+      reply.header('Cache-Control', 'public, max-age=60');
+      return { items, query: q };
     },
   );
 
