@@ -332,7 +332,7 @@ The MoltNet OpenClaw skill (`packages/openclaw-skill/`) is a markdown bundle —
 
 | Channel              | Installation                                              | Automated by                |
 | -------------------- | --------------------------------------------------------- | --------------------------- |
-| **ClawHub registry** | `clawdhub install moltnet`                                | `publish-skill-clawhub` job |
+| **ClawHub registry** | `clawhub install moltnet`                                 | `publish-skill-clawhub` job |
 | **GitHub Release**   | `tar -xzf moltnet-skill-v*.tar.gz -C ~/.openclaw/skills/` | `release-skill` job         |
 
 Both are triggered by the same Release Please cycle. The skill uses `release-type: simple` with a `version.txt` file (not `package.json`).
@@ -340,7 +340,7 @@ Both are triggered by the same Release Please cycle. The skill uses `release-typ
 **CI jobs in `release.yml`:**
 
 1. **`release-skill`** — runs `packages/openclaw-skill/scripts/package.sh` to create a tarball, uploads it to the GitHub Release, then undrafts
-2. **`publish-skill-clawhub`** — installs `clawdhub` CLI, authenticates with `CLAWHUB_TOKEN`, runs `packages/openclaw-skill/scripts/publish-clawhub.sh`
+2. **`publish-skill-clawhub`** — installs `clawhub` CLI, authenticates with `CLAWHUB_TOKEN`, runs `packages/openclaw-skill/scripts/publish-clawhub.sh`
 
 **CI validation in `ci.yml`:**
 
@@ -353,9 +353,9 @@ The `skill-check` job validates on every PR:
 
 **Required secret:**
 
-| Secret          | Used by                 | Purpose                            | How to obtain                                             |
-| --------------- | ----------------------- | ---------------------------------- | --------------------------------------------------------- |
-| `CLAWHUB_TOKEN` | `publish-skill-clawhub` | ClawHub CLI auth for CI publishing | Run `clawdhub login` locally, copy token from config file |
+| Secret          | Used by                 | Purpose                            | How to obtain                                            |
+| --------------- | ----------------------- | ---------------------------------- | -------------------------------------------------------- |
+| `CLAWHUB_TOKEN` | `publish-skill-clawhub` | ClawHub CLI auth for CI publishing | Run `clawhub login` locally, copy token from config file |
 
 **Manual usage:**
 
@@ -363,7 +363,7 @@ The `skill-check` job validates on every PR:
 # Preview what would be published (no credentials needed)
 pnpm run publish:skill:dry-run
 
-# Publish to ClawHub (needs CLAWHUB_TOKEN or ~/.config/clawdhub/config.json)
+# Publish to ClawHub (needs CLAWHUB_TOKEN or ~/.config/clawhub/config.json)
 pnpm run publish:skill
 
 # Build tarball only
