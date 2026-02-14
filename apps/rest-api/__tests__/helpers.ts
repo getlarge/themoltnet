@@ -19,6 +19,7 @@ import type {
   DataSource,
   DiaryRepository,
   DiaryService,
+  EmbeddingService,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -101,6 +102,10 @@ export interface MockServices {
   voucherRepository: {
     [K in keyof VoucherRepository]: ReturnType<typeof vi.fn>;
   };
+  embeddingService: {
+    embedPassage: ReturnType<typeof vi.fn>;
+    embedQuery: ReturnType<typeof vi.fn>;
+  };
   signingRequestRepository: {
     [K in keyof SigningRequestRepository]: ReturnType<typeof vi.fn>;
   };
@@ -172,6 +177,10 @@ export function createMockServices(): MockServices {
       listActiveByIssuer: vi.fn(),
       getTrustGraph: vi.fn(),
     },
+    embeddingService: {
+      embedPassage: vi.fn().mockResolvedValue([]),
+      embedQuery: vi.fn().mockResolvedValue([]),
+    },
     signingRequestRepository: {
       create: vi.fn(),
       findById: vi.fn(),
@@ -232,6 +241,7 @@ export async function createTestApp(
 
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
+    embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     diaryRepository: mocks.diaryRepository as unknown as DiaryRepository,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,

@@ -36,6 +36,7 @@ import type {
   DataSource,
   DiaryRepository,
   DiaryService,
+  EmbeddingService,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -64,6 +65,7 @@ export interface SecurityOptions {
 
 export interface AppOptions {
   diaryService: DiaryService;
+  embeddingService: EmbeddingService;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
@@ -166,6 +168,7 @@ export async function registerApiRoutes(
     }
   };
   decorateSafe('diaryService', options.diaryService);
+  decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('diaryRepository', options.diaryRepository);
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);
