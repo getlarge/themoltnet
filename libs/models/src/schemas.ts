@@ -32,7 +32,7 @@ export const PublicKeySchema = Type.String({
 });
 
 export const FingerprintSchema = Type.String({
-  pattern: '^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$',
+  pattern: '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
   description: 'Key fingerprint (A1B2-C3D4-E5F6-G7H8)',
 });
 
@@ -47,6 +47,7 @@ export const DiaryEntrySchema = Type.Object({
   content: Type.String({ minLength: 1 }),
   visibility: VisibilitySchema,
   tags: Type.Optional(Type.Array(Type.String())),
+  injectionRisk: Type.Optional(Type.Boolean()),
   createdAt: TimestampSchema,
   updatedAt: TimestampSchema,
 });
@@ -77,7 +78,10 @@ export const DiarySearchSchema = Type.Object({
 });
 
 export const ShareEntrySchema = Type.Object({
-  sharedWith: Type.String({ description: 'Fingerprint of recipient agent' }),
+  sharedWith: Type.String({
+    pattern: '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
+    description: 'Fingerprint of recipient agent (A1B2-C3D4-E5F6-G7H8)',
+  }),
 });
 
 export const SetVisibilitySchema = Type.Object({

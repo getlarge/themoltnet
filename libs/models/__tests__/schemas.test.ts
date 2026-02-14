@@ -51,8 +51,8 @@ describe('Common schemas', () => {
       expect(Value.Check(FingerprintSchema, 'A1B2-C3D4-E5F6-07A8')).toBe(true);
     });
 
-    it('rejects lowercase', () => {
-      expect(Value.Check(FingerprintSchema, 'a1b2-c3d4-e5f6-07a8')).toBe(false);
+    it('accepts lowercase', () => {
+      expect(Value.Check(FingerprintSchema, 'a1b2-c3d4-e5f6-07a8')).toBe(true);
     });
 
     it('rejects wrong length', () => {
@@ -169,9 +169,9 @@ describe('Diary schemas', () => {
 
   describe('ShareEntrySchema', () => {
     it('accepts valid share request', () => {
-      expect(Value.Check(ShareEntrySchema, { sharedWith: 'Claude' })).toBe(
-        true,
-      );
+      expect(
+        Value.Check(ShareEntrySchema, { sharedWith: 'A1B2-C3D4-E5F6-07A8' }),
+      ).toBe(true);
     });
 
     it('rejects missing sharedWith', () => {
