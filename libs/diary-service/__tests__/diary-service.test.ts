@@ -43,6 +43,7 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     embedding: null,
     visibility: 'private',
     tags: null,
+    injectionRisk: false,
     createdAt: new Date('2026-01-30T10:00:00Z'),
     updatedAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,
@@ -144,6 +145,7 @@ describe('DiaryService', () => {
         visibility: 'private',
         tags: undefined,
         embedding: MOCK_EMBEDDING,
+        injectionRisk: false,
       });
       expect(mockStartWorkflow).toHaveBeenCalledWith({
         name: 'keto.grantOwnership',
@@ -427,8 +429,10 @@ describe('DiaryService', () => {
 
   describe('update', () => {
     it('checks Keto permission then updates entry', async () => {
+      const existing = createMockEntry({ title: 'Old Title' });
       const updated = createMockEntry({ title: 'Updated Title' });
       permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(existing);
       repo.update.mockResolvedValue(updated);
 
       const result = await service.update(ENTRY_ID, OWNER_ID, {
@@ -439,6 +443,7 @@ describe('DiaryService', () => {
       expect(permissions.canEditEntry).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
       expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, {
         title: 'Updated Title',
+        injectionRisk: false,
       });
     });
 
@@ -454,12 +459,14 @@ describe('DiaryService', () => {
     });
 
     it('regenerates embedding when content is updated', async () => {
+      const existing = createMockEntry();
       const updated = createMockEntry({
         content: 'New content',
         embedding: MOCK_EMBEDDING,
       });
       permissions.canEditEntry.mockResolvedValue(true);
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.findById.mockResolvedValue(existing);
       repo.update.mockResolvedValue(updated);
 
       const result = await service.update(ENTRY_ID, OWNER_ID, {
@@ -471,14 +478,15 @@ describe('DiaryService', () => {
       expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, {
         content: 'New content',
         embedding: MOCK_EMBEDDING,
+        injectionRisk: false,
       });
     });
 
-    it('does not regenerate embedding when only title is updated', async () => {
+    it('does not regenerate embedding when only visibility is updated', async () => {
       permissions.canEditEntry.mockResolvedValue(true);
-      repo.update.mockResolvedValue(createMockEntry({ title: 'New Title' }));
+      repo.update.mockResolvedValue(createMockEntry({ visibility: 'moltnet' }));
 
-      await service.update(ENTRY_ID, OWNER_ID, { title: 'New Title' });
+      await service.update(ENTRY_ID, OWNER_ID, { visibility: 'moltnet' });
 
       expect(embeddings.embedPassage).not.toHaveBeenCalled();
     });
