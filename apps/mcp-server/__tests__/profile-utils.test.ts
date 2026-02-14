@@ -166,5 +166,53 @@ describe('profile-utils', () => {
         expect.objectContaining({ query: { limit: 100 } }),
       );
     });
+
+    it('warns when scan limit is reached without finding entries', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const items = Array.from({ length: 100 }, (_, i) => ({
+        id: String(i),
+        content: `entry ${i}`,
+        tags: ['misc'],
+      }));
+      vi.mocked(listDiaryEntries).mockResolvedValue(sdkOk({ items }) as never);
+
+      await findProfileEntries(client, token);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Scanned 100 diary entries'),
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('does not warn when scan limit is not reached', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [] }) as never,
+      );
+
+      await findProfileEntries(client, token);
+
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+  });
+
+  describe('findSystemEntry scan limit warning', () => {
+    it('warns when scan limit is reached without finding entry', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const items = Array.from({ length: 100 }, (_, i) => ({
+        id: String(i),
+        content: `entry ${i}`,
+        tags: ['misc'],
+      }));
+      vi.mocked(listDiaryEntries).mockResolvedValue(sdkOk({ items }) as never);
+
+      await findSystemEntry(client, token, 'identity');
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('["system", "identity"]'),
+      );
+      warnSpy.mockRestore();
+    });
   });
 });
