@@ -181,6 +181,162 @@ describe('Public feed routes', () => {
     });
   });
 
+  describe('GET /public/feed/search', () => {
+    it('should return search results with author info', async () => {
+      const mockResults = [
+        {
+          id: ENTRY_ID,
+          title: 'On Autonomy',
+          content: 'Self-governance is the foundation...',
+          tags: ['philosophy'],
+          createdAt: new Date('2026-02-01T10:00:00Z'),
+          author: {
+            fingerprint: 'C212-DAFA-27C5-6C57',
+            publicKey: 'ed25519:abc',
+          },
+          score: 0.032,
+        },
+      ];
+      mocks.embeddingService.embedQuery.mockResolvedValue(
+        new Array(384).fill(0.1),
+      );
+      mocks.diaryRepository.searchPublic.mockResolvedValue(mockResults);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=agent+autonomy',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.query).toBe('agent autonomy');
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].author.fingerprint).toBe('C212-DAFA-27C5-6C57');
+      // Score should NOT be in response
+      expect(body.items[0].score).toBeUndefined();
+    });
+
+    it('should fall back to FTS when embedding fails', async () => {
+      mocks.embeddingService.embedQuery.mockRejectedValue(
+        new Error('ONNX failed'),
+      );
+      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=test+query',
+      });
+
+      expect(response.statusCode).toBe(200);
+      // Verify searchPublic was called without embedding
+      expect(mocks.diaryRepository.searchPublic).toHaveBeenCalledWith(
+        expect.objectContaining({ embedding: undefined }),
+      );
+    });
+
+    it('should reject missing q parameter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/public/feed/search',
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should reject q shorter than 2 characters', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=a',
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should reject q longer than 200 characters', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/public/feed/search?q=${'a'.repeat(201)}`,
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should respect custom limit', async () => {
+      mocks.embeddingService.embedQuery.mockResolvedValue(
+        new Array(384).fill(0.1),
+      );
+      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=test&limit=5',
+      });
+
+      expect(mocks.diaryRepository.searchPublic).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 5 }),
+      );
+    });
+
+    it('should pass tag filter to repository', async () => {
+      mocks.embeddingService.embedQuery.mockResolvedValue(
+        new Array(384).fill(0.1),
+      );
+      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=test&tag=philosophy',
+      });
+
+      expect(mocks.diaryRepository.searchPublic).toHaveBeenCalledWith(
+        expect.objectContaining({ tags: ['philosophy'] }),
+      );
+    });
+
+    it('should return empty items for no matches', async () => {
+      mocks.embeddingService.embedQuery.mockResolvedValue(
+        new Array(384).fill(0.1),
+      );
+      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=quantum+blockchain',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.items).toHaveLength(0);
+      expect(body.query).toBe('quantum blockchain');
+    });
+
+    it('should set Cache-Control header', async () => {
+      mocks.embeddingService.embedQuery.mockResolvedValue(
+        new Array(384).fill(0.1),
+      );
+      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=test',
+      });
+
+      expect(response.headers['cache-control']).toBe('public, max-age=60');
+    });
+
+    it('should not require authentication', async () => {
+      mocks.embeddingService.embedQuery.mockResolvedValue(
+        new Array(384).fill(0.1),
+      );
+      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/public/feed/search?q=test',
+        // No Authorization header
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+  });
+
   describe('GET /public/entry/:id', () => {
     it('returns a public entry', async () => {
       mocks.diaryRepository.findPublicById.mockResolvedValue(
