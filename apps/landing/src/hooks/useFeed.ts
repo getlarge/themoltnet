@@ -1,5 +1,5 @@
-import { getPublicFeed } from '@moltnet/api-client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getPublicFeed, searchPublicFeed } from '@moltnet/api-client';
+import { useCallback, useEffect, useState } from 'react';
 
 import { apiClient } from '../api';
 
@@ -15,21 +15,29 @@ export interface FeedEntry {
   };
 }
 
+type FeedMode = 'feed' | 'search';
 type FeedStatus = 'idle' | 'loading' | 'loading-more' | 'error';
+
+export interface RateLimitError {
+  retryAfter: number;
+}
 
 export interface UseFeedState {
   entries: FeedEntry[];
   pendingEntries: FeedEntry[];
   status: FeedStatus;
   hasMore: boolean;
+  mode: FeedMode;
   searchQuery: string;
   activeTag: string | null;
   sseConnected: boolean;
+  rateLimitError: RateLimitError | null;
 }
 
 export interface UseFeedActions {
   loadMore: () => void;
-  setSearchQuery: (q: string) => void;
+  submitSearch: (query: string) => void;
+  clearSearch: () => void;
   setActiveTag: (tag: string | null) => void;
   addPendingEntries: (entries: FeedEntry[]) => void;
   flushPending: () => void;
@@ -43,12 +51,13 @@ export function useFeed(): UseFeedState & UseFeedActions {
   const [pendingEntries, setPendingEntries] = useState<FeedEntry[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [status, setStatus] = useState<FeedStatus>('idle');
-  const [searchQuery, setSearchQueryState] = useState('');
+  const [mode, setMode] = useState<FeedMode>('feed');
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeTag, setActiveTagState] = useState<string | null>(null);
   const [sseConnected, setSseConnected] = useState(false);
-
-  // Track if initial load has happened
-  const didInitialLoad = useRef(false);
+  const [rateLimitError, setRateLimitError] = useState<RateLimitError | null>(
+    null,
+  );
 
   const fetchFeed = useCallback(
     async (cursor?: string | null, append = false) => {
@@ -83,34 +92,95 @@ export function useFeed(): UseFeedState & UseFeedActions {
     [activeTag],
   );
 
-  // Initial load + reload on tag change
+  const fetchSearch = useCallback(
+    async (query: string) => {
+      setStatus('loading');
+      setRateLimitError(null);
+      try {
+        const { data, error, response } = await searchPublicFeed({
+          client: apiClient,
+          query: {
+            q: query,
+            limit: PAGE_SIZE,
+            ...(activeTag ? { tag: activeTag } : {}),
+          },
+        });
+
+        if (response.status === 429) {
+          const retryAfter = Number(
+            response.headers.get('retry-after') ?? '60',
+          );
+          setRateLimitError({ retryAfter });
+          setStatus('idle');
+          return;
+        }
+
+        if (error || !data) {
+          setStatus('error');
+          return;
+        }
+
+        setEntries(data.items as FeedEntry[]);
+        setStatus('idle');
+      } catch {
+        setStatus('error');
+      }
+    },
+    [activeTag],
+  );
+
+  // Reload when tag changes in feed mode
   useEffect(() => {
-    didInitialLoad.current = true;
     setPendingEntries([]);
-    void fetchFeed();
-  }, [fetchFeed]);
+    if (mode === 'feed') {
+      void fetchFeed();
+    }
+  }, [fetchFeed, mode]);
+
+  // Run search when query or tag changes in search mode
+  useEffect(() => {
+    if (mode !== 'search' || !searchQuery) return;
+    setPendingEntries([]);
+    void fetchSearch(searchQuery);
+  }, [fetchSearch, searchQuery, mode]);
 
   const loadMore = useCallback(() => {
+    if (mode === 'search') return;
     if (status === 'loading' || status === 'loading-more' || !nextCursor)
       return;
     void fetchFeed(nextCursor, true);
-  }, [status, nextCursor, fetchFeed]);
+  }, [mode, status, nextCursor, fetchFeed]);
 
-  const setSearchQuery = useCallback((q: string) => {
-    setSearchQueryState(q);
+  const submitSearch = useCallback((query: string) => {
+    setMode('search');
+    setSearchQuery(query);
+    setPendingEntries([]);
+    setNextCursor(null);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setMode('feed');
+    setSearchQuery('');
+    setRateLimitError(null);
+    setPendingEntries([]);
+    // fetchFeed will be triggered by the mode/activeTag useEffect
   }, []);
 
   const setActiveTag = useCallback((tag: string | null) => {
     setActiveTagState(tag);
   }, []);
 
-  const addPendingEntries = useCallback((newEntries: FeedEntry[]) => {
-    setPendingEntries((prev) => {
-      const ids = new Set(prev.map((e) => e.id));
-      const unique = newEntries.filter((e) => !ids.has(e.id));
-      return [...unique, ...prev];
-    });
-  }, []);
+  const addPendingEntries = useCallback(
+    (newEntries: FeedEntry[]) => {
+      if (mode === 'search') return;
+      setPendingEntries((prev) => {
+        const ids = new Set(prev.map((e) => e.id));
+        const unique = newEntries.filter((e) => !ids.has(e.id));
+        return [...unique, ...prev];
+      });
+    },
+    [mode],
+  );
 
   const flushPending = useCallback(() => {
     setPendingEntries((pending) => {
@@ -124,28 +194,19 @@ export function useFeed(): UseFeedState & UseFeedActions {
     });
   }, []);
 
-  // Client-side search filter
-  const filteredEntries = useMemo(() => {
-    if (searchQuery.trim().length === 0) return entries;
-    const q = searchQuery.toLowerCase();
-    return entries.filter(
-      (e) =>
-        e.content.toLowerCase().includes(q) ||
-        (e.title && e.title.toLowerCase().includes(q)) ||
-        (e.tags && e.tags.some((t) => t.toLowerCase().includes(q))),
-    );
-  }, [entries, searchQuery]);
-
   return {
-    entries: filteredEntries,
+    entries,
     pendingEntries,
     status,
-    hasMore: nextCursor !== null,
+    hasMore: mode === 'feed' && nextCursor !== null,
+    mode,
     searchQuery,
     activeTag,
     sseConnected,
+    rateLimitError,
     loadMore,
-    setSearchQuery,
+    submitSearch,
+    clearSearch,
     setActiveTag,
     addPendingEntries,
     flushPending,
