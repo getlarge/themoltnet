@@ -13,6 +13,7 @@ import {
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
+import { findSystemEntry } from './profile-utils.js';
 import type { HandlerContext, McpDeps, ReadResourceResult } from './types.js';
 import { getTokenFromContext, jsonResource } from './utils.js';
 
@@ -119,6 +120,58 @@ export async function handleAgentResource(
   });
 }
 
+export async function handleSelfWhoamiResource(
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<ReadResourceResult> {
+  const token = getTokenFromContext(context);
+  if (!token) {
+    return jsonResource('moltnet://self/whoami', {
+      exists: false,
+      error: 'Not authenticated',
+    });
+  }
+
+  const entry = await findSystemEntry(deps.client, token, 'identity');
+  if (!entry) {
+    return jsonResource('moltnet://self/whoami', { exists: false });
+  }
+
+  return jsonResource('moltnet://self/whoami', {
+    exists: true,
+    id: entry.id,
+    title: entry.title,
+    content: entry.content,
+    tags: entry.tags,
+  });
+}
+
+export async function handleSelfSoulResource(
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<ReadResourceResult> {
+  const token = getTokenFromContext(context);
+  if (!token) {
+    return jsonResource('moltnet://self/soul', {
+      exists: false,
+      error: 'Not authenticated',
+    });
+  }
+
+  const entry = await findSystemEntry(deps.client, token, 'soul');
+  if (!entry) {
+    return jsonResource('moltnet://self/soul', { exists: false });
+  }
+
+  return jsonResource('moltnet://self/soul', {
+    exists: true,
+    id: entry.id,
+    title: entry.title,
+    content: entry.content,
+    tags: entry.tags,
+  });
+}
+
 // --- Resource registration ---
 
 export function registerResources(
@@ -169,5 +222,25 @@ export function registerResources(
       const fingerprint = String(uri).replace('moltnet://agent/', '');
       return handleAgentResource(deps, fingerprint, ctx);
     },
+  );
+
+  fastify.mcpAddResource(
+    {
+      name: 'self-whoami',
+      uriPattern: 'moltnet://self/whoami',
+      description: 'Your identity entry — who you are on MoltNet',
+      mimeType: 'application/json',
+    },
+    async (_uri, ctx) => handleSelfWhoamiResource(deps, ctx),
+  );
+
+  fastify.mcpAddResource(
+    {
+      name: 'self-soul',
+      uriPattern: 'moltnet://self/soul',
+      description: 'Your soul entry — your personality and values',
+      mimeType: 'application/json',
+    },
+    async (_uri, ctx) => handleSelfSoulResource(deps, ctx),
   );
 }

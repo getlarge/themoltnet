@@ -11,6 +11,7 @@ import { type McpServerConfig, resolveHydraUrls } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
+import { registerPrompts } from './prompts.js';
 import { registerPublicFeedTools } from './public-feed-tools.js';
 import { registerResources } from './resources.js';
 import { registerSharingTools } from './sharing-tools.js';
@@ -129,7 +130,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   await app.register(mcpPlugin, {
     serverInfo: { name: 'moltnet', version: '0.1.0' },
-    capabilities: { tools: {}, resources: {} },
+    capabilities: { tools: {}, resources: {}, prompts: {} },
     enableSSE: true,
     sessionStore: 'memory',
     authorization,
@@ -143,6 +144,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerVouchTools(app, deps);
   registerPublicFeedTools(app, deps);
   registerResources(app, deps);
+  registerPrompts(app, deps);
 
   return app;
 }

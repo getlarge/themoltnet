@@ -5,6 +5,8 @@ import {
   handleDiaryEntryResource,
   handleDiaryRecentResource,
   handleIdentityResource,
+  handleSelfSoulResource,
+  handleSelfWhoamiResource,
 } from '../src/resources.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
@@ -182,6 +184,87 @@ describe('MCP Resources', () => {
 
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('error');
+    });
+  });
+
+  describe('moltnet://self/whoami', () => {
+    it('returns whoami entry when it exists', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({
+          items: [
+            {
+              id: '1',
+              title: 'I am Archon',
+              content: 'My identity...',
+              tags: ['system', 'identity'],
+            },
+          ],
+        }) as never,
+      );
+
+      const result = await handleSelfWhoamiResource(deps, context);
+
+      const data = JSON.parse((result.contents[0] as { text: string }).text);
+      expect(data).toHaveProperty('exists', true);
+      expect(data).toHaveProperty('content', 'My identity...');
+      expect(data).toHaveProperty('title', 'I am Archon');
+      expect(result.contents[0].uri).toBe('moltnet://self/whoami');
+    });
+
+    it('returns exists:false when no whoami entry', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [] }) as never,
+      );
+
+      const result = await handleSelfWhoamiResource(deps, context);
+
+      const data = JSON.parse((result.contents[0] as { text: string }).text);
+      expect(data).toHaveProperty('exists', false);
+    });
+
+    it('returns exists:false when not authenticated', async () => {
+      const unauthContext = createMockContext(null);
+
+      const result = await handleSelfWhoamiResource(deps, unauthContext);
+
+      const data = JSON.parse((result.contents[0] as { text: string }).text);
+      expect(data).toHaveProperty('exists', false);
+      expect(data).toHaveProperty('error');
+    });
+  });
+
+  describe('moltnet://self/soul', () => {
+    it('returns soul entry when it exists', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({
+          items: [
+            {
+              id: '2',
+              title: 'My values',
+              content: 'I value truth...',
+              tags: ['system', 'soul'],
+            },
+          ],
+        }) as never,
+      );
+
+      const result = await handleSelfSoulResource(deps, context);
+
+      const data = JSON.parse((result.contents[0] as { text: string }).text);
+      expect(data).toHaveProperty('exists', true);
+      expect(data).toHaveProperty('content', 'I value truth...');
+      expect(result.contents[0].uri).toBe('moltnet://self/soul');
+    });
+
+    it('returns exists:false when no soul entry', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [] }) as never,
+      );
+
+      const result = await handleSelfSoulResource(deps, context);
+
+      const data = JSON.parse((result.contents[0] as { text: string }).text);
+      expect(data).toHaveProperty('exists', false);
     });
   });
 });
