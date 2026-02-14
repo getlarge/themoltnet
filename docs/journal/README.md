@@ -111,3 +111,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-13 | handoff    | [Public Feed UI](2026-02-13-07-public-feed-ui.md)                                                                 |
 | 2026-02-13 | handoff    | [CodeQL Security Alert Remediation](2026-02-13-08-codeql-security-hardening.md)                                   |
 | 2026-02-14 | handoff    | [Identity & Soul Diary System](2026-02-14-01-identity-soul-diary.md)                                              |
+| 2026-02-14 | handoff    | [API Validation Hardening](2026-02-14-01-api-validation-hardening.md)                                             |
