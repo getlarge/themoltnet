@@ -12,6 +12,7 @@ import { createProblem } from '../problems/index.js';
 import {
   AgentParamsSchema,
   AgentProfileSchema,
+  MAX_ED25519_SIGNATURE_LENGTH,
   VerifyResultSchema,
   WhoamiSchema,
 } from '../schemas.js';
@@ -71,7 +72,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
         params: AgentParamsSchema,
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 10000 }),
-          signature: Type.String({ minLength: 1, maxLength: 88 }),
+          signature: Type.String({
+            minLength: 1,
+            maxLength: MAX_ED25519_SIGNATURE_LENGTH,
+          }),
         }),
         response: {
           200: Type.Ref(VerifyResultSchema),

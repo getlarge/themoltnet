@@ -24,7 +24,7 @@
 In `pnpm-workspace.yaml`, add to catalog section (alphabetical):
 
 ```yaml
-'@andersmyrmel/vard': ^0.5.0
+'@andersmyrmel/vard': ^1.2.0
 ```
 
 **Step 2: Add vard to diary-service**

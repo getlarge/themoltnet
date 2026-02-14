@@ -13,7 +13,8 @@ export interface ScanResult {
 }
 
 // Configure scanner: moderate threshold (0.7), bounded input
-const scanner = vard.moderate().maxLength(100_001);
+// Max title (255) + newline (1) + max content (100_000) = 100_256
+const scanner = vard.moderate().maxLength(100_256);
 
 export function scanForInjection(
   content: string,

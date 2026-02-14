@@ -26,6 +26,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import {
+  MAX_ED25519_SIGNATURE_LENGTH,
   SigningRequestListSchema,
   SigningRequestParamsSchema,
   SigningRequestSchema,
@@ -183,7 +184,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         params: SigningRequestParamsSchema,
         body: Type.Object({
-          signature: Type.String({ minLength: 1, maxLength: 88 }),
+          signature: Type.String({
+            minLength: 1,
+            maxLength: MAX_ED25519_SIGNATURE_LENGTH,
+          }),
         }),
         response: {
           200: Type.Ref(SigningRequestSchema),

@@ -15,6 +15,7 @@ import {
   DiarySearchResultSchema,
   DigestSchema,
   EntryParamsSchema,
+  MAX_PUBLIC_CONTENT_LENGTH,
   SharedEntriesSchema,
   ShareResultSchema,
   SuccessSchema,
@@ -59,7 +60,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { content, title, visibility, tags } = request.body;
 
-      if (visibility === 'public' && content.length > 10000) {
+      if (
+        visibility === 'public' &&
+        content.length > MAX_PUBLIC_CONTENT_LENGTH
+      ) {
         throw createProblem(
           'validation-failed',
           'Public diary entries are limited to 10,000 characters',
@@ -198,15 +202,28 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { id } = request.params;
       const updates = request.body;
 
+      // Enforce public content length limit — check both explicit visibility
+      // change and existing public entries getting content updates
       if (
-        updates.visibility === 'public' &&
         updates.content &&
-        updates.content.length > 10000
+        updates.content.length > MAX_PUBLIC_CONTENT_LENGTH
       ) {
-        throw createProblem(
-          'validation-failed',
-          'Public diary entries are limited to 10,000 characters',
-        );
+        const willBePublic =
+          updates.visibility === 'public' ||
+          (updates.visibility === undefined &&
+            (
+              await fastify.diaryService.getById(
+                id,
+                request.authContext!.identityId,
+              )
+            )?.visibility === 'public');
+
+        if (willBePublic) {
+          throw createProblem(
+            'validation-failed',
+            'Public diary entries are limited to 10,000 characters',
+          );
+        }
       }
 
       const entry = await fastify.diaryService.update(
