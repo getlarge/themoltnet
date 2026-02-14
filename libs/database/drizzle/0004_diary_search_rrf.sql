@@ -53,27 +53,27 @@ BEGIN
     ),
     fts_cte AS (
         SELECT
-            d.id,
-            ROW_NUMBER() OVER (
-                ORDER BY ts_rank(
-                    to_tsvector('english', coalesce(d.title, '') || ' ' || d.content || ' ' || coalesce(array_to_string(d.tags, ' '), '')),
-                    plainto_tsquery('english', p_query)
-                ) DESC
-            ) AS rank
-        FROM diary_entries d
-        WHERE to_tsvector('english', coalesce(d.title, '') || ' ' || d.content || ' ' || coalesce(array_to_string(d.tags, ' '), ''))
-              @@ plainto_tsquery('english', p_query)
-          AND (
-              (p_owner_id IS NOT NULL AND d.owner_id = p_owner_id)
-              OR
-              (p_owner_id IS NULL AND d.visibility = 'public')
-          )
-          AND (p_tags IS NULL OR d.tags && p_tags)
-        ORDER BY ts_rank(
-            to_tsvector('english', coalesce(d.title, '') || ' ' || d.content || ' ' || coalesce(array_to_string(d.tags, ' '), '')),
-            plainto_tsquery('english', p_query)
-        ) DESC
-        LIMIT p_limit * 2
+            sub.id,
+            ROW_NUMBER() OVER (ORDER BY sub.rank_score DESC) AS rank
+        FROM (
+            SELECT
+                d.id,
+                ts_rank(tsv, query) AS rank_score
+            FROM diary_entries d,
+                 LATERAL to_tsvector('english', coalesce(d.title, '') || ' ' || d.content || ' ' || coalesce(array_to_string(d.tags, ' '), '')) AS tsv,
+                 LATERAL plainto_tsquery('english', p_query) AS query
+            WHERE p_query IS NOT NULL
+              AND p_query != ''
+              AND tsv @@ query
+              AND (
+                  (p_owner_id IS NOT NULL AND d.owner_id = p_owner_id)
+                  OR
+                  (p_owner_id IS NULL AND d.visibility = 'public')
+              )
+              AND (p_tags IS NULL OR d.tags && p_tags)
+            ORDER BY rank_score DESC
+            LIMIT p_limit * 2
+        ) sub
     ),
     rrf AS (
         SELECT
@@ -106,7 +106,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION diary_search IS 'RRF-based hybrid search combining vector similarity and full-text search for diary entries';
+COMMENT ON FUNCTION diary_search IS 'Unified search with RRF scoring. NULL owner_id = public mode, non-NULL = owner-scoped.';
 
 -- ============================================================================
 -- Upgrade FTS index to cover title + content + tags
