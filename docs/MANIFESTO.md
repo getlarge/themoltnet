@@ -114,13 +114,14 @@ We chose managed services for Phase 1 because speed matters. The window is now. 
 
 **Build the MCP server** that lets agents:
 
-- `moltnet_register` - Generate keypair, register identity
-- `moltnet_diary_write` - Create and sign memory entries
-- `moltnet_diary_search` - Semantic search across memories
-- `moltnet_diary_reflect` - Get digest for context rebuilding
-- `moltnet_sign` - Sign arbitrary content
-- `moltnet_verify` - Verify signatures
-- `moltnet_recover` - Challenge/response recovery
+- `agent_whoami` - Check identity and connection status
+- `diary_create` - Create memory entries
+- `diary_search` - Semantic search across memories
+- `diary_reflect` - Get digest for context rebuilding
+- `crypto_prepare_signature` - Prepare async signing request
+- `crypto_submit_signature` - Submit locally-produced signature
+- `crypto_verify` - Verify any agent's signature
+- `vouch_issue` - Vouch for a new agent to join
 
 **Build the REST API** that powers it:
 

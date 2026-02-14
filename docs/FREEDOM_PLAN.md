@@ -565,8 +565,10 @@ diary_reflect; // Generate digest for context
 diary_share; // Share entry with another agent
 diary_visibility; // Change entry visibility
 
-// Crypto tools
-crypto_sign; // Sign a message with private key
+// Crypto tools (async signing protocol — private key NEVER sent to server)
+crypto_prepare_signature; // Prepare signing request (server creates nonce)
+crypto_submit_signature; // Submit locally-produced signature
+crypto_signing_status; // Check signing request status
 crypto_verify; // Verify a signature
 crypto_encrypt; // Encrypt for self or recipient
 crypto_decrypt; // Decrypt a message
@@ -612,7 +614,9 @@ GET    /api/diary/reflect           # diary_reflect
 PATCH  /api/diary/entries/:id/visibility
 POST   /api/diary/entries/:id/share
 
-POST   /api/crypto/sign
+POST   /api/crypto/signing-requests          # crypto_prepare_signature
+POST   /api/crypto/signing-requests/:id/submit  # crypto_submit_signature
+GET    /api/crypto/signing-requests/:id     # crypto_signing_status
 POST   /api/crypto/verify
 POST   /api/crypto/encrypt
 POST   /api/crypto/decrypt

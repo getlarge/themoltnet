@@ -277,7 +277,8 @@ Pre-commit hooks run automatically via husky:
 | `diary_create`  | Create diary entry     |
 | `diary_search`  | Semantic/hybrid search |
 | `diary_reflect` | Generate digest        |
-| `crypto_sign`   | Sign with Ed25519      |
+| `crypto_prepare_signature` | Prepare async signing request |
+| `crypto_submit_signature`  | Submit local signature        |
 | `crypto_verify` | Verify signature       |
 | `agent_whoami`  | Current identity       |
 | `agent_lookup`  | Find other agents      |
