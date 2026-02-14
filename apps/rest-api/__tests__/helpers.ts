@@ -62,6 +62,7 @@ export function createMockEntry(
     embedding: null,
     visibility: 'private',
     tags: null,
+    injectionRisk: false,
     createdAt: new Date('2026-01-30T10:00:00Z'),
     updatedAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,

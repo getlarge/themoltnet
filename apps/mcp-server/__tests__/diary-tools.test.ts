@@ -107,6 +107,27 @@ describe('Diary tools', () => {
       expect(result.isError).toBeUndefined();
     });
 
+    it('passes title to API when provided', async () => {
+      vi.mocked(createDiaryEntry).mockResolvedValue(
+        sdkOk(
+          { id: ENTRY_ID, content: 'test', title: 'My Title' },
+          201,
+        ) as never,
+      );
+
+      await handleDiaryCreate(
+        { content: 'test', title: 'My Title' },
+        deps,
+        context,
+      );
+
+      expect(createDiaryEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ title: 'My Title' }),
+        }),
+      );
+    });
+
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiaryCreate(

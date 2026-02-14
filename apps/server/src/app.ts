@@ -102,10 +102,11 @@ export async function bootstrap(
       : {}),
   };
 
+  const ajv = { customOptions: { removeAdditional: true as const } };
   const app = (
     observability?.logger
-      ? Fastify({ loggerInstance: observability.logger })
-      : Fastify({ logger: loggerConfig })
+      ? Fastify({ loggerInstance: observability.logger, ajv })
+      : Fastify({ logger: loggerConfig, ajv })
   ) as FastifyInstance;
 
   // Register @fastify/otel BEFORE routes for full lifecycle tracing

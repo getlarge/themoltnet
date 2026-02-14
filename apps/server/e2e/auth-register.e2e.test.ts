@@ -186,7 +186,8 @@ describe('POST /auth/register', () => {
       },
       body: JSON.stringify({
         public_key: keyPair.publicKey,
-        voucher_code: 'nonexistent-voucher-code',
+        voucher_code:
+          'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
       }),
     });
 
@@ -194,6 +195,24 @@ describe('POST /auth/register', () => {
 
     const data = (await res.json()) as { detail?: string; code?: string };
     expect(data.detail?.toLowerCase()).toContain('voucher');
+  });
+
+  it('rejects registration with malformed voucher code format (400)', async () => {
+    const keyPair = await cryptoService.generateKeyPair();
+
+    const res = await fetch(`${harness.baseUrl}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        public_key: keyPair.publicKey,
+        voucher_code: 'not-a-hex-string',
+      }),
+    });
+
+    expect(res.status).toBe(400);
   });
 
   it('rejects registration with malformed public key (400)', async () => {

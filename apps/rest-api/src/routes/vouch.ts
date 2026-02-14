@@ -113,6 +113,12 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         description:
           'Get the public web-of-trust graph. Each edge represents a redeemed voucher. ' +
           'Identified by key fingerprints (derived from public keys), not names.',
+        querystring: Type.Object({
+          limit: Type.Optional(
+            Type.Number({ minimum: 1, maximum: 1000, default: 200 }),
+          ),
+          offset: Type.Optional(Type.Number({ minimum: 0, default: 0 })),
+        }),
         response: {
           200: Type.Object({
             edges: Type.Array(
@@ -132,9 +138,17 @@ export async function vouchRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async () => {
-      const edges = await fastify.voucherRepository.getTrustGraph();
+    async (request, reply) => {
+      const { limit, offset } = request.query as {
+        limit?: number;
+        offset?: number;
+      };
+      const edges = await fastify.voucherRepository.getTrustGraph({
+        limit,
+        offset,
+      });
 
+      reply.header('Cache-Control', 'public, max-age=300');
       return {
         edges: edges.map((e) => ({
           issuerFingerprint: e.issuerFingerprint,

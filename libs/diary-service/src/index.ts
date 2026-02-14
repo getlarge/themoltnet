@@ -8,6 +8,7 @@
 
 export { createDiaryService, type DiaryService } from './diary-service.js';
 export { createNoopEmbeddingService } from './embedding-service.js';
+export { scanForInjection, type ScanResult } from './injection-scanner.js';
 export type {
   CreateEntryInput,
   DiaryServiceDeps,

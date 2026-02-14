@@ -26,6 +26,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import {
+  MAX_ED25519_SIGNATURE_LENGTH,
   SigningRequestListSchema,
   SigningRequestParamsSchema,
   SigningRequestSchema,
@@ -101,7 +102,13 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
-          status: Type.Optional(Type.String()),
+          status: Type.Optional(
+            Type.String({
+              pattern:
+                '^(pending|completed|expired)(,(pending|completed|expired))*$',
+              description: 'Comma-separated status filter',
+            }),
+          ),
         }),
         response: {
           200: Type.Ref(SigningRequestListSchema),
@@ -177,7 +184,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         params: SigningRequestParamsSchema,
         body: Type.Object({
-          signature: Type.String({ minLength: 1 }),
+          signature: Type.String({
+            minLength: 1,
+            maxLength: MAX_ED25519_SIGNATURE_LENGTH,
+          }),
         }),
         response: {
           200: Type.Ref(SigningRequestSchema),

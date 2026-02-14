@@ -65,6 +65,9 @@ export const diaryEntries = pgTable(
     // Metadata
     tags: text('tags').array(),
 
+    // Prompt injection risk flag (set by vard scanner)
+    injectionRisk: boolean('injection_risk').default(false).notNull(),
+
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()

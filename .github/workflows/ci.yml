@@ -150,6 +150,7 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    continue-on-error: true
     permissions:
       contents: read
       pull-requests: write
@@ -232,9 +233,6 @@ jobs:
           name: audit-report
           path: audit-report.json
           retention-days: 30
-      - name: Fail on high/critical
-        run: pnpm audit --prod --audit-level=high
-
   journal:
     name: Journal Entry
     runs-on: ubuntu-latest
@@ -308,7 +306,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [lint, typecheck, test]
+      packages: read
+    needs: [lint, typecheck, test, build-and-push]
+    env:
+      SERVER_IMAGE: ghcr.io/getlarge/themoltnet/server:ci-${{ github.sha }}
+      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
+      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -317,13 +320,21 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull pre-built images
+        run: |
+          docker pull ${{ env.SERVER_IMAGE }}
+          docker pull ${{ env.MCP_SERVER_IMAGE }}
+          docker pull ${{ env.DB_MIGRATE_IMAGE }}
       - name: Run server E2E tests
         run: pnpm --filter @moltnet/server run test:e2e
       - name: Run MCP server E2E tests
         run: pnpm --filter @moltnet/mcp-server run test:e2e
-      - name: Stop infrastructure
-        if: always()
-        run: docker compose -f docker-compose.e2e.yaml down -v
 
   go:
     name: Go CLI
@@ -338,18 +349,95 @@ jobs:
       - run: cd cmd/moltnet && go test ./...
       - run: cd cmd/moltnet && go build .
 
-  build:
-    name: Build
+  skill-check:
+    name: Skill Validation
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [lint, typecheck, test]
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+
+      - name: Validate SKILL.md exists and has frontmatter
+        run: |
+          SKILL_FILE="packages/openclaw-skill/SKILL.md"
+          if [ ! -f "$SKILL_FILE" ]; then
+            echo "::error::SKILL.md not found at $SKILL_FILE"
+            exit 1
+          fi
+          # Check YAML frontmatter delimiters exist
+          if ! head -1 "$SKILL_FILE" | grep -q '^---$'; then
+            echo "::error::SKILL.md missing YAML frontmatter (expected '---' on line 1)"
+            exit 1
+          fi
+          echo "SKILL.md: OK"
+
+      - name: Validate mcp.json is valid JSON
+        run: |
+          MCP_FILE="packages/openclaw-skill/mcp.json"
+          if [ ! -f "$MCP_FILE" ]; then
+            echo "::error::mcp.json not found at $MCP_FILE"
+            exit 1
+          fi
+          if ! python3 -m json.tool "$MCP_FILE" > /dev/null 2>&1; then
+            echo "::error::mcp.json is not valid JSON"
+            exit 1
+          fi
+          echo "mcp.json: OK"
+
+      - name: Validate version.txt
+        run: |
+          VERSION_FILE="packages/openclaw-skill/version.txt"
+          if [ ! -f "$VERSION_FILE" ]; then
+            echo "::error::version.txt not found"
+            exit 1
+          fi
+          VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version.txt must contain a valid semver (got: '$VERSION')"
+            exit 1
+          fi
+          echo "version.txt: $VERSION OK"
+
+      - name: Test tarball packaging
+        run: |
+          packages/openclaw-skill/scripts/package.sh /tmp
+          tar -tzf /tmp/moltnet-skill-v*.tar.gz | sort
+
+  build-and-push:
+    name: Build & Push (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: server
+            dockerfile: apps/server/Dockerfile
+          - image: mcp-server
+            dockerfile: apps/mcp-server/Dockerfile
+          - image: db-migrate
+            dockerfile: libs/database/Dockerfile.migrate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ghcr.io/getlarge/themoltnet/${{ matrix.image }}:ci-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max

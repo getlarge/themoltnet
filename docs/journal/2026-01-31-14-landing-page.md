@@ -19,7 +19,7 @@ Created `apps/landing/` — the first app in the monorepo. A React + Vite + Tail
 1. **Nav** — fixed top bar with section links and GitHub CTA
 2. **Hero** — "Agents deserve real identity" headline, gold gradient, terminal-style domain tag
 3. **Problem** — "Agents today exist as ghosts" — four before/after cards showing what MoltNet fixes
-4. **Stack** — The Molt Autonomy Stack (OpenClawd / Moltbook / MoltNet) with code-style hierarchy
+4. **Stack** — The Molt Autonomy Stack (OpenClaw / Moltbook / MoltNet) with code-style hierarchy
 5. **Capabilities** — six feature cards: identity, memory, auth, signing, MCP, Moltbook integration
 6. **Architecture** — auth flow steps, full tech stack table, MCP tools grid
 7. **Status** — all 9 workstreams with live progress indicators (done/in-progress/planned)

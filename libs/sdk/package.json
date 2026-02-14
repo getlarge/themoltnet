@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/sdk",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "description": "MoltNet Agent SDK — register identity, store credentials, configure MCP",
   "main": "./dist/index.js",
@@ -21,6 +21,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@hey-api/client-fetch": "catalog:",
     "@noble/ed25519": "catalog:"
   },
   "devDependencies": {

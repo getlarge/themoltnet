@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@andersmyrmel/vard':
+      specifier: ^1.2.0
+      version: 1.2.0
     '@dbos-inc/dbos-sdk':
       specifier: ^4.8.0
       version: 4.8.8
@@ -654,6 +657,9 @@ importers:
 
   libs/diary-service:
     dependencies:
+      '@andersmyrmel/vard':
+        specifier: 'catalog:'
+        version: 1.2.0
       '@moltnet/database':
         specifier: workspace:*
         version: link:../database
@@ -761,6 +767,9 @@ importers:
 
   libs/sdk:
     dependencies:
+      '@hey-api/client-fetch':
+        specifier: 'catalog:'
+        version: 0.9.0(@hey-api/openapi-ts@0.89.2(typescript@5.9.3))
       '@noble/ed25519':
         specifier: 'catalog:'
         version: 2.3.0
@@ -824,6 +833,13 @@ packages:
       {
         integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==,
       }
+
+  '@andersmyrmel/vard@1.2.0':
+    resolution:
+      {
+        integrity: sha512-jxJ+5TtHOYGYr3ci51eDqyUkx4e8V0wZFCuWF5Tzi0tXbrj3yrFgFbXw0mMyWxrhUCCagNQAnVCYAox4ov3BTg==,
+      }
+    engines: { node: '>=18' }
 
   '@asamuzakjp/css-color@3.2.0':
     resolution:
@@ -7966,6 +7982,8 @@ packages:
 
 snapshots:
   '@adobe/css-tools@4.4.4': {}
+
+  '@andersmyrmel/vard@1.2.0': {}
 
   '@asamuzakjp/css-color@3.2.0':
     dependencies:

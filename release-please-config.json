@@ -20,6 +20,10 @@
           "jsonpath": "$.version"
         }
       ]
+    },
+    "packages/openclaw-skill": {
+      "release-type": "simple",
+      "component": "openclaw-skill"
     }
   }
 }
