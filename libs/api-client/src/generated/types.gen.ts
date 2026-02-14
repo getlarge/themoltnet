@@ -950,10 +950,6 @@ export type RequestRecoveryChallengeErrors = {
   /**
    * Default Response
    */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
   500: ProblemDetails;
 };
 
