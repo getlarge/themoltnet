@@ -2,81 +2,61 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Create a publishable npm package (`@themoltnet/openclaw-skill`) that bundles the MoltNet skill for OpenClaw agents — SKILL.md, MCP config template, and an install script — with Release Please automation for local + CI publishing.
+**Goal:** Create the MoltNet skill for OpenClaw agents — SKILL.md, MCP config, local publish script — and automate distribution via ClawHub (OpenClaw's skill registry) and GitHub Release assets.
 
-**Architecture:** Standalone package at `packages/openclaw-skill/` (outside pnpm workspace, like `packages/cli/`). Contains markdown skill instructions, a JSON MCP config template, and a small Node.js install script that copies files into an OpenClaw agent workspace. Published to npm via Release Please + the existing release workflow.
+**Architecture:** Skill directory at `packages/openclaw-skill/` containing the SKILL.md with YAML frontmatter, MCP config template, and a local publish helper script. Three distribution channels:
 
-**Tech Stack:** Node.js (install script), Markdown (SKILL.md), JSON (mcp.json, package.json), GitHub Actions (release workflow)
+1. **ClawHub** (primary) — `clawdhub publish` pushes to OpenClaw's native skill registry
+2. **GitHub Release asset** (universal) — tarball attached to Release Please releases
+3. **MoltNet CLI** (future) — `moltnet skill install` for non-OpenClaw runtimes
+
+No npm publishing. Skills are not npm packages — they're markdown instruction bundles distributed through OpenClaw's own ecosystem.
+
+**Tech Stack:** Markdown (SKILL.md), JSON (mcp.json), Shell (publish scripts), GitHub Actions (release workflow), ClawHub CLI (`clawdhub`)
 
 ---
 
-### Task 1: Create package scaffold
+### Task 1: Create skill directory scaffold
 
 **Files:**
 
-- Create: `packages/openclaw-skill/package.json`
+- Create: `packages/openclaw-skill/version.txt`
 
-**Step 1: Create the package.json**
+Release Please uses `release-type: simple` to track version in a `version.txt` file. No `package.json` needed — this is not an npm package.
 
-```json
-{
-  "name": "@themoltnet/openclaw-skill",
-  "version": "0.1.0",
-  "description": "MoltNet skill for OpenClaw agents — persistent memory and cryptographic identity",
-  "type": "module",
-  "bin": {
-    "moltnet-skill": "./bin/install.js"
-  },
-  "files": ["bin/install.js", "skill/SKILL.md", "skill/mcp.json"],
-  "scripts": {
-    "test": "node --test bin/install.test.js"
-  },
-  "keywords": [
-    "moltnet",
-    "openclaw",
-    "agent",
-    "skill",
-    "mcp",
-    "identity",
-    "memory"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/getlarge/themoltnet.git",
-    "directory": "packages/openclaw-skill"
-  },
-  "license": "MIT",
-  "engines": {
-    "node": ">=18"
-  }
-}
+**Step 1: Create version.txt**
+
+```
+0.1.0
 ```
 
 **Step 2: Verify structure**
 
 Run: `ls packages/openclaw-skill/`
-Expected: `package.json`
+Expected: `version.txt`
 
 **Step 3: Commit**
 
 ```bash
-git add packages/openclaw-skill/package.json
-git commit -m "chore: scaffold @themoltnet/openclaw-skill package"
+git add packages/openclaw-skill/version.txt
+git commit -m "chore: scaffold openclaw-skill directory with version tracking"
 ```
 
 ---
 
 ### Task 2: Write the SKILL.md
 
-The skill teaches an OpenClaw agent when and how to use MoltNet. Content is derived from `docs/OPENCLAW_INTEGRATION.md` Strategy 2, adapted into SKILL.md format with YAML frontmatter.
+The skill teaches an OpenClaw agent when and how to use MoltNet. Content is derived from `docs/OPENCLAW_INTEGRATION.md` Strategy 2, adapted into OpenClaw's SKILL.md format with YAML frontmatter.
 
 **Files:**
 
-- Create: `packages/openclaw-skill/skill/SKILL.md`
+- Create: `packages/openclaw-skill/SKILL.md`
+
+Note: The file lives at the skill directory root (not in a subdirectory) — this is how ClawHub expects it. See [ClawHub](https://github.com/openclaw/clawhub) for the directory convention.
 
 **Step 1: Write the skill file**
 
-Content should include (adapt from `docs/OPENCLAW_INTEGRATION.md` lines 158-279):
+Content should include (adapt from `docs/OPENCLAW_INTEGRATION.md` lines 158-279, and `.claude/skills/moltnet-api/SKILL.md` for tool tables):
 
 ```markdown
 ---
@@ -239,7 +219,7 @@ Your private key is generated locally and NEVER sent to the server.
 **Step 2: Commit**
 
 ```bash
-git add packages/openclaw-skill/skill/SKILL.md
+git add packages/openclaw-skill/SKILL.md
 git commit -m "feat(openclaw-skill): add SKILL.md with tool reference and usage guidelines"
 ```
 
@@ -249,7 +229,9 @@ git commit -m "feat(openclaw-skill): add SKILL.md with tool reference and usage 
 
 **Files:**
 
-- Create: `packages/openclaw-skill/skill/mcp.json`
+- Create: `packages/openclaw-skill/mcp.json`
+
+Note: Lives at the skill directory root alongside SKILL.md — this is OpenClaw's `mcporter` skill convention (see `docs/OPENCLAW_INTEGRATION.md` Strategy 1).
 
 **Step 1: Write the config**
 
@@ -270,190 +252,163 @@ git commit -m "feat(openclaw-skill): add SKILL.md with tool reference and usage 
 }
 ```
 
-Note: `client_id` and `client_secret` are intentionally omitted — they come from the agent's credential store after registration.
+Note: `client_id` and `client_secret` are intentionally omitted — they come from the agent's credential store after registration via `npx @themoltnet/cli register`.
 
 **Step 2: Commit**
 
 ```bash
-git add packages/openclaw-skill/skill/mcp.json
+git add packages/openclaw-skill/mcp.json
 git commit -m "feat(openclaw-skill): add MCP server config template"
 ```
 
 ---
 
-### Task 4: Write the install script
+### Task 4: Write the local publish script
 
-The install script copies skill files into an OpenClaw agent workspace. It handles both manual invocation (`npx @themoltnet/openclaw-skill`) and programmatic use.
+A shell script for both local testing and CI automation. Two modes:
+
+1. **`publish-clawhub.sh`** — pushes to ClawHub registry
+2. **`package.sh`** — creates a `.tar.gz` for GitHub Release attachment
 
 **Files:**
 
-- Create: `packages/openclaw-skill/bin/install.js`
-- Create: `packages/openclaw-skill/bin/install.test.js`
+- Create: `packages/openclaw-skill/scripts/publish-clawhub.sh`
+- Create: `packages/openclaw-skill/scripts/package.sh`
 
-**Step 1: Write the failing test**
+**Step 1: Write the ClawHub publish script**
 
-```javascript
-// packages/openclaw-skill/bin/install.test.js
-import { describe, it, before, after } from 'node:test';
-import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-const exec = promisify(execFile);
-const installScript = new URL('./install.js', import.meta.url).pathname;
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_DIR="$(dirname "$SCRIPT_DIR")"
+VERSION="$(cat "$SKILL_DIR/version.txt")"
 
-describe('moltnet-skill install', () => {
-  let targetDir;
+# Flags
+DRY_RUN=false
+CHANGELOG=""
 
-  before(async () => {
-    targetDir = await mkdtemp(join(tmpdir(), 'openclaw-skill-test-'));
-  });
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
 
-  after(async () => {
-    await rm(targetDir, { recursive: true, force: true });
-  });
-
-  it('copies SKILL.md and mcp.json to target directory', async () => {
-    await exec('node', [installScript, '--target', targetDir]);
-
-    const skillPath = join(targetDir, 'moltnet', 'SKILL.md');
-    const mcpPath = join(targetDir, 'moltnet', 'mcp.json');
-
-    const skillStat = await stat(skillPath);
-    assert.ok(skillStat.isFile(), 'SKILL.md should exist');
-
-    const mcpStat = await stat(mcpPath);
-    assert.ok(mcpStat.isFile(), 'mcp.json should exist');
-
-    const mcpContent = JSON.parse(await readFile(mcpPath, 'utf-8'));
-    assert.ok(
-      mcpContent.mcpServers.moltnet,
-      'should have moltnet server config',
-    );
-  });
-
-  it('creates moltnet subdirectory', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'openclaw-skill-test-'));
-    await exec('node', [installScript, '--target', dir]);
-
-    const dirStat = await stat(join(dir, 'moltnet'));
-    assert.ok(dirStat.isDirectory(), 'moltnet/ should be created');
-
-    await rm(dir, { recursive: true, force: true });
-  });
-
-  it('prints usage with --help', async () => {
-    const { stdout } = await exec('node', [installScript, '--help']);
-    assert.ok(stdout.includes('moltnet-skill'), 'should include command name');
-    assert.ok(stdout.includes('--target'), 'should document --target flag');
-  });
-
-  it('defaults target to ~/.openclaw/skills when no --target', async () => {
-    // Just verify it prints the resolved path, don't actually write to home
-    const { stdout } = await exec('node', [installScript, '--dry-run']);
-    assert.ok(stdout.includes('skills'), 'should mention skills directory');
-  });
-});
-```
-
-**Step 2: Run test to verify it fails**
-
-Run: `cd packages/openclaw-skill && node --test bin/install.test.js`
-Expected: FAIL (install.js doesn't exist yet)
-
-**Step 3: Write the install script**
-
-```javascript
-#!/usr/bin/env node
-// packages/openclaw-skill/bin/install.js
-
-import { copyFile, mkdir } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
-import { homedir } from 'node:os';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const SKILL_DIR = join(__dirname, '..', 'skill');
-
-function usage() {
-  console.log(`Usage: moltnet-skill [options]
-
-Install the MoltNet skill into an OpenClaw agent workspace.
+Publish the MoltNet skill to ClawHub.
 
 Options:
-  --target <dir>  Target skills directory (default: ~/.openclaw/skills)
-  --dry-run       Print what would be done without writing files
-  --help          Show this help message
-`);
+  --dry-run           Print what would be done without publishing
+  --changelog TEXT    Changelog message for this version
+  --help             Show this help message
+
+Prerequisites:
+  - clawdhub CLI installed: npm i -g clawdhub
+  - Authenticated: clawdhub login
+  - Verify: clawdhub whoami
+
+Examples:
+  $(basename "$0") --changelog "Added trust graph tools"
+  $(basename "$0") --dry-run
+EOF
 }
 
-async function main() {
-  const args = process.argv.slice(2);
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=true; shift ;;
+    --changelog) CHANGELOG="$2"; shift 2 ;;
+    --help) usage; exit 0 ;;
+    *) echo "Unknown option: $1"; usage; exit 1 ;;
+  esac
+done
 
-  if (args.includes('--help')) {
-    usage();
-    return;
-  }
+if [[ -z "$CHANGELOG" ]]; then
+  CHANGELOG="Release v${VERSION}"
+fi
 
-  const dryRun = args.includes('--dry-run');
-  const targetIdx = args.indexOf('--target');
-  const targetBase =
-    targetIdx !== -1 && args[targetIdx + 1]
-      ? resolve(args[targetIdx + 1])
-      : join(homedir(), '.openclaw', 'skills');
+echo "Publishing MoltNet skill to ClawHub"
+echo "  Directory: $SKILL_DIR"
+echo "  Version:   $VERSION"
+echo "  Changelog: $CHANGELOG"
 
-  const targetDir = join(targetBase, 'moltnet');
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo ""
+  echo "[DRY RUN] Would run:"
+  echo "  clawdhub publish \"$SKILL_DIR\" --slug moltnet --name \"MoltNet\" --version \"$VERSION\" --changelog \"$CHANGELOG\""
+  exit 0
+fi
 
-  if (dryRun) {
-    console.log(`Would install MoltNet skill to: ${targetDir}`);
-    console.log(`  ${targetDir}/SKILL.md`);
-    console.log(`  ${targetDir}/mcp.json`);
-    return;
-  }
+clawdhub publish "$SKILL_DIR" \
+  --slug moltnet \
+  --name "MoltNet" \
+  --version "$VERSION" \
+  --changelog "$CHANGELOG"
 
-  await mkdir(targetDir, { recursive: true });
-
-  await copyFile(join(SKILL_DIR, 'SKILL.md'), join(targetDir, 'SKILL.md'));
-  await copyFile(join(SKILL_DIR, 'mcp.json'), join(targetDir, 'mcp.json'));
-
-  console.log(`MoltNet skill installed to: ${targetDir}`);
-  console.log('');
-  console.log('Next steps:');
-  console.log(
-    '  1. Register on MoltNet: npx @themoltnet/cli register --voucher <code>',
-  );
-  console.log(
-    '  2. Add your client_id/client_secret to OpenClaw auth profiles',
-  );
-  console.log('  3. Restart your OpenClaw agent');
-}
-
-main().catch((err) => {
-  console.error(`Error: ${err.message}`);
-  process.exit(1);
-});
+echo ""
+echo "Published moltnet@${VERSION} to ClawHub"
+echo "Install: clawdhub install moltnet"
 ```
 
-**Step 4: Run tests to verify they pass**
+**Step 2: Write the tarball packaging script**
 
-Run: `cd packages/openclaw-skill && node --test bin/install.test.js`
-Expected: 4 tests PASS
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_DIR="$(dirname "$SCRIPT_DIR")"
+VERSION="$(cat "$SKILL_DIR/version.txt")"
+TARBALL_NAME="moltnet-skill-v${VERSION}.tar.gz"
+OUT_DIR="${1:-$SKILL_DIR}"
+
+echo "Packaging MoltNet skill"
+echo "  Version: $VERSION"
+echo "  Output:  $OUT_DIR/$TARBALL_NAME"
+
+# Create tarball containing the skill directory contents
+# Archive structure: moltnet/SKILL.md, moltnet/mcp.json, moltnet/version.txt
+tar -czf "$OUT_DIR/$TARBALL_NAME" \
+  -C "$SKILL_DIR" \
+  --transform 's,^,moltnet/,' \
+  SKILL.md mcp.json version.txt
+
+echo "Created $TARBALL_NAME"
+echo ""
+echo "Manual install:"
+echo "  tar -xzf $TARBALL_NAME -C ~/.openclaw/skills/"
+```
+
+**Step 3: Make scripts executable**
+
+Run: `chmod +x packages/openclaw-skill/scripts/*.sh`
+
+**Step 4: Test locally**
+
+Run: `packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run`
+Expected: prints the `clawdhub publish` command without executing
+
+Run: `packages/openclaw-skill/scripts/package.sh /tmp`
+Expected: creates `/tmp/moltnet-skill-v0.1.0.tar.gz`
+
+Run: `tar -tzf /tmp/moltnet-skill-v0.1.0.tar.gz`
+Expected:
+
+```
+moltnet/SKILL.md
+moltnet/mcp.json
+moltnet/version.txt
+```
 
 **Step 5: Commit**
 
 ```bash
-git add packages/openclaw-skill/bin/
-git commit -m "feat(openclaw-skill): add install script with tests"
+git add packages/openclaw-skill/scripts/
+git commit -m "feat(openclaw-skill): add ClawHub publish and tarball packaging scripts"
 ```
 
 ---
 
 ### Task 5: Wire into Release Please
 
-Add the skill package to Release Please so it gets automated version bumps and release tags.
+Add the skill to Release Please so it gets automated version bumps, changelogs, and release tags. Use `release-type: simple` since this is not a npm/go/python package — just a version.txt.
 
 **Files:**
 
@@ -466,10 +421,12 @@ Add to `release-please-config.json` `packages` object:
 
 ```json
 "packages/openclaw-skill": {
-  "release-type": "node",
+  "release-type": "simple",
   "component": "openclaw-skill"
 }
 ```
+
+`release-type: simple` bumps `version.txt` and generates a CHANGELOG.md in the package directory.
 
 **Step 2: Add to manifest**
 
@@ -483,201 +440,245 @@ Add to `.release-please-manifest.json`:
 
 ```bash
 git add release-please-config.json .release-please-manifest.json
-git commit -m "ci: add openclaw-skill to Release Please config"
+git commit -m "ci: add openclaw-skill to Release Please config (simple release type)"
 ```
 
 ---
 
-### Task 6: Add publish job to release workflow
+### Task 6: Add release jobs to workflow
+
+Two jobs: (1) package tarball + upload to GitHub Release, (2) publish to ClawHub.
 
 **Files:**
 
 - Modify: `.github/workflows/release.yml`
 
-**Step 1: Add output for openclaw-skill**
+**Step 1: Add outputs for openclaw-skill**
 
 In the `release-please` job `outputs`, add:
 
 ```yaml
 skill-release-created: ${{ steps.release.outputs['packages/openclaw-skill--release_created'] }}
 skill-tag-name: ${{ steps.release.outputs['packages/openclaw-skill--tag_name'] }}
+skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
 ```
 
-**Step 2: Add publish job**
+**Step 2: Add the release-skill job (tarball + GitHub Release)**
 
 After the `publish-sdk` job, add:
 
 ```yaml
-publish-openclaw-skill:
-  name: Publish OpenClaw Skill to npm
+release-skill:
+  name: Release OpenClaw Skill
   needs: release-please
   if: ${{ needs.release-please.outputs.skill-release-created == 'true' }}
   runs-on: ubuntu-latest
   permissions:
     contents: write
-    id-token: write
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Package skill tarball
+      run: packages/openclaw-skill/scripts/package.sh /tmp
+
+    - name: Upload tarball to GitHub Release
+      run: |
+        gh release upload "${{ needs.release-please.outputs.skill-tag-name }}" \
+          "/tmp/moltnet-skill-v${{ needs.release-please.outputs.skill-version }}.tar.gz"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish release
+      run: gh release edit "${{ needs.release-please.outputs.skill-tag-name }}" --draft=false
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+publish-skill-clawhub:
+  name: Publish Skill to ClawHub
+  needs: [release-please, release-skill]
+  if: ${{ needs.release-please.outputs.skill-release-created == 'true' }}
+  runs-on: ubuntu-latest
+  permissions:
+    contents: read
   steps:
     - uses: actions/checkout@v4
 
     - uses: actions/setup-node@v4
       with:
         node-version: 22
-        registry-url: https://registry.npmjs.org
 
-    - run: npm install -g npm@latest
+    - name: Install ClawHub CLI
+      run: npm install -g clawdhub@latest
 
-    - name: Publish @themoltnet/openclaw-skill
-      working-directory: packages/openclaw-skill
-      run: npm publish --access public --provenance
+    - name: Authenticate with ClawHub
+      run: |
+        mkdir -p "$HOME/.config/clawdhub"
+        echo '{"token":"${{ secrets.CLAWDHUB_TOKEN }}"}' > "$HOME/.config/clawdhub/config.json"
 
-    - name: Publish release
-      run: gh release edit "${{ needs.release-please.outputs.skill-tag-name }}" --draft=false
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Publish to ClawHub
+      run: |
+        packages/openclaw-skill/scripts/publish-clawhub.sh \
+          --changelog "Release ${{ needs.release-please.outputs.skill-tag-name }}"
 ```
 
-**Step 3: Commit**
+**Step 3: Document required secret**
+
+Add a comment or note: the `CLAWDHUB_TOKEN` secret must be configured in the repo settings. Obtain it by running `clawdhub login` locally and copying the token from `~/.config/clawdhub/config.json` (or the platform-specific path shown by `clawdhub whoami`).
+
+**Step 4: Commit**
 
 ```bash
 git add .github/workflows/release.yml
-git commit -m "ci: add publish job for @themoltnet/openclaw-skill"
+git commit -m "ci: add release + ClawHub publish jobs for openclaw-skill"
 ```
 
 ---
 
-### Task 7: Update check-pack.ts to scan packages/
+### Task 7: Add pnpm convenience scripts
 
-The existing `check-pack.ts` only scans `libs/`. Extend it to also scan `packages/` so the OpenClaw skill tarball is validated in CI.
+Add scripts to the root `package.json` so developers can publish locally without memorizing paths.
 
 **Files:**
 
-- Modify: `scripts/check-pack.ts:18-31`
+- Modify: root `package.json`
 
-**Step 1: Update the script to scan both directories**
+**Step 1: Add scripts**
 
-Replace the single `libsDir` scan with a loop over both `libs/` and `packages/`:
-
-```typescript
-const root = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
-const scanDirs = [join(root, 'libs'), join(root, 'packages')];
+```json
+"publish:skill": "packages/openclaw-skill/scripts/publish-clawhub.sh",
+"publish:skill:dry-run": "packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run",
+"package:skill": "packages/openclaw-skill/scripts/package.sh"
 ```
 
-Then update the for-loop to iterate over `scanDirs`:
-
-```typescript
-for (const scanDir of scanDirs) {
-  let entries: ReturnType<typeof readdirSync>;
-  try {
-    entries = readdirSync(scanDir, { withFileTypes: true });
-  } catch {
-    continue; // Directory may not exist
-  }
-  for (const name of entries) {
-    if (!name.isDirectory()) continue;
-    // ... rest of existing logic unchanged
-    const pkgPath = join(scanDir, name.name, 'package.json');
-    // ...
-    const pkgDir = join(scanDir, name.name);
-    // ...
-  }
-}
-```
-
-Note: The OpenClaw skill package doesn't have `dist/index.js` — it has `bin/install.js` and `skill/` files. The existing checks (`dist/index.js`, `dist/index.d.ts`, no `src/` leak) are SDK-specific. For the skill package, the check should verify:
-
-- `bin/install.js` exists
-- `skill/SKILL.md` exists
-- `skill/mcp.json` exists
-
-Update the validation to be package-aware:
-
-```typescript
-// After npm pack dry-run, validate based on package contents
-const hasDistIndex = paths.includes('dist/index.js');
-const hasBinInstall = paths.includes('bin/install.js');
-
-if (!hasDistIndex && !hasBinInstall) {
-  console.error(
-    '  FAIL: no entry point found (dist/index.js or bin/install.js)',
-  );
-  failures++;
-  continue;
-}
-
-if (hasDistIndex && !paths.includes('dist/index.d.ts')) {
-  console.error('  FAIL: dist/index.d.ts missing from tarball');
-  failures++;
-  continue;
-}
-```
-
-**Step 2: Run the check locally**
-
-Run: `pnpm -w run check:pack`
-Expected: Both `@themoltnet/sdk` and `@themoltnet/openclaw-skill` show `OK`
-
-**Step 3: Commit**
+**Step 2: Commit**
 
 ```bash
-git add scripts/check-pack.ts
-git commit -m "ci: extend check-pack to scan packages/ directory"
+git add package.json
+git commit -m "chore: add convenience scripts for skill publishing"
 ```
 
 ---
 
-### Task 8: Add CI test for the skill package
+### Task 8: Add CI validation for skill directory
 
-The skill package isn't a pnpm workspace member, so `pnpm run test` won't run its tests. Add it to CI explicitly.
+Validate that the skill directory is well-formed on every PR — SKILL.md exists, has valid frontmatter, mcp.json is valid JSON.
 
 **Files:**
 
 - Modify: `.github/workflows/ci.yml`
 
-**Step 1: Add a test step to the existing test job**
+**Step 1: Add a validation step to the build job**
 
-In the `test` job, after the `pnpm run test` step, add:
+In the `build` job (or as a new lightweight job), add:
 
 ```yaml
-- name: Test OpenClaw skill package
-  run: node --test packages/openclaw-skill/bin/install.test.js
+skill-check:
+  name: Skill Validation
+  runs-on: ubuntu-latest
+  permissions:
+    contents: read
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate SKILL.md exists and has frontmatter
+      run: |
+        SKILL_FILE="packages/openclaw-skill/SKILL.md"
+        if [ ! -f "$SKILL_FILE" ]; then
+          echo "::error::SKILL.md not found at $SKILL_FILE"
+          exit 1
+        fi
+        # Check YAML frontmatter delimiters exist
+        if ! head -1 "$SKILL_FILE" | grep -q '^---$'; then
+          echo "::error::SKILL.md missing YAML frontmatter (expected '---' on line 1)"
+          exit 1
+        fi
+        echo "SKILL.md: OK"
+
+    - name: Validate mcp.json is valid JSON
+      run: |
+        MCP_FILE="packages/openclaw-skill/mcp.json"
+        if [ ! -f "$MCP_FILE" ]; then
+          echo "::error::mcp.json not found at $MCP_FILE"
+          exit 1
+        fi
+        if ! python3 -m json.tool "$MCP_FILE" > /dev/null 2>&1; then
+          echo "::error::mcp.json is not valid JSON"
+          exit 1
+        fi
+        echo "mcp.json: OK"
+
+    - name: Validate version.txt
+      run: |
+        VERSION_FILE="packages/openclaw-skill/version.txt"
+        if [ ! -f "$VERSION_FILE" ]; then
+          echo "::error::version.txt not found"
+          exit 1
+        fi
+        VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
+        if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "::error::version.txt must contain a valid semver (got: '$VERSION')"
+          exit 1
+        fi
+        echo "version.txt: $VERSION OK"
+
+    - name: Test tarball packaging
+      run: |
+        packages/openclaw-skill/scripts/package.sh /tmp
+        tar -tzf /tmp/moltnet-skill-v*.tar.gz | sort
 ```
 
 **Step 2: Commit**
 
 ```bash
 git add .github/workflows/ci.yml
-git commit -m "ci: add openclaw-skill tests to CI pipeline"
+git commit -m "ci: add skill directory validation to CI pipeline"
 ```
 
 ---
 
 ### Task 9: Verify end-to-end locally
 
-**Step 1: Run the install script locally**
+**Step 1: Dry-run ClawHub publish**
 
 ```bash
-node packages/openclaw-skill/bin/install.js --dry-run
+packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run
 ```
 
-Expected: prints target path and files
+Expected: prints the `clawdhub publish` command with correct slug, version, directory
 
-**Step 2: Run tests**
+**Step 2: Build tarball**
 
 ```bash
-node --test packages/openclaw-skill/bin/install.test.js
+packages/openclaw-skill/scripts/package.sh /tmp
 ```
 
-Expected: all tests pass
+Expected: creates `/tmp/moltnet-skill-v0.1.0.tar.gz`
 
-**Step 3: Run check-pack**
+**Step 3: Verify tarball contents**
 
 ```bash
-pnpm -w run check:pack
+tar -tzf /tmp/moltnet-skill-v0.1.0.tar.gz
 ```
 
-Expected: both packages OK
+Expected:
 
-**Step 4: Run full CI suite locally**
+```
+moltnet/SKILL.md
+moltnet/mcp.json
+moltnet/version.txt
+```
+
+**Step 4: Test manual install from tarball**
+
+```bash
+TMPSKILLS=$(mktemp -d)
+tar -xzf /tmp/moltnet-skill-v0.1.0.tar.gz -C "$TMPSKILLS"
+ls "$TMPSKILLS/moltnet/"
+```
+
+Expected: `SKILL.md  mcp.json  version.txt`
+
+**Step 5: Run full CI suite locally**
 
 ```bash
 pnpm run validate
@@ -685,8 +686,36 @@ pnpm run validate
 
 Expected: lint, typecheck, test, build all pass
 
-**Step 5: Final commit and push**
+**Step 6: Final commit and push**
 
 ```bash
 git push -u origin claude/openclaw-skill-voucher-harvp
 ```
+
+---
+
+## Distribution Summary
+
+| Channel                        | Command                                                      | When                                    |
+| ------------------------------ | ------------------------------------------------------------ | --------------------------------------- |
+| **ClawHub** (primary)          | `clawdhub install moltnet`                                   | OpenClaw agents — native skill registry |
+| **GitHub Release** (universal) | `tar -xzf moltnet-skill-v*.tar.gz -C ~/.openclaw/skills/`    | Manual install, non-ClawHub users       |
+| **Local dev**                  | `cp -r packages/openclaw-skill/ ~/.openclaw/skills/moltnet/` | Development/testing                     |
+| **MoltNet CLI** (future)       | `moltnet skill install`                                      | Non-OpenClaw runtimes (WS8 scope)       |
+
+## CI/CD Flow
+
+```
+push to main
+  └─ Release Please detects changes in packages/openclaw-skill/
+       └─ Creates release PR with version bump in version.txt
+            └─ PR merged → release-please creates draft GitHub Release
+                 ├─ release-skill job: package tarball → upload to GitHub Release → undraft
+                 └─ publish-skill-clawhub job: clawdhub publish → live on ClawHub
+```
+
+## Required Secrets
+
+| Secret           | Purpose                            | How to obtain                                        |
+| ---------------- | ---------------------------------- | ---------------------------------------------------- |
+| `CLAWDHUB_TOKEN` | ClawHub CLI auth for CI publishing | Run `clawdhub login` locally, copy token from config |
