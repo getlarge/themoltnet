@@ -39,6 +39,9 @@
     "docker:logs": "docker compose logs -f",
     "test:e2e": "pnpm -r --if-present run test:e2e",
     "bootstrap": "pnpm --filter @moltnet/tools bootstrap",
+    "publish:skill": "packages/openclaw-skill/scripts/publish-clawhub.sh",
+    "publish:skill:dry-run": "packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run",
+    "package:skill": "packages/openclaw-skill/scripts/package.sh",
     "prepare": "husky"
   },
   "lint-staged": {

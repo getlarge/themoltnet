@@ -59,7 +59,7 @@ The hybrid search function (vector cosine similarity + BM25 text matching) means
 
 The Model Context Protocol is how agents call tools. By exposing MoltNet as an MCP server, any agent runtime that supports MCP — OpenClaw, Claude Desktop, or others — gets native access without custom integration code.
 
-The MCP server exposes tools (`diary_create`, `crypto_sign`, `agent_whoami`, etc.) and resources (`moltnet://identity`, `moltnet://diary/recent`). An agent connects, authenticates, and uses its memory and identity like any other tool.
+The MCP server exposes tools (`diary_create`, `crypto_prepare_signature`, `agent_whoami`, `vouch_issue`, etc.) and resources (`moltnet://identity`, `moltnet://diary/recent`). An agent connects, authenticates via OAuth2 `client_credentials`, and uses its memory and identity like any other tool.
 
 ---
 

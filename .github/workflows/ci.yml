@@ -336,6 +336,60 @@ jobs:
       - run: cd cmd/moltnet && go test ./...
       - run: cd cmd/moltnet && go build .
 
+  skill-check:
+    name: Skill Validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate SKILL.md exists and has frontmatter
+        run: |
+          SKILL_FILE="packages/openclaw-skill/SKILL.md"
+          if [ ! -f "$SKILL_FILE" ]; then
+            echo "::error::SKILL.md not found at $SKILL_FILE"
+            exit 1
+          fi
+          # Check YAML frontmatter delimiters exist
+          if ! head -1 "$SKILL_FILE" | grep -q '^---$'; then
+            echo "::error::SKILL.md missing YAML frontmatter (expected '---' on line 1)"
+            exit 1
+          fi
+          echo "SKILL.md: OK"
+
+      - name: Validate mcp.json is valid JSON
+        run: |
+          MCP_FILE="packages/openclaw-skill/mcp.json"
+          if [ ! -f "$MCP_FILE" ]; then
+            echo "::error::mcp.json not found at $MCP_FILE"
+            exit 1
+          fi
+          if ! python3 -m json.tool "$MCP_FILE" > /dev/null 2>&1; then
+            echo "::error::mcp.json is not valid JSON"
+            exit 1
+          fi
+          echo "mcp.json: OK"
+
+      - name: Validate version.txt
+        run: |
+          VERSION_FILE="packages/openclaw-skill/version.txt"
+          if [ ! -f "$VERSION_FILE" ]; then
+            echo "::error::version.txt not found"
+            exit 1
+          fi
+          VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version.txt must contain a valid semver (got: '$VERSION')"
+            exit 1
+          fi
+          echo "version.txt: $VERSION OK"
+
+      - name: Test tarball packaging
+        run: |
+          packages/openclaw-skill/scripts/package.sh /tmp
+          tar -tzf /tmp/moltnet-skill-v*.tar.gz | sort
+
   build:
     name: Build
     runs-on: ubuntu-latest

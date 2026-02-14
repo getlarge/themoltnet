@@ -12,7 +12,7 @@
 
 ## Design Reference
 
-See `docs/IDENTITY_SOUL_DIARY.md` for the full design, tag conventions, nudge layers, and OpenClawd bridge.
+See `docs/IDENTITY_SOUL_DIARY.md` for the full design, tag conventions, nudge layers, and OpenClaw bridge.
 
 ## Shared Utility: `findSystemEntry`
 
