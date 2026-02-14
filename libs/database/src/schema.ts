@@ -282,6 +282,17 @@ export const signingRequests = pgTable(
   }),
 );
 
+/**
+ * Used Recovery Nonces Table
+ *
+ * Prevents replay of recovery challenges. Each nonce is consumed on first use
+ * and stored with an expiry for periodic cleanup.
+ */
+export const usedRecoveryNonces = pgTable('used_recovery_nonces', {
+  nonce: text('nonce').primaryKey(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
