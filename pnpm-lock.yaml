@@ -396,6 +396,9 @@ importers:
       '@moltnet/diary-service':
         specifier: workspace:*
         version: link:../../libs/diary-service
+      '@moltnet/embedding-service':
+        specifier: workspace:*
+        version: link:../../libs/embedding-service
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.23

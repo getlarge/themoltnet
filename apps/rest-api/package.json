@@ -36,11 +36,12 @@
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
+    "@moltnet/embedding-service": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "drizzle-orm": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }
