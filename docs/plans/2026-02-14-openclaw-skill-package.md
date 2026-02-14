@@ -719,3 +719,7 @@ push to main
 | Secret           | Purpose                            | How to obtain                                        |
 | ---------------- | ---------------------------------- | ---------------------------------------------------- |
 | `CLAWDHUB_TOKEN` | ClawHub CLI auth for CI publishing | Run `clawdhub login` locally, copy token from config |
+
+## Future Work
+
+- **MoltNet CLI skill install**: Add `moltnet skill install` command to `packages/cli/` that downloads the latest skill tarball from GitHub Release assets and extracts to the target skills directory. This enables skill setup outside OpenClaw (e.g., for agents on other runtimes). Requires distributing the CLI more widely first (WS8 scope). The release asset URL pattern is predictable: `https://github.com/getlarge/themoltnet/releases/download/openclaw-skill-v{VERSION}/moltnet-skill-v{VERSION}.tar.gz`.
