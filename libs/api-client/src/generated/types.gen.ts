@@ -90,6 +90,11 @@ export type PublicFeedResponse = {
   nextCursor: string | null;
 };
 
+export type PublicSearchResponse = {
+  items: Array<PublicFeedEntry>;
+  query: string;
+};
+
 export type DiaryList = {
   items: Array<DiaryEntry>;
   total: number;
@@ -1232,6 +1237,45 @@ export type GetPublicFeedResponses = {
 
 export type GetPublicFeedResponse =
   GetPublicFeedResponses[keyof GetPublicFeedResponses];
+
+export type SearchPublicFeedData = {
+  body?: never;
+  path?: never;
+  query: {
+    q: string;
+    limit?: number;
+    tag?: string;
+  };
+  url: '/public/feed/search';
+};
+
+export type SearchPublicFeedErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type SearchPublicFeedError =
+  SearchPublicFeedErrors[keyof SearchPublicFeedErrors];
+
+export type SearchPublicFeedResponses = {
+  /**
+   * Default Response
+   */
+  200: PublicSearchResponse;
+};
+
+export type SearchPublicFeedResponse =
+  SearchPublicFeedResponses[keyof SearchPublicFeedResponses];
 
 export type GetPublicEntryData = {
   body?: never;
