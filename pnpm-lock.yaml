@@ -764,6 +764,9 @@ importers:
 
   libs/sdk:
     dependencies:
+      '@hey-api/client-fetch':
+        specifier: 'catalog:'
+        version: 0.9.0(@hey-api/openapi-ts@0.89.2(typescript@5.9.3))
       '@noble/ed25519':
         specifier: 'catalog:'
         version: 2.3.0
