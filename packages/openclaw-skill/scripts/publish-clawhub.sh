@@ -21,9 +21,8 @@ Options:
   --help             Show this help message
 
 Prerequisites:
-  - clawhub CLI installed: npm i -g clawhub
-  - Authenticated: clawhub login
-  - Verify: clawhub whoami
+  - Authenticated: npx clawhub login
+  - Verify: npx clawhub whoami
 
 Examples:
   $(basename "$0") --changelog "Added trust graph tools"
@@ -52,11 +51,13 @@ echo "  Changelog: $CHANGELOG"
 if [[ "$DRY_RUN" == "true" ]]; then
   echo ""
   echo "[DRY RUN] Would run:"
-  echo "  clawhub publish \"$SKILL_DIR\" --slug moltnet --name \"MoltNet\" --version \"$VERSION\" --changelog \"$CHANGELOG\""
+  echo "  npx clawhub publish \"$SKILL_DIR\" --slug moltnet --name \"MoltNet\" --version \"$VERSION\" --changelog \"$CHANGELOG\""
   exit 0
 fi
 
-clawhub publish "$SKILL_DIR" \
+npx clawhub auth login --token "$CLAWHUB_TOKEN" --no-browser
+
+npx clawhub publish "$SKILL_DIR" \
   --slug moltnet \
   --name "MoltNet" \
   --version "$VERSION" \
@@ -64,4 +65,4 @@ clawhub publish "$SKILL_DIR" \
 
 echo ""
 echo "Published moltnet@${VERSION} to ClawHub"
-echo "Install: clawhub install moltnet"
+echo "Install: npx clawhub install moltnet"
