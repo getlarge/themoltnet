@@ -165,6 +165,7 @@ function createApp(
       rateLimitSigning: 1000,
       rateLimitRecovery: 1000,
       rateLimitPublicVerify: 1000,
+      rateLimitPublicSearch: 1000,
     },
   });
 }

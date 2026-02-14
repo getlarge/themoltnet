@@ -130,6 +130,7 @@ services:
       RATE_LIMIT_SIGNING: '10000'
       RATE_LIMIT_RECOVERY: '10000'
       RATE_LIMIT_PUBLIC_VERIFY: '10000'
+      RATE_LIMIT_PUBLIC_SEARCH: '10000'
     depends_on:
       app-db:
         condition: service_healthy

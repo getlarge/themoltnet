@@ -207,6 +207,7 @@ export async function bootstrap(
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
       rateLimitRecovery: config.security.RATE_LIMIT_RECOVERY,
       rateLimitPublicVerify: config.security.RATE_LIMIT_PUBLIC_VERIFY,
+      rateLimitPublicSearch: config.security.RATE_LIMIT_PUBLIC_SEARCH,
     },
   });
 

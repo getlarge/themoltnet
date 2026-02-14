@@ -53,6 +53,7 @@ async function main() {
       rateLimitSigning: 5,
       rateLimitRecovery: 5,
       rateLimitPublicVerify: 10,
+      rateLimitPublicSearch: 15,
     },
   });
 

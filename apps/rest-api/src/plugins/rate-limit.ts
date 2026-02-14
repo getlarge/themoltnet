@@ -26,6 +26,8 @@ export interface RateLimitPluginOptions {
   recoveryLimit: number;
   /** Max requests per minute for public verify endpoints (default: 10) */
   publicVerifyLimit: number;
+  /** Max requests per minute for public feed search (default: 15) */
+  publicSearchLimit: number;
 }
 
 /**
@@ -55,6 +57,7 @@ async function rateLimitPluginImpl(
     signingLimit,
     recoveryLimit,
     publicVerifyLimit,
+    publicSearchLimit,
   } = options;
 
   // Register global rate limiter
@@ -128,6 +131,10 @@ async function rateLimitPluginImpl(
       max: publicVerifyLimit,
       timeWindow: '1 minute',
     },
+    publicSearch: {
+      max: publicSearchLimit,
+      timeWindow: '1 minute',
+    },
   });
 }
 
@@ -144,6 +151,7 @@ declare module 'fastify' {
       signing: { max: number; timeWindow: string };
       recovery: { max: number; timeWindow: string };
       publicVerify: { max: number; timeWindow: string };
+      publicSearch: { max: number; timeWindow: string };
     };
   }
 }

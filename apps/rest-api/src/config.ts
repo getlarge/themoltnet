@@ -72,6 +72,7 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_SIGNING: Type.Number({ default: 5 }),
   RATE_LIMIT_RECOVERY: Type.Number({ default: 5 }),
   RATE_LIMIT_PUBLIC_VERIFY: Type.Number({ default: 10 }),
+  RATE_LIMIT_PUBLIC_SEARCH: Type.Number({ default: 15 }),
 });
 
 // ============================================================================

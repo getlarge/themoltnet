@@ -58,6 +58,8 @@ export interface SecurityOptions {
   rateLimitRecovery: number;
   /** Max requests per minute for public verify endpoints */
   rateLimitPublicVerify: number;
+  /** Max requests per minute for public feed search */
+  rateLimitPublicSearch: number;
 }
 
 export interface AppOptions {
@@ -154,6 +156,7 @@ export async function registerApiRoutes(
     signingLimit: options.security.rateLimitSigning,
     recoveryLimit: options.security.rateLimitRecovery,
     publicVerifyLimit: options.security.rateLimitPublicVerify,
+    publicSearchLimit: options.security.rateLimitPublicSearch,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
