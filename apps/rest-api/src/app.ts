@@ -28,6 +28,7 @@ import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
+import { statusRoutes } from './routes/status.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
 import type {
@@ -179,6 +180,7 @@ export async function registerApiRoutes(
   // Register routes
   await app.register(hookRoutes);
   await app.register(healthRoutes);
+  await app.register(statusRoutes);
   await app.register(diaryRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
