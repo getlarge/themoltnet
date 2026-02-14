@@ -39,6 +39,8 @@ async function main() {
     voucherRepository: createStubService() as never,
     signingRequestRepository: createStubService() as never,
     dataSource: createStubService() as never,
+    transactionRunner: createStubService() as never,
+    embeddingService: createStubService() as never,
     permissionChecker: createStubService() as never,
     tokenValidator: createStubService() as never,
     webhookApiKey: 'stub-key-for-spec-generation',

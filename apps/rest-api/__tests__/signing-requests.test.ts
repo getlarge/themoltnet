@@ -135,6 +135,13 @@ function createApp(
       client: { __mock: 'transactionalClient' },
       runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     },
+    transactionRunner: {
+      runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    } as never,
+    embeddingService: {
+      embedPassage: vi.fn().mockResolvedValue([]),
+      embedQuery: vi.fn().mockResolvedValue([]),
+    } as never,
     permissionChecker: {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
