@@ -139,6 +139,8 @@ export function createMockServices(): MockServices {
       getSharedWithMe: vi.fn(),
       getRecentForDigest: vi.fn(),
       listPublic: vi.fn(),
+      listPublicSince: vi.fn(),
+      searchPublic: vi.fn(),
       findPublicById: vi.fn(),
     },
     agentRepository: {
