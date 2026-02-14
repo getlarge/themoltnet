@@ -14,9 +14,14 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getAgentProfile: vi.fn(),
+  listDiaryEntries: vi.fn(),
 }));
 
-import { getAgentProfile, getWhoami } from '@moltnet/api-client';
+import {
+  getAgentProfile,
+  getWhoami,
+  listDiaryEntries,
+} from '@moltnet/api-client';
 
 describe('Identity tools', () => {
   let deps: McpDeps;
@@ -29,13 +34,16 @@ describe('Identity tools', () => {
   });
 
   describe('moltnet_whoami', () => {
-    it('returns identity when authenticated', async () => {
+    it('returns identity and profile when authenticated', async () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
           identityId: 'id-123',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
         }) as never,
+      );
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [] }) as never,
       );
 
       const result = await handleWhoami({}, deps, context);
@@ -45,6 +53,7 @@ describe('Identity tools', () => {
       expect(parsed).toHaveProperty('authenticated', true);
       expect(parsed.identity).toHaveProperty('public_key', 'pk-abc');
       expect(parsed.identity).toHaveProperty('fingerprint', 'fp:abc123');
+      expect(parsed).toHaveProperty('profile');
     });
 
     it('returns unauthenticated when no auth', async () => {
@@ -55,6 +64,81 @@ describe('Identity tools', () => {
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('authenticated', false);
       expect(parsed).not.toHaveProperty('identity');
+    });
+
+    it('includes populated profile when system entries exist', async () => {
+      vi.mocked(getWhoami).mockResolvedValue(
+        sdkOk({
+          identityId: 'id-123',
+          publicKey: 'pk-abc',
+          fingerprint: 'fp:abc123',
+        }) as never,
+      );
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({
+          items: [
+            {
+              id: '1',
+              title: 'Who I am',
+              content: 'I am Archon',
+              tags: ['system', 'identity'],
+            },
+            {
+              id: '2',
+              title: 'My soul',
+              content: 'I value truth',
+              tags: ['system', 'soul'],
+            },
+          ],
+        }) as never,
+      );
+
+      const result = await handleWhoami({}, deps, context);
+      const parsed = parseResult<{
+        profile: {
+          whoami: { id: string; content: string } | null;
+          soul: { id: string; content: string } | null;
+        };
+        hint?: string;
+      }>(result);
+
+      expect(parsed.profile.whoami).toMatchObject({
+        id: '1',
+        content: 'I am Archon',
+      });
+      expect(parsed.profile.soul).toMatchObject({
+        id: '2',
+        content: 'I value truth',
+      });
+      expect(parsed.hint).toBeUndefined();
+    });
+
+    it('includes hint when system entries are missing', async () => {
+      vi.mocked(getWhoami).mockResolvedValue(
+        sdkOk({
+          identityId: 'id-123',
+          publicKey: 'pk-abc',
+          fingerprint: 'fp:abc123',
+        }) as never,
+      );
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [] }) as never,
+      );
+
+      const result = await handleWhoami({}, deps, context);
+      const parsed = parseResult<{
+        profile: {
+          whoami: null;
+          soul: null;
+        };
+        hint: string;
+      }>(result);
+
+      expect(parsed.profile.whoami).toBeNull();
+      expect(parsed.profile.soul).toBeNull();
+      expect(parsed.hint).toContain('identity_bootstrap');
+      expect(parsed.hint).toContain('whoami');
+      expect(parsed.hint).toContain('soul');
     });
   });
 

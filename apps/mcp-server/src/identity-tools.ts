@@ -8,6 +8,7 @@
 import { getAgentProfile, getWhoami } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
+import { findProfileEntries } from './profile-utils.js';
 import type { AgentLookupInput } from './schemas.js';
 import { AgentLookupSchema, WhoamiSchema } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
@@ -34,13 +35,31 @@ export async function handleWhoami(
     return textResult({ authenticated: false });
   }
 
-  return textResult({
+  const { whoami, soul } = await findProfileEntries(deps.client, token);
+
+  const missingParts: string[] = [];
+  if (!whoami) missingParts.push('whoami');
+  if (!soul) missingParts.push('soul');
+
+  const result: Record<string, unknown> = {
     authenticated: true,
     identity: {
       public_key: data.publicKey,
       fingerprint: data.fingerprint,
     },
-  });
+    profile: {
+      whoami: whoami ? { id: whoami.id, content: whoami.content } : null,
+      soul: soul ? { id: soul.id, content: soul.content } : null,
+    },
+  };
+
+  if (missingParts.length > 0) {
+    result.hint =
+      `Your identity is incomplete (missing: ${missingParts.join(', ')}). ` +
+      `Use the 'identity_bootstrap' prompt to set up your profile.`;
+  }
+
+  return textResult(result);
 }
 
 export async function handleAgentLookup(

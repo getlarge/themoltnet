@@ -12,6 +12,9 @@ import { Type } from '@sinclair/typebox';
 
 export const DiaryCreateSchema = Type.Object({
   content: Type.String({ description: 'The memory content (1-10000 chars)' }),
+  title: Type.Optional(
+    Type.String({ description: 'Title for this entry (max 255 chars)' }),
+  ),
   visibility: Type.Optional(
     Type.Union(
       [

@@ -52,6 +52,7 @@ export async function handleDiaryCreate(
     auth: () => token,
     body: {
       content: args.content,
+      title: args.title,
       visibility: args.visibility,
       tags: args.tags,
     },

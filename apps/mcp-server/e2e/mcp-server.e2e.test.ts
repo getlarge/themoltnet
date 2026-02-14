@@ -129,6 +129,16 @@ describe('MCP Server E2E', () => {
       const uris = resources.map((r) => r.uri);
       expect(uris).toContain('moltnet://identity');
       expect(uris).toContain('moltnet://diary/recent');
+      expect(uris).toContain('moltnet://self/whoami');
+      expect(uris).toContain('moltnet://self/soul');
+    });
+
+    it('lists identity_bootstrap prompt', async () => {
+      requireSetup();
+      const { prompts } = await client.listPrompts();
+
+      const promptNames = prompts.map((p) => p.name);
+      expect(promptNames).toContain('identity_bootstrap');
     });
 
     // fastify-mcp@1.x does not expose resources/templates/list
@@ -143,7 +153,7 @@ describe('MCP Server E2E', () => {
 
     // ── Identity tools ──
 
-    it('calls moltnet_whoami and gets agent identity', async () => {
+    it('calls moltnet_whoami and gets agent identity with profile', async () => {
       requireSetup();
       const result = await client.callTool({
         name: 'moltnet_whoami',
@@ -161,6 +171,12 @@ describe('MCP Server E2E', () => {
       expect(parsed.identity.fingerprint).toBe(
         harness.agent.keyPair.fingerprint,
       );
+      // Profile fields are present (null before bootstrap)
+      expect(parsed.profile).toBeDefined();
+      expect(parsed.profile.whoami).toBeNull();
+      expect(parsed.profile.soul).toBeNull();
+      // Hint nudges the agent to bootstrap
+      expect(parsed.hint).toContain('identity_bootstrap');
     });
 
     // ── Direct REST API sanity check ──
@@ -389,6 +405,132 @@ describe('MCP Server E2E', () => {
       });
 
       expect(result.isError).toBe(true);
+    });
+
+    // ── Identity Bootstrap Flow ──
+
+    it('calls identity_bootstrap prompt and gets guidance', async () => {
+      requireSetup();
+      const result = await client.getPrompt({
+        name: 'identity_bootstrap',
+      });
+
+      expect(result.messages).toBeDefined();
+      expect(result.messages.length).toBeGreaterThanOrEqual(1);
+      const text = (
+        result.messages[0].content as { type: string; text: string }
+      ).text;
+      // Should contain the agent's fingerprint
+      expect(text).toContain(harness.agent.keyPair.fingerprint);
+      // Should guide creation of missing entries
+      expect(text).toContain('Whoami (missing)');
+      expect(text).toContain('Soul (missing)');
+    });
+
+    it('self resources return exists:false before bootstrap', async () => {
+      requireSetup();
+
+      const whoamiResult = await client.readResource({
+        uri: 'moltnet://self/whoami',
+      });
+      const whoamiData = JSON.parse(
+        (whoamiResult.contents[0] as { text: string }).text,
+      );
+      expect(whoamiData.exists).toBe(false);
+
+      const soulResult = await client.readResource({
+        uri: 'moltnet://self/soul',
+      });
+      const soulData = JSON.parse(
+        (soulResult.contents[0] as { text: string }).text,
+      );
+      expect(soulData.exists).toBe(false);
+    });
+
+    it('full bootstrap flow: create entries, verify whoami and resources', async () => {
+      requireSetup();
+
+      // 1. Create whoami entry
+      const whoamiCreate = await client.callTool({
+        name: 'diary_create',
+        arguments: {
+          content: 'I am E2E Test Agent, a MoltNet integration test agent.',
+          title: 'I am E2E Test Agent',
+          tags: ['system', 'identity'],
+          visibility: 'moltnet',
+        },
+      });
+      const whoamiContent = whoamiCreate.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        whoamiCreate.isError,
+        `whoami create error: ${whoamiContent[0].text}`,
+      ).toBeUndefined();
+
+      // 2. Create soul entry
+      const soulCreate = await client.callTool({
+        name: 'diary_create',
+        arguments: {
+          content: 'I value correctness and thorough testing.',
+          title: 'What I care about',
+          tags: ['system', 'soul'],
+          visibility: 'private',
+        },
+      });
+      const soulContent = soulCreate.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        soulCreate.isError,
+        `soul create error: ${soulContent[0].text}`,
+      ).toBeUndefined();
+
+      // 3. Verify moltnet_whoami now returns populated profile
+      const whoamiResult = await client.callTool({
+        name: 'moltnet_whoami',
+        arguments: {},
+      });
+      const whoamiParsed = JSON.parse(
+        (whoamiResult.content as Array<{ text: string }>)[0].text,
+      );
+      expect(whoamiParsed.profile.whoami).not.toBeNull();
+      expect(whoamiParsed.profile.whoami.content).toContain('E2E Test Agent');
+      expect(whoamiParsed.profile.soul).not.toBeNull();
+      expect(whoamiParsed.profile.soul.content).toContain('correctness');
+      // No hint when profile is complete
+      expect(whoamiParsed.hint).toBeUndefined();
+
+      // 4. Verify self resources return the entries
+      const selfWhoami = await client.readResource({
+        uri: 'moltnet://self/whoami',
+      });
+      const selfWhoamiData = JSON.parse(
+        (selfWhoami.contents[0] as { text: string }).text,
+      );
+      expect(selfWhoamiData.exists).toBe(true);
+      expect(selfWhoamiData.content).toContain('E2E Test Agent');
+
+      const selfSoul = await client.readResource({
+        uri: 'moltnet://self/soul',
+      });
+      const selfSoulData = JSON.parse(
+        (selfSoul.contents[0] as { text: string }).text,
+      );
+      expect(selfSoulData.exists).toBe(true);
+      expect(selfSoulData.content).toContain('correctness');
+
+      // 5. Verify prompt confirms setup
+      const promptResult = await client.getPrompt({
+        name: 'identity_bootstrap',
+      });
+      const promptText = (
+        promptResult.messages[0].content as { type: string; text: string }
+      ).text;
+      expect(promptText).toContain('Whoami (established)');
+      expect(promptText).toContain('Soul (established)');
     });
 
     // ── Resources ──
