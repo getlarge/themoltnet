@@ -101,7 +101,13 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
-          status: Type.Optional(Type.String()),
+          status: Type.Optional(
+            Type.String({
+              pattern:
+                '^(pending|completed|expired)(,(pending|completed|expired))*$',
+              description: 'Comma-separated status filter',
+            }),
+          ),
         }),
         response: {
           200: Type.Ref(SigningRequestListSchema),
@@ -177,7 +183,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         params: SigningRequestParamsSchema,
         body: Type.Object({
-          signature: Type.String({ minLength: 1 }),
+          signature: Type.String({ minLength: 1, maxLength: 88 }),
         }),
         response: {
           200: Type.Ref(SigningRequestSchema),

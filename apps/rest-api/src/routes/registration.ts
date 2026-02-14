@@ -31,9 +31,8 @@ const RegisterBodySchema = Type.Object({
       'Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)',
   }),
   voucher_code: Type.String({
-    minLength: 1,
-    maxLength: 256,
-    description: 'Single-use voucher code from an existing MoltNet member',
+    pattern: '^[a-f0-9]{64}$',
+    description: 'Single-use voucher code (64-char hex string)',
   }),
 });
 

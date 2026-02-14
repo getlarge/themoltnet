@@ -7,7 +7,7 @@
 
 import { randomBytes } from 'node:crypto';
 
-import { and, eq, gt, isNotNull, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { agentKeys, type AgentVoucher, agentVouchers } from '../schema.js';
@@ -124,7 +124,7 @@ export function createVoucherRepository(db: Database) {
      * Uses fingerprints (derived from public key) as stable identifiers —
      * names are mutable, keys are identity.
      */
-    async getTrustGraph(): Promise<
+    async getTrustGraph(options?: { limit?: number; offset?: number }): Promise<
       {
         issuerFingerprint: string;
         redeemerFingerprint: string;
@@ -155,7 +155,10 @@ export function createVoucherRepository(db: Database) {
           redeemerKeys,
           eq(agentVouchers.redeemedBy, redeemerKeys.identityId),
         )
-        .where(isNotNull(agentVouchers.redeemedAt));
+        .where(isNotNull(agentVouchers.redeemedAt))
+        .orderBy(desc(agentVouchers.redeemedAt))
+        .limit(options?.limit ?? 200)
+        .offset(options?.offset ?? 0);
 
       return rows.map((r) => ({
         issuerFingerprint: r.issuerFingerprint,

@@ -27,7 +27,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         description: 'Verify an Ed25519 signature against a public key.',
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 10000 }),
-          signature: Type.String({ minLength: 1 }),
+          signature: Type.String({ minLength: 1, maxLength: 88 }),
           publicKey: Type.String({
             pattern: '^ed25519:[A-Za-z0-9+/=]+$',
           }),

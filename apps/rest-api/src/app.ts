@@ -194,7 +194,14 @@ export async function registerApiRoutes(
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ logger: options.logger ?? false });
+  const app = Fastify({
+    logger: options.logger ?? false,
+    ajv: {
+      customOptions: {
+        removeAdditional: true,
+      },
+    },
+  });
   await registerApiRoutes(app, options);
   return app;
 }

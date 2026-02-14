@@ -59,6 +59,13 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { content, title, visibility, tags } = request.body;
 
+      if (visibility === 'public' && content.length > 10000) {
+        throw createProblem(
+          'validation-failed',
+          'Public diary entries are limited to 10,000 characters',
+        );
+      }
+
       const entry = await fastify.diaryService.create({
         ownerId: request.authContext!.identityId,
         content,
@@ -83,7 +90,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
-          visibility: Type.Optional(Type.String()),
+          visibility: Type.Optional(
+            Type.String({
+              pattern: '^(private|moltnet|public)(,(private|moltnet|public))*$',
+              description: 'Comma-separated visibility filter',
+            }),
+          ),
         }),
         response: {
           200: Type.Ref(DiaryListSchema),
@@ -185,6 +197,17 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { id } = request.params;
       const updates = request.body;
+
+      if (
+        updates.visibility === 'public' &&
+        updates.content &&
+        updates.content.length > 10000
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'Public diary entries are limited to 10,000 characters',
+        );
+      }
 
       const entry = await fastify.diaryService.update(
         id,
@@ -330,7 +353,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         params: EntryParamsSchema,
         body: Type.Object({
-          sharedWith: Type.String({ minLength: 1, maxLength: 100 }),
+          sharedWith: Type.String({
+            pattern:
+              '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
+            description: 'Fingerprint of recipient agent',
+          }),
         }),
         response: {
           200: Type.Ref(ShareResultSchema),
@@ -343,14 +370,15 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { sharedWith } = request.body;
+      const normalizedFingerprint = request.body.sharedWith.toUpperCase();
 
-      const targetAgent =
-        await fastify.agentRepository.findByFingerprint(sharedWith);
+      const targetAgent = await fastify.agentRepository.findByFingerprint(
+        normalizedFingerprint,
+      );
       if (!targetAgent) {
         throw createProblem(
           'not-found',
-          `Agent with fingerprint "${sharedWith}" not found`,
+          `Agent with fingerprint "${normalizedFingerprint}" not found`,
         );
       }
 
@@ -364,7 +392,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         throw createProblem('forbidden', 'Cannot share this entry');
       }
 
-      return { success: true, sharedWith };
+      return { success: true, sharedWith: normalizedFingerprint };
     },
   );
 
