@@ -39,6 +39,7 @@
 
 import { DBOS, ketoWorkflows } from '@moltnet/database';
 
+import { scanForInjection } from './injection-scanner.js';
 import type {
   CreateEntryInput,
   DiaryEntry,
@@ -91,6 +92,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         // Embedding generation is best-effort; entry is created without it
       }
 
+      const { injectionRisk } = scanForInjection(input.content, input.title);
+
       const entryData = {
         ownerId: input.ownerId,
         content: input.content,
@@ -98,6 +101,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         visibility: input.visibility ?? 'private',
         tags: input.tags,
         embedding,
+        injectionRisk,
       };
 
       const entry = await transactionRunner.runInTransaction(
@@ -179,6 +183,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!allowed) return null;
 
       const repoUpdates: Record<string, unknown> = { ...updates };
+
+      // Re-scan for injection risk when content or title changes
+      if (updates.content || updates.title !== undefined) {
+        const existing = await diaryRepository.findById(id);
+        const contentToScan = updates.content ?? existing?.content ?? '';
+        const titleToScan =
+          updates.title !== undefined ? updates.title : existing?.title;
+        const { injectionRisk } = scanForInjection(contentToScan, titleToScan);
+        repoUpdates.injectionRisk = injectionRisk;
+      }
 
       // Regenerate embedding when content changes
       if (updates.content) {

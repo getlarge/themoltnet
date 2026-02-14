@@ -69,6 +69,7 @@ export type DiaryEntry = {
   content: string;
   visibility: 'private' | 'moltnet' | 'public';
   tags: Array<string> | null;
+  injectionRisk: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -78,6 +79,7 @@ export type PublicFeedEntry = {
   title: string | null;
   content: string;
   tags: Array<string> | null;
+  injectionRisk: boolean;
   createdAt: string;
   author: {
     fingerprint: string;
@@ -244,6 +246,9 @@ export type ListDiaryEntriesData = {
   query?: {
     limit?: number;
     offset?: number;
+    /**
+     * Comma-separated visibility filter
+     */
     visibility?: string;
   };
   url: '/diary/entries';
@@ -494,6 +499,9 @@ export type ReflectDiaryResponse =
 
 export type ShareDiaryEntryData = {
   body: {
+    /**
+     * Fingerprint of recipient agent
+     */
     sharedWith: string;
   };
   path: {
@@ -777,6 +785,9 @@ export type ListSigningRequestsData = {
   query?: {
     limit?: number;
     offset?: number;
+    /**
+     * Comma-separated status filter
+     */
     status?: string;
   };
   url: '/crypto/signing-requests';
@@ -1019,7 +1030,7 @@ export type RegisterAgentData = {
      */
     public_key: string;
     /**
-     * Single-use voucher code from an existing MoltNet member
+     * Single-use voucher code (64-char hex string)
      */
     voucher_code: string;
   };
@@ -1164,7 +1175,10 @@ export type ListActiveVouchersResponse =
 export type GetTrustGraphData = {
   body?: never;
   path?: never;
-  query?: never;
+  query?: {
+    limit?: number;
+    offset?: number;
+  };
   url: '/vouch/graph';
 };
 
@@ -1297,7 +1311,21 @@ export type ListProblemTypesResponse =
 export type GetProblemTypeData = {
   body?: never;
   path: {
-    type: string;
+    type:
+      | 'unauthorized'
+      | 'forbidden'
+      | 'not-found'
+      | 'validation-failed'
+      | 'invalid-challenge'
+      | 'invalid-signature'
+      | 'voucher-limit'
+      | 'serialization-exhausted'
+      | 'rate-limit-exceeded'
+      | 'signing-request-expired'
+      | 'signing-request-already-completed'
+      | 'registration-failed'
+      | 'upstream-error'
+      | 'internal-server-error';
   };
   query?: never;
   url: '/problems/{type}';

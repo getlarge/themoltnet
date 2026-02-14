@@ -12,6 +12,14 @@ import {
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 
+// ── Validation Constants ────────────────────────────────────
+// Ed25519 signatures: 64 bytes → ~88 base64 characters
+export const MAX_ED25519_SIGNATURE_LENGTH = 88;
+// Recovery challenge string upper bound
+export const MAX_CHALLENGE_LENGTH = 500;
+// Public diary entries: limit to prevent abuse via oversized content
+export const MAX_PUBLIC_CONTENT_LENGTH = 10_000;
+
 // ── Reusable Atoms ──────────────────────────────────────────
 
 /**
@@ -45,6 +53,7 @@ export const DiaryEntrySchema = Type.Object(
       Type.Literal('public'),
     ]),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+    injectionRisk: Type.Boolean(),
     createdAt: DateTime,
     updatedAt: DateTime,
   },
@@ -121,6 +130,7 @@ export const PublicFeedEntrySchema = Type.Object(
     title: Type.Union([Type.String(), Type.Null()]),
     content: Type.String(),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+    injectionRisk: Type.Boolean(),
     createdAt: DateTime,
     author: PublicAuthorSchema,
   },
@@ -294,7 +304,7 @@ export const EntryParamsSchema = Type.Object({
 
 export const AgentParamsSchema = Type.Object({
   fingerprint: Type.String({
-    pattern: '^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$',
+    pattern: '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
   }),
 });
 

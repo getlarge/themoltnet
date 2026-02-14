@@ -71,7 +71,9 @@ export async function problemRoutes(fastify: FastifyInstance) {
         tags: ['problems'],
         description: 'Get details about a specific problem type (RFC 9457).',
         params: Type.Object({
-          type: Type.String(),
+          type: Type.Union(
+            Object.keys(problemTypes).map((slug) => Type.Literal(slug)),
+          ),
         }),
       },
     },

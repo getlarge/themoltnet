@@ -63,18 +63,13 @@ describe('Problem type documentation routes', () => {
       expect(body.type).toBe('https://themolt.net/problems/unauthorized');
     });
 
-    it('returns 404 for unknown problem type', async () => {
+    it('returns 400 for unknown problem type', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/problems/nonexistent',
       });
 
-      expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
-      const body = response.json();
-      expect(body.code).toBe('NOT_FOUND');
+      expect(response.statusCode).toBe(400);
     });
   });
 });

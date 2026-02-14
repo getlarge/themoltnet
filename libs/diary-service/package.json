@@ -19,6 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@andersmyrmel/vard": "catalog:",
     "@moltnet/database": "workspace:*"
   },
   "devDependencies": {

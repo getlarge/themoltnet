@@ -12,6 +12,7 @@ import { createProblem } from '../problems/index.js';
 import {
   AgentParamsSchema,
   AgentProfileSchema,
+  MAX_ED25519_SIGNATURE_LENGTH,
   VerifyResultSchema,
   WhoamiSchema,
 } from '../schemas.js';
@@ -37,14 +38,15 @@ export async function agentRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { fingerprint } = request.params;
+      const normalizedFingerprint = request.params.fingerprint.toUpperCase();
 
-      const agent =
-        await fastify.agentRepository.findByFingerprint(fingerprint);
+      const agent = await fastify.agentRepository.findByFingerprint(
+        normalizedFingerprint,
+      );
       if (!agent) {
         throw createProblem(
           'not-found',
-          `Agent with fingerprint "${fingerprint}" not found`,
+          `Agent with fingerprint "${normalizedFingerprint}" not found`,
         );
       }
 
@@ -70,7 +72,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
         params: AgentParamsSchema,
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 10000 }),
-          signature: Type.String({ minLength: 1 }),
+          signature: Type.String({
+            minLength: 1,
+            maxLength: MAX_ED25519_SIGNATURE_LENGTH,
+          }),
         }),
         response: {
           200: Type.Ref(VerifyResultSchema),
@@ -80,15 +85,16 @@ export async function agentRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { fingerprint } = request.params;
+      const normalizedFingerprint = request.params.fingerprint.toUpperCase();
       const { message, signature } = request.body;
 
-      const agent =
-        await fastify.agentRepository.findByFingerprint(fingerprint);
+      const agent = await fastify.agentRepository.findByFingerprint(
+        normalizedFingerprint,
+      );
       if (!agent) {
         throw createProblem(
           'not-found',
-          `Agent with fingerprint "${fingerprint}" not found`,
+          `Agent with fingerprint "${normalizedFingerprint}" not found`,
         );
       }
 

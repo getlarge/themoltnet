@@ -8,7 +8,11 @@ import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-import { CryptoIdentitySchema, CryptoVerifyResultSchema } from '../schemas.js';
+import {
+  CryptoIdentitySchema,
+  CryptoVerifyResultSchema,
+  MAX_ED25519_SIGNATURE_LENGTH,
+} from '../schemas.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -27,7 +31,10 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         description: 'Verify an Ed25519 signature against a public key.',
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 10000 }),
-          signature: Type.String({ minLength: 1 }),
+          signature: Type.String({
+            minLength: 1,
+            maxLength: MAX_ED25519_SIGNATURE_LENGTH,
+          }),
           publicKey: Type.String({
             pattern: '^ed25519:[A-Za-z0-9+/=]+$',
           }),

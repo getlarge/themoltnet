@@ -21,6 +21,8 @@ import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import {
+  MAX_CHALLENGE_LENGTH,
+  MAX_ED25519_SIGNATURE_LENGTH,
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
 } from '../schemas.js';
@@ -98,13 +100,17 @@ export async function recoveryRoutes(
         description:
           'Verify a signed recovery challenge and return a Kratos recovery code.',
         body: Type.Object({
-          challenge: Type.String({ minLength: 1 }),
+          challenge: Type.String({
+            minLength: 1,
+            maxLength: MAX_CHALLENGE_LENGTH,
+          }),
           hmac: Type.String({
             pattern: '^[a-f0-9]{64}$',
             description: 'Hex-encoded HMAC-SHA256',
           }),
           signature: Type.String({
             minLength: 1,
+            maxLength: MAX_ED25519_SIGNATURE_LENGTH,
             description: 'Base64-encoded Ed25519 signature of the challenge',
           }),
           publicKey: Type.String({

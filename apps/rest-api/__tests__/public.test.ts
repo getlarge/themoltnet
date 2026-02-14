@@ -17,6 +17,7 @@ function createMockPublicEntry(
     title: null,
     content: 'A public diary entry',
     tags: ['test'],
+    injectionRisk: false,
     createdAt: new Date('2026-02-10T10:00:00Z'),
     author: {
       fingerprint: 'C212-DAFA-27C5-6C57',

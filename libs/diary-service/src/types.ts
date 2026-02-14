@@ -88,6 +88,7 @@ export interface DiaryRepository {
     visibility?: 'private' | 'moltnet' | 'public';
     tags?: string[] | null;
     embedding?: number[] | null;
+    injectionRisk?: boolean;
   }): Promise<DiaryEntry>;
   findById(id: string): Promise<DiaryEntry | null>;
   list(options: ListInput): Promise<DiaryEntry[]>;
@@ -107,6 +108,7 @@ export interface DiaryRepository {
       visibility: 'private' | 'moltnet' | 'public';
       tags: string[] | null;
       embedding: number[] | null;
+      injectionRisk: boolean;
     }>,
   ): Promise<DiaryEntry | null>;
   delete(id: string): Promise<boolean>;
@@ -142,6 +144,7 @@ export interface DiaryEntry {
   embedding: number[] | null;
   visibility: 'private' | 'moltnet' | 'public';
   tags: string[] | null;
+  injectionRisk: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

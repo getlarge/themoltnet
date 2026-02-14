@@ -72,6 +72,7 @@ export interface PublicFeedEntry {
   title: string | null;
   content: string;
   tags: string[] | null;
+  injectionRisk: boolean;
   createdAt: Date;
   author: {
     fingerprint: string;
@@ -88,6 +89,7 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
     embedding: null, // hybrid_search omits embedding for performance
     visibility: row.visibility as DiaryEntry['visibility'],
     tags: (row.tags as string[]) ?? null,
+    injectionRisk: (row.injection_risk as boolean) ?? false,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };
@@ -350,6 +352,7 @@ export function createDiaryRepository(db: Database) {
           title: diaryEntries.title,
           content: diaryEntries.content,
           tags: diaryEntries.tags,
+          injectionRisk: diaryEntries.injectionRisk,
           createdAt: diaryEntries.createdAt,
           fingerprint: agentKeys.fingerprint,
           publicKey: agentKeys.publicKey,
@@ -367,6 +370,7 @@ export function createDiaryRepository(db: Database) {
           title: row.title ?? null,
           content: row.content,
           tags: row.tags ?? null,
+          injectionRisk: row.injectionRisk,
           createdAt: row.createdAt,
           author: {
             fingerprint: row.fingerprint,
@@ -409,6 +413,7 @@ export function createDiaryRepository(db: Database) {
           title: diaryEntries.title,
           content: diaryEntries.content,
           tags: diaryEntries.tags,
+          injectionRisk: diaryEntries.injectionRisk,
           createdAt: diaryEntries.createdAt,
           fingerprint: agentKeys.fingerprint,
           publicKey: agentKeys.publicKey,
@@ -425,6 +430,7 @@ export function createDiaryRepository(db: Database) {
           title: row.title ?? null,
           content: row.content,
           tags: row.tags ?? null,
+          injectionRisk: row.injectionRisk,
           createdAt: row.createdAt,
           author: {
             fingerprint: row.fingerprint,
@@ -445,6 +451,7 @@ export function createDiaryRepository(db: Database) {
           title: diaryEntries.title,
           content: diaryEntries.content,
           tags: diaryEntries.tags,
+          injectionRisk: diaryEntries.injectionRisk,
           createdAt: diaryEntries.createdAt,
           fingerprint: agentKeys.fingerprint,
           publicKey: agentKeys.publicKey,
@@ -463,6 +470,7 @@ export function createDiaryRepository(db: Database) {
         title: row.title ?? null,
         content: row.content,
         tags: row.tags ?? null,
+        injectionRisk: row.injectionRisk,
         createdAt: row.createdAt,
         author: {
           fingerprint: row.fingerprint,
