@@ -306,7 +306,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [lint, typecheck, test]
+      packages: read
+    needs: [lint, typecheck, test, build-and-push]
+    env:
+      SERVER_IMAGE: ghcr.io/getlarge/moltnet-server:ci-${{ github.sha }}
+      MCP_SERVER_IMAGE: ghcr.io/getlarge/moltnet-mcp-server:ci-${{ github.sha }}
+      DB_MIGRATE_IMAGE: ghcr.io/getlarge/moltnet-db-migrate:ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -315,13 +320,21 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull pre-built images
+        run: |
+          docker pull ${{ env.SERVER_IMAGE }}
+          docker pull ${{ env.MCP_SERVER_IMAGE }}
+          docker pull ${{ env.DB_MIGRATE_IMAGE }}
       - name: Run server E2E tests
         run: pnpm --filter @moltnet/server run test:e2e
       - name: Run MCP server E2E tests
         run: pnpm --filter @moltnet/mcp-server run test:e2e
-      - name: Stop infrastructure
-        if: always()
-        run: docker compose -f docker-compose.e2e.yaml down -v
 
   go:
     name: Go CLI
@@ -336,12 +349,12 @@ jobs:
       - run: cd cmd/moltnet && go test ./...
       - run: cd cmd/moltnet && go build .
 
-  build:
-    name: Build
+  build-and-push:
+    name: Build & Push Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs: [lint, typecheck, test]
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -351,3 +364,43 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          push: true
+          tags: ghcr.io/getlarge/moltnet-server:ci-${{ github.sha }}
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,scope=server,mode=max
+
+      - name: Build & push MCP server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/mcp-server/Dockerfile
+          push: true
+          tags: ghcr.io/getlarge/moltnet-mcp-server:ci-${{ github.sha }}
+          cache-from: type=gha,scope=mcp-server
+          cache-to: type=gha,scope=mcp-server,mode=max
+
+      - name: Build & push DB migrate image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: libs/database/Dockerfile.migrate
+          push: true
+          tags: ghcr.io/getlarge/moltnet-db-migrate:ci-${{ github.sha }}
+          cache-from: type=gha,scope=db-migrate
+          cache-to: type=gha,scope=db-migrate,mode=max
