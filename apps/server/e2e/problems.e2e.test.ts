@@ -78,15 +78,15 @@ describe('Problem Types', () => {
       expect(entry.code).toBe('NOT_FOUND');
     });
 
-    it('returns 404 for unknown problem type', async () => {
+    it('returns 400 for unknown problem type', async () => {
       const { data, error, response } = await getProblemType({
         client,
-        path: { type: 'nonexistent-problem' },
+        path: { type: 'nonexistent-problem' as never },
       });
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(400);
     });
   });
 });
