@@ -120,10 +120,10 @@ function mapRowToPublicSearchResult(
     tags: (row.tags as string[]) ?? null,
     createdAt: new Date(row.created_at as string),
     author: {
-      fingerprint: row.fingerprint as string,
-      publicKey: row.public_key as string,
+      fingerprint: row.author_fingerprint as string,
+      publicKey: row.author_public_key as string,
     },
-    score: Number(row.score ?? 0),
+    score: Number(row.combined_score ?? 0),
   };
 }
 
