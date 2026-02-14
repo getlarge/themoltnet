@@ -186,7 +186,7 @@ jobs:
       - name: Authenticate with ClawHub
         run: |
           mkdir -p "$HOME/.config/clawdhub"
-          echo '{"token":"${{ secrets.CLAWDHUB_TOKEN }}"}' > "$HOME/.config/clawdhub/config.json"
+          echo '{"token":"${{ secrets.CLAWHUB_TOKEN }}"}' > "$HOME/.config/clawdhub/config.json"
 
       - name: Publish to ClawHub
         run: |

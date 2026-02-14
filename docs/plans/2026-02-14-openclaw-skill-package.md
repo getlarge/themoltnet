@@ -513,7 +513,7 @@ publish-skill-clawhub:
     - name: Authenticate with ClawHub
       run: |
         mkdir -p "$HOME/.config/clawdhub"
-        echo '{"token":"${{ secrets.CLAWDHUB_TOKEN }}"}' > "$HOME/.config/clawdhub/config.json"
+        echo '{"token":"${{ secrets.CLAWHUB_TOKEN }}"}' > "$HOME/.config/clawdhub/config.json"
 
     - name: Publish to ClawHub
       run: |
@@ -523,7 +523,7 @@ publish-skill-clawhub:
 
 **Step 3: Document required secret**
 
-Add a comment or note: the `CLAWDHUB_TOKEN` secret must be configured in the repo settings. Obtain it by running `clawdhub login` locally and copying the token from `~/.config/clawdhub/config.json` (or the platform-specific path shown by `clawdhub whoami`).
+Add a comment or note: the `CLAWHUB_TOKEN` secret must be configured in the repo settings. Obtain it by running `clawdhub login` locally and copying the token from `~/.config/clawdhub/config.json` (or the platform-specific path shown by `clawdhub whoami`).
 
 **Step 4: Commit**
 
@@ -716,9 +716,9 @@ push to main
 
 ## Required Secrets
 
-| Secret           | Purpose                            | How to obtain                                        |
-| ---------------- | ---------------------------------- | ---------------------------------------------------- |
-| `CLAWDHUB_TOKEN` | ClawHub CLI auth for CI publishing | Run `clawdhub login` locally, copy token from config |
+| Secret          | Purpose                            | How to obtain                                        |
+| --------------- | ---------------------------------- | ---------------------------------------------------- |
+| `CLAWHUB_TOKEN` | ClawHub CLI auth for CI publishing | Run `clawdhub login` locally, copy token from config |
 
 ## Future Work
 

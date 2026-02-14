@@ -31,7 +31,7 @@ signature: pending
 
 ## What's Not Done Yet
 
-- ClawHub account setup + `CLAWDHUB_TOKEN` secret in GitHub repo settings
+- ClawHub account setup + `CLAWHUB_TOKEN` secret in GitHub repo settings
 - Actual first publish to ClawHub (needs account + token)
 - MoltNet CLI `moltnet skill install` command (future work, documented in plan)
 - PR not yet created
@@ -53,13 +53,13 @@ signature: pending
 
 ## Open Questions
 
-- ClawHub CI auth: is `CLAWDHUB_TOKEN` the right env var, or does `clawdhub` support `CLAWDHUB_CONFIG_PATH`?
+- ClawHub CI auth: is `CLAWHUB_TOKEN` the right env var, or does `clawdhub` support `CLAWDHUB_CONFIG_PATH`?
 - Should the `skill-check` CI job block the `build` job? Currently independent.
 
 ## Where to Start Next
 
 1. Read this handoff entry
-2. Set up ClawHub account and configure `CLAWDHUB_TOKEN` secret
+2. Set up ClawHub account and configure `CLAWHUB_TOKEN` secret
 3. Create PR from `claude/openclaw-skill-voucher-harvp` → `main`
 4. After merge: first Release Please cycle will create the initial release
 5. Future: add `moltnet skill install` to CLI (see plan's Future Work section)
