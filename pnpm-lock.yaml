@@ -33,9 +33,6 @@ catalogs:
     '@fastify/rate-limit':
       specifier: ^10.2.1
       version: 10.3.0
-    '@fastify/static':
-      specifier: ^9.0.0
-      version: 9.0.0
     '@fastify/swagger':
       specifier: ^9.6.1
       version: 9.6.1
@@ -362,6 +359,9 @@ importers:
       '@fastify/helmet':
         specifier: 'catalog:'
         version: 13.0.2
+      '@fastify/otel':
+        specifier: 'catalog:'
+        version: 0.16.0(@opentelemetry/api@1.9.0)
       '@fastify/rate-limit':
         specifier: 'catalog:'
         version: 10.3.0
@@ -380,73 +380,18 @@ importers:
       '@moltnet/database':
         specifier: workspace:*
         version: link:../../libs/database
-      '@moltnet/models':
-        specifier: workspace:*
-        version: link:../../libs/models
-      '@sinclair/typebox':
-        specifier: 'catalog:'
-        version: 0.34.48
-      fastify:
-        specifier: 'catalog:'
-        version: 5.7.4
-      fastify-plugin:
-        specifier: 'catalog:'
-        version: 5.1.0
-    devDependencies:
-      '@moltnet/api-client':
-        specifier: workspace:*
-        version: link:../../libs/api-client
-      '@moltnet/diary-service':
-        specifier: workspace:*
-        version: link:../../libs/diary-service
-      '@ory/client-fetch':
-        specifier: 'catalog:'
-        version: 1.22.23
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
-      tsx:
-        specifier: 'catalog:'
-        version: 4.21.0
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vite:
-        specifier: 'catalog:'
-        version: 6.4.1(@types/node@25.1.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
-
-  apps/server:
-    dependencies:
-      '@fastify/otel':
-        specifier: 'catalog:'
-        version: 0.16.0(@opentelemetry/api@1.9.0)
-      '@fastify/static':
-        specifier: 'catalog:'
-        version: 9.0.0
-      '@moltnet/auth':
-        specifier: workspace:*
-        version: link:../../libs/auth
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../../libs/crypto-service
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../../libs/database
       '@moltnet/diary-service':
         specifier: workspace:*
         version: link:../../libs/diary-service
       '@moltnet/embedding-service':
         specifier: workspace:*
         version: link:../../libs/embedding-service
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
-      '@moltnet/rest-api':
-        specifier: workspace:*
-        version: link:../rest-api
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -477,12 +422,18 @@ importers:
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.23
+      '@sinclair/typebox':
+        specifier: 'catalog:'
+        version: 0.34.48
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
       fastify:
         specifier: 'catalog:'
         version: 5.7.4
+      fastify-plugin:
+        specifier: 'catalog:'
+        version: 5.1.0
       pino:
         specifier: 'catalog:'
         version: 9.14.0
@@ -1856,12 +1807,6 @@ packages:
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
 
-  '@fastify/accept-negotiator@2.0.1':
-    resolution:
-      {
-        integrity: sha512-/c/TW2bO/v9JeEgoD/g1G5GxGeCF1Hafdf79WPmUlgYiBXummY0oX3VVq4yFkKKVBKDNlaDUYoab7g38RpPqCQ==,
-      }
-
   '@fastify/ajv-compiler@4.0.5':
     resolution:
       {
@@ -1928,18 +1873,6 @@ packages:
     resolution:
       {
         integrity: sha512-eIGkG9XKQs0nyynatApA3EVrojHOuq4l6fhB4eeCk4PIOeadvOJz9/4w3vGI44Go17uaXOWEcPkaD8kuKm7g6Q==,
-      }
-
-  '@fastify/send@4.1.0':
-    resolution:
-      {
-        integrity: sha512-TMYeQLCBSy2TOFmV95hQWkiTYgC/SEx7vMdV+wnZVX4tt8VBLKzmH8vV9OzJehV0+XBfg+WxPMt5wp+JBUKsVw==,
-      }
-
-  '@fastify/static@9.0.0':
-    resolution:
-      {
-        integrity: sha512-r64H8Woe/vfilg5RTy7lwWlE8ZZcTrc3kebYFMEUBrMqlydhQyoiExQXdYAy2REVpST/G35+stAM8WYp1WGmMA==,
       }
 
   '@fastify/swagger@9.6.1':
@@ -5137,13 +5070,6 @@ packages:
       }
     engines: { node: '>=10.13.0' }
 
-  glob@13.0.0:
-    resolution:
-      {
-        integrity: sha512-tvZgpqk6fz4BaNZ66ZsRaZnbHvP/jG3uKJvAZOwEVUL4RTA5nJeeLYfyN9/VA8NX/V3IBG+hkeuGpKjvELkVhA==,
-      }
-    engines: { node: 20 || >=22 }
-
   glob@7.2.3:
     resolution:
       {
@@ -5955,14 +5881,6 @@ packages:
       }
     engines: { node: '>=18' }
 
-  mime@3.0.0:
-    resolution:
-      {
-        integrity: sha512-jSCU7/VB1loIWBZe14aEYHU/+1UMEHoaO7qxCOVJOw9GgH72VAWppxNcjU+x9a2k3GSIBXNKxXQFqRvvZ7vr3A==,
-      }
-    engines: { node: '>=10.0.0' }
-    hasBin: true
-
   mimic-fn@2.1.0:
     resolution:
       {
@@ -6378,13 +6296,6 @@ packages:
       {
         integrity: sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==,
       }
-
-  path-scurry@2.0.1:
-    resolution:
-      {
-        integrity: sha512-oWyT4gICAu+kaA7QWk/jvCHWarMKNs6pXOGWKDTr7cw4IGcUbW+PeTfbaQiLGheFRpjo6O9J0PmyMfQPjH71oA==,
-      }
-    engines: { node: 20 || >=22 }
 
   path-to-regexp@8.3.0:
     resolution:
@@ -8480,8 +8391,6 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
-  '@fastify/accept-negotiator@2.0.1': {}
-
   '@fastify/ajv-compiler@4.0.5':
     dependencies:
       ajv: 8.17.1
@@ -8538,23 +8447,6 @@ snapshots:
       '@lukeed/ms': 2.0.2
       fastify-plugin: 5.1.0
       toad-cache: 3.7.0
-
-  '@fastify/send@4.1.0':
-    dependencies:
-      '@lukeed/ms': 2.0.2
-      escape-html: 1.0.3
-      fast-decode-uri-component: 1.0.1
-      http-errors: 2.0.1
-      mime: 3.0.0
-
-  '@fastify/static@9.0.0':
-    dependencies:
-      '@fastify/accept-negotiator': 2.0.1
-      '@fastify/send': 4.1.0
-      content-disposition: 1.0.1
-      fastify-plugin: 5.1.0
-      fastq: 1.20.1
-      glob: 13.0.0
 
   '@fastify/swagger@9.6.1':
     dependencies:
@@ -10498,12 +10390,6 @@ snapshots:
     dependencies:
       is-glob: 4.0.3
 
-  glob@13.0.0:
-    dependencies:
-      minimatch: 10.1.1
-      minipass: 7.1.2
-      path-scurry: 2.0.1
-
   glob@7.2.3:
     dependencies:
       fs.realpath: 1.0.0
@@ -10967,8 +10853,6 @@ snapshots:
     dependencies:
       mime-db: 1.54.0
 
-  mime@3.0.0: {}
-
   mimic-fn@2.1.0: {}
 
   mimic-fn@4.0.0: {}
@@ -11205,11 +11089,6 @@ snapshots:
   path-key@4.0.0: {}
 
   path-parse@1.0.7: {}
-
-  path-scurry@2.0.1:
-    dependencies:
-      lru-cache: 11.2.5
-      minipass: 7.1.2
 
   path-to-regexp@8.3.0: {}
 
