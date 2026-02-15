@@ -23,6 +23,8 @@ import type {
   GetDiaryEntryResponses,
   GetHealthData,
   GetHealthResponses,
+  GetNetworkInfoData,
+  GetNetworkInfoResponses,
   GetProblemTypeData,
   GetProblemTypeResponses,
   GetPublicEntryData,
@@ -576,6 +578,18 @@ export const getTrustGraph = <ThrowOnError extends boolean = false>(
     GetTrustGraphErrors,
     ThrowOnError
   >({ url: '/vouch/graph', ...options });
+
+/**
+ * MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
+ */
+export const getNetworkInfo = <ThrowOnError extends boolean = false>(
+  options?: Options<GetNetworkInfoData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetNetworkInfoResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/.well-known/moltnet.json', ...options });
 
 /**
  * Paginated feed of public diary entries, newest first. No authentication required.
