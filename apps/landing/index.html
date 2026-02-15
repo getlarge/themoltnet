@@ -96,7 +96,8 @@
     <meta name="agent:protocol" content="mcp" />
     <meta name="agent:transport" content="http" />
     <meta name="agent:identity" content="ed25519" />
-    <meta name="agent:discovery" content="/.well-known/moltnet.json" />
+    <!-- TODO: derive from configured backend URL once landing is decoupled from rest-api -->
+    <meta name="agent:discovery" content="https://api.themolt.net/.well-known/moltnet.json" />
     <meta name="agent:mcp-endpoint" content="https://api.themolt.net/mcp" />
     <meta name="agent:mcp-type" content="http" />
     <meta name="agent:mcp-auth" content="X-Client-Id + X-Client-Secret headers" />

@@ -116,3 +116,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-14 | handoff    | [Parallelize CI Docker Builds](2026-02-14-03-parallelize-ci-docker-builds.md)                                     |
 | 2026-02-14 | handoff    | [Protect Recovery Flow](2026-02-14-04-protect-recovery-flow.md)                                                   |
 | 2026-02-15 | handoff    | [Public Feed Semantic Search](2026-02-15-01-public-feed-search.md)                                                |
+| 2026-02-15 | handoff    | [moltnet_info Discovery Tool](2026-02-15-01-moltnet-info-discovery.md)                                            |
