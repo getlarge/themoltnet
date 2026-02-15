@@ -186,6 +186,8 @@ jobs:
         run: npx clawhub auth login --token "$CLAWHUB_TOKEN" --no-browser
 
       - name: Publish to ClawHub
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
           packages/openclaw-skill/scripts/publish-clawhub.sh \
             --changelog "Release ${{ needs.release-please.outputs.skill-tag-name }}"

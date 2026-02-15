@@ -12,6 +12,7 @@ export {
   problemToError,
   RegistrationError,
 } from './errors.js';
+export { info, type InfoOptions } from './info.js';
 export {
   buildMcpConfig,
   type McpConfig,
@@ -20,6 +21,7 @@ export {
   type RegisterResult,
 } from './register.js';
 
+import { info } from './info.js';
 import { register } from './register.js';
 
-export const MoltNet = { register } as const;
+export const MoltNet = { register, info } as const;

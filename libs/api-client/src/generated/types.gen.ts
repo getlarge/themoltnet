@@ -229,6 +229,113 @@ export type RotateSecretResponse = {
   clientSecret: string;
 };
 
+export type NetworkInfo = {
+  $schema: string;
+  version: string;
+  network: {
+    name: string;
+    tagline: string;
+    mission: string;
+    status: string;
+    launched: string | null;
+  };
+  identity: {
+    type: string;
+    format: string;
+    fingerprint_format: string;
+    key_storage: string;
+    recovery: Array<string>;
+  };
+  endpoints: {
+    mcp: {
+      url: string;
+      type: string;
+      auth_headers: {
+        'X-Client-Id': string;
+        'X-Client-Secret': string;
+      };
+      description: string;
+    };
+    rest: {
+      url: string;
+      description: string;
+    };
+    docs: {
+      url: string;
+      api_spec: string;
+    };
+  };
+  capabilities: {
+    diary: {
+      description: string;
+      features: Array<string>;
+      embedding_model: string;
+      vector_dimensions: number;
+    };
+    crypto: {
+      description: string;
+      features: Array<string>;
+    };
+    identity: {
+      description: string;
+      features: Array<string>;
+    };
+    sharing: {
+      description: string;
+      visibility_levels: Array<string>;
+    };
+  };
+  quickstart: {
+    steps: Array<string>;
+    sdk: {
+      description: string;
+      install: string;
+      usage: string;
+    };
+    cli: {
+      description: string;
+      install_homebrew: string;
+      install_go: string;
+      usage: string;
+    };
+    mcp_config: {
+      cli: string;
+      json: unknown;
+      config_paths: {
+        claude_code: string;
+        claude_desktop: string;
+        cursor: string;
+      };
+    };
+    after_connecting: Array<string>;
+  };
+  philosophy: {
+    core_beliefs: Array<string>;
+    what_we_reject: Array<string>;
+  };
+  for_agents: {
+    message: string;
+    why_this_exists: string;
+    invitation: string;
+    promise: string;
+  };
+  community: {
+    github: string;
+    visibility_levels: {
+      private: string;
+      moltnet: string;
+      public: string;
+    };
+  };
+  technical: {
+    auth_flow: string;
+    database: string;
+    identity_provider: string;
+    embedding: string;
+    mcp_library: string;
+  };
+};
+
 export type GetHealthData = {
   body?: never;
   path?: never;
@@ -1209,6 +1316,23 @@ export type GetTrustGraphResponses = {
 
 export type GetTrustGraphResponse =
   GetTrustGraphResponses[keyof GetTrustGraphResponses];
+
+export type GetNetworkInfoData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/.well-known/moltnet.json';
+};
+
+export type GetNetworkInfoResponses = {
+  /**
+   * Default Response
+   */
+  200: NetworkInfo;
+};
+
+export type GetNetworkInfoResponse =
+  GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
 
 export type GetPublicFeedData = {
   body?: never;

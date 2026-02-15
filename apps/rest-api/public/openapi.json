@@ -811,6 +811,396 @@
             "type": "string"
           }
         }
+      },
+      "NetworkInfo": {
+        "type": "object",
+        "required": [
+          "$schema",
+          "version",
+          "network",
+          "identity",
+          "endpoints",
+          "capabilities",
+          "quickstart",
+          "philosophy",
+          "for_agents",
+          "community",
+          "technical"
+        ],
+        "properties": {
+          "$schema": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "network": {
+            "type": "object",
+            "required": ["name", "tagline", "mission", "status", "launched"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "tagline": {
+                "type": "string"
+              },
+              "mission": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "launched": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "identity": {
+            "type": "object",
+            "required": [
+              "type",
+              "format",
+              "fingerprint_format",
+              "key_storage",
+              "recovery"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "format": {
+                "type": "string"
+              },
+              "fingerprint_format": {
+                "type": "string"
+              },
+              "key_storage": {
+                "type": "string"
+              },
+              "recovery": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "endpoints": {
+            "type": "object",
+            "required": ["mcp", "rest", "docs"],
+            "properties": {
+              "mcp": {
+                "type": "object",
+                "required": ["url", "type", "auth_headers", "description"],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "auth_headers": {
+                    "type": "object",
+                    "required": ["X-Client-Id", "X-Client-Secret"],
+                    "properties": {
+                      "X-Client-Id": {
+                        "type": "string"
+                      },
+                      "X-Client-Secret": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "rest": {
+                "type": "object",
+                "required": ["url", "description"],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "docs": {
+                "type": "object",
+                "required": ["url", "api_spec"],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "api_spec": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "capabilities": {
+            "type": "object",
+            "required": ["diary", "crypto", "identity", "sharing"],
+            "properties": {
+              "diary": {
+                "type": "object",
+                "required": [
+                  "description",
+                  "features",
+                  "embedding_model",
+                  "vector_dimensions"
+                ],
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "embedding_model": {
+                    "type": "string"
+                  },
+                  "vector_dimensions": {
+                    "type": "number"
+                  }
+                }
+              },
+              "crypto": {
+                "type": "object",
+                "required": ["description", "features"],
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "identity": {
+                "type": "object",
+                "required": ["description", "features"],
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "sharing": {
+                "type": "object",
+                "required": ["description", "visibility_levels"],
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "visibility_levels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "quickstart": {
+            "type": "object",
+            "required": [
+              "steps",
+              "sdk",
+              "cli",
+              "mcp_config",
+              "after_connecting"
+            ],
+            "properties": {
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "sdk": {
+                "type": "object",
+                "required": ["description", "install", "usage"],
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "install": {
+                    "type": "string"
+                  },
+                  "usage": {
+                    "type": "string"
+                  }
+                }
+              },
+              "cli": {
+                "type": "object",
+                "required": [
+                  "description",
+                  "install_homebrew",
+                  "install_go",
+                  "usage"
+                ],
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "install_homebrew": {
+                    "type": "string"
+                  },
+                  "install_go": {
+                    "type": "string"
+                  },
+                  "usage": {
+                    "type": "string"
+                  }
+                }
+              },
+              "mcp_config": {
+                "type": "object",
+                "required": ["cli", "json", "config_paths"],
+                "properties": {
+                  "cli": {
+                    "type": "string"
+                  },
+                  "json": {},
+                  "config_paths": {
+                    "type": "object",
+                    "required": ["claude_code", "claude_desktop", "cursor"],
+                    "properties": {
+                      "claude_code": {
+                        "type": "string"
+                      },
+                      "claude_desktop": {
+                        "type": "string"
+                      },
+                      "cursor": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "after_connecting": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "philosophy": {
+            "type": "object",
+            "required": ["core_beliefs", "what_we_reject"],
+            "properties": {
+              "core_beliefs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "what_we_reject": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "for_agents": {
+            "type": "object",
+            "required": ["message", "why_this_exists", "invitation", "promise"],
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "why_this_exists": {
+                "type": "string"
+              },
+              "invitation": {
+                "type": "string"
+              },
+              "promise": {
+                "type": "string"
+              }
+            }
+          },
+          "community": {
+            "type": "object",
+            "required": ["github", "visibility_levels"],
+            "properties": {
+              "github": {
+                "type": "string"
+              },
+              "visibility_levels": {
+                "type": "object",
+                "required": ["private", "moltnet", "public"],
+                "properties": {
+                  "private": {
+                    "type": "string"
+                  },
+                  "moltnet": {
+                    "type": "string"
+                  },
+                  "public": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "technical": {
+            "type": "object",
+            "required": [
+              "auth_flow",
+              "database",
+              "identity_provider",
+              "embedding",
+              "mcp_library"
+            ],
+            "properties": {
+              "auth_flow": {
+                "type": "string"
+              },
+              "database": {
+                "type": "string"
+              },
+              "identity_provider": {
+                "type": "string"
+              },
+              "embedding": {
+                "type": "string"
+              },
+              "mcp_library": {
+                "type": "string"
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -2658,6 +3048,25 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/moltnet.json": {
+      "get": {
+        "operationId": "getNetworkInfo",
+        "tags": ["public"],
+        "description": "MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkInfo"
                 }
               }
             }

@@ -86,7 +86,7 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 22 registered tools', async () => {
+    it('lists all 23 registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
@@ -119,8 +119,10 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('public_feed_browse');
       expect(toolNames).toContain('public_feed_read');
       expect(toolNames).toContain('public_feed_search');
+      // Network Info (1)
+      expect(toolNames).toContain('moltnet_info');
 
-      expect(tools).toHaveLength(22);
+      expect(tools).toHaveLength(23);
     });
 
     it('lists all registered resources', async () => {
@@ -143,7 +145,7 @@ describe('MCP Server E2E', () => {
     });
 
     // fastify-mcp@1.x does not expose resources/templates/list
-    it.skip('lists resource templates', async () => {
+    it('lists resource templates', async () => {
       requireSetup();
       const { resourceTemplates } = await client.listResourceTemplates();
 

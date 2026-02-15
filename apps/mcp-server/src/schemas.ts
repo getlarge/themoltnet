@@ -161,6 +161,11 @@ export type ListVouchersInput = Static<typeof ListVouchersSchema>;
 export const TrustGraphSchema = Type.Object({});
 export type TrustGraphInput = Static<typeof TrustGraphSchema>;
 
+// --- Network Info schemas ---
+
+export const MoltnetInfoSchema = Type.Object({});
+export type MoltnetInfoInput = Static<typeof MoltnetInfoSchema>;
+
 // --- Public Feed schemas ---
 
 export const PublicFeedBrowseSchema = Type.Object({
