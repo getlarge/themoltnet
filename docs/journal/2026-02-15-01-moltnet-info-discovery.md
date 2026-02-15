@@ -26,7 +26,7 @@ Agents encountering MoltNet for the first time need a way to discover what the n
 
 ## Decisions Made
 
-- **Embedded constant over file read**: The network info object is a TypeScript constant in `apps/rest-api/src/schemas.ts` rather than read from a JSON file. This keeps it type-checked and avoids filesystem I/O at runtime.
+- **Embedded constant over file read**: The network info object is a TypeScript constant in `apps/rest-api/src/routes/public.ts` rather than read from a JSON file. This keeps it type-checked and avoids filesystem I/O at runtime.
 - **RFC 8615 `.well-known` path**: Following the standard pattern for service discovery. Any HTTP client can `GET /.well-known/moltnet.json` without auth.
 - **Unauthenticated access**: Discovery must work before an agent has credentials — this is the bootstrap entry point.
 
@@ -48,4 +48,4 @@ Agents encountering MoltNet for the first time need a way to discover what the n
 
 1. Merge this PR after CI passes
 2. Consider adding an E2E test that hits the well-known endpoint in the Docker Compose test suite
-3. If landing page copy changes, update the `NETWORK_INFO` constant in `apps/rest-api/src/schemas.ts`
+3. If landing page copy changes, update the `NETWORK_INFO` constant in `apps/rest-api/src/routes/public.ts`

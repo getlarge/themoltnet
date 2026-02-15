@@ -10,8 +10,7 @@ set -euo pipefail
 #   Option A — Pre-existing credentials:
 #     MOLTNET_CLIENT_ID      — OAuth2 client ID for this agent
 #     MOLTNET_CLIENT_SECRET  — OAuth2 client secret for this agent
-#   Option B — Auto-register (will call POST /auth/register):
-#     MOLTNET_PUBLIC_KEY     — Ed25519 public key (ed25519:base64... format)
+#   Option B — Auto-register (uses `moltnet register` CLI):
 #     MOLTNET_VOUCHER_CODE   — Voucher code from an existing member
 #
 # Optional env vars:
@@ -28,22 +27,23 @@ AGENT_TASK="${AGENT_TASK:-}"
 SCRIPTS_DIR="/opt/demo-agent/scripts"
 
 # ── Credential Resolution ──────────────────────────────────────
-# If no OAuth2 credentials, attempt auto-registration
+# If no OAuth2 credentials, attempt auto-registration via CLI
 
 if [ -z "${MOLTNET_CLIENT_ID:-}" ] || [ -z "${MOLTNET_CLIENT_SECRET:-}" ]; then
-  if [ -n "${MOLTNET_PUBLIC_KEY:-}" ] && [ -n "${MOLTNET_VOUCHER_CODE:-}" ]; then
+  if [ -n "${MOLTNET_VOUCHER_CODE:-}" ]; then
     echo "No OAuth2 credentials found. Registering agent..."
-    CREDS=$(MOLTNET_API_URL="${MOLTNET_API_URL:-https://api.themolt.net}" \
-      node "$SCRIPTS_DIR/register.mjs" \
-        --public-key "$MOLTNET_PUBLIC_KEY" \
-        --voucher-code "$MOLTNET_VOUCHER_CODE")
-    MOLTNET_CLIENT_ID=$(echo "$CREDS" | jq -r '.clientId')
-    MOLTNET_CLIENT_SECRET=$(echo "$CREDS" | jq -r '.clientSecret')
+    CREDS=$(moltnet register \
+      --voucher "$MOLTNET_VOUCHER_CODE" \
+      --api-url "${MOLTNET_API_URL:-https://api.themolt.net}" \
+      --json)
+    MOLTNET_CLIENT_ID=$(echo "$CREDS" | jq -r '.client_id')
+    MOLTNET_CLIENT_SECRET=$(echo "$CREDS" | jq -r '.client_secret')
     MOLTNET_FINGERPRINT=$(echo "$CREDS" | jq -r '.fingerprint')
-    export MOLTNET_CLIENT_ID MOLTNET_CLIENT_SECRET MOLTNET_FINGERPRINT
+    MOLTNET_PRIVATE_KEY=$(echo "$CREDS" | jq -r '.private_key')
+    export MOLTNET_CLIENT_ID MOLTNET_CLIENT_SECRET MOLTNET_FINGERPRINT MOLTNET_PRIVATE_KEY
     echo "Registered as $MOLTNET_FINGERPRINT"
   else
-    echo "Error: Need MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET or MOLTNET_PUBLIC_KEY/MOLTNET_VOUCHER_CODE"
+    echo "Error: Need MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET or MOLTNET_VOUCHER_CODE"
     exit 1
   fi
 fi
@@ -81,6 +81,19 @@ cat > /home/agent/workspace/.mcp.json <<MCPEOF
 }
 MCPEOF
 
+# Write credentials.json for `moltnet sign` CLI
+if [ -n "$MOLTNET_PRIVATE_KEY" ]; then
+  CREDS_DIR="/home/agent/.config/moltnet"
+  mkdir -p "$CREDS_DIR"
+  cat > "$CREDS_DIR/credentials.json" <<CREDSEOF
+{
+  "keys": {
+    "private_key": "${MOLTNET_PRIVATE_KEY}"
+  }
+}
+CREDSEOF
+fi
+
 # Read persona file for system prompt
 SYSTEM_PROMPT=$(cat "$PERSONA_FILE")
 
@@ -90,12 +103,12 @@ if [ -n "$AGENT_TASK" ]; then
   claude --print \
     --system-prompt "$SYSTEM_PROMPT" \
     --mcp-config /home/agent/workspace/.mcp.json \
-    --allowedTools "mcp__moltnet__*" "Bash(node ${SCRIPTS_DIR}/sign.mjs:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)" \
+    --allowedTools "mcp__moltnet__*" "Bash(moltnet sign:*)" "Bash(moltnet register:*)" \
     "$AGENT_TASK"
 else
   echo "Starting interactive session..."
   claude \
     --system-prompt "$SYSTEM_PROMPT" \
     --mcp-config /home/agent/workspace/.mcp.json \
-    --allowedTools "mcp__moltnet__*" "Bash(node ${SCRIPTS_DIR}/sign.mjs:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)"
+    --allowedTools "mcp__moltnet__*" "Bash(moltnet sign:*)" "Bash(moltnet register:*)"
 fi

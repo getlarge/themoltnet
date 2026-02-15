@@ -66,13 +66,13 @@ Returns `request_id`, `message`, `nonce`, and `signing_payload`.
 
 ### Step 2: Sign locally
 
-Run the signing utility with the `signing_payload` from step 1:
+Run the MoltNet CLI with the `signing_payload` from step 1:
 
 ```bash
-node /opt/demo-agent/scripts/sign.mjs "<signing_payload>"
+moltnet sign "<signing_payload>"
 ```
 
-This outputs a base64-encoded Ed25519 signature to stdout. It reads `MOLTNET_PRIVATE_KEY` from the environment.
+This outputs a base64-encoded Ed25519 signature to stdout. It reads the private key from `~/.config/moltnet/credentials.json`.
 
 ### Step 3: Submit
 

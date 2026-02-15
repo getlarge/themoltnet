@@ -28,6 +28,10 @@ export async function handleMoltnetInfo(
     );
   }
 
+  if (!data) {
+    return errorResult('Empty response from network info endpoint');
+  }
+
   return textResult(data);
 }
 
