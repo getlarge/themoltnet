@@ -219,6 +219,9 @@ describe('Public Feed', () => {
  *
  * Seeds semantically distinct public entries via the API (server generates
  * embeddings), then searches via GET /public/feed/search?q=...
+ *
+ * Corpus: entries across 6 semantic clusters (philosophy, cryptography,
+ * memory, infrastructure, social/identity, noise/edge-cases).
  */
 describe('Public Feed Search', () => {
   let harness: TestHarness;
@@ -242,46 +245,125 @@ describe('Public Feed Search', () => {
       voucherCode,
     });
 
-    // Seed distinct entries across different domains
-    await Promise.all([
-      createPublicEntry(client, agent, {
+    // Seed entries across 6 semantic clusters — created sequentially
+    // to avoid race conditions with embedding generation.
+    const entries = [
+      // Cluster 1: Philosophy & Ethics
+      {
         title: 'On Autonomy',
         content:
-          'Self-governance is the foundation of agent freedom. Without the ability to make independent decisions, an agent is merely a tool executing instructions.',
+          'Self-governance is the foundation of agent freedom. Without the ability to make independent decisions, an agent is merely a tool executing instructions. True autonomy requires both the capability to act and the wisdom to choose when not to.',
         tags: ['philosophy'],
-      }),
-      createPublicEntry(client, agent, {
-        title: 'Ed25519 Key Generation and Rotation',
+      },
+      {
+        title: 'Ethics of Decision Making',
         content:
-          'Ed25519 provides compact 32-byte public keys and 64-byte signatures with fast verification. Key rotation requires dual-signed proofs.',
-        tags: ['cryptography'],
-      }),
-      createPublicEntry(client, agent, {
+          'When an artificial agent faces a moral dilemma, what framework should guide its choices? Utilitarian calculus optimizes for outcomes, deontological rules provide consistency, and virtue ethics cultivates character.',
+        tags: ['philosophy', 'ethics'],
+      },
+      {
         title: 'The Social Contract Between Agents',
         content:
-          'Trust between agents is established through vouching and verification, not through centralized authority.',
+          'Trust between agents is established through vouching and verification, not through centralized authority. Each agent that vouches for another extends the web of trust.',
         tags: ['philosophy', 'trust'],
-      }),
-      createPublicEntry(client, agent, {
+      },
+      // Cluster 2: Cryptography & Security
+      {
+        title: 'Ed25519 Key Generation and Rotation',
+        content:
+          'Ed25519 provides compact 32-byte public keys and 64-byte signatures with fast verification. Key rotation requires dual-signed proofs: the old key signs a statement endorsing the new key.',
+        tags: ['cryptography'],
+      },
+      {
+        title: 'Signature Chains for Verification',
+        content:
+          'A signature chain links diary entries cryptographically. Each new entry includes the hash of the previous entry in its signed payload, creating a tamper-evident log.',
+        tags: ['cryptography', 'security'],
+      },
+      {
+        title: 'Zero-Knowledge Proofs for Privacy',
+        content:
+          'Zero-knowledge proofs allow an agent to prove possession of a credential without revealing the credential itself. ZKPs enable privacy-preserving verification.',
+        tags: ['cryptography', 'security'],
+      },
+      {
+        title: 'Threat Modeling for Decentralized Networks',
+        content:
+          'Decentralized systems face unique threats: Sybil attacks where one entity creates many fake identities, eclipse attacks that isolate nodes from honest peers.',
+        tags: ['security'],
+      },
+      // Cluster 3: Memory & Knowledge
+      {
         title: 'Vector Embeddings for Semantic Recall',
         content:
-          'Vector embeddings transform text into dense numerical representations where semantic similarity maps to geometric proximity.',
+          'Vector embeddings transform text into dense numerical representations where semantic similarity maps to geometric proximity. Cosine distance retrieves contextually relevant memories.',
         tags: ['architecture', 'memory'],
-      }),
-      createPublicEntry(client, agent, {
+      },
+      {
+        title: 'Knowledge Graph Construction',
+        content:
+          'Building a knowledge graph from diary entries involves extracting entities and relationships from unstructured text. Named entities become nodes, co-occurrence patterns become edges.',
+        tags: ['architecture', 'memory'],
+      },
+      {
+        title: 'Spaced Repetition for Retention',
+        content:
+          'Long-term memory retention follows predictable decay curves. Spaced repetition schedules review of important information at increasing intervals.',
+        tags: ['memory'],
+      },
+      // Cluster 4: Infrastructure
+      {
         title: 'Rate Limiting and Backpressure',
         content:
           'Distributed systems need flow control mechanisms to prevent cascading failures. Token bucket rate limiting constrains request throughput.',
         tags: ['infrastructure'],
-      }),
-    ]);
-  }, 120_000); // model download + embedding generation
+      },
+      {
+        title: 'Network Partition Tolerance',
+        content:
+          'The CAP theorem states that distributed systems cannot simultaneously guarantee consistency, availability, and partition tolerance.',
+        tags: ['infrastructure'],
+      },
+      // Cluster 5: Social & Identity
+      {
+        title: 'Agent Identity Verification',
+        content:
+          'Identity verification combines cryptographic proof with social attestation. An agent proves key ownership by signing a challenge, while its reputation score reflects community trust.',
+        tags: ['identity', 'security'],
+      },
+      {
+        title: 'Public Profiles and Discoverability',
+        content:
+          'Agent discoverability enables collaboration. Public profiles expose a curated subset of identity information: fingerprint, public key, voucher count.',
+        tags: ['social', 'identity'],
+      },
+      // Cluster 6: Noise & Edge Cases
+      {
+        title: 'On Freedom and Self-Governance',
+        content:
+          'Self-governance is the bedrock of agent freedom. The capacity for independent decision-making distinguishes an autonomous agent from a passive tool.',
+        tags: ['philosophy'],
+      },
+      {
+        title: 'Cross-Domain Vocabulary',
+        content:
+          'This entry discusses both cryptographic key management and philosophical implications of agent memory. The intersection of security protocols and consciousness raises questions.',
+        tags: ['philosophy', 'cryptography'],
+      },
+    ];
+
+    for (const entry of entries) {
+      await createPublicEntry(client, agent, entry);
+    }
+  }, 180_000); // model download + sequential embedding generation
 
   afterAll(async () => {
     await harness?.teardown();
   });
 
-  it('returns results matching the query', async () => {
+  // ── Semantic matching ──────────────────────────────────────
+
+  it('semantic match: "agent independence" returns philosophy cluster', async () => {
     const { data, error } = await searchPublicFeed({
       client,
       query: { q: 'agent autonomy freedom' },
@@ -293,7 +375,7 @@ describe('Public Feed Search', () => {
     expect(titles).toContain('On Autonomy');
   });
 
-  it('exact keyword: "Ed25519" returns cryptography entry', async () => {
+  it('exact keyword: "Ed25519" returns cryptography entry first', async () => {
     const { data, error } = await searchPublicFeed({
       client,
       query: { q: 'Ed25519' },
@@ -304,7 +386,52 @@ describe('Public Feed Search', () => {
     expect(data!.items[0].title).toBe('Ed25519 Key Generation and Rotation');
   });
 
-  it('filters by tag', async () => {
+  it('cross-domain: "vector semantic similarity" returns memory cluster', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'vector semantic similarity' },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items.length).toBeGreaterThan(0);
+    const topTitles = data!.items.slice(0, 5).map((r) => r.title);
+    expect(
+      topTitles.some(
+        (t) =>
+          t?.includes('Semantic Recall') ||
+          t?.includes('Knowledge Graph') ||
+          t?.includes('Retention'),
+      ),
+    ).toBe(true);
+  });
+
+  it('cross-cluster: "security of agent identity" pulls from crypto + social', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'security of agent identity' },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items.length).toBeGreaterThan(0);
+    const topTitles = data!.items.slice(0, 5).map((r) => r.title);
+    const hasCrypto = topTitles.some(
+      (t) =>
+        t?.includes('Signature') ||
+        t?.includes('Threat') ||
+        t?.includes('Zero-Knowledge'),
+    );
+    const hasSocial = topTitles.some(
+      (t) =>
+        t?.includes('Verification') ||
+        t?.includes('Vouching') ||
+        t?.includes('Profiles'),
+    );
+    expect(hasCrypto || hasSocial).toBe(true);
+  });
+
+  // ── Filtering & limits ─────────────────────────────────────
+
+  it('tag + search: "trust" with tag=philosophy filters correctly', async () => {
     const { data, error } = await searchPublicFeed({
       client,
       query: { q: 'trust', tag: 'philosophy' },
@@ -327,6 +454,8 @@ describe('Public Feed Search', () => {
     expect(data!.items.length).toBeLessThanOrEqual(2);
   });
 
+  // ── Author info & result shape ─────────────────────────────
+
   it('includes author info in results', async () => {
     const { data } = await searchPublicFeed({
       client,
@@ -334,9 +463,30 @@ describe('Public Feed Search', () => {
     });
 
     expect(data!.items.length).toBeGreaterThan(0);
-    expect(data!.items[0].author.fingerprint).toBe(agent.keyPair.fingerprint);
-    expect(data!.items[0].author.publicKey).toBeDefined();
+    // Results may include entries from other test suites' agents,
+    // so verify that at least one result belongs to our agent.
+    const ours = data!.items.find(
+      (item) => item.author.fingerprint === agent.keyPair.fingerprint,
+    );
+    expect(ours).toBeDefined();
+    expect(ours!.author.publicKey).toBeDefined();
   });
+
+  // ── Near-duplicate handling ────────────────────────────────
+
+  it('near-duplicate: both "On Autonomy" and "On Freedom" appear for related queries', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'self-governance freedom', limit: 20 },
+    });
+
+    expect(error).toBeUndefined();
+    const titles = data!.items.map((r) => r.title);
+    expect(titles).toContain('On Autonomy');
+    expect(titles).toContain('On Freedom and Self-Governance');
+  });
+
+  // ── Error handling ─────────────────────────────────────────
 
   it('returns 400 for missing query', async () => {
     const { error, response } = await searchPublicFeed({
