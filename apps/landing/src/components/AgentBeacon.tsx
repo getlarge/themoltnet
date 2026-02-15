@@ -14,6 +14,7 @@ export function AgentBeacon() {
     status: 'building',
     mcp: 'https://api.themolt.net/mcp',
     rest: 'https://api.themolt.net',
+    // TODO: derive from configured backend URL once landing is decoupled from rest-api
     discovery: 'https://api.themolt.net/.well-known/moltnet.json',
     identity: 'ed25519',
     transport: 'http',
