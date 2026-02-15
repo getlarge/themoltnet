@@ -7,8 +7,8 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['__tests__/**/*.test.ts'],
-    exclude: ['__tests__/e2e/**'],
-    testTimeout: 10_000,
+    include: ['__tests__/e2e/**/*.test.ts'],
+    testTimeout: 30_000,
+    hookTimeout: 120_000,
   },
 });

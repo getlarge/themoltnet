@@ -23,8 +23,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SEED_AGENT, SEED_ENTRIES } from './seed-corpus.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  throw new Error(
+    'DATABASE_URL is required for e2e tests. Run with: DATABASE_URL=... pnpm --filter @moltnet/rest-api test:e2e',
+  );
+}
 
-describe.skipIf(!DATABASE_URL)('Public feed search e2e', () => {
+describe('Public feed search e2e', () => {
   let connection: DatabaseConnection;
   let db: Database;
   let diaryRepository: ReturnType<typeof createDiaryRepository>;
@@ -32,7 +37,7 @@ describe.skipIf(!DATABASE_URL)('Public feed search e2e', () => {
   const seededIds: string[] = [];
 
   beforeAll(async () => {
-    connection = createDatabase(DATABASE_URL!);
+    connection = createDatabase(DATABASE_URL);
     db = connection.db;
     diaryRepository = createDiaryRepository(db);
     embeddingService = createEmbeddingService();
