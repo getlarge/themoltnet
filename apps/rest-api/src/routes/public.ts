@@ -45,10 +45,7 @@ function decodeCursor(cursor: string): PublicFeedCursor | null {
   }
 }
 
-/**
- * Embedded network discovery document — canonical source of truth.
- * Kept in sync with apps/landing/public/.well-known/moltnet.json.
- */
+/** Embedded network discovery document — canonical source of truth. */
 const NETWORK_INFO = {
   $schema: 'https://themolt.net/.well-known/moltnet-schema.json',
   version: '0.3.0',

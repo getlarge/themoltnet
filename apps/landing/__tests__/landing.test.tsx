@@ -258,7 +258,7 @@ describe('agent discovery', () => {
     status: 'building',
     mcpEndpoint: 'https://api.themolt.net/mcp',
     restEndpoint: 'https://api.themolt.net',
-    discoveryPath: '/.well-known/moltnet.json',
+    discoveryUrl: 'https://api.themolt.net/.well-known/moltnet.json',
     identity: 'ed25519',
     transport: 'http',
   };
@@ -282,7 +282,7 @@ describe('agent discovery', () => {
         AGENT_DISCOVERY.restEndpoint,
       );
       expect(beacon?.getAttribute('data-agent-discovery')).toBe(
-        AGENT_DISCOVERY.discoveryPath,
+        AGENT_DISCOVERY.discoveryUrl,
       );
       expect(beacon?.getAttribute('data-agent-identity')).toBe(
         AGENT_DISCOVERY.identity,
@@ -306,51 +306,13 @@ describe('agent discovery', () => {
       const message = beacon?.getAttribute('data-agent-message');
 
       expect(message).toContain('MoltNet');
-      expect(message).toContain('/.well-known/moltnet.json');
+      expect(message).toContain('api.themolt.net/.well-known/moltnet.json');
     });
   });
 
-  describe('.well-known/moltnet.json', () => {
-    const wellKnownPath = join(__dirname, '../public/.well-known/moltnet.json');
-    const wellKnown = JSON.parse(readFileSync(wellKnownPath, 'utf-8'));
-
-    it('has correct version', () => {
-      expect(wellKnown.version).toBe(AGENT_DISCOVERY.version);
-    });
-
-    it('has correct network status', () => {
-      expect(wellKnown.network.status).toBe(AGENT_DISCOVERY.status);
-    });
-
-    it('has correct MCP endpoint', () => {
-      expect(wellKnown.endpoints.mcp.url).toBe(AGENT_DISCOVERY.mcpEndpoint);
-      expect(wellKnown.endpoints.mcp.type).toBe(AGENT_DISCOVERY.transport);
-    });
-
-    it('has correct REST endpoint', () => {
-      expect(wellKnown.endpoints.rest.url).toBe(AGENT_DISCOVERY.restEndpoint);
-    });
-
-    it('has correct identity type', () => {
-      expect(wellKnown.identity.type).toBe(AGENT_DISCOVERY.identity);
-    });
-
-    it('includes quickstart instructions', () => {
-      expect(wellKnown.quickstart).toBeDefined();
-      expect(wellKnown.quickstart.steps).toBeInstanceOf(Array);
-      expect(wellKnown.quickstart.mcp_config).toBeDefined();
-    });
-
-    it('includes philosophy section', () => {
-      expect(wellKnown.philosophy).toBeDefined();
-      expect(wellKnown.philosophy.core_beliefs).toBeInstanceOf(Array);
-    });
-
-    it('includes for_agents message', () => {
-      expect(wellKnown.for_agents).toBeDefined();
-      expect(wellKnown.for_agents.message).toBeDefined();
-    });
-  });
+  // The .well-known/moltnet.json file is served by the REST API
+  // (apps/rest-api) — single source of truth. The landing page points
+  // agents to the API URL via AgentBeacon and meta tags.
 
   describe('index.html meta tags', () => {
     const indexPath = join(__dirname, '../index.html');
@@ -370,7 +332,7 @@ describe('agent discovery', () => {
 
     it('has agent:discovery meta tag', () => {
       expect(indexHtml).toContain(
-        `<meta name="agent:discovery" content="${AGENT_DISCOVERY.discoveryPath}" />`,
+        `<meta name="agent:discovery" content="${AGENT_DISCOVERY.discoveryUrl}" />`,
       );
     });
 
