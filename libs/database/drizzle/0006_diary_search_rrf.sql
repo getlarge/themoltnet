@@ -8,6 +8,21 @@
 DROP FUNCTION IF EXISTS hybrid_search(UUID, TEXT, vector(384), INT, FLOAT, FLOAT);--> statement-breakpoint
 
 -- ============================================================================
+-- Immutable helper: builds a tsvector from diary entry fields.
+-- Required because to_tsvector('english', ...) is STABLE (depends on config),
+-- but GIN index expressions must be IMMUTABLE. This wrapper is safe because
+-- we hardcode the 'english' regconfig OID.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION diary_entry_tsv(p_title TEXT, p_content TEXT, p_tags TEXT[])
+RETURNS tsvector
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS
+$fn$
+    SELECT to_tsvector('english'::regconfig,
+        coalesce(p_title, '') || ' ' || p_content || ' ' || coalesce(array_to_string(p_tags, ' '), '')
+    );
+$fn$;--> statement-breakpoint
+
+-- ============================================================================
 -- diary_search() — RRF-based hybrid retrieval
 -- ============================================================================
 CREATE OR REPLACE FUNCTION diary_search(
@@ -60,7 +75,7 @@ BEGIN
                 d.id,
                 ts_rank(tsv, query) AS rank_score
             FROM diary_entries d,
-                 LATERAL to_tsvector('english', coalesce(d.title, '') || ' ' || d.content || ' ' || coalesce(d.tags::text, '')) AS tsv,
+                 LATERAL diary_entry_tsv(d.title, d.content, d.tags) AS tsv,
                  LATERAL plainto_tsquery('english', p_query) AS query
             WHERE p_query IS NOT NULL
               AND p_query != ''
@@ -114,5 +129,5 @@ COMMENT ON FUNCTION diary_search IS 'Unified search with RRF scoring. NULL owner
 DROP INDEX IF EXISTS diary_entries_content_fts_idx;--> statement-breakpoint
 
 CREATE INDEX diary_entries_fts_idx ON diary_entries USING gin(
-    to_tsvector('english', coalesce(title, '') || ' ' || content || ' ' || coalesce(tags::text, ''))
+    diary_entry_tsv(title, content, tags)
 );
