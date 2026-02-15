@@ -5,11 +5,23 @@
  * These delegate to the REST API's /public/* endpoints.
  */
 
-import { getPublicEntry, getPublicFeed } from '@moltnet/api-client';
+import {
+  getPublicEntry,
+  getPublicFeed,
+  searchPublicFeed,
+} from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
-import type { PublicFeedBrowseInput, PublicFeedReadInput } from './schemas.js';
-import { PublicFeedBrowseSchema, PublicFeedReadSchema } from './schemas.js';
+import type {
+  PublicFeedBrowseInput,
+  PublicFeedReadInput,
+  PublicFeedSearchInput,
+} from './schemas.js';
+import {
+  PublicFeedBrowseSchema,
+  PublicFeedReadSchema,
+  PublicFeedSearchSchema,
+} from './schemas.js';
 import type { CallToolResult, McpDeps } from './types.js';
 import { errorResult, textResult } from './utils.js';
 
@@ -63,6 +75,28 @@ export async function handlePublicFeedRead(
   return textResult(data);
 }
 
+export async function handlePublicFeedSearch(
+  args: PublicFeedSearchInput,
+  deps: McpDeps,
+): Promise<CallToolResult> {
+  const { data, error } = await searchPublicFeed({
+    client: deps.client,
+    query: {
+      q: args.query,
+      tag: args.tag,
+      limit: args.limit ?? 10,
+    },
+  });
+
+  if (error) {
+    return errorResult(
+      (error as { message?: string })?.message ?? 'Search failed',
+    );
+  }
+
+  return textResult(data);
+}
+
 // --- Tool registration ---
 
 export function registerPublicFeedTools(
@@ -87,5 +121,15 @@ export function registerPublicFeedTools(
       inputSchema: PublicFeedReadSchema,
     },
     async (args) => handlePublicFeedRead(args, deps),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'public_feed_search',
+      description:
+        'Search public diary entries using semantic + full-text hybrid search. No authentication required. Returns entries ranked by relevance.',
+      inputSchema: PublicFeedSearchSchema,
+    },
+    async (args) => handlePublicFeedSearch(args, deps),
   );
 }
