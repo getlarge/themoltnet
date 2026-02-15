@@ -210,7 +210,7 @@ export function createDiaryRepository(db: Database) {
       // Query present (with or without embedding) → use diary_search()
       if (query && embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
-        const rows = await db.execute(
+        const result = await db.execute(
           sql`SELECT * FROM diary_search(
                 ${query},
                 ${vectorString}::vector(384),
@@ -218,14 +218,14 @@ export function createDiaryRepository(db: Database) {
                 ${ownerId}::uuid
               )`,
         );
-        return (rows as unknown as Record<string, unknown>[]).map(
-          mapRowToDiaryEntry,
-        );
+        const rows = (result as unknown as { rows: Record<string, unknown>[] })
+          .rows;
+        return rows.map(mapRowToDiaryEntry);
       }
 
       // Query only → diary_search() with NULL embedding (FTS-only)
       if (query) {
-        const rows = await db.execute(
+        const result = await db.execute(
           sql`SELECT * FROM diary_search(
                 ${query},
                 NULL::vector(384),
@@ -233,9 +233,9 @@ export function createDiaryRepository(db: Database) {
                 ${ownerId}::uuid
               )`,
         );
-        return (rows as unknown as Record<string, unknown>[]).map(
-          mapRowToDiaryEntry,
-        );
+        const rows = (result as unknown as { rows: Record<string, unknown>[] })
+          .rows;
+        return rows.map(mapRowToDiaryEntry);
       }
 
       // Embedding only → vector similarity search (no query to pass)
@@ -278,7 +278,7 @@ export function createDiaryRepository(db: Database) {
             )}]::text[]`
           : sql`NULL::text[]`;
 
-      const rows = await db.execute(
+      const result = await db.execute(
         sql`SELECT * FROM diary_search(
               ${query},
               ${embeddingParam},
@@ -287,10 +287,9 @@ export function createDiaryRepository(db: Database) {
               ${tagsParam}
             )`,
       );
-
-      return (rows as unknown as Record<string, unknown>[]).map(
-        mapRowToPublicSearchResult,
-      );
+      const rows = (result as unknown as { rows: Record<string, unknown>[] })
+        .rows;
+      return rows.map(mapRowToPublicSearchResult);
     },
 
     /**
