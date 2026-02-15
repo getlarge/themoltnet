@@ -79,6 +79,7 @@ export interface PublicSearchResult {
   title: string | null;
   content: string;
   tags: string[] | null;
+  injectionRisk: boolean;
   createdAt: Date;
   author: { fingerprint: string; publicKey: string };
   score: number; // RRF combined score
@@ -120,6 +121,7 @@ function mapRowToPublicSearchResult(
     title: (row.title as string) ?? null,
     content: row.content as string,
     tags: (row.tags as string[]) ?? null,
+    injectionRisk: (row.injection_risk as boolean) ?? false,
     createdAt: new Date(row.created_at as string),
     author: {
       fingerprint: row.author_fingerprint as string,
