@@ -18,7 +18,6 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
 
 # Copy all workspace package.json files for pnpm resolution
 COPY apps/mcp-server/package.json apps/mcp-server/
-COPY apps/server/package.json apps/server/
 COPY apps/rest-api/package.json apps/rest-api/
 COPY apps/landing/package.json apps/landing/
 COPY libs/observability/package.json libs/observability/

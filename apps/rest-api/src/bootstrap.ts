@@ -1,22 +1,16 @@
 /**
- * @moltnet/server — Combined Server Bootstrap
+ * @moltnet/rest-api — Server Bootstrap
  *
  * Initializes all services (database, Ory, diary, crypto, auth, observability)
- * and registers both the REST API routes and the static landing page on a
- * single Fastify instance.
+ * and registers the REST API routes on a Fastify instance.
  *
- * DBOS lifecycle is handled by the DBOS plugin from @moltnet/rest-api.
+ * DBOS lifecycle is handled by the DBOS plugin.
  * The plugin requires cryptoService, agentRepository, voucherRepository,
  * signingRequestRepository, and permissionChecker to be decorated before
  * it registers. It also takes identityApi and oauth2Api for the
  * registration workflow.
  */
 
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-import fastifyStatic from '@fastify/static';
 import {
   createOryClients,
   createPermissionChecker,
@@ -41,20 +35,12 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
-import {
-  dbosPlugin,
-  registerApiRoutes,
-  resolveOryUrls,
-} from '@moltnet/rest-api';
-import Fastify, {
-  type FastifyInstance,
-  type FastifyReply,
-  type FastifyRequest,
-} from 'fastify';
+import Fastify, { type FastifyInstance } from 'fastify';
 
-import type { CombinedConfig } from './config.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { registerApiRoutes } from './app.js';
+import type { AppConfig } from './config.js';
+import { resolveOryUrls } from './config.js';
+import dbosPlugin from './plugins/dbos.js';
 
 export interface BootstrapResult {
   app: FastifyInstance;
@@ -62,9 +48,7 @@ export interface BootstrapResult {
   observability: ObservabilityContext | null;
 }
 
-export async function bootstrap(
-  config: CombinedConfig,
-): Promise<BootstrapResult> {
+export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // ── Observability ──────────────────────────────────────────────
   let observability: ObservabilityContext | null = null;
 
@@ -117,7 +101,7 @@ export async function bootstrap(
 
   // ── Database ───────────────────────────────────────────────────
   if (!config.database.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required for the combined server');
+    throw new Error('DATABASE_URL is required');
   }
 
   const dbConnection = createDatabase(config.database.DATABASE_URL);
@@ -184,9 +168,6 @@ export async function bootstrap(
   });
 
   // ── REST API routes ────────────────────────────────────────────
-  // Services already decorated by DBOS plugin (dataSource) and above
-  // (cryptoService, agentRepository, signingRequestRepository, permissionChecker)
-  // are skipped by registerApiRoutes via hasDecorator guards.
   await registerApiRoutes(app, {
     diaryService,
     embeddingService,
@@ -224,52 +205,5 @@ export async function bootstrap(
     });
   }
 
-  // ── Static landing page ────────────────────────────────────────
-  const staticDir = resolveStaticDir(config.staticDir);
-
-  if (staticDir) {
-    await app.register(fastifyStatic, {
-      root: staticDir,
-      prefix: '/',
-      wildcard: false,
-    });
-
-    // SPA fallback: serve index.html for browser navigation only.
-    // API clients (Accept: application/json) get a proper JSON 404.
-    app.setNotFoundHandler((request: FastifyRequest, reply: FastifyReply) => {
-      const accept = request.headers.accept ?? '';
-      if (
-        request.method === 'GET' &&
-        accept.includes('text/html') &&
-        !accept.includes('application/json')
-      ) {
-        return reply.sendFile('index.html');
-      }
-      return reply.status(404).send({ error: 'Not Found' });
-    });
-  }
-
   return { app, dbConnection, observability };
-}
-
-function resolveStaticDir(configDir?: string): string | null {
-  if (configDir) {
-    if (!existsSync(configDir)) {
-      throw new Error(`STATIC_DIR does not exist: ${configDir}`);
-    }
-    return configDir;
-  }
-
-  const candidates = [
-    path.resolve('/app/public'),
-    path.resolve(__dirname, '../../landing/dist'),
-  ];
-
-  for (const candidate of candidates) {
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
 }

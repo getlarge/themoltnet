@@ -1,5 +1,5 @@
-# Fly.io configuration for MoltNet combined server
-# See https://github.com/getlarge/themoltnet/issues/42
+# Fly.io configuration for MoltNet REST API
+# See https://github.com/getlarge/themoltnet/issues/192
 
 app = "moltnet"
 primary_region = "fra"  # Frankfurt — EU data residency
@@ -20,7 +20,7 @@ primary_region = "fra"  # Frankfurt — EU data residency
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "suspend"
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 1
   processes = ["app"]

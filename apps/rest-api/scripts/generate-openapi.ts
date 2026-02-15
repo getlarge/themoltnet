@@ -15,6 +15,8 @@ import { buildApp } from '../src/app.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const defaultOutputPath = resolve(__dirname, '..', 'public', 'openapi.json');
+
 // Proxy that returns a no-op function for any property access.
 // Used as a stub for services that won't be called during spec generation.
 function createStubService(): unknown {
@@ -27,9 +29,7 @@ function createStubService(): unknown {
 }
 
 async function main() {
-  const outputPath =
-    process.argv[2] ||
-    resolve(__dirname, '..', '..', '..', 'libs', 'api-client', 'openapi.json');
+  const outputPath = process.argv[2] || defaultOutputPath;
 
   const app = await buildApp({
     diaryService: createStubService() as never,
@@ -64,24 +64,12 @@ async function main() {
 
   const spec = app.swagger();
   const json = JSON.stringify(spec, null, 2);
+  mkdirSync(dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, json);
-
-  // Also write to the landing page public directory
-  const landingPublicPath = resolve(
-    __dirname,
-    '..',
-    '..',
-    'landing',
-    'public',
-    'openapi.json',
-  );
-  mkdirSync(dirname(landingPublicPath), { recursive: true });
-  writeFileSync(landingPublicPath, json);
 
   await app.close();
 
   console.log(`OpenAPI spec written to ${outputPath}`);
-  console.log(`OpenAPI spec written to ${landingPublicPath}`);
 }
 
 main().catch((err) => {

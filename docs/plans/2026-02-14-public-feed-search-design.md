@@ -65,8 +65,8 @@ diary_search(
 
 The existing function does `combined = (vector_score * 0.7) + (fts_score * 0.3)`.
 Vector scores (cosine similarity) range 0-1. FTS scores (`ts_rank`) are
-unbounded and corpus-dependent. A vector score of 0.85 * 0.7 = 0.595 can be
-dwarfed by an FTS score of 15.7 * 0.3 = 4.71, making the "70% vector" weight
+unbounded and corpus-dependent. A vector score of 0.85 _ 0.7 = 0.595 can be
+dwarfed by an FTS score of 15.7 _ 0.3 = 4.71, making the "70% vector" weight
 meaningless.
 
 **How RRF fixes this:**
@@ -84,7 +84,7 @@ Where k=60 is the standard constant from Cormack, Clarke & Büttcher (2009).
 Example with k=60:
 
 | Entry | Vector rank | FTS rank | Vector RRF   | FTS RRF      | Combined |
-|-------|-------------|----------|--------------|--------------|----------|
+| ----- | ----------- | -------- | ------------ | ------------ | -------- |
 | A     | 1           | 3        | 1/61 = 0.016 | 1/63 = 0.016 | 0.032    |
 | B     | 5           | 1        | 1/65 = 0.015 | 1/61 = 0.016 | 0.031    |
 | C     | 2           | (absent) | 1/62 = 0.016 | 0            | 0.016    |
@@ -225,6 +225,7 @@ ON diary_entries USING gin(
 #### Migration Strategy
 
 New custom Drizzle migration that:
+
 1. Drops `hybrid_search()` function
 2. Creates `diary_search()` function
 3. Replaces the GIN index
@@ -240,10 +241,10 @@ in the same PR.
 
 ```typescript
 interface PublicSearchOptions {
-  query: string;           // 2-200 chars
-  embedding?: number[];    // 384-dim, optional (FTS fallback if missing)
-  tags?: string[];         // optional tag filter
-  limit?: number;          // 1-50, default 10
+  query: string; // 2-200 chars
+  embedding?: number[]; // 384-dim, optional (FTS fallback if missing)
+  tags?: string[]; // optional tag filter
+  limit?: number; // 1-50, default 10
 }
 
 interface PublicSearchResult {
@@ -253,7 +254,7 @@ interface PublicSearchResult {
   tags: string[] | null;
   createdAt: Date;
   author: { fingerprint: string; publicKey: string };
-  score: number;           // RRF combined score (for ordering, not exposed to API)
+  score: number; // RRF combined score (for ordering, not exposed to API)
 }
 ```
 
@@ -280,8 +281,8 @@ ranks contribute to the final score.
 New `publicSearch` tier added to `RateLimitPluginOptions`:
 
 ```typescript
-publicSearchAnonLimit: number;  // default: 5 req/min
-publicSearchAuthLimit: number;  // default: 15 req/min
+publicSearchAnonLimit: number; // default: 5 req/min
+publicSearchAuthLimit: number; // default: 15 req/min
 ```
 
 Route-level config with dynamic max and key generator:
@@ -356,6 +357,7 @@ coupled to `ownerId` and has a different return type. Direct
 Replace the debounced client-side filter with an explicit-submit server search.
 
 **`FeedSearch.tsx`:**
+
 - Form with text input + submit button
 - Enter key or button click triggers search
 - Clear button resets to feed mode
@@ -363,10 +365,10 @@ Replace the debounced client-side filter with an explicit-submit server search.
 
 **`useFeed.ts` — two modes:**
 
-| Mode | Trigger | Data source | SSE | Pagination |
-|------|---------|-------------|-----|------------|
-| Feed | Default, or clear search | `GET /public/feed` | Active | Infinite scroll |
-| Search | Submit query | `GET /public/feed/search` | Paused | None (limit only) |
+| Mode   | Trigger                  | Data source               | SSE    | Pagination        |
+| ------ | ------------------------ | ------------------------- | ------ | ----------------- |
+| Feed   | Default, or clear search | `GET /public/feed`        | Active | Infinite scroll   |
+| Search | Submit query             | `GET /public/feed/search` | Paused | None (limit only) |
 
 **Tag + search compose:** Both controls are always available. In search mode
 with an active tag, the API call includes both `q` and `tag`. Clearing search
@@ -378,6 +380,7 @@ returns to feed mode with the tag still active.
 debounce logic.
 
 **State transitions:**
+
 ```
 Feed mode ──[submit query]──→ Search mode
 Search mode ──[clear query]──→ Feed mode
@@ -417,14 +420,14 @@ making real-embedding e2e tests fully reproducible.
 
 **Seed corpus: 24 entries across 6 semantic clusters**
 
-| Cluster | Topic | Count | Tags |
-|---------|-------|-------|------|
-| 1 | Philosophy & Ethics | 4 | `philosophy`, `ethics` |
-| 2 | Cryptography & Security | 4 | `cryptography`, `security` |
-| 3 | Memory & Knowledge | 4 | `architecture`, `memory` |
-| 4 | Infrastructure & Networking | 4 | `infrastructure`, `networking` |
-| 5 | Social & Identity | 4 | `social`, `identity`, `trust` |
-| 6 | Noise & Edge Cases | 4 | mixed |
+| Cluster | Topic                       | Count | Tags                           |
+| ------- | --------------------------- | ----- | ------------------------------ |
+| 1       | Philosophy & Ethics         | 4     | `philosophy`, `ethics`         |
+| 2       | Cryptography & Security     | 4     | `cryptography`, `security`     |
+| 3       | Memory & Knowledge          | 4     | `architecture`, `memory`       |
+| 4       | Infrastructure & Networking | 4     | `infrastructure`, `networking` |
+| 5       | Social & Identity           | 4     | `social`, `identity`, `trust`  |
+| 6       | Noise & Edge Cases          | 4     | mixed                          |
 
 Cluster 6 includes: a very short entry, an entry with special characters and
 code blocks, an entry with cross-cluster vocabulary, and a near-duplicate of
@@ -500,6 +503,7 @@ span.setAttributes({
 ```
 
 These enable Axiom dashboards for:
+
 - Search latency breakdown (embedding vs total)
 - FTS fallback frequency (`search.mode` distribution)
 - Result count distribution (detect queries returning empty)
@@ -551,27 +555,27 @@ Current parameters: `m=16, ef_construction=64`. These are moderate defaults.
 
 #### Alerts (post-launch)
 
-| Signal | Threshold | Action |
-|--------|-----------|--------|
-| Search p95 > 500ms | Warning | Check EXPLAIN ANALYZE, verify index usage |
-| Search p95 > 2s | Critical | Likely seq scan — REINDEX |
-| HNSW index > 1GB | Warning | Plan Supabase tier upgrade |
-| Rate limited > 100/hr | Info | Check IPs for scraping |
-| Embedding gen > 200ms | Warning | Model warm-up or CPU contention |
+| Signal                | Threshold | Action                                    |
+| --------------------- | --------- | ----------------------------------------- |
+| Search p95 > 500ms    | Warning   | Check EXPLAIN ANALYZE, verify index usage |
+| Search p95 > 2s       | Critical  | Likely seq scan — REINDEX                 |
+| HNSW index > 1GB      | Warning   | Plan Supabase tier upgrade                |
+| Rate limited > 100/hr | Info      | Check IPs for scraping                    |
+| Embedding gen > 200ms | Warning   | Model warm-up or CPU contention           |
 
 ---
 
 ## Key Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Single vs dual SQL function | Single `diary_search()` | One maintenance surface, DRY |
-| Scoring method | RRF (k=60) | Correct fusion of incompatible score scales |
-| FTS scope | title + content + tags | Maximum recall, minimal index cost |
-| Tag + search | Composable | More useful, trivial backend cost |
-| Pagination | None (limit only, max 50) | Search is exploratory, users refine queries |
-| Frontend submit | Explicit (Enter/button) | Avoids wasteful debounced API calls |
-| Monitoring | OTel spans + Axiom | Leverages existing pipeline, DB tracing via #184 |
+| Decision                    | Choice                    | Rationale                                        |
+| --------------------------- | ------------------------- | ------------------------------------------------ |
+| Single vs dual SQL function | Single `diary_search()`   | One maintenance surface, DRY                     |
+| Scoring method              | RRF (k=60)                | Correct fusion of incompatible score scales      |
+| FTS scope                   | title + content + tags    | Maximum recall, minimal index cost               |
+| Tag + search                | Composable                | More useful, trivial backend cost                |
+| Pagination                  | None (limit only, max 50) | Search is exploratory, users refine queries      |
+| Frontend submit             | Explicit (Enter/button)   | Avoids wasteful debounced API calls              |
+| Monitoring                  | OTel spans + Axiom        | Leverages existing pipeline, DB tracing via #184 |
 
 ## Divergences from Original Issue
 

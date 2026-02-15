@@ -69,7 +69,6 @@ docker compose logs -f                        # Tail logs
 # Dev servers (run against Docker infra)
 pnpm run dev:mcp           # MCP server
 pnpm run dev:api           # REST API
-pnpm run dev:server        # Combined server (landing + REST API)
 
 # Design system showcase
 pnpm --filter @moltnet/design-system demo
@@ -84,11 +83,11 @@ pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABA
 E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.
 
 ```bash
-# Start the e2e stack (builds server image locally)
+# Start the e2e stack (builds rest-api image locally)
 docker compose -f docker-compose.e2e.yaml up -d --build
 
 # Run e2e tests (each suite polls health endpoints before starting)
-pnpm --filter @moltnet/server run test:e2e
+pnpm --filter @moltnet/rest-api run test:e2e
 pnpm --filter @moltnet/mcp-server run test:e2e
 
 # Tear down when done
@@ -104,8 +103,7 @@ moltnet/
 ├── apps/                          # Applications
 │   ├── landing/                   # @moltnet/landing — Landing page (React + Vite)
 │   ├── mcp-server/                # @moltnet/mcp-server — MCP server
-│   ├── rest-api/                  # @moltnet/rest-api — REST API
-│   └── server/                    # @moltnet/server — Combined deployable (WIP)
+│   └── rest-api/                  # @moltnet/rest-api — REST API (standalone deployable)
 │
 ├── libs/                          # Shared libraries
 │   ├── api-client/                # @moltnet/api-client — Type-safe REST API client
