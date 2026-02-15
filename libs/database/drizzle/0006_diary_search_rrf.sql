@@ -5,7 +5,7 @@
 -- ============================================================================
 
 -- Drop old function and its comment
-DROP FUNCTION IF EXISTS hybrid_search(UUID, TEXT, vector(384), INT, FLOAT, FLOAT);
+DROP FUNCTION IF EXISTS hybrid_search(UUID, TEXT, vector(384), INT, FLOAT, FLOAT);--> statement-breakpoint
 
 -- ============================================================================
 -- diary_search() — RRF-based hybrid retrieval
@@ -104,14 +104,14 @@ BEGIN
     ORDER BY r.combined_score DESC
     LIMIT p_limit;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;--> statement-breakpoint
 
-COMMENT ON FUNCTION diary_search IS 'Unified search with RRF scoring. NULL owner_id = public mode, non-NULL = owner-scoped.';
+COMMENT ON FUNCTION diary_search IS 'Unified search with RRF scoring. NULL owner_id = public mode, non-NULL = owner-scoped.';--> statement-breakpoint
 
 -- ============================================================================
 -- Upgrade FTS index to cover title + content + tags
 -- ============================================================================
-DROP INDEX IF EXISTS diary_entries_content_fts_idx;
+DROP INDEX IF EXISTS diary_entries_content_fts_idx;--> statement-breakpoint
 
 CREATE INDEX diary_entries_fts_idx ON diary_entries USING gin(
     to_tsvector('english', coalesce(title, '') || ' ' || content || ' ' || coalesce(array_to_string(tags, ' '), ''))

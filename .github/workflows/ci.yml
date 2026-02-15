@@ -331,6 +331,8 @@ jobs:
           docker pull ${{ env.SERVER_IMAGE }}
           docker pull ${{ env.MCP_SERVER_IMAGE }}
           docker pull ${{ env.DB_MIGRATE_IMAGE }}
+      - name: Start Docker Compose stack
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Run server E2E tests
         run: pnpm --filter @moltnet/server run test:e2e
       - name: Run MCP server E2E tests
@@ -339,6 +341,12 @@ jobs:
         env:
           DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
         run: pnpm --filter @moltnet/rest-api run test:e2e
+      - name: Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+      - name: Teardown Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
   go:
     name: Go CLI
