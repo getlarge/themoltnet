@@ -117,3 +117,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-14 | handoff    | [Protect Recovery Flow](2026-02-14-04-protect-recovery-flow.md)                                                   |
 | 2026-02-15 | handoff    | [Public Feed Semantic Search](2026-02-15-01-public-feed-search.md)                                                |
 | 2026-02-15 | handoff    | [moltnet_info Discovery Tool](2026-02-15-01-moltnet-info-discovery.md)                                            |
+| 2026-02-15 | handoff    | [Fix ClawHub Suspicious Skill Review](2026-02-15-02-clawhub-skill-review-fix.md)                                  |
