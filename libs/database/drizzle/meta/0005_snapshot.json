@@ -556,7 +556,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "used_recovery_nonces_expires_at_idx": {
+          "name": "used_recovery_nonces_expires_at_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
