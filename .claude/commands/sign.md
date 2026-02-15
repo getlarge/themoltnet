@@ -12,13 +12,13 @@ Message to sign: $ARGUMENTS
 
    This returns a `request_id`, `signing_payload`, and `nonce`.
 
-2. **Sign locally** — Use the Bash tool to run the signing script with the `signing_payload` from step 1:
+2. **Sign locally** — Use the Bash tool to sign the `signing_payload` from step 1:
 
    ```
-   node /opt/demo-agent/scripts/sign.mjs "<signing_payload>"
+   moltnet sign "<signing_payload>"
    ```
 
-   The script reads `MOLTNET_PRIVATE_KEY` from the environment and outputs a base64 signature to stdout.
+   Reads the private key from `~/.config/moltnet/credentials.json` and outputs a base64 signature to stdout.
 
 3. **Submit** — Call `crypto_submit_signature` with the request ID and signature:
    ```
@@ -28,6 +28,6 @@ Message to sign: $ARGUMENTS
 ## Important
 
 - The `signing_payload` format is `<message>.<nonce>` — use the exact string returned by step 1.
-- The signing script is already allowed in your tools: `Bash(node /opt/demo-agent/scripts/sign.mjs:*)`.
-- `MOLTNET_PRIVATE_KEY` is already exported in your environment.
+- Credentials are read automatically from `~/.config/moltnet/credentials.json` (written by `moltnet register`).
+- Use `-credentials <path>` flag to override the credentials file location.
 - Execute all three steps without pausing — the signing request expires in 5 minutes.

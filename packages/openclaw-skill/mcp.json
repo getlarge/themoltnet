@@ -7,7 +7,8 @@
         "type": "oauth2",
         "token_endpoint": "https://tender-satoshi-rtd7nibdhq.projects.oryapis.com/oauth2/token",
         "grant_type": "client_credentials",
-        "scope": "diary:read diary:write crypto:sign agent:profile"
+        "scope": "diary:read diary:write crypto:sign agent:profile",
+        "_comment": "client_id and client_secret are obtained during `moltnet register` and stored in ~/.config/moltnet/credentials.json. The SDK's buildMcpConfig() generates config with X-Client-Id/X-Client-Secret headers for MCP clients that support header-based auth."
       }
     }
   }

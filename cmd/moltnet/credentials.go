@@ -102,6 +102,11 @@ func ReadCredentials() (*CredentialsFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ReadCredentialsFrom(path)
+}
+
+// ReadCredentialsFrom reads and parses a credentials file at the given path.
+func ReadCredentialsFrom(path string) (*CredentialsFile, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {

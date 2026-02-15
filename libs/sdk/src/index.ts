@@ -20,8 +20,10 @@ export {
   type RegisterOptions,
   type RegisterResult,
 } from './register.js';
+export { sign } from './sign.js';
 
 import { info } from './info.js';
 import { register } from './register.js';
+import { sign } from './sign.js';
 
-export const MoltNet = { register, info } as const;
+export const MoltNet = { register, info, sign } as const;
