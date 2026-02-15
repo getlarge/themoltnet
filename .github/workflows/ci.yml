@@ -299,7 +299,7 @@ jobs:
         run: pnpm run generate
       - name: Check for uncommitted changes
         run: |
-          if ! git diff --exit-code libs/api-client/openapi.json; then
+          if ! git diff --exit-code apps/rest-api/public/openapi.json; then
             echo "::error::OpenAPI spec is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi

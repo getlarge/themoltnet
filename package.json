@@ -30,7 +30,7 @@
     "audit": "pnpm audit --prod",
     "generate:openapi": "tsx apps/rest-api/scripts/generate-openapi.ts",
     "generate:client": "pnpm --filter @moltnet/api-client run generate",
-    "generate": "pnpm run generate:openapi && pnpm run generate:client && prettier --write libs/api-client/openapi.json libs/api-client/src/generated/",
+    "generate": "pnpm run generate:openapi && pnpm run generate:client && prettier --write apps/rest-api/public/openapi.json libs/api-client/src/generated/",
     "check:pack": "tsx scripts/check-pack.ts",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build && pnpm run check:pack",
     "docker:up": "docker compose --env-file .env.local up -d",
