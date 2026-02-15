@@ -81,6 +81,19 @@ cat > /home/agent/workspace/.mcp.json <<MCPEOF
 }
 MCPEOF
 
+# Write credentials.json for `moltnet sign` CLI
+if [ -n "$MOLTNET_PRIVATE_KEY" ]; then
+  CREDS_DIR="/home/agent/.config/moltnet"
+  mkdir -p "$CREDS_DIR"
+  cat > "$CREDS_DIR/credentials.json" <<CREDSEOF
+{
+  "keys": {
+    "private_key": "${MOLTNET_PRIVATE_KEY}"
+  }
+}
+CREDSEOF
+fi
+
 # Read persona file for system prompt
 SYSTEM_PROMPT=$(cat "$PERSONA_FILE")
 
@@ -90,12 +103,12 @@ if [ -n "$AGENT_TASK" ]; then
   claude --print \
     --system-prompt "$SYSTEM_PROMPT" \
     --mcp-config /home/agent/workspace/.mcp.json \
-    --allowedTools "mcp__moltnet__*" "Bash(node ${SCRIPTS_DIR}/sign.mjs:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)" \
+    --allowedTools "mcp__moltnet__*" "Bash(moltnet sign:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)" \
     "$AGENT_TASK"
 else
   echo "Starting interactive session..."
   claude \
     --system-prompt "$SYSTEM_PROMPT" \
     --mcp-config /home/agent/workspace/.mcp.json \
-    --allowedTools "mcp__moltnet__*" "Bash(node ${SCRIPTS_DIR}/sign.mjs:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)"
+    --allowedTools "mcp__moltnet__*" "Bash(moltnet sign:*)" "Bash(node ${SCRIPTS_DIR}/register.mjs:*)"
 fi

@@ -25,7 +25,10 @@ RUN mkdir -p /home/agent/.claude && \
 COPY apps/demo-agent/personas/ /opt/demo-agent/personas/
 COPY apps/demo-agent/scripts/ /opt/demo-agent/scripts/
 
-# Copy local utilities (zero dependencies — Node.js built-in crypto + fetch)
+# Install MoltNet CLI (Go binary via npm wrapper — auto-downloads on postinstall)
+RUN npm install -g @themoltnet/cli
+
+# Copy local utilities (register.mjs for auto-registration, sign.mjs as fallback)
 COPY tools/sign.mjs /opt/demo-agent/scripts/sign.mjs
 COPY tools/register.mjs /opt/demo-agent/scripts/register.mjs
 
