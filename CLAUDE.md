@@ -90,8 +90,6 @@ docker compose -f docker-compose.e2e.yaml up -d --build
 # Run e2e tests (each suite polls health endpoints before starting)
 pnpm --filter @moltnet/server run test:e2e
 pnpm --filter @moltnet/mcp-server run test:e2e
-DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet \
-  pnpm --filter @moltnet/rest-api run test:e2e
 
 # Tear down when done
 docker compose -f docker-compose.e2e.yaml down -v

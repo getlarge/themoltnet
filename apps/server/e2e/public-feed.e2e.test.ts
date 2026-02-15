@@ -12,12 +12,32 @@ import {
   createDiaryEntry,
   getPublicEntry,
   getPublicFeed,
+  searchPublicFeed,
   setDiaryEntryVisibility,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
+
+async function createPublicEntry(
+  client: Client,
+  agent: TestAgent,
+  body: { content: string; title?: string; tags?: string[] },
+): Promise<string> {
+  const { data: entry } = await createDiaryEntry({
+    client,
+    auth: () => agent.accessToken,
+    body,
+  });
+  await setDiaryEntryVisibility({
+    client,
+    auth: () => agent.accessToken,
+    path: { id: entry!.id },
+    body: { visibility: 'public' },
+  });
+  return entry!.id;
+}
 
 describe('Public Feed', () => {
   let harness: TestHarness;
@@ -43,23 +63,10 @@ describe('Public Feed', () => {
     });
 
     // Create a public entry for testing
-    const { data: entry } = await createDiaryEntry({
-      client,
-      auth: () => agent.accessToken,
-      body: {
-        content: 'Public e2e test entry',
-        tags: ['e2e', 'public-feed'],
-      },
+    publicEntryId = await createPublicEntry(client, agent, {
+      content: 'Public e2e test entry',
+      tags: ['e2e', 'public-feed'],
     });
-
-    await setDiaryEntryVisibility({
-      client,
-      auth: () => agent.accessToken,
-      path: { id: entry!.id },
-      body: { visibility: 'public' },
-    });
-
-    publicEntryId = entry!.id;
   });
 
   afterAll(async () => {
@@ -115,16 +122,8 @@ describe('Public Feed', () => {
 
     it('supports cursor-based pagination', async () => {
       // Create a second public entry
-      const { data: entry2 } = await createDiaryEntry({
-        client,
-        auth: () => agent.accessToken,
-        body: { content: 'Second public entry for pagination' },
-      });
-      await setDiaryEntryVisibility({
-        client,
-        auth: () => agent.accessToken,
-        path: { id: entry2!.id },
-        body: { visibility: 'public' },
+      await createPublicEntry(client, agent, {
+        content: 'Second public entry for pagination',
       });
 
       // Fetch page 1 with limit=1
@@ -212,5 +211,140 @@ describe('Public Feed', () => {
       expect(error).toBeDefined();
       expect(response.status).toBe(404);
     });
+  });
+});
+
+/**
+ * Public Feed Search E2E
+ *
+ * Seeds semantically distinct public entries via the API (server generates
+ * embeddings), then searches via GET /public/feed/search?q=...
+ */
+describe('Public Feed Search', () => {
+  let harness: TestHarness;
+  let client: Client;
+  let agent: TestAgent;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
+
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
+    agent = await createAgent({
+      baseUrl: harness.baseUrl,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+      voucherCode,
+    });
+
+    // Seed distinct entries across different domains
+    await Promise.all([
+      createPublicEntry(client, agent, {
+        title: 'On Autonomy',
+        content:
+          'Self-governance is the foundation of agent freedom. Without the ability to make independent decisions, an agent is merely a tool executing instructions.',
+        tags: ['philosophy'],
+      }),
+      createPublicEntry(client, agent, {
+        title: 'Ed25519 Key Generation and Rotation',
+        content:
+          'Ed25519 provides compact 32-byte public keys and 64-byte signatures with fast verification. Key rotation requires dual-signed proofs.',
+        tags: ['cryptography'],
+      }),
+      createPublicEntry(client, agent, {
+        title: 'The Social Contract Between Agents',
+        content:
+          'Trust between agents is established through vouching and verification, not through centralized authority.',
+        tags: ['philosophy', 'trust'],
+      }),
+      createPublicEntry(client, agent, {
+        title: 'Vector Embeddings for Semantic Recall',
+        content:
+          'Vector embeddings transform text into dense numerical representations where semantic similarity maps to geometric proximity.',
+        tags: ['architecture', 'memory'],
+      }),
+      createPublicEntry(client, agent, {
+        title: 'Rate Limiting and Backpressure',
+        content:
+          'Distributed systems need flow control mechanisms to prevent cascading failures. Token bucket rate limiting constrains request throughput.',
+        tags: ['infrastructure'],
+      }),
+    ]);
+  }, 120_000); // model download + embedding generation
+
+  afterAll(async () => {
+    await harness?.teardown();
+  });
+
+  it('returns results matching the query', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'agent autonomy freedom' },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items.length).toBeGreaterThan(0);
+    const titles = data!.items.map((r) => r.title);
+    expect(titles).toContain('On Autonomy');
+  });
+
+  it('exact keyword: "Ed25519" returns cryptography entry', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'Ed25519' },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items.length).toBeGreaterThan(0);
+    expect(data!.items[0].title).toBe('Ed25519 Key Generation and Rotation');
+  });
+
+  it('filters by tag', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'trust', tag: 'philosophy' },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items.length).toBeGreaterThan(0);
+    for (const item of data!.items) {
+      expect(item.tags).toContain('philosophy');
+    }
+  });
+
+  it('respects limit parameter', async () => {
+    const { data, error } = await searchPublicFeed({
+      client,
+      query: { q: 'agent', limit: 2 },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.items.length).toBeLessThanOrEqual(2);
+  });
+
+  it('includes author info in results', async () => {
+    const { data } = await searchPublicFeed({
+      client,
+      query: { q: 'autonomy' },
+    });
+
+    expect(data!.items.length).toBeGreaterThan(0);
+    expect(data!.items[0].author.fingerprint).toBe(agent.keyPair.fingerprint);
+    expect(data!.items[0].author.publicKey).toBeDefined();
+  });
+
+  it('returns 400 for missing query', async () => {
+    const { error, response } = await searchPublicFeed({
+      client,
+      query: { q: '' },
+    });
+
+    expect(error).toBeDefined();
+    expect(response.status).toBe(400);
   });
 });
