@@ -63,9 +63,11 @@ export async function writeCredentials(
   return filePath;
 }
 
-export async function readCredentials(): Promise<CredentialsFile | null> {
+export async function readCredentials(
+  path?: string,
+): Promise<CredentialsFile | null> {
   try {
-    const content = await readFile(getCredentialsPath(), 'utf-8');
+    const content = await readFile(path ?? getCredentialsPath(), 'utf-8');
     return JSON.parse(content) as CredentialsFile;
   } catch {
     return null;
