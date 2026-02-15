@@ -86,7 +86,7 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 21 registered tools', async () => {
+    it('lists all 22 registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
@@ -115,11 +115,12 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('moltnet_vouch');
       expect(toolNames).toContain('moltnet_vouchers');
       expect(toolNames).toContain('moltnet_trust_graph');
-      // Public Feed (2)
+      // Public Feed (3)
       expect(toolNames).toContain('public_feed_browse');
       expect(toolNames).toContain('public_feed_read');
+      expect(toolNames).toContain('public_feed_search');
 
-      expect(tools).toHaveLength(21);
+      expect(tools).toHaveLength(22);
     });
 
     it('lists all registered resources', async () => {
@@ -405,6 +406,22 @@ describe('MCP Server E2E', () => {
       });
 
       expect(result.isError).toBe(true);
+    });
+
+    it('searches public feed via MCP tool', async () => {
+      requireSetup();
+      const result = await client.callTool({
+        name: 'public_feed_search',
+        arguments: { query: 'public feed' },
+      });
+
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(
+        result.isError,
+        `public_feed_search error: ${content[0].text}`,
+      ).toBeUndefined();
+      const parsed = JSON.parse(content[0].text);
+      expect(parsed.items).toBeDefined();
     });
 
     // ── Identity Bootstrap Flow ──

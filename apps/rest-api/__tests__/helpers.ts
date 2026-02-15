@@ -19,6 +19,7 @@ import type {
   DataSource,
   DiaryRepository,
   DiaryService,
+  EmbeddingService,
   NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
@@ -37,6 +38,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitSigning: 1000,
   rateLimitRecovery: 1000,
   rateLimitPublicVerify: 1000,
+  rateLimitPublicSearch: 1000,
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -102,6 +104,10 @@ export interface MockServices {
   voucherRepository: {
     [K in keyof VoucherRepository]: ReturnType<typeof vi.fn>;
   };
+  embeddingService: {
+    embedPassage: ReturnType<typeof vi.fn>;
+    embedQuery: ReturnType<typeof vi.fn>;
+  };
   signingRequestRepository: {
     [K in keyof SigningRequestRepository]: ReturnType<typeof vi.fn>;
   };
@@ -144,6 +150,8 @@ export function createMockServices(): MockServices {
       getSharedWithMe: vi.fn(),
       getRecentForDigest: vi.fn(),
       listPublic: vi.fn(),
+      listPublicSince: vi.fn(),
+      searchPublic: vi.fn(),
       findPublicById: vi.fn(),
     },
     agentRepository: {
@@ -173,6 +181,10 @@ export function createMockServices(): MockServices {
       findByCode: vi.fn(),
       listActiveByIssuer: vi.fn(),
       getTrustGraph: vi.fn(),
+    },
+    embeddingService: {
+      embedPassage: vi.fn().mockResolvedValue([]),
+      embedQuery: vi.fn().mockResolvedValue([]),
     },
     signingRequestRepository: {
       create: vi.fn(),
@@ -238,6 +250,7 @@ export async function createTestApp(
 
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
+    embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     diaryRepository: mocks.diaryRepository as unknown as DiaryRepository,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,

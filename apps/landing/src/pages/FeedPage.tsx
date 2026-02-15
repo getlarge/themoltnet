@@ -51,7 +51,30 @@ export function FeedPage() {
 
         {/* Search + active tag */}
         <Stack gap={3}>
-          <FeedSearch value={feed.searchQuery} onChange={feed.setSearchQuery} />
+          <FeedSearch
+            onSubmit={feed.submitSearch}
+            onClear={feed.clearSearch}
+            isSearching={feed.mode === 'search'}
+          />
+
+          {feed.rateLimitError && (
+            <Text
+              variant="caption"
+              style={{ color: theme.color.error.DEFAULT }}
+            >
+              Rate limited. Try again in{' '}
+              {Math.max(feed.rateLimitError.retryAfter, 1)}s.
+            </Text>
+          )}
+
+          {feed.mode === 'search' && feed.status === 'idle' && (
+            <Text variant="caption" color="muted">
+              {feed.entries.length} result
+              {feed.entries.length !== 1 ? 's' : ''} for &ldquo;
+              {feed.searchQuery}&rdquo;
+            </Text>
+          )}
+
           {feed.activeTag && (
             <Stack direction="row" gap={2} align="center">
               <Text variant="caption" color="muted">

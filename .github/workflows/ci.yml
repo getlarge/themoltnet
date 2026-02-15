@@ -14,6 +14,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -29,6 +30,7 @@ jobs:
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -44,6 +46,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -59,6 +62,7 @@ jobs:
   code-analysis:
     name: Code Analysis (Knip)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: write
@@ -150,6 +154,7 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true
     permissions:
       contents: read
@@ -236,6 +241,7 @@ jobs:
   journal:
     name: Journal Entry
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     if: >-
@@ -278,6 +284,7 @@ jobs:
   openapi:
     name: OpenAPI Spec
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -308,6 +315,7 @@ jobs:
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: read
@@ -335,14 +343,23 @@ jobs:
           docker pull ${{ env.REST_API_IMAGE }}
           docker pull ${{ env.MCP_SERVER_IMAGE }}
           docker pull ${{ env.DB_MIGRATE_IMAGE }}
+      - name: Start Docker Compose stack
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Run REST API E2E tests
         run: pnpm --filter @moltnet/rest-api run test:e2e
       - name: Run MCP server E2E tests
         run: pnpm --filter @moltnet/mcp-server run test:e2e
+      - name: Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml logs --tail=50
+      - name: Teardown Docker Compose
+        if: always()
+        run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml down -v --remove-orphans
 
   go:
     name: Go CLI
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -356,6 +373,7 @@ jobs:
   skill-check:
     name: Skill Validation
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
@@ -410,6 +428,7 @@ jobs:
   build-and-push:
     name: Build & Push (${{ matrix.image }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: write

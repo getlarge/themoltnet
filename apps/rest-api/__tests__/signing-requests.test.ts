@@ -135,6 +135,17 @@ function createApp(
       client: { __mock: 'transactionalClient' },
       runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     },
+    nonceRepository: {
+      consume: vi.fn().mockResolvedValue(true),
+      cleanup: vi.fn(),
+    } as never,
+    transactionRunner: {
+      runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    } as never,
+    embeddingService: {
+      embedPassage: vi.fn().mockResolvedValue([]),
+      embedQuery: vi.fn().mockResolvedValue([]),
+    } as never,
     permissionChecker: {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
@@ -165,6 +176,7 @@ function createApp(
       rateLimitSigning: 1000,
       rateLimitRecovery: 1000,
       rateLimitPublicVerify: 1000,
+      rateLimitPublicSearch: 1000,
     },
   });
 }

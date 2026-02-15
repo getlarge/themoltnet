@@ -170,6 +170,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // ── REST API routes ────────────────────────────────────────────
   await registerApiRoutes(app, {
     diaryService,
+    embeddingService,
     diaryRepository,
     agentRepository,
     cryptoService,
@@ -192,6 +193,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
       rateLimitRecovery: config.security.RATE_LIMIT_RECOVERY,
       rateLimitPublicVerify: config.security.RATE_LIMIT_PUBLIC_VERIFY,
+      rateLimitPublicSearch: config.security.RATE_LIMIT_PUBLIC_SEARCH,
     },
   });
 

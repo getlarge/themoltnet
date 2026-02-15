@@ -17,7 +17,7 @@ export type {
   TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
-export type { DiaryService } from '@moltnet/diary-service';
+export type { DiaryService, EmbeddingService } from '@moltnet/diary-service';
 
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
@@ -28,11 +28,12 @@ import type {
   TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
-import type { DiaryService } from '@moltnet/diary-service';
+import type { DiaryService, EmbeddingService } from '@moltnet/diary-service';
 
 declare module 'fastify' {
   interface FastifyInstance {
     diaryService: DiaryService;
+    embeddingService: EmbeddingService;
     diaryRepository: DiaryRepository;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;

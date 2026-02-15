@@ -1,7 +1,7 @@
 ---
 type: handoff
 date: 2026-02-15
-sequence: 01
+sequence: 02
 slug: split-landing-consolidate-server
 issue: 192
 branch: claude/split-landing-consolidate-server-192

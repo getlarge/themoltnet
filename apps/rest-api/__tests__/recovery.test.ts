@@ -132,6 +132,7 @@ describe('Recovery routes', () => {
         nonceRepository: mocks.nonceRepository as any,
         dataSource: mocks.dataSource as any,
         transactionRunner: mocks.transactionRunner as any,
+        embeddingService: mocks.embeddingService as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -271,6 +272,7 @@ describe('Recovery routes', () => {
         nonceRepository: mocks.nonceRepository as any,
         dataSource: mocks.dataSource as any,
         transactionRunner: mocks.transactionRunner as any,
+        embeddingService: mocks.embeddingService as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),

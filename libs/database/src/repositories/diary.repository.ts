@@ -67,6 +67,24 @@ export interface ListPublicSinceOptions {
   limit?: number; // default 50
 }
 
+export interface PublicSearchOptions {
+  query: string; // 2-200 chars
+  embedding?: number[]; // 384-dim, optional (FTS fallback if missing)
+  tags?: string[]; // optional tag filter
+  limit?: number; // 1-50, default 10
+}
+
+export interface PublicSearchResult {
+  id: string;
+  title: string | null;
+  content: string;
+  tags: string[] | null;
+  injectionRisk: boolean;
+  createdAt: Date;
+  author: { fingerprint: string; publicKey: string };
+  score: number; // RRF combined score
+}
+
 export interface PublicFeedEntry {
   id: string;
   title: string | null;
@@ -92,6 +110,24 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
     injectionRisk: (row.injection_risk as boolean) ?? false,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
+  };
+}
+
+function mapRowToPublicSearchResult(
+  row: Record<string, unknown>,
+): PublicSearchResult {
+  return {
+    id: row.id as string,
+    title: (row.title as string) ?? null,
+    content: row.content as string,
+    tags: (row.tags as string[]) ?? null,
+    injectionRisk: (row.injection_risk as boolean) ?? false,
+    createdAt: new Date(row.created_at as string),
+    author: {
+      fingerprint: row.author_fingerprint as string,
+      publicKey: row.author_public_key as string,
+    },
+    score: Number(row.combined_score ?? 0),
   };
 }
 
@@ -157,9 +193,9 @@ export function createDiaryRepository(db: Database) {
     /**
      * Hybrid search: combines vector similarity and full-text search.
      *
-     * When both query and embedding are provided, delegates to the
-     * `hybrid_search()` SQL function which uses weighted RRF scoring
-     * (70% vector + 30% FTS by default).
+     * When query is provided (with or without embedding), delegates to
+     * the `diary_search()` SQL function which uses RRF scoring.
+     * Embedding-only falls back to vector similarity search.
      */
     async search(options: DiarySearchOptions): Promise<DiaryEntry[]> {
       const {
@@ -171,23 +207,38 @@ export function createDiaryRepository(db: Database) {
         offset = 0,
       } = options;
 
-      // Both query and embedding → use hybrid_search() SQL function
+      // Query present (with or without embedding) → use diary_search()
       if (query && embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
-        const rows = await db.execute(
-          sql`SELECT * FROM hybrid_search(
-                ${ownerId}::uuid,
+        const result = await db.execute(
+          sql`SELECT * FROM diary_search(
                 ${query},
-                ${vectorString}::vector,
-                ${limit}
+                ${vectorString}::vector(384),
+                ${limit},
+                ${ownerId}::uuid
               )`,
         );
-        return (rows as unknown as Record<string, unknown>[]).map(
-          mapRowToDiaryEntry,
-        );
+        const rows = (result as unknown as { rows: Record<string, unknown>[] })
+          .rows;
+        return rows.map(mapRowToDiaryEntry);
       }
 
-      // Embedding only → vector similarity search
+      // Query only → diary_search() with NULL embedding (FTS-only)
+      if (query) {
+        const result = await db.execute(
+          sql`SELECT * FROM diary_search(
+                ${query},
+                NULL::vector(384),
+                ${limit},
+                ${ownerId}::uuid
+              )`,
+        );
+        const rows = (result as unknown as { rows: Record<string, unknown>[] })
+          .rows;
+        return rows.map(mapRowToDiaryEntry);
+      }
+
+      // Embedding only → vector similarity search (no query to pass)
       if (embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
         const rows = await db
@@ -200,25 +251,45 @@ export function createDiaryRepository(db: Database) {
         return rows.map((row) => ({ ...row, embedding: null }));
       }
 
-      // Query only → full-text search
-      if (query) {
-        const rows = await db
-          .select(publicColumns)
-          .from(diaryEntries)
-          .where(
-            and(
-              eq(diaryEntries.ownerId, ownerId),
-              sql`to_tsvector('english', ${diaryEntries.content}) @@ plainto_tsquery('english', ${query})`,
-            ),
-          )
-          .orderBy(desc(diaryEntries.createdAt))
-          .limit(limit)
-          .offset(offset);
-        return rows.map((row) => ({ ...row, embedding: null }));
-      }
-
       // No query/embedding → fall back to list
       return this.list({ ownerId, visibility, limit, offset });
+    },
+
+    /**
+     * Public feed search: calls diary_search() with NULL owner_id
+     * to trigger public mode (visibility='public').
+     * Joins agent_keys to include author fingerprint and publicKey.
+     */
+    async searchPublic(
+      options: PublicSearchOptions,
+    ): Promise<PublicSearchResult[]> {
+      const { query, embedding, tags, limit = 10 } = options;
+
+      const embeddingParam =
+        embedding && embedding.length === 384
+          ? sql`${`[${embedding.join(',')}]`}::vector(384)`
+          : sql`NULL::vector(384)`;
+
+      const tagsParam =
+        tags && tags.length > 0
+          ? sql`ARRAY[${sql.join(
+              tags.map((t) => sql`${t}`),
+              sql`, `,
+            )}]::text[]`
+          : sql`NULL::text[]`;
+
+      const result = await db.execute(
+        sql`SELECT * FROM diary_search(
+              ${query},
+              ${embeddingParam},
+              ${limit},
+              NULL::uuid,
+              ${tagsParam}
+            )`,
+      );
+      const rows = (result as unknown as { rows: Record<string, unknown>[] })
+        .rows;
+      return rows.map(mapRowToPublicSearchResult);
     },
 
     /**

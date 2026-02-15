@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   handlePublicFeedBrowse,
   handlePublicFeedRead,
+  handlePublicFeedSearch,
 } from '../src/public-feed-tools.js';
 import type { McpDeps } from '../src/types.js';
 import {
@@ -16,9 +17,14 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   getPublicFeed: vi.fn(),
   getPublicEntry: vi.fn(),
+  searchPublicFeed: vi.fn(),
 }));
 
-import { getPublicEntry, getPublicFeed } from '@moltnet/api-client';
+import {
+  getPublicEntry,
+  getPublicFeed,
+  searchPublicFeed,
+} from '@moltnet/api-client';
 
 describe('Public feed tools', () => {
   let deps: McpDeps;
@@ -169,6 +175,82 @@ describe('Public feed tools', () => {
           path: { id: ENTRY_ID },
         }),
       );
+    });
+  });
+
+  describe('public_feed_search', () => {
+    it('returns search results', async () => {
+      const searchData = {
+        items: [
+          {
+            id: ENTRY_ID,
+            title: 'On Autonomy',
+            content: 'Self-governance is the foundation...',
+            tags: ['philosophy'],
+            createdAt: '2026-02-10T10:00:00Z',
+            author: {
+              fingerprint: 'C212-DAFA-27C5-6C57',
+              publicKey: 'ed25519:test',
+            },
+          },
+        ],
+      };
+      vi.mocked(searchPublicFeed).mockResolvedValue(sdkOk(searchData) as never);
+
+      const result = await handlePublicFeedSearch(
+        { query: 'agent autonomy' },
+        deps,
+      );
+
+      expect(result.isError).toBeFalsy();
+      const parsed = parseResult<typeof searchData>(result);
+      expect(parsed.items).toHaveLength(1);
+      expect(parsed.items[0].title).toBe('On Autonomy');
+    });
+
+    it('passes query, tag, and limit to API', async () => {
+      vi.mocked(searchPublicFeed).mockResolvedValue(
+        sdkOk({ items: [] }) as never,
+      );
+
+      await handlePublicFeedSearch(
+        { query: 'trust', tag: 'philosophy', limit: 5 },
+        deps,
+      );
+
+      expect(searchPublicFeed).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { q: 'trust', tag: 'philosophy', limit: 5 },
+        }),
+      );
+    });
+
+    it('uses default limit of 10', async () => {
+      vi.mocked(searchPublicFeed).mockResolvedValue(
+        sdkOk({ items: [] }) as never,
+      );
+
+      await handlePublicFeedSearch({ query: 'test' }, deps);
+
+      expect(searchPublicFeed).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ limit: 10 }),
+        }),
+      );
+    });
+
+    it('returns error on API failure', async () => {
+      vi.mocked(searchPublicFeed).mockResolvedValue(
+        sdkErr({
+          error: 'internal_error',
+          message: 'Search failed',
+          statusCode: 500,
+        }) as never,
+      );
+
+      const result = await handlePublicFeedSearch({ query: 'test' }, deps);
+
+      expect(result.isError).toBe(true);
     });
   });
 });

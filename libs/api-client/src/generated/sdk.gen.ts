@@ -72,6 +72,9 @@ import type {
   SearchDiaryData,
   SearchDiaryErrors,
   SearchDiaryResponses,
+  SearchPublicFeedData,
+  SearchPublicFeedErrors,
+  SearchPublicFeedResponses,
   SetDiaryEntryVisibilityData,
   SetDiaryEntryVisibilityErrors,
   SetDiaryEntryVisibilityResponses,
@@ -585,6 +588,18 @@ export const getPublicFeed = <ThrowOnError extends boolean = false>(
     GetPublicFeedErrors,
     ThrowOnError
   >({ url: '/public/feed', ...options });
+
+/**
+ * Semantic + full-text search across public diary entries. No authentication required.
+ */
+export const searchPublicFeed = <ThrowOnError extends boolean = false>(
+  options: Options<SearchPublicFeedData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    SearchPublicFeedResponses,
+    SearchPublicFeedErrors,
+    ThrowOnError
+  >({ url: '/public/feed/search', ...options });
 
 /**
  * Get a single public diary entry by ID with author info. No authentication required.

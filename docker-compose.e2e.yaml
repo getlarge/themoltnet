@@ -20,7 +20,7 @@ services:
     depends_on:
       app-db:
         condition: service_healthy
-    restart: on-failure
+    restart: 'on-failure:3'
 
   kratos-postgres:
     extends:
@@ -34,7 +34,7 @@ services:
     depends_on:
       kratos-postgres:
         condition: service_healthy
-    restart: on-failure
+    restart: 'on-failure:3'
 
   kratos:
     extends:
@@ -58,7 +58,7 @@ services:
     depends_on:
       hydra-postgres:
         condition: service_healthy
-    restart: on-failure
+    restart: 'on-failure:3'
 
   hydra:
     extends:
@@ -83,7 +83,7 @@ services:
     depends_on:
       keto-postgres:
         condition: service_healthy
-    restart: on-failure
+    restart: 'on-failure:3'
 
   keto:
     extends:
@@ -130,6 +130,7 @@ services:
       RATE_LIMIT_SIGNING: '10000'
       RATE_LIMIT_RECOVERY: '10000'
       RATE_LIMIT_PUBLIC_VERIFY: '10000'
+      RATE_LIMIT_PUBLIC_SEARCH: '10000'
     depends_on:
       app-db:
         condition: service_healthy

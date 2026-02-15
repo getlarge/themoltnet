@@ -60,7 +60,7 @@
     "@moltnet/bootstrap": "workspace:*",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }
