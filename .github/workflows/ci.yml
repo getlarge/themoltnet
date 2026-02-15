@@ -335,6 +335,10 @@ jobs:
         run: pnpm --filter @moltnet/server run test:e2e
       - name: Run MCP server E2E tests
         run: pnpm --filter @moltnet/mcp-server run test:e2e
+      - name: Run REST API search E2E tests
+        env:
+          DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+        run: pnpm --filter @moltnet/rest-api run test:e2e
 
   go:
     name: Go CLI
