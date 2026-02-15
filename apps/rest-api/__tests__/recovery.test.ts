@@ -217,7 +217,7 @@ describe('Recovery routes', () => {
       expect(response.json().detail).toBe('Challenge expired');
     });
 
-    it('returns 404 when no agent found for public key', async () => {
+    it('returns same error for unknown key as for bad signature (anti-enumeration)', async () => {
       const payload = createValidPayload();
       mocks.agentRepository.findByPublicKey.mockResolvedValue(null);
 
@@ -227,11 +227,11 @@ describe('Recovery routes', () => {
         payload,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(400);
       expect(response.headers['content-type']).toContain(
         'application/problem+json',
       );
-      expect(response.json().code).toBe('NOT_FOUND');
+      expect(response.json().code).toBe('INVALID_SIGNATURE');
     });
 
     it('returns 400 for invalid Ed25519 signature', async () => {

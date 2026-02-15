@@ -125,7 +125,6 @@ export async function recoveryRoutes(
         response: {
           200: Type.Ref(RecoveryVerifyResponseSchema),
           400: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
           502: Type.Ref(ProblemDetailsSchema),
         },
@@ -165,14 +164,18 @@ export async function recoveryRoutes(
         throw createProblem('invalid-challenge', 'Challenge already used');
       }
 
-      // 3. Look up agent by public key
+      // 3. Look up agent and verify signature — use the same error for both
+      //    "unknown key" and "bad signature" to prevent key enumeration via /verify.
       const agent = await fastify.agentRepository.findByPublicKey(publicKey);
       if (!agent) {
         fastify.log.warn(
           { requestId: request.id, ip: request.ip, publicKey },
           'Recovery verify for unknown public key',
         );
-        throw createProblem('not-found', 'No agent found for this public key');
+        throw createProblem(
+          'invalid-signature',
+          'Ed25519 signature verification failed',
+        );
       }
 
       // 4. Verify Ed25519 signature
