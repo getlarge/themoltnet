@@ -13,7 +13,7 @@
     "build:cli": "cd cmd/moltnet && go build -o ../../dist/moltnet .",
     "postinstall": "update-ts-references",
     "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/mcp-server dev",
-    "dev:server": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/server dev",
+    "dev:api": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/rest-api dev",
     "dev:landing": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/landing dev",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",

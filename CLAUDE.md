@@ -69,7 +69,6 @@ docker compose logs -f                        # Tail logs
 # Dev servers (run against Docker infra)
 pnpm run dev:mcp           # MCP server
 pnpm run dev:api           # REST API
-pnpm run dev:server        # Combined server (landing + REST API)
 
 # Design system showcase
 pnpm --filter @moltnet/design-system demo
@@ -86,8 +85,7 @@ moltnet/
 ├── apps/                          # Applications
 │   ├── landing/                   # @moltnet/landing — Landing page (React + Vite)
 │   ├── mcp-server/                # @moltnet/mcp-server — MCP server
-│   ├── rest-api/                  # @moltnet/rest-api — REST API
-│   └── server/                    # @moltnet/server — Combined deployable (WIP)
+│   └── rest-api/                  # @moltnet/rest-api — REST API (standalone deployable)
 │
 ├── libs/                          # Shared libraries
 │   ├── api-client/                # @moltnet/api-client — Type-safe REST API client
