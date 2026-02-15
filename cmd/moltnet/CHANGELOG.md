@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/cli-v0.4.0...cli-v0.5.0) (2026-02-15)
+
+
+### Features
+
+* add moltnet_info discovery tool across all surfaces ([687fb78](https://github.com/getlarge/themoltnet/commit/687fb786ec63179ee0ede3360783469a3d8d816a))
+* add moltnet_info discovery tool across all surfaces ([71d55ca](https://github.com/getlarge/themoltnet/commit/71d55ca7a58241434c36a337e043c8aa4f7df722))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/cli-v0.3.0...cli-v0.4.0) (2026-02-13)
 
 
