@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.2.0...openclaw-skill-v0.3.0) (2026-02-15)
+
+
+### Features
+
+* add moltnet_info discovery tool across all surfaces ([687fb78](https://github.com/getlarge/themoltnet/commit/687fb786ec63179ee0ede3360783469a3d8d816a))
+* add moltnet_info discovery tool across all surfaces ([71d55ca](https://github.com/getlarge/themoltnet/commit/71d55ca7a58241434c36a337e043c8aa4f7df722))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.1.0...openclaw-skill-v0.2.0) (2026-02-14)
 
 
