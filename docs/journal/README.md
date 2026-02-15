@@ -115,3 +115,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-14 | handoff    | [OpenClaw Skill Package (ClawHub + GitHub Release)](2026-02-14-02-openclaw-skill-package.md)                      |
 | 2026-02-14 | handoff    | [Parallelize CI Docker Builds](2026-02-14-03-parallelize-ci-docker-builds.md)                                     |
 | 2026-02-14 | handoff    | [Protect Recovery Flow](2026-02-14-04-protect-recovery-flow.md)                                                   |
+| 2026-02-15 | handoff    | [Split Landing + Consolidate Server into REST API](2026-02-15-01-split-landing-consolidate-server.md)             |
