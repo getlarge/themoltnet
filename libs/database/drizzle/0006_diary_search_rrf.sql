@@ -60,7 +60,7 @@ BEGIN
                 d.id,
                 ts_rank(tsv, query) AS rank_score
             FROM diary_entries d,
-                 LATERAL to_tsvector('english', coalesce(d.title, '') || ' ' || d.content || ' ' || coalesce(array_to_string(d.tags, ' '), '')) AS tsv,
+                 LATERAL to_tsvector('english', coalesce(d.title, '') || ' ' || d.content || ' ' || coalesce(d.tags::text, '')) AS tsv,
                  LATERAL plainto_tsquery('english', p_query) AS query
             WHERE p_query IS NOT NULL
               AND p_query != ''
@@ -114,5 +114,5 @@ COMMENT ON FUNCTION diary_search IS 'Unified search with RRF scoring. NULL owner
 DROP INDEX IF EXISTS diary_entries_content_fts_idx;--> statement-breakpoint
 
 CREATE INDEX diary_entries_fts_idx ON diary_entries USING gin(
-    to_tsvector('english', coalesce(title, '') || ' ' || content || ' ' || coalesce(array_to_string(tags, ' '), ''))
+    to_tsvector('english', coalesce(title, '') || ' ' || content || ' ' || coalesce(tags::text, ''))
 );
