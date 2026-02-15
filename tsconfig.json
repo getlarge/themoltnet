@@ -27,9 +27,6 @@
       "path": "apps/rest-api"
     },
     {
-      "path": "apps/server"
-    },
-    {
       "path": "libs/api-client"
     },
     {

@@ -1,0 +1,35 @@
+name: Deploy Landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/landing/**'
+      - 'libs/design-system/**'
+      - 'libs/api-client/**'
+      - '.github/workflows/deploy-landing.yml'
+      - '.github/workflows/_deploy.yml'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to Fly.io'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    name: Deploy
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      fly-app: moltnet-landing
+      image-name: moltnet-landing
+      dockerfile: apps/landing/Dockerfile
+      working-directory: apps/landing
+      deploy: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.inputs.deploy == 'true') }}
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

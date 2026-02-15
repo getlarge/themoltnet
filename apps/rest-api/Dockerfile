@@ -1,7 +1,7 @@
-# @moltnet/server — Multi-stage Dockerfile
+# @moltnet/rest-api — Multi-stage Dockerfile
 #
 # Build from repo root:
-#   docker build -f apps/server/Dockerfile .
+#   docker build -f apps/rest-api/Dockerfile .
 
 # ---------- base ----------
 FROM node:22-slim AS base
@@ -14,15 +14,12 @@ FROM base AS deps
 # Copy workspace config
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json .npmrc ./
 
-# Copy all workspace package.json files to leverage Docker layer caching
-COPY apps/server/package.json apps/server/
-COPY apps/landing/package.json apps/landing/
+# Copy workspace package.json files (rest-api + transitive deps, NO landing/design-system)
 COPY apps/rest-api/package.json apps/rest-api/
 COPY apps/mcp-server/package.json apps/mcp-server/
 COPY libs/observability/package.json libs/observability/
 COPY libs/crypto-service/package.json libs/crypto-service/
 COPY libs/database/package.json libs/database/
-COPY libs/design-system/package.json libs/design-system/
 COPY libs/models/package.json libs/models/
 COPY libs/auth/package.json libs/auth/
 COPY libs/diary-service/package.json libs/diary-service/
@@ -38,37 +35,30 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # ---------- build ----------
 FROM deps AS build
 
-# Copy all source (design-system exports src, needed by landing Vite build)
 COPY . .
 
-# Build landing page (Vite → static files)
-RUN pnpm --filter @moltnet/landing run build
+RUN pnpm --filter @moltnet/rest-api run build
 
-# Build server (tsc → dist/)
-RUN pnpm --filter @moltnet/server run build
-
-# Extract server with production-only dependencies
-RUN pnpm --filter @moltnet/server deploy --legacy --prod /app/deploy
+# Extract rest-api with production-only dependencies
+RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
 
 # ---------- production ----------
-# No pnpm needed at runtime — just node
 FROM node:22-slim AS production
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
-LABEL org.opencontainers.image.description="MoltNet combined server (REST API + landing page)"
+LABEL org.opencontainers.image.description="MoltNet REST API"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
 WORKDIR /app
 
-# Server with production-only dependencies (via pnpm deploy)
+# REST API with production-only dependencies (via pnpm deploy)
 COPY --from=build /app/deploy ./
 
-# Landing page build output → /app/public (matched by resolveStaticDir)
-COPY --from=build /app/apps/landing/dist ./public
+# OpenAPI spec for static serving
+COPY --from=build /app/apps/rest-api/public ./public
 
 # Migration SQL files for Fly.io release_command
-# findMigrationsFolder() walks up from dist/ → /app/ and finds drizzle/meta/_journal.json
 COPY --from=build /app/libs/database/drizzle ./drizzle
 
 EXPOSE 8080
@@ -76,4 +66,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
     CMD node -e "fetch('http://localhost:8080/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]

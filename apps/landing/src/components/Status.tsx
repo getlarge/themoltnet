@@ -47,7 +47,7 @@ const workstreams = [
     id: 'WS7',
     name: 'Deployment',
     status: 'done' as const,
-    detail: 'Landing page live, combined server deployed',
+    detail: 'Landing page + REST API deployed independently',
   },
   {
     id: 'WS8',

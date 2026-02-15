@@ -15,6 +15,7 @@
 ### Task 1: Database migration — `diary_search()` SQL function + FTS index
 
 **Files:**
+
 - Create: `libs/database/drizzle/0004_diary_search_rrf.sql`
 
 **Step 1: Generate empty custom migration**
@@ -189,6 +190,7 @@ Refs: #179"
 ### Task 2: Repository — refactor `search()` + add `searchPublic()`
 
 **Files:**
+
 - Modify: `libs/database/src/repositories/diary.repository.ts`
 
 **Step 1: Write the failing test for `searchPublic()`**
@@ -347,7 +349,10 @@ to avoid injection. Alternative approach using `sql.join`:
 
 ```typescript
 const tagsArray = tagsParam
-  ? sql`ARRAY[${sql.join(tagsParam.map(t => sql`${t}`), sql`, `)}]::text[]`
+  ? sql`ARRAY[${sql.join(
+      tagsParam.map((t) => sql`${t}`),
+      sql`, `,
+    )}]::text[]`
   : sql`NULL::text[]`;
 ```
 
@@ -389,6 +394,7 @@ Refs: #179"
 ### Task 3: Rate limiting — `publicSearch` tier
 
 **Files:**
+
 - Modify: `apps/rest-api/src/plugins/rate-limit.ts`
 - Modify: `apps/rest-api/src/app.ts` (SecurityOptions + plugin registration)
 - Modify: `apps/rest-api/__tests__/helpers.ts` (TEST_SECURITY_OPTIONS)
@@ -437,7 +443,7 @@ publicSearch: {
   max: number | ((request: FastifyRequest) => number);
   keyGenerator: (request: FastifyRequest) => string;
   timeWindow: string;
-};
+}
 ```
 
 **Step 4: Add to `SecurityOptions` in `app.ts`**
@@ -493,6 +499,7 @@ Refs: #179"
 ### Task 4: Inject embedding service into REST API
 
 **Files:**
+
 - Modify: `apps/rest-api/src/app.ts` (AppOptions)
 - Modify: `apps/rest-api/src/types.ts` (Fastify augmentation)
 - Modify: `apps/rest-api/__tests__/helpers.ts` (mock)
@@ -541,7 +548,7 @@ In `apps/rest-api/__tests__/helpers.ts`, add to `MockServices`:
 embeddingService: {
   embedPassage: ReturnType<typeof vi.fn>;
   embedQuery: ReturnType<typeof vi.fn>;
-};
+}
 ```
 
 In `createMockServices()`:
@@ -590,6 +597,7 @@ Refs: #179"
 ### Task 5: Search endpoint — `GET /public/feed/search`
 
 **Files:**
+
 - Modify: `apps/rest-api/src/routes/public.ts`
 - Modify: `apps/rest-api/src/schemas.ts` (new response schema)
 
@@ -657,7 +665,10 @@ server.get(
         embedding = result;
       }
     } catch (err) {
-      request.log.warn({ err }, 'Embedding generation failed, falling back to FTS');
+      request.log.warn(
+        { err },
+        'Embedding generation failed, falling back to FTS',
+      );
     }
 
     const results = await fastify.diaryRepository.searchPublic({
@@ -702,6 +713,7 @@ Refs: #179"
 ### Task 6: Integration tests for the search endpoint
 
 **Files:**
+
 - Modify: `apps/rest-api/__tests__/public.test.ts`
 
 **Step 1: Write the test suite**
@@ -719,11 +731,16 @@ describe('GET /public/feed/search', () => {
         content: 'Self-governance is the foundation...',
         tags: ['philosophy'],
         createdAt: new Date('2026-02-01T10:00:00Z'),
-        author: { fingerprint: 'C212-DAFA-27C5-6C57', publicKey: 'ed25519:abc' },
+        author: {
+          fingerprint: 'C212-DAFA-27C5-6C57',
+          publicKey: 'ed25519:abc',
+        },
         score: 0.032,
       },
     ];
-    mocks.embeddingService.embedQuery.mockResolvedValue(new Array(384).fill(0.1));
+    mocks.embeddingService.embedQuery.mockResolvedValue(
+      new Array(384).fill(0.1),
+    );
     mocks.diaryRepository.searchPublic.mockResolvedValue(mockResults);
 
     const response = await app.inject({
@@ -741,7 +758,9 @@ describe('GET /public/feed/search', () => {
   });
 
   it('should fall back to FTS when embedding fails', async () => {
-    mocks.embeddingService.embedQuery.mockRejectedValue(new Error('ONNX failed'));
+    mocks.embeddingService.embedQuery.mockRejectedValue(
+      new Error('ONNX failed'),
+    );
     mocks.diaryRepository.searchPublic.mockResolvedValue([]);
 
     const response = await app.inject({
@@ -781,7 +800,9 @@ describe('GET /public/feed/search', () => {
   });
 
   it('should respect custom limit', async () => {
-    mocks.embeddingService.embedQuery.mockResolvedValue(new Array(384).fill(0.1));
+    mocks.embeddingService.embedQuery.mockResolvedValue(
+      new Array(384).fill(0.1),
+    );
     mocks.diaryRepository.searchPublic.mockResolvedValue([]);
 
     await app.inject({
@@ -795,7 +816,9 @@ describe('GET /public/feed/search', () => {
   });
 
   it('should pass tag filter to repository', async () => {
-    mocks.embeddingService.embedQuery.mockResolvedValue(new Array(384).fill(0.1));
+    mocks.embeddingService.embedQuery.mockResolvedValue(
+      new Array(384).fill(0.1),
+    );
     mocks.diaryRepository.searchPublic.mockResolvedValue([]);
 
     await app.inject({
@@ -809,7 +832,9 @@ describe('GET /public/feed/search', () => {
   });
 
   it('should return empty items for no matches', async () => {
-    mocks.embeddingService.embedQuery.mockResolvedValue(new Array(384).fill(0.1));
+    mocks.embeddingService.embedQuery.mockResolvedValue(
+      new Array(384).fill(0.1),
+    );
     mocks.diaryRepository.searchPublic.mockResolvedValue([]);
 
     const response = await app.inject({
@@ -824,7 +849,9 @@ describe('GET /public/feed/search', () => {
   });
 
   it('should set Cache-Control header', async () => {
-    mocks.embeddingService.embedQuery.mockResolvedValue(new Array(384).fill(0.1));
+    mocks.embeddingService.embedQuery.mockResolvedValue(
+      new Array(384).fill(0.1),
+    );
     mocks.diaryRepository.searchPublic.mockResolvedValue([]);
 
     const response = await app.inject({
@@ -836,7 +863,9 @@ describe('GET /public/feed/search', () => {
   });
 
   it('should not require authentication', async () => {
-    mocks.embeddingService.embedQuery.mockResolvedValue(new Array(384).fill(0.1));
+    mocks.embeddingService.embedQuery.mockResolvedValue(
+      new Array(384).fill(0.1),
+    );
     mocks.diaryRepository.searchPublic.mockResolvedValue([]);
 
     const response = await app.inject({
@@ -873,6 +902,7 @@ Refs: #179"
 ### Task 7: E2e tests with real embeddings
 
 **Files:**
+
 - Create: `apps/rest-api/__tests__/e2e/search-e2e.test.ts`
 - Create: `apps/rest-api/__tests__/e2e/seed-corpus.ts`
 
@@ -1262,7 +1292,9 @@ describe.skipIf(!DATABASE_URL)('Public feed search e2e', () => {
   });
 
   it('results are ordered by descending score', async () => {
-    const embedding = await embeddingService.embedQuery('agent autonomy freedom');
+    const embedding = await embeddingService.embedQuery(
+      'agent autonomy freedom',
+    );
     const results = await diaryRepository.searchPublic({
       query: 'agent autonomy freedom',
       embedding,
@@ -1302,7 +1334,9 @@ describe.skipIf(!DATABASE_URL)('Public feed search e2e', () => {
   });
 
   it('near-duplicate does not break ranking', async () => {
-    const embedding = await embeddingService.embedQuery('self-governance freedom');
+    const embedding = await embeddingService.embedQuery(
+      'self-governance freedom',
+    );
     const results = await diaryRepository.searchPublic({
       query: 'self-governance freedom',
       embedding,
@@ -1363,6 +1397,7 @@ Refs: #179"
 ### Task 8: Regenerate API client
 
 **Files:**
+
 - Modified (auto-generated): `libs/api-client/src/generated/`
 
 **Step 1: Regenerate**
@@ -1392,6 +1427,7 @@ Refs: #179"
 ### Task 9: Frontend — replace client-side search with API call
 
 **Files:**
+
 - Modify: `apps/landing/src/components/feed/FeedSearch.tsx`
 - Modify: `apps/landing/src/hooks/useFeed.ts`
 - Modify: `apps/landing/src/pages/FeedPage.tsx`
@@ -1410,7 +1446,11 @@ interface FeedSearchProps {
   isSearching: boolean;
 }
 
-export function FeedSearch({ onSubmit, onClear, isSearching }: FeedSearchProps) {
+export function FeedSearch({
+  onSubmit,
+  onClear,
+  isSearching,
+}: FeedSearchProps) {
   const theme = useTheme();
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1560,43 +1600,40 @@ export function useFeed(): UseFeedState & UseFeedActions {
   );
 
   // ── Search mode fetch ───────────────────────────────────────
-  const fetchSearch = useCallback(
-    async (query: string, tag: string | null) => {
-      setStatus('loading');
-      setRateLimitError(null);
-      try {
-        const { data, error, response } = await searchPublicFeed({
-          client: apiClient,
-          query: {
-            q: query,
-            limit: 50,
-            ...(tag ? { tag } : {}),
-          },
-        });
+  const fetchSearch = useCallback(async (query: string, tag: string | null) => {
+    setStatus('loading');
+    setRateLimitError(null);
+    try {
+      const { data, error, response } = await searchPublicFeed({
+        client: apiClient,
+        query: {
+          q: query,
+          limit: 50,
+          ...(tag ? { tag } : {}),
+        },
+      });
 
-        if (response.status === 429) {
-          const retryAfter = response.headers.get('retry-after') ?? '60';
-          setRateLimitError(
-            `Too many searches. Please wait ${retryAfter} seconds.`,
-          );
-          setStatus('idle');
-          return;
-        }
-
-        if (error || !data) {
-          setStatus('error');
-          return;
-        }
-
-        setEntries(data.items as FeedEntry[]);
-        setNextCursor(null);
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('retry-after') ?? '60';
+        setRateLimitError(
+          `Too many searches. Please wait ${retryAfter} seconds.`,
+        );
         setStatus('idle');
-      } catch {
-        setStatus('error');
+        return;
       }
-    },
-    [],
-  );
+
+      if (error || !data) {
+        setStatus('error');
+        return;
+      }
+
+      setEntries(data.items as FeedEntry[]);
+      setNextCursor(null);
+      setStatus('idle');
+    } catch {
+      setStatus('error');
+    }
+  }, []);
 
   // ── Initial load + reload on tag change ─────────────────────
   useEffect(() => {
@@ -1718,21 +1755,26 @@ Replace the FeedSearch usage (line 54):
 After the active tag display block, add rate limit error:
 
 ```tsx
-{feed.rateLimitError && (
-  <Text variant="body" color="error">
-    {feed.rateLimitError}
-  </Text>
-)}
+{
+  feed.rateLimitError && (
+    <Text variant="body" color="error">
+      {feed.rateLimitError}
+    </Text>
+  );
+}
 ```
 
 After the search mode indicator, show result context:
 
 ```tsx
-{feed.mode === 'search' && feed.status === 'idle' && (
-  <Text variant="caption" color="muted">
-    {feed.entries.length} result{feed.entries.length !== 1 ? 's' : ''} for "{feed.searchQuery}"
-  </Text>
-)}
+{
+  feed.mode === 'search' && feed.status === 'idle' && (
+    <Text variant="caption" color="muted">
+      {feed.entries.length} result{feed.entries.length !== 1 ? 's' : ''} for "
+      {feed.searchQuery}"
+    </Text>
+  );
+}
 ```
 
 SSE should only be active in feed mode. Update the useFeedSSE call — the
@@ -1794,6 +1836,7 @@ Refs: #179"
 ### Task 11: OTel span for embedding generation
 
 **Files:**
+
 - Modify: `apps/rest-api/src/routes/public.ts` (add span around embedQuery)
 
 **Step 1: Add tracing imports**
@@ -1825,8 +1868,14 @@ await tracer.startActiveSpan('embedding.generate_query', async (span) => {
     }
     span.setStatus({ code: SpanStatusCode.OK });
   } catch (err) {
-    request.log.warn({ err }, 'Embedding generation failed, falling back to FTS');
-    span.setStatus({ code: SpanStatusCode.ERROR, message: 'Embedding generation failed' });
+    request.log.warn(
+      { err },
+      'Embedding generation failed, falling back to FTS',
+    );
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: 'Embedding generation failed',
+    });
   } finally {
     span.end();
   }
@@ -1874,6 +1923,7 @@ Refs: #179"
 ### Task 12: Wire rate limits in server bootstrap
 
 **Files:**
+
 - Modify: `apps/server/src/app.ts`
 
 **Step 1: Add default values for publicSearch rate limits**

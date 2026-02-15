@@ -155,7 +155,7 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 | `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c) | Yes      |
 | `AXIOM_API_TOKEN`           | Axiom observability token            | No       |
 
-Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`) are in `apps/server/fly.toml`.
+Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`) are in `apps/rest-api/fly.toml`.
 
 **`moltnet-mcp` (MCP server):**
 
@@ -212,17 +212,18 @@ fly ssh console --app moltnet -C "node dist/migrate.js"
 
 **CI deploy (automatic):** pushing to `main` triggers the deploy workflows:
 
-| Workflow         | Trigger paths                                                      | App           |
-| ---------------- | ------------------------------------------------------------------ | ------------- |
-| `deploy.yml`     | `apps/server/**`, `apps/rest-api/**`, `apps/landing/**`, `libs/**` | `moltnet`     |
-| `deploy-mcp.yml` | `apps/mcp-server/**`, `libs/**`                                    | `moltnet-mcp` |
+| Workflow             | Trigger paths                                                    | App               |
+| -------------------- | ---------------------------------------------------------------- | ----------------- |
+| `deploy.yml`         | `apps/rest-api/**`, `libs/**`                                    | `moltnet`         |
+| `deploy-landing.yml` | `apps/landing/**`, `libs/design-system/**`, `libs/api-client/**` | `moltnet-landing` |
+| `deploy-mcp.yml`     | `apps/mcp-server/**`, `libs/**`                                  | `moltnet-mcp`     |
 
 Both call the reusable `_deploy.yml` workflow (build Docker image, push to GHCR + Fly registry, deploy). Each has a preflight job that validates required secrets against Fly.io + fly.toml before deploying.
 
 **Manual deploy:**
 
 ```bash
-cd apps/server && fly deploy --app moltnet
+cd apps/rest-api && fly deploy --app moltnet
 cd apps/mcp-server && fly deploy --app moltnet-mcp
 ```
 

@@ -38,7 +38,7 @@ export default async function setup() {
     waitForHealthy('http://localhost:4433/health/alive'), // Kratos
     waitForHealthy('http://localhost:4444/health/alive'), // Hydra
     waitForHealthy('http://localhost:4466/health/alive'), // Keto
-    waitForHealthy('http://localhost:8080/health'), // Server
+    waitForHealthy('http://localhost:8080/health'), // REST API
   ]);
 
   // eslint-disable-next-line no-console

@@ -3,7 +3,7 @@
  * in the deployment target (Fly.io secrets + fly.toml env).
  *
  * Usage:
- *   flyctl secrets list --json | jq -r '.[].Name' | tsx src/check-secrets.ts --fly-toml apps/server/fly.toml
+ *   flyctl secrets list --json | jq -r '.[].Name' | tsx src/check-secrets.ts --fly-toml apps/rest-api/fly.toml
  *   flyctl secrets list --json | jq -r '.[].Name' | tsx src/check-secrets.ts --app mcp-server --fly-toml apps/mcp-server/fly.toml
  *   tsx src/check-secrets.ts SECRET_A SECRET_B SECRET_C
  */
@@ -58,7 +58,7 @@ if (positionals.length > 0) {
 // Merge env vars from fly.toml if provided
 if (values['fly-toml']) {
   // Resolve relative to INIT_CWD (where pnpm was invoked) so paths like
-  // "apps/server/fly.toml" work regardless of workspace cwd
+  // "apps/rest-api/fly.toml" work regardless of workspace cwd
   const base = process.env.INIT_CWD ?? process.cwd();
   const tomlPath = resolve(base, values['fly-toml']);
   const toml = parse(readFileSync(tomlPath, 'utf-8'));

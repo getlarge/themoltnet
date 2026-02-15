@@ -7,16 +7,16 @@
 #   docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
 #
 # Required env vars (set by CI):
-#   SERVER_IMAGE, MCP_SERVER_IMAGE, DB_MIGRATE_IMAGE
+#   REST_API_IMAGE, MCP_SERVER_IMAGE, DB_MIGRATE_IMAGE
 
 services:
   app-db-migrate:
     build: !reset null
     image: ${DB_MIGRATE_IMAGE:-ghcr.io/getlarge/themoltnet/db-migrate:latest}
 
-  server:
+  rest-api:
     build: !reset null
-    image: ${SERVER_IMAGE:-ghcr.io/getlarge/themoltnet/server:latest}
+    image: ${REST_API_IMAGE:-ghcr.io/getlarge/themoltnet/rest-api:latest}
 
   mcp-server:
     build: !reset null

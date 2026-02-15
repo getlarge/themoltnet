@@ -1,16 +1,16 @@
 /**
- * @moltnet/server — Entry Point
+ * @moltnet/rest-api — Entry Point (Runnable)
  *
- * Boots the combined server (REST API + landing page) and handles graceful shutdown.
+ * Boots the REST API server and handles graceful shutdown.
  */
 
 import './implicit-dependencies.js';
 
-import { bootstrap } from './app.js';
-import { loadCombinedConfig } from './config.js';
+import { bootstrap } from './bootstrap.js';
+import { loadConfig } from './config.js';
 
 async function main(): Promise<void> {
-  const config = loadCombinedConfig();
+  const config = loadConfig();
   const { app, dbConnection } = await bootstrap(config);
 
   try {

@@ -299,12 +299,16 @@ jobs:
         run: pnpm run generate
       - name: Check for uncommitted changes
         run: |
-          if ! git diff --exit-code libs/api-client/openapi.json; then
+          if ! git diff --exit-code apps/rest-api/public/openapi.json; then
             echo "::error::OpenAPI spec is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi
           if ! git diff --exit-code libs/api-client/src/generated/; then
             echo "::error::Generated API client is out of date. Run 'pnpm run generate' and commit the changes."
+            exit 1
+          fi
+          if ! git diff --exit-code apps/rest-api/public/openapi.json; then
+            echo "::error::REST API openapi.json is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi
 
@@ -317,7 +321,7 @@ jobs:
       packages: read
     needs: [lint, typecheck, test, build-and-push]
     env:
-      SERVER_IMAGE: ghcr.io/getlarge/themoltnet/server:ci-${{ github.sha }}
+      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-${{ github.sha }}
       MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-${{ github.sha }}
       DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-${{ github.sha }}
     steps:
@@ -336,13 +340,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pull pre-built images
         run: |
-          docker pull ${{ env.SERVER_IMAGE }}
+          docker pull ${{ env.REST_API_IMAGE }}
           docker pull ${{ env.MCP_SERVER_IMAGE }}
           docker pull ${{ env.DB_MIGRATE_IMAGE }}
       - name: Start Docker Compose stack
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
-      - name: Run server E2E tests
-        run: pnpm --filter @moltnet/server run test:e2e
+      - name: Run REST API E2E tests
+        run: pnpm --filter @moltnet/rest-api run test:e2e
       - name: Run MCP server E2E tests
         run: pnpm --filter @moltnet/mcp-server run test:e2e
       - name: Docker Compose logs
@@ -432,12 +436,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: server
-            dockerfile: apps/server/Dockerfile
+          - image: rest-api
+            dockerfile: apps/rest-api/Dockerfile
           - image: mcp-server
             dockerfile: apps/mcp-server/Dockerfile
           - image: db-migrate
             dockerfile: libs/database/Dockerfile.migrate
+          - image: landing
+            dockerfile: apps/landing/Dockerfile
     steps:
       - uses: actions/checkout@v4
 

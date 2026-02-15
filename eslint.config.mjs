@@ -28,7 +28,7 @@ export default tseslint.config(
   //
   // Rules:
   //   libs  → cannot import app packages (@moltnet/{landing,mcp-server,rest-api,server})
-  //   apps  → cannot import app packages (exception: apps/server is the combined deployable)
+  //   apps  → cannot import app packages
   //   tools → cannot import app packages
   {
     files: [
@@ -64,7 +64,6 @@ export default tseslint.config(
                 '@moltnet/landing',
                 '@moltnet/mcp-server',
                 '@moltnet/rest-api',
-                '@moltnet/server',
               ],
               message:
                 'Libs must not import from apps. Extract shared code into a lib.',
@@ -75,7 +74,6 @@ export default tseslint.config(
                 '@moltnet/landing',
                 '@moltnet/mcp-server',
                 '@moltnet/rest-api',
-                '@moltnet/server',
               ],
               message:
                 'Tools must not import from apps. Extract shared code into a lib.',
@@ -86,7 +84,6 @@ export default tseslint.config(
                 '@moltnet/landing',
                 '@moltnet/mcp-server',
                 '@moltnet/rest-api',
-                '@moltnet/server',
               ],
               message:
                 'Apps must not import from other apps. Extract shared code into a lib.',
@@ -94,14 +91,6 @@ export default tseslint.config(
           ],
         },
       ],
-    },
-  },
-
-  // Exception: apps/server is the combined deployable — it may import other apps
-  {
-    files: ['apps/server/src/**/*.ts'],
-    rules: {
-      'boundaries/external': 'off',
     },
   },
 
