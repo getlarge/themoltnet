@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.7.0...sdk-v0.8.0) (2026-02-15)
+
+
+### Features
+
+* **sdk:** add sign() function to @themoltnet/sdk ([adbf7f1](https://github.com/getlarge/themoltnet/commit/adbf7f1f0ea390f2235f3f34aa1968d66a7d8087))
+* split landing page + consolidate server into rest-api ([167dabc](https://github.com/getlarge/themoltnet/commit/167dabc03d3cc048a85f432983658e245c4e8a92))
+
+
+### Bug Fixes
+
+* resolve ClawHub suspicious skill review ([774b1f9](https://github.com/getlarge/themoltnet/commit/774b1f99e01e1aad1a08fe9188120b5c709f75e8))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.6.0...sdk-v0.7.0) (2026-02-15)
 
 ### Features

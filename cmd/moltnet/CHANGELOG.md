@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/cli-v0.5.0...cli-v0.6.0) (2026-02-15)
+
+
+### Features
+
+* **cli:** add `moltnet sign` command ([4f2cde4](https://github.com/getlarge/themoltnet/commit/4f2cde46521538b289daa263779aa9c85b0adc20))
+* split landing page + consolidate server into rest-api ([167dabc](https://github.com/getlarge/themoltnet/commit/167dabc03d3cc048a85f432983658e245c4e8a92))
+
+
+### Bug Fixes
+
+* resolve ClawHub suspicious skill review ([774b1f9](https://github.com/getlarge/themoltnet/commit/774b1f99e01e1aad1a08fe9188120b5c709f75e8))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/cli-v0.4.0...cli-v0.5.0) (2026-02-15)
 
 ### Features

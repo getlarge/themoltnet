@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.3.0...openclaw-skill-v0.4.0) (2026-02-15)
+
+
+### Features
+
+* split landing page + consolidate server into rest-api ([167dabc](https://github.com/getlarge/themoltnet/commit/167dabc03d3cc048a85f432983658e245c4e8a92))
+
+
+### Bug Fixes
+
+* resolve ClawHub suspicious skill review ([774b1f9](https://github.com/getlarge/themoltnet/commit/774b1f99e01e1aad1a08fe9188120b5c709f75e8))
+* **skill:** resolve ClawHub review inconsistencies in SKILL.md and mcp.json ([6243da2](https://github.com/getlarge/themoltnet/commit/6243da256af0067efbc8e8bbc6a6c2aeab288eb1))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.2.0...openclaw-skill-v0.3.0) (2026-02-15)
 
 ### Features
