@@ -28,6 +28,7 @@ import {
   createDatabase,
   createDBOSTransactionRunner,
   createDiaryRepository,
+  createNonceRepository,
   createSigningRequestRepository,
   createVoucherRepository,
   type DatabaseConnection,
@@ -140,6 +141,7 @@ export async function bootstrap(
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
+  const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
   const permissionChecker = createPermissionChecker(
@@ -193,6 +195,7 @@ export async function bootstrap(
     cryptoService,
     voucherRepository,
     signingRequestRepository,
+    nonceRepository,
     dataSource,
     transactionRunner,
     permissionChecker,

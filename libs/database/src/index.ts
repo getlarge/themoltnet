@@ -43,6 +43,10 @@ export {
   type PublicSearchResult,
 } from './repositories/diary.repository.js';
 export {
+  createNonceRepository,
+  type NonceRepository,
+} from './repositories/nonce.repository.js';
+export {
   createSigningRequestRepository,
   parseStatusFilter,
   type SigningRequestRepository,

@@ -15,6 +15,7 @@ import {
   signChallenge,
   verifyChallenge,
 } from '@moltnet/crypto-service';
+import type { NonceRepository } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -23,6 +24,7 @@ import { createProblem } from '../problems/index.js';
 import {
   MAX_CHALLENGE_LENGTH,
   MAX_ED25519_SIGNATURE_LENGTH,
+  MAX_PUBLIC_KEY_LENGTH,
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
 } from '../schemas.js';
@@ -32,13 +34,14 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export interface RecoveryRouteOptions {
   recoverySecret: string;
   identityClient: OryClients['identity'];
+  nonceRepository: NonceRepository;
 }
 
 export async function recoveryRoutes(
   fastify: FastifyInstance,
   options: RecoveryRouteOptions,
 ) {
-  const { recoverySecret, identityClient } = options;
+  const { recoverySecret, identityClient, nonceRepository } = options;
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
   // ── Request Challenge ──────────────────────────────────────
@@ -56,13 +59,13 @@ export async function recoveryRoutes(
         body: Type.Object({
           publicKey: Type.String({
             pattern: '^ed25519:[A-Za-z0-9+/=]+$',
+            maxLength: MAX_PUBLIC_KEY_LENGTH,
             description: 'Ed25519 public key with prefix',
           }),
         }),
         response: {
           200: Type.Ref(RecoveryChallengeResponseSchema),
           400: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -70,18 +73,18 @@ export async function recoveryRoutes(
     async (request) => {
       const { publicKey } = request.body;
 
-      const agent = await fastify.agentRepository.findByPublicKey(publicKey);
-      if (!agent) {
-        throw createProblem('not-found', 'No agent found for this public key');
-      }
-
+      // Always generate a challenge regardless of whether the key exists
+      // to prevent public key enumeration. Invalid keys will fail at /verify.
       const challenge = generateRecoveryChallenge(publicKey);
       const hmac = signChallenge(challenge, recoverySecret);
 
-      fastify.log.info(
-        { fingerprint: agent.fingerprint },
-        'Recovery challenge issued',
-      );
+      const agent = await fastify.agentRepository.findByPublicKey(publicKey);
+      if (agent) {
+        fastify.log.info(
+          { fingerprint: agent.fingerprint },
+          'Recovery challenge issued',
+        );
+      }
 
       return { challenge, hmac };
     },
@@ -115,13 +118,13 @@ export async function recoveryRoutes(
           }),
           publicKey: Type.String({
             pattern: '^ed25519:[A-Za-z0-9+/=]+$',
+            maxLength: MAX_PUBLIC_KEY_LENGTH,
             description: 'Ed25519 public key with prefix',
           }),
         }),
         response: {
           200: Type.Ref(RecoveryVerifyResponseSchema),
           400: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
           502: Type.Ref(ProblemDetailsSchema),
         },
@@ -139,16 +142,43 @@ export async function recoveryRoutes(
         publicKey,
       );
       if (!hmacResult.valid) {
+        fastify.log.warn(
+          { requestId: request.id, ip: request.ip, publicKey },
+          'Recovery challenge HMAC verification failed',
+        );
         throw createProblem('invalid-challenge', hmacResult.reason);
       }
 
-      // 2. Look up agent by public key
-      const agent = await fastify.agentRepository.findByPublicKey(publicKey);
-      if (!agent) {
-        throw createProblem('not-found', 'No agent found for this public key');
+      // 2. Nonce replay prevention — extract nonce from challenge (parts[4])
+      const parts = challenge.split(':');
+      const nonce = parts[4];
+      const challengeExpiresAt = new Date(
+        parseInt(parts[5], 10) + CHALLENGE_TTL_MS,
+      );
+      const fresh = await nonceRepository.consume(nonce, challengeExpiresAt);
+      if (!fresh) {
+        fastify.log.warn(
+          { requestId: request.id, ip: request.ip, publicKey },
+          'Recovery nonce replay attempt',
+        );
+        throw createProblem('invalid-challenge', 'Challenge already used');
       }
 
-      // 3. Verify Ed25519 signature
+      // 3. Look up agent and verify signature — use the same error for both
+      //    "unknown key" and "bad signature" to prevent key enumeration via /verify.
+      const agent = await fastify.agentRepository.findByPublicKey(publicKey);
+      if (!agent) {
+        fastify.log.warn(
+          { requestId: request.id, ip: request.ip, publicKey },
+          'Recovery verify for unknown public key',
+        );
+        throw createProblem(
+          'invalid-signature',
+          'Ed25519 signature verification failed',
+        );
+      }
+
+      // 4. Verify Ed25519 signature
       const signatureValid = await fastify.cryptoService.verify(
         challenge,
         signature,
@@ -156,7 +186,11 @@ export async function recoveryRoutes(
       );
       if (!signatureValid) {
         fastify.log.warn(
-          { fingerprint: agent.fingerprint },
+          {
+            requestId: request.id,
+            ip: request.ip,
+            fingerprint: agent.fingerprint,
+          },
           'Recovery signature verification failed',
         );
         throw createProblem(
@@ -165,7 +199,7 @@ export async function recoveryRoutes(
         );
       }
 
-      // 4. Call Kratos Admin API to create recovery code
+      // 5. Call Kratos Admin API to create recovery code
       try {
         const data = await identityClient.createRecoveryCodeForIdentity({
           createRecoveryCodeForIdentityBody: {

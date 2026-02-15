@@ -54,7 +54,7 @@ describe('Recovery routes', () => {
       );
     });
 
-    it('returns 404 when no agent found for public key', async () => {
+    it('returns a valid challenge even for unknown public key (anti-enumeration)', async () => {
       mocks.agentRepository.findByPublicKey.mockResolvedValue(null);
 
       const response = await app.inject({
@@ -63,11 +63,22 @@ describe('Recovery routes', () => {
         payload: { publicKey: 'ed25519:unknownKeyBase64==' },
       });
 
-      expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.challenge).toMatch(
+        /^moltnet:recovery:ed25519:[A-Za-z0-9+/=]+:[a-f0-9]{64}:\d+$/,
       );
-      expect(response.json().code).toBe('NOT_FOUND');
+      expect(body.hmac).toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it('returns 400 for publicKey exceeding maxLength', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/challenge',
+        payload: { publicKey: 'ed25519:' + 'A'.repeat(60) },
+      });
+
+      expect(response.statusCode).toBe(400);
     });
 
     it('returns 400 for malformed public key', async () => {
@@ -118,7 +129,10 @@ describe('Recovery routes', () => {
         cryptoService: mocks.cryptoService as any,
         voucherRepository: mocks.voucherRepository as any,
         signingRequestRepository: mocks.signingRequestRepository as any,
+        nonceRepository: mocks.nonceRepository as any,
         dataSource: mocks.dataSource as any,
+        transactionRunner: mocks.transactionRunner as any,
+        embeddingService: mocks.embeddingService as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -204,7 +218,7 @@ describe('Recovery routes', () => {
       expect(response.json().detail).toBe('Challenge expired');
     });
 
-    it('returns 404 when no agent found for public key', async () => {
+    it('returns same error for unknown key as for bad signature (anti-enumeration)', async () => {
       const payload = createValidPayload();
       mocks.agentRepository.findByPublicKey.mockResolvedValue(null);
 
@@ -214,11 +228,11 @@ describe('Recovery routes', () => {
         payload,
       });
 
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(400);
       expect(response.headers['content-type']).toContain(
         'application/problem+json',
       );
-      expect(response.json().code).toBe('NOT_FOUND');
+      expect(response.json().code).toBe('INVALID_SIGNATURE');
     });
 
     it('returns 400 for invalid Ed25519 signature', async () => {
@@ -255,7 +269,10 @@ describe('Recovery routes', () => {
         cryptoService: mocks.cryptoService as any,
         voucherRepository: mocks.voucherRepository as any,
         signingRequestRepository: mocks.signingRequestRepository as any,
+        nonceRepository: mocks.nonceRepository as any,
         dataSource: mocks.dataSource as any,
+        transactionRunner: mocks.transactionRunner as any,
+        embeddingService: mocks.embeddingService as any,
         permissionChecker: mocks.permissionChecker as any,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -293,6 +310,46 @@ describe('Recovery routes', () => {
         'application/problem+json',
       );
       expect(response.json().code).toBe('UPSTREAM_ERROR');
+    });
+
+    it('returns 400 when replaying a consumed nonce', async () => {
+      const payload = createValidPayload();
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(
+        createMockAgent(),
+      );
+      mocks.nonceRepository.consume.mockResolvedValue(false);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/verify',
+        payload,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.headers['content-type']).toContain(
+        'application/problem+json',
+      );
+      expect(response.json().code).toBe('INVALID_CHALLENGE');
+      expect(response.json().detail).toBe('Challenge already used');
+    });
+
+    it('returns 400 for publicKey exceeding maxLength in verify', async () => {
+      const longKey = 'ed25519:' + 'A'.repeat(60);
+      const challenge = generateRecoveryChallenge(VERIFY_PUBLIC_KEY);
+      const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/verify',
+        payload: {
+          challenge,
+          hmac,
+          signature: 'some-sig',
+          publicKey: longKey,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
     });
   });
 });

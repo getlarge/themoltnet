@@ -12,6 +12,7 @@ export type {
   AgentRepository,
   DataSource,
   DiaryRepository,
+  NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,

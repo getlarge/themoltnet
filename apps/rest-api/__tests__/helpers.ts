@@ -20,6 +20,7 @@ import type {
   DiaryRepository,
   DiaryService,
   EmbeddingService,
+  NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -110,6 +111,9 @@ export interface MockServices {
   signingRequestRepository: {
     [K in keyof SigningRequestRepository]: ReturnType<typeof vi.fn>;
   };
+  nonceRepository: {
+    [K in keyof NonceRepository]: ReturnType<typeof vi.fn>;
+  };
   permissionChecker: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
@@ -189,6 +193,10 @@ export function createMockServices(): MockServices {
       updateStatus: vi.fn(),
       countByAgent: vi.fn(),
     },
+    nonceRepository: {
+      consume: vi.fn().mockResolvedValue(true),
+      cleanup: vi.fn(),
+    },
     permissionChecker: {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
@@ -249,6 +257,7 @@ export async function createTestApp(
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
     signingRequestRepository:
       mocks.signingRequestRepository as unknown as SigningRequestRepository,
+    nonceRepository: mocks.nonceRepository as unknown as NonceRepository,
     dataSource: mocks.dataSource as unknown as DataSource,
     transactionRunner: mocks.transactionRunner as unknown as TransactionRunner,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,

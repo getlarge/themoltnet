@@ -38,6 +38,7 @@ async function main() {
     cryptoService: createStubService() as never,
     voucherRepository: createStubService() as never,
     signingRequestRepository: createStubService() as never,
+    nonceRepository: createStubService() as never,
     dataSource: createStubService() as never,
     transactionRunner: createStubService() as never,
     embeddingService: createStubService() as never,

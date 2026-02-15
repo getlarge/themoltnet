@@ -2213,6 +2213,7 @@
                 "properties": {
                   "publicKey": {
                     "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "maxLength": 60,
                     "description": "Ed25519 public key with prefix",
                     "type": "string"
                   }
@@ -2234,16 +2235,6 @@
             }
           },
           "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -2296,6 +2287,7 @@
                   },
                   "publicKey": {
                     "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "maxLength": 60,
                     "description": "Ed25519 public key with prefix",
                     "type": "string"
                   }
@@ -2317,16 +2309,6 @@
             }
           },
           "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
             "description": "Default Response",
             "content": {
               "application/json": {

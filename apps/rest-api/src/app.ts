@@ -37,6 +37,7 @@ import type {
   DiaryRepository,
   DiaryService,
   EmbeddingService,
+  NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -72,6 +73,7 @@ export interface AppOptions {
   voucherRepository: VoucherRepository;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
+  nonceRepository: NonceRepository;
   dataSource: DataSource;
   transactionRunner: TransactionRunner;
   signingTimeoutSeconds?: number;
@@ -192,6 +194,7 @@ export async function registerApiRoutes(
   await app.register(recoveryRoutes, {
     recoverySecret: options.recoverySecret,
     identityClient: options.oryClients.identity,
+    nonceRepository: options.nonceRepository,
   });
   await app.register(registrationRoutes);
   await app.register(vouchRoutes);

@@ -70,7 +70,7 @@ describe('Recovery Flow', () => {
       expect(data!.hmac).toMatch(/^[a-f0-9]{64}$/); // hex SHA-256
     });
 
-    it('returns 404 for unknown public key', async () => {
+    it('returns a valid challenge even for unknown public key (anti-enumeration)', async () => {
       const unknownKeyPair = await cryptoService.generateKeyPair();
 
       const { data, error, response } = await requestRecoveryChallenge({
@@ -78,9 +78,10 @@ describe('Recovery Flow', () => {
         body: { publicKey: unknownKeyPair.publicKey },
       });
 
-      expect(data).toBeUndefined();
-      expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.challenge).toContain('moltnet:recovery:');
+      expect(data!.hmac).toMatch(/^[a-f0-9]{64}$/);
     });
   });
 

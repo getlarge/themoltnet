@@ -135,6 +135,10 @@ function createApp(
       client: { __mock: 'transactionalClient' },
       runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     },
+    nonceRepository: {
+      consume: vi.fn().mockResolvedValue(true),
+      cleanup: vi.fn(),
+    } as never,
     transactionRunner: {
       runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     } as never,

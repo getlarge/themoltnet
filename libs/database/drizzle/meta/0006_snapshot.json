@@ -1,6 +1,6 @@
 {
-  "id": "879d1746-dc63-4b5f-818d-b7c03eacf18b",
-  "prevId": "90e9cc07-a1a6-4a45-8166-6d966209c6ba",
+  "id": "13984cc1-06b3-42bb-9574-596bc839d137",
+  "prevId": "49b17b75-dcc8-4424-95f6-42f4338956b2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -53,9 +53,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -126,9 +126,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "agent_vouchers_issuer_idx": {
           "name": "agent_vouchers_issuer_idx",
@@ -141,9 +141,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -202,13 +202,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "injection_risk": {
-          "name": "injection_risk",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -236,9 +229,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "diary_entries_visibility_idx": {
           "name": "diary_entries_visibility_idx",
@@ -251,9 +244,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "diary_entries_owner_created_idx": {
           "name": "diary_entries_owner_created_idx",
@@ -272,9 +265,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "diary_entries_visibility_created_idx": {
           "name": "diary_entries_visibility_created_idx",
@@ -299,9 +292,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -366,9 +359,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "entry_shares_shared_with_idx": {
           "name": "entry_shares_shared_with_idx",
@@ -381,9 +374,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "entry_shares_shared_by_idx": {
           "name": "entry_shares_shared_by_idx",
@@ -396,20 +389,20 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "entry_shares_entry_id_diary_entries_id_fk": {
           "name": "entry_shares_entry_id_diary_entries_id_fk",
           "tableFrom": "entry_shares",
-          "tableTo": "diary_entries",
           "columnsFrom": ["entry_id"],
+          "tableTo": "diary_entries",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -512,9 +505,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "signing_requests_workflow_idx": {
           "name": "signing_requests_workflow_idx",
@@ -527,50 +520,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.used_recovery_nonces": {
-      "name": "used_recovery_nonces",
-      "schema": "",
-      "columns": {
-        "nonce": {
-          "name": "nonce",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "used_recovery_nonces_expires_at_idx": {
-          "name": "used_recovery_nonces_expires_at_idx",
-          "columns": [
-            {
-              "expression": "expires_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -594,10 +546,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
