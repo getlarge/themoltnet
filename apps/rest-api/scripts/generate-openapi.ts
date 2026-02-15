@@ -62,22 +62,15 @@ async function main() {
   const json = JSON.stringify(spec, null, 2);
   writeFileSync(outputPath, json);
 
-  // Also write to the landing page public directory
-  const landingPublicPath = resolve(
-    __dirname,
-    '..',
-    '..',
-    'landing',
-    'public',
-    'openapi.json',
-  );
-  mkdirSync(dirname(landingPublicPath), { recursive: true });
-  writeFileSync(landingPublicPath, json);
+  // Also write to the rest-api public directory for static serving
+  const restApiPublicPath = resolve(__dirname, '..', 'public', 'openapi.json');
+  mkdirSync(dirname(restApiPublicPath), { recursive: true });
+  writeFileSync(restApiPublicPath, json);
 
   await app.close();
 
   console.log(`OpenAPI spec written to ${outputPath}`);
-  console.log(`OpenAPI spec written to ${landingPublicPath}`);
+  console.log(`OpenAPI spec written to ${restApiPublicPath}`);
 }
 
 main().catch((err) => {
