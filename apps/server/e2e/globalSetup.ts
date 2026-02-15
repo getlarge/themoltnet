@@ -1,11 +1,15 @@
 /**
- * E2E Global Setup & Teardown — Docker Mode
+ * E2E Global Setup — Health Check Only
  *
- * Setup: Starts Docker Compose with e2e config (includes server container).
- * Teardown: Shuts down Docker Compose after all tests complete.
+ * Assumes Docker Compose is already running (started by CI or the developer).
+ * Verifies all services are healthy before tests run.
+ *
+ * To start the stack locally:
+ *   docker compose -f docker-compose.e2e.yaml up -d --build
+ *
+ * To start in CI (pre-built images):
+ *   docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
  */
-
-import { execSync } from 'node:child_process';
 
 async function waitForHealthy(url: string, maxAttempts = 60): Promise<void> {
   for (let i = 0; i < maxAttempts; i++) {
@@ -26,56 +30,10 @@ async function waitForHealthy(url: string, maxAttempts = 60): Promise<void> {
   );
 }
 
-const composeCwd = process.cwd() + '/../..';
-const isCI = !!process.env.CI;
-const composeFiles = isCI
-  ? '-f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml'
-  : '-f docker-compose.e2e.yaml';
-const composeCmd = `docker compose ${composeFiles}`;
-
 export default async function setup() {
   // eslint-disable-next-line no-console
-  console.log(
-    `[E2E Setup] Restarting Docker Compose with e2e config${isCI ? ' (using pre-built images)' : ' (building server)'}...`,
-  );
+  console.log('[E2E Setup] Waiting for services to be healthy...');
 
-  // Stop and remove all containers to ensure fresh state
-  try {
-    execSync(`${composeCmd} down -v --remove-orphans`, {
-      cwd: composeCwd,
-      stdio: 'inherit',
-    });
-  } catch {
-    // Ignore error if nothing was running
-  }
-
-  // Start with e2e config — includes the server container
-  // In CI, images are pre-built and pulled; locally, build inline
-  const upArgs = isCI ? 'up -d' : 'up -d --build';
-  try {
-    execSync(`${composeCmd} ${upArgs}`, {
-      cwd: composeCwd,
-      stdio: 'inherit',
-      timeout: 300_000, // 5 min for image build + startup
-    });
-  } catch (err) {
-    // Capture server container logs before re-throwing
-    // eslint-disable-next-line no-console
-    console.error('[E2E Setup] Docker Compose up failed. Server logs:');
-    try {
-      execSync(`${composeCmd} logs server`, {
-        cwd: composeCwd,
-        stdio: 'inherit',
-      });
-    } catch {
-      // Best-effort log capture
-    }
-    throw err;
-  }
-
-  // Wait for Ory services and the server container to be healthy
-  // eslint-disable-next-line no-console
-  console.log('[E2E Setup] Waiting for services to be ready...');
   await Promise.all([
     waitForHealthy('http://localhost:4433/health/alive'), // Kratos
     waitForHealthy('http://localhost:4444/health/alive'), // Hydra
@@ -84,21 +42,5 @@ export default async function setup() {
   ]);
 
   // eslint-disable-next-line no-console
-  console.log('[E2E Setup] All services ready (including server container)');
-
-  // Return teardown function — Vitest calls this after all tests complete
-  return async () => {
-    // eslint-disable-next-line no-console
-    console.log('[E2E Teardown] Shutting down Docker Compose...');
-    try {
-      execSync(`${composeCmd} down -v --remove-orphans`, {
-        cwd: composeCwd,
-        stdio: 'inherit',
-      });
-    } catch {
-      // Best-effort cleanup
-    }
-    // eslint-disable-next-line no-console
-    console.log('[E2E Teardown] Docker Compose stopped');
-  };
+  console.log('[E2E Setup] All services ready');
 }

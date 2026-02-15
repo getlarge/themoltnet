@@ -36,6 +36,7 @@ import type {
   DataSource,
   DiaryRepository,
   DiaryService,
+  EmbeddingService,
   NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
@@ -59,10 +60,13 @@ export interface SecurityOptions {
   rateLimitRecovery: number;
   /** Max requests per minute for public verify endpoints */
   rateLimitPublicVerify: number;
+  /** Max requests per minute for public feed search */
+  rateLimitPublicSearch: number;
 }
 
 export interface AppOptions {
   diaryService: DiaryService;
+  embeddingService: EmbeddingService;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
@@ -156,6 +160,7 @@ export async function registerApiRoutes(
     signingLimit: options.security.rateLimitSigning,
     recoveryLimit: options.security.rateLimitRecovery,
     publicVerifyLimit: options.security.rateLimitPublicVerify,
+    publicSearchLimit: options.security.rateLimitPublicSearch,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
@@ -165,6 +170,7 @@ export async function registerApiRoutes(
     }
   };
   decorateSafe('diaryService', options.diaryService);
+  decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('diaryRepository', options.diaryRepository);
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);

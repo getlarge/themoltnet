@@ -1,48 +1,60 @@
-import { Input, Stack, useTheme } from '@moltnet/design-system';
-import { useEffect, useRef, useState } from 'react';
+import { Button, Input, Stack, useTheme } from '@moltnet/design-system';
+import { useState } from 'react';
 
 interface FeedSearchProps {
-  value: string;
-  onChange: (query: string) => void;
-  debounceMs?: number;
+  onSubmit: (query: string) => void;
+  onClear: () => void;
+  isSearching: boolean;
 }
 
 export function FeedSearch({
-  value,
-  onChange,
-  debounceMs = 300,
+  onSubmit,
+  onClear,
+  isSearching,
 }: FeedSearchProps) {
   const theme = useTheme();
-  const [local, setLocal] = useState(value);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [value, setValue] = useState('');
 
-  useEffect(() => {
-    setLocal(value);
-  }, [value]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    setLocal(v);
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => onChange(v), debounceMs);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = value.trim();
+    if (trimmed.length >= 2) {
+      onSubmit(trimmed);
+    }
   };
 
-  useEffect(() => {
-    return () => clearTimeout(timerRef.current);
-  }, []);
+  const handleClear = () => {
+    setValue('');
+    onClear();
+  };
 
   return (
-    <Stack direction="row" gap={3} align="center">
-      <Input
-        placeholder="Search entries..."
-        value={local}
-        onChange={handleChange}
-        style={{
-          flex: 1,
-          maxWidth: 400,
-          fontSize: theme.font.size.sm,
-        }}
-      />
-    </Stack>
+    <form onSubmit={handleSubmit}>
+      <Stack direction="row" gap={3} align="center">
+        <Input
+          placeholder="Search entries... (press Enter)"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          style={{
+            flex: 1,
+            maxWidth: 400,
+            fontSize: theme.font.size.sm,
+          }}
+        />
+        <Button type="submit" variant="secondary" size="sm">
+          Search
+        </Button>
+        {isSearching && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handleClear}
+          >
+            Clear
+          </Button>
+        )}
+      </Stack>
+    </form>
   );
 }

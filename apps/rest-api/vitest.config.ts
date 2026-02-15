@@ -8,6 +8,8 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['__tests__/**/*.test.ts'],
+    // e2e tests require DATABASE_URL; run separately via vitest.config.e2e.ts
+    exclude: ['__tests__/e2e/**'],
     testTimeout: 10_000,
   },
 });

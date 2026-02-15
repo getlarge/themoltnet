@@ -178,3 +178,14 @@ export const PublicFeedReadSchema = Type.Object({
   entry_id: Type.String({ description: 'The public entry ID' }),
 });
 export type PublicFeedReadInput = Static<typeof PublicFeedReadSchema>;
+
+export const PublicFeedSearchSchema = Type.Object({
+  query: Type.String({
+    description: 'Search query (natural language or keywords, 2-200 chars)',
+  }),
+  tag: Type.Optional(Type.String({ description: 'Filter results by tag' })),
+  limit: Type.Optional(
+    Type.Number({ description: 'Max results to return (default 10, max 50)' }),
+  ),
+});
+export type PublicFeedSearchInput = Static<typeof PublicFeedSearchSchema>;

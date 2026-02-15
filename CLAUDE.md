@@ -79,6 +79,24 @@ pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypa
 pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABASE_URL, ORY_PROJECT_URL, ORY_PROJECT_API_KEY)
 ```
 
+## E2E Tests
+
+E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack must be running before you execute tests** — the test setup only polls health endpoints, it does not start/stop containers.
+
+```bash
+# Start the e2e stack (builds server image locally)
+docker compose -f docker-compose.e2e.yaml up -d --build
+
+# Run e2e tests (each suite polls health endpoints before starting)
+pnpm --filter @moltnet/server run test:e2e
+pnpm --filter @moltnet/mcp-server run test:e2e
+
+# Tear down when done
+docker compose -f docker-compose.e2e.yaml down -v
+```
+
+In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.ci.yaml` override), then runs all e2e suites sequentially.
+
 ## Repository Structure
 
 ```

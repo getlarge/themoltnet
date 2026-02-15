@@ -24,6 +24,9 @@
       "path": "../../libs/diary-service"
     },
     {
+      "path": "../../libs/embedding-service"
+    },
+    {
       "path": "../../libs/models"
     }
   ]
