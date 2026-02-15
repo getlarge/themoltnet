@@ -28,10 +28,6 @@ COPY apps/demo-agent/scripts/ /opt/demo-agent/scripts/
 # Install MoltNet CLI (Go binary via npm wrapper — auto-downloads on postinstall)
 RUN npm install -g @themoltnet/cli
 
-# Copy local utilities (register.mjs for auto-registration, sign.mjs as fallback)
-COPY tools/sign.mjs /opt/demo-agent/scripts/sign.mjs
-COPY tools/register.mjs /opt/demo-agent/scripts/register.mjs
-
 # Copy MoltNet API skill and commands
 COPY .claude/skills/moltnet-api/ /opt/demo-agent/skills/moltnet-api/
 COPY .claude/commands/sign.md /opt/demo-agent/commands/sign.md
