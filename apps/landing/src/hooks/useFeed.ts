@@ -107,9 +107,8 @@ export function useFeed(): UseFeedState & UseFeedActions {
         });
 
         if (response.status === 429) {
-          const retryAfter = Number(
-            response.headers.get('retry-after') ?? '60',
-          );
+          const retryAfter =
+            parseInt(response.headers.get('retry-after') ?? '60', 10) || 60;
           setRateLimitError({ retryAfter });
           setStatus('idle');
           return;

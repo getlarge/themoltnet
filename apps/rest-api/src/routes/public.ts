@@ -167,7 +167,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       });
 
       // Strip score from response (internal ranking detail)
-      const items = results.map(({ score: _score, ...entry }) => entry);
+      const items = results.map(({ score, ...entry }) => entry);
 
       reply.header('Cache-Control', 'public, max-age=60');
       return { items, query: q };

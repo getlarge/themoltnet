@@ -67,9 +67,9 @@ describe('Public feed search e2e', () => {
   afterAll(async () => {
     // Clean up seeded entries
     if (seededIds.length > 0) {
-      for (const id of seededIds) {
-        await db.execute(sql`DELETE FROM diary_entries WHERE id = ${id}::uuid`);
-      }
+      await db.execute(
+        sql`DELETE FROM diary_entries WHERE id = ANY(${seededIds}::uuid[])`,
+      );
       await db.execute(
         sql`DELETE FROM agent_keys WHERE identity_id = ${SEED_AGENT.identityId}::uuid`,
       );

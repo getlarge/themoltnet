@@ -62,7 +62,8 @@ export function FeedPage() {
               variant="caption"
               style={{ color: theme.color.error.DEFAULT }}
             >
-              Rate limited. Try again in {feed.rateLimitError.retryAfter}s.
+              Rate limited. Try again in{' '}
+              {Math.max(feed.rateLimitError.retryAfter, 1)}s.
             </Text>
           )}
 
