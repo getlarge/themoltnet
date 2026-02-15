@@ -3,6 +3,10 @@ name: Mission Integrity
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '.claude/**'
+      - '**.md'
 
 concurrency:
   group: mission-integrity-${{ github.ref }}
