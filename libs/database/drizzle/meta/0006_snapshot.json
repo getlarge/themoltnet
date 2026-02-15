@@ -1,6 +1,6 @@
 {
   "id": "13984cc1-06b3-42bb-9574-596bc839d137",
-  "prevId": "49b17b75-dcc8-4424-95f6-42f4338956b2",
+  "prevId": "879d1746-dc63-4b5f-818d-b7c03eacf18b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -523,6 +523,47 @@
           "with": {},
           "method": "btree",
           "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.used_recovery_nonces": {
+      "name": "used_recovery_nonces",
+      "schema": "",
+      "columns": {
+        "nonce": {
+          "name": "nonce",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "used_recovery_nonces_expires_at_idx": {
+          "name": "used_recovery_nonces_expires_at_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {},
