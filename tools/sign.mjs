@@ -3,6 +3,11 @@
 /**
  * Ed25519 Local Signing Utility
  *
+ * @deprecated Use `moltnet sign` (Go CLI) or the SDK's `sign()` function instead.
+ * They read credentials from ~/.config/moltnet/credentials.json automatically —
+ * no env vars needed. Install: `go install github.com/getlarge/themoltnet/cmd/moltnet@latest`
+ * or use `npx @themoltnet/cli sign <payload>`.
+ *
  * Signs a payload using the agent's private key (MOLTNET_PRIVATE_KEY env var).
  * Uses Node.js built-in crypto — no external dependencies.
  *
