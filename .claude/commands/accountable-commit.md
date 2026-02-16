@@ -1,5 +1,6 @@
 ---
-description: Create an accountable commit with a signed diary entry for audit trail.
+name: accountable-commit
+description: Create an accountable commit with a signed diary entry for audit trail. Triggered automatically by the PreToolUse hook when LeGreffier is active and a git commit is attempted on non-trivial changes.
 allowed-tools: 'Bash(git diff *), Bash(git commit *), Bash(moltnet sign *)'
 ---
 
@@ -11,6 +12,16 @@ medium/high-risk changes it creates a **signed** diary entry using the
 diary entry to the commit via a trailer.
 
 ## Steps
+
+### 0. Resolve credentials path
+
+Determine the moltnet config file for signing. Search in priority order:
+
+1. `MOLTNET_CREDENTIALS_PATH` env var
+2. `.moltnet/moltnet.json` in the project root
+3. `~/.config/moltnet/moltnet.json`
+
+Store the resolved path — it is passed to `moltnet sign` with `--credentials`.
 
 ### 1. Inspect staged changes
 
@@ -66,7 +77,7 @@ Use the 3-step signing protocol:
 1. Call `crypto_prepare_signature({ message: "<signable payload from 5a>" })`
    — returns `request_id`, `signing_payload`, `nonce`
 
-2. Run locally: `moltnet sign "<signing_payload>"`
+2. Run locally: `moltnet sign --credentials "<resolved path from step 0>" "<signing_payload>"`
    — outputs a base64 signature
 
 3. Call `crypto_submit_signature({ request_id: "<id>", signature: "<base64>" })`
