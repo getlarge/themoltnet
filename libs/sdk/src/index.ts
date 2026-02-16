@@ -30,6 +30,7 @@ export {
   type RegisterResult,
 } from './register.js';
 export { sign } from './sign.js';
+export { exportSSHKey } from './ssh.js';
 
 import { info } from './info.js';
 import { register } from './register.js';
