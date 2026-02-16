@@ -361,6 +361,47 @@ export type NetworkInfo = {
   };
 };
 
+export type GetOAuth2TokenData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/oauth2/token';
+};
+
+export type GetOAuth2TokenErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+};
+
+export type GetOAuth2TokenError =
+  GetOAuth2TokenErrors[keyof GetOAuth2TokenErrors];
+
+export type GetOAuth2TokenResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    scope?: string;
+    [key: string]: unknown | string | number | undefined;
+  };
+};
+
+export type GetOAuth2TokenResponse =
+  GetOAuth2TokenResponses[keyof GetOAuth2TokenResponses];
+
 export type GetHealthData = {
   body?: never;
   path?: never;
