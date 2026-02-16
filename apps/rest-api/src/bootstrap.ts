@@ -5,10 +5,8 @@
  * and registers the REST API routes on a Fastify instance.
  *
  * DBOS lifecycle is handled by the DBOS plugin.
- * The plugin requires cryptoService, agentRepository, voucherRepository,
- * signingRequestRepository, and permissionChecker to be decorated before
- * it registers. It also takes identityApi and oauth2Api for the
- * registration workflow.
+ * Workflow registration and dependency wiring are passed as callbacks
+ * via `registerWorkflows` (pre-launch) and `afterLaunch` (post-launch).
  */
 
 import {
@@ -27,8 +25,16 @@ import {
   createVoucherRepository,
   type DatabaseConnection,
   getDataSource,
+  initSigningWorkflows,
+  setSigningKeyLookup,
+  setSigningRequestPersistence,
+  setSigningVerifier,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
+import {
+  initDiaryWorkflows,
+  setDiaryWorkflowDeps,
+} from '@moltnet/diary-service/workflows';
 import { createEmbeddingService } from '@moltnet/embedding-service';
 import {
   initObservability,
@@ -41,6 +47,10 @@ import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
+import {
+  initRegistrationWorkflow,
+  setRegistrationDeps,
+} from './workflows/index.js';
 
 export interface BootstrapResult {
   app: FastifyInstance;
@@ -133,28 +143,60 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     oryClients.relationship,
   );
 
-  // ── Pre-decorate services required by DBOS plugin ──────────────
-  app.decorate('cryptoService', cryptoService);
-  app.decorate('agentRepository', agentRepository);
-  app.decorate('voucherRepository', voucherRepository);
-  app.decorate('signingRequestRepository', signingRequestRepository);
-  app.decorate('permissionChecker', permissionChecker);
+  const embeddingService = createEmbeddingService({
+    logger: app.log,
+  });
 
   // ── DBOS Plugin (handles full lifecycle) ───────────────────────
   await app.register(dbosPlugin, {
     databaseUrl: config.database.DATABASE_URL,
     systemDatabaseUrl: config.database.DBOS_SYSTEM_DATABASE_URL,
     enableOTLP: !!observability,
-    identityApi: oryClients.identity,
-    oauth2Api: oryClients.oauth2,
+    registerWorkflows: [
+      () => {
+        initSigningWorkflows();
+        setSigningVerifier(cryptoService);
+        setSigningKeyLookup({
+          getPublicKey: async (agentId: string) => {
+            const agent = await agentRepository.findByIdentityId(agentId);
+            return agent?.publicKey ?? null;
+          },
+        });
+      },
+      () => initRegistrationWorkflow(),
+      () => initDiaryWorkflows(),
+    ],
+    afterLaunch: [
+      () => {
+        setSigningRequestPersistence({
+          updateStatus: async (id, updates) => {
+            await signingRequestRepository.updateStatus(id, updates);
+          },
+        });
+      },
+      (dataSource) => {
+        setRegistrationDeps({
+          identityApi: oryClients.identity,
+          oauth2Api: oryClients.oauth2,
+          agentRepository,
+          voucherRepository,
+          permissionChecker,
+          dataSource,
+        });
+      },
+      (dataSource) => {
+        setDiaryWorkflowDeps({
+          diaryRepository,
+          permissionChecker,
+          embeddingService,
+          dataSource,
+        });
+      },
+    ],
   });
 
   const dataSource = getDataSource();
   const transactionRunner = createDBOSTransactionRunner(dataSource);
-
-  const embeddingService = createEmbeddingService({
-    logger: app.log,
-  });
 
   const diaryService = createDiaryService({
     diaryRepository,
