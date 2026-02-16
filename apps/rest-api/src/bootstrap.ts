@@ -181,6 +181,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     transactionRunner,
     permissionChecker,
     tokenValidator,
+    hydraPublicUrl: oryUrls.hydraPublicUrl,
     webhookApiKey: config.webhook.ORY_ACTION_API_KEY,
     recoverySecret: config.recovery.RECOVERY_CHALLENGE_SECRET,
     oryClients,

@@ -20,11 +20,7 @@ import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createTestVoucher } from './helpers.js';
-import {
-  createTestHarness,
-  HYDRA_PUBLIC_URL,
-  type TestHarness,
-} from './setup.js';
+import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('POST /auth/register', () => {
   let harness: TestHarness;
@@ -103,7 +99,7 @@ describe('POST /auth/register', () => {
     };
 
     // Exchange credentials for an access token
-    const tokenRes = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+    const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -146,7 +142,7 @@ describe('POST /auth/register', () => {
     };
 
     // Get access token
-    const tokenRes = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+    const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -307,7 +303,7 @@ describe('POST /auth/register', () => {
     const oldSecret = creds.clientSecret;
 
     // Get access token with original credentials
-    const tokenRes = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+    const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -340,7 +336,7 @@ describe('POST /auth/register', () => {
     expect(rotated.clientSecret).not.toBe(oldSecret);
 
     // New secret works for token acquisition
-    const newTokenRes = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+    const newTokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -352,7 +348,7 @@ describe('POST /auth/register', () => {
     expect(newTokenRes.status).toBe(200);
 
     // Old secret no longer works
-    const oldTokenRes = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+    const oldTokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({

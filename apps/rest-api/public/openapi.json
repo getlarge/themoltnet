@@ -1290,6 +1290,103 @@
     }
   },
   "paths": {
+    "/oauth2/token": {
+      "post": {
+        "operationId": "getOAuth2Token",
+        "tags": ["auth"],
+        "description": "Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "required": ["access_token", "token_type", "expires_in"],
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    },
+                    "token_type": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "number"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "id_token": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "operationId": "getHealth",
@@ -3166,11 +3263,12 @@
         "description": "LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.",
         "responses": {
           "200": {
-            "description": "Default Response",
+            "description": "Network info as llms.txt markdown",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Network info as llms.txt markdown"
                 }
               }
             }

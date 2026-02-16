@@ -27,7 +27,8 @@ import { sql } from 'drizzle-orm';
 
 // ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──
 
-const SERVER_BASE_URL = process.env.SERVER_BASE_URL ?? 'http://localhost:8080';
+export const SERVER_BASE_URL =
+  process.env.SERVER_BASE_URL ?? 'http://localhost:8080';
 
 const DATABASE_URL =
   process.env.DATABASE_URL ??
@@ -35,8 +36,6 @@ const DATABASE_URL =
 
 const HYDRA_ADMIN_URL =
   process.env.ORY_HYDRA_ADMIN_URL ?? 'http://localhost:4445';
-const HYDRA_PUBLIC_URL =
-  process.env.ORY_HYDRA_PUBLIC_URL ?? 'http://localhost:4444';
 const KETO_READ_URL =
   process.env.ORY_KETO_PUBLIC_URL ?? 'http://localhost:4466';
 const KETO_WRITE_URL =
@@ -52,7 +51,6 @@ const WEBHOOK_API_KEY =
 export {
   DATABASE_URL,
   HYDRA_ADMIN_URL,
-  HYDRA_PUBLIC_URL,
   KETO_READ_URL,
   KETO_WRITE_URL,
   KRATOS_ADMIN_URL,
@@ -123,7 +121,7 @@ export async function createTestHarness(): Promise<TestHarness> {
       mode: 'split',
       kratosAdminUrl: KRATOS_ADMIN_URL,
       hydraAdminUrl: HYDRA_ADMIN_URL,
-      hydraPublicUrl: HYDRA_PUBLIC_URL,
+      hydraPublicUrl: SERVER_BASE_URL,
       ketoReadUrl: KETO_READ_URL,
       ketoWriteUrl: KETO_WRITE_URL,
     },

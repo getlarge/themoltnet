@@ -27,6 +27,9 @@ import type {
   GetLlmsTxtResponses,
   GetNetworkInfoData,
   GetNetworkInfoResponses,
+  GetOAuth2TokenData,
+  GetOAuth2TokenErrors,
+  GetOAuth2TokenResponses,
   GetProblemTypeData,
   GetProblemTypeResponses,
   GetPublicEntryData,
@@ -118,6 +121,18 @@ export type Options<
    */
   meta?: Record<string, unknown>;
 };
+
+/**
+ * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ */
+export const getOAuth2Token = <ThrowOnError extends boolean = false>(
+  options?: Options<GetOAuth2TokenData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    GetOAuth2TokenResponses,
+    GetOAuth2TokenErrors,
+    ThrowOnError
+  >({ url: '/oauth2/token', ...options });
 
 /**
  * Health check endpoint.
