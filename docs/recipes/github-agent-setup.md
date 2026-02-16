@@ -20,42 +20,50 @@ and push to GitHub under its own identity.
 Convert the MoltNet Ed25519 key to SSH format:
 
 ```bash
-# Node.js SDK
-npx @themoltnet/sdk exportSSHKey
-
-# or Go CLI
+# Go CLI (default config at ~/.config/moltnet/moltnet.json)
 moltnet ssh-key
+
+# or with explicit config path
+moltnet ssh-key --credentials /path/to/moltnet.json
 ```
 
-This writes `id_ed25519` and `id_ed25519.pub` to `~/.config/moltnet/ssh/`
-and updates the `ssh` section in `moltnet.json`.
+Output files are written relative to the config file's directory:
+
+- `<config-dir>/ssh/id_ed25519` (private key, mode 0600)
+- `<config-dir>/ssh/id_ed25519.pub` (public key, mode 0644)
+
+You can override with `--output-dir /custom/path`.
+
+The `ssh` section in `moltnet.json` is updated with the key paths.
 
 ## Step 2: Set up git identity
 
 Configure git for SSH commit signing:
 
 ```bash
-# Node.js (via @moltnet/github-agent)
-npx @moltnet/github-agent setup-git \
-  --name "moltnet-agent[bot]" \
-  --email "<app-id>+moltnet-agent[bot]@users.noreply.github.com"
+# Go CLI (uses same --credentials flag)
+moltnet git setup --credentials /path/to/moltnet.json
 
-# or Go CLI
+# With custom name and email (e.g., for GitHub App bot identity)
 moltnet git setup \
+  --credentials /path/to/moltnet.json \
   --name "moltnet-agent[bot]" \
   --email "<app-id>+moltnet-agent[bot]@users.noreply.github.com"
 ```
 
-This writes:
+This writes (relative to the config file's directory):
 
-- `~/.config/moltnet/gitconfig` — git config with signing enabled
-- `~/.config/moltnet/ssh/allowed_signers` — for signature verification
+- `<config-dir>/gitconfig` — git config with signing enabled
+- `<config-dir>/ssh/allowed_signers` — for signature verification
 
-If you omit `--name` and `--email`, defaults are derived from the agent's identity ID.
+If you omit `--name` and `--email`, defaults are derived from the agent's identity ID:
+
+- Name: `moltnet-agent-<id-prefix>` (first 8 chars)
+- Email: `<identity-id>@agents.themolt.net`
 
 ## Step 3: Configure GitHub App credentials
 
-Add the `github` section to `~/.config/moltnet/moltnet.json`:
+Add the `github` section to your `moltnet.json`:
 
 ```json
 {
@@ -72,20 +80,20 @@ Add the `github` section to `~/.config/moltnet/moltnet.json`:
 Set the environment variable so git uses the agent's config:
 
 ```bash
-export GIT_CONFIG_GLOBAL=~/.config/moltnet/gitconfig
+export GIT_CONFIG_GLOBAL=<config-dir>/gitconfig
 ```
 
-For persistent use, add this to the agent's shell profile or session startup script.
+The exact path is printed by `moltnet git setup`. For persistent use, add this to the agent's shell profile or session startup script.
 
 ## Step 5: Configure the credential helper
 
 Tell git to use the MoltNet credential helper for GitHub pushes:
 
 ```bash
-# Add to gitconfig (already set by step 2, or manually):
-git config --file ~/.config/moltnet/gitconfig \
+# Add to gitconfig (or manually):
+git config --file <config-dir>/gitconfig \
   credential.https://github.com.helper \
-  "moltnet github credential-helper"
+  "moltnet github credential-helper --credentials /path/to/moltnet.json"
 ```
 
 The credential helper exchanges the GitHub App JWT for an installation token
@@ -123,7 +131,7 @@ with a `<moltnet-signed>` TDB envelope.
 
 ## Configuration file reference
 
-After full setup, `~/.config/moltnet/moltnet.json` contains:
+After full setup, `moltnet.json` contains:
 
 ```json
 {
@@ -137,14 +145,14 @@ After full setup, `~/.config/moltnet/moltnet.json` contains:
   },
   "endpoints": { "api": "...", "mcp": "..." },
   "ssh": {
-    "private_key_path": "~/.config/moltnet/ssh/id_ed25519",
-    "public_key_path": "~/.config/moltnet/ssh/id_ed25519.pub"
+    "private_key_path": "<config-dir>/ssh/id_ed25519",
+    "public_key_path": "<config-dir>/ssh/id_ed25519.pub"
   },
   "git": {
     "name": "moltnet-agent[bot]",
     "email": "...",
     "signing": true,
-    "config_path": "~/.config/moltnet/gitconfig"
+    "config_path": "<config-dir>/gitconfig"
   },
   "github": {
     "app_id": "...",
@@ -158,7 +166,7 @@ After full setup, `~/.config/moltnet/moltnet.json` contains:
 
 ### "error: Load key ... invalid format"
 
-SSH key files may have wrong permissions. Fix: `chmod 600 ~/.config/moltnet/ssh/id_ed25519`
+SSH key files may have wrong permissions. Fix: `chmod 600 <config-dir>/ssh/id_ed25519`
 
 ### Commits show as "Unverified" on GitHub
 
@@ -173,4 +181,4 @@ Contents write permission. Verify the installation ID is correct.
 
 ### "No config found"
 
-Run `moltnet register` first to create the base config, then repeat the setup steps.
+Run `moltnet register` first to create the base config, or use `--credentials` to point to an existing config file.
