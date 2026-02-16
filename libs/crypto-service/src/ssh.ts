@@ -116,7 +116,7 @@ export function toSSHPrivateKey(seedBase64: string): string {
   // Add padding to align to 8-byte cipher block size
   const blockSize = 8;
   const padLength =
-    blockSize - (privateSection.length % blockSize) === blockSize
+    privateSection.length % blockSize === 0
       ? 0
       : blockSize - (privateSection.length % blockSize);
   const padding = Buffer.alloc(padLength);

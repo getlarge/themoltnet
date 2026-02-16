@@ -243,7 +243,16 @@ func getInstallationToken(appID, privateKeyPath, installationID string) (string,
 
 	privKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		return "", fmt.Errorf("parse RSA private key: %w", err)
+		// Fall back to PKCS#8 format
+		pkcs8Key, errPKCS8 := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if errPKCS8 != nil {
+			return "", fmt.Errorf("parse private key: PKCS#1: %v, PKCS#8: %w", err, errPKCS8)
+		}
+		var ok bool
+		privKey, ok = pkcs8Key.(*rsa.PrivateKey)
+		if !ok {
+			return "", fmt.Errorf("PKCS#8 key is not RSA")
+		}
 	}
 
 	jwt, err := createAppJWT(appID, privKey)
