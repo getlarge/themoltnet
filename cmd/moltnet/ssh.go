@@ -74,14 +74,18 @@ func runSSHKeyExport(args []string) error {
 		return err
 	}
 
-	// Resolve output directory
+	// Resolve output directory — default is relative to the config file
 	dir := *outDir
 	if dir == "" {
-		configDir, err := GetConfigDir()
-		if err != nil {
-			return err
+		if *credPath != "" {
+			dir = filepath.Join(filepath.Dir(*credPath), "ssh")
+		} else {
+			configDir, err := GetConfigDir()
+			if err != nil {
+				return err
+			}
+			dir = filepath.Join(configDir, "ssh")
 		}
-		dir = filepath.Join(configDir, "ssh")
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
@@ -117,8 +121,14 @@ func runSSHKeyExport(args []string) error {
 		PrivateKeyPath: privPath,
 		PublicKeyPath:  pubPath,
 	}
-	if _, err := WriteConfig(creds); err != nil {
-		return fmt.Errorf("update config with ssh paths: %w", err)
+	if *credPath != "" {
+		if _, err := WriteConfigTo(creds, *credPath); err != nil {
+			return fmt.Errorf("update config with ssh paths: %w", err)
+		}
+	} else {
+		if _, err := WriteConfig(creds); err != nil {
+			return fmt.Errorf("update config with ssh paths: %w", err)
+		}
 	}
 
 	return nil

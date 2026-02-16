@@ -33,7 +33,8 @@ export async function exportSSHKey(opts?: {
   const privateKeySSH = toSSHPrivateKey(config.keys.private_key);
   const publicKeySSH = toSSHPublicKey(config.keys.public_key);
 
-  const outputDir = opts?.outputDir ?? join(getConfigDir(), 'ssh');
+  const outputDir =
+    opts?.outputDir ?? join(opts?.configDir ?? getConfigDir(), 'ssh');
   await mkdir(outputDir, { recursive: true });
 
   const privatePath = join(outputDir, 'id_ed25519');

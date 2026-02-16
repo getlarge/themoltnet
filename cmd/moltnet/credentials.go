@@ -125,12 +125,18 @@ func ReadConfigFrom(path string) (*CredentialsFile, error) {
 	return &creds, nil
 }
 
-// WriteConfig writes config to moltnet.json with mode 0o600.
+// WriteConfig writes config to ~/.config/moltnet/moltnet.json with mode 0o600.
 func WriteConfig(config *CredentialsFile) (string, error) {
 	dir, err := GetConfigDir()
 	if err != nil {
 		return "", err
 	}
+	return WriteConfigTo(config, filepath.Join(dir, "moltnet.json"))
+}
+
+// WriteConfigTo writes config to the specified path with mode 0o600.
+func WriteConfigTo(config *CredentialsFile, path string) (string, error) {
+	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf("create config dir: %w", err)
 	}
@@ -141,7 +147,6 @@ func WriteConfig(config *CredentialsFile) (string, error) {
 	}
 	data = append(data, '\n')
 
-	path := filepath.Join(dir, "moltnet.json")
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return "", fmt.Errorf("write config: %w", err)
 	}

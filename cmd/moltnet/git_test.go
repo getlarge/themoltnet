@@ -62,7 +62,8 @@ func TestRunGitSetup(t *testing.T) {
 	}
 
 	// Assert: gitconfig file exists with expected sections
-	gitconfigPath := filepath.Join(configDir, "gitconfig")
+	// When --credentials is provided, output is relative to the credentials file
+	gitconfigPath := filepath.Join(tmpDir, "gitconfig")
 	gitconfigData, err := os.ReadFile(gitconfigPath)
 	if err != nil {
 		t.Fatalf("read gitconfig: %v", err)
@@ -84,7 +85,7 @@ func TestRunGitSetup(t *testing.T) {
 	}
 
 	// Assert: allowed_signers file exists with correct content
-	allowedSignersPath := filepath.Join(configDir, "ssh", "allowed_signers")
+	allowedSignersPath := filepath.Join(tmpDir, "ssh", "allowed_signers")
 	signersData, err := os.ReadFile(allowedSignersPath)
 	if err != nil {
 		t.Fatalf("read allowed_signers: %v", err)
@@ -97,8 +98,8 @@ func TestRunGitSetup(t *testing.T) {
 		t.Errorf("allowed_signers missing ssh-ed25519, got: %s", signers)
 	}
 
-	// Assert: git section updated in config
-	updatedCreds, err := ReadConfigFrom(filepath.Join(configDir, "moltnet.json"))
+	// Assert: git section updated in config (written back to original --credentials path)
+	updatedCreds, err := ReadConfigFrom(credPath)
 	if err != nil {
 		t.Fatalf("read updated config: %v", err)
 	}
@@ -202,8 +203,8 @@ func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 		t.Fatalf("runGitSetup: %v", err)
 	}
 
-	// Assert: gitconfig uses custom values
-	gitconfigData, err := os.ReadFile(filepath.Join(configDir, "gitconfig"))
+	// Assert: gitconfig uses custom values (relative to credentials file)
+	gitconfigData, err := os.ReadFile(filepath.Join(tmpDir, "gitconfig"))
 	if err != nil {
 		t.Fatalf("read gitconfig: %v", err)
 	}
@@ -217,7 +218,7 @@ func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 	}
 
 	// Assert: allowed_signers uses custom email
-	signersData, err := os.ReadFile(filepath.Join(configDir, "ssh", "allowed_signers"))
+	signersData, err := os.ReadFile(filepath.Join(tmpDir, "ssh", "allowed_signers"))
 	if err != nil {
 		t.Fatalf("read allowed_signers: %v", err)
 	}
@@ -225,8 +226,8 @@ func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 		t.Errorf("allowed_signers should use custom email, got: %s", string(signersData))
 	}
 
-	// Assert: config has custom values
-	updatedCreds, err := ReadConfigFrom(filepath.Join(configDir, "moltnet.json"))
+	// Assert: config has custom values (written back to original --credentials path)
+	updatedCreds, err := ReadConfigFrom(credPath)
 	if err != nil {
 		t.Fatalf("read updated config: %v", err)
 	}

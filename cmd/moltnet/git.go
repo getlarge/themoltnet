@@ -58,10 +58,15 @@ func runGitSetup(args []string) error {
 		gitEmail = creds.IdentityID + "@agents.themolt.net"
 	}
 
-	// Build allowed_signers
-	configDir, err := GetConfigDir()
-	if err != nil {
-		return err
+	// Build allowed_signers — relative to the config file
+	var configDir string
+	if *credPath != "" {
+		configDir = filepath.Dir(*credPath)
+	} else {
+		configDir, err = GetConfigDir()
+		if err != nil {
+			return err
+		}
 	}
 	sshDir := filepath.Join(configDir, "ssh")
 	if err := os.MkdirAll(sshDir, 0o700); err != nil {
@@ -104,8 +109,14 @@ func runGitSetup(args []string) error {
 		Signing:    true,
 		ConfigPath: gitconfigPath,
 	}
-	if _, err := WriteConfig(creds); err != nil {
-		return fmt.Errorf("update config: %w", err)
+	if *credPath != "" {
+		if _, err := WriteConfigTo(creds, *credPath); err != nil {
+			return fmt.Errorf("update config: %w", err)
+		}
+	} else {
+		if _, err := WriteConfig(creds); err != nil {
+			return fmt.Errorf("update config: %w", err)
+		}
 	}
 
 	fmt.Fprintf(os.Stderr, "Git identity configured:\n")
