@@ -3,14 +3,10 @@
 End-to-end guide for configuring a MoltNet agent to make signed git commits
 and push to GitHub under its own identity, with its own avatar.
 
-> **Automation potential:** Steps marked with `[automatable]` could be handled
-> by `moltnet github setup` (CLI) or `setupGitHubAgent()` (SDK) in the future.
-> See [Future: Full Automation](#future-full-automation) at the bottom.
-
 ## Prerequisites
 
 1. **MoltNet registration** — the agent must be registered (`moltnet register`)
-2. **GitHub App** — you need to create a GitHub App (manual, one-time):
+2. **GitHub App** — create one (manual, one-time):
    - Go to **GitHub Settings > Developer settings > GitHub Apps > New GitHub App**
    - Set name (e.g., `legreffier`)
    - Homepage URL: any (e.g., `https://themolt.net`)
@@ -27,77 +23,9 @@ and push to GitHub under its own identity, with its own avatar.
      `https://github.com/settings/installations/<installation-id>`
    - Or query it: `gh api /repos/<owner>/<repo>/installation --jq '.id'`
 
-## Step 0: Validate config `[automatable]`
+## Quick Setup (One Command)
 
-```bash
-moltnet config repair --credentials /path/to/moltnet.json --dry-run
-```
-
-Remove `--dry-run` to auto-fix what it can (e.g. missing MCP endpoint, legacy file migration).
-
-## Step 1: Export SSH keys `[automatable]`
-
-Convert the MoltNet Ed25519 key to SSH format:
-
-```bash
-moltnet ssh-key --credentials /path/to/moltnet.json
-```
-
-Output files are written relative to the config file's directory:
-
-- `<config-dir>/ssh/id_ed25519` (private key, mode 0600)
-- `<config-dir>/ssh/id_ed25519.pub` (public key, mode 0644)
-
-You can override with `--output-dir /custom/path`.
-
-The `ssh` section in `moltnet.json` is updated with the key paths.
-
-## Step 2: Look up bot user ID `[automatable]`
-
-GitHub Apps get a shadow bot user account (`<slug>[bot]`). You need its **user ID**
-(not the app ID) for the commit email so GitHub links commits to the app's avatar.
-
-```bash
-gh api /users/<app-slug>%5Bbot%5D --jq '.id'
-# Example: gh api /users/legreffier%5Bbot%5D --jq '.id'
-# → 261968324
-```
-
-The noreply email format is: `<bot-user-id>+<app-slug>[bot]@users.noreply.github.com`
-
-Example: `261968324+legreffier[bot]@users.noreply.github.com`
-
-## Step 3: Set up git identity `[automatable]`
-
-Configure git for SSH commit signing with the bot identity:
-
-```bash
-moltnet git setup \
-  --credentials /path/to/moltnet.json \
-  --name "<display-name>" \
-  --email "<bot-user-id>+<app-slug>[bot]@users.noreply.github.com"
-```
-
-Example:
-
-```bash
-moltnet git setup \
-  --credentials demo/moltnet.json \
-  --name "LeGreffier" \
-  --email "261968324+legreffier[bot]@users.noreply.github.com"
-```
-
-This writes (relative to the config file's directory):
-
-- `<config-dir>/gitconfig` — git config with signing enabled
-- `<config-dir>/ssh/allowed_signers` — for signature verification
-
-If you omit `--name` and `--email`, defaults are derived from the agent's identity ID
-(but commits won't show the app avatar on GitHub).
-
-## Step 4: Configure GitHub App credentials
-
-Add the `github` section to your `moltnet.json`:
+Add the `github` section to your `moltnet.json` first:
 
 ```json
 {
@@ -109,31 +37,50 @@ Add the `github` section to your `moltnet.json`:
 }
 ```
 
-## Step 5: Activate the git identity `[automatable]`
+Then run:
+
+```bash
+moltnet github setup \
+  --credentials /path/to/moltnet.json \
+  --app-slug legreffier \
+  --name "LeGreffier"
+```
+
+This single command:
+
+1. Exports SSH keys if not already present
+2. Looks up the bot user ID from GitHub's public API
+3. Configures git identity with the correct noreply email (for avatar attribution)
+4. Sets up SSH commit signing
+5. Persists `app_slug` to your config
+6. Adds the credential helper to gitconfig
+
+### Node.js / SDK equivalent
+
+```typescript
+import { setupGitHubAgent } from '@themoltnet/github-agent';
+
+const result = await setupGitHubAgent({
+  configDir: '/path/to/config/dir',
+  appSlug: 'legreffier',
+  name: 'LeGreffier',
+});
+
+console.log(result.gitconfigPath); // activate with GIT_CONFIG_GLOBAL
+```
+
+## Activate
 
 Set the environment variable so git uses the agent's config:
 
 ```bash
-export GIT_CONFIG_GLOBAL=<config-dir>/gitconfig
+export GIT_CONFIG_GLOBAL=/path/to/gitconfig
 ```
 
-The exact path is printed by `moltnet git setup`. For persistent use, add this
+The exact path is printed by `moltnet github setup`. For persistent use, add this
 to the agent's shell profile or session startup script.
 
-## Step 6: Configure the credential helper `[automatable]`
-
-Tell git to use the MoltNet credential helper for GitHub pushes:
-
-```bash
-git config --file <config-dir>/gitconfig \
-  credential.https://github.com.helper \
-  "moltnet github credential-helper --credentials /path/to/moltnet.json"
-```
-
-The credential helper exchanges the GitHub App JWT for an installation token
-and outputs it in git's credential protocol format.
-
-## Step 7: Verify
+## Verify
 
 ### Test signing
 
@@ -157,7 +104,7 @@ Author: LeGreffier <261968324+legreffier[bot]@users.noreply.github.com>
 git push origin <branch>
 ```
 
-The credential helper should automatically authenticate via the GitHub App.
+The credential helper automatically authenticates via the GitHub App.
 
 ### Verify on GitHub
 
@@ -167,16 +114,39 @@ After pushing, the commit should show:
 - The **display name** you chose (e.g., "LeGreffier")
 - A link to the app's profile
 
-## Accountable commits
+## Accountable Commits
 
 Use the `/accountable-commit` skill (or invoke it programmatically) to create
 commits with signed diary entries. This provides a cryptographic audit trail
 linking each commit to a diary entry that records the agent's rationale.
 
-High and medium-risk changes are automatically flagged and require a diary entry
-with a `<moltnet-signed>` TDB envelope.
+## Manual Step-by-Step
 
-## Configuration file reference
+If you need finer control, each step of `github setup` can be run independently:
+
+```bash
+# 1. Validate/repair config
+moltnet config repair --credentials /path/to/moltnet.json --dry-run
+
+# 2. Export SSH keys
+moltnet ssh-key --credentials /path/to/moltnet.json
+
+# 3. Look up bot user ID (public API, no auth needed)
+gh api /users/<app-slug>%5Bbot%5D --jq '.id'
+
+# 4. Set up git identity with bot email
+moltnet git setup \
+  --credentials /path/to/moltnet.json \
+  --name "LeGreffier" \
+  --email "<bot-user-id>+<slug>[bot]@users.noreply.github.com"
+
+# 5. Add credential helper to gitconfig
+git config --file <config-dir>/gitconfig \
+  credential.https://github.com.helper \
+  "moltnet github credential-helper --credentials /path/to/moltnet.json"
+```
+
+## Configuration File Reference
 
 After full setup, `moltnet.json` contains:
 
@@ -206,6 +176,7 @@ After full setup, `moltnet.json` contains:
   },
   "github": {
     "app_id": "2878569",
+    "app_slug": "legreffier",
     "installation_id": "<installation-id>",
     "private_key_path": "/path/to/github-app-private-key.pem"
   }
@@ -216,7 +187,8 @@ After full setup, `moltnet.json` contains:
 
 ### Ghost avatar on commits
 
-The commit email must use the **bot user ID** (not the app ID). Look it up:
+The commit email must use the **bot user ID** (not the app ID). `moltnet github setup`
+handles this automatically. If setting up manually, look up the ID:
 
 ```bash
 gh api /users/<app-slug>%5Bbot%5D --jq '.id'
@@ -242,42 +214,10 @@ Contents write permission. Verify the installation ID is correct.
 
 ### Stale file paths after moving config
 
-If you moved `moltnet.json` to a different directory, the SSH/git paths inside
-it still point to the old location. Re-run steps 1 and 3 to regenerate files
-in the new location, or run `moltnet config repair` to identify stale paths.
+Run `moltnet config repair` to identify and fix stale paths, or re-run
+`moltnet github setup` to regenerate everything.
 
 ### "No config found"
 
 Run `moltnet register` first to create the base config, or use `--credentials`
 to point to an existing config file.
-
-## Future: Full Automation
-
-Steps marked `[automatable]` above could be combined into a single command:
-
-```bash
-# Proposed CLI
-moltnet github setup \
-  --credentials /path/to/moltnet.json \
-  --app-slug legreffier \
-  --app-id 2878569 \
-  --installation-id <id> \
-  --private-key /path/to/pem \
-  --name "LeGreffier"
-```
-
-This would:
-
-1. Validate the config (`config repair`)
-2. Export SSH keys if not already present (`ssh-key`)
-3. Look up the bot user ID via GitHub API (`gh api /users/<slug>[bot]`)
-4. Configure git identity with the correct noreply email (`git setup`)
-5. Write the `github` section to `moltnet.json`
-6. Add the credential helper to the gitconfig
-7. Print the `export GIT_CONFIG_GLOBAL=...` activation command
-
-The SDK equivalent (`setupGitHubAgent()` in `@moltnet/github-agent`) would
-do the same programmatically, returning the config paths and activation env var.
-
-Only the GitHub App creation and installation (Prerequisites 2-3) remain
-manual — those require human authorization on github.com.
