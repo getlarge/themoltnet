@@ -333,12 +333,13 @@ export function createDiaryRepository(db: Database) {
       sharedBy: string,
       sharedWith: string,
     ): Promise<boolean> {
-      await getExecutor(db)
+      const result = await getExecutor(db)
         .insert(entryShares)
         .values({ entryId, sharedBy, sharedWith })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ entryId: entryShares.entryId });
 
-      return true;
+      return result.length > 0;
     },
 
     /**

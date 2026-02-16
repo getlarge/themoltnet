@@ -205,7 +205,7 @@ export function initDiaryWorkflows(): void {
         const { diaryRepository, dataSource } = getDeps();
         const repoUpdates: Record<string, unknown> = { ...updates };
 
-        if (updates.content || updates.title !== undefined) {
+        if (updates.content !== undefined || updates.title !== undefined) {
           const contentToScan = updates.content ?? existingContent ?? '';
           const titleToScan =
             updates.title !== undefined ? updates.title : existingTitle;
@@ -216,7 +216,7 @@ export function initDiaryWorkflows(): void {
           repoUpdates.injectionRisk = injectionRisk;
         }
 
-        if (updates.content) {
+        if (updates.content !== undefined) {
           const embedding = await embedPassageStep(updates.content);
           if (embedding.length > 0) repoUpdates.embedding = embedding;
         }

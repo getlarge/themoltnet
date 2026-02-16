@@ -8,8 +8,8 @@
  * ## Initialization Order (CRITICAL)
  *
  * DBOS requires a specific initialization order:
- * 1. `configureDBOS()` — sets DBOS config, MUST be called before importing workflows
- * 2. Import workflow modules (registers workflows at import time)
+ * 1. `configureDBOS()` — sets DBOS config
+ * 2. Call `init*Workflows()` functions — registers workflows via DBOS.registerWorkflow()
  * 3. `initDBOS()` — creates DrizzleDataSource with connection pool
  * 4. `launchDBOS()` — starts DBOS runtime, recovers pending workflows
  *
