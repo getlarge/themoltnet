@@ -44,6 +44,24 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "git":
+		if len(os.Args) < 3 || os.Args[2] != "setup" {
+			fmt.Fprintln(os.Stderr, "Usage: moltnet git setup [options]")
+			os.Exit(1)
+		}
+		if err := runGitSetup(os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "github":
+		if len(os.Args) < 3 || os.Args[2] != "credential-helper" {
+			fmt.Fprintln(os.Stderr, "Usage: moltnet github credential-helper [options]")
+			os.Exit(1)
+		}
+		if err := runGitHubCredentialHelper(os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "version", "-version", "--version":
 		if commit != "" {
 			fmt.Printf("moltnet %s (%s)\n", version, commit)
@@ -67,6 +85,8 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  sign       Sign a payload with your Ed25519 private key")
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
+	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")
+	fmt.Fprintln(os.Stderr, "  github     GitHub App credential helper")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")
