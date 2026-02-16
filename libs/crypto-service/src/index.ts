@@ -15,3 +15,4 @@ export {
   signChallenge,
   verifyChallenge,
 } from './hmac.js';
+export { toSSHPrivateKey, toSSHPublicKey } from './ssh.js';
