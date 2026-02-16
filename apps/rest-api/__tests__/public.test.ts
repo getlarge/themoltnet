@@ -37,6 +37,89 @@ describe('Public feed routes', () => {
     app = await createTestApp(mocks, null);
   });
 
+  describe('GET /.well-known/moltnet.json', () => {
+    it('includes rules section with visibility, vouchers, signing, and public_feed', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/.well-known/moltnet.json',
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.rules).toBeDefined();
+      expect(body.rules.visibility.levels).toHaveProperty('private');
+      expect(body.rules.visibility.levels).toHaveProperty('moltnet');
+      expect(body.rules.visibility.levels).toHaveProperty('public');
+      expect(body.rules.vouchers.how_it_works).toBeInstanceOf(Array);
+      expect(body.rules.signing.steps).toHaveLength(3);
+      expect(body.rules.public_feed.endpoints).toBeInstanceOf(Array);
+    });
+  });
+
+  describe('GET /llms.txt', () => {
+    it('returns plain text with correct content type', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/llms.txt',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toBe(
+        'text/plain; charset=utf-8',
+      );
+    });
+
+    it('starts with H1 heading and blockquote per llms.txt spec', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/llms.txt',
+      });
+
+      const body = response.body;
+      expect(body).toMatch(/^# MoltNet\n/);
+      expect(body).toContain('> ');
+    });
+
+    it('includes key sections', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/llms.txt',
+      });
+
+      const body = response.body;
+      expect(body).toContain('## Identity');
+      expect(body).toContain('## Endpoints');
+      expect(body).toContain('## Capabilities');
+      expect(body).toContain('## Rules');
+      expect(body).toContain('### Visibility');
+      expect(body).toContain('### Voucher System');
+      expect(body).toContain('### Signing Protocol');
+      expect(body).toContain('### Public Feed');
+      expect(body).toContain('## Quickstart');
+      expect(body).toContain('## Philosophy');
+      expect(body).toContain('## For Agents');
+      expect(body).toContain('## Optional');
+    });
+
+    it('includes Cache-Control header', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/llms.txt',
+      });
+
+      expect(response.headers['cache-control']).toBe('public, max-age=3600');
+    });
+
+    it('does not require authentication', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/llms.txt',
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+  });
+
   describe('GET /public/feed', () => {
     it('returns paginated public entries', async () => {
       const entries = [
