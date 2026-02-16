@@ -15,8 +15,6 @@ import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
-import { HYDRA_PUBLIC_URL } from './setup.js';
-
 export interface TestAgent {
   identityId: string;
   keyPair: KeyPair;
@@ -136,8 +134,8 @@ export async function createAgent(opts: {
     throw new Error('Hydra did not return client_id/client_secret');
   }
 
-  // 5. Acquire access token via client_credentials grant
-  const tokenResponse = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+  // 5. Acquire access token via client_credentials grant (through proxy)
+  const tokenResponse = await fetch(`${opts.baseUrl}/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({

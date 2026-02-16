@@ -27,7 +27,8 @@ import { sql } from 'drizzle-orm';
 
 // ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──
 
-const SERVER_BASE_URL = process.env.SERVER_BASE_URL ?? 'http://localhost:8080';
+export const SERVER_BASE_URL =
+  process.env.SERVER_BASE_URL ?? 'http://localhost:8080';
 
 const DATABASE_URL =
   process.env.DATABASE_URL ??

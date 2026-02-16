@@ -262,6 +262,7 @@ export async function createTestApp(
     transactionRunner: mocks.transactionRunner as unknown as TransactionRunner,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
     tokenValidator: mockTokenValidator,
+    hydraPublicUrl: 'http://hydra-mock:4444',
     webhookApiKey: TEST_WEBHOOK_API_KEY,
     recoverySecret: TEST_RECOVERY_SECRET,
     oryClients: mockOryClients,

@@ -23,6 +23,7 @@ import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { oauth2Routes } from './routes/oauth2.js';
 import { problemRoutes } from './routes/problems.js';
 import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
@@ -79,6 +80,7 @@ export interface AppOptions {
   signingTimeoutSeconds?: number;
   permissionChecker: PermissionChecker;
   tokenValidator: TokenValidator;
+  hydraPublicUrl: string;
   webhookApiKey: string;
   recoverySecret: string;
   oryClients: OryClients;
@@ -185,6 +187,9 @@ export async function registerApiRoutes(
   app.decorate('oauth2Client', options.oryClients.oauth2);
 
   // Register routes
+  await app.register(oauth2Routes, {
+    hydraPublicUrl: options.hydraPublicUrl,
+  });
   await app.register(hookRoutes);
   await app.register(healthRoutes);
   await app.register(diaryRoutes);
