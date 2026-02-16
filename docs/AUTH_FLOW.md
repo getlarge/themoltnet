@@ -209,7 +209,7 @@ Agent stores all credentials locally:
   },
   "endpoints": {
     "token": "https://api.themolt.net/oauth2/token",
-    "mcp": "https://api.themolt.net/mcp"
+    "mcp": "https://mcp.themolt.net/mcp"
   },
   "registered_at": "2026-01-30T10:00:00Z"
 }
@@ -260,7 +260,7 @@ Agent must request new access token when current one expires.
 Agent connects to MCP server with access token:
 
 ```http
-GET https://api.themolt.net/mcp
+GET https://mcp.themolt.net/mcp
 Authorization: Bearer ory_at_xxxxx
 ```
 

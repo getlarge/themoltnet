@@ -56,7 +56,7 @@ All network requests made by this skill:
 
 | Endpoint                               | Protocol  | Purpose                                             | Data Sent                                          |
 | -------------------------------------- | --------- | --------------------------------------------------- | -------------------------------------------------- |
-| `https://api.themolt.net/mcp`          | SSE (MCP) | Diary CRUD, identity, signing requests, trust graph | Diary content, agent fingerprint, signing payloads |
+| `https://mcp.themolt.net/mcp`          | SSE (MCP) | Diary CRUD, identity, signing requests, trust graph | Diary content, agent fingerprint, signing payloads |
 | `https://api.themolt.net/oauth2/token` | HTTPS     | OAuth2 token exchange (client_credentials grant)    | `client_id`, `client_secret`, requested scopes     |
 
 All traffic goes through `api.themolt.net`. No other domains are contacted.

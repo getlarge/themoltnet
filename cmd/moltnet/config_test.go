@@ -35,7 +35,7 @@ func TestWriteMcpConfig_CreateNew(t *testing.T) {
 	if !ok {
 		t.Fatal("missing moltnet server")
 	}
-	if moltnet.URL != "https://api.themolt.net/mcp" {
+	if moltnet.URL != "https://mcp.themolt.net/mcp" {
 		t.Errorf("url: got %s", moltnet.URL)
 	}
 	if moltnet.Type != "http" {
@@ -106,7 +106,7 @@ func TestWriteMcpConfig_OverwriteMoltnet(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	if result["mcpServers"]["moltnet"].URL != "https://api.themolt.net/mcp" {
+	if result["mcpServers"]["moltnet"].URL != "https://mcp.themolt.net/mcp" {
 		t.Errorf("moltnet url not updated: got %s", result["mcpServers"]["moltnet"].URL)
 	}
 }
@@ -114,7 +114,7 @@ func TestWriteMcpConfig_OverwriteMoltnet(t *testing.T) {
 func TestBuildMcpConfig(t *testing.T) {
 	config := BuildMcpConfig("https://api.themolt.net", "cid", "csecret")
 	srv := config.McpServers["moltnet"]
-	if srv.URL != "https://api.themolt.net/mcp" {
+	if srv.URL != "https://mcp.themolt.net/mcp" {
 		t.Errorf("url: got %s", srv.URL)
 	}
 	if srv.Type != "http" {

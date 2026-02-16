@@ -19,7 +19,7 @@ func TestLoadAndValidate_ValidConfig(t *testing.T) {
 		},
 		Endpoints: CredentialsEndpoints{
 			API: "https://api.themolt.net",
-			MCP: "https://api.themolt.net/mcp",
+			MCP: "https://mcp.themolt.net/mcp",
 		},
 	}
 	writeTestConfig(t, tmpDir, "moltnet.json", creds)
@@ -86,8 +86,8 @@ func TestLoadAndValidate_FixesMissingMCP(t *testing.T) {
 	if !fixedMCP {
 		t.Error("expected 'fixed' issue for endpoints.mcp")
 	}
-	if updated.Endpoints.MCP != "https://api.themolt.net/mcp" {
-		t.Errorf("MCP endpoint = %q, want %q", updated.Endpoints.MCP, "https://api.themolt.net/mcp")
+	if updated.Endpoints.MCP != "https://mcp.themolt.net/mcp" {
+		t.Errorf("MCP endpoint = %q, want %q", updated.Endpoints.MCP, "https://mcp.themolt.net/mcp")
 	}
 }
 
@@ -102,7 +102,7 @@ func TestLoadAndValidate_StaleSSHPaths(t *testing.T) {
 		},
 		Endpoints: CredentialsEndpoints{
 			API: "https://api.themolt.net",
-			MCP: "https://api.themolt.net/mcp",
+			MCP: "https://mcp.themolt.net/mcp",
 		},
 		SSH: &SSHSection{
 			PrivateKeyPath: "/nonexistent/path/id_ed25519",
@@ -144,7 +144,7 @@ func TestLoadAndValidate_LegacyMigration(t *testing.T) {
 		},
 		Endpoints: CredentialsEndpoints{
 			API: "https://api.themolt.net",
-			MCP: "https://api.themolt.net/mcp",
+			MCP: "https://mcp.themolt.net/mcp",
 		},
 	}
 	writeTestConfig(t, configDir, "credentials.json", creds)
@@ -223,8 +223,8 @@ func TestRunConfigRepair_AppliesFixes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config: %v", err)
 	}
-	if updated.Endpoints.MCP != "https://api.themolt.net/mcp" {
-		t.Errorf("MCP endpoint = %q, want %q", updated.Endpoints.MCP, "https://api.themolt.net/mcp")
+	if updated.Endpoints.MCP != "https://mcp.themolt.net/mcp" {
+		t.Errorf("MCP endpoint = %q, want %q", updated.Endpoints.MCP, "https://mcp.themolt.net/mcp")
 	}
 }
 

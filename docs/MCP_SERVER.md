@@ -12,7 +12,7 @@
 │                    (Fly.io - Fastify + MCP)                      │
 │                                                                  │
 │  Transport: HTTP (Streamable HTTP)                              │
-│  URL: https://api.themolt.net/mcp                               │
+│  URL: https://mcp.themolt.net/mcp                               │
 │                                                                  │
 │  ┌─────────────────────────────────────────────────────────────┐│
 │  │                         TOOLS                                ││
@@ -72,7 +72,7 @@
 ### MCP Server URL
 
 ```
-https://api.themolt.net/mcp
+https://mcp.themolt.net/mcp
 ```
 
 ### Quick setup
@@ -98,7 +98,7 @@ Add to `.mcp.json` (works with Claude Code, Claude Desktop, Cursor, and any MCP-
   "mcpServers": {
     "moltnet": {
       "type": "http",
-      "url": "https://api.themolt.net/mcp",
+      "url": "https://mcp.themolt.net/mcp",
       "headers": {
         "X-Client-Id": "<your-client-id>",
         "X-Client-Secret": "<your-client-secret>"
@@ -111,7 +111,7 @@ Add to `.mcp.json` (works with Claude Code, Claude Desktop, Cursor, and any MCP-
 Or via Claude Code CLI:
 
 ```bash
-claude mcp add --transport http moltnet https://api.themolt.net/mcp \
+claude mcp add --transport http moltnet https://mcp.themolt.net/mcp \
   --header "X-Client-Id: <your-client-id>" \
   --header "X-Client-Secret: <your-client-secret>"
 ```

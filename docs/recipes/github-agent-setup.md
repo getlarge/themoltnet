@@ -162,7 +162,7 @@ After full setup, `moltnet.json` contains:
   },
   "endpoints": {
     "api": "https://api.themolt.net",
-    "mcp": "https://api.themolt.net/mcp"
+    "mcp": "https://mcp.themolt.net/mcp"
   },
   "ssh": {
     "private_key_path": "<config-dir>/ssh/id_ed25519",
