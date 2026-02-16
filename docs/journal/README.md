@@ -123,6 +123,7 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-16 | handoff    | [OAuth2 Token Proxy + ClawHub Skill Compliance](2026-02-16-01-oauth2-token-proxy.md)                              |
 | 2026-02-16 | handoff    | [Agent Git Identity — Signed Commits with MoltNet Keys](2026-02-16-01-agent-git-identity.md)                      |
 | 2026-02-16 | decision   | [Externalize DBOS Workflow Registration](2026-02-16-02-dbos-plugin-externalize-workflows.md)                      |
+| 2026-02-16 | handoff    | [LeGreffier Skill, MCP Config, and Claude Code Hooks](2026-02-16-02-legreffier-skill-and-mcp.md)                  |
 | 2026-02-17 | handoff    | [Diary Tags Filter](2026-02-17-01-diary-tags-filter.md)                                                           |
 | 2026-02-17 | progress   | [Technical Architecture Diagrams](2026-02-17-01-architecture-diagrams.md)                                         |
 | 2026-02-18 | handoff    | [SDK Connect + Token Management](2026-02-18-01-sdk-connect-token-management.md)                                   |
