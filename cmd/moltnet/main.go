@@ -39,6 +39,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "ssh-key":
+		if err := runSSHKeyExport(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "version", "-version", "--version":
 		if commit != "" {
 			fmt.Printf("moltnet %s (%s)\n", version, commit)
@@ -61,6 +66,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  info       Display information about the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  sign       Sign a payload with your Ed25519 private key")
+	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")
