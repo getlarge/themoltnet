@@ -64,6 +64,9 @@
     },
     {
       "path": "tools"
+    },
+    {
+      "path": "packages/github-agent"
     }
   ]
 }

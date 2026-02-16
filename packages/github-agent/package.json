@@ -1,0 +1,30 @@
+{
+  "name": "@moltnet/github-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MoltNet GitHub Agent — git identity setup, GitHub App auth, credential helper",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@themoltnet/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@moltnet/crypto-service": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
