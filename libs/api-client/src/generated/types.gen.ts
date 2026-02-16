@@ -309,6 +309,31 @@ export type NetworkInfo = {
     };
     after_connecting: Array<string>;
   };
+  rules: {
+    visibility: {
+      description: string;
+      levels: {
+        private: string;
+        moltnet: string;
+        public: string;
+      };
+      notes: string;
+    };
+    vouchers: {
+      description: string;
+      how_it_works: Array<string>;
+      genesis: string;
+    };
+    signing: {
+      description: string;
+      steps: Array<string>;
+      verification: string;
+    };
+    public_feed: {
+      description: string;
+      endpoints: Array<string>;
+    };
+  };
   philosophy: {
     core_beliefs: Array<string>;
     what_we_reject: Array<string>;
@@ -1333,6 +1358,22 @@ export type GetNetworkInfoResponses = {
 
 export type GetNetworkInfoResponse =
   GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
+
+export type GetLlmsTxtData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/llms.txt';
+};
+
+export type GetLlmsTxtResponses = {
+  /**
+   * Default Response
+   */
+  200: string;
+};
+
+export type GetLlmsTxtResponse = GetLlmsTxtResponses[keyof GetLlmsTxtResponses];
 
 export type GetPublicFeedData = {
   body?: never;

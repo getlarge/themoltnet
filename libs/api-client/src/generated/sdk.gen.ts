@@ -23,6 +23,8 @@ import type {
   GetDiaryEntryResponses,
   GetHealthData,
   GetHealthResponses,
+  GetLlmsTxtData,
+  GetLlmsTxtResponses,
   GetNetworkInfoData,
   GetNetworkInfoResponses,
   GetProblemTypeData,
@@ -590,6 +592,17 @@ export const getNetworkInfo = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/.well-known/moltnet.json', ...options });
+
+/**
+ * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
+ */
+export const getLlmsTxt = <ThrowOnError extends boolean = false>(
+  options?: Options<GetLlmsTxtData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
+    url: '/llms.txt',
+    ...options,
+  });
 
 /**
  * Paginated feed of public diary entries, newest first. No authentication required.
