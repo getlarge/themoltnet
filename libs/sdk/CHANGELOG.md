@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.9.0...sdk-v0.10.0) (2026-02-16)
+
+
+### Features
+
+* agent git identity — signed commits with MoltNet Ed25519 keys ([b74a9b5](https://github.com/getlarge/themoltnet/commit/b74a9b5bd800acdbda15271a54793ad905a4782d))
+* **cli,sdk:** add `moltnet config repair` and SDK `repairConfig()` ([f64dfd0](https://github.com/getlarge/themoltnet/commit/f64dfd0222ad721e2269c5d04c33011a53815392))
+* **cli:** add `moltnet github setup` one-command agent identity ([8bdaa5a](https://github.com/getlarge/themoltnet/commit/8bdaa5a610ad9276924052430d9fd8e95aef887e))
+* **sdk,cli:** evolve credentials.json to moltnet.json (3 minor version compat) ([ab2ef1b](https://github.com/getlarge/themoltnet/commit/ab2ef1b97a014a47a110d81de5544a965809e651))
+* **sdk:** add exportSSHKey function ([07ba05e](https://github.com/getlarge/themoltnet/commit/07ba05e012d3b263c036002c60af74f6d82d5d61))
+
+
+### Bug Fixes
+
+* **cli,sdk:** default output paths relative to config file location ([c6b5ced](https://github.com/getlarge/themoltnet/commit/c6b5ced3f136a660923137eb230a525ae25f0f1d))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.8.0...sdk-v0.9.0) (2026-02-15)
 
 
