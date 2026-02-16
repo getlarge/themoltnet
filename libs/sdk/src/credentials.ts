@@ -19,6 +19,7 @@ export interface MoltNetConfig {
   };
   github?: {
     app_id: string;
+    app_slug?: string;
     installation_id: string;
     private_key_path: string;
   };

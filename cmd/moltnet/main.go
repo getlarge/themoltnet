@@ -63,12 +63,24 @@ func main() {
 			os.Exit(1)
 		}
 	case "github":
-		if len(os.Args) < 3 || os.Args[2] != "credential-helper" {
-			fmt.Fprintln(os.Stderr, "Usage: moltnet github credential-helper [options]")
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper> [options]")
 			os.Exit(1)
 		}
-		if err := runGitHubCredentialHelper(os.Args[3:]); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		switch os.Args[2] {
+		case "setup":
+			if err := runGitHubSetup(os.Args[3:]); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(1)
+			}
+		case "credential-helper":
+			if err := runGitHubCredentialHelper(os.Args[3:]); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(1)
+			}
+		default:
+			fmt.Fprintf(os.Stderr, "unknown github subcommand: %s\n", os.Args[2])
+			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper> [options]")
 			os.Exit(1)
 		}
 	case "version", "-version", "--version":
@@ -96,7 +108,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
 	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")
 	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")
-	fmt.Fprintln(os.Stderr, "  github     GitHub App credential helper")
+	fmt.Fprintln(os.Stderr, "  github     GitHub App commands (setup, credential-helper)")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")
