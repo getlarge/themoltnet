@@ -1,3 +1,8 @@
+---
+description: Claim a task from the project board. The user will specify which task to claim as: $ARGUMENTS
+argument-hint: "[issue-number-or-name]"
+---
+
 Claim a task from the project board. The user will specify which task to claim as: $ARGUMENTS
 
 The argument can be an issue number (e.g., `42`) or a task name substring.

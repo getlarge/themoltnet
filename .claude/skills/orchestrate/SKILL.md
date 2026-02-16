@@ -1,3 +1,9 @@
+---
+name: orchestrate
+description: Multi-agent task distribution — analyze the board, plan parallel work, spawn worktrees, generate agent prompts, monitor progress, and clean up after waves.
+disable-model-invocation: true
+---
+
 # Orchestrate — Multi-Agent Task Distribution
 
 You are the orchestrator's automation layer. The human orchestrator runs `/orchestrate` to get help analyzing the task board, planning parallel work distribution, spawning agent worktrees, generating agent prompts, monitoring progress, and cleaning up after waves complete.

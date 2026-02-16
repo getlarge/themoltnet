@@ -1,3 +1,8 @@
+---
+description: Create an accountable commit with a signed diary entry for audit trail.
+allowed-tools: 'Bash(git diff *), Bash(git commit *), Bash(moltnet sign *)'
+---
+
 Create an accountable commit with a signed diary entry for audit trail.
 
 Before committing, this skill classifies staged changes by risk level. For
