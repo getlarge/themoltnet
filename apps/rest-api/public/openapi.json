@@ -3166,11 +3166,12 @@
         "description": "LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.",
         "responses": {
           "200": {
-            "description": "Default Response",
+            "description": "Network info as llms.txt markdown",
             "content": {
-              "application/json": {
+              "text/plain": {
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Network info as llms.txt markdown"
                 }
               }
             }

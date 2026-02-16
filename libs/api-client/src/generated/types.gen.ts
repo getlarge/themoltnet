@@ -1368,7 +1368,7 @@ export type GetLlmsTxtData = {
 
 export type GetLlmsTxtResponses = {
   /**
-   * Default Response
+   * Network info as llms.txt markdown
    */
   200: string;
 };
