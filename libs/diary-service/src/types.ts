@@ -82,6 +82,7 @@ export interface Digest {
 // Minimal interfaces for dependency injection (avoids importing database/auth packages)
 export interface DiaryRepository {
   create(entry: {
+    id?: string;
     ownerId: string;
     content: string;
     title?: string | null;
@@ -117,6 +118,7 @@ export interface DiaryRepository {
     sharedBy: string,
     sharedWith: string,
   ): Promise<boolean>;
+  unshare(entryId: string, sharedWith: string): Promise<boolean>;
   getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
   getRecentForDigest(
     ownerId: string,
