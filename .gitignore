@@ -171,3 +171,6 @@ cmd/moltnet/moltnet
 packages/cli/bin/moltnet
 packages/cli/bin/moltnet.exe
 packages/cli/.tmp/
+
+# Scratch/draft documents
+.scratch/
