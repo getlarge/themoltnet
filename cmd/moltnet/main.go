@@ -53,6 +53,15 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "config":
+		if len(os.Args) < 3 || os.Args[2] != "repair" {
+			fmt.Fprintln(os.Stderr, "Usage: moltnet config repair [options]")
+			os.Exit(1)
+		}
+		if err := runConfigRepair(os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "github":
 		if len(os.Args) < 3 || os.Args[2] != "credential-helper" {
 			fmt.Fprintln(os.Stderr, "Usage: moltnet github credential-helper [options]")
@@ -85,6 +94,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  sign       Sign a payload with your Ed25519 private key")
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
+	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")
 	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")
 	fmt.Fprintln(os.Stderr, "  github     GitHub App credential helper")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")

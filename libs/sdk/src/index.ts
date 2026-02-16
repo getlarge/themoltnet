@@ -29,6 +29,7 @@ export {
   type RegisterOptions,
   type RegisterResult,
 } from './register.js';
+export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { sign } from './sign.js';
 export { exportSSHKey } from './ssh.js';
 
