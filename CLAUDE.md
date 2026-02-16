@@ -280,6 +280,34 @@ Pre-commit hooks run automatically via husky:
 1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
 2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.tsx`/`.json`/`.md` files
 
+## Publishing to npm
+
+Published packages use the `@themoltnet` npm scope. Releases are managed by [release-please](https://github.com/googleapis/release-please) via `.github/workflows/release.yml`.
+
+**Published packages:** `@themoltnet/sdk`, `@themoltnet/cli`, `@themoltnet/github-agent`
+
+**How it works:**
+
+1. Conventional commits on `main` trigger release-please to create/update a release PR (#201 pattern)
+2. Merging the release PR creates GitHub releases + tags
+3. CI jobs publish to npm with `--provenance` (OIDC, no stored tokens)
+
+**Initial publish for new packages:**
+
+1. Add the package to `release-please-config.json` and `.release-please-manifest.json`
+2. Add a `publish-<name>` job to `.github/workflows/release.yml` (copy from `publish-sdk`)
+3. **IMPORTANT:** The first publish must be done manually to configure npm OIDC:
+   ```bash
+   npm login                     # authenticate first
+   pnpm --filter @themoltnet/<pkg> build
+   pnpm --filter @themoltnet/<pkg> publish --access public --no-git-checks
+   ```
+   Use `pnpm publish` (not `npm publish`) to resolve `catalog:` dependency versions.
+4. After the initial publish, configure OIDC provenance on npmjs.com for the package
+5. Subsequent releases are fully automated via CI
+
+**Validation:** `pnpm run check:pack` verifies all publishable packages produce valid tarballs (checks `dist/index.js`, `dist/index.d.ts`, no `src/` leaks). Scans both `libs/` and `packages/`.
+
 ## MCP Tools
 
 | Tool                       | Description                   |
