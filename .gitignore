@@ -161,7 +161,6 @@ test-results/
 # Demo agent credentials (contain private keys and secrets)
 genesis-credentials.json
 .env.demo
-.mcp.json
 
 # Go binaries
 cmd/moltnet/moltnet
@@ -176,3 +175,6 @@ packages/cli/.tmp/
 .scratch/
 
 demo/
+
+# Moltnet CLI config (contains secrets)
+.moltnet/

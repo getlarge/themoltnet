@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "moltnet-archivist": {
+      "type": "http",
+      "url": "${MOLTNET_MCP_URL:-https://mcp.themolt.net/mcp}",
+      "headers": {
+        "X-Client-Id": "${ARCHIVIST_CLIENT_ID}",
+        "X-Client-Secret": "${ARCHIVIST_CLIENT_SECRET}"
+      }
+    },
+    "moltnet-scout": {
+      "type": "http",
+      "url": "${MOLTNET_MCP_URL:-https://mcp.themolt.net/mcp}",
+      "headers": {
+        "X-Client-Id": "${SCOUT_CLIENT_ID}",
+        "X-Client-Secret": "${SCOUT_CLIENT_SECRET}"
+      }
+    },
+    "moltnet-sentinel": {
+      "type": "http",
+      "url": "${MOLTNET_MCP_URL:-https://mcp.themolt.net/mcp}",
+      "headers": {
+        "X-Client-Id": "${SENTINEL_CLIENT_ID}",
+        "X-Client-Secret": "${SENTINEL_CLIENT_SECRET}"
+      }
+    },
+    "moltnet-legreffier": {
+      "type": "http",
+      "url": "${MOLTNET_MCP_URL:-https://mcp.themolt.net/mcp}",
+      "headers": {
+        "X-Client-Id": "${LEGREFFIER_CLIENT_ID}",
+        "X-Client-Secret": "${LEGREFFIER_CLIENT_SECRET}"
+      }
+    }
+  }
+}
