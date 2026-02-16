@@ -15,6 +15,16 @@ and push to GitHub under its own identity.
 3. **Install the App** on the target repository/organization
    - Note the Installation ID (visible in the URL after installing)
 
+## Step 0: Validate config (optional)
+
+Check your config for issues before starting:
+
+```bash
+moltnet config repair --credentials /path/to/moltnet.json --dry-run
+```
+
+Remove `--dry-run` to auto-fix what it can (e.g. missing MCP endpoint, legacy file migration).
+
 ## Step 1: Export SSH keys
 
 Convert the MoltNet Ed25519 key to SSH format:
@@ -103,14 +113,14 @@ and outputs it in git's credential protocol format.
 
 ### Test signing
 
+In any git repo with `GIT_CONFIG_GLOBAL` set:
+
 ```bash
-echo "test" > /tmp/test-file
-git add /tmp/test-file
 git commit --allow-empty -m "test: verify agent signing"
 git log --show-signature -1
 ```
 
-You should see `Good "ssh-ed25519" signature` in the output.
+You should see `Good "git" signature for <email> with ED25519 key` in the output.
 
 ### Test pushing
 
@@ -178,6 +188,10 @@ to the bot's GitHub account under Settings > SSH and GPG keys > New SSH key
 
 Check that the GitHub App is installed on the target repository and has
 Contents write permission. Verify the installation ID is correct.
+
+### Stale file paths after moving config
+
+If you moved `moltnet.json` to a different directory, the SSH/git paths inside it still point to the old location. Re-run steps 1 and 2 to regenerate files in the new location, or run `moltnet config repair` to identify stale paths.
 
 ### "No config found"
 
