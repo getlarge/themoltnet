@@ -171,7 +171,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
             fingerprint,
           });
 
-          await fastify.permissionChecker.registerAgent(identity.id);
+          await fastify.relationshipWriter.registerAgent(identity.id);
 
           return { rejected: false as const };
         },

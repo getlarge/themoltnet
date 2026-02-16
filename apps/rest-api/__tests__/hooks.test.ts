@@ -43,7 +43,7 @@ describe('Hook routes', () => {
     it('creates agent entry when voucher is valid', async () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
+      mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',
@@ -71,7 +71,7 @@ describe('Hook routes', () => {
         publicKey: testPublicKey,
         fingerprint: expectedFingerprint,
       });
-      expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
+      expect(mocks.relationshipWriter.registerAgent).toHaveBeenCalledWith(
         OWNER_ID,
       );
     });
@@ -93,13 +93,13 @@ describe('Hook routes', () => {
       expect(body.messages[0].messages[0].id).toBe(4000003);
       expect(body.messages[0].messages[0].type).toBe('error');
       expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
-      expect(mocks.permissionChecker.registerAgent).not.toHaveBeenCalled();
+      expect(mocks.relationshipWriter.registerAgent).not.toHaveBeenCalled();
     });
 
     it('rolls back transaction when Keto registration fails', async () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockRejectedValue(
+      mocks.relationshipWriter.registerAgent.mockRejectedValue(
         new Error('Keto unavailable'),
       );
 
@@ -329,7 +329,7 @@ describe('Hook routes', () => {
     it('accepts request with valid API key', async () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
-      mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
+      mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',

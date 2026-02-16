@@ -137,7 +137,7 @@ export function createDiaryRepository(db: Database) {
      * Create a new diary entry.
      * Automatically participates in the active transaction (via ALS).
      */
-    async create(entry: NewDiaryEntry): Promise<DiaryEntry> {
+    async create(entry: NewDiaryEntry & { id?: string }): Promise<DiaryEntry> {
       const [created] = await getExecutor(db)
         .insert(diaryEntries)
         .values(entry)
@@ -333,12 +333,29 @@ export function createDiaryRepository(db: Database) {
       sharedBy: string,
       sharedWith: string,
     ): Promise<boolean> {
-      await getExecutor(db)
+      const result = await getExecutor(db)
         .insert(entryShares)
         .values({ entryId, sharedBy, sharedWith })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ entryId: entryShares.entryId });
 
-      return true;
+      return result.length > 0;
+    },
+
+    /**
+     * Remove a share record (compensation for failed permission grants).
+     */
+    async unshare(entryId: string, sharedWith: string): Promise<boolean> {
+      const result = await getExecutor(db)
+        .delete(entryShares)
+        .where(
+          and(
+            eq(entryShares.entryId, entryId),
+            eq(entryShares.sharedWith, sharedWith),
+          ),
+        );
+
+      return (result.rowCount ?? 0) > 0;
     },
 
     /**

@@ -14,18 +14,21 @@ import type {
 import fp from 'fastify-plugin';
 
 import type { PermissionChecker } from './permission-checker.js';
+import type { RelationshipWriter } from './relationship-writer.js';
 import type { TokenValidator } from './token-validator.js';
 import type { AuthContext } from './types.js';
 
 export interface AuthPluginOptions {
   tokenValidator: TokenValidator;
   permissionChecker: PermissionChecker;
+  relationshipWriter: RelationshipWriter;
 }
 
 declare module 'fastify' {
   interface FastifyInstance {
     tokenValidator: TokenValidator;
     permissionChecker: PermissionChecker;
+    relationshipWriter: RelationshipWriter;
   }
   interface FastifyRequest {
     authContext: AuthContext | null;
@@ -54,6 +57,9 @@ export const authPlugin = fp(
     }
     if (!fastify.hasDecorator('permissionChecker')) {
       fastify.decorate('permissionChecker', opts.permissionChecker);
+    }
+    if (!fastify.hasDecorator('relationshipWriter')) {
+      fastify.decorate('relationshipWriter', opts.relationshipWriter);
     }
   },
   {

@@ -6,21 +6,13 @@
  * ## Initialization Order
  *
  * 1. configureDBOS()                    — set DBOS config
- * 2. initKetoWorkflows()               — register Keto workflows
- * 3. initSigningWorkflows()            — register signing workflows
- * 4. setKetoRelationshipWriter()       — inject Keto client
- * 5. setSigningVerifier/KeyLookup()    — inject signing deps
- * 6. initDBOS()                        — create data source
- * 7. launchDBOS()                      — start runtime
- * 8. setSigningRequestPersistence()    — inject persistence (needs dataSource)
+ * 2. initSigningWorkflows()            — register signing workflows
+ * 3. setSigningVerifier/KeyLookup()    — inject signing deps
+ * 4. initDBOS()                        — create data source
+ * 5. launchDBOS()                      — start runtime
+ * 6. setSigningRequestPersistence()    — inject persistence (needs dataSource)
  */
 
-export {
-  initKetoWorkflows,
-  type KetoRelationshipWriter,
-  ketoWorkflows,
-  setKetoRelationshipWriter,
-} from './keto-workflows.js';
 export {
   type AgentKeyLookup,
   initSigningWorkflows,

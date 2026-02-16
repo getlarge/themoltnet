@@ -29,6 +29,10 @@ export {
   requireScopes,
 } from './plugin.js';
 export {
+  createRelationshipWriter,
+  type RelationshipWriter,
+} from './relationship-writer.js';
+export {
   createTokenValidator,
   type TokenValidator,
   type TokenValidatorConfig,

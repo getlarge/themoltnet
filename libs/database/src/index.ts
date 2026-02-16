@@ -64,11 +64,7 @@ export {
 } from './transaction-context.js';
 export {
   type AgentKeyLookup,
-  initKetoWorkflows,
   initSigningWorkflows,
-  type KetoRelationshipWriter,
-  ketoWorkflows,
-  setKetoRelationshipWriter,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningTimeoutSeconds,

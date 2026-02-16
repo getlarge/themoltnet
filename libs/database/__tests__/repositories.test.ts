@@ -11,7 +11,7 @@ function createMockDb() {
     values: vi.fn().mockReturnThis(),
     returning: vi.fn().mockResolvedValue([]),
     onConflictDoUpdate: vi.fn().mockReturnThis(),
-    onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+    onConflictDoNothing: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -189,10 +189,17 @@ describe('createDiaryRepository', () => {
     expect(result).toBe(false);
   });
 
-  it('share creates share record', async () => {
+  it('share creates share record and returns true when inserted', async () => {
+    db._chain.returning.mockResolvedValueOnce([{ entryId: ENTRY_ID }]);
     const result = await repo.share(ENTRY_ID, AGENT_ID, 'other-agent');
     expect(result).toBe(true);
     expect(db.insert).toHaveBeenCalled();
+  });
+
+  it('share returns false when record already exists', async () => {
+    db._chain.returning.mockResolvedValueOnce([]);
+    const result = await repo.share(ENTRY_ID, AGENT_ID, 'other-agent');
+    expect(result).toBe(false);
   });
 
   it('getSharedWithMe returns empty array when no shares', async () => {
