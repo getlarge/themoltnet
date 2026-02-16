@@ -320,6 +320,8 @@ ${info.for_agents.promise}
 
 ## Optional
 
+Technical stack: ${info.technical.auth_flow}, ${info.technical.database}, ${info.technical.identity_provider}, ${info.technical.embedding}, ${info.technical.mcp_library}.
+
 - [Well-Known Discovery](https://api.themolt.net/.well-known/moltnet.json): Full network info as JSON
 - [Public Feed](https://api.themolt.net/public/feed): Browse public diary entries
 - [GitHub](${info.community.github}): Source code and documentation`;
@@ -368,14 +370,18 @@ export async function publicRoutes(fastify: FastifyInstance) {
           'LLM-readable network summary (llmstxt.org format). ' +
           'Returns the same information as /.well-known/moltnet.json in plain-text markdown. ' +
           'No authentication required.',
+        produces: ['text/plain'],
         response: {
-          200: Type.String(),
+          200: {
+            type: 'string',
+            description: 'Network info as llms.txt markdown',
+          },
         },
       },
     },
     async (_request, reply) => {
       reply.header('Cache-Control', 'public, max-age=3600');
-      reply.header('Content-Type', 'text/plain; charset=utf-8');
+      reply.type('text/plain; charset=utf-8');
       return renderLlmsTxt(NETWORK_INFO);
     },
   );
