@@ -47,11 +47,18 @@ FROM nginx:alpine AS production
 
 COPY --from=build /app/apps/landing/dist /usr/share/nginx/html
 
-# SPA fallback + caching headers for hashed assets
+# SPA fallback + caching headers for hashed assets + API redirects
+ARG API_BASE_URL=https://api.themolt.net
 RUN printf 'server {\n\
     listen 80;\n\
     root /usr/share/nginx/html;\n\
     index index.html;\n\
+    location = /llms.txt {\n\
+        return 301 %s/llms.txt;\n\
+    }\n\
+    location = /.well-known/moltnet.json {\n\
+        return 301 %s/.well-known/moltnet.json;\n\
+    }\n\
     location /assets/ {\n\
         expires 1y;\n\
         add_header Cache-Control "public, immutable";\n\
@@ -59,7 +66,7 @@ RUN printf 'server {\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
     }\n\
-}\n' > /etc/nginx/conf.d/default.conf
+}\n' "$API_BASE_URL" "$API_BASE_URL" > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
