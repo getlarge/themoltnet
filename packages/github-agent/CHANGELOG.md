@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/github-agent-v0.2.0...github-agent-v0.2.1) (2026-02-16)
+
+
+### Bug Fixes
+
+* **release:** prevent CLI postinstall race and scope check:pack per workspace ([b8d82bf](https://github.com/getlarge/themoltnet/commit/b8d82bf31d18049843fafdf04bf407eb467b1238))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.1.0...github-agent-v0.2.0) (2026-02-16)
 
 
