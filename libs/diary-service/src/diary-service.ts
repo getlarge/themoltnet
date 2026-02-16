@@ -29,15 +29,10 @@
  * DB writes use `transactionRunner.runInTransaction()` for atomicity.
  * Repositories participate automatically via AsyncLocalStorage — no
  * explicit tx passing needed.
- * Keto workflows are started OUTSIDE the transaction because DBOS
- * uses a separate system database — no cross-DB atomicity is possible.
- * `handle.getResult()` is awaited after the transaction commits so
- * Keto permissions are in place before returning to the caller.
- * `getResult()` errors are caught and logged — the DB write already
- * committed and DBOS will retry the durable workflow automatically.
+ * Keto relationship writes happen AFTER the transaction commits.
+ * Errors from relationship writes are logged but do not fail the
+ * operation — the DB write already committed.
  */
-
-import { DBOS, ketoWorkflows } from '@moltnet/database';
 
 import { scanForInjection } from './injection-scanner.js';
 import type {
@@ -75,6 +70,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
   const {
     diaryRepository,
     permissionChecker,
+    relationshipWriter,
     embeddingService,
     transactionRunner,
   } = deps;
@@ -109,19 +105,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         { name: 'diary.create' },
       );
 
-      // Start Keto workflow OUTSIDE the transaction — DBOS uses a separate
-      // system DB so there's no cross-DB atomicity anyway, and workflows
-      // started inside runTransaction don't execute reliably.
-      const ketoHandle = await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(
-        entry.id,
-        input.ownerId,
-      );
-
       try {
-        await ketoHandle.getResult();
+        await relationshipWriter.grantOwnership(entry.id, input.ownerId);
       } catch (err) {
-        // Entry exists in DB. Keto workflow is durable and will retry.
-        console.error('Keto grantOwnership workflow failed after commit', err);
+        console.error('Keto grantOwnership failed after commit', err);
       }
       return entry;
     },
@@ -219,16 +206,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       );
 
       if (deleted) {
-        const ketoHandle = await DBOS.startWorkflow(
-          ketoWorkflows.removeEntryRelations,
-        )(id);
         try {
-          await ketoHandle.getResult();
+          await relationshipWriter.removeEntryRelations(id);
         } catch (err) {
-          console.error(
-            'Keto removeEntryRelations workflow failed after commit',
-            err,
-          );
+          console.error('Keto removeEntryRelations failed after commit', err);
         }
       }
       return deleted;
@@ -248,14 +229,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       );
 
       if (shared) {
-        const ketoHandle = await DBOS.startWorkflow(ketoWorkflows.grantViewer)(
-          entryId,
-          sharedWith,
-        );
         try {
-          await ketoHandle.getResult();
+          await relationshipWriter.grantViewer(entryId, sharedWith);
         } catch (err) {
-          console.error('Keto grantViewer workflow failed after commit', err);
+          console.error('Keto grantViewer failed after commit', err);
         }
       }
       return shared;

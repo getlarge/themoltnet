@@ -12,6 +12,7 @@
 import {
   createOryClients,
   createPermissionChecker,
+  createRelationshipWriter,
   createTokenValidator,
 } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
@@ -138,10 +139,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
-  const permissionChecker = createPermissionChecker(
-    oryClients.permission,
-    oryClients.relationship,
-  );
+  const permissionChecker = createPermissionChecker(oryClients.permission);
+  const relationshipWriter = createRelationshipWriter(oryClients.relationship);
 
   const embeddingService = createEmbeddingService({
     logger: app.log,
@@ -180,14 +179,14 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           oauth2Api: oryClients.oauth2,
           agentRepository,
           voucherRepository,
-          permissionChecker,
+          relationshipWriter,
           dataSource,
         });
       },
       (dataSource) => {
         setDiaryWorkflowDeps({
           diaryRepository,
-          permissionChecker,
+          relationshipWriter,
           embeddingService,
           dataSource,
         });
@@ -201,6 +200,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const diaryService = createDiaryService({
     diaryRepository,
     permissionChecker,
+    relationshipWriter,
     embeddingService,
     transactionRunner,
   });
@@ -222,6 +222,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dataSource,
     transactionRunner,
     permissionChecker,
+    relationshipWriter,
     tokenValidator,
     hydraPublicUrl: oryUrls.hydraPublicUrl,
     webhookApiKey: config.webhook.ORY_ACTION_API_KEY,

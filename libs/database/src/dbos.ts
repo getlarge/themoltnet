@@ -9,7 +9,7 @@
  *
  * DBOS requires a specific initialization order:
  * 1. `configureDBOS()` — sets DBOS config, MUST be called before importing workflows
- * 2. Import workflow modules (keto-workflows.ts registers workflows at import time)
+ * 2. Import workflow modules (registers workflows at import time)
  * 3. `initDBOS()` — creates DrizzleDataSource with connection pool
  * 4. `launchDBOS()` — starts DBOS runtime, recovers pending workflows
  *
@@ -39,7 +39,7 @@ export interface DBOSConfig {
 /**
  * Configure DBOS runtime settings.
  *
- * MUST be called BEFORE registering any workflows (initKetoWorkflows).
+ * MUST be called BEFORE registering any workflows.
  * Workflow registration via DBOS.registerWorkflow() requires config to be set.
  *
  * @param systemDatabaseUrl — Postgres URL for DBOS system tables (separate from app data)
@@ -57,7 +57,7 @@ export function configureDBOS(
 /**
  * Initialize DBOS with DrizzleDataSource.
  *
- * Call this AFTER configureDBOS() and initKetoWorkflows().
+ * Call this AFTER configureDBOS() and workflow registration.
  *
  * Note: DBOS creates its own connection pool internally. When DBOS is active,
  * prefer using dataSource.client for database operations rather than creating

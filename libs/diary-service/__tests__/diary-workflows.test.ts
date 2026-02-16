@@ -4,7 +4,7 @@ import type {
   DiaryEntry,
   DiaryRepository,
   EmbeddingService,
-  PermissionChecker,
+  RelationshipWriter,
 } from '../src/types.js';
 
 // ── DBOS mock ──────────────────────────────────────────────────────
@@ -66,17 +66,13 @@ function createMockDiaryRepository(): {
   };
 }
 
-function createMockPermissionChecker(): {
-  [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
+function createMockRelationshipWriter(): {
+  [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
 } {
   return {
-    canViewEntry: vi.fn().mockResolvedValue(true),
-    canEditEntry: vi.fn().mockResolvedValue(true),
-    canDeleteEntry: vi.fn().mockResolvedValue(true),
-    canShareEntry: vi.fn().mockResolvedValue(true),
     grantOwnership: vi.fn().mockResolvedValue(undefined),
     grantViewer: vi.fn().mockResolvedValue(undefined),
-    revokeViewer: vi.fn().mockResolvedValue(undefined),
+    registerAgent: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
   };
 }
@@ -92,7 +88,7 @@ function createMockEmbeddingService(): {
 
 describe('Diary Workflows', () => {
   let repo: ReturnType<typeof createMockDiaryRepository>;
-  let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
 
   // We need to reset the workflow module state for each test
@@ -103,7 +99,7 @@ describe('Diary Workflows', () => {
     vi.resetModules();
 
     repo = createMockDiaryRepository();
-    permissions = createMockPermissionChecker();
+    writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
     mockRunTransaction.mockImplementation(async (fn) => fn());
 
@@ -113,7 +109,7 @@ describe('Diary Workflows', () => {
 
     setDiaryWorkflowDeps({
       diaryRepository: repo as unknown as DiaryRepository,
-      permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
       dataSource: {
         runTransaction: mockRunTransaction,
@@ -150,7 +146,7 @@ describe('Diary Workflows', () => {
           injectionRisk: false,
         }),
       );
-      expect(permissions.grantOwnership).toHaveBeenCalledWith(
+      expect(writer.grantOwnership).toHaveBeenCalledWith(
         mockEntry.id,
         OWNER_ID,
       );
@@ -179,9 +175,7 @@ describe('Diary Workflows', () => {
       const mockEntry = createMockEntry();
       embeddings.embedPassage.mockResolvedValue([]);
       repo.create.mockResolvedValue(mockEntry);
-      permissions.grantOwnership.mockRejectedValue(
-        new Error('Keto unavailable'),
-      );
+      writer.grantOwnership.mockRejectedValue(new Error('Keto unavailable'));
       repo.delete.mockResolvedValue(true);
 
       const { diaryWorkflows } =
@@ -253,7 +247,7 @@ describe('Diary Workflows', () => {
 
       expect(result).toBe(true);
       expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID);
-      expect(permissions.removeEntryRelations).toHaveBeenCalledWith(ENTRY_ID);
+      expect(writer.removeEntryRelations).toHaveBeenCalledWith(ENTRY_ID);
     });
 
     it('skips Keto cleanup when entry does not exist', async () => {
@@ -265,7 +259,7 @@ describe('Diary Workflows', () => {
       const result = await diaryWorkflows.deleteEntry(ENTRY_ID);
 
       expect(result).toBe(false);
-      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
+      expect(writer.removeEntryRelations).not.toHaveBeenCalled();
     });
   });
 
@@ -288,15 +282,12 @@ describe('Diary Workflows', () => {
         OWNER_ID,
         OTHER_AGENT_ID,
       );
-      expect(permissions.grantViewer).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OTHER_AGENT_ID,
-      );
+      expect(writer.grantViewer).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
     });
 
     it('compensates by unsharing when grantViewer fails', async () => {
       repo.share.mockResolvedValue(true);
-      permissions.grantViewer.mockRejectedValue(new Error('Keto unavailable'));
+      writer.grantViewer.mockRejectedValue(new Error('Keto unavailable'));
       repo.unshare.mockResolvedValue(true);
 
       const { diaryWorkflows } =
@@ -323,7 +314,7 @@ describe('Diary Workflows', () => {
       );
 
       expect(result).toBe(false);
-      expect(permissions.grantViewer).not.toHaveBeenCalled();
+      expect(writer.grantViewer).not.toHaveBeenCalled();
     });
   });
 });

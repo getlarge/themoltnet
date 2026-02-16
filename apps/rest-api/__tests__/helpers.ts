@@ -6,6 +6,7 @@ import type {
   AuthContext,
   OryClients,
   PermissionChecker,
+  RelationshipWriter,
   TokenValidator,
 } from '@moltnet/auth';
 import type { AgentKey, AgentVoucher, DiaryEntry } from '@moltnet/database';
@@ -117,6 +118,9 @@ export interface MockServices {
   permissionChecker: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
+  relationshipWriter: {
+    [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
+  };
   dataSource: {
     client: object;
     runTransaction: ReturnType<typeof vi.fn>;
@@ -202,9 +206,10 @@ export function createMockServices(): MockServices {
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
       canShareEntry: vi.fn(),
+    },
+    relationshipWriter: {
       grantOwnership: vi.fn(),
       grantViewer: vi.fn(),
-      revokeViewer: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
     },
@@ -261,6 +266,8 @@ export async function createTestApp(
     dataSource: mocks.dataSource as unknown as DataSource,
     transactionRunner: mocks.transactionRunner as unknown as TransactionRunner,
     permissionChecker: mocks.permissionChecker as unknown as PermissionChecker,
+    relationshipWriter:
+      mocks.relationshipWriter as unknown as RelationshipWriter,
     tokenValidator: mockTokenValidator,
     hydraPublicUrl: 'http://hydra-mock:4444',
     webhookApiKey: TEST_WEBHOOK_API_KEY,

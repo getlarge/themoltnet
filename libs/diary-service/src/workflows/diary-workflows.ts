@@ -23,7 +23,7 @@ import type {
   DiaryEntry,
   DiaryRepository,
   EmbeddingService,
-  PermissionChecker,
+  RelationshipWriter,
   UpdateEntryInput,
 } from '../types.js';
 
@@ -31,7 +31,7 @@ import type {
 
 export interface DiaryWorkflowDeps {
   diaryRepository: DiaryRepository;
-  permissionChecker: PermissionChecker;
+  relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   dataSource: DataSource;
 }
@@ -128,24 +128,24 @@ export function initDiaryWorkflows(): void {
 
   const grantOwnershipStep = DBOS.registerStep(
     async (entryId: string, ownerId: string): Promise<void> => {
-      const { permissionChecker } = getDeps();
-      await permissionChecker.grantOwnership(entryId, ownerId);
+      const { relationshipWriter } = getDeps();
+      await relationshipWriter.grantOwnership(entryId, ownerId);
     },
     { name: 'diary.step.grantOwnership', ...KETO_RETRY },
   );
 
   const grantViewerStep = DBOS.registerStep(
     async (entryId: string, agentId: string): Promise<void> => {
-      const { permissionChecker } = getDeps();
-      await permissionChecker.grantViewer(entryId, agentId);
+      const { relationshipWriter } = getDeps();
+      await relationshipWriter.grantViewer(entryId, agentId);
     },
     { name: 'diary.step.grantViewer', ...KETO_RETRY },
   );
 
   const removeEntryRelationsStep = DBOS.registerStep(
     async (entryId: string): Promise<void> => {
-      const { permissionChecker } = getDeps();
-      await permissionChecker.removeEntryRelations(entryId);
+      const { relationshipWriter } = getDeps();
+      await relationshipWriter.removeEntryRelations(entryId);
     },
     { name: 'diary.step.removeEntryRelations', ...KETO_RETRY },
   );

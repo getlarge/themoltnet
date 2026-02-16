@@ -2,12 +2,12 @@
  * DiaryService DBOS Integration Tests
  *
  * Tests DBOS transaction atomicity with real Postgres + real DBOS runtime.
- * Keto is mocked to isolate DB/DBOS behavior.
+ * Keto RelationshipWriter is mocked to isolate DB/DBOS behavior.
  *
  * These tests verify:
- * - Workflow scheduling happens atomically with DB operations
- * - Transaction rollback when workflow step fails
+ * - Transaction atomicity for DB operations
  * - Concurrent operations without race conditions
+ * - RelationshipWriter calls happen after transaction commits
  *
  * Start the test database: docker compose --env-file .env.local up -d app-db
  * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/diary-service test
@@ -25,7 +25,7 @@ import {
 
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import { createNoopEmbeddingService } from '../src/embedding-service.js';
-import type { PermissionChecker } from '../src/types.js';
+import type { PermissionChecker, RelationshipWriter } from '../src/types.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -39,12 +39,8 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     diaryEntries: Awaited<ReturnType<typeof setupDatabase>>['diaryEntries'];
     entryShares: Awaited<ReturnType<typeof setupDatabase>>['entryShares'];
   };
-  let mockKetoWriter: {
-    grantOwnership: ReturnType<typeof vi.fn>;
-    grantViewer: ReturnType<typeof vi.fn>;
-    revokeViewer: ReturnType<typeof vi.fn>;
-    registerAgent: ReturnType<typeof vi.fn>;
-    removeEntryRelations: ReturnType<typeof vi.fn>;
+  let mockRelationshipWriter: {
+    [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
   };
   let permissions: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
@@ -65,17 +61,12 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     const {
       configureDBOS,
       initDBOS,
-      initKetoWorkflows,
       launchDBOS,
-      setKetoRelationshipWriter,
       getDataSource,
       createDBOSTransactionRunner,
     } = await import('@moltnet/database');
 
-    // Initialize DBOS in correct order
     configureDBOS();
-    initKetoWorkflows();
-    setKetoRelationshipWriter(mockKetoWriter);
     await initDBOS({ databaseUrl: url });
     await launchDBOS();
 
@@ -87,25 +78,18 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   }
 
   beforeAll(async () => {
-    // Set up mock Keto writer before DBOS initialization
-    mockKetoWriter = {
+    mockRelationshipWriter = {
       grantOwnership: vi.fn().mockResolvedValue(undefined),
       grantViewer: vi.fn().mockResolvedValue(undefined),
-      revokeViewer: vi.fn().mockResolvedValue(undefined),
       registerAgent: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
     };
 
-    // Permission checker for pre-operation checks
     permissions = {
       canViewEntry: vi.fn().mockResolvedValue(true),
       canEditEntry: vi.fn().mockResolvedValue(true),
       canDeleteEntry: vi.fn().mockResolvedValue(true),
       canShareEntry: vi.fn().mockResolvedValue(true),
-      grantOwnership: vi.fn().mockResolvedValue(undefined),
-      grantViewer: vi.fn().mockResolvedValue(undefined),
-      revokeViewer: vi.fn().mockResolvedValue(undefined),
-      removeEntryRelations: vi.fn().mockResolvedValue(undefined),
     };
 
     const dbSetup = await setupDatabase(DATABASE_URL!);
@@ -123,6 +107,8 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     service = createDiaryService({
       diaryRepository: dbSetup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipWriter:
+        mockRelationshipWriter as unknown as RelationshipWriter,
       embeddingService,
       transactionRunner,
     });
@@ -147,7 +133,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   // ── Atomicity Tests ────────────────────────────────────────────────────
 
   describe('atomicity', () => {
-    it('creates entry and schedules Keto workflow atomically', async () => {
+    it('creates entry and calls relationshipWriter', async () => {
       const entry = await service.create({
         ownerId: OWNER_ID,
         content: 'Test atomic create',
@@ -156,8 +142,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       expect(entry.id).toBeDefined();
       expect(entry.ownerId).toBe(OWNER_ID);
 
-      // Verify Keto workflow was called
-      expect(mockKetoWriter.grantOwnership).toHaveBeenCalledWith(
+      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledWith(
         entry.id,
         OWNER_ID,
       );
@@ -169,61 +154,56 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       expect(found!.content).toBe('Test atomic create');
     });
 
-    it('rolls back DB when workflow step fails during create', async () => {
-      mockKetoWriter.grantOwnership.mockRejectedValueOnce(
+    it('still creates entry when relationshipWriter fails', async () => {
+      mockRelationshipWriter.grantOwnership.mockRejectedValueOnce(
         new Error('Keto unavailable'),
       );
 
-      await expect(
-        service.create({ ownerId: OWNER_ID, content: 'Should rollback' }),
-      ).rejects.toThrow('Keto unavailable');
+      // Entry should still be created (relationship failure is logged, not thrown)
+      const entry = await service.create({
+        ownerId: OWNER_ID,
+        content: 'Should still persist',
+      });
 
-      // Verify no entry was persisted (rollback worked)
+      expect(entry.id).toBeDefined();
       const entries = await db.select().from(tables.diaryEntries);
-      expect(entries.length).toBe(0);
+      expect(entries.length).toBe(1);
     });
 
-    it('rolls back DB when workflow step fails during delete', async () => {
-      // First create an entry successfully
+    it('still deletes entry when relationshipWriter fails', async () => {
       const entry = await service.create({
         ownerId: OWNER_ID,
         content: 'Entry to delete',
       });
 
-      // Now make the delete workflow fail
-      mockKetoWriter.removeEntryRelations.mockRejectedValueOnce(
+      mockRelationshipWriter.removeEntryRelations.mockRejectedValueOnce(
         new Error('Keto unavailable'),
       );
 
-      await expect(service.delete(entry.id, OWNER_ID)).rejects.toThrow(
-        'Keto unavailable',
-      );
+      const deleted = await service.delete(entry.id, OWNER_ID);
+      expect(deleted).toBe(true);
 
-      // Verify entry still exists (delete was rolled back)
+      // Verify entry is deleted from database
       const entries = await db.select().from(tables.diaryEntries);
-      const found = entries.find((e) => e.id === entry.id);
-      expect(found).toBeDefined();
+      expect(entries.length).toBe(0);
     });
 
-    it('rolls back DB when workflow step fails during share', async () => {
-      // First create an entry successfully
+    it('still shares entry when relationshipWriter fails', async () => {
       const entry = await service.create({
         ownerId: OWNER_ID,
         content: 'Entry to share',
       });
 
-      // Now make the share workflow fail
-      mockKetoWriter.grantViewer.mockRejectedValueOnce(
+      mockRelationshipWriter.grantViewer.mockRejectedValueOnce(
         new Error('Keto unavailable'),
       );
 
-      await expect(
-        service.share(entry.id, OWNER_ID, OTHER_AGENT),
-      ).rejects.toThrow('Keto unavailable');
+      const shared = await service.share(entry.id, OWNER_ID, OTHER_AGENT);
+      expect(shared).toBe(true);
 
-      // Verify no share record was persisted
+      // Verify share record exists
       const shares = await db.select().from(tables.entryShares);
-      expect(shares.length).toBe(0);
+      expect(shares.length).toBe(1);
     });
   });
 
@@ -245,7 +225,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       );
 
       expect(fulfilled.length).toBe(10);
-      expect(mockKetoWriter.grantOwnership).toHaveBeenCalledTimes(10);
+      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledTimes(10);
 
       // Verify all entries exist in database
       const entries = await db.select().from(tables.diaryEntries);
@@ -269,7 +249,9 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       expect(remaining.length).toBe(0);
 
       // Verify Keto cleanup was called for each
-      expect(mockKetoWriter.removeEntryRelations).toHaveBeenCalledTimes(5);
+      expect(mockRelationshipWriter.removeEntryRelations).toHaveBeenCalledTimes(
+        5,
+      );
     });
 
     it('handles concurrent shares without duplicates', async () => {
@@ -295,23 +277,23 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     });
   });
 
-  // ── Workflow Execution Tests ───────────────────────────────────────────
+  // ── RelationshipWriter Execution Tests ──────────────────────────────
 
-  describe('workflow execution', () => {
-    it('executes Keto grantOwnership workflow on create', async () => {
+  describe('relationship writer execution', () => {
+    it('calls grantOwnership on create', async () => {
       const entry = await service.create({
         ownerId: OWNER_ID,
         content: 'Test workflow execution',
       });
 
-      expect(mockKetoWriter.grantOwnership).toHaveBeenCalledTimes(1);
-      expect(mockKetoWriter.grantOwnership).toHaveBeenCalledWith(
+      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledTimes(1);
+      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledWith(
         entry.id,
         OWNER_ID,
       );
     });
 
-    it('executes Keto removeEntryRelations workflow on delete', async () => {
+    it('calls removeEntryRelations on delete', async () => {
       const entry = await service.create({
         ownerId: OWNER_ID,
         content: 'Entry to delete',
@@ -319,13 +301,15 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
 
       await service.delete(entry.id, OWNER_ID);
 
-      expect(mockKetoWriter.removeEntryRelations).toHaveBeenCalledTimes(1);
-      expect(mockKetoWriter.removeEntryRelations).toHaveBeenCalledWith(
+      expect(mockRelationshipWriter.removeEntryRelations).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mockRelationshipWriter.removeEntryRelations).toHaveBeenCalledWith(
         entry.id,
       );
     });
 
-    it('executes Keto grantViewer workflow on share', async () => {
+    it('calls grantViewer on share', async () => {
       const entry = await service.create({
         ownerId: OWNER_ID,
         content: 'Entry to share',
@@ -333,8 +317,8 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
 
       await service.share(entry.id, OWNER_ID, OTHER_AGENT);
 
-      expect(mockKetoWriter.grantViewer).toHaveBeenCalledTimes(1);
-      expect(mockKetoWriter.grantViewer).toHaveBeenCalledWith(
+      expect(mockRelationshipWriter.grantViewer).toHaveBeenCalledTimes(1);
+      expect(mockRelationshipWriter.grantViewer).toHaveBeenCalledWith(
         entry.id,
         OTHER_AGENT,
       );

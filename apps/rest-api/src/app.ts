@@ -10,6 +10,7 @@ import {
   authPlugin,
   type OryClients,
   type PermissionChecker,
+  type RelationshipWriter,
   type TokenValidator,
 } from '@moltnet/auth';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -79,6 +80,7 @@ export interface AppOptions {
   transactionRunner: TransactionRunner;
   signingTimeoutSeconds?: number;
   permissionChecker: PermissionChecker;
+  relationshipWriter: RelationshipWriter;
   tokenValidator: TokenValidator;
   hydraPublicUrl: string;
   webhookApiKey: string;
@@ -151,6 +153,7 @@ export async function registerApiRoutes(
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
+    relationshipWriter: options.relationshipWriter,
   });
 
   // 3. Rate limiting (AFTER auth so authContext is available)
