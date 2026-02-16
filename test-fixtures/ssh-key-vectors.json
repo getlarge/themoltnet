@@ -1,0 +1,22 @@
+{
+  "vectors": [
+    {
+      "description": "zero seed (all 0x00)",
+      "seed_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "public_key_moltnet": "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
+      "public_key_ssh": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDtqJ7zOtqQtYqOo0CpvDXNlMhV3HeJDpjrASKGLWdop"
+    },
+    {
+      "description": "sequential seed (0x01..0x20)",
+      "seed_base64": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=",
+      "public_key_moltnet": "ed25519:ebVWLo/mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ=",
+      "public_key_ssh": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHm1Vi6P5lT5QHixEuipi6eQH4U65pW+1+DjkQutBJZk"
+    },
+    {
+      "description": "max seed (all 0xFF)",
+      "seed_base64": "//////////////////////////////////////////8=",
+      "public_key_moltnet": "ed25519:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU=",
+      "public_key_ssh": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHahWSBEpuT1ESZbynOmBNkLBSnR32Ar4woZqSV2YNH1"
+    }
+  ]
+}

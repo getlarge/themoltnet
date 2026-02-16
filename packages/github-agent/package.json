@@ -1,0 +1,42 @@
+{
+  "name": "@themoltnet/github-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MoltNet GitHub Agent — git identity setup, GitHub App auth, credential helper",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "packages/github-agent"
+  },
+  "homepage": "https://themolt.net",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@themoltnet/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@moltnet/crypto-service": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

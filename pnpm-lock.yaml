@@ -741,6 +741,27 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/cli: {}
+
+  packages/github-agent:
+    dependencies:
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
+    devDependencies:
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.30
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
+
   tools:
     dependencies:
       '@moltnet/bootstrap':

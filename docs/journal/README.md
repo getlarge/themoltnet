@@ -121,3 +121,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-15 | handoff    | [Fix ClawHub Suspicious Skill Review](2026-02-15-02-clawhub-skill-review-fix.md)                                  |
 | 2026-02-16 | progress   | [/llms.txt Endpoint and NETWORK_INFO Rules](2026-02-16-01-llms-txt-endpoint.md)                                   |
 | 2026-02-16 | handoff    | [OAuth2 Token Proxy + ClawHub Skill Compliance](2026-02-16-01-oauth2-token-proxy.md)                              |
+| 2026-02-16 | handoff    | [Agent Git Identity — Signed Commits with MoltNet Keys](2026-02-16-01-agent-git-identity.md)                      |

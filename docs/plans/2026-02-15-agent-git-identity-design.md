@@ -1,7 +1,7 @@
 # Agent Git Identity via MoltNet Keys
 
 **Date:** 2026-02-15
-**Status:** Approved
+**Status:** Implemented
 **Approach:** A — Integrated SDK Flow with SSH Signing + GitHub App
 
 ## Problem

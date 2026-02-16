@@ -21,6 +21,10 @@
         }
       ]
     },
+    "packages/github-agent": {
+      "release-type": "node",
+      "component": "github-agent"
+    },
     "packages/openclaw-skill": {
       "release-type": "simple",
       "component": "openclaw-skill"
