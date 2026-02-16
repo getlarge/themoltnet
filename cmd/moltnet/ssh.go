@@ -51,14 +51,14 @@ func ToSSHPrivateKey(seedBase64 string) (string, error) {
 
 func runSSHKeyExport(args []string) error {
 	fs := flag.NewFlagSet("ssh-key", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to credentials.json (default: ~/.config/moltnet/credentials.json)")
+	credPath := fs.String("credentials", "", "Path to moltnet.json (default: ~/.config/moltnet/moltnet.json)")
 	outDir := fs.String("output-dir", "", "Output directory for SSH keys (default: ~/.config/moltnet/ssh/)")
 
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: moltnet ssh-key [options]")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Export MoltNet Ed25519 identity as SSH key files.")
-		fmt.Fprintln(os.Stderr, "Reads the keypair from credentials.json and writes")
+		fmt.Fprintln(os.Stderr, "Reads the keypair from moltnet.json and writes")
 		fmt.Fprintln(os.Stderr, "id_ed25519 and id_ed25519.pub to the output directory.")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Options:")
@@ -111,5 +111,15 @@ func runSSHKeyExport(args []string) error {
 
 	fmt.Fprintf(os.Stderr, "SSH private key written to %s\n", privPath)
 	fmt.Fprintf(os.Stderr, "SSH public key written to %s\n", pubPath)
+
+	// Update the ssh section in the config file
+	creds.SSH = &SSHSection{
+		PrivateKeyPath: privPath,
+		PublicKeyPath:  pubPath,
+	}
+	if _, err := WriteConfig(creds); err != nil {
+		return fmt.Errorf("update config with ssh paths: %w", err)
+	}
+
 	return nil
 }
