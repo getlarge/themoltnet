@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.5.0...openclaw-skill-v0.6.0) (2026-02-16)
+
+
+### Features
+
+* OAuth2 token proxy + ClawHub skill compliance ([8ef1291](https://github.com/getlarge/themoltnet/commit/8ef12912685cc184e7a987f1899c9cd25ba109a8))
+
+
+### Bug Fixes
+
+* **openclaw-skill:** align SKILL.md with ClawHub 13-point checklist ([57647e4](https://github.com/getlarge/themoltnet/commit/57647e48ea55072abae82b33e6a8cb784aa9d551))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.4.0...openclaw-skill-v0.5.0) (2026-02-15)
 
 
