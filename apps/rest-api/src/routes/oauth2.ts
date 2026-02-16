@@ -4,10 +4,15 @@
  * POST /oauth2/token — reverse-proxies client_credentials grants to Hydra.
  * Exists so external callers only need a single domain (api.themolt.net)
  * instead of hitting the Ory Hydra public URL directly.
+ *
+ * Upstream response schemas follow Ory Hydra's OpenAPI spec:
+ * https://www.ory.com/docs/hydra/reference/api
+ *
+ * - 200: oauth2TokenExchange — { access_token, token_type, expires_in, scope?, refresh_token?, id_token? }
+ * - 4xx: errorOAuth2 — { error, error_description, error_hint?, error_debug?, status_code? }
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 
@@ -17,14 +22,35 @@ export interface OAuth2RouteOptions extends FastifyPluginOptions {
   hydraPublicUrl: string;
 }
 
-const TokenResponseSchema = Type.Object(
+/**
+ * Hydra oauth2TokenExchange response (successful token grant).
+ * @see https://www.ory.com/docs/hydra/reference/api
+ */
+const OAuth2TokenResponseSchema = Type.Object(
   {
     access_token: Type.String(),
     token_type: Type.String(),
     expires_in: Type.Number(),
     scope: Type.Optional(Type.String()),
+    refresh_token: Type.Optional(Type.String()),
+    id_token: Type.Optional(Type.String()),
   },
-  { $id: 'TokenResponse', additionalProperties: true },
+  { $id: 'OAuth2TokenResponse', additionalProperties: true },
+);
+
+/**
+ * Hydra errorOAuth2 response (token grant failure).
+ * @see https://www.ory.com/docs/hydra/reference/api
+ */
+const OAuth2ErrorResponseSchema = Type.Object(
+  {
+    error: Type.String(),
+    error_description: Type.Optional(Type.String()),
+    error_hint: Type.Optional(Type.String()),
+    error_debug: Type.Optional(Type.String()),
+    status_code: Type.Optional(Type.Number()),
+  },
+  { $id: 'OAuth2ErrorResponse' },
 );
 
 export async function oauth2Routes(
@@ -59,38 +85,28 @@ export async function oauth2Routes(
           'Proxies the request to the upstream identity provider.',
         consumes: ['application/x-www-form-urlencoded'],
         response: {
-          200: TokenResponseSchema,
-          400: Type.Ref(ProblemDetailsSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          502: Type.Ref(ProblemDetailsSchema),
+          200: OAuth2TokenResponseSchema,
+          400: OAuth2ErrorResponseSchema,
+          401: OAuth2ErrorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const body = request.body as Record<string, string> | string;
+      // Content-type parser already gives us Record<string, string>
+      const body = request.body as Record<string, string>;
 
-      // Parse form-encoded body
-      let params: URLSearchParams;
-      if (typeof body === 'string') {
-        params = new URLSearchParams(body);
-      } else if (body && typeof body === 'object') {
-        params = new URLSearchParams(body);
-      } else {
-        throw createProblem(
-          'validation-failed',
-          'Request body must be application/x-www-form-urlencoded.',
-        );
-      }
-
-      const grantType = params.get('grant_type');
+      const grantType = body.grant_type;
       if (grantType !== 'client_credentials') {
-        throw createProblem(
-          'validation-failed',
-          `Unsupported grant_type "${grantType ?? ''}". Only client_credentials is supported.`,
-        );
+        return reply.status(400).send({
+          error: 'unsupported_grant_type',
+          error_description:
+            `Unsupported grant_type "${grantType ?? ''}". ` +
+            'Only client_credentials is supported.',
+        });
       }
 
-      // Forward to Hydra
+      // Forward to Hydra as form-encoded
+      const params = new URLSearchParams(body);
       let upstreamResponse: Response;
       try {
         upstreamResponse = await fetch(`${hydraPublicUrl}/oauth2/token`, {
@@ -107,25 +123,24 @@ export async function oauth2Routes(
         );
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const responseBody = await upstreamResponse.json();
-
-      // Forward Hydra's status and body transparently.
-      // Use raw serializer for non-200 to avoid schema mismatch
-      // (Hydra error format differs from ProblemDetails).
-      if (upstreamResponse.status !== 200) {
-        return (
-          reply
-            .status(upstreamResponse.status as 401)
-            .header('content-type', 'application/json')
-            .serializer(JSON.stringify)
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            .send(responseBody)
+      let responseBody: unknown;
+      try {
+        responseBody = await upstreamResponse.json();
+      } catch {
+        fastify.log.error('Failed to parse JSON from Hydra token endpoint');
+        throw createProblem(
+          'upstream-error',
+          'Token endpoint returned invalid JSON response',
         );
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      return reply.status(200).send(responseBody);
+      // Forward Hydra's status and body transparently.
+      // Error responses match Hydra's errorOAuth2 schema, not ProblemDetails.
+      type HydraResponse =
+        | { access_token: string; token_type: string; expires_in: number }
+        | { error: string; error_description?: string };
+      const status = upstreamResponse.status as 200 | 400 | 401;
+      return reply.status(status).send(responseBody as HydraResponse);
     },
   );
 }

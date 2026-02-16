@@ -372,15 +372,23 @@ export type GetOAuth2TokenErrors = {
   /**
    * Default Response
    */
-  400: ProblemDetails;
+  400: {
+    error: string;
+    error_description?: string;
+    error_hint?: string;
+    error_debug?: string;
+    status_code?: number;
+  };
   /**
    * Default Response
    */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  502: ProblemDetails;
+  401: {
+    error: string;
+    error_description?: string;
+    error_hint?: string;
+    error_debug?: string;
+    status_code?: number;
+  };
 };
 
 export type GetOAuth2TokenError =
@@ -395,6 +403,8 @@ export type GetOAuth2TokenResponses = {
     token_type: string;
     expires_in: number;
     scope?: string;
+    refresh_token?: string;
+    id_token?: string;
     [key: string]: unknown | string | number | undefined;
   };
 };

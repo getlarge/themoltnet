@@ -1316,6 +1316,12 @@
                     },
                     "scope": {
                       "type": "string"
+                    },
+                    "refresh_token": {
+                      "type": "string"
+                    },
+                    "id_token": {
+                      "type": "string"
                     }
                   }
                 }
@@ -1327,7 +1333,25 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  }
                 }
               }
             }
@@ -1337,17 +1361,25 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  }
                 }
               }
             }

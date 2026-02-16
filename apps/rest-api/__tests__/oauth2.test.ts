@@ -69,8 +69,9 @@ describe('POST /oauth2/token', () => {
 
     expect(response.statusCode).toBe(400);
     const body = response.json();
-    expect(body.detail).toContain('authorization_code');
-    expect(body.detail).toContain('client_credentials');
+    expect(body.error).toBe('unsupported_grant_type');
+    expect(body.error_description).toContain('authorization_code');
+    expect(body.error_description).toContain('client_credentials');
 
     // Should NOT have called Hydra
     expect(fetchMock).not.toHaveBeenCalled();
@@ -109,6 +110,27 @@ describe('POST /oauth2/token', () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json()).toMatchObject(errorPayload);
+  });
+
+  it('returns 502 when Hydra returns invalid JSON', async () => {
+    fetchMock.mockResolvedValueOnce({
+      status: 200,
+      json: async () => {
+        throw new SyntaxError('Unexpected token');
+      },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/oauth2/token',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      payload:
+        'grant_type=client_credentials&client_id=test-id&client_secret=test-secret',
+    });
+
+    expect(response.statusCode).toBe(502);
+    const body = response.json();
+    expect(body.code).toBe('UPSTREAM_ERROR');
   });
 
   it('returns 502 when Hydra is unreachable', async () => {

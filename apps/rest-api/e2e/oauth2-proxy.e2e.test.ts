@@ -159,7 +159,11 @@ describe('POST /oauth2/token (proxy)', () => {
     });
 
     expect(tokenRes.status).toBe(400);
-    const body = (await tokenRes.json()) as { detail?: string };
-    expect(body.detail).toContain('client_credentials');
+    const body = (await tokenRes.json()) as {
+      error?: string;
+      error_description?: string;
+    };
+    expect(body.error).toBe('unsupported_grant_type');
+    expect(body.error_description).toContain('client_credentials');
   });
 });
