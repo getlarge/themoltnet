@@ -18,7 +18,8 @@
     "build": "vite build && tsc -b --emitDeclarationOnly --force",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "test": "vitest run",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "check:pack": "tsx ../../scripts/check-pack.ts --package ."
   },
   "dependencies": {
     "@hey-api/client-fetch": "catalog:",

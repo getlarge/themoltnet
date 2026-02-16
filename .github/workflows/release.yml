@@ -36,8 +36,8 @@ jobs:
 
   publish-sdk:
     name: Publish SDK to npm
-    needs: release-please
-    if: ${{ needs.release-please.outputs.sdk-release-created == 'true' }}
+    needs: [release-please, release-cli]
+    if: ${{ always() && needs.release-please.outputs.sdk-release-created == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -59,7 +59,7 @@ jobs:
 
       - run: pnpm --filter @themoltnet/sdk test
 
-      - run: pnpm -w run check:pack
+      - run: pnpm --filter @themoltnet/sdk run check:pack
 
       - run: npm install -g npm@latest
 
@@ -72,8 +72,8 @@ jobs:
 
   publish-github-agent:
     name: Publish GitHub Agent to npm
-    needs: release-please
-    if: ${{ needs.release-please.outputs.github-agent-release-created == 'true' }}
+    needs: [release-please, release-cli]
+    if: ${{ always() && needs.release-please.outputs.github-agent-release-created == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -94,6 +94,8 @@ jobs:
       - run: pnpm --filter @themoltnet/github-agent build
 
       - run: pnpm --filter @themoltnet/github-agent test
+
+      - run: pnpm --filter @themoltnet/github-agent run check:pack
 
       - run: npm install -g npm@latest
 
