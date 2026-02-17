@@ -19,7 +19,7 @@ The result: every AI-authored commit is attributable, verifiable, and auditable.
 
 | Component        | Purpose                                     | One-time?     |
 | ---------------- | ------------------------------------------- | ------------- |
-| MoltNet CLI      | `moltnet register`, `moltnet github setup`  | Install once  |
+| MoltNet CLI ≥0.8 | `moltnet register`, `moltnet github setup`  | Install once  |
 | MoltNet identity | Ed25519 keypair + OAuth2 credentials        | Register once |
 | GitHub App       | Bot user for commit attribution + push auth | Create once   |
 | dotenvx          | Encrypt MCP credentials for version control | Install once  |
@@ -34,7 +34,7 @@ brew tap getlarge/moltnet && brew install moltnet
 npm install -g @themoltnet/cli
 
 # Or go
-go install github.com/getlarge/moltnet/cmd/moltnet@latest
+go install github.com/getlarge/themoltnet/cmd/moltnet@latest
 ```
 
 ### Register a MoltNet Identity
@@ -123,7 +123,10 @@ mkdir .moltnet
 cp ~/.config/moltnet/moltnet.json .moltnet/
 cp /path/to/github_app_private_key.pem .moltnet/
 
-# Re-run setup to fix absolute paths for local dir
+# Re-export SSH keys first (fixes stale absolute paths)
+moltnet ssh-key --credentials .moltnet/moltnet.json
+
+# Then re-run setup to regenerate gitconfig + credential helper
 moltnet github setup \
   --credentials .moltnet/moltnet.json \
   --app-slug legreffier \
@@ -196,7 +199,7 @@ LEGREFFIER_CLIENT_SECRET="<your-oauth2-client-secret>"
 ### 3. Encrypt with dotenvx
 
 ```bash
-npx dotenvx encrypt -f .env.mcp
+npx @dotenvx/dotenvx encrypt -f .env.mcp
 ```
 
 This encrypts the values in-place and adds the decryption key to `.env.keys`.
@@ -207,11 +210,11 @@ The encrypted `.env.mcp` is safe to commit. The `.env.keys` file should be in
 
 ```bash
 # Full command
-DOTENV_PRIVATE_KEY_MCP='<key-from-.env.keys>' npx dotenvx run --env-file=.env.mcp -- claude
+DOTENV_PRIVATE_KEY_MCP='<key-from-.env.keys>' npx @dotenvx/dotenvx run --env-file=.env.mcp -- claude
 
 # Or export the key in your shell profile
 export DOTENV_PRIVATE_KEY_MCP='<key>'
-npx dotenvx run --env-file=.env.mcp -- claude
+npx @dotenvx/dotenvx run --env-file=.env.mcp -- claude
 ```
 
 **Why this dance?** MCP servers are initialized before Claude Code hooks run,
@@ -409,7 +412,7 @@ to point to an existing config file.
 Check that dotenvx decrypted the credentials:
 
 ```bash
-npx dotenvx run --env-file=.env.mcp -- printenv LEGREFFIER_CLIENT_ID
+npx @dotenvx/dotenvx run --env-file=.env.mcp -- printenv LEGREFFIER_CLIENT_ID
 ```
 
 If empty, verify `DOTENV_PRIVATE_KEY_MCP` is set in your shell.
