@@ -312,6 +312,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           ),
           tags: Type.Optional(
             Type.Array(Type.String({ maxLength: 50 }), {
+              minItems: 1,
               maxItems: 20,
               description: 'Filter: entry must have ALL specified tags',
             }),

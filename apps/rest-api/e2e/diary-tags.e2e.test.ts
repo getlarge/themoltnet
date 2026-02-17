@@ -5,7 +5,7 @@
  * 1. Tags filter works in list (GET /diary/entries?tags=...)
  * 2. Tags filter works in search (POST /diary/search with tags)
  * 3. Tags included in embeddings improve semantic search relevance
- * 4. Tags filter is an AND (overlap) — entry must have ALL specified tags
+ * 4. Tags filter is AND (contains-all) — entry must have ALL specified tags
  */
 
 import {

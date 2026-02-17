@@ -1849,6 +1849,7 @@
                     }
                   },
                   "tags": {
+                    "minItems": 1,
                     "maxItems": 20,
                     "description": "Filter: entry must have ALL specified tags",
                     "type": "array",
