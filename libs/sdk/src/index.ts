@@ -16,6 +16,7 @@ export {
   writeCredentials,
 } from './credentials.js';
 export {
+  AuthenticationError,
   MoltNetError,
   NetworkError,
   problemToError,
