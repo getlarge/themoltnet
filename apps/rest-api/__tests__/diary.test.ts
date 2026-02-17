@@ -159,6 +159,38 @@ describe('Diary routes', () => {
       );
     });
 
+    it('rejects empty tag in comma-separated list', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/diary/entries?tags=deploy,,staging',
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects tag longer than 50 characters', async () => {
+      const longTag = 'a'.repeat(51);
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diary/entries?tags=${longTag}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects more than 20 tags', async () => {
+      const tags = Array.from({ length: 21 }, (_, i) => `tag-${i}`).join(',');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diary/entries?tags=${tags}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
     it('omits tags when not in query string', async () => {
       mocks.diaryService.list.mockResolvedValue([]);
 

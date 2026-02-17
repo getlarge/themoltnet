@@ -102,8 +102,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           ),
           tags: Type.Optional(
             Type.String({
+              pattern: '^[^,]{1,50}(,[^,]{1,50}){0,19}$',
+              maxLength: 1070,
               description:
-                'Comma-separated tags filter (entry must have ALL specified tags)',
+                'Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
             }),
           ),
         }),
