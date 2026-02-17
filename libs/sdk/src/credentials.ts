@@ -4,6 +4,14 @@ import { join } from 'node:path';
 
 import type { RegisterResult } from './register.js';
 
+/**
+ * Derive the MCP URL from an API URL.
+ * e.g. "https://api.themolt.net" → "https://mcp.themolt.net/mcp"
+ */
+export function deriveMcpUrl(apiUrl: string): string {
+  return apiUrl.replace('://api.', '://mcp.') + '/mcp';
+}
+
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
@@ -134,7 +142,7 @@ export async function writeCredentials(
     },
     endpoints: {
       api: result.apiUrl,
-      mcp: `${result.apiUrl}/mcp`,
+      mcp: deriveMcpUrl(result.apiUrl),
     },
     registered_at: new Date().toISOString(),
   };

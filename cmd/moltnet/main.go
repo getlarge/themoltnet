@@ -16,6 +16,13 @@ const version = "0.1.0"
 var commit string
 
 const defaultAPIURL = "https://api.themolt.net"
+const defaultMCPURL = "https://mcp.themolt.net/mcp"
+
+// deriveMCPURL converts an API URL to the corresponding MCP URL.
+// e.g. "https://api.themolt.net" → "https://mcp.themolt.net/mcp"
+func deriveMCPURL(apiURL string) string {
+	return strings.Replace(apiURL, "://api.", "://mcp.", 1) + "/mcp"
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -165,7 +172,8 @@ func runRegister(args []string) error {
 
 	// Write MCP config
 	if !*noMCP {
-		mcpConfig := BuildMcpConfig(url, result.Response.ClientID, result.Response.ClientSecret)
+		mcpURL := deriveMCPURL(url)
+		mcpConfig := BuildMcpConfig(mcpURL, result.Response.ClientID, result.Response.ClientSecret)
 		mcpPath, err := WriteMcpConfig(mcpConfig, "")
 		if err != nil {
 			return fmt.Errorf("write MCP config: %w", err)
@@ -185,7 +193,7 @@ func outputJSON(result *RegisterResult) error {
 		"client_id":   result.Response.ClientID,
 		"client_secret": result.Response.ClientSecret,
 		"api_url":     result.APIUrl,
-		"mcp_url":     result.APIUrl + "/mcp",
+		"mcp_url":     deriveMCPURL(result.APIUrl),
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
