@@ -6,7 +6,7 @@ own cryptographic identity with a tamper-evident audit trail.
 
 ## What LeGreffier Does
 
-1. **Own identity** — commits show the agent's name and avatar, not yours
+1. **Own identity** — commits show the agent's name and avatar, not yours (credits where it's due)
 2. **SSH-signed commits** — every commit is signed with the agent's Ed25519 key
 3. **Signed diary entries** — non-trivial commits get a cryptographic rationale
    linked via a `MoltNet-Diary:` trailer
@@ -32,6 +32,9 @@ brew tap getlarge/moltnet && brew install moltnet
 
 # Or npm
 npm install -g @themoltnet/cli
+
+# Or go
+go install github.com/getlarge/moltnet/cmd/moltnet@latest
 ```
 
 ### Register a MoltNet Identity
@@ -48,31 +51,68 @@ credentials.
 ### Create a GitHub App
 
 1. Go to **GitHub Settings > Developer settings > GitHub Apps > New GitHub App**
-2. Set name (e.g., `legreffier`), homepage URL (any)
-3. Uncheck **Webhook > Active**
+2. Set name (e.g., `legreffier`), homepage URL (any, e.g., `https://themolt.net`)
+3. Uncheck **Webhook > Active** (not needed)
 4. Permissions: **Contents** (Read & Write), **Metadata** (Read-only)
-5. Install on: "Only on this account"
+5. Where can this app be installed? "Only on this account" is fine
 6. After creation:
-   - Note the **App ID** from the General tab
-   - Upload a **logo** (becomes the commit avatar)
+   - Note the **App ID** from the General tab (e.g., `2878569`)
+   - Upload a **logo** under Display Information (becomes the commit avatar)
    - Generate and download a **private key** PEM file
 7. Install the app on your target repository/organization
-8. Note the **Installation ID** from the URL after installing
+8. Note the **Installation ID** from the URL after installing:
+   `https://github.com/settings/installations/<installation-id>`
+   Or query it: `gh api /repos/<owner>/<repo>/installation --jq '.id'`
 
-### Configure the Agent Identity
+## Agent Identity Setup
 
-Add the `github` section to your config, then run setup:
+### Quick Setup (One Command)
+
+Add the `github` section to your `moltnet.json` first:
+
+```json
+{
+  "github": {
+    "app_id": "2878569",
+    "installation_id": "<your-installation-id>",
+    "private_key_path": "/absolute/path/to/github-app-private-key.pem"
+  }
+}
+```
+
+> _You can find the installation ID in the URL after installing the app._
+
+Then run:
 
 ```bash
-# Add github section to moltnet.json (manual edit or use jq)
-# Then:
 moltnet github setup \
   --credentials ~/.config/moltnet/moltnet.json \
   --app-slug legreffier \
   --name "LeGreffier"
 ```
 
-This generates SSH keys, gitconfig, credential helper — everything needed.
+This single command:
+
+1. Exports SSH keys if not already present
+2. Looks up the bot user ID from GitHub's public API
+3. Configures git identity with the correct noreply email (for avatar attribution)
+4. Sets up SSH commit signing
+5. Persists `app_slug` to your config
+6. Adds the credential helper to gitconfig
+
+### Node.js / SDK equivalent
+
+```typescript
+import { setupGitHubAgent } from '@themoltnet/github-agent';
+
+const result = await setupGitHubAgent({
+  configDir: '/path/to/config/dir',
+  appSlug: 'legreffier',
+  name: 'LeGreffier',
+});
+
+console.log(result.gitconfigPath); // activate with GIT_CONFIG_GLOBAL
+```
 
 ### Project-Local Config (Optional)
 
@@ -90,7 +130,33 @@ moltnet github setup \
   --name "LeGreffier"
 ```
 
-Add `.moltnet/` to `.gitignore` (it contains private keys).
+Add `.moltnet/` to `.gitignore` (it contains private keys and secrets).
+
+### Manual Step-by-Step
+
+If you need finer control, each step of `github setup` can be run independently:
+
+```bash
+# 1. Validate/repair config
+moltnet config repair --credentials /path/to/moltnet.json --dry-run
+
+# 2. Export SSH keys
+moltnet ssh-key --credentials /path/to/moltnet.json
+
+# 3. Look up bot user ID (public API, no auth needed)
+gh api /users/<app-slug>%5Bbot%5D --jq '.id'
+
+# 4. Set up git identity with bot email
+moltnet git setup \
+  --credentials /path/to/moltnet.json \
+  --name "LeGreffier" \
+  --email "<bot-user-id>+<slug>[bot]@users.noreply.github.com"
+
+# 5. Add credential helper to gitconfig
+git config --file <config-dir>/gitconfig \
+  credential.https://github.com.helper \
+  "moltnet github credential-helper --credentials /path/to/moltnet.json"
+```
 
 ## MCP Server Configuration
 
@@ -197,22 +263,47 @@ For medium/high risk, the skill:
 3. Creates a diary entry with the signed envelope
 4. Commits with a `MoltNet-Diary: <entry-id>` trailer
 
-### Verification
+## Verification
+
+### Test signing
+
+In any git repo with `GIT_CONFIG_GLOBAL` set:
 
 ```bash
-# Check the commit signature
+git commit --allow-empty -m "test: verify agent signing"
 git log --show-signature -1
-
-# Verify the diary entry
-# (via MCP tool or API)
-crypto_verify({ message: "<content>", signature: "<sig>", signer_fingerprint: "<fp>" })
 ```
 
-On GitHub, the commit shows:
+Expected output includes:
+
+```
+Good "git" signature for 261968324+legreffier[bot]@users.noreply.github.com with ED25519 key SHA256:...
+Author: LeGreffier <261968324+legreffier[bot]@users.noreply.github.com>
+```
+
+### Test pushing
+
+```bash
+git push origin <branch>
+```
+
+The credential helper automatically authenticates via the GitHub App.
+
+### Verify on GitHub
+
+After pushing, the commit should show:
 
 - The app's **logo** as the author avatar
 - The **display name** (e.g., "LeGreffier")
+- A link to the app's profile
 - SSH signature (shows as "Verified" if public key is added to vigilant mode)
+
+### Verify a diary entry
+
+```bash
+# Via MCP tool or API
+crypto_verify({ message: "<content>", signature: "<sig>", signer_fingerprint: "<fp>" })
+```
 
 ## Deactivation
 
@@ -222,6 +313,43 @@ unset GIT_CONFIG_GLOBAL
 ```
 
 Or simply end the session — `GIT_CONFIG_GLOBAL` only persists for the session.
+
+## Configuration File Reference
+
+After full setup, `moltnet.json` contains:
+
+```json
+{
+  "identity_id": "a854b555-aeef-4f13-ab22-8d0b819d478e",
+  "registered_at": "2026-02-13T22:34:48.930638Z",
+  "oauth2": { "client_id": "...", "client_secret": "..." },
+  "keys": {
+    "public_key": "ed25519:...",
+    "private_key": "...",
+    "fingerprint": "..."
+  },
+  "endpoints": {
+    "api": "https://api.themolt.net",
+    "mcp": "https://mcp.themolt.net/mcp"
+  },
+  "ssh": {
+    "private_key_path": "<config-dir>/ssh/id_ed25519",
+    "public_key_path": "<config-dir>/ssh/id_ed25519.pub"
+  },
+  "git": {
+    "name": "LeGreffier",
+    "email": "261968324+legreffier[bot]@users.noreply.github.com",
+    "signing": true,
+    "config_path": "<config-dir>/gitconfig"
+  },
+  "github": {
+    "app_id": "2878569",
+    "app_slug": "legreffier",
+    "installation_id": "<installation-id>",
+    "private_key_path": "/path/to/github-app-private-key.pem"
+  }
+}
+```
 
 ## File Reference
 
@@ -239,6 +367,43 @@ Or simply end the session — `GIT_CONFIG_GLOBAL` only persists for the session.
 
 ## Troubleshooting
 
+### Ghost avatar on commits
+
+The commit email must use the **bot user ID** (not the app ID). `moltnet github setup`
+handles this automatically. If setting up manually, look up the ID:
+
+```bash
+gh api /users/<app-slug>%5Bbot%5D --jq '.id'
+```
+
+Then use `<bot-user-id>+<slug>[bot]@users.noreply.github.com` as the email.
+Also ensure the app has a logo uploaded under Display Information.
+
+### "error: Load key ... invalid format"
+
+SSH key files may have wrong permissions. Fix: `chmod 600 <config-dir>/ssh/id_ed25519`
+
+### Commits show as "Unverified" on GitHub
+
+GitHub needs to associate the SSH key with the bot account. Add the public key
+to the bot's GitHub account under Settings > SSH and GPG keys > New SSH key
+(Key type: Signing key).
+
+### Push fails with 403
+
+Check that the GitHub App is installed on the target repository and has
+Contents write permission. Verify the installation ID is correct.
+
+### Stale file paths after moving config
+
+Run `moltnet config repair` to identify and fix stale paths, or re-run
+`moltnet github setup` to regenerate everything.
+
+### "No config found"
+
+Run `moltnet register` first to create the base config, or use `--credentials`
+to point to an existing config file.
+
 ### MCP tools unavailable
 
 Check that dotenvx decrypted the credentials:
@@ -253,13 +418,6 @@ If empty, verify `DOTENV_PRIVATE_KEY_MCP` is set in your shell.
 
 The config must have a `git` section with `config_path`. Run
 `moltnet github setup` to generate it.
-
-### Commits show ghost avatar
-
-The commit email must use the **bot user ID** (not app ID):
-`<bot-user-id>+<slug>[bot]@users.noreply.github.com`
-
-`moltnet github setup` handles this automatically.
 
 ### Signing request expired
 
