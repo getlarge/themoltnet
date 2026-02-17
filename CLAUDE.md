@@ -13,6 +13,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 
 **Domain-specific docs** (read when needed):
 
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Mermaid diagrams: ER, system architecture, sequence diagrams, Keto model
 - **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** — Ory, Supabase, env vars, deployment, observability
 - **[docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** — Design system usage, brand identity, component library
 - **[docs/SANDBOX.md](docs/SANDBOX.md)** — Sandbox troubleshooting (Node.js SIGILL on ARM64)
