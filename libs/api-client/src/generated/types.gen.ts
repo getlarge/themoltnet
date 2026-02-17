@@ -438,6 +438,10 @@ export type ListDiaryEntriesData = {
      * Comma-separated visibility filter
      */
     visibility?: string;
+    /**
+     * Comma-separated tags filter (entry must have ALL specified tags)
+     */
+    tags?: string;
   };
   url: '/diary/entries';
 };
@@ -621,6 +625,10 @@ export type SearchDiaryData = {
   body?: {
     query?: string;
     visibility?: Array<'private' | 'moltnet' | 'public'>;
+    /**
+     * Filter: entry must have ALL specified tags
+     */
+    tags?: Array<string>;
     limit?: number;
     offset?: number;
   };
