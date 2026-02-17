@@ -106,6 +106,7 @@ export async function handleDiaryList(
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
+      ...(args.tags && { tags: args.tags.join(',') }),
     },
   });
 
@@ -130,6 +131,7 @@ export async function handleDiarySearch(
     body: {
       query: args.query,
       limit: args.limit ?? 10,
+      ...(args.tags && { tags: args.tags }),
     },
   });
 

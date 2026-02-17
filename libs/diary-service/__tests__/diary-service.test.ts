@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createDiaryService, type DiaryService } from '../src/diary-service.js';
+import {
+  buildEmbeddingText,
+  createDiaryService,
+  type DiaryService,
+} from '../src/diary-service.js';
 import type {
   DiaryEntry,
   DiaryRepository,
@@ -690,6 +694,210 @@ describe('DiaryService', () => {
 
       expect(result.entries).toHaveLength(0);
       expect(result.totalEntries).toBe(0);
+    });
+  });
+});
+
+describe('buildEmbeddingText', () => {
+  it('returns content unchanged when no tags', () => {
+    expect(buildEmbeddingText('hello world')).toBe('hello world');
+  });
+
+  it('returns content unchanged for empty tags array', () => {
+    expect(buildEmbeddingText('hello world', [])).toBe('hello world');
+  });
+
+  it('returns content unchanged for null tags', () => {
+    expect(buildEmbeddingText('hello world', null)).toBe('hello world');
+  });
+
+  it('appends tag: prefixed lines for each tag', () => {
+    const result = buildEmbeddingText('my entry', [
+      'accountable-commit',
+      'high-risk',
+    ]);
+    expect(result).toBe('my entry\ntag:accountable-commit\ntag:high-risk');
+  });
+
+  it('handles single tag', () => {
+    const result = buildEmbeddingText('content', ['solo']);
+    expect(result).toBe('content\ntag:solo');
+  });
+});
+
+describe('DiaryService — tags filter', () => {
+  let service: DiaryService;
+  let repo: ReturnType<typeof createMockDiaryRepository>;
+  let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let writer: ReturnType<typeof createMockRelationshipWriter>;
+  let embeddings: ReturnType<typeof createMockEmbeddingService>;
+  let transactionRunner: {
+    runInTransaction: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    repo = createMockDiaryRepository();
+    permissions = createMockPermissionChecker();
+    writer = createMockRelationshipWriter();
+    embeddings = createMockEmbeddingService();
+    transactionRunner = {
+      runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    };
+
+    service = createDiaryService({
+      diaryRepository: repo as unknown as DiaryRepository,
+      permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipWriter: writer as unknown as RelationshipWriter,
+      embeddingService: embeddings as unknown as EmbeddingService,
+      transactionRunner: transactionRunner as unknown as TransactionRunner,
+    });
+  });
+
+  describe('list', () => {
+    it('passes tags filter to repository', async () => {
+      repo.list.mockResolvedValue([]);
+
+      await service.list({
+        ownerId: OWNER_ID,
+        tags: ['accountable-commit'],
+      });
+
+      expect(repo.list).toHaveBeenCalledWith({
+        ownerId: OWNER_ID,
+        visibility: undefined,
+        tags: ['accountable-commit'],
+        limit: undefined,
+        offset: undefined,
+      });
+    });
+
+    it('passes tags with other filters', async () => {
+      repo.list.mockResolvedValue([]);
+
+      await service.list({
+        ownerId: OWNER_ID,
+        visibility: ['public'],
+        tags: ['tag-a', 'tag-b'],
+        limit: 5,
+      });
+
+      expect(repo.list).toHaveBeenCalledWith({
+        ownerId: OWNER_ID,
+        visibility: ['public'],
+        tags: ['tag-a', 'tag-b'],
+        limit: 5,
+        offset: undefined,
+      });
+    });
+  });
+
+  describe('search', () => {
+    it('passes tags filter to repository', async () => {
+      embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
+      repo.search.mockResolvedValue([]);
+
+      await service.search({
+        ownerId: OWNER_ID,
+        query: 'something',
+        tags: ['accountable-commit'],
+      });
+
+      expect(repo.search).toHaveBeenCalledWith({
+        ownerId: OWNER_ID,
+        query: 'something',
+        embedding: MOCK_EMBEDDING,
+        visibility: undefined,
+        tags: ['accountable-commit'],
+        limit: undefined,
+        offset: undefined,
+      });
+    });
+
+    it('passes tags without query', async () => {
+      repo.search.mockResolvedValue([]);
+
+      await service.search({
+        ownerId: OWNER_ID,
+        tags: ['high-risk'],
+      });
+
+      expect(repo.search).toHaveBeenCalledWith(
+        expect.objectContaining({ tags: ['high-risk'] }),
+      );
+    });
+  });
+
+  describe('create — tags in embedding', () => {
+    it('includes tags in embedding text', async () => {
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(createMockEntry({ tags: ['deploy'] }));
+
+      await service.create({
+        ownerId: OWNER_ID,
+        content: 'Deployed v2',
+        tags: ['deploy'],
+      });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Deployed v2\ntag:deploy',
+      );
+    });
+
+    it('uses content only when no tags', async () => {
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(createMockEntry());
+
+      await service.create({
+        ownerId: OWNER_ID,
+        content: 'Plain entry',
+      });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith('Plain entry');
+    });
+  });
+
+  describe('update — tags in embedding', () => {
+    it('regenerates embedding when tags change', async () => {
+      const existing = createMockEntry({
+        content: 'Original',
+        tags: ['old-tag'],
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(existing);
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.update.mockResolvedValue(createMockEntry({ tags: ['new-tag'] }));
+
+      await service.update(ENTRY_ID, OWNER_ID, { tags: ['new-tag'] });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Original\ntag:new-tag',
+      );
+    });
+
+    it('uses new content and new tags together for embedding', async () => {
+      const existing = createMockEntry();
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(existing);
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.update.mockResolvedValue(createMockEntry());
+
+      await service.update(ENTRY_ID, OWNER_ID, {
+        content: 'New content',
+        tags: ['alpha', 'beta'],
+      });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'New content\ntag:alpha\ntag:beta',
+      );
+    });
+
+    it('does not regenerate embedding when only visibility changes', async () => {
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.update.mockResolvedValue(createMockEntry({ visibility: 'public' }));
+
+      await service.update(ENTRY_ID, OWNER_ID, { visibility: 'public' });
+
+      expect(embeddings.embedPassage).not.toHaveBeenCalled();
     });
   });
 });

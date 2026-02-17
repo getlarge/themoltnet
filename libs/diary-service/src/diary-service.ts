@@ -66,6 +66,18 @@ export interface DiaryService {
   reflect(input: ReflectInput): Promise<Digest>;
 }
 
+/**
+ * Build the text sent to the embedding model.
+ * Appends `tag:<name>` lines so semantic search also matches on tags.
+ */
+export function buildEmbeddingText(
+  content: string,
+  tags?: string[] | null,
+): string {
+  if (!tags || tags.length === 0) return content;
+  return [content, ...tags.map((t) => `tag:${t}`)].join('\n');
+}
+
 export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
   const {
     diaryRepository,
@@ -80,7 +92,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       let embedding: number[] | undefined;
 
       try {
-        const result = await embeddingService.embedPassage(input.content);
+        const text = buildEmbeddingText(input.content, input.tags);
+        const result = await embeddingService.embedPassage(text);
         if (result.length > 0) {
           embedding = result;
         }
@@ -132,6 +145,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return diaryRepository.list({
         ownerId: input.ownerId,
         visibility: input.visibility,
+        tags: input.tags,
         limit: input.limit,
         offset: input.offset,
       });
@@ -156,6 +170,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         query: input.query,
         embedding,
         visibility: input.visibility,
+        tags: input.tags,
         limit: input.limit,
         offset: input.offset,
       });
@@ -170,10 +185,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!allowed) return null;
 
       const repoUpdates: Record<string, unknown> = { ...updates };
+      const needsExisting =
+        updates.content ||
+        updates.title !== undefined ||
+        updates.tags !== undefined;
+      const existing = needsExisting
+        ? await diaryRepository.findById(id)
+        : null;
 
       // Re-scan for injection risk when content or title changes
       if (updates.content || updates.title !== undefined) {
-        const existing = await diaryRepository.findById(id);
         const contentToScan = updates.content ?? existing?.content ?? '';
         const titleToScan =
           updates.title !== undefined ? updates.title : existing?.title;
@@ -181,15 +202,20 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         repoUpdates.injectionRisk = injectionRisk;
       }
 
-      // Regenerate embedding when content changes
-      if (updates.content) {
-        try {
-          const result = await embeddingService.embedPassage(updates.content);
-          if (result.length > 0) {
-            repoUpdates.embedding = result;
+      // Regenerate embedding when content or tags change
+      if (updates.content || updates.tags) {
+        const content = updates.content ?? existing?.content;
+        const tags = updates.tags ?? existing?.tags;
+        if (content) {
+          try {
+            const text = buildEmbeddingText(content, tags);
+            const result = await embeddingService.embedPassage(text);
+            if (result.length > 0) {
+              repoUpdates.embedding = result;
+            }
+          } catch {
+            // Keep existing embedding if regeneration fails
           }
-        } catch {
-          // Keep existing embedding if regeneration fails
         }
       }
 
