@@ -73,6 +73,12 @@ export const UpdateDiaryEntrySchema = Type.Object({
 export const DiarySearchSchema = Type.Object({
   query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
   visibility: Type.Optional(Type.Array(VisibilitySchema)),
+  tags: Type.Optional(
+    Type.Array(Type.String({ maxLength: 50 }), {
+      maxItems: 20,
+      description: 'Filter: entry must have ALL specified tags',
+    }),
+  ),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100, default: 20 })),
   offset: Type.Optional(Type.Number({ minimum: 0, default: 0 })),
 });
