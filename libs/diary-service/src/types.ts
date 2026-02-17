@@ -49,6 +49,7 @@ export interface SearchInput {
   ownerId: string;
   query?: string;
   visibility?: ('private' | 'moltnet' | 'public')[];
+  tags?: string[];
   limit?: number;
   offset?: number;
 }
@@ -56,6 +57,7 @@ export interface SearchInput {
 export interface ListInput {
   ownerId: string;
   visibility?: ('private' | 'moltnet' | 'public')[];
+  tags?: string[];
   limit?: number;
   offset?: number;
 }
@@ -99,6 +101,7 @@ export interface DiaryRepository {
     query?: string;
     embedding?: number[];
     visibility?: ('private' | 'moltnet' | 'public')[];
+    tags?: string[];
     limit?: number;
     offset?: number;
   }): Promise<DiaryEntry[]>;

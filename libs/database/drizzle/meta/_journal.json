@@ -50,6 +50,13 @@
       "when": 1771098523420,
       "tag": "0006_diary_search_rrf",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771360272115,
+      "tag": "0007_fix-diary-search-tags-contains",
+      "breakpoints": true
     }
   ]
 }

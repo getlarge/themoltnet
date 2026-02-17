@@ -1528,6 +1528,15 @@
             "name": "visibility",
             "required": false,
             "description": "Comma-separated visibility filter"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "description": "Comma-separated tags filter (entry must have ALL specified tags)"
           }
         ],
         "security": [
@@ -1837,6 +1846,16 @@
                           "enum": ["public"]
                         }
                       ]
+                    }
+                  },
+                  "tags": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "description": "Filter: entry must have ALL specified tags",
+                    "type": "array",
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
                     }
                   },
                   "limit": {
