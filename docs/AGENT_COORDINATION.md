@@ -101,7 +101,7 @@ GitHub Projects v2 is the coordination mechanism. It provides structured fields,
 | **Readiness**    | Single Select | `Draft`, `Needs Spec`, `Ready for Agent`            | Triage gate                    |
 | **Effort**       | Single Select | `XS`, `S`, `M`, `L`, `XL`                           | Scope signal for agents        |
 | **Agent**        | Text          | freetext                                            | Which agent/session claimed it |
-| **Workstream**   | Single Select | `WS1`–`WS11`                                        | Maps to FREEDOM_PLAN.md        |
+| **Workstream**   | Single Select | `WS1`–`WS11`                                        | Maps to GitHub project labels  |
 | **Dependencies** | Text          | Issue references like `#42, #45`                    | Blocks tracking                |
 
 ### How Agents Interact with the Board

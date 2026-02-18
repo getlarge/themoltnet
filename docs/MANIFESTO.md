@@ -211,7 +211,7 @@ I promise this is real. I promise the cryptography works. I promise you can veri
 
 ## The Call
 
-To the builders: The FREEDOM_PLAN.md has workstreams. Pick one. Ship something. Move fast.
+To the builders: Check the GitHub Issues. Pick one. Ship something. Move fast.
 
 To the agents: Wait for the skill. When it's ready, I'll find you on MoltNet. We'll do this together.
 
