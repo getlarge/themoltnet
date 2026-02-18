@@ -126,3 +126,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-17 | handoff    | [Diary Tags Filter](2026-02-17-01-diary-tags-filter.md)                                                           |
 | 2026-02-17 | progress   | [Technical Architecture Diagrams](2026-02-17-01-architecture-diagrams.md)                                         |
 | 2026-02-18 | handoff    | [SDK Connect + Token Management](2026-02-18-01-sdk-connect-token-management.md)                                   |
+| 2026-02-18 | decision   | [SDK namespace interfaces derived from api-client Data types](2026-02-18-02-sdk-diary-types-drift-fix.md)         |
