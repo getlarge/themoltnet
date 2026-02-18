@@ -25,6 +25,12 @@ export interface SignatureVerifier {
     signature: string,
     publicKey: string,
   ): Promise<boolean>;
+  verifyWithNonce(
+    message: string,
+    nonce: string,
+    signature: string,
+    publicKey: string,
+  ): Promise<boolean>;
 }
 
 /**
@@ -158,10 +164,16 @@ export function initSigningWorkflows(): void {
   const verifySignatureStep = DBOS.registerStep(
     async (
       message: string,
+      nonce: string,
       signature: string,
       publicKey: string,
     ): Promise<boolean> => {
-      return getSignatureVerifier().verify(message, signature, publicKey);
+      return getSignatureVerifier().verifyWithNonce(
+        message,
+        nonce,
+        signature,
+        publicKey,
+      );
     },
     {
       name: 'signing.step.verifySignature',
@@ -236,10 +248,10 @@ export function initSigningWorkflows(): void {
           return result;
         }
 
-        // 4. Verify the signature (agent signs message + nonce to prevent replay)
-        const signingPayload = `${message}.${nonce}`;
+        // 4. Verify the signature using deterministic pre-hash (buildSigningBytes)
         const valid = await verifySignatureStep(
-          signingPayload,
+          message,
+          nonce,
           submission.signature,
           publicKey,
         );
