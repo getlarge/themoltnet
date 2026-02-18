@@ -51,7 +51,10 @@ export type DiaryListInput = Static<typeof DiaryListSchema>;
 
 export const DiarySearchSchema = Type.Object({
   query: Type.String({
-    description: 'What are you looking for? (natural language)',
+    description:
+      'Search query — natural language or websearch_to_tsquery syntax. ' +
+      'Examples: `deploy production` (OR match), `"npm audit"` (phrase), ' +
+      '`deploy -staging` (exclude term), `"security vulnerability" +audit` (phrase + required).',
   }),
   limit: Type.Optional(
     Type.Number({ description: 'Max results (default 10)' }),

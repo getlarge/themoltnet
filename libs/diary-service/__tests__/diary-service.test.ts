@@ -166,6 +166,9 @@ describe('DiaryService', () => {
       expect(result.title).toBe('My Entry');
       expect(result.visibility).toBe('moltnet');
       expect(result.tags).toEqual(['test']);
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'My Entry\nTest diary entry content\ntag:test',
+      );
     });
 
     it('creates entry without embedding if embedding service fails', async () => {
@@ -399,6 +402,7 @@ describe('DiaryService', () => {
       const updated = createMockEntry({ title: 'Updated Title' });
       permissions.canEditEntry.mockResolvedValue(true);
       repo.findById.mockResolvedValue(existing);
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.update.mockResolvedValue(updated);
 
       const result = await service.update(ENTRY_ID, OWNER_ID, {
@@ -407,9 +411,13 @@ describe('DiaryService', () => {
 
       expect(result).toEqual(updated);
       expect(permissions.canEditEntry).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Updated Title\nTest diary entry content',
+      );
       expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, {
         title: 'Updated Title',
         injectionRisk: false,
+        embedding: MOCK_EMBEDDING,
       });
     });
 
@@ -440,6 +448,7 @@ describe('DiaryService', () => {
       });
 
       expect(result).toEqual(updated);
+      // existing entry has title: null, so embedding text is just content
       expect(embeddings.embedPassage).toHaveBeenCalledWith('New content');
       expect(repo.update).toHaveBeenCalledWith(ENTRY_ID, {
         content: 'New content',
@@ -699,7 +708,7 @@ describe('DiaryService', () => {
 });
 
 describe('buildEmbeddingText', () => {
-  it('returns content unchanged when no tags', () => {
+  it('returns content unchanged when no tags or title', () => {
     expect(buildEmbeddingText('hello world')).toBe('hello world');
   });
 
@@ -722,6 +731,26 @@ describe('buildEmbeddingText', () => {
   it('handles single tag', () => {
     const result = buildEmbeddingText('content', ['solo']);
     expect(result).toBe('content\ntag:solo');
+  });
+
+  it('prepends title when provided', () => {
+    const result = buildEmbeddingText('body text', null, 'My Title');
+    expect(result).toBe('My Title\nbody text');
+  });
+
+  it('includes title, content, and tags together', () => {
+    const result = buildEmbeddingText('body', ['tag1', 'tag2'], 'Title');
+    expect(result).toBe('Title\nbody\ntag:tag1\ntag:tag2');
+  });
+
+  it('skips title when null', () => {
+    const result = buildEmbeddingText('body', ['tag1'], null);
+    expect(result).toBe('body\ntag:tag1');
+  });
+
+  it('skips title when empty string', () => {
+    const result = buildEmbeddingText('body', null, '');
+    expect(result).toBe('body');
   });
 });
 
@@ -827,7 +856,7 @@ describe('DiaryService — tags filter', () => {
     });
   });
 
-  describe('create — tags in embedding', () => {
+  describe('create — tags and title in embedding', () => {
     it('includes tags in embedding text', async () => {
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(createMockEntry({ tags: ['deploy'] }));
@@ -843,7 +872,7 @@ describe('DiaryService — tags filter', () => {
       );
     });
 
-    it('uses content only when no tags', async () => {
+    it('uses content only when no tags or title', async () => {
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(createMockEntry());
 
@@ -854,9 +883,44 @@ describe('DiaryService — tags filter', () => {
 
       expect(embeddings.embedPassage).toHaveBeenCalledWith('Plain entry');
     });
+
+    it('includes title in embedding text', async () => {
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(
+        createMockEntry({ title: 'Security Audit' }),
+      );
+
+      await service.create({
+        ownerId: OWNER_ID,
+        content: 'Ran npm audit',
+        title: 'Security Audit',
+      });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Security Audit\nRan npm audit',
+      );
+    });
+
+    it('includes title, content, and tags in embedding text', async () => {
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(
+        createMockEntry({ title: 'Deploy Log', tags: ['deploy'] }),
+      );
+
+      await service.create({
+        ownerId: OWNER_ID,
+        content: 'Deployed v3',
+        title: 'Deploy Log',
+        tags: ['deploy'],
+      });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Deploy Log\nDeployed v3\ntag:deploy',
+      );
+    });
   });
 
-  describe('update — tags in embedding', () => {
+  describe('update — tags and title in embedding', () => {
     it('regenerates embedding when tags change', async () => {
       const existing = createMockEntry({
         content: 'Original',
@@ -888,6 +952,40 @@ describe('DiaryService — tags filter', () => {
 
       expect(embeddings.embedPassage).toHaveBeenCalledWith(
         'New content\ntag:alpha\ntag:beta',
+      );
+    });
+
+    it('regenerates embedding when title changes', async () => {
+      const existing = createMockEntry({
+        content: 'Body text',
+        title: 'Old Title',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(existing);
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.update.mockResolvedValue(createMockEntry({ title: 'New Title' }));
+
+      await service.update(ENTRY_ID, OWNER_ID, { title: 'New Title' });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'New Title\nBody text',
+      );
+    });
+
+    it('includes existing title in embedding when only content changes', async () => {
+      const existing = createMockEntry({
+        content: 'Old body',
+        title: 'Kept Title',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(existing);
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.update.mockResolvedValue(createMockEntry());
+
+      await service.update(ENTRY_ID, OWNER_ID, { content: 'New body' });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Kept Title\nNew body',
       );
     });
 

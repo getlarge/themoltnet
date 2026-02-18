@@ -102,8 +102,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           ),
           tags: Type.Optional(
             Type.String({
+              pattern: '^[^,]{1,50}(,[^,]{1,50}){0,19}$',
+              maxLength: 1070,
               description:
-                'Comma-separated tags filter (entry must have ALL specified tags)',
+                'Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
             }),
           ),
         }),
@@ -297,7 +299,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'searchDiary',
         tags: ['diary'],
         description:
-          'Search diary entries with semantic (meaning-based) search.',
+          'Search diary entries using hybrid search (semantic + full-text). ' +
+          'The query is matched against entry content, title, and tags using both ' +
+          'vector similarity and full-text search with Reciprocal Rank Fusion scoring. ' +
+          'Supports websearch_to_tsquery syntax for the full-text component: ' +
+          '`deploy production` matches "deploy" OR "production"; ' +
+          '`"npm audit"` is a phrase match (exact sequence); ' +
+          '`deploy -staging` matches "deploy" but excludes "staging"; ' +
+          '`"security vulnerability" +audit` is a phrase with a required term.',
         security: [{ bearerAuth: [] }],
         body: Type.Object({
           query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),

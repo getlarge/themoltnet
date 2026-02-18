@@ -248,7 +248,10 @@ export function registerDiaryTools(
     {
       name: 'diary_search',
       description:
-        'Search your diary entries using natural language. Uses semantic (meaning-based) search.',
+        'Search your diary entries using hybrid search (semantic + full-text). ' +
+        'Supports natural language queries and websearch_to_tsquery syntax: ' +
+        '`deploy production` = OR match; `"npm audit"` = phrase match; ' +
+        '`deploy -staging` = exclude term; `"security vulnerability" +audit` = phrase + required term.',
       inputSchema: DiarySearchSchema,
     },
     async (args, ctx) => handleDiarySearch(args, deps, ctx),
