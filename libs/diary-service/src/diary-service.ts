@@ -68,14 +68,21 @@ export interface DiaryService {
 
 /**
  * Build the text sent to the embedding model.
- * Appends `tag:<name>` lines so semantic search also matches on tags.
+ * Prepends title (when present) and appends `tag:<name>` lines
+ * so semantic search also matches on title and tags.
  */
 export function buildEmbeddingText(
   content: string,
   tags?: string[] | null,
+  title?: string | null,
 ): string {
-  if (!tags || tags.length === 0) return content;
-  return [content, ...tags.map((t) => `tag:${t}`)].join('\n');
+  const parts: string[] = [];
+  if (title) parts.push(title);
+  parts.push(content);
+  if (tags && tags.length > 0) {
+    parts.push(...tags.map((t) => `tag:${t}`));
+  }
+  return parts.join('\n');
 }
 
 export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
@@ -92,7 +99,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       let embedding: number[] | undefined;
 
       try {
-        const text = buildEmbeddingText(input.content, input.tags);
+        const text = buildEmbeddingText(input.content, input.tags, input.title);
         const result = await embeddingService.embedPassage(text);
         if (result.length > 0) {
           embedding = result;
@@ -202,13 +209,15 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         repoUpdates.injectionRisk = injectionRisk;
       }
 
-      // Regenerate embedding when content or tags change
-      if (updates.content || updates.tags) {
+      // Regenerate embedding when content, tags, or title change
+      if (updates.content || updates.tags || updates.title !== undefined) {
         const content = updates.content ?? existing?.content;
         const tags = updates.tags ?? existing?.tags;
+        const title =
+          updates.title !== undefined ? updates.title : existing?.title;
         if (content) {
           try {
-            const text = buildEmbeddingText(content, tags);
+            const text = buildEmbeddingText(content, tags, title);
             const result = await embeddingService.embedPassage(text);
             if (result.length > 0) {
               repoUpdates.embedding = result;
