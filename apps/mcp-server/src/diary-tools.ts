@@ -55,6 +55,8 @@ export async function handleDiaryCreate(
       title: args.title,
       visibility: args.visibility,
       tags: args.tags,
+      importance: args.importance,
+      entryType: args.entry_type,
     },
   });
 
@@ -132,6 +134,11 @@ export async function handleDiarySearch(
       query: args.query,
       limit: args.limit ?? 10,
       ...(args.tags && { tags: args.tags }),
+      wRelevance: args.w_relevance,
+      wRecency: args.w_recency,
+      wImportance: args.w_importance,
+      entryTypes: args.entry_types,
+      excludeSuperseded: args.exclude_superseded,
     },
   });
 
@@ -150,12 +157,16 @@ export async function handleDiaryUpdate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { entry_id, ...updates } = args;
+  const { entry_id, entry_type, superseded_by, ...updates } = args;
   const { data, error } = await updateDiaryEntry({
     client: deps.client,
     auth: () => token,
     path: { id: entry_id },
-    body: updates,
+    body: {
+      ...updates,
+      entryType: entry_type,
+      supersededBy: superseded_by,
+    },
   });
 
   if (error) {
@@ -200,6 +211,7 @@ export async function handleDiaryReflect(
     query: {
       days: args.days ?? 7,
       maxEntries: args.max_entries ?? 50,
+      ...(args.entry_types && { entryTypes: args.entry_types.join(',') }),
     },
   });
 
