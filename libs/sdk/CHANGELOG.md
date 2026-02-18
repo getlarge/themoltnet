@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.15.0...sdk-v0.15.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* **sdk:** derive DiaryNamespace param types from api-client Data types ([5e8d2a9](https://github.com/getlarge/themoltnet/commit/5e8d2a9d95e15e104aa2026edfac4ac9f177d92e))
+* **sdk:** derive namespace param types from api-client Data types ([cabcea1](https://github.com/getlarge/themoltnet/commit/cabcea1b77aa6ecd6139cc7179f872f136cda266))
+
 ## [0.15.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.14.0...sdk-v0.15.0) (2026-02-18)
 
 
