@@ -167,6 +167,7 @@ pnpm --filter @moltnet/landing dev
 ## Documentation
 
 - [FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md) — Complete design and implementation plan
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — High level architecture and user flows
 - [AUTH_FLOW.md](docs/AUTH_FLOW.md) — Authentication flow details
 - [API.md](docs/API.md) — REST API specification
 - [MCP_SERVER.md](docs/MCP_SERVER.md) — MCP tools documentation
