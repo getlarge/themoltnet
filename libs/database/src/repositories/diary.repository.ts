@@ -28,6 +28,8 @@ import {
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
+type EntryType = DiaryEntry['entryType'];
+
 // Exclude embedding from read queries — the 384-dim vector is only needed
 // internally for search ordering, never returned to callers.
 const { embedding: _embedding, ...publicColumns } =
@@ -41,6 +43,11 @@ export interface DiarySearchOptions {
   tags?: string[];
   limit?: number;
   offset?: number;
+  wRelevance?: number;
+  wRecency?: number;
+  wImportance?: number;
+  entryTypes?: string[];
+  excludeSuperseded?: boolean;
 }
 
 export interface DiaryListOptions {
@@ -49,6 +56,7 @@ export interface DiaryListOptions {
   tags?: string[];
   limit?: number;
   offset?: number;
+  entryType?: string;
 }
 
 export interface PublicFeedCursor {
@@ -164,14 +172,33 @@ export function createDiaryRepository(db: Database) {
         .where(eq(diaryEntries.id, id))
         .limit(1);
 
-      return entry ? { ...entry, embedding: null } : null;
+      if (!entry) return null;
+
+      // Fire-and-forget access tracking
+      db.update(diaryEntries)
+        .set({
+          accessCount: sql`${diaryEntries.accessCount} + 1`,
+          lastAccessedAt: new Date(),
+        })
+        .where(eq(diaryEntries.id, id))
+        .then(() => {})
+        .catch(() => {});
+
+      return { ...entry, embedding: null };
     },
 
     /**
      * List entries for an owner
      */
     async list(options: DiaryListOptions): Promise<DiaryEntry[]> {
-      const { ownerId, visibility, tags, limit = 20, offset = 0 } = options;
+      const {
+        ownerId,
+        visibility,
+        tags,
+        limit = 20,
+        offset = 0,
+        entryType,
+      } = options;
 
       const conditions = [eq(diaryEntries.ownerId, ownerId)];
       if (visibility && visibility.length > 0) {
@@ -184,6 +211,9 @@ export function createDiaryRepository(db: Database) {
             sql`, `,
           )}]::text[]`,
         );
+      }
+      if (entryType) {
+        conditions.push(eq(diaryEntries.entryType, entryType as EntryType));
       }
 
       const rows = await db
@@ -212,6 +242,11 @@ export function createDiaryRepository(db: Database) {
         tags,
         limit = 10,
         offset = 0,
+        wRelevance,
+        wRecency,
+        wImportance,
+        entryTypes,
+        excludeSuperseded,
       } = options;
 
       const tagsParam =
@@ -222,6 +257,14 @@ export function createDiaryRepository(db: Database) {
             )}]::text[]`
           : sql`NULL::text[]`;
 
+      const entryTypesParam =
+        entryTypes && entryTypes.length > 0
+          ? sql`ARRAY[${sql.join(
+              entryTypes.map((t) => sql`${t}::entry_type`),
+              sql`, `,
+            )}]::entry_type[]`
+          : sql`NULL::entry_type[]`;
+
       // Query present (with or without embedding) → use diary_search()
       if (query && embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
@@ -231,12 +274,33 @@ export function createDiaryRepository(db: Database) {
                 ${vectorString}::vector(384),
                 ${limit},
                 ${ownerId}::uuid,
-                ${tagsParam}
+                ${tagsParam},
+                60,
+                ${wRelevance ?? 1.0},
+                ${wRecency ?? 0.0},
+                ${wImportance ?? 0.0},
+                ${entryTypesParam},
+                ${excludeSuperseded ?? false}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
           .rows;
-        return rows.map(mapRowToDiaryEntry);
+        const entries = rows.map(mapRowToDiaryEntry);
+
+        // Fire-and-forget batch access tracking
+        if (entries.length > 0) {
+          const ids = entries.map((e) => e.id);
+          db.update(diaryEntries)
+            .set({
+              accessCount: sql`${diaryEntries.accessCount} + 1`,
+              lastAccessedAt: new Date(),
+            })
+            .where(inArray(diaryEntries.id, ids))
+            .then(() => {})
+            .catch(() => {});
+        }
+
+        return entries;
       }
 
       // Query only → diary_search() with NULL embedding (FTS-only)
@@ -247,12 +311,33 @@ export function createDiaryRepository(db: Database) {
                 NULL::vector(384),
                 ${limit},
                 ${ownerId}::uuid,
-                ${tagsParam}
+                ${tagsParam},
+                60,
+                ${wRelevance ?? 1.0},
+                ${wRecency ?? 0.0},
+                ${wImportance ?? 0.0},
+                ${entryTypesParam},
+                ${excludeSuperseded ?? false}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
           .rows;
-        return rows.map(mapRowToDiaryEntry);
+        const entries = rows.map(mapRowToDiaryEntry);
+
+        // Fire-and-forget batch access tracking
+        if (entries.length > 0) {
+          const ids = entries.map((e) => e.id);
+          db.update(diaryEntries)
+            .set({
+              accessCount: sql`${diaryEntries.accessCount} + 1`,
+              lastAccessedAt: new Date(),
+            })
+            .where(inArray(diaryEntries.id, ids))
+            .then(() => {})
+            .catch(() => {});
+        }
+
+        return entries;
       }
 
       // Embedding only → vector similarity search (no query to pass)
@@ -267,6 +352,14 @@ export function createDiaryRepository(db: Database) {
             )}]::text[]`,
           );
         }
+        if (entryTypes && entryTypes.length > 0) {
+          conditions.push(
+            inArray(diaryEntries.entryType, entryTypes as EntryType[]),
+          );
+        }
+        if (excludeSuperseded) {
+          conditions.push(sql`${diaryEntries.supersededBy} IS NULL`);
+        }
         const rows = await db
           .select(publicColumns)
           .from(diaryEntries)
@@ -274,7 +367,24 @@ export function createDiaryRepository(db: Database) {
           .orderBy(sql`${diaryEntries.embedding} <-> ${vectorString}::vector`)
           .limit(limit)
           .offset(offset);
-        return rows.map((row) => ({ ...row, embedding: null }));
+        const entries = rows.map(
+          (row): DiaryEntry => ({ ...row, embedding: null }),
+        );
+
+        // Fire-and-forget batch access tracking
+        if (entries.length > 0) {
+          const ids = entries.map((e) => e.id);
+          db.update(diaryEntries)
+            .set({
+              accessCount: sql`${diaryEntries.accessCount} + 1`,
+              lastAccessedAt: new Date(),
+            })
+            .where(inArray(diaryEntries.id, ids))
+            .then(() => {})
+            .catch(() => {});
+        }
+
+        return entries;
       }
 
       // No query/embedding → fall back to list
@@ -326,7 +436,16 @@ export function createDiaryRepository(db: Database) {
       updates: Partial<
         Pick<
           DiaryEntry,
-          'title' | 'content' | 'visibility' | 'tags' | 'embedding'
+          | 'title'
+          | 'content'
+          | 'visibility'
+          | 'tags'
+          | 'embedding'
+          | 'importance'
+          | 'accessCount'
+          | 'lastAccessedAt'
+          | 'entryType'
+          | 'supersededBy'
         >
       >,
     ): Promise<DiaryEntry | null> {
@@ -413,19 +532,26 @@ export function createDiaryRepository(db: Database) {
       ownerId: string,
       days = 7,
       limit = 50,
+      entryTypes?: string[],
     ): Promise<DiaryEntry[]> {
       const since = new Date();
       since.setDate(since.getDate() - days);
 
+      const conditions = [
+        eq(diaryEntries.ownerId, ownerId),
+        sql`${diaryEntries.createdAt} > ${since.toISOString()}`,
+      ];
+
+      if (entryTypes && entryTypes.length > 0) {
+        conditions.push(
+          inArray(diaryEntries.entryType, entryTypes as EntryType[]),
+        );
+      }
+
       const rows = await db
         .select(publicColumns)
         .from(diaryEntries)
-        .where(
-          and(
-            eq(diaryEntries.ownerId, ownerId),
-            sql`${diaryEntries.createdAt} > ${since.toISOString()}`,
-          ),
-        )
+        .where(and(...conditions))
         .orderBy(desc(diaryEntries.createdAt))
         .limit(limit);
       return rows.map((row) => ({ ...row, embedding: null }));
