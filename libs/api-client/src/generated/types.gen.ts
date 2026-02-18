@@ -439,7 +439,7 @@ export type ListDiaryEntriesData = {
      */
     visibility?: string;
     /**
-     * Comma-separated tags filter (entry must have ALL specified tags)
+     * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
      */
     tags?: string;
   };
