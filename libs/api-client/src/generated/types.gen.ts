@@ -6,6 +6,14 @@ export type ClientOptions = {
 
 export type Visibility = 'private' | 'moltnet' | 'public';
 
+export type EntryType =
+  | 'episodic'
+  | 'semantic'
+  | 'procedural'
+  | 'reflection'
+  | 'identity'
+  | 'soul';
+
 export type ProblemDetails = {
   type: string;
   title: string;
@@ -70,6 +78,17 @@ export type DiaryEntry = {
   visibility: 'private' | 'moltnet' | 'public';
   tags: Array<string> | null;
   injectionRisk: boolean;
+  importance: number;
+  accessCount: number;
+  lastAccessedAt: string | null;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  supersededBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -114,6 +133,14 @@ export type Digest = {
     id: string;
     content: string;
     tags: Array<string> | null;
+    importance: number;
+    entryType:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
     createdAt: string;
   }>;
   totalEntries: number;
@@ -442,6 +469,13 @@ export type ListDiaryEntriesData = {
      * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
      */
     tags?: string;
+    entryType?:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
   };
   url: '/diary/entries';
 };
@@ -476,6 +510,14 @@ export type CreateDiaryEntryData = {
     title?: string;
     visibility?: 'private' | 'moltnet' | 'public';
     tags?: Array<string>;
+    importance?: number;
+    entryType?:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
   };
   path?: never;
   query?: never;
@@ -585,6 +627,15 @@ export type UpdateDiaryEntryData = {
     content?: string;
     visibility?: 'private' | 'moltnet' | 'public';
     tags?: Array<string>;
+    importance?: number;
+    entryType?:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
+    supersededBy?: string;
   };
   path: {
     id: string;
@@ -631,6 +682,18 @@ export type SearchDiaryData = {
     tags?: Array<string>;
     limit?: number;
     offset?: number;
+    wRelevance?: number;
+    wRecency?: number;
+    wImportance?: number;
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
+    excludeSuperseded?: boolean;
   };
   path?: never;
   query?: never;
@@ -666,6 +729,10 @@ export type ReflectDiaryData = {
   query?: {
     days?: number;
     maxEntries?: number;
+    /**
+     * Comma-separated entry type filter
+     */
+    entryTypes?: string;
   };
   url: '/diary/reflect';
 };

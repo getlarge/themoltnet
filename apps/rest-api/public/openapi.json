@@ -31,6 +31,34 @@
           }
         ]
       },
+      "EntryType": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": ["episodic"]
+          },
+          {
+            "type": "string",
+            "enum": ["semantic"]
+          },
+          {
+            "type": "string",
+            "enum": ["procedural"]
+          },
+          {
+            "type": "string",
+            "enum": ["reflection"]
+          },
+          {
+            "type": "string",
+            "enum": ["identity"]
+          },
+          {
+            "type": "string",
+            "enum": ["soul"]
+          }
+        ]
+      },
       "ProblemDetails": {
         "type": "object",
         "required": ["type", "title", "status", "code"],
@@ -247,6 +275,11 @@
           "visibility",
           "tags",
           "injectionRisk",
+          "importance",
+          "accessCount",
+          "lastAccessedAt",
+          "entryType",
+          "supersededBy",
           "createdAt",
           "updatedAt"
         ],
@@ -303,6 +336,64 @@
           },
           "injectionRisk": {
             "type": "boolean"
+          },
+          "importance": {
+            "minimum": 1,
+            "maximum": 10,
+            "type": "number"
+          },
+          "accessCount": {
+            "type": "number"
+          },
+          "lastAccessedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entryType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["episodic"]
+              },
+              {
+                "type": "string",
+                "enum": ["semantic"]
+              },
+              {
+                "type": "string",
+                "enum": ["procedural"]
+              },
+              {
+                "type": "string",
+                "enum": ["reflection"]
+              },
+              {
+                "type": "string",
+                "enum": ["identity"]
+              },
+              {
+                "type": "string",
+                "enum": ["soul"]
+              }
+            ]
+          },
+          "supersededBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "createdAt": {
             "format": "date-time",
@@ -458,7 +549,14 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["id", "content", "tags", "createdAt"],
+              "required": [
+                "id",
+                "content",
+                "tags",
+                "importance",
+                "entryType",
+                "createdAt"
+              ],
               "properties": {
                 "id": {
                   "format": "uuid",
@@ -477,6 +575,39 @@
                     },
                     {
                       "type": "null"
+                    }
+                  ]
+                },
+                "importance": {
+                  "minimum": 1,
+                  "maximum": 10,
+                  "type": "number"
+                },
+                "entryType": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["episodic"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["semantic"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["procedural"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["reflection"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["identity"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["soul"]
                     }
                   ]
                 },
@@ -1450,6 +1581,39 @@
                       "maxLength": 50,
                       "type": "string"
                     }
+                  },
+                  "importance": {
+                    "minimum": 1,
+                    "maximum": 10,
+                    "type": "integer"
+                  },
+                  "entryType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["episodic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["semantic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["procedural"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["reflection"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["identity"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["soul"]
+                      }
+                    ]
                   }
                 }
               }
@@ -1539,6 +1703,39 @@
             "name": "tags",
             "required": false,
             "description": "Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["episodic"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["semantic"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["procedural"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["reflection"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["identity"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["soul"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "entryType",
+            "required": false
           }
         ],
         "security": [
@@ -1686,6 +1883,43 @@
                       "maxLength": 50,
                       "type": "string"
                     }
+                  },
+                  "importance": {
+                    "minimum": 1,
+                    "maximum": 10,
+                    "type": "integer"
+                  },
+                  "entryType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["episodic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["semantic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["procedural"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["reflection"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["identity"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["soul"]
+                      }
+                    ]
+                  },
+                  "supersededBy": {
+                    "format": "uuid",
+                    "type": "string"
                   }
                 }
               }
@@ -1868,6 +2102,55 @@
                   "offset": {
                     "minimum": 0,
                     "type": "number"
+                  },
+                  "wRelevance": {
+                    "minimum": 0,
+                    "maximum": 10,
+                    "type": "number"
+                  },
+                  "wRecency": {
+                    "minimum": 0,
+                    "maximum": 10,
+                    "type": "number"
+                  },
+                  "wImportance": {
+                    "minimum": 0,
+                    "maximum": 10,
+                    "type": "number"
+                  },
+                  "entryTypes": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["episodic"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["semantic"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["procedural"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["reflection"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["identity"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["soul"]
+                        }
+                      ]
+                    }
+                  },
+                  "excludeSuperseded": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -1938,6 +2221,16 @@
             "in": "query",
             "name": "maxEntries",
             "required": false
+          },
+          {
+            "schema": {
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "entryTypes",
+            "required": false,
+            "description": "Comma-separated entry type filter"
           }
         ],
         "security": [

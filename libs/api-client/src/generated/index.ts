@@ -62,6 +62,7 @@ export type {
   DiaryList,
   DiarySearchResult,
   Digest,
+  EntryType,
   GetAgentProfileData,
   GetAgentProfileError,
   GetAgentProfileErrors,
