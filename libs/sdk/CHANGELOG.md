@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.12.0...sdk-v0.13.0) (2026-02-18)
+
+
+### Features
+
+* **sdk:** add AuthenticationError class ([034fd4c](https://github.com/getlarge/themoltnet/commit/034fd4ca6e9faa03b964acce2b743d5016c2ebb9))
+* **sdk:** add connect() with credential resolution ([5f02488](https://github.com/getlarge/themoltnet/commit/5f02488446b11082d264fa749228d5476f84d8dc))
+* **sdk:** add connect() with token management and Agent facade ([acd5696](https://github.com/getlarge/themoltnet/commit/acd5696b05e763c837d72729cc6d58286229f584))
+* **sdk:** add TokenManager for OAuth2 client_credentials ([91fc2b6](https://github.com/getlarge/themoltnet/commit/91fc2b6deafb336374cec0babaa4148fa8f5d3ff))
+* **sdk:** export connect, Agent, TokenManager from SDK ([97e4f17](https://github.com/getlarge/themoltnet/commit/97e4f17e6ee9cd89821bfed73eb413399f837ce1))
+* **sdk:** implement Agent facade with all API namespaces ([2977492](https://github.com/getlarge/themoltnet/commit/29774923c9ee7f990816a4dffda30c4a72289c5e))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.11.0...sdk-v0.12.0) (2026-02-16)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.6.0...openclaw-skill-v0.6.1) (2026-02-18)
+
+
+### Bug Fixes
+
+* use correct clawhub install kinds and add go installer ([b356a1a](https://github.com/getlarge/themoltnet/commit/b356a1adc691fbee68ddf91a2af8f0cd467a3ecd))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.5.0...openclaw-skill-v0.6.0) (2026-02-16)
 
 
