@@ -1,6 +1,6 @@
 {
-  "libs/sdk": "0.14.0",
+  "libs/sdk": "0.15.0",
   "cmd/moltnet": "0.8.0",
   "packages/github-agent": "0.3.0",
-  "packages/openclaw-skill": "0.7.0"
+  "packages/openclaw-skill": "0.8.0"
 }
