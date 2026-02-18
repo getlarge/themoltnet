@@ -30,12 +30,22 @@ export interface TransactionRunner {
   ): Promise<T>;
 }
 
+export type EntryType =
+  | 'episodic'
+  | 'semantic'
+  | 'procedural'
+  | 'reflection'
+  | 'identity'
+  | 'soul';
+
 export interface CreateEntryInput {
   ownerId: string;
   content: string;
   title?: string;
   visibility?: 'private' | 'moltnet' | 'public';
   tags?: string[];
+  importance?: number;
+  entryType?: EntryType;
 }
 
 export interface UpdateEntryInput {
@@ -43,6 +53,9 @@ export interface UpdateEntryInput {
   content?: string;
   visibility?: 'private' | 'moltnet' | 'public';
   tags?: string[];
+  importance?: number;
+  entryType?: EntryType;
+  supersededBy?: string;
 }
 
 export interface SearchInput {
@@ -52,6 +65,11 @@ export interface SearchInput {
   tags?: string[];
   limit?: number;
   offset?: number;
+  wRelevance?: number;
+  wRecency?: number;
+  wImportance?: number;
+  entryTypes?: EntryType[];
+  excludeSuperseded?: boolean;
 }
 
 export interface ListInput {
@@ -60,18 +78,22 @@ export interface ListInput {
   tags?: string[];
   limit?: number;
   offset?: number;
+  entryType?: EntryType;
 }
 
 export interface ReflectInput {
   ownerId: string;
   days?: number;
   maxEntries?: number;
+  entryTypes?: EntryType[];
 }
 
 export interface DigestEntry {
   id: string;
   content: string;
   tags: string[] | null;
+  importance: number;
+  entryType: EntryType;
   createdAt: Date;
 }
 
@@ -93,6 +115,8 @@ export interface DiaryRepository {
     tags?: string[] | null;
     embedding?: number[] | null;
     injectionRisk?: boolean;
+    importance?: number;
+    entryType?: EntryType;
   }): Promise<DiaryEntry>;
   findById(id: string): Promise<DiaryEntry | null>;
   list(options: ListInput): Promise<DiaryEntry[]>;
@@ -104,6 +128,11 @@ export interface DiaryRepository {
     tags?: string[];
     limit?: number;
     offset?: number;
+    wRelevance?: number;
+    wRecency?: number;
+    wImportance?: number;
+    entryTypes?: EntryType[];
+    excludeSuperseded?: boolean;
   }): Promise<DiaryEntry[]>;
   update(
     id: string,
@@ -114,6 +143,9 @@ export interface DiaryRepository {
       tags: string[] | null;
       embedding: number[] | null;
       injectionRisk: boolean;
+      importance: number;
+      entryType: EntryType;
+      supersededBy: string | null;
     }>,
   ): Promise<DiaryEntry | null>;
   delete(id: string): Promise<boolean>;
@@ -128,6 +160,7 @@ export interface DiaryRepository {
     ownerId: string,
     days?: number,
     limit?: number,
+    entryTypes?: EntryType[],
   ): Promise<DiaryEntry[]>;
 }
 
@@ -154,6 +187,11 @@ export interface DiaryEntry {
   visibility: 'private' | 'moltnet' | 'public';
   tags: string[] | null;
   injectionRisk: boolean;
+  importance: number;
+  accessCount: number;
+  lastAccessedAt: Date | null;
+  entryType: EntryType;
+  supersededBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
