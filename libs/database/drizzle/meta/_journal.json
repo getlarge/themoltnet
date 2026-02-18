@@ -57,6 +57,13 @@
       "when": 1771360272115,
       "tag": "0007_fix-diary-search-tags-contains",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771977600000,
+      "tag": "0008_websearch-tsquery",
+      "breakpoints": true
     }
   ]
 }
