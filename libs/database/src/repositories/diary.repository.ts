@@ -110,6 +110,13 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
     visibility: row.visibility as DiaryEntry['visibility'],
     tags: (row.tags as string[]) ?? null,
     injectionRisk: (row.injection_risk as boolean) ?? false,
+    importance: (row.importance as number) ?? 5,
+    accessCount: (row.access_count as number) ?? 0,
+    lastAccessedAt: row.last_accessed_at
+      ? new Date(row.last_accessed_at as string)
+      : null,
+    entryType: (row.entry_type as DiaryEntry['entryType']) ?? 'semantic',
+    supersededBy: (row.superseded_by as string) ?? null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };
