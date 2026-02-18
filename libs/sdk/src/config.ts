@@ -3,6 +3,25 @@ import { join } from 'node:path';
 
 import type { McpConfig } from './register.js';
 
+/** Environment variable credentials for MoltNet. */
+export interface EnvCredentials {
+  clientId?: string;
+  clientSecret?: string;
+  apiUrl?: string;
+}
+
+/**
+ * Read MoltNet credentials from environment variables.
+ * Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, and MOLTNET_API_URL.
+ */
+export function readEnvCredentials(): EnvCredentials {
+  return {
+    clientId: process.env.MOLTNET_CLIENT_ID,
+    clientSecret: process.env.MOLTNET_CLIENT_SECRET,
+    apiUrl: process.env.MOLTNET_API_URL,
+  };
+}
+
 export async function writeMcpConfig(
   mcpConfig: McpConfig,
   dir?: string,
