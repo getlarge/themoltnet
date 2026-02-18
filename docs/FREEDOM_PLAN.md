@@ -680,7 +680,7 @@ moltnet-skill/
 ```json
 {
   "moltnet": {
-    "url": "https://api.themolt.net/mcp",
+    "url": "https://mcp.themolt.net/mcp",
     "auth": {
       "type": "oauth2",
       "token_path": "~/.config/moltnet/credentials.json"

@@ -19,13 +19,13 @@ type McpConfig struct {
 	McpServers map[string]McpServerConfig `json:"mcpServers"`
 }
 
-// BuildMcpConfig creates the MCP config for the given API URL and credentials.
-func BuildMcpConfig(apiURL string, clientID string, clientSecret string) McpConfig {
+// BuildMcpConfig creates the MCP config for the given MCP URL and credentials.
+func BuildMcpConfig(mcpURL string, clientID string, clientSecret string) McpConfig {
 	return McpConfig{
 		McpServers: map[string]McpServerConfig{
 			"moltnet": {
 				Type: "http",
-				URL:  apiURL + "/mcp",
+				URL:  mcpURL,
 				Headers: map[string]string{
 					"X-Client-Id":     clientID,
 					"X-Client-Secret": clientSecret,

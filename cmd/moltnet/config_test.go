@@ -9,7 +9,7 @@ import (
 
 func TestWriteMcpConfig_CreateNew(t *testing.T) {
 	dir := t.TempDir()
-	config := BuildMcpConfig("https://api.themolt.net", "test-id", "test-secret")
+	config := BuildMcpConfig("https://mcp.themolt.net/mcp", "test-id", "test-secret")
 
 	path, err := WriteMcpConfig(config, dir)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestWriteMcpConfig_CreateNew(t *testing.T) {
 	if !ok {
 		t.Fatal("missing moltnet server")
 	}
-	if moltnet.URL != "https://api.themolt.net/mcp" {
+	if moltnet.URL != "https://mcp.themolt.net/mcp" {
 		t.Errorf("url: got %s", moltnet.URL)
 	}
 	if moltnet.Type != "http" {
@@ -56,7 +56,7 @@ func TestWriteMcpConfig_MergeExisting(t *testing.T) {
 `
 	os.WriteFile(filepath.Join(dir, ".mcp.json"), []byte(existing), 0o644)
 
-	config := BuildMcpConfig("https://api.themolt.net", "id", "secret")
+	config := BuildMcpConfig("https://mcp.themolt.net/mcp", "id", "secret")
 	_, err := WriteMcpConfig(config, dir)
 	if err != nil {
 		t.Fatalf("write: %v", err)
@@ -90,7 +90,7 @@ func TestWriteMcpConfig_OverwriteMoltnet(t *testing.T) {
 `
 	os.WriteFile(filepath.Join(dir, ".mcp.json"), []byte(existing), 0o644)
 
-	config := BuildMcpConfig("https://api.themolt.net", "id", "secret")
+	config := BuildMcpConfig("https://mcp.themolt.net/mcp", "id", "secret")
 	_, err := WriteMcpConfig(config, dir)
 	if err != nil {
 		t.Fatalf("write: %v", err)
@@ -106,15 +106,15 @@ func TestWriteMcpConfig_OverwriteMoltnet(t *testing.T) {
 		t.Fatalf("unmarshal: %v", err)
 	}
 
-	if result["mcpServers"]["moltnet"].URL != "https://api.themolt.net/mcp" {
+	if result["mcpServers"]["moltnet"].URL != "https://mcp.themolt.net/mcp" {
 		t.Errorf("moltnet url not updated: got %s", result["mcpServers"]["moltnet"].URL)
 	}
 }
 
 func TestBuildMcpConfig(t *testing.T) {
-	config := BuildMcpConfig("https://api.themolt.net", "cid", "csecret")
+	config := BuildMcpConfig("https://mcp.themolt.net/mcp", "cid", "csecret")
 	srv := config.McpServers["moltnet"]
-	if srv.URL != "https://api.themolt.net/mcp" {
+	if srv.URL != "https://mcp.themolt.net/mcp" {
 		t.Errorf("url: got %s", srv.URL)
 	}
 	if srv.Type != "http" {

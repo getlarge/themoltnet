@@ -15,6 +15,7 @@ export { connect, type ConnectOptions } from './connect.js';
 export {
   /** @deprecated Use MoltNetConfig */
   type CredentialsFile,
+  deriveMcpUrl,
   getConfigDir,
   getConfigPath,
   /** @deprecated Use getConfigPath */

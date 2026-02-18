@@ -180,7 +180,7 @@ func WriteCredentials(result *RegisterResult) (string, error) {
 		},
 		Endpoints: CredentialsEndpoints{
 			API: result.APIUrl,
-			MCP: result.APIUrl + "/mcp",
+			MCP: deriveMCPURL(result.APIUrl),
 		},
 		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
 	}

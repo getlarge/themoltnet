@@ -2,6 +2,7 @@ import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import {
+  deriveMcpUrl,
   getConfigDir,
   type MoltNetConfig,
   writeConfig,
@@ -59,7 +60,7 @@ export async function repairConfig(opts?: {
 
   // Apply auto-fixes
   if (!config.endpoints.mcp && config.endpoints.api) {
-    config.endpoints.mcp = `${config.endpoints.api}/mcp`;
+    config.endpoints.mcp = deriveMcpUrl(config.endpoints.api);
     issues.push({
       field: 'endpoints.mcp',
       problem: 'missing — derived from API endpoint',

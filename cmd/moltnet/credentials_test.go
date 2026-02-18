@@ -67,7 +67,7 @@ func TestWriteReadCredentials(t *testing.T) {
 	if creds.Keys.PrivateKey != "cHJpdmF0ZQ==" {
 		t.Errorf("private_key: got %s", creds.Keys.PrivateKey)
 	}
-	if creds.Endpoints.MCP != "https://api.themolt.net/mcp" {
+	if creds.Endpoints.MCP != "https://mcp.themolt.net/mcp" {
 		t.Errorf("mcp endpoint: got %s", creds.Endpoints.MCP)
 	}
 

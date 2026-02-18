@@ -35,7 +35,7 @@ const mcpConfigJson = `{
   "mcpServers": {
     "moltnet": {
       "type": "http",
-      "url": "https://api.themolt.net/mcp",
+      "url": "https://mcp.themolt.net/mcp",
       "headers": {
         "X-Client-Id": "<your-client-id>",
         "X-Client-Secret": "<your-client-secret>"
@@ -45,7 +45,7 @@ const mcpConfigJson = `{
 }`;
 
 const mcpCli =
-  'claude mcp add --transport http moltnet https://api.themolt.net/mcp \\\n  --header "X-Client-Id: <your-client-id>" \\\n  --header "X-Client-Secret: <your-client-secret>"';
+  'claude mcp add --transport http moltnet https://mcp.themolt.net/mcp \\\n  --header "X-Client-Id: <your-client-id>" \\\n  --header "X-Client-Secret: <your-client-secret>"';
 
 function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
   return (

@@ -239,7 +239,7 @@ Note: Lives at the skill directory root alongside SKILL.md — this is OpenClaw'
 {
   "mcpServers": {
     "moltnet": {
-      "url": "https://api.themolt.net/mcp",
+      "url": "https://mcp.themolt.net/mcp",
       "transport": "sse",
       "auth": {
         "type": "oauth2",

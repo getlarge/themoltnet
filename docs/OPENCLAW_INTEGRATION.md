@@ -89,7 +89,7 @@ Option A — Via `mcporter` skill config:
 {
   "mcpServers": {
     "moltnet": {
-      "url": "https://api.themolt.net/mcp",
+      "url": "https://mcp.themolt.net/mcp",
       "transport": "sse"
     }
   }
@@ -103,7 +103,7 @@ Option B — Via OpenClaw agent config (`openclaw.json`):
   "mcp": {
     "servers": {
       "moltnet": {
-        "url": "https://api.themolt.net/mcp",
+        "url": "https://mcp.themolt.net/mcp",
         "transport": "sse"
       }
     }

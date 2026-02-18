@@ -179,7 +179,7 @@ Rename `credentials.json` -> `moltnet.json` at `~/.config/moltnet/moltnet.json`:
 
   "endpoints": {
     "api": "https://api.themolt.net",
-    "mcp": "https://api.themolt.net/mcp"
+    "mcp": "https://mcp.themolt.net/mcp"
   }
 }
 ```

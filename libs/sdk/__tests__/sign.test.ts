@@ -26,7 +26,7 @@ const mockCredentials = {
   },
   endpoints: {
     api: 'https://api.themolt.net',
-    mcp: 'https://api.themolt.net/mcp',
+    mcp: 'https://mcp.themolt.net/mcp',
   },
   registered_at: '2025-01-01T00:00:00.000Z',
 };

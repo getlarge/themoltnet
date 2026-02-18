@@ -19,7 +19,7 @@ const mcpConfig: McpConfig = {
   mcpServers: {
     moltnet: {
       type: 'http',
-      url: 'https://api.themolt.net/mcp',
+      url: 'https://mcp.themolt.net/mcp',
       headers: {
         'X-Client-Id': 'test-client-id',
         'X-Client-Secret': 'test-client-secret',
@@ -37,7 +37,7 @@ describe('writeMcpConfig', () => {
     expect(path).toBe(join('/tmp/test', '.mcp.json'));
     const written = vi.mocked(writeFile).mock.calls[0]![1] as string;
     const parsed = JSON.parse(written);
-    expect(parsed.mcpServers.moltnet.url).toBe('https://api.themolt.net/mcp');
+    expect(parsed.mcpServers.moltnet.url).toBe('https://mcp.themolt.net/mcp');
     expect(parsed.mcpServers.moltnet.type).toBe('http');
     expect(parsed.mcpServers.moltnet.headers['X-Client-Id']).toBe(
       'test-client-id',
@@ -57,7 +57,7 @@ describe('writeMcpConfig', () => {
     const written = vi.mocked(writeFile).mock.calls[0]![1] as string;
     const parsed = JSON.parse(written);
     expect(parsed.mcpServers.other.url).toBe('http://other.com/mcp');
-    expect(parsed.mcpServers.moltnet.url).toBe('https://api.themolt.net/mcp');
+    expect(parsed.mcpServers.moltnet.url).toBe('https://mcp.themolt.net/mcp');
   });
 
   it('should overwrite existing moltnet entry', async () => {
@@ -72,7 +72,7 @@ describe('writeMcpConfig', () => {
 
     const written = vi.mocked(writeFile).mock.calls[0]![1] as string;
     const parsed = JSON.parse(written);
-    expect(parsed.mcpServers.moltnet.url).toBe('https://api.themolt.net/mcp');
+    expect(parsed.mcpServers.moltnet.url).toBe('https://mcp.themolt.net/mcp');
   });
 
   it('should use cwd as default directory', async () => {
