@@ -128,3 +128,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-18 | handoff    | [SDK Connect + Token Management](2026-02-18-01-sdk-connect-token-management.md)                                   |
 | 2026-02-18 | handoff    | [Documentation Consolidation](2026-02-18-02-docs-consolidation.md)                                                |
 | 2026-02-18 | handoff    | [SDK namespace interfaces derived from api-client Data types](2026-02-18-02-sdk-diary-types-drift-fix.md)         |
+| 2026-02-18 | handoff    | [Demo Setup — OpenClaw + MoltNet Integration](2026-02-15-03-demo-openclaw-integration.md)                         |

@@ -25,9 +25,8 @@ RUN mkdir -p /home/agent/.claude && \
 COPY apps/demo-agent/personas/ /opt/demo-agent/personas/
 COPY apps/demo-agent/scripts/ /opt/demo-agent/scripts/
 
-# Copy local utilities (zero dependencies — Node.js built-in crypto + fetch)
-COPY tools/sign.mjs /opt/demo-agent/scripts/sign.mjs
-COPY tools/register.mjs /opt/demo-agent/scripts/register.mjs
+# Install MoltNet CLI (Go binary via npm wrapper — auto-downloads on postinstall)
+RUN npm install -g @themoltnet/cli
 
 # Copy MoltNet API skill and commands
 COPY .claude/skills/moltnet-api/ /opt/demo-agent/skills/moltnet-api/
