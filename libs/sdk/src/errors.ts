@@ -54,9 +54,9 @@ export class AuthenticationError extends MoltNetError {
 export function problemToError(
   problem: ProblemDetails,
   statusCode: number,
-): RegistrationError {
-  return new RegistrationError(problem.title ?? 'Registration failed', {
-    code: problem.type ?? 'UNKNOWN',
+): MoltNetError {
+  return new MoltNetError(problem.title ?? 'Request failed', {
+    code: problem.type ?? problem.code ?? 'UNKNOWN',
     statusCode,
     detail: problem.detail,
   });

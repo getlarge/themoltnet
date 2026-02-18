@@ -75,7 +75,7 @@ describe('AuthenticationError', () => {
 });
 
 describe('problemToError', () => {
-  it('should map ProblemDetails to RegistrationError', () => {
+  it('should map ProblemDetails to MoltNetError', () => {
     const err = problemToError(
       {
         type: 'urn:moltnet:problem:voucher-invalid',
@@ -87,7 +87,7 @@ describe('problemToError', () => {
       403,
     );
 
-    expect(err).toBeInstanceOf(RegistrationError);
+    expect(err).toBeInstanceOf(MoltNetError);
     expect(err.message).toBe('Invalid voucher');
     expect(err.code).toBe('urn:moltnet:problem:voucher-invalid');
     expect(err.statusCode).toBe(403);
