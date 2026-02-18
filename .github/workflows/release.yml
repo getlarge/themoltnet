@@ -3,6 +3,10 @@ name: Release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '.claude/**'
+      - '**.md'
 
 permissions:
   contents: write
@@ -17,6 +21,8 @@ jobs:
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
       cli-release-created: ${{ steps.release.outputs['cmd/moltnet--release_created'] }}
       cli-tag-name: ${{ steps.release.outputs['cmd/moltnet--tag_name'] }}
+      github-agent-release-created: ${{ steps.release.outputs['packages/github-agent--release_created'] }}
+      github-agent-tag-name: ${{ steps.release.outputs['packages/github-agent--tag_name'] }}
       skill-release-created: ${{ steps.release.outputs['packages/openclaw-skill--release_created'] }}
       skill-tag-name: ${{ steps.release.outputs['packages/openclaw-skill--tag_name'] }}
       skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
@@ -30,8 +36,8 @@ jobs:
 
   publish-sdk:
     name: Publish SDK to npm
-    needs: release-please
-    if: ${{ needs.release-please.outputs.sdk-release-created == 'true' }}
+    needs: [release-please, release-cli]
+    if: ${{ always() && needs.release-please.outputs.sdk-release-created == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -53,7 +59,7 @@ jobs:
 
       - run: pnpm --filter @themoltnet/sdk test
 
-      - run: pnpm -w run check:pack
+      - run: pnpm --filter @themoltnet/sdk run check:pack
 
       - run: npm install -g npm@latest
 
@@ -61,6 +67,42 @@ jobs:
 
       - name: Publish SDK release
         run: gh release edit "${{ needs.release-please.outputs.sdk-tag-name }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-github-agent:
+    name: Publish GitHub Agent to npm
+    needs: [release-please, release-cli]
+    if: ${{ always() && needs.release-please.outputs.github-agent-release-created == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @themoltnet/github-agent build
+
+      - run: pnpm --filter @themoltnet/github-agent test
+
+      - run: pnpm --filter @themoltnet/github-agent run check:pack
+
+      - run: npm install -g npm@latest
+
+      - run: pnpm --filter @themoltnet/github-agent publish --no-git-checks --access public --provenance
+
+      - name: Publish GitHub Agent release
+        run: gh release edit "${{ needs.release-please.outputs.github-agent-tag-name }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

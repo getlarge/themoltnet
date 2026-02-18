@@ -2,6 +2,7 @@ import type {
   AuthContext,
   OryClients,
   PermissionChecker,
+  RelationshipWriter,
   TokenValidator,
 } from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
@@ -151,12 +152,13 @@ function createApp(
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
       canShareEntry: vi.fn(),
+    } as unknown as PermissionChecker,
+    relationshipWriter: {
       grantOwnership: vi.fn(),
       grantViewer: vi.fn(),
-      revokeViewer: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
-    } as unknown as PermissionChecker,
+    } as unknown as RelationshipWriter,
     tokenValidator: mockTokenValidator,
     webhookApiKey: 'test-webhook-api-key',
     recoverySecret: 'test-recovery-secret-at-least-16-chars',

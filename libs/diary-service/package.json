@@ -9,6 +9,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./workflows": {
+      "import": "./src/workflows/index.ts",
+      "types": "./src/workflows/index.ts"
     }
   },
   "scripts": {

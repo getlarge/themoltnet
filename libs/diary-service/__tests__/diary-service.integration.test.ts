@@ -25,7 +25,11 @@ import {
 
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import { createNoopEmbeddingService } from '../src/embedding-service.js';
-import type { EmbeddingService, PermissionChecker } from '../src/types.js';
+import type {
+  EmbeddingService,
+  PermissionChecker,
+  RelationshipWriter,
+} from '../src/types.js';
 
 async function loadEmbeddingService(): Promise<EmbeddingService> {
   if (process.env.EMBEDDING_MODEL !== 'true') {
@@ -58,6 +62,9 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   let permissions: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
+  let relationshipWriter: {
+    [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
+  };
 
   const OWNER_ID = '00000000-0000-4000-b000-000000000001';
   const OTHER_AGENT = '00000000-0000-4000-b000-000000000002';
@@ -75,9 +82,12 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       canEditEntry: vi.fn().mockResolvedValue(true),
       canDeleteEntry: vi.fn().mockResolvedValue(true),
       canShareEntry: vi.fn().mockResolvedValue(true),
+    };
+
+    relationshipWriter = {
       grantOwnership: vi.fn().mockResolvedValue(undefined),
       grantViewer: vi.fn().mockResolvedValue(undefined),
-      revokeViewer: vi.fn().mockResolvedValue(undefined),
+      registerAgent: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -86,10 +96,10 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
     service = createDiaryService({
       diaryRepository: setup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
       embeddingService,
-      dataSource: {
-        client: db,
-        runTransaction: async (fn) => fn(),
+      transactionRunner: {
+        runInTransaction: async (fn) => fn(),
       },
     });
   });
@@ -118,7 +128,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       expect(entry.ownerId).toBe(OWNER_ID);
       expect(entry.content).toBe('My first diary entry about MoltNet.');
       expect(entry.visibility).toBe('private');
-      expect(permissions.grantOwnership).toHaveBeenCalledWith(
+      expect(relationshipWriter.grantOwnership).toHaveBeenCalledWith(
         entry.id,
         OWNER_ID,
       );
@@ -332,7 +342,9 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       permissions.canDeleteEntry.mockResolvedValue(true);
       const deleted = await service.delete(created.id, OWNER_ID);
       expect(deleted).toBe(true);
-      expect(permissions.removeEntryRelations).toHaveBeenCalledWith(created.id);
+      expect(relationshipWriter.removeEntryRelations).toHaveBeenCalledWith(
+        created.id,
+      );
 
       permissions.canViewEntry.mockResolvedValue(true);
       const found = await service.getById(created.id, OWNER_ID);
@@ -348,7 +360,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       permissions.canDeleteEntry.mockResolvedValue(false);
       const deleted = await service.delete(created.id, OTHER_AGENT);
       expect(deleted).toBe(false);
-      expect(permissions.removeEntryRelations).not.toHaveBeenCalled();
+      expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
     });
   });
 
@@ -364,7 +376,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
       const shared = await service.share(created.id, OWNER_ID, OTHER_AGENT);
       expect(shared).toBe(true);
-      expect(permissions.grantViewer).toHaveBeenCalledWith(
+      expect(relationshipWriter.grantViewer).toHaveBeenCalledWith(
         created.id,
         OTHER_AGENT,
       );

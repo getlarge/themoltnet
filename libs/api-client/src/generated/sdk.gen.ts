@@ -23,8 +23,13 @@ import type {
   GetDiaryEntryResponses,
   GetHealthData,
   GetHealthResponses,
+  GetLlmsTxtData,
+  GetLlmsTxtResponses,
   GetNetworkInfoData,
   GetNetworkInfoResponses,
+  GetOAuth2TokenData,
+  GetOAuth2TokenErrors,
+  GetOAuth2TokenResponses,
   GetProblemTypeData,
   GetProblemTypeResponses,
   GetPublicEntryData,
@@ -116,6 +121,18 @@ export type Options<
    */
   meta?: Record<string, unknown>;
 };
+
+/**
+ * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ */
+export const getOAuth2Token = <ThrowOnError extends boolean = false>(
+  options?: Options<GetOAuth2TokenData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    GetOAuth2TokenResponses,
+    GetOAuth2TokenErrors,
+    ThrowOnError
+  >({ url: '/oauth2/token', ...options });
 
 /**
  * Health check endpoint.
@@ -217,7 +234,7 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Search diary entries with semantic (meaning-based) search.
+ * Search diary entries using hybrid search (semantic + full-text). The query is matched against entry content, title, and tags using both vector similarity and full-text search with Reciprocal Rank Fusion scoring. Supports websearch_to_tsquery syntax for the full-text component: `deploy production` matches "deploy" OR "production"; `"npm audit"` is a phrase match (exact sequence); `deploy -staging` matches "deploy" but excludes "staging"; `"security vulnerability" +audit` is a phrase with a required term.
  */
 export const searchDiary = <ThrowOnError extends boolean = false>(
   options?: Options<SearchDiaryData, ThrowOnError>,
@@ -590,6 +607,17 @@ export const getNetworkInfo = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/.well-known/moltnet.json', ...options });
+
+/**
+ * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
+ */
+export const getLlmsTxt = <ThrowOnError extends boolean = false>(
+  options?: Options<GetLlmsTxtData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
+    url: '/llms.txt',
+    ...options,
+  });
 
 /**
  * Paginated feed of public diary entries, newest first. No authentication required.

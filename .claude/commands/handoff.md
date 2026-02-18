@@ -1,3 +1,7 @@
+---
+description: End your session with a proper handoff. Do the following:
+---
+
 End your session with a proper handoff. Do the following:
 
 1. **Update task status on GitHub Projects** (if available):

@@ -8,84 +8,121 @@
  *   2. dist/index.d.ts is included
  *   3. no source files (src/) leak into the tarball
  *
- * Usage: tsx scripts/check-pack.ts
+ * Usage:
+ *   tsx scripts/check-pack.ts                       # scan libs/ and packages/
+ *   tsx scripts/check-pack.ts --package ./libs/sdk   # check a single package
  */
 
 import { execSync } from 'node:child_process';
+import type { Dirent } from 'node:fs';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { parseArgs } from 'node:util';
 
 const root = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
-const libsDir = join(root, 'libs');
+
+const { values } = parseArgs({
+  options: {
+    package: { type: 'string', short: 'p' },
+  },
+  strict: true,
+});
 
 interface PackEntry {
   path: string;
   size: number;
 }
 
-let failures = 0;
-let checked = 0;
-
-for (const name of readdirSync(libsDir, { withFileTypes: true })) {
-  if (!name.isDirectory()) continue;
-  const pkgPath = join(libsDir, name.name, 'package.json');
+function checkPackage(pkgDir: string): boolean {
+  const pkgPath = join(pkgDir, 'package.json');
   let pkg: Record<string, unknown>;
   try {
     pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
   } catch {
-    continue;
+    console.error(`  FAIL: could not read ${pkgPath}`);
+    return false;
   }
 
-  // Only check publishable packages (have "files" field, not private)
-  if (pkg.private || !Array.isArray(pkg.files)) continue;
+  if (pkg.private || !Array.isArray(pkg.files)) {
+    console.log(`  Skipped (private or no files field)`);
+    return true;
+  }
 
   const pkgName = pkg.name as string;
-  const pkgDir = join(libsDir, name.name);
-
   console.log(`\nChecking ${pkgName}...`);
-  checked++;
 
-  let entries: PackEntry[];
+  let packEntries: PackEntry[];
   try {
     const output = execSync('npm pack --dry-run --json 2>/dev/null', {
       cwd: pkgDir,
       encoding: 'utf-8',
     });
     const parsed = JSON.parse(output) as { files: PackEntry[] }[];
-    entries = parsed[0]?.files ?? [];
+    packEntries = parsed[0]?.files ?? [];
   } catch (err) {
     console.error(`  FAIL: npm pack failed — ${(err as Error).message}`);
-    failures++;
-    continue;
+    return false;
   }
 
-  const paths = entries.map((e) => e.path);
+  const paths = packEntries.map((e) => e.path);
 
-  // Must include dist/index.js
   if (!paths.includes('dist/index.js')) {
     console.error('  FAIL: dist/index.js missing from tarball');
-    failures++;
-    continue;
+    return false;
   }
 
-  // Must include dist/index.d.ts
   if (!paths.includes('dist/index.d.ts')) {
     console.error('  FAIL: dist/index.d.ts missing from tarball');
-    failures++;
-    continue;
+    return false;
   }
 
-  // No src/ files should leak
   const leaked = paths.filter((p) => p.startsWith('src/'));
   if (leaked.length > 0) {
     console.error(
       `  FAIL: source files leaked into tarball: ${leaked.join(', ')}`,
     );
-    failures++;
-    continue;
+    return false;
   }
 
   console.log(`  OK (${paths.length} files)`);
+  return true;
+}
+
+if (values.package) {
+  const pkgDir = resolve(values.package);
+  const ok = checkPackage(pkgDir);
+  process.exit(ok ? 0 : 1);
+}
+
+// Default: scan libs/ and packages/
+const scanDirs = [join(root, 'libs'), join(root, 'packages')];
+let failures = 0;
+let checked = 0;
+
+for (const scanDir of scanDirs) {
+  let dirEntries: Dirent[];
+  try {
+    dirEntries = readdirSync(scanDir, { withFileTypes: true }) as Dirent[];
+  } catch {
+    continue;
+  }
+
+  for (const dirEntry of dirEntries) {
+    if (!dirEntry.isDirectory()) continue;
+    const pkgDir = join(scanDir, dirEntry.name);
+    const pkgPath = join(pkgDir, 'package.json');
+    let pkg: Record<string, unknown>;
+    try {
+      pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+    } catch {
+      continue;
+    }
+
+    if (pkg.private || !Array.isArray(pkg.files)) continue;
+
+    checked++;
+    if (!checkPackage(pkgDir)) failures++;
+  }
 }
 
 if (checked === 0) {

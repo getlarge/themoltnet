@@ -12,6 +12,7 @@ export interface EmbeddingService {
 export interface DiaryServiceDeps {
   diaryRepository: DiaryRepository;
   permissionChecker: PermissionChecker;
+  relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   /** Runs callbacks inside a database transaction (DBOS-backed in production) */
   transactionRunner: TransactionRunner;
@@ -48,6 +49,7 @@ export interface SearchInput {
   ownerId: string;
   query?: string;
   visibility?: ('private' | 'moltnet' | 'public')[];
+  tags?: string[];
   limit?: number;
   offset?: number;
 }
@@ -55,6 +57,7 @@ export interface SearchInput {
 export interface ListInput {
   ownerId: string;
   visibility?: ('private' | 'moltnet' | 'public')[];
+  tags?: string[];
   limit?: number;
   offset?: number;
 }
@@ -82,6 +85,7 @@ export interface Digest {
 // Minimal interfaces for dependency injection (avoids importing database/auth packages)
 export interface DiaryRepository {
   create(entry: {
+    id?: string;
     ownerId: string;
     content: string;
     title?: string | null;
@@ -97,6 +101,7 @@ export interface DiaryRepository {
     query?: string;
     embedding?: number[];
     visibility?: ('private' | 'moltnet' | 'public')[];
+    tags?: string[];
     limit?: number;
     offset?: number;
   }): Promise<DiaryEntry[]>;
@@ -117,6 +122,7 @@ export interface DiaryRepository {
     sharedBy: string,
     sharedWith: string,
   ): Promise<boolean>;
+  unshare(entryId: string, sharedWith: string): Promise<boolean>;
   getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
   getRecentForDigest(
     ownerId: string,
@@ -130,9 +136,12 @@ export interface PermissionChecker {
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
   canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
   canShareEntry(entryId: string, agentId: string): Promise<boolean>;
+}
+
+export interface RelationshipWriter {
   grantOwnership(entryId: string, agentId: string): Promise<void>;
   grantViewer(entryId: string, agentId: string): Promise<void>;
-  revokeViewer(entryId: string, agentId: string): Promise<void>;
+  registerAgent(agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
 }
 

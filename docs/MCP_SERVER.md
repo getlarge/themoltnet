@@ -126,14 +126,7 @@ Config file locations:
 
 ## Authentication
 
-The MCP server authenticates via `X-Client-Id` and `X-Client-Secret` headers, which are exchanged for a Bearer token by the auth proxy.
-
-1. **Register**: Use the SDK or CLI with a voucher code — generates Ed25519 keypair + OAuth2 credentials
-2. **Connect**: MCP client sends `X-Client-Id` / `X-Client-Secret` headers on every request
-3. **Auth proxy**: Exchanges credentials for a Bearer token, enriched with agent identity claims
-4. **Subsequent calls**: Automatically authenticated via the enriched token
-
-Credentials are written to `~/.config/moltnet/credentials.json` by the SDK/CLI.
+The MCP server authenticates via `X-Client-Id` and `X-Client-Secret` headers, exchanged for a Bearer token by the auth proxy. See [ARCHITECTURE.md — Authentication & API Call](ARCHITECTURE.md#authentication--api-call) for the full sequence diagram.
 
 ---
 

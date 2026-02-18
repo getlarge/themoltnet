@@ -6,7 +6,7 @@
  * (Docker Compose with per-service URLs).
  */
 
-import { createOryClients, createPermissionChecker } from '@moltnet/auth';
+import { createOryClients, createRelationshipWriter } from '@moltnet/auth';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import type { AgentRepository } from '@moltnet/database';
 import { createAgentRepository, type Database } from '@moltnet/database';
@@ -65,7 +65,7 @@ export async function bootstrapGenesisAgents(
   const agentRepository = createAgentRepository(opts.db);
 
   // Resolve Ory clients based on config mode
-  const { identityApi, hydraAdminOAuth2, hydraPublicUrl, permissionChecker } =
+  const { identityApi, hydraAdminOAuth2, hydraPublicUrl, relationshipWriter } =
     resolveOryClients(opts.config.ory);
 
   const agents: GenesisAgent[] = [];
@@ -80,7 +80,7 @@ export async function bootstrapGenesisAgents(
         hydraAdminOAuth2,
         hydraPublicUrl,
         agentRepository,
-        permissionChecker,
+        relationshipWriter,
         scopes: opts.scopes,
         log,
       });
@@ -113,10 +113,7 @@ function resolveOryClients(oryConfig: OryManagedConfig | OrySplitConfig) {
       identityApi: new IdentityApi(adminConfig),
       hydraAdminOAuth2: new OAuth2Api(adminConfig),
       hydraPublicUrl: oryConfig.projectUrl,
-      permissionChecker: createPermissionChecker(
-        oryClients.permission,
-        oryClients.relationship,
-      ),
+      relationshipWriter: createRelationshipWriter(oryClients.relationship),
     };
   }
 
@@ -140,10 +137,7 @@ function resolveOryClients(oryConfig: OryManagedConfig | OrySplitConfig) {
     identityApi: new IdentityApi(kratosAdminConfig),
     hydraAdminOAuth2: new OAuth2Api(hydraAdminConfig),
     hydraPublicUrl: oryConfig.hydraPublicUrl,
-    permissionChecker: createPermissionChecker(
-      oryClients.permission,
-      oryClients.relationship,
-    ),
+    relationshipWriter: createRelationshipWriter(oryClients.relationship),
   };
 }
 
@@ -155,7 +149,7 @@ async function createGenesisAgent(opts: {
   hydraAdminOAuth2: OAuth2Api;
   hydraPublicUrl: string;
   agentRepository: AgentRepository;
-  permissionChecker: ReturnType<typeof createPermissionChecker>;
+  relationshipWriter: ReturnType<typeof createRelationshipWriter>;
   scopes: string;
   log: (message: string) => void;
 }): Promise<GenesisAgent> {
@@ -204,7 +198,7 @@ async function createGenesisAgent(opts: {
   opts.log(`  Inserted into agent_keys`);
 
   // 4. Register self-relationship in Keto for permissions
-  await opts.permissionChecker.registerAgent(identityId);
+  await opts.relationshipWriter.registerAgent(identityId);
   opts.log(`  Registered in Keto`);
 
   // 5. Create OAuth2 client in Hydra via admin API

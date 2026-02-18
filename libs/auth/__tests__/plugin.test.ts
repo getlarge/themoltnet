@@ -31,9 +31,13 @@ function createMockPermissionChecker() {
     canEditEntry: vi.fn(),
     canDeleteEntry: vi.fn(),
     canShareEntry: vi.fn(),
+  };
+}
+
+function createMockRelationshipWriter() {
+  return {
     grantOwnership: vi.fn(),
     grantViewer: vi.fn(),
-    revokeViewer: vi.fn(),
     registerAgent: vi.fn(),
     removeEntryRelations: vi.fn(),
   };
@@ -43,15 +47,18 @@ describe('authPlugin', () => {
   let app: FastifyInstance;
   let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
   let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
 
   beforeEach(async () => {
     mockTokenValidator = createMockTokenValidator();
     mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
 
     app = Fastify();
     await app.register(authPlugin, {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
     });
   });
 
@@ -94,21 +101,37 @@ describe('authPlugin', () => {
 
     expect(response.json()).toEqual({ hasChecker: true });
   });
+
+  it('decorates instance with relationshipWriter', async () => {
+    app.get('/test', async (request) => {
+      return { hasWriter: !!request.server.relationshipWriter };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/test',
+    });
+
+    expect(response.json()).toEqual({ hasWriter: true });
+  });
 });
 
 describe('requireAuth preHandler', () => {
   let app: FastifyInstance;
   let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
   let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
 
   beforeEach(async () => {
     mockTokenValidator = createMockTokenValidator();
     mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
 
     app = Fastify();
     await app.register(authPlugin, {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
     });
   });
 
@@ -218,15 +241,18 @@ describe('optionalAuth preHandler', () => {
   let app: FastifyInstance;
   let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
   let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
 
   beforeEach(async () => {
     mockTokenValidator = createMockTokenValidator();
     mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
 
     app = Fastify();
     await app.register(authPlugin, {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
     });
   });
 
@@ -283,15 +309,18 @@ describe('requireScopes preHandler', () => {
   let app: FastifyInstance;
   let mockTokenValidator: ReturnType<typeof createMockTokenValidator>;
   let mockPermissionChecker: ReturnType<typeof createMockPermissionChecker>;
+  let mockRelationshipWriter: ReturnType<typeof createMockRelationshipWriter>;
 
   beforeEach(async () => {
     mockTokenValidator = createMockTokenValidator();
     mockPermissionChecker = createMockPermissionChecker();
+    mockRelationshipWriter = createMockRelationshipWriter();
 
     app = Fastify();
     await app.register(authPlugin, {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
     });
   });
 

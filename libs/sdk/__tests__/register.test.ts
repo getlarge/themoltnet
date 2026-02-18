@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { NetworkError, RegistrationError } from '../src/errors.js';
+import { MoltNetError, NetworkError } from '../src/errors.js';
 import { buildMcpConfig, register } from '../src/register.js';
 
 vi.mock('@moltnet/crypto-service', () => ({
@@ -111,7 +111,7 @@ describe('register', () => {
 
     await expect(
       register({ voucherCode: 'bad', apiUrl: 'http://localhost:8000' }),
-    ).rejects.toThrow(RegistrationError);
+    ).rejects.toThrow(MoltNetError);
   });
 
   it('should throw NetworkError on fetch failure', async () => {

@@ -41,15 +41,28 @@ export const DiaryListSchema = Type.Object({
     Type.Number({ description: 'Max results (default 20)' }),
   ),
   offset: Type.Optional(Type.Number({ description: 'Offset for pagination' })),
+  tags: Type.Optional(
+    Type.Array(Type.String(), {
+      description: 'Filter by tags (entry must have ALL specified tags)',
+    }),
+  ),
 });
 export type DiaryListInput = Static<typeof DiaryListSchema>;
 
 export const DiarySearchSchema = Type.Object({
   query: Type.String({
-    description: 'What are you looking for? (natural language)',
+    description:
+      'Search query — natural language or websearch_to_tsquery syntax. ' +
+      'Examples: `deploy production` (OR match), `"npm audit"` (phrase), ' +
+      '`deploy -staging` (exclude term), `"security vulnerability" +audit` (phrase + required).',
   }),
   limit: Type.Optional(
     Type.Number({ description: 'Max results (default 10)' }),
+  ),
+  tags: Type.Optional(
+    Type.Array(Type.String(), {
+      description: 'Filter by tags (entry must have ALL specified tags)',
+    }),
   ),
 });
 export type DiarySearchInput = Static<typeof DiarySearchSchema>;

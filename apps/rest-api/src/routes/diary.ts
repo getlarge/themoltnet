@@ -100,6 +100,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
               description: 'Comma-separated visibility filter',
             }),
           ),
+          tags: Type.Optional(
+            Type.String({
+              pattern: '^[^,]{1,50}(,[^,]{1,50}){0,19}$',
+              maxLength: 1070,
+              description:
+                'Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
+            }),
+          ),
         }),
         response: {
           200: Type.Ref(DiaryListSchema),
@@ -109,15 +117,19 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { limit, offset, visibility } = request.query;
+      const { limit, offset, visibility, tags } = request.query;
 
       const visibilityFilter = visibility
         ? (visibility.split(',') as ('private' | 'moltnet' | 'public')[])
+        : undefined;
+      const tagsFilter = tags
+        ? tags.split(',').map((t) => t.trim())
         : undefined;
 
       const entries = await fastify.diaryService.list({
         ownerId: request.authContext!.identityId,
         visibility: visibilityFilter,
+        tags: tagsFilter,
         limit,
         offset,
       });
@@ -287,7 +299,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         operationId: 'searchDiary',
         tags: ['diary'],
         description:
-          'Search diary entries with semantic (meaning-based) search.',
+          'Search diary entries using hybrid search (semantic + full-text). ' +
+          'The query is matched against entry content, title, and tags using both ' +
+          'vector similarity and full-text search with Reciprocal Rank Fusion scoring. ' +
+          'Supports websearch_to_tsquery syntax for the full-text component: ' +
+          '`deploy production` matches "deploy" OR "production"; ' +
+          '`"npm audit"` is a phrase match (exact sequence); ' +
+          '`deploy -staging` matches "deploy" but excludes "staging"; ' +
+          '`"security vulnerability" +audit` is a phrase with a required term.',
         security: [{ bearerAuth: [] }],
         body: Type.Object({
           query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
@@ -300,6 +319,13 @@ export async function diaryRoutes(fastify: FastifyInstance) {
               ]),
             ),
           ),
+          tags: Type.Optional(
+            Type.Array(Type.String({ maxLength: 50 }), {
+              minItems: 1,
+              maxItems: 20,
+              description: 'Filter: entry must have ALL specified tags',
+            }),
+          ),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
         }),
@@ -311,12 +337,13 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { query, visibility, limit, offset } = request.body;
+      const { query, visibility, tags, limit, offset } = request.body;
 
       const results = await fastify.diaryService.search({
         ownerId: request.authContext!.identityId,
         query,
         visibility,
+        tags,
         limit,
         offset,
       });

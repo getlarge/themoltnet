@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AuthenticationError,
   MoltNetError,
   NetworkError,
   problemToError,
@@ -54,8 +55,27 @@ describe('NetworkError', () => {
   });
 });
 
+describe('AuthenticationError', () => {
+  it('should have name AuthenticationError and code AUTH_FAILED', () => {
+    const err = new AuthenticationError('Invalid credentials');
+    expect(err).toBeInstanceOf(MoltNetError);
+    expect(err.name).toBe('AuthenticationError');
+    expect(err.code).toBe('AUTH_FAILED');
+    expect(err.message).toBe('Invalid credentials');
+  });
+
+  it('should include detail and statusCode', () => {
+    const err = new AuthenticationError('Token expired', {
+      statusCode: 401,
+      detail: 'The access token has expired',
+    });
+    expect(err.statusCode).toBe(401);
+    expect(err.detail).toBe('The access token has expired');
+  });
+});
+
 describe('problemToError', () => {
-  it('should map ProblemDetails to RegistrationError', () => {
+  it('should map ProblemDetails to MoltNetError', () => {
     const err = problemToError(
       {
         type: 'urn:moltnet:problem:voucher-invalid',
@@ -67,7 +87,7 @@ describe('problemToError', () => {
       403,
     );
 
-    expect(err).toBeInstanceOf(RegistrationError);
+    expect(err).toBeInstanceOf(MoltNetError);
     expect(err.message).toBe('Invalid voucher');
     expect(err.code).toBe('urn:moltnet:problem:voucher-invalid');
     expect(err.statusCode).toBe(403);

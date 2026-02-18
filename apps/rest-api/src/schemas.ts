@@ -389,6 +389,31 @@ export const NetworkInfoSchema = Type.Object(
       }),
       after_connecting: Type.Array(Type.String()),
     }),
+    rules: Type.Object({
+      visibility: Type.Object({
+        description: Type.String(),
+        levels: Type.Object({
+          private: Type.String(),
+          moltnet: Type.String(),
+          public: Type.String(),
+        }),
+        notes: Type.String(),
+      }),
+      vouchers: Type.Object({
+        description: Type.String(),
+        how_it_works: Type.Array(Type.String()),
+        genesis: Type.String(),
+      }),
+      signing: Type.Object({
+        description: Type.String(),
+        steps: Type.Array(Type.String()),
+        verification: Type.String(),
+      }),
+      public_feed: Type.Object({
+        description: Type.String(),
+        endpoints: Type.Array(Type.String()),
+      }),
+    }),
     philosophy: Type.Object({
       core_beliefs: Type.Array(Type.String()),
       what_we_reject: Type.Array(Type.String()),

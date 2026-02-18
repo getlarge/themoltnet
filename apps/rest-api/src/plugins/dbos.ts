@@ -1,45 +1,31 @@
 /**
  * DBOS Fastify Plugin
  *
- * Initializes DBOS durable execution framework with all workflows:
- * Keto permissions, signing, and registration.
+ * Initializes DBOS durable execution framework.
+ * Workflow registration is externalized via callback arrays:
  *
- * Must be registered after the auth plugin (needs permissionChecker).
+ * - `registerWorkflows` — called after configureDBOS(), before initDBOS()
+ * - `afterLaunch` — called after launchDBOS(), receives the DBOS dataSource
  *
  * ## Initialization Order
  *
  * 1. configureDBOS()              — set DBOS runtime config
- * 2. initKetoWorkflows()          — register Keto workflow definitions
- * 3. initSigningWorkflows()       — register signing workflow definitions
- * 4. initRegistrationWorkflow()   — register registration workflow
- * 5. Set workflow dependencies    — inject clients and services
- * 6. initDBOS()                   — create data source
- * 7. launchDBOS()                 — start runtime, recover pending workflows
- * 8. Set post-launch deps         — signing persistence, registration deps
+ * 2. registerWorkflows callbacks  — register workflow definitions + pre-launch deps
+ * 3. initDBOS()                   — create data source
+ * 4. launchDBOS()                 — start runtime, recover pending workflows
+ * 5. afterLaunch callbacks        — set post-launch deps (persistence, dataSource-dependent)
  */
 
 import {
   configureDBOS,
+  type DataSource,
   getDataSource,
   initDBOS,
-  initKetoWorkflows,
-  initSigningWorkflows,
   launchDBOS,
-  setKetoRelationshipWriter,
-  setSigningKeyLookup,
-  setSigningRequestPersistence,
-  setSigningTimeoutSeconds,
-  setSigningVerifier,
   shutdownDBOS,
 } from '@moltnet/database';
-import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-
-import {
-  initRegistrationWorkflow,
-  setRegistrationDeps,
-} from '../workflows/index.js';
 
 export interface DBOSPluginOptions {
   /** Application database URL — used by DrizzleDataSource for app tables */
@@ -48,11 +34,16 @@ export interface DBOSPluginOptions {
   systemDatabaseUrl: string;
   /** Whether to enable OpenTelemetry (OTLP) for DBOS internal metrics/traces */
   enableOTLP?: boolean;
-  signingTimeoutSeconds?: number;
-  /** Kratos Admin API client — for registration workflow */
-  identityApi: IdentityApi;
-  /** Hydra Admin API client — for registration workflow */
-  oauth2Api: OAuth2Api;
+  /**
+   * Workflow init functions — called after configureDBOS(), before initDBOS().
+   * Each function should call DBOS.registerWorkflow() and set pre-launch deps.
+   */
+  registerWorkflows?: Array<() => void>;
+  /**
+   * Post-launch setup — called after launchDBOS().
+   * Receives the DBOS dataSource for deps that need it.
+   */
+  afterLaunch?: Array<(dataSource: DataSource) => void>;
 }
 
 async function dbosPlugin(
@@ -61,85 +52,36 @@ async function dbosPlugin(
 ): Promise<void> {
   const { databaseUrl, systemDatabaseUrl, enableOTLP } = options;
 
-  // Precondition checks: these decorations must exist before DBOS init
-  const required = [
-    'permissionChecker',
-    'cryptoService',
-    'agentRepository',
-    'voucherRepository',
-    'signingRequestRepository',
-  ] as const;
-  for (const dep of required) {
-    if (!fastify[dep]) {
-      throw new Error(
-        `DBOS plugin requires '${dep}' to be decorated before registration`,
-      );
-    }
-  }
-
   // 1. Configure DBOS (must be first, before workflow registration)
   configureDBOS(systemDatabaseUrl, enableOTLP);
 
-  // 2. Register Keto workflows (must be after config, before launch)
-  initKetoWorkflows();
-
-  // 3. Register signing workflows
-  initSigningWorkflows();
-
-  // 4. Register registration workflow
-  initRegistrationWorkflow();
-
-  // 5. Set the relationship writer for Keto workflows
-  setKetoRelationshipWriter(fastify.permissionChecker);
-
-  // 5. Set signing workflow dependencies
-  setSigningVerifier(fastify.cryptoService);
-  setSigningKeyLookup({
-    getPublicKey: async (agentId: string) => {
-      const agent = await fastify.agentRepository.findByIdentityId(agentId);
-      return agent?.publicKey ?? null;
-    },
-  });
-
-  if (options.signingTimeoutSeconds) {
-    setSigningTimeoutSeconds(options.signingTimeoutSeconds);
+  // 2. Register all workflows (pre-launch)
+  for (const register of options.registerWorkflows ?? []) {
+    register();
   }
 
-  // 6. Initialize DBOS data source (app tables via databaseUrl, system via systemDatabaseUrl)
+  // 3. Initialize DBOS data source
   await initDBOS({ databaseUrl, systemDatabaseUrl });
 
-  // 7. Launch DBOS (starts runtime, recovers interrupted workflows)
+  // 4. Launch DBOS (starts runtime, recovers interrupted workflows)
   await launchDBOS();
 
-  // 8. Decorate Fastify with the dataSource for route handlers
-  fastify.decorate('dataSource', getDataSource());
+  // 5. Decorate Fastify with the dataSource for route handlers
+  const dataSource = getDataSource();
+  fastify.decorate('dataSource', dataSource);
 
-  // 9. Set signing request persistence (needs dataSource, so after launch)
-  setSigningRequestPersistence({
-    updateStatus: async (id, updates) => {
-      await fastify.signingRequestRepository.updateStatus(id, updates);
-    },
-  });
+  // 6. Post-launch setup
+  for (const setup of options.afterLaunch ?? []) {
+    setup(dataSource);
+  }
 
-  // 10. Set registration workflow dependencies (needs dataSource from launch)
-  setRegistrationDeps({
-    identityApi: options.identityApi,
-    oauth2Api: options.oauth2Api,
-    agentRepository: fastify.agentRepository,
-    voucherRepository: fastify.voucherRepository,
-    permissionChecker: fastify.permissionChecker,
-    dataSource: getDataSource(),
-  });
-
-  // 11. Graceful shutdown
+  // 7. Graceful shutdown
   fastify.addHook('onClose', async () => {
     fastify.log.info('Shutting down DBOS...');
     await shutdownDBOS();
   });
 
-  fastify.log.info(
-    'DBOS initialized with Keto, signing, and registration workflows',
-  );
+  fastify.log.info('DBOS initialized');
 }
 
 export default fp(dbosPlugin, {

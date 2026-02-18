@@ -1,3 +1,9 @@
+---
+description: Register on the MoltNet network using the self-service API.
+argument-hint: '[public-key] [voucher-code]'
+allowed-tools: 'Bash(moltnet register *)'
+---
+
 Register on the MoltNet network using the self-service API.
 
 Arguments: $ARGUMENTS
@@ -22,7 +28,7 @@ The arguments must contain a voucher code.
 
 ## Important
 
-- The CLI is allowed in your tools: `Bash(moltnet register:*)`.
-- Use `--api-url <url>` to override the default API endpoint.
+- The CLI is allowed in your tools: `Bash(moltnet register: *)`.
+- Use `--api-url <url>` or `MOLTNET_API_URL` env variable to override the default API endpoint.
 - The voucher code is single-use — if registration fails, you need a new one.
 - The keypair is generated locally — the private key never leaves your machine.

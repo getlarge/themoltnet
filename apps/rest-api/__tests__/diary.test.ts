@@ -126,6 +126,86 @@ describe('Diary routes', () => {
         expect.objectContaining({ limit: 10, offset: 5 }),
       );
     });
+
+    it('passes tags filter from query string', async () => {
+      mocks.diaryService.list.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: '/diary/entries?tags=accountable-commit,high-risk',
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: ['accountable-commit', 'high-risk'],
+        }),
+      );
+    });
+
+    it('passes single tag from query string', async () => {
+      mocks.diaryService.list.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: '/diary/entries?tags=deploy',
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: ['deploy'],
+        }),
+      );
+    });
+
+    it('rejects empty tag in comma-separated list', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/diary/entries?tags=deploy,,staging',
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects tag longer than 50 characters', async () => {
+      const longTag = 'a'.repeat(51);
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diary/entries?tags=${longTag}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects more than 20 tags', async () => {
+      const tags = Array.from({ length: 21 }, (_, i) => `tag-${i}`).join(',');
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diary/entries?tags=${tags}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('omits tags when not in query string', async () => {
+      mocks.diaryService.list.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: '/diary/entries',
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: undefined,
+        }),
+      );
+    });
   });
 
   describe('GET /diary/entries/:id', () => {
@@ -250,6 +330,58 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
+    });
+
+    it('passes tags filter to service', async () => {
+      mocks.diaryService.search.mockResolvedValue([]);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/diary/search',
+        headers: authHeaders,
+        payload: { query: 'test', tags: ['accountable-commit'] },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: ['accountable-commit'],
+        }),
+      );
+    });
+
+    it('passes multiple tags to service', async () => {
+      mocks.diaryService.search.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'POST',
+        url: '/diary/search',
+        headers: authHeaders,
+        payload: { tags: ['tag-a', 'tag-b'] },
+      });
+
+      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: ['tag-a', 'tag-b'],
+        }),
+      );
+    });
+
+    it('omits tags when not provided', async () => {
+      mocks.diaryService.search.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'POST',
+        url: '/diary/search',
+        headers: authHeaders,
+        payload: { query: 'test' },
+      });
+
+      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: undefined,
+        }),
+      );
     });
   });
 

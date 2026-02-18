@@ -2,7 +2,7 @@ import type { RegisterResponse } from '@moltnet/api-client';
 import { createClient, registerAgent } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
 
-import { NetworkError, problemToError, RegistrationError } from './errors.js';
+import { MoltNetError, NetworkError, problemToError } from './errors.js';
 
 const DEFAULT_API_URL = 'https://api.themolt.net';
 
@@ -86,7 +86,7 @@ export async function register(
     }
     data = result.data;
   } catch (error) {
-    if (error instanceof NetworkError || error instanceof RegistrationError) {
+    if (error instanceof MoltNetError) {
       throw error;
     }
     throw new NetworkError(

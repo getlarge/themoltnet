@@ -164,9 +164,10 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(`Failed to install moltnet binary: ${err.message}`);
-  console.error(
+  console.warn(`Warning: Failed to install moltnet binary: ${err.message}`);
+  console.warn(
     `\nYou can download it manually from:\n  ${BASE_URL}/`
   );
-  process.exit(1);
+  // Exit 0 so postinstall doesn't break `pnpm install` for the whole monorepo
+  process.exit(0);
 });

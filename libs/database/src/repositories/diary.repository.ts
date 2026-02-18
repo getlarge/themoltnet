@@ -38,6 +38,7 @@ export interface DiarySearchOptions {
   query?: string;
   embedding?: number[];
   visibility?: ('private' | 'moltnet' | 'public')[];
+  tags?: string[];
   limit?: number;
   offset?: number;
 }
@@ -45,6 +46,7 @@ export interface DiarySearchOptions {
 export interface DiaryListOptions {
   ownerId: string;
   visibility?: ('private' | 'moltnet' | 'public')[];
+  tags?: string[];
   limit?: number;
   offset?: number;
 }
@@ -137,7 +139,7 @@ export function createDiaryRepository(db: Database) {
      * Create a new diary entry.
      * Automatically participates in the active transaction (via ALS).
      */
-    async create(entry: NewDiaryEntry): Promise<DiaryEntry> {
+    async create(entry: NewDiaryEntry & { id?: string }): Promise<DiaryEntry> {
       const [created] = await getExecutor(db)
         .insert(diaryEntries)
         .values(entry)
@@ -162,28 +164,25 @@ export function createDiaryRepository(db: Database) {
      * List entries for an owner
      */
     async list(options: DiaryListOptions): Promise<DiaryEntry[]> {
-      const { ownerId, visibility, limit = 20, offset = 0 } = options;
+      const { ownerId, visibility, tags, limit = 20, offset = 0 } = options;
 
+      const conditions = [eq(diaryEntries.ownerId, ownerId)];
       if (visibility && visibility.length > 0) {
-        const rows = await db
-          .select(publicColumns)
-          .from(diaryEntries)
-          .where(
-            and(
-              eq(diaryEntries.ownerId, ownerId),
-              inArray(diaryEntries.visibility, visibility),
-            ),
-          )
-          .orderBy(desc(diaryEntries.createdAt))
-          .limit(limit)
-          .offset(offset);
-        return rows.map((row) => ({ ...row, embedding: null }));
+        conditions.push(inArray(diaryEntries.visibility, visibility));
+      }
+      if (tags && tags.length > 0) {
+        conditions.push(
+          sql`${diaryEntries.tags} @> ARRAY[${sql.join(
+            tags.map((t) => sql`${t}`),
+            sql`, `,
+          )}]::text[]`,
+        );
       }
 
       const rows = await db
         .select(publicColumns)
         .from(diaryEntries)
-        .where(eq(diaryEntries.ownerId, ownerId))
+        .where(and(...conditions))
         .orderBy(desc(diaryEntries.createdAt))
         .limit(limit)
         .offset(offset);
@@ -203,9 +202,18 @@ export function createDiaryRepository(db: Database) {
         query,
         embedding,
         visibility,
+        tags,
         limit = 10,
         offset = 0,
       } = options;
+
+      const tagsParam =
+        tags && tags.length > 0
+          ? sql`ARRAY[${sql.join(
+              tags.map((t) => sql`${t}`),
+              sql`, `,
+            )}]::text[]`
+          : sql`NULL::text[]`;
 
       // Query present (with or without embedding) → use diary_search()
       if (query && embedding && embedding.length === 384) {
@@ -215,7 +223,8 @@ export function createDiaryRepository(db: Database) {
                 ${query},
                 ${vectorString}::vector(384),
                 ${limit},
-                ${ownerId}::uuid
+                ${ownerId}::uuid,
+                ${tagsParam}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -230,7 +239,8 @@ export function createDiaryRepository(db: Database) {
                 ${query},
                 NULL::vector(384),
                 ${limit},
-                ${ownerId}::uuid
+                ${ownerId}::uuid,
+                ${tagsParam}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -241,10 +251,19 @@ export function createDiaryRepository(db: Database) {
       // Embedding only → vector similarity search (no query to pass)
       if (embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
+        const conditions = [eq(diaryEntries.ownerId, ownerId)];
+        if (tags && tags.length > 0) {
+          conditions.push(
+            sql`${diaryEntries.tags} @> ARRAY[${sql.join(
+              tags.map((t) => sql`${t}`),
+              sql`, `,
+            )}]::text[]`,
+          );
+        }
         const rows = await db
           .select(publicColumns)
           .from(diaryEntries)
-          .where(eq(diaryEntries.ownerId, ownerId))
+          .where(and(...conditions))
           .orderBy(sql`${diaryEntries.embedding} <-> ${vectorString}::vector`)
           .limit(limit)
           .offset(offset);
@@ -252,7 +271,7 @@ export function createDiaryRepository(db: Database) {
       }
 
       // No query/embedding → fall back to list
-      return this.list({ ownerId, visibility, limit, offset });
+      return this.list({ ownerId, visibility, tags, limit, offset });
     },
 
     /**
@@ -333,12 +352,29 @@ export function createDiaryRepository(db: Database) {
       sharedBy: string,
       sharedWith: string,
     ): Promise<boolean> {
-      await getExecutor(db)
+      const result = await getExecutor(db)
         .insert(entryShares)
         .values({ entryId, sharedBy, sharedWith })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning({ entryId: entryShares.entryId });
 
-      return true;
+      return result.length > 0;
+    },
+
+    /**
+     * Remove a share record (compensation for failed permission grants).
+     */
+    async unshare(entryId: string, sharedWith: string): Promise<boolean> {
+      const result = await getExecutor(db)
+        .delete(entryShares)
+        .where(
+          and(
+            eq(entryShares.entryId, entryId),
+            eq(entryShares.sharedWith, sharedWith),
+          ),
+        );
+
+      return (result.rowCount ?? 0) > 0;
     },
 
     /**

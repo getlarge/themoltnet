@@ -1,3 +1,7 @@
+---
+description: Check the current coordination state before starting work. Do the following:
+---
+
 Check the current coordination state before starting work. Do the following:
 
 1. **Check GitHub Project board**:

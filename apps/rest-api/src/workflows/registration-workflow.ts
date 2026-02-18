@@ -21,7 +21,7 @@
  * Call `initRegistrationWorkflow()` first, then `setRegistrationDeps()`.
  */
 
-import type { PermissionChecker } from '@moltnet/auth';
+import type { RelationshipWriter } from '@moltnet/auth';
 import {
   type AgentRepository,
   type DataSource,
@@ -53,7 +53,7 @@ export interface RegistrationDeps {
   oauth2Api: OAuth2Api;
   voucherRepository: VoucherRepository;
   agentRepository: AgentRepository;
-  permissionChecker: PermissionChecker;
+  relationshipWriter: RelationshipWriter;
   dataSource: DataSource;
 }
 
@@ -169,8 +169,8 @@ export function initRegistrationWorkflow(): void {
 
   const registerInKetoStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
-      const { permissionChecker } = getDeps();
-      await permissionChecker.registerAgent(identityId);
+      const { relationshipWriter } = getDeps();
+      await relationshipWriter.registerAgent(identityId);
     },
     {
       name: 'registration.step.registerInKeto',

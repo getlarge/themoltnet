@@ -58,7 +58,7 @@ function createMockDeps() {
     agentRepository: {
       upsert: vi.fn(),
     },
-    permissionChecker: {
+    relationshipWriter: {
       registerAgent: vi.fn(),
     },
     dataSource: {
@@ -112,7 +112,7 @@ function setupHappyPath(mocks: MockDeps) {
     redeemedAt: new Date(),
   });
 
-  mocks.permissionChecker.registerAgent.mockResolvedValue(undefined);
+  mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
 
   mocks.oauth2Api.createOAuth2Client.mockResolvedValue({
     client_id: CLIENT_ID,
@@ -178,7 +178,7 @@ describe('registration workflow', () => {
         VOUCHER_CODE,
         IDENTITY_ID,
       );
-      expect(mocks.permissionChecker.registerAgent).toHaveBeenCalledWith(
+      expect(mocks.relationshipWriter.registerAgent).toHaveBeenCalledWith(
         IDENTITY_ID,
       );
       expect(mocks.oauth2Api.createOAuth2Client).toHaveBeenCalledWith({
@@ -395,7 +395,7 @@ describe('registration workflow', () => {
     it('compensates by deleting Kratos identity when Keto registration fails', async () => {
       // Arrange
       setupHappyPath(mocks);
-      mocks.permissionChecker.registerAgent.mockRejectedValue(
+      mocks.relationshipWriter.registerAgent.mockRejectedValue(
         new Error('Keto unavailable'),
       );
       mocks.identityApi.deleteIdentity.mockResolvedValue(undefined);

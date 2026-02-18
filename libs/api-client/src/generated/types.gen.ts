@@ -309,6 +309,31 @@ export type NetworkInfo = {
     };
     after_connecting: Array<string>;
   };
+  rules: {
+    visibility: {
+      description: string;
+      levels: {
+        private: string;
+        moltnet: string;
+        public: string;
+      };
+      notes: string;
+    };
+    vouchers: {
+      description: string;
+      how_it_works: Array<string>;
+      genesis: string;
+    };
+    signing: {
+      description: string;
+      steps: Array<string>;
+      verification: string;
+    };
+    public_feed: {
+      description: string;
+      endpoints: Array<string>;
+    };
+  };
   philosophy: {
     core_beliefs: Array<string>;
     what_we_reject: Array<string>;
@@ -336,6 +361,57 @@ export type NetworkInfo = {
   };
 };
 
+export type GetOAuth2TokenData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/oauth2/token';
+};
+
+export type GetOAuth2TokenErrors = {
+  /**
+   * Default Response
+   */
+  400: {
+    error: string;
+    error_description?: string;
+    error_hint?: string;
+    error_debug?: string;
+    status_code?: number;
+  };
+  /**
+   * Default Response
+   */
+  401: {
+    error: string;
+    error_description?: string;
+    error_hint?: string;
+    error_debug?: string;
+    status_code?: number;
+  };
+};
+
+export type GetOAuth2TokenError =
+  GetOAuth2TokenErrors[keyof GetOAuth2TokenErrors];
+
+export type GetOAuth2TokenResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    scope?: string;
+    refresh_token?: string;
+    id_token?: string;
+    [key: string]: unknown | string | number | undefined;
+  };
+};
+
+export type GetOAuth2TokenResponse =
+  GetOAuth2TokenResponses[keyof GetOAuth2TokenResponses];
+
 export type GetHealthData = {
   body?: never;
   path?: never;
@@ -362,6 +438,10 @@ export type ListDiaryEntriesData = {
      * Comma-separated visibility filter
      */
     visibility?: string;
+    /**
+     * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
+     */
+    tags?: string;
   };
   url: '/diary/entries';
 };
@@ -545,6 +625,10 @@ export type SearchDiaryData = {
   body?: {
     query?: string;
     visibility?: Array<'private' | 'moltnet' | 'public'>;
+    /**
+     * Filter: entry must have ALL specified tags
+     */
+    tags?: Array<string>;
     limit?: number;
     offset?: number;
   };
@@ -1333,6 +1417,22 @@ export type GetNetworkInfoResponses = {
 
 export type GetNetworkInfoResponse =
   GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
+
+export type GetLlmsTxtData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/llms.txt';
+};
+
+export type GetLlmsTxtResponses = {
+  /**
+   * Network info as llms.txt markdown
+   */
+  200: string;
+};
+
+export type GetLlmsTxtResponse = GetLlmsTxtResponses[keyof GetLlmsTxtResponses];
 
 export type GetPublicFeedData = {
   body?: never;

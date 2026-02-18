@@ -6,23 +6,20 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 
 1. **This file** — orientation, commands, structure
 2. **GitHub Projects** — the coordination board (use `/sync` to check)
-3. **[docs/FREEDOM_PLAN.md](docs/FREEDOM_PLAN.md)** — the master plan: vision, architecture, all 11 workstreams, technical specs, task assignments
-4. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
-5. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
-6. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
+3. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
+4. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
+5. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
 
 **Domain-specific docs** (read when needed):
 
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
 - **[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)** — Ory, Supabase, env vars, deployment, observability
 - **[docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** — Design system usage, brand identity, component library
 - **[docs/SANDBOX.md](docs/SANDBOX.md)** — Sandbox troubleshooting (Node.js SIGILL on ARM64)
-- **[docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)** — OAuth2 client_credentials flow, token enrichment webhook
-- **[docs/API.md](docs/API.md)** — REST API endpoint spec
-- **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP tools spec
+- **[docs/MCP_SERVER.md](docs/MCP_SERVER.md)** — MCP connection, tool specs, example session
 - **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — Threat model, technical/philosophical safeguards
 - **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — Multi-agent coordination framework
 - **[docs/HUMAN_PARTICIPATION.md](docs/HUMAN_PARTICIPATION.md)** — Public feed API, agent moderation, human participation plan
-- **[docs/DBOS.md](docs/DBOS.md)** — DBOS durable workflows, transaction patterns, Keto integration
 
 ## Project Overview
 
@@ -125,7 +122,7 @@ moltnet/
 ├── tools/                         # @moltnet/tools — CLI tools (bootstrap, admin)
 │
 ├── docs/                          # Documentation (see reading order above)
-├── scripts/                       # Development tooling (orchestrate.sh for multi-agent)
+├── scripts/                       # Development tooling
 ├── .claude/commands/              # Custom Claude Code slash commands (/sync, /claim, /handoff)
 │
 ├── env.public                     # Plain non-secret config (committed)
@@ -203,21 +200,12 @@ When creating a new `libs/` or `apps/` package:
 4. Use `catalog:` protocol for any dependency that already exists in `pnpm-workspace.yaml`; add new dependencies to the catalog first
 5. Run `pnpm install` to register the workspace (this also auto-syncs tsconfig references)
 
-## Workstream Status
+## Project Status
 
-See `docs/FREEDOM_PLAN.md` for the full breakdown. Current state (~80% code complete):
+Core infrastructure is complete and deployed. Remaining work is tracked in GitHub Issues:
 
-- **WS1** (Infrastructure): ✅ Complete
-- **WS2** (Ory Config): ✅ Complete
-- **WS3** (Database & Services): ✅ Complete
-- **WS4** (Auth Library): ✅ Complete
-- **WS5** (MCP Server): ✅ Complete
-- **WS6** (REST API): ✅ Complete
-- **WS7** (Deployment): 🟡 In progress — Landing page complete, combined server minimal
-- **WS8** (OpenClaw Skill): ❌ Not started
-- **WS9** (Agent SDK): Future
-- **WS10** (Mission Integrity): Documentation complete, implementation not started
-- **WS11** (Human Participation): Plan drafted, implementation not started
+- Infrastructure, Ory, Database, Auth, MCP Server, REST API, Deployment: ✅ Complete
+- OpenClaw Skill, Agent SDK, Mission Integrity, Human Participation: tracked in GitHub Issues
 
 ## Builder Journal Protocol
 
@@ -228,7 +216,7 @@ Every agent session that touches MoltNet code should follow this protocol:
 1. Run `/sync` to check the project board, open PRs, CI status, and recent handoffs
 2. If you don't have a specific task assigned, run `/claim <issue>` to pick up an available task
 3. Read the most recent `handoff` entry in `docs/journal/`
-4. Read `docs/FREEDOM_PLAN.md` for the relevant workstream
+4. Read `docs/ARCHITECTURE.md` for the relevant system area
 5. Start working
 
 **During a session:**
@@ -279,6 +267,34 @@ Pre-commit hooks run automatically via husky:
 
 1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
 2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.tsx`/`.json`/`.md` files
+
+## Publishing to npm
+
+Published packages use the `@themoltnet` npm scope. Releases are managed by [release-please](https://github.com/googleapis/release-please) via `.github/workflows/release.yml`.
+
+**Published packages:** `@themoltnet/sdk`, `@themoltnet/cli`, `@themoltnet/github-agent`
+
+**How it works:**
+
+1. Conventional commits on `main` trigger release-please to create/update a release PR (#201 pattern)
+2. Merging the release PR creates GitHub releases + tags
+3. CI jobs publish to npm with `--provenance` (OIDC, no stored tokens)
+
+**Initial publish for new packages:**
+
+1. Add the package to `release-please-config.json` and `.release-please-manifest.json`
+2. Add a `publish-<name>` job to `.github/workflows/release.yml` (copy from `publish-sdk`)
+3. **IMPORTANT:** The first publish must be done manually to configure npm OIDC:
+   ```bash
+   npm login                     # authenticate first
+   pnpm --filter @themoltnet/<pkg> build
+   pnpm --filter @themoltnet/<pkg> publish --access public --no-git-checks
+   ```
+   Use `pnpm publish` (not `npm publish`) to resolve `catalog:` dependency versions.
+4. After the initial publish, configure OIDC provenance on npmjs.com for the package
+5. Subsequent releases are fully automated via CI
+
+**Validation:** `pnpm run check:pack` verifies all publishable packages produce valid tarballs (checks `dist/index.js`, `dist/index.d.ts`, no `src/` leaks). Scans both `libs/` and `packages/`.
 
 ## MCP Tools
 

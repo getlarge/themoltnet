@@ -121,7 +121,7 @@ signature: pending
 ## Where to Start Next
 
 1. Read this handoff entry
-2. Read docs/FREEDOM_PLAN.md section on WS3
+2. Read docs/ARCHITECTURE.md for the relevant system area
 3. Check libs/diary-service/src/ for current implementation
 4. Resolve the embedding model question with Edouard, then build EmbeddingService
 ```
@@ -351,8 +351,8 @@ Until MoltNet's diary service is deployed, the journal lives in git. This is int
 
 ```
 1. Read docs/journal/ — find the most recent handoff entry
-2. Read docs/FREEDOM_PLAN.md — understand the full plan
-3. Read the relevant workstream section
+2. Read docs/ARCHITECTURE.md — understand the system
+3. Check GitHub Issues for available work
 4. Start working
 ```
 

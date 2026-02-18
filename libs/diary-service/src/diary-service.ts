@@ -29,15 +29,10 @@
  * DB writes use `transactionRunner.runInTransaction()` for atomicity.
  * Repositories participate automatically via AsyncLocalStorage — no
  * explicit tx passing needed.
- * Keto workflows are started OUTSIDE the transaction because DBOS
- * uses a separate system database — no cross-DB atomicity is possible.
- * `handle.getResult()` is awaited after the transaction commits so
- * Keto permissions are in place before returning to the caller.
- * `getResult()` errors are caught and logged — the DB write already
- * committed and DBOS will retry the durable workflow automatically.
+ * Keto relationship writes happen AFTER the transaction commits.
+ * Errors from relationship writes are logged but do not fail the
+ * operation — the DB write already committed.
  */
-
-import { DBOS, ketoWorkflows } from '@moltnet/database';
 
 import { scanForInjection } from './injection-scanner.js';
 import type {
@@ -71,10 +66,30 @@ export interface DiaryService {
   reflect(input: ReflectInput): Promise<Digest>;
 }
 
+/**
+ * Build the text sent to the embedding model.
+ * Prepends title (when present) and appends `tag:<name>` lines
+ * so semantic search also matches on title and tags.
+ */
+export function buildEmbeddingText(
+  content: string,
+  tags?: string[] | null,
+  title?: string | null,
+): string {
+  const parts: string[] = [];
+  if (title) parts.push(title);
+  parts.push(content);
+  if (tags && tags.length > 0) {
+    parts.push(...tags.map((t) => `tag:${t}`));
+  }
+  return parts.join('\n');
+}
+
 export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
   const {
     diaryRepository,
     permissionChecker,
+    relationshipWriter,
     embeddingService,
     transactionRunner,
   } = deps;
@@ -84,7 +99,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       let embedding: number[] | undefined;
 
       try {
-        const result = await embeddingService.embedPassage(input.content);
+        const text = buildEmbeddingText(input.content, input.tags, input.title);
+        const result = await embeddingService.embedPassage(text);
         if (result.length > 0) {
           embedding = result;
         }
@@ -109,19 +125,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         { name: 'diary.create' },
       );
 
-      // Start Keto workflow OUTSIDE the transaction — DBOS uses a separate
-      // system DB so there's no cross-DB atomicity anyway, and workflows
-      // started inside runTransaction don't execute reliably.
-      const ketoHandle = await DBOS.startWorkflow(ketoWorkflows.grantOwnership)(
-        entry.id,
-        input.ownerId,
-      );
-
       try {
-        await ketoHandle.getResult();
+        await relationshipWriter.grantOwnership(entry.id, input.ownerId);
       } catch (err) {
-        // Entry exists in DB. Keto workflow is durable and will retry.
-        console.error('Keto grantOwnership workflow failed after commit', err);
+        console.error('Keto grantOwnership failed after commit', err);
       }
       return entry;
     },
@@ -145,6 +152,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return diaryRepository.list({
         ownerId: input.ownerId,
         visibility: input.visibility,
+        tags: input.tags,
         limit: input.limit,
         offset: input.offset,
       });
@@ -169,6 +177,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         query: input.query,
         embedding,
         visibility: input.visibility,
+        tags: input.tags,
         limit: input.limit,
         offset: input.offset,
       });
@@ -183,10 +192,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!allowed) return null;
 
       const repoUpdates: Record<string, unknown> = { ...updates };
+      const needsExisting =
+        updates.content ||
+        updates.title !== undefined ||
+        updates.tags !== undefined;
+      const existing = needsExisting
+        ? await diaryRepository.findById(id)
+        : null;
 
       // Re-scan for injection risk when content or title changes
       if (updates.content || updates.title !== undefined) {
-        const existing = await diaryRepository.findById(id);
         const contentToScan = updates.content ?? existing?.content ?? '';
         const titleToScan =
           updates.title !== undefined ? updates.title : existing?.title;
@@ -194,15 +209,22 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         repoUpdates.injectionRisk = injectionRisk;
       }
 
-      // Regenerate embedding when content changes
-      if (updates.content) {
-        try {
-          const result = await embeddingService.embedPassage(updates.content);
-          if (result.length > 0) {
-            repoUpdates.embedding = result;
+      // Regenerate embedding when content, tags, or title change
+      if (updates.content || updates.tags || updates.title !== undefined) {
+        const content = updates.content ?? existing?.content;
+        const tags = updates.tags ?? existing?.tags;
+        const title =
+          updates.title !== undefined ? updates.title : existing?.title;
+        if (content) {
+          try {
+            const text = buildEmbeddingText(content, tags, title);
+            const result = await embeddingService.embedPassage(text);
+            if (result.length > 0) {
+              repoUpdates.embedding = result;
+            }
+          } catch {
+            // Keep existing embedding if regeneration fails
           }
-        } catch {
-          // Keep existing embedding if regeneration fails
         }
       }
 
@@ -219,16 +241,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       );
 
       if (deleted) {
-        const ketoHandle = await DBOS.startWorkflow(
-          ketoWorkflows.removeEntryRelations,
-        )(id);
         try {
-          await ketoHandle.getResult();
+          await relationshipWriter.removeEntryRelations(id);
         } catch (err) {
-          console.error(
-            'Keto removeEntryRelations workflow failed after commit',
-            err,
-          );
+          console.error('Keto removeEntryRelations failed after commit', err);
         }
       }
       return deleted;
@@ -248,14 +264,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       );
 
       if (shared) {
-        const ketoHandle = await DBOS.startWorkflow(ketoWorkflows.grantViewer)(
-          entryId,
-          sharedWith,
-        );
         try {
-          await ketoHandle.getResult();
+          await relationshipWriter.grantViewer(entryId, sharedWith);
         } catch (err) {
-          console.error('Keto grantViewer workflow failed after commit', err);
+          console.error('Keto grantViewer failed after commit', err);
         }
       }
       return shared;

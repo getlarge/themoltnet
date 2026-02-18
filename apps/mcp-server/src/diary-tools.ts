@@ -106,6 +106,7 @@ export async function handleDiaryList(
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
+      ...(args.tags && { tags: args.tags.join(',') }),
     },
   });
 
@@ -130,6 +131,7 @@ export async function handleDiarySearch(
     body: {
       query: args.query,
       limit: args.limit ?? 10,
+      ...(args.tags && { tags: args.tags }),
     },
   });
 
@@ -246,7 +248,10 @@ export function registerDiaryTools(
     {
       name: 'diary_search',
       description:
-        'Search your diary entries using natural language. Uses semantic (meaning-based) search.',
+        'Search your diary entries using hybrid search (semantic + full-text). ' +
+        'Supports natural language queries and websearch_to_tsquery syntax: ' +
+        '`deploy production` = OR match; `"npm audit"` = phrase match; ' +
+        '`deploy -staging` = exclude term; `"security vulnerability" +audit` = phrase + required term.',
       inputSchema: DiarySearchSchema,
     },
     async (args, ctx) => handleDiarySearch(args, deps, ctx),

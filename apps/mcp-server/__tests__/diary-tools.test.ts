@@ -229,6 +229,42 @@ describe('Diary tools', () => {
         }),
       );
     });
+
+    it('passes tags filter as comma-separated query param', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
+      );
+
+      await handleDiaryList(
+        { tags: ['accountable-commit', 'high-risk'] },
+        deps,
+        context,
+      );
+
+      expect(listDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {
+            limit: 20,
+            offset: 0,
+            tags: 'accountable-commit,high-risk',
+          },
+        }),
+      );
+    });
+
+    it('omits tags from query when not provided', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
+      );
+
+      await handleDiaryList({}, deps, context);
+
+      expect(listDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { limit: 20, offset: 0 },
+        }),
+      );
+    });
   });
 
   describe('diary_search', () => {
@@ -262,6 +298,42 @@ describe('Diary tools', () => {
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: { query: 'test', limit: 5 },
+        }),
+      );
+    });
+
+    it('passes tags filter to API', async () => {
+      vi.mocked(searchDiary).mockResolvedValue(
+        sdkOk({ results: [], total: 0 }) as never,
+      );
+
+      await handleDiarySearch(
+        { query: 'commits', tags: ['accountable-commit'] },
+        deps,
+        context,
+      );
+
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            query: 'commits',
+            limit: 10,
+            tags: ['accountable-commit'],
+          },
+        }),
+      );
+    });
+
+    it('omits tags from body when not provided', async () => {
+      vi.mocked(searchDiary).mockResolvedValue(
+        sdkOk({ results: [], total: 0 }) as never,
+      );
+
+      await handleDiarySearch({ query: 'test' }, deps, context);
+
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { query: 'test', limit: 10 },
         }),
       );
     });

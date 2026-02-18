@@ -1,127 +1,254 @@
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  getConfigDir,
-  getCredentialsPath,
-  readCredentials,
-  writeCredentials,
-} from '../src/credentials.js';
-import type { RegisterResult } from '../src/register.js';
+import type { MoltNetConfig } from '../src/credentials.js';
 
-vi.mock('node:fs/promises', () => ({
-  mkdir: vi.fn().mockResolvedValue(undefined),
-  writeFile: vi.fn().mockResolvedValue(undefined),
-  readFile: vi.fn(),
-  chmod: vi.fn().mockResolvedValue(undefined),
-  stat: vi.fn(),
-}));
-
-afterEach(() => {
-  vi.clearAllMocks();
+// Mock homedir so getConfigDir() uses our temp dir.
+vi.mock('node:os', async (importOriginal) => {
+  const original = (await importOriginal()) as Record<string, unknown> & {
+    homedir: () => string;
+  };
+  return {
+    ...original,
+    homedir: vi.fn(() => original.homedir()),
+  };
 });
 
-const mockResult: RegisterResult = {
-  identity: {
-    publicKey: 'ed25519:dGVzdA==',
-    privateKey: 'cHJpdmF0ZQ==',
-    fingerprint: 'ABCD-1234-EF56-7890',
-    identityId: 'uuid-123',
-  },
-  credentials: {
-    clientId: 'client-id',
-    clientSecret: 'client-secret',
-  },
-  mcpConfig: {
-    mcpServers: {
-      moltnet: {
-        type: 'http',
-        url: 'https://api.themolt.net/mcp',
-        headers: {
-          'X-Client-Id': 'client-id',
-          'X-Client-Secret': 'client-secret',
-        },
-      },
+import { homedir } from 'node:os';
+
+const mockedHomedir = vi.mocked(homedir);
+
+describe('credentials / config', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'moltnet-test-'));
+    mockedHomedir.mockReturnValue(tempDir);
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  function configDir(): string {
+    return join(tempDir, '.config', 'moltnet');
+  }
+
+  const sampleConfig: MoltNetConfig = {
+    identity_id: 'uuid-123',
+    registered_at: '2026-01-01T00:00:00.000Z',
+    oauth2: {
+      client_id: 'client-id',
+      client_secret: 'client-secret',
     },
-  },
-  apiUrl: 'https://api.themolt.net',
-};
+    keys: {
+      public_key: 'ed25519:dGVzdA==',
+      private_key: 'cHJpdmF0ZQ==',
+      fingerprint: 'ABCD-1234-EF56-7890',
+    },
+    endpoints: {
+      api: 'https://api.themolt.net',
+      mcp: 'https://api.themolt.net/mcp',
+    },
+  };
 
-describe('getConfigDir', () => {
-  it('should return ~/.config/moltnet', () => {
-    expect(getConfigDir()).toBe(join(homedir(), '.config', 'moltnet'));
-  });
-});
-
-describe('getCredentialsPath', () => {
-  it('should return ~/.config/moltnet/credentials.json', () => {
-    expect(getCredentialsPath()).toBe(
-      join(homedir(), '.config', 'moltnet', 'credentials.json'),
-    );
-  });
-});
-
-describe('writeCredentials', () => {
-  it('should create directory and write credentials file', async () => {
-    const path = await writeCredentials(mockResult);
-
-    expect(mkdir).toHaveBeenCalledWith(getConfigDir(), { recursive: true });
-    expect(writeFile).toHaveBeenCalledWith(
-      getCredentialsPath(),
-      expect.stringContaining('"identity_id": "uuid-123"'),
-      { mode: 0o600 },
-    );
-    expect(chmod).toHaveBeenCalledWith(getCredentialsPath(), 0o600);
-    expect(path).toBe(getCredentialsPath());
+  describe('getConfigPath', () => {
+    it('returns path ending in moltnet.json', async () => {
+      const { getConfigPath } = await import('../src/credentials.js');
+      const p = getConfigPath();
+      expect(p).toMatch(/moltnet\.json$/);
+      expect(p).toBe(join(configDir(), 'moltnet.json'));
+    });
   });
 
-  it('should include all required fields in the output', async () => {
-    await writeCredentials(mockResult);
+  describe('readConfig', () => {
+    it('reads moltnet.json when it exists', async () => {
+      // Arrange
+      const dir = configDir();
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(dir, 'moltnet.json'),
+        JSON.stringify(sampleConfig, null, 2),
+      );
 
-    const writtenContent = vi.mocked(writeFile).mock.calls[0]![1] as string;
-    const parsed = JSON.parse(writtenContent);
+      // Act
+      const { readConfig } = await import('../src/credentials.js');
+      const result = await readConfig();
 
-    expect(parsed.identity_id).toBe('uuid-123');
-    expect(parsed.oauth2.client_id).toBe('client-id');
-    expect(parsed.oauth2.client_secret).toBe('client-secret');
-    expect(parsed.keys.public_key).toBe('ed25519:dGVzdA==');
-    expect(parsed.keys.private_key).toBe('cHJpdmF0ZQ==');
-    expect(parsed.keys.fingerprint).toBe('ABCD-1234-EF56-7890');
-    expect(parsed.endpoints.api).toBe('https://api.themolt.net');
-    expect(parsed.endpoints.mcp).toBe('https://api.themolt.net/mcp');
-    expect(parsed.registered_at).toBeDefined();
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result!.identity_id).toBe('uuid-123');
+      expect(result!.oauth2.client_id).toBe('client-id');
+    });
+
+    it('falls back to credentials.json when moltnet.json absent, emits deprecation warning', async () => {
+      // Arrange
+      const dir = configDir();
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(dir, 'credentials.json'),
+        JSON.stringify(sampleConfig, null, 2),
+      );
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      // Act
+      const { readConfig } = await import('../src/credentials.js');
+      const result = await readConfig();
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result!.identity_id).toBe('uuid-123');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('credentials.json'),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('deprecated'),
+      );
+    });
+
+    it('prefers moltnet.json when both exist', async () => {
+      // Arrange
+      const dir = configDir();
+      await mkdir(dir, { recursive: true });
+
+      const oldConfig = { ...sampleConfig, identity_id: 'old-uuid' };
+      const newConfig = { ...sampleConfig, identity_id: 'new-uuid' };
+
+      await writeFile(
+        join(dir, 'credentials.json'),
+        JSON.stringify(oldConfig, null, 2),
+      );
+      await writeFile(
+        join(dir, 'moltnet.json'),
+        JSON.stringify(newConfig, null, 2),
+      );
+
+      // Act
+      const { readConfig } = await import('../src/credentials.js');
+      const result = await readConfig();
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result!.identity_id).toBe('new-uuid');
+    });
+
+    it('returns null when neither file exists', async () => {
+      const { readConfig } = await import('../src/credentials.js');
+      const result = await readConfig();
+      expect(result).toBeNull();
+    });
   });
-});
 
-describe('readCredentials', () => {
-  it('should return parsed credentials when file exists', async () => {
-    const mockCreds = {
-      identity_id: 'uuid-123',
-      oauth2: { client_id: 'c', client_secret: 's' },
-      keys: {
-        public_key: 'ed25519:x',
-        private_key: 'y',
-        fingerprint: 'A-B-C-D',
-      },
-      endpoints: {
-        api: 'https://api.themolt.net',
-        mcp: 'https://api.themolt.net/mcp',
-      },
-      registered_at: '2025-01-01T00:00:00.000Z',
-    };
-    vi.mocked(readFile).mockResolvedValue(JSON.stringify(mockCreds));
+  describe('writeConfig', () => {
+    it('always writes to moltnet.json', async () => {
+      // Arrange & Act
+      const { writeConfig } = await import('../src/credentials.js');
+      const path = await writeConfig(sampleConfig);
 
-    const result = await readCredentials();
-    expect(result).toEqual(mockCreds);
+      // Assert
+      expect(path).toBe(join(configDir(), 'moltnet.json'));
+      const content = await readFile(path, 'utf-8');
+      const parsed = JSON.parse(content);
+      expect(parsed.identity_id).toBe('uuid-123');
+    });
+
+    it('sets file permissions to 0o600', async () => {
+      const { writeConfig } = await import('../src/credentials.js');
+      const path = await writeConfig(sampleConfig);
+
+      const info = await stat(path);
+      expect(info.mode & 0o777).toBe(0o600);
+    });
   });
 
-  it('should return null when file does not exist', async () => {
-    vi.mocked(readFile).mockRejectedValue(new Error('ENOENT: no such file'));
+  describe('optional sections round-trip', () => {
+    it('ssh, git, github sections round-trip correctly', async () => {
+      // Arrange
+      const configWithSections: MoltNetConfig = {
+        ...sampleConfig,
+        ssh: {
+          private_key_path: '/home/agent/.config/moltnet/ssh/id_ed25519',
+          public_key_path: '/home/agent/.config/moltnet/ssh/id_ed25519.pub',
+        },
+        git: {
+          name: 'agent-001',
+          email: 'agent-001@themolt.net',
+          signing: true,
+          config_path: '/home/agent/.gitconfig',
+        },
+        github: {
+          app_id: 'app-123',
+          installation_id: 'install-456',
+          private_key_path: '/home/agent/.config/moltnet/github/key.pem',
+        },
+      };
 
-    const result = await readCredentials();
-    expect(result).toBeNull();
+      // Act
+      const { writeConfig, readConfig } = await import('../src/credentials.js');
+      await writeConfig(configWithSections);
+      const result = await readConfig();
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result!.ssh).toEqual(configWithSections.ssh);
+      expect(result!.git).toEqual(configWithSections.git);
+      expect(result!.github).toEqual(configWithSections.github);
+    });
+  });
+
+  describe('updateConfigSection', () => {
+    it('merges into existing config', async () => {
+      // Arrange
+      const { writeConfig, updateConfigSection, readConfig } =
+        await import('../src/credentials.js');
+      await writeConfig(sampleConfig);
+
+      // Act
+      await updateConfigSection('ssh', {
+        private_key_path: '/path/to/priv',
+        public_key_path: '/path/to/pub',
+      });
+
+      // Assert
+      const result = await readConfig();
+      expect(result).not.toBeNull();
+      expect(result!.ssh).toEqual({
+        private_key_path: '/path/to/priv',
+        public_key_path: '/path/to/pub',
+      });
+      // Original fields preserved
+      expect(result!.identity_id).toBe('uuid-123');
+    });
+  });
+
+  describe('backwards compatibility', () => {
+    it('readCredentials still works as alias', async () => {
+      // Arrange
+      const dir = configDir();
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(dir, 'moltnet.json'),
+        JSON.stringify(sampleConfig, null, 2),
+      );
+
+      // Act
+      const { readCredentials } = await import('../src/credentials.js');
+      const result = await readCredentials();
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result!.identity_id).toBe('uuid-123');
+    });
+
+    it('getCredentialsPath returns path ending in moltnet.json', async () => {
+      const { getCredentialsPath } = await import('../src/credentials.js');
+      const p = getCredentialsPath();
+      expect(p).toMatch(/moltnet\.json$/);
+    });
   });
 });
