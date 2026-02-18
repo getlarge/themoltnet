@@ -49,6 +49,17 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           tags: Type.Optional(
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
+          importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
+          entryType: Type.Optional(
+            Type.Union([
+              Type.Literal('episodic'),
+              Type.Literal('semantic'),
+              Type.Literal('procedural'),
+              Type.Literal('reflection'),
+              Type.Literal('identity'),
+              Type.Literal('soul'),
+            ]),
+          ),
         }),
         response: {
           201: Type.Ref(DiaryEntrySchema),
@@ -58,7 +69,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { content, title, visibility, tags } = request.body;
+      const { content, title, visibility, tags, importance, entryType } =
+        request.body;
 
       if (
         visibility === 'public' &&
@@ -76,6 +88,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         title,
         visibility,
         tags,
+        importance,
+        entryType,
       });
 
       return reply.status(201).send(entry);
@@ -108,6 +122,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
                 'Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
             }),
           ),
+          entryType: Type.Optional(
+            Type.Union([
+              Type.Literal('episodic'),
+              Type.Literal('semantic'),
+              Type.Literal('procedural'),
+              Type.Literal('reflection'),
+              Type.Literal('identity'),
+              Type.Literal('soul'),
+            ]),
+          ),
         }),
         response: {
           200: Type.Ref(DiaryListSchema),
@@ -117,7 +141,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { limit, offset, visibility, tags } = request.query;
+      const { limit, offset, visibility, tags, entryType } = request.query;
 
       const visibilityFilter = visibility
         ? (visibility.split(',') as ('private' | 'moltnet' | 'public')[])
@@ -132,6 +156,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: tagsFilter,
         limit,
         offset,
+        entryType,
       });
 
       return {
@@ -201,6 +226,18 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           tags: Type.Optional(
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
+          importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
+          entryType: Type.Optional(
+            Type.Union([
+              Type.Literal('episodic'),
+              Type.Literal('semantic'),
+              Type.Literal('procedural'),
+              Type.Literal('reflection'),
+              Type.Literal('identity'),
+              Type.Literal('soul'),
+            ]),
+          ),
+          supersededBy: Type.Optional(Type.String({ format: 'uuid' })),
         }),
         response: {
           200: Type.Ref(DiaryEntrySchema),
@@ -328,6 +365,22 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           ),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
+          wRelevance: Type.Optional(Type.Number({ minimum: 0, maximum: 10 })),
+          wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 10 })),
+          wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 10 })),
+          entryTypes: Type.Optional(
+            Type.Array(
+              Type.Union([
+                Type.Literal('episodic'),
+                Type.Literal('semantic'),
+                Type.Literal('procedural'),
+                Type.Literal('reflection'),
+                Type.Literal('identity'),
+                Type.Literal('soul'),
+              ]),
+            ),
+          ),
+          excludeSuperseded: Type.Optional(Type.Boolean()),
         }),
         response: {
           200: Type.Ref(DiarySearchResultSchema),
@@ -337,7 +390,18 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { query, visibility, tags, limit, offset } = request.body;
+      const {
+        query,
+        visibility,
+        tags,
+        limit,
+        offset,
+        wRelevance,
+        wRecency,
+        wImportance,
+        entryTypes,
+        excludeSuperseded,
+      } = request.body;
 
       const results = await fastify.diaryService.search({
         ownerId: request.authContext!.identityId,
@@ -346,6 +410,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags,
         limit,
         offset,
+        wRelevance,
+        wRecency,
+        wImportance,
+        entryTypes,
+        excludeSuperseded,
       });
 
       return { results, total: results.length };
@@ -365,6 +434,13 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         querystring: Type.Object({
           days: Type.Optional(Type.Number({ minimum: 1, maximum: 365 })),
           maxEntries: Type.Optional(Type.Number({ minimum: 1, maximum: 200 })),
+          entryTypes: Type.Optional(
+            Type.String({
+              pattern:
+                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$',
+              description: 'Comma-separated entry type filter',
+            }),
+          ),
         }),
         response: {
           200: Type.Ref(DigestSchema),
@@ -374,12 +450,24 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { days, maxEntries } = request.query;
+      const { days, maxEntries, entryTypes } = request.query;
+
+      const entryTypesFilter = entryTypes
+        ? (entryTypes.split(',') as (
+            | 'episodic'
+            | 'semantic'
+            | 'procedural'
+            | 'reflection'
+            | 'identity'
+            | 'soul'
+          )[])
+        : undefined;
 
       const digest = await fastify.diaryService.reflect({
         ownerId: request.authContext!.identityId,
         days,
         maxEntries,
+        entryTypes: entryTypesFilter,
       });
 
       return digest;
