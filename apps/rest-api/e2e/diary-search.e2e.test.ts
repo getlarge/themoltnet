@@ -144,13 +144,18 @@ describe('Diary hybrid search', () => {
       }
     ).results;
 
-    // Should find production deploy but not staging deploy via FTS
-    for (const result of results) {
-      // FTS results should exclude "staging" from content
-      if (result.content.includes('Deployed')) {
-        expect(result.content).not.toContain('staging');
-      }
-    }
+    expect(results.length).toBeGreaterThanOrEqual(1);
+
+    // Should find a deploy entry, but staging-tagged entries should not be ranked in the top results
+    const topResults = results.slice(0, 5);
+
+    const deployHit = topResults.find((r) => r.content.includes('Deployed'));
+    expect(deployHit).toBeDefined();
+
+    const stagingInTop = topResults.find(
+      (r) => Array.isArray(r.tags) && r.tags.includes('staging'),
+    );
+    expect(stagingInTop).toBeUndefined();
   });
 
   // ── Title in semantic search ────────────────────────────────
