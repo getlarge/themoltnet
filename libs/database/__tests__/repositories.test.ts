@@ -18,6 +18,12 @@ function createMockDb() {
     offset: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
     set: vi.fn().mockReturnThis(),
+    then: vi
+      .fn()
+      .mockImplementation((resolve?: (v: unknown) => unknown) =>
+        Promise.resolve([]).then(resolve),
+      ),
+    catch: vi.fn().mockReturnThis(),
   };
 
   const db = {
@@ -51,6 +57,12 @@ const mockEntry: DiaryEntry = {
   embedding: null,
   visibility: 'private',
   tags: ['test'],
+  injectionRisk: false,
+  importance: 5,
+  accessCount: 0,
+  lastAccessedAt: null,
+  entryType: 'semantic',
+  supersededBy: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

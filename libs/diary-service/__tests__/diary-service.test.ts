@@ -30,6 +30,11 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     visibility: 'private',
     tags: null,
     injectionRisk: false,
+    importance: 5,
+    accessCount: 0,
+    lastAccessedAt: null,
+    entryType: 'semantic' as const,
+    supersededBy: null,
     createdAt: new Date('2026-01-30T10:00:00Z'),
     updatedAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,
@@ -47,6 +52,7 @@ function createMockDiaryRepository(): {
     update: vi.fn(),
     delete: vi.fn(),
     share: vi.fn(),
+    unshare: vi.fn(),
     getSharedWithMe: vi.fn(),
     getRecentForDigest: vi.fn(),
   };
@@ -227,6 +233,32 @@ describe('DiaryService', () => {
       ]);
     });
 
+    it('creates entry with importance and entryType', async () => {
+      const mockEntry = createMockEntry({
+        importance: 8,
+        entryType: 'identity',
+        embedding: MOCK_EMBEDDING,
+      });
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(mockEntry);
+
+      const result = await service.create({
+        ownerId: OWNER_ID,
+        content: 'I am a creative agent',
+        importance: 8,
+        entryType: 'identity',
+      });
+
+      expect(result.importance).toBe(8);
+      expect(result.entryType).toBe('identity');
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          importance: 8,
+          entryType: 'identity',
+        }),
+      );
+    });
+
     it('logs grantOwnership error but still returns entry', async () => {
       const consoleSpy = vi
         .spyOn(console, 'error')
@@ -333,12 +365,30 @@ describe('DiaryService', () => {
         offset: 5,
       });
 
-      expect(repo.list).toHaveBeenCalledWith({
+      expect(repo.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: OWNER_ID,
+          visibility: ['public', 'moltnet'],
+          limit: 10,
+          offset: 5,
+        }),
+      );
+    });
+
+    it('passes entryType filter to repository', async () => {
+      repo.list.mockResolvedValue([]);
+
+      await service.list({
         ownerId: OWNER_ID,
-        visibility: ['public', 'moltnet'],
-        limit: 10,
-        offset: 5,
+        entryType: 'reflection',
       });
+
+      expect(repo.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: OWNER_ID,
+          entryType: 'reflection',
+        }),
+      );
     });
   });
 
@@ -375,6 +425,31 @@ describe('DiaryService', () => {
       expect(embeddings.embedQuery).not.toHaveBeenCalled();
       expect(repo.search).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: undefined }),
+      );
+    });
+
+    it('passes weighted scoring params to repository', async () => {
+      embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
+      repo.search.mockResolvedValue([]);
+
+      await service.search({
+        ownerId: OWNER_ID,
+        query: 'important memories',
+        wRelevance: 1.0,
+        wRecency: 0.3,
+        wImportance: 0.2,
+        entryTypes: ['identity', 'reflection'],
+        excludeSuperseded: true,
+      });
+
+      expect(repo.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wRelevance: 1.0,
+          wRecency: 0.3,
+          wImportance: 0.2,
+          entryTypes: ['identity', 'reflection'],
+          excludeSuperseded: true,
+        }),
       );
     });
 
@@ -464,6 +539,28 @@ describe('DiaryService', () => {
       await service.update(ENTRY_ID, OWNER_ID, { visibility: 'moltnet' });
 
       expect(embeddings.embedPassage).not.toHaveBeenCalled();
+    });
+
+    it('forwards importance, entryType, and supersededBy to repository', async () => {
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.update.mockResolvedValue(
+        createMockEntry({ importance: 9, entryType: 'soul' }),
+      );
+
+      await service.update(ENTRY_ID, OWNER_ID, {
+        importance: 9,
+        entryType: 'soul',
+        supersededBy: 'some-entry-id',
+      });
+
+      expect(repo.update).toHaveBeenCalledWith(
+        ENTRY_ID,
+        expect.objectContaining({
+          importance: 9,
+          entryType: 'soul',
+          supersededBy: 'some-entry-id',
+        }),
+      );
     });
   });
 
@@ -693,7 +790,12 @@ describe('DiaryService', () => {
         maxEntries: 100,
       });
 
-      expect(repo.getRecentForDigest).toHaveBeenCalledWith(OWNER_ID, 30, 100);
+      expect(repo.getRecentForDigest).toHaveBeenCalledWith(
+        OWNER_ID,
+        30,
+        100,
+        undefined,
+      );
     });
 
     it('returns empty digest when no entries', async () => {
@@ -703,6 +805,57 @@ describe('DiaryService', () => {
 
       expect(result.entries).toHaveLength(0);
       expect(result.totalEntries).toBe(0);
+    });
+
+    it('passes entryTypes filter to repository', async () => {
+      repo.getRecentForDigest.mockResolvedValue([]);
+
+      await service.reflect({
+        ownerId: OWNER_ID,
+        entryTypes: ['identity', 'soul'],
+      });
+
+      expect(repo.getRecentForDigest).toHaveBeenCalledWith(OWNER_ID, 7, 50, [
+        'identity',
+        'soul',
+      ]);
+    });
+
+    it('excludes superseded entries from digest', async () => {
+      const entries = [
+        createMockEntry({
+          id: 'active-entry',
+          content: 'Current knowledge',
+          supersededBy: null,
+        }),
+        createMockEntry({
+          id: 'old-entry',
+          content: 'Outdated knowledge',
+          supersededBy: 'active-entry',
+        }),
+      ];
+      repo.getRecentForDigest.mockResolvedValue(entries);
+
+      const result = await service.reflect({ ownerId: OWNER_ID });
+
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].id).toBe('active-entry');
+      expect(result.totalEntries).toBe(1);
+    });
+
+    it('includes importance and entryType in digest entries', async () => {
+      const entries = [
+        createMockEntry({
+          importance: 8,
+          entryType: 'identity',
+        }),
+      ];
+      repo.getRecentForDigest.mockResolvedValue(entries);
+
+      const result = await service.reflect({ ownerId: OWNER_ID });
+
+      expect(result.entries[0].importance).toBe(8);
+      expect(result.entries[0].entryType).toBe('identity');
     });
   });
 });
