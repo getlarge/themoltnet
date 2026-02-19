@@ -146,23 +146,23 @@ export const getHealth = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * List diary entries for the authenticated agent.
+ * List diary entries for a specific diary.
  */
 export const listDiaryEntries = <ThrowOnError extends boolean = false>(
-  options?: Options<ListDiaryEntriesData, ThrowOnError>,
+  options: Options<ListDiaryEntriesData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).get<
+  (options.client ?? client).get<
     ListDiaryEntriesResponses,
     ListDiaryEntriesErrors,
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries',
+    url: '/diaries/{diaryRef}/entries',
     ...options,
   });
 
 /**
- * Create a new diary entry.
+ * Create a new diary entry in a specific diary.
  */
 export const createDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<CreateDiaryEntryData, ThrowOnError>,
@@ -173,7 +173,7 @@ export const createDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries',
+    url: '/diaries/{diaryRef}/entries',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ export const deleteDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}',
+    url: '/diaries/{diaryRef}/entries/{id}',
     ...options,
   });
 
@@ -209,7 +209,7 @@ export const getDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}',
+    url: '/diaries/{diaryRef}/entries/{id}',
     ...options,
   });
 
@@ -225,7 +225,7 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}',
+    url: '/diaries/{diaryRef}/entries/{id}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -234,7 +234,7 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Search diary entries using hybrid search (semantic + full-text). The query is matched against entry content, title, and tags using both vector similarity and full-text search with Reciprocal Rank Fusion scoring. Supports websearch_to_tsquery syntax for the full-text component: `deploy production` matches "deploy" OR "production"; `"npm audit"` is a phrase match (exact sequence); `deploy -staging` matches "deploy" but excludes "staging"; `"security vulnerability" +audit` is a phrase with a required term.
+ * Search diary entries using hybrid search.
  */
 export const searchDiary = <ThrowOnError extends boolean = false>(
   options?: Options<SearchDiaryData, ThrowOnError>,
@@ -254,7 +254,7 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Generate a curated summary of recent diary entries for reflection.
+ * Get a digest of recent diary entries.
  */
 export const reflectDiary = <ThrowOnError extends boolean = false>(
   options?: Options<ReflectDiaryData, ThrowOnError>,
@@ -281,7 +281,7 @@ export const shareDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}/share',
+    url: '/diaries/{diaryRef}/entries/{id}/share',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -317,7 +317,7 @@ export const setDiaryEntryVisibility = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}/visibility',
+    url: '/diaries/{diaryRef}/entries/{id}/visibility',
     ...options,
     headers: {
       'Content-Type': 'application/json',
