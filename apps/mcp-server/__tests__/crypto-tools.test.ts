@@ -63,10 +63,8 @@ describe('Crypto tools', () => {
       expect(parsed).toHaveProperty('request_id', 'req-123');
       expect(parsed).toHaveProperty('message', 'Hello, world!');
       expect(parsed).toHaveProperty('nonce', 'nonce-abc');
-      expect(parsed).toHaveProperty(
-        'signing_payload',
-        'Hello, world!.nonce-abc',
-      );
+      expect(parsed).toHaveProperty('next_step');
+      expect(parsed).not.toHaveProperty('signing_payload');
       expect(parsed).toHaveProperty('status', 'pending');
     });
 

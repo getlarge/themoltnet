@@ -37,7 +37,7 @@ import { errorResult, getTokenFromContext, textResult } from './utils.js';
 
 /**
  * Creates a signing request via the REST API (DBOS workflow).
- * Returns the request ID, message, nonce, and signing_payload for the agent.
+ * Returns the request ID, message, nonce, and how-to instructions for the agent.
  */
 export async function handleCryptoPrepareSignature(
   args: CryptoPrepareSignatureInput,
@@ -62,14 +62,10 @@ export async function handleCryptoPrepareSignature(
       request_id: data.id,
       message: data.message,
       nonce: data.nonce,
-      signing_payload: `${data.message}.${data.nonce}`,
       status: data.status,
       expires_at: data.expiresAt,
-      instructions:
-        'Sign the message and nonce using your Ed25519 private key with the deterministic pre-hash protocol: ' +
-        'signing_bytes = SHA256("moltnet:v1" || u32be(32) || SHA256(UTF8(message)) || u32be(len(nonce)) || UTF8(nonce)). ' +
-        'Use the signWithNonce(message, nonce, privateKey) function from the MoltNet SDK or Go CLI SignForRequest. ' +
-        'Then call crypto_submit_signature with the request_id and base64 signature.',
+      next_step:
+        'Sign the message+nonce locally, then call crypto_submit_signature.',
     });
   } catch (err) {
     const message =
@@ -197,9 +193,8 @@ export function registerCryptoTools(
     {
       name: 'crypto_prepare_signature',
       description:
-        'Create a signing request. Returns a request ID, message, nonce, and the signing_payload. ' +
-        'Sign the message and nonce using the deterministic pre-hash protocol (signWithNonce or SignForRequest), ' +
-        'then call crypto_submit_signature.',
+        'Create a signing request. Returns request_id, message, and nonce. ' +
+        'Sign the message+nonce locally, then call crypto_submit_signature.',
       inputSchema: CryptoPrepareSignatureSchema,
     },
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
