@@ -36,6 +36,7 @@ import type {
   AgentRepository,
   CryptoService,
   DataSource,
+  DiaryCatalogRepository,
   DiaryRepository,
   DiaryService,
   EmbeddingService,
@@ -69,6 +70,7 @@ export interface SecurityOptions {
 export interface AppOptions {
   diaryService: DiaryService;
   embeddingService: EmbeddingService;
+  diaryCatalogRepository: DiaryCatalogRepository;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
@@ -176,6 +178,7 @@ export async function registerApiRoutes(
   };
   decorateSafe('diaryService', options.diaryService);
   decorateSafe('embeddingService', options.embeddingService);
+  decorateSafe('diaryCatalogRepository', options.diaryCatalogRepository);
   decorateSafe('diaryRepository', options.diaryRepository);
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);

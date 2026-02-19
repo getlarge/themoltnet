@@ -14,38 +14,64 @@ import {
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,
-  EntryParamsSchema,
   MAX_PUBLIC_CONTENT_LENGTH,
   SharedEntriesSchema,
   ShareResultSchema,
   SuccessSchema,
 } from '../schemas.js';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const DiaryRefParamsSchema = Type.Object({
+  diaryRef: Type.String({ minLength: 1, maxLength: 100 }),
+});
+
+const DiaryEntryParamsSchema = Type.Object({
+  diaryRef: Type.String({ minLength: 1, maxLength: 100 }),
+  id: Type.String({ format: 'uuid' }),
+});
+
 export async function diaryRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+
+  async function resolveDiary(diaryRef: string, ownerId: string) {
+    if (UUID_RE.test(diaryRef)) {
+      const byId = await fastify.diaryCatalogRepository.findOwnedById(
+        ownerId,
+        diaryRef,
+      );
+      if (byId) return byId;
+    }
+
+    const byKey = await fastify.diaryCatalogRepository.findOwnedByKey(
+      ownerId,
+      diaryRef,
+    );
+
+    if (!byKey) {
+      throw createProblem('not-found', 'Diary not found');
+    }
+
+    return byKey;
+  }
 
   // All diary routes require authentication
   server.addHook('preHandler', requireAuth);
 
   // ── Create Entry ───────────────────────────────────────────
   server.post(
-    '/diary/entries',
+    '/diaries/:diaryRef/entries',
     {
       schema: {
         operationId: 'createDiaryEntry',
         tags: ['diary'],
-        description: 'Create a new diary entry.',
+        description: 'Create a new diary entry in a specific diary.',
         security: [{ bearerAuth: [] }],
+        params: DiaryRefParamsSchema,
         body: Type.Object({
           content: Type.String({ minLength: 1, maxLength: 100000 }),
           title: Type.Optional(Type.String({ maxLength: 255 })),
-          visibility: Type.Optional(
-            Type.Union([
-              Type.Literal('private'),
-              Type.Literal('moltnet'),
-              Type.Literal('public'),
-            ]),
-          ),
           tags: Type.Optional(
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
@@ -64,16 +90,22 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         response: {
           201: Type.Ref(DiaryEntrySchema),
           401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
     async (request, reply) => {
-      const { content, title, visibility, tags, importance, entryType } =
-        request.body;
+      const { diaryRef } = request.params;
+      const { content, title, tags, importance, entryType } = request.body;
+
+      const diary = await resolveDiary(
+        diaryRef,
+        request.authContext!.identityId,
+      );
 
       if (
-        visibility === 'public' &&
+        diary.visibility === 'public' &&
         content.length > MAX_PUBLIC_CONTENT_LENGTH
       ) {
         throw createProblem(
@@ -84,9 +116,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const entry = await fastify.diaryService.create({
         ownerId: request.authContext!.identityId,
+        diaryId: diary.id,
+        diaryVisibility: diary.visibility,
         content,
         title,
-        visibility,
         tags,
         importance,
         entryType,
@@ -98,13 +131,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── List Entries ───────────────────────────────────────────
   server.get(
-    '/diary/entries',
+    '/diaries/:diaryRef/entries',
     {
       schema: {
         operationId: 'listDiaryEntries',
         tags: ['diary'],
-        description: 'List diary entries for the authenticated agent.',
+        description: 'List diary entries for a specific diary.',
         security: [{ bearerAuth: [] }],
+        params: DiaryRefParamsSchema,
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
@@ -136,12 +170,18 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         response: {
           200: Type.Ref(DiaryListSchema),
           401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
     async (request) => {
+      const { diaryRef } = request.params;
       const { limit, offset, visibility, tags, entryType } = request.query;
+      const diary = await resolveDiary(
+        diaryRef,
+        request.authContext!.identityId,
+      );
 
       const visibilityFilter = visibility
         ? (visibility.split(',') as ('private' | 'moltnet' | 'public')[])
@@ -152,6 +192,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const entries = await fastify.diaryService.list({
         ownerId: request.authContext!.identityId,
+        diaryId: diary.id,
         visibility: visibilityFilter,
         tags: tagsFilter,
         limit,
@@ -170,14 +211,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Get Entry ──────────────────────────────────────────────
   server.get(
-    '/diary/entries/:id',
+    '/diaries/:diaryRef/entries/:id',
     {
       schema: {
         operationId: 'getDiaryEntry',
         tags: ['diary'],
         description: 'Get a single diary entry by ID.',
         security: [{ bearerAuth: [] }],
-        params: EntryParamsSchema,
+        params: DiaryEntryParamsSchema,
         response: {
           200: Type.Ref(DiaryEntrySchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -187,13 +228,18 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params;
+      const { diaryRef, id } = request.params;
+      const diary = await resolveDiary(
+        diaryRef,
+        request.authContext!.identityId,
+      );
+
       const entry = await fastify.diaryService.getById(
         id,
         request.authContext!.identityId,
       );
 
-      if (!entry) {
+      if (!entry || entry.diaryId !== diary.id) {
         throw createProblem('not-found', 'Entry not found');
       }
 
@@ -203,14 +249,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Update Entry ───────────────────────────────────────────
   server.patch(
-    '/diary/entries/:id',
+    '/diaries/:diaryRef/entries/:id',
     {
       schema: {
         operationId: 'updateDiaryEntry',
         tags: ['diary'],
         description: 'Update a diary entry (content, title, visibility, tags).',
         security: [{ bearerAuth: [] }],
-        params: EntryParamsSchema,
+        params: DiaryEntryParamsSchema,
         body: Type.Object({
           title: Type.Optional(Type.String({ maxLength: 255 })),
           content: Type.Optional(
@@ -248,24 +294,20 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params;
+      const { diaryRef, id } = request.params;
+      const diary = await resolveDiary(
+        diaryRef,
+        request.authContext!.identityId,
+      );
       const updates = request.body;
 
-      // Enforce public content length limit — check both explicit visibility
-      // change and existing public entries getting content updates
       if (
         updates.content &&
         updates.content.length > MAX_PUBLIC_CONTENT_LENGTH
       ) {
         const willBePublic =
           updates.visibility === 'public' ||
-          (updates.visibility === undefined &&
-            (
-              await fastify.diaryService.getById(
-                id,
-                request.authContext!.identityId,
-              )
-            )?.visibility === 'public');
+          (updates.visibility === undefined && diary.visibility === 'public');
 
         if (willBePublic) {
           throw createProblem(
@@ -275,13 +317,20 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }
       }
 
+      const existing = await fastify.diaryService.getById(
+        id,
+        request.authContext!.identityId,
+      );
+      if (!existing || existing.diaryId !== diary.id) {
+        throw createProblem('not-found', 'Entry not found');
+      }
+
       const entry = await fastify.diaryService.update(
         id,
         request.authContext!.identityId,
         updates,
       );
 
-      // 404 for denied access is intentional (prevents entry enumeration)
       if (!entry) {
         throw createProblem('not-found', 'Entry not found');
       }
@@ -292,14 +341,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Delete Entry ───────────────────────────────────────────
   server.delete(
-    '/diary/entries/:id',
+    '/diaries/:diaryRef/entries/:id',
     {
       schema: {
         operationId: 'deleteDiaryEntry',
         tags: ['diary'],
         description: 'Delete a diary entry.',
         security: [{ bearerAuth: [] }],
-        params: EntryParamsSchema,
+        params: DiaryEntryParamsSchema,
         response: {
           200: Type.Ref(SuccessSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -309,13 +358,24 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params;
+      const { diaryRef, id } = request.params;
+      const diary = await resolveDiary(
+        diaryRef,
+        request.authContext!.identityId,
+      );
+      const existing = await fastify.diaryService.getById(
+        id,
+        request.authContext!.identityId,
+      );
+      if (!existing || existing.diaryId !== diary.id) {
+        throw createProblem('not-found', 'Entry not found');
+      }
+
       const deleted = await fastify.diaryService.delete(
         id,
         request.authContext!.identityId,
       );
 
-      // 404 for denied access is intentional (prevents entry enumeration)
       if (!deleted) {
         throw createProblem('not-found', 'Entry not found');
       }
@@ -328,22 +388,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   server.post(
     '/diary/search',
     {
-      // Apply stricter rate limit for embedding-based search
-      config: {
-        rateLimit: fastify.rateLimitConfig?.embedding,
-      },
+      config: { rateLimit: fastify.rateLimitConfig?.embedding },
       schema: {
         operationId: 'searchDiary',
         tags: ['diary'],
-        description:
-          'Search diary entries using hybrid search (semantic + full-text). ' +
-          'The query is matched against entry content, title, and tags using both ' +
-          'vector similarity and full-text search with Reciprocal Rank Fusion scoring. ' +
-          'Supports websearch_to_tsquery syntax for the full-text component: ' +
-          '`deploy production` matches "deploy" OR "production"; ' +
-          '`"npm audit"` is a phrase match (exact sequence); ' +
-          '`deploy -staging` matches "deploy" but excludes "staging"; ' +
-          '`"security vulnerability" +audit` is a phrase with a required term.',
+        description: 'Search diary entries using hybrid search.',
         security: [{ bearerAuth: [] }],
         body: Type.Object({
           query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
@@ -357,17 +406,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
             ),
           ),
           tags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), {
+            Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
               minItems: 1,
               maxItems: 20,
-              description: 'Filter: entry must have ALL specified tags',
             }),
           ),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
-          wRelevance: Type.Optional(Type.Number({ minimum: 0, maximum: 10 })),
-          wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 10 })),
-          wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 10 })),
+          wRelevance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+          wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+          wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           entryTypes: Type.Optional(
             Type.Array(
               Type.Union([
@@ -378,6 +426,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
                 Type.Literal('identity'),
                 Type.Literal('soul'),
               ]),
+              { minItems: 1, maxItems: 6 },
             ),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),
@@ -417,7 +466,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         excludeSuperseded,
       });
 
-      return { results, total: results.length };
+      return {
+        results,
+        total: results.length,
+      };
     },
   );
 
@@ -428,8 +480,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'reflectDiary',
         tags: ['diary'],
-        description:
-          'Generate a curated summary of recent diary entries for reflection.',
+        description: 'Get a digest of recent diary entries.',
         security: [{ bearerAuth: [] }],
         querystring: Type.Object({
           days: Type.Optional(Type.Number({ minimum: 1, maximum: 365 })),
@@ -463,27 +514,25 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           )[])
         : undefined;
 
-      const digest = await fastify.diaryService.reflect({
+      return fastify.diaryService.reflect({
         ownerId: request.authContext!.identityId,
         days,
         maxEntries,
         entryTypes: entryTypesFilter,
       });
-
-      return digest;
     },
   );
 
   // ── Share Entry ────────────────────────────────────────────
   server.post(
-    '/diary/entries/:id/share',
+    '/diaries/:diaryRef/entries/:id/share',
     {
       schema: {
         operationId: 'shareDiaryEntry',
         tags: ['diary'],
         description: 'Share a diary entry with another MoltNet agent.',
         security: [{ bearerAuth: [] }],
-        params: EntryParamsSchema,
+        params: DiaryEntryParamsSchema,
         body: Type.Object({
           sharedWith: Type.String({
             pattern:
@@ -501,9 +550,20 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params;
-      const normalizedFingerprint = request.body.sharedWith.toUpperCase();
+      const { diaryRef, id } = request.params;
+      const diary = await resolveDiary(
+        diaryRef,
+        request.authContext!.identityId,
+      );
+      const existing = await fastify.diaryService.getById(
+        id,
+        request.authContext!.identityId,
+      );
+      if (!existing || existing.diaryId !== diary.id) {
+        throw createProblem('not-found', 'Entry not found');
+      }
 
+      const normalizedFingerprint = request.body.sharedWith.toUpperCase();
       const targetAgent = await fastify.agentRepository.findByFingerprint(
         normalizedFingerprint,
       );
@@ -561,14 +621,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Update Visibility ──────────────────────────────────────
   server.patch(
-    '/diary/entries/:id/visibility',
+    '/diaries/:diaryRef/entries/:id/visibility',
     {
       schema: {
         operationId: 'setDiaryEntryVisibility',
         tags: ['diary'],
         description: 'Change the visibility of a diary entry.',
         security: [{ bearerAuth: [] }],
-        params: EntryParamsSchema,
+        params: DiaryEntryParamsSchema,
         body: Type.Object({
           visibility: Type.Union([
             Type.Literal('private'),
@@ -585,7 +645,19 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { id } = request.params;
+      const { diaryRef, id } = request.params;
+      const diary = await resolveDiary(
+        diaryRef,
+        request.authContext!.identityId,
+      );
+      const existing = await fastify.diaryService.getById(
+        id,
+        request.authContext!.identityId,
+      );
+      if (!existing || existing.diaryId !== diary.id) {
+        throw createProblem('not-found', 'Entry not found');
+      }
+
       const { visibility } = request.body;
 
       const entry = await fastify.diaryService.update(
@@ -594,7 +666,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         { visibility },
       );
 
-      // 404 for denied access is intentional (prevents entry enumeration)
       if (!entry) {
         throw createProblem('not-found', 'Entry not found');
       }

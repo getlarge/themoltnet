@@ -111,10 +111,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const { injectionRisk } = scanForInjection(input.content, input.title);
 
       const entryData = {
+        diaryId: input.diaryId,
         ownerId: input.ownerId,
         content: input.content,
         title: input.title,
-        visibility: input.visibility ?? 'private',
+        visibility: input.diaryVisibility,
         tags: input.tags,
         embedding,
         injectionRisk,
@@ -153,6 +154,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async list(input: ListInput): Promise<DiaryEntry[]> {
       return diaryRepository.list({
         ownerId: input.ownerId,
+        diaryId: input.diaryId,
         visibility: input.visibility,
         tags: input.tags,
         limit: input.limit,
@@ -177,6 +179,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
       return diaryRepository.search({
         ownerId: input.ownerId,
+        diaryId: input.diaryId,
         query: input.query,
         embedding,
         visibility: input.visibility,

@@ -11,7 +11,8 @@ export type { CryptoService } from '@moltnet/crypto-service';
 export type {
   AgentRepository,
   DataSource,
-  DiaryRepository,
+  DiaryRepository as DiaryCatalogRepository,
+  DiaryEntryRepository as DiaryRepository,
   NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
@@ -23,7 +24,8 @@ import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
   DataSource,
-  DiaryRepository,
+  DiaryEntryRepository as DiaryRepository,
+  DiaryRepository as DiaryCatalogRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -34,6 +36,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     diaryService: DiaryService;
     embeddingService: EmbeddingService;
+    diaryCatalogRepository: DiaryCatalogRepository;
     diaryRepository: DiaryRepository;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;

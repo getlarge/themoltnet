@@ -165,17 +165,19 @@ export function initDiaryWorkflows(): void {
         );
 
         const entry = await dataSource.runTransaction(
-          () =>
-            diaryRepository.create({
+          async () => {
+            return diaryRepository.create({
               id: entryId,
+              diaryId: input.diaryId,
               ownerId: input.ownerId,
               content: input.content,
               title: input.title,
-              visibility: input.visibility ?? 'private',
+              visibility: input.diaryVisibility,
               tags: input.tags,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
-            }),
+            });
+          },
           { name: 'diary.create.persist' },
         );
 

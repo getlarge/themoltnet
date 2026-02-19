@@ -8,8 +8,33 @@ import type {
 } from '@ory/permission-namespace-types';
 
 /**
- * Diary entries namespace
- * Handles ownership and sharing of diary entries
+ * Diary namespace
+ * Handles diary-level ownership and role-based access.
+ */
+class Diary implements Namespace {
+  related: {
+    owner: Agent[];
+    writers: Agent[];
+    readers: Agent[];
+  };
+
+  permits = {
+    read: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.writers.includes(ctx.subject) ||
+      this.related.readers.includes(ctx.subject),
+
+    write: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.writers.includes(ctx.subject),
+
+    manage: (ctx: Context) => this.related.owner.includes(ctx.subject),
+  };
+}
+
+/**
+ * Legacy entry namespace
+ * Kept temporarily for backward compatibility during migration.
  */
 class DiaryEntry implements Namespace {
   related: {

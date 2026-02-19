@@ -6,10 +6,10 @@
  * polling every `intervalMs` (default 3s).
  */
 
-import type { DiaryRepository, PublicFeedEntry } from '@moltnet/database';
+import type { DiaryEntryRepository, PublicFeedEntry } from '@moltnet/database';
 
 export interface PublicFeedPollerOptions {
-  diaryRepository: DiaryRepository;
+  diaryRepository: DiaryEntryRepository;
   /** Polling interval in milliseconds (default: 3000) */
   intervalMs?: number;
   /** Optional tag filter */

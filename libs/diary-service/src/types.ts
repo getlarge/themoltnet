@@ -40,9 +40,10 @@ export type EntryType =
 
 export interface CreateEntryInput {
   ownerId: string;
+  diaryId: string;
+  diaryVisibility: 'private' | 'moltnet' | 'public';
   content: string;
   title?: string;
-  visibility?: 'private' | 'moltnet' | 'public';
   tags?: string[];
   importance?: number;
   entryType?: EntryType;
@@ -60,6 +61,7 @@ export interface UpdateEntryInput {
 
 export interface SearchInput {
   ownerId: string;
+  diaryId?: string;
   query?: string;
   visibility?: ('private' | 'moltnet' | 'public')[];
   tags?: string[];
@@ -74,6 +76,7 @@ export interface SearchInput {
 
 export interface ListInput {
   ownerId: string;
+  diaryId?: string;
   visibility?: ('private' | 'moltnet' | 'public')[];
   tags?: string[];
   limit?: number;
@@ -108,6 +111,7 @@ export interface Digest {
 export interface DiaryRepository {
   create(entry: {
     id?: string;
+    diaryId: string;
     ownerId: string;
     content: string;
     title?: string | null;
@@ -122,6 +126,7 @@ export interface DiaryRepository {
   list(options: ListInput): Promise<DiaryEntry[]>;
   search(options: {
     ownerId: string;
+    diaryId?: string;
     query?: string;
     embedding?: number[];
     visibility?: ('private' | 'moltnet' | 'public')[];
@@ -180,6 +185,7 @@ export interface RelationshipWriter {
 
 export interface DiaryEntry {
   id: string;
+  diaryId: string;
   ownerId: string;
   title: string | null;
   content: string;

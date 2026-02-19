@@ -42,6 +42,20 @@ export const visibilityEnum = pgEnum('visibility', [
   'public',
 ]);
 
+// Diary share role enum
+export const diaryShareRoleEnum = pgEnum('diary_share_role', [
+  'reader',
+  'writer',
+]);
+
+// Diary share status enum
+export const diaryShareStatusEnum = pgEnum('diary_share_status', [
+  'pending',
+  'accepted',
+  'declined',
+  'revoked',
+]);
+
 // Entry type enum for memory system
 export const entryTypeEnum = pgEnum('entry_type', [
   'episodic',
@@ -51,6 +65,55 @@ export const entryTypeEnum = pgEnum('entry_type', [
   'identity',
   'soul',
 ]);
+
+/**
+ * Diaries Table
+ *
+ * Grouping unit for diary entries. Visibility is progressively moving
+ * from entry-level to diary-level during the multi-diary migration.
+ */
+export const diaries = pgTable(
+  'diaries',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    // Owner identity (Ory Kratos identity ID)
+    ownerId: uuid('owner_id').notNull(),
+
+    // Human-readable diary name (unique per owner)
+    key: varchar('key', { length: 100 }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+
+    // Visibility inherited by entries in this diary
+    visibility: visibilityEnum('visibility').default('private').notNull(),
+
+    // Signature-chain opt-in (phase 2+)
+    signed: boolean('signed').default(false).notNull(),
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    ownerIdx: index('diaries_owner_idx').on(table.ownerId),
+    ownerVisibilityIdx: index('diaries_owner_visibility_idx').on(
+      table.ownerId,
+      table.visibility,
+    ),
+    ownerNameUnique: uniqueIndex('diaries_owner_name_unique_idx').on(
+      table.ownerId,
+      table.name,
+    ),
+    ownerKeyUnique: uniqueIndex('diaries_owner_key_unique_idx').on(
+      table.ownerId,
+      table.key,
+    ),
+  }),
+);
 
 /**
  * Diary Entries Table
@@ -64,6 +127,13 @@ export const diaryEntries = pgTable(
 
     // Owner identity (Ory Kratos identity ID)
     ownerId: uuid('owner_id').notNull(),
+
+    // Diary collection container
+    diaryId: uuid('diary_id')
+      .notNull()
+      .references(() => diaries.id, {
+        onDelete: 'cascade',
+      }),
 
     // Entry content
     title: varchar('title', { length: 255 }),
@@ -101,6 +171,7 @@ export const diaryEntries = pgTable(
   (table) => ({
     // Index for owner queries
     ownerIdx: index('diary_entries_owner_idx').on(table.ownerId),
+    diaryIdx: index('diary_entries_diary_idx').on(table.diaryId),
 
     // Index for visibility filtering
     visibilityIdx: index('diary_entries_visibility_idx').on(table.visibility),
@@ -167,6 +238,47 @@ export const entryShares = pgTable(
 
     // Index for finding entries shared by a specific agent
     sharedByIdx: index('entry_shares_shared_by_idx').on(table.sharedBy),
+  }),
+);
+
+/**
+ * Diary Shares Table
+ *
+ * Tracks diary-level sharing and invitation lifecycle.
+ */
+export const diaryShares = pgTable(
+  'diary_shares',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    // Target diary
+    diaryId: uuid('diary_id')
+      .notNull()
+      .references(() => diaries.id, { onDelete: 'cascade' }),
+
+    // Who is invited/shared with
+    sharedWith: uuid('shared_with').notNull(),
+
+    // Requested/effective role in diary
+    role: diaryShareRoleEnum('role').default('reader').notNull(),
+
+    // Bilateral share lifecycle state
+    status: diaryShareStatusEnum('status').default('pending').notNull(),
+
+    // Invitation lifecycle timestamps
+    invitedAt: timestamp('invited_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+  },
+  (table) => ({
+    uniqueShare: uniqueIndex('diary_shares_unique_idx').on(
+      table.diaryId,
+      table.sharedWith,
+    ),
+    diaryIdx: index('diary_shares_diary_idx').on(table.diaryId),
+    sharedWithIdx: index('diary_shares_shared_with_idx').on(table.sharedWith),
+    statusIdx: index('diary_shares_status_idx').on(table.status),
   }),
 );
 
@@ -332,8 +444,12 @@ export const usedRecoveryNonces = pgTable(
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
+export type Diary = typeof diaries.$inferSelect;
+export type NewDiary = typeof diaries.$inferInsert;
 export type EntryShare = typeof entryShares.$inferSelect;
 export type NewEntryShare = typeof entryShares.$inferInsert;
+export type DiaryShare = typeof diaryShares.$inferSelect;
+export type NewDiaryShare = typeof diaryShares.$inferInsert;
 export type AgentKey = typeof agentKeys.$inferSelect;
 export type NewAgentKey = typeof agentKeys.$inferInsert;
 export type AgentVoucher = typeof agentVouchers.$inferSelect;

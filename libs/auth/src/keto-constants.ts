@@ -8,6 +8,7 @@
  */
 export enum KetoNamespace {
   Agent = 'Agent',
+  Diary = 'Diary',
   DiaryEntry = 'DiaryEntry',
 }
 
@@ -28,6 +29,15 @@ export enum DiaryEntryRelation {
 }
 
 /**
+ * Relations for the Diary namespace
+ */
+export enum DiaryRelation {
+  Owner = 'owner',
+  Writers = 'writers',
+  Readers = 'readers',
+}
+
+/**
  * Permissions for the DiaryEntry namespace
  */
 export enum DiaryEntryPermission {
@@ -35,6 +45,15 @@ export enum DiaryEntryPermission {
   Edit = 'edit',
   Delete = 'delete',
   Share = 'share',
+}
+
+/**
+ * Permissions for the Diary namespace
+ */
+export enum DiaryPermission {
+  Read = 'read',
+  Write = 'write',
+  Manage = 'manage',
 }
 
 /**

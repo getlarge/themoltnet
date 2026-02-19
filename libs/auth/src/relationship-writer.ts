@@ -10,10 +10,15 @@ import type { RelationshipApi } from '@ory/client-fetch';
 import {
   AgentRelation,
   DiaryEntryRelation,
+  DiaryRelation,
   KetoNamespace,
 } from './keto-constants.js';
 
 export interface RelationshipWriter {
+  grantDiaryOwner(diaryId: string, agentId: string): Promise<void>;
+  grantDiaryWriter(diaryId: string, agentId: string): Promise<void>;
+  grantDiaryReader(diaryId: string, agentId: string): Promise<void>;
+  removeDiaryRelations(diaryId: string): Promise<void>;
   grantOwnership(entryId: string, agentId: string): Promise<void>;
   grantViewer(entryId: string, agentId: string): Promise<void>;
   registerAgent(agentId: string): Promise<void>;
@@ -24,6 +29,46 @@ export function createRelationshipWriter(
   relationshipApi: RelationshipApi,
 ): RelationshipWriter {
   return {
+    async grantDiaryOwner(diaryId: string, agentId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Diary,
+          object: diaryId,
+          relation: DiaryRelation.Owner,
+          subject_id: agentId,
+        },
+      });
+    },
+
+    async grantDiaryWriter(diaryId: string, agentId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Diary,
+          object: diaryId,
+          relation: DiaryRelation.Writers,
+          subject_id: agentId,
+        },
+      });
+    },
+
+    async grantDiaryReader(diaryId: string, agentId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Diary,
+          object: diaryId,
+          relation: DiaryRelation.Readers,
+          subject_id: agentId,
+        },
+      });
+    },
+
+    async removeDiaryRelations(diaryId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Diary,
+        object: diaryId,
+      });
+    },
+
     async grantOwnership(entryId: string, agentId: string): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {

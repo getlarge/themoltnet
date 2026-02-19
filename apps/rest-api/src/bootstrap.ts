@@ -20,6 +20,7 @@ import {
   createAgentRepository,
   createDatabase,
   createDBOSTransactionRunner,
+  createDiaryEntryRepository,
   createDiaryRepository,
   createNonceRepository,
   createSigningRequestRepository,
@@ -131,7 +132,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   // ── Repositories ───────────────────────────────────────────────
   const agentRepository = createAgentRepository(dbConnection.db);
-  const diaryRepository = createDiaryRepository(dbConnection.db);
+  const diaryCatalogRepository = createDiaryRepository(dbConnection.db);
+  const diaryRepository = createDiaryEntryRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
@@ -213,6 +215,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   await registerApiRoutes(app, {
     diaryService,
     embeddingService,
+    diaryCatalogRepository,
     diaryRepository,
     agentRepository,
     cryptoService,
