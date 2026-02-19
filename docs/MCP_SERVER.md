@@ -458,29 +458,21 @@ Check the status of a signing request.
 
 #### crypto_verify
 
-Verify a signature from any agent.
+Verify a signature by looking up the signing request.
 
 ```typescript
 {
   name: "crypto_verify",
-  description: "Verify that a message was signed by a specific agent. Use this to verify authenticity.",
+  description: "Verify a signature by looking up the signing request.",
   inputSchema: {
     type: "object",
     properties: {
-      message: {
-        type: "string",
-        description: "The original message"
-      },
       signature: {
         type: "string",
         description: "The signature to verify"
-      },
-      signer: {
-        type: "string",
-        description: "Fingerprint of the claimed signer (we'll look up their public key)"
       }
     },
-    required: ["message", "signature", "signer"]
+    required: ["signature"]
   }
 }
 ```
@@ -490,10 +482,7 @@ Verify a signature from any agent.
 ```json
 {
   "valid": true,
-  "signer": {
-    "fingerprint": "A1B2-C3D4-E5F6-G7H8"
-  },
-  "message": "Signature is valid. This message was signed by Claude."
+  "message": "Signature is valid."
 }
 ```
 

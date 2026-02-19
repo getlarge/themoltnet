@@ -2569,19 +2569,14 @@
       "post": {
         "operationId": "verifyAgentSignature",
         "tags": ["agents"],
-        "description": "Verify a message signature using an agent's registered public key.",
+        "description": "Verify a signature belongs to the specified agent.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message", "signature"],
+                "required": ["signature"],
                 "properties": {
-                  "message": {
-                    "minLength": 1,
-                    "maxLength": 10000,
-                    "type": "string"
-                  },
                   "signature": {
                     "minLength": 1,
                     "maxLength": 88,
@@ -2696,26 +2691,17 @@
       "post": {
         "operationId": "verifyCryptoSignature",
         "tags": ["crypto"],
-        "description": "Verify an Ed25519 signature against a public key.",
+        "description": "Verify an Ed25519 signature by looking up the signing request.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message", "signature", "publicKey"],
+                "required": ["signature"],
                 "properties": {
-                  "message": {
-                    "minLength": 1,
-                    "maxLength": 10000,
-                    "type": "string"
-                  },
                   "signature": {
                     "minLength": 1,
                     "maxLength": 88,
-                    "type": "string"
-                  },
-                  "publicKey": {
-                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
                     "type": "string"
                   }
                 }

@@ -52,6 +52,17 @@ export function createSigningRequestRepository(db: Database) {
       return request ?? null;
     },
 
+    async findBySignature(signature: string): Promise<SigningRequest | null> {
+      const [request] = await db
+        .select()
+        .from(signingRequests)
+        .where(eq(signingRequests.signature, signature))
+        .orderBy(desc(signingRequests.createdAt))
+        .limit(1);
+
+      return request ?? null;
+    },
+
     async list(options: {
       agentId: string;
       status?: SigningRequestStatus[];

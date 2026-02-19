@@ -104,7 +104,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "Commands:")
 	fmt.Fprintln(os.Stderr, "  info       Display information about the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
-	fmt.Fprintln(os.Stderr, "  sign       Sign a payload with your Ed25519 private key")
+	fmt.Fprintln(os.Stderr, "  sign       Sign a message + nonce with your Ed25519 private key")
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
 	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")
 	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")

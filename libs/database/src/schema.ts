@@ -300,6 +300,9 @@ export const signingRequests = pgTable(
       table.status,
     ),
 
+    // Lookup by signature (public verification path)
+    signatureIdx: index('signing_requests_signature_idx').on(table.signature),
+
     // Lookup by DBOS workflow ID
     workflowIdx: uniqueIndex('signing_requests_workflow_idx').on(
       table.workflowId,

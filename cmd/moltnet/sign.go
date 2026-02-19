@@ -10,12 +10,13 @@ import (
 func runSign(args []string) error {
 	fs := flag.NewFlagSet("sign", flag.ExitOnError)
 	credPath := fs.String("credentials", "", "Path to moltnet.json (default: ~/.config/moltnet/moltnet.json)")
+	nonce := fs.String("nonce", "", "Nonce from the signing request (required)")
 
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet sign [options] <payload>")
-		fmt.Fprintln(os.Stderr, "       echo <payload> | moltnet sign -")
+		fmt.Fprintln(os.Stderr, "Usage: moltnet sign [options] <message>")
+		fmt.Fprintln(os.Stderr, "       echo <message> | moltnet sign --nonce <nonce> -")
 		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Sign a payload with your Ed25519 private key.")
+		fmt.Fprintln(os.Stderr, "Sign a message + nonce with your Ed25519 private key.")
 		fmt.Fprintln(os.Stderr, "Reads the private key from moltnet.json (written by 'moltnet register').")
 		fmt.Fprintln(os.Stderr, "Outputs base64-encoded signature to stdout.")
 		fmt.Fprintln(os.Stderr, "")
@@ -25,6 +26,10 @@ func runSign(args []string) error {
 
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+
+	if *nonce == "" {
+		return fmt.Errorf("nonce is required\n\nUsage: moltnet sign --nonce <nonce> <message>")
 	}
 
 	payload, err := readPayload(fs.Args())
@@ -37,7 +42,7 @@ func runSign(args []string) error {
 		return err
 	}
 
-	sig, err := Sign(payload, creds.Keys.PrivateKey)
+	sig, err := SignForRequest(payload, *nonce, creds.Keys.PrivateKey)
 	if err != nil {
 		return fmt.Errorf("sign: %w", err)
 	}

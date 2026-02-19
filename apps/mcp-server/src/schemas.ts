@@ -186,11 +186,7 @@ export const CryptoSigningStatusSchema = Type.Object({
 export type CryptoSigningStatusInput = Static<typeof CryptoSigningStatusSchema>;
 
 export const CryptoVerifySchema = Type.Object({
-  message: Type.String({ description: 'The original message' }),
   signature: Type.String({ description: 'The signature to verify' }),
-  signer_fingerprint: Type.String({
-    description: 'Key fingerprint of the claimed signer (A1B2-C3D4-E5F6-G7H8)',
-  }),
 });
 export type CryptoVerifyInput = Static<typeof CryptoVerifySchema>;
 

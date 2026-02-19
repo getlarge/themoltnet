@@ -117,7 +117,7 @@ export interface AgentsNamespace {
 
   verifySignature(
     fingerprint: string,
-    body: { message: string; signature: string },
+    body: { signature: string },
   ): Promise<VerifyResult>;
 }
 
@@ -134,11 +134,7 @@ export interface SigningRequestsNamespace {
 export interface CryptoNamespace {
   identity(): Promise<CryptoIdentity>;
 
-  verify(body: {
-    message: string;
-    signature: string;
-    publicKey: string;
-  }): Promise<CryptoVerifyResult>;
+  verify(body: { signature: string }): Promise<CryptoVerifyResult>;
 
   signingRequests: SigningRequestsNamespace;
 }
