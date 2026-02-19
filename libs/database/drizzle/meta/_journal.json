@@ -64,6 +64,13 @@
       "when": 1771977600000,
       "tag": "0008_websearch-tsquery",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771977600001,
+      "tag": "0009_memory_system_enrichment",
+      "breakpoints": true
     }
   ]
 }

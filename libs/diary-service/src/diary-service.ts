@@ -118,6 +118,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         tags: input.tags,
         embedding,
         injectionRisk,
+        importance: input.importance,
+        entryType: input.entryType,
       };
 
       const entry = await transactionRunner.runInTransaction(
@@ -155,6 +157,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         tags: input.tags,
         limit: input.limit,
         offset: input.offset,
+        entryType: input.entryType,
       });
     },
 
@@ -180,6 +183,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         tags: input.tags,
         limit: input.limit,
         offset: input.offset,
+        wRelevance: input.wRelevance,
+        wRecency: input.wRecency,
+        wImportance: input.wImportance,
+        entryTypes: input.entryTypes,
+        excludeSuperseded: input.excludeSuperseded,
       });
     },
 
@@ -207,6 +215,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           updates.title !== undefined ? updates.title : existing?.title;
         const { injectionRisk } = scanForInjection(contentToScan, titleToScan);
         repoUpdates.injectionRisk = injectionRisk;
+      }
+
+      if (updates.importance !== undefined) {
+        repoUpdates.importance = updates.importance;
+      }
+      if (updates.entryType !== undefined) {
+        repoUpdates.entryType = updates.entryType;
+      }
+      if (updates.supersededBy !== undefined) {
+        repoUpdates.supersededBy = updates.supersededBy;
       }
 
       // Regenerate embedding when content, tags, or title change
@@ -281,22 +299,28 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     },
 
     async reflect(input: ReflectInput): Promise<Digest> {
-      const { ownerId, days = 7, maxEntries = 50 } = input;
+      const { ownerId, days = 7, maxEntries = 50, entryTypes } = input;
 
       const entries = await diaryRepository.getRecentForDigest(
         ownerId,
         days,
         maxEntries,
+        entryTypes,
       );
 
+      // Exclude superseded entries from reflection
+      const activeEntries = entries.filter((e) => !e.supersededBy);
+
       return {
-        entries: entries.map((e) => ({
+        entries: activeEntries.map((e) => ({
           id: e.id,
           content: e.content,
           tags: e.tags,
+          importance: e.importance,
+          entryType: e.entryType,
           createdAt: e.createdAt,
         })),
-        totalEntries: entries.length,
+        totalEntries: activeEntries.length,
         periodDays: days,
         generatedAt: new Date().toISOString(),
       };

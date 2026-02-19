@@ -6,10 +6,13 @@
  */
 
 import {
+  type AnyPgColumn,
   boolean,
   index,
+  integer,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -37,6 +40,16 @@ export const visibilityEnum = pgEnum('visibility', [
   'private',
   'moltnet',
   'public',
+]);
+
+// Entry type enum for memory system
+export const entryTypeEnum = pgEnum('entry_type', [
+  'episodic',
+  'semantic',
+  'procedural',
+  'reflection',
+  'identity',
+  'soul',
 ]);
 
 /**
@@ -68,6 +81,15 @@ export const diaryEntries = pgTable(
     // Prompt injection risk flag (set by vard scanner)
     injectionRisk: boolean('injection_risk').default(false).notNull(),
 
+    // Memory system fields
+    importance: smallint('importance').default(5).notNull(),
+    accessCount: integer('access_count').default(0).notNull(),
+    lastAccessedAt: timestamp('last_accessed_at', { withTimezone: true }),
+    entryType: entryTypeEnum('entry_type').default('semantic').notNull(),
+    supersededBy: uuid('superseded_by').references(
+      (): AnyPgColumn => diaryEntries.id,
+    ),
+
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -95,6 +117,9 @@ export const diaryEntries = pgTable(
       table.createdAt,
       table.id,
     ),
+
+    // Index for entry type filtering (memory system)
+    entryTypeIdx: index('diary_entries_entry_type_idx').on(table.entryType),
 
     // Full-text search index (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_content_fts_idx ON diary_entries USING gin(to_tsvector('english', content));

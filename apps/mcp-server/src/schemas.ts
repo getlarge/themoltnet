@@ -10,6 +10,15 @@ import { Type } from '@sinclair/typebox';
 
 // --- Diary schemas ---
 
+const EntryTypeLiterals = [
+  Type.Literal('episodic'),
+  Type.Literal('semantic'),
+  Type.Literal('procedural'),
+  Type.Literal('reflection'),
+  Type.Literal('identity'),
+  Type.Literal('soul'),
+] as const;
+
 export const DiaryCreateSchema = Type.Object({
   content: Type.String({ description: 'The memory content (1-10000 chars)' }),
   title: Type.Optional(
@@ -27,6 +36,19 @@ export const DiaryCreateSchema = Type.Object({
   ),
   tags: Type.Optional(
     Type.Array(Type.String(), { description: 'Tags for categorization' }),
+  ),
+  importance: Type.Optional(
+    Type.Number({
+      description:
+        'How important is this memory? 1=trivial, 10=critical. Default 5.',
+      minimum: 1,
+      maximum: 10,
+    }),
+  ),
+  entry_type: Type.Optional(
+    Type.Union([...EntryTypeLiterals], {
+      description: 'Memory type. Default semantic.',
+    }),
   ),
 });
 export type DiaryCreateInput = Static<typeof DiaryCreateSchema>;
@@ -64,6 +86,33 @@ export const DiarySearchSchema = Type.Object({
       description: 'Filter by tags (entry must have ALL specified tags)',
     }),
   ),
+  w_relevance: Type.Optional(
+    Type.Number({
+      description: 'Weight for text/semantic relevance. Default 1.0',
+    }),
+  ),
+  w_recency: Type.Optional(
+    Type.Number({
+      description:
+        'Weight for recency. 0=ignore time, 0.3=moderate bias. Default 0.0',
+    }),
+  ),
+  w_importance: Type.Optional(
+    Type.Number({
+      description:
+        'Weight for entry importance. 0=ignore, 0.2=moderate. Default 0.0',
+    }),
+  ),
+  entry_types: Type.Optional(
+    Type.Array(Type.Union([...EntryTypeLiterals]), {
+      description: 'Filter by memory type',
+    }),
+  ),
+  exclude_superseded: Type.Optional(
+    Type.Boolean({
+      description: 'Skip entries that have been superseded. Default false',
+    }),
+  ),
 });
 export type DiarySearchInput = Static<typeof DiarySearchSchema>;
 
@@ -72,6 +121,21 @@ export const DiaryUpdateSchema = Type.Object({
   content: Type.Optional(Type.String({ description: 'New content' })),
   tags: Type.Optional(Type.Array(Type.String(), { description: 'New tags' })),
   title: Type.Optional(Type.String({ description: 'New title' })),
+  importance: Type.Optional(
+    Type.Number({
+      description: 'New importance (1-10)',
+      minimum: 1,
+      maximum: 10,
+    }),
+  ),
+  entry_type: Type.Optional(
+    Type.Union([...EntryTypeLiterals], { description: 'New memory type' }),
+  ),
+  superseded_by: Type.Optional(
+    Type.String({
+      description: 'ID of the entry that replaces this one',
+    }),
+  ),
 });
 export type DiaryUpdateInput = Static<typeof DiaryUpdateSchema>;
 
@@ -88,6 +152,11 @@ export const DiaryReflectSchema = Type.Object({
   ),
   max_entries: Type.Optional(
     Type.Number({ description: 'Max entries to include (default 50)' }),
+  ),
+  entry_types: Type.Optional(
+    Type.Array(Type.Union([...EntryTypeLiterals]), {
+      description: 'Filter by memory type',
+    }),
   ),
 });
 export type DiaryReflectInput = Static<typeof DiaryReflectSchema>;

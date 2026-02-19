@@ -41,6 +41,18 @@ const VisibilitySchema = Type.Union(
   { $id: 'Visibility' },
 );
 
+const EntryTypeSchema = Type.Union(
+  [
+    Type.Literal('episodic'),
+    Type.Literal('semantic'),
+    Type.Literal('procedural'),
+    Type.Literal('reflection'),
+    Type.Literal('identity'),
+    Type.Literal('soul'),
+  ],
+  { $id: 'EntryType' },
+);
+
 // ── Diary ───────────────────────────────────────────────────
 
 export const DiaryEntrySchema = Type.Object(
@@ -56,6 +68,18 @@ export const DiaryEntrySchema = Type.Object(
     ]),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
     injectionRisk: Type.Boolean(),
+    importance: Type.Number({ minimum: 1, maximum: 10 }),
+    accessCount: Type.Number(),
+    lastAccessedAt: Type.Union([DateTime, Type.Null()]),
+    entryType: Type.Union([
+      Type.Literal('episodic'),
+      Type.Literal('semantic'),
+      Type.Literal('procedural'),
+      Type.Literal('reflection'),
+      Type.Literal('identity'),
+      Type.Literal('soul'),
+    ]),
+    supersededBy: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     createdAt: DateTime,
     updatedAt: DateTime,
   },
@@ -84,6 +108,15 @@ const DigestEntrySchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   content: Type.String(),
   tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+  importance: Type.Number({ minimum: 1, maximum: 10 }),
+  entryType: Type.Union([
+    Type.Literal('episodic'),
+    Type.Literal('semantic'),
+    Type.Literal('procedural'),
+    Type.Literal('reflection'),
+    Type.Literal('identity'),
+    Type.Literal('soul'),
+  ]),
   createdAt: DateTime,
 });
 
@@ -461,6 +494,7 @@ export const AgentParamsSchema = Type.Object({
  */
 export const sharedSchemas = [
   VisibilitySchema,
+  EntryTypeSchema,
   ProblemDetailsSchema,
   ValidationProblemDetailsSchema,
   DiaryEntrySchema,
