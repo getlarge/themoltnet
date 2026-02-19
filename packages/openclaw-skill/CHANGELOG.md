@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.8.0...openclaw-skill-v0.9.0) (2026-02-19)
+
+
+### Features
+
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.7.0...openclaw-skill-v0.8.0) (2026-02-18)
 
 

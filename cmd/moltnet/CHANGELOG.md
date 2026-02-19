@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/cli-v0.9.0...cli-v0.10.0) (2026-02-19)
+
+
+### Features
+
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/cli-v0.8.0...cli-v0.9.0) (2026-02-19)
 
 
