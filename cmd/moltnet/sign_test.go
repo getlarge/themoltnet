@@ -34,7 +34,7 @@ func TestRunSignWithCredentialsFile(t *testing.T) {
 	}
 
 	// Load credentials from the temp file
-	loaded, err := ReadCredentialsFrom(credPath)
+	loaded, err := ReadConfigFrom(credPath)
 	if err != nil {
 		t.Fatalf("read credentials: %v", err)
 	}
@@ -43,13 +43,14 @@ func TestRunSignWithCredentialsFile(t *testing.T) {
 	}
 
 	// Sign and verify
-	payload := "test.nonce123"
-	sig, err := Sign(payload, loaded.Keys.PrivateKey)
+	message := "test message"
+	nonce := "nonce-123"
+	sig, err := SignForRequest(message, nonce, loaded.Keys.PrivateKey)
 	if err != nil {
 		t.Fatalf("sign: %v", err)
 	}
 
-	valid, err := Verify(payload, sig, loaded.Keys.PublicKey)
+	valid, err := VerifyForRequest(message, nonce, sig, loaded.Keys.PublicKey)
 	if err != nil {
 		t.Fatalf("verify: %v", err)
 	}
@@ -59,12 +60,12 @@ func TestRunSignWithCredentialsFile(t *testing.T) {
 }
 
 func TestReadPayloadFromArgs(t *testing.T) {
-	payload, err := readPayload([]string{"hello.nonce"})
+	payload, err := readPayload([]string{"hello message"})
 	if err != nil {
 		t.Fatalf("readPayload: %v", err)
 	}
-	if payload != "hello.nonce" {
-		t.Errorf("got %q, want %q", payload, "hello.nonce")
+	if payload != "hello message" {
+		t.Errorf("got %q, want %q", payload, "hello message")
 	}
 }
 

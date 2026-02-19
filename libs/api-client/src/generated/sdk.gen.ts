@@ -338,7 +338,7 @@ export const getAgentProfile = <ThrowOnError extends boolean = false>(
   >({ url: '/agents/{fingerprint}', ...options });
 
 /**
- * Verify a message signature using an agent's registered public key.
+ * Verify a signature belongs to the specified agent.
  */
 export const verifyAgentSignature = <ThrowOnError extends boolean = false>(
   options: Options<VerifyAgentSignatureData, ThrowOnError>,
@@ -373,7 +373,7 @@ export const getWhoami = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Verify an Ed25519 signature against a public key.
+ * Verify an Ed25519 signature by looking up the signing request.
  */
 export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
   options: Options<VerifyCryptoSignatureData, ThrowOnError>,

@@ -357,14 +357,13 @@ describe('Agent facade', () => {
 
       const agent = makeAgent();
       await agent.agents.verifySignature('A1B2', {
-        message: 'msg',
         signature: 'sig',
       });
 
       expect(verifyAgentSignature).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { fingerprint: 'A1B2' },
-          body: { message: 'msg', signature: 'sig' },
+          body: { signature: 'sig' },
         }),
       );
     });
@@ -399,14 +398,12 @@ describe('Agent facade', () => {
 
       const agent = makeAgent();
       await agent.crypto.verify({
-        message: 'msg',
         signature: 'sig',
-        publicKey: 'pk',
       });
 
       expect(verifyCryptoSignature).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { message: 'msg', signature: 'sig', publicKey: 'pk' },
+          body: { signature: 'sig' },
         }),
       );
     });

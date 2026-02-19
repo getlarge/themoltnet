@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 // CredentialsFile matches the JS SDK MoltNetConfig format.
@@ -71,11 +70,6 @@ func GetConfigPath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(dir, "moltnet.json"), nil
-}
-
-// Deprecated: Use GetConfigPath. Returns ~/.config/moltnet/moltnet.json.
-func GetCredentialsPath() (string, error) {
-	return GetConfigPath()
 }
 
 // ReadConfig tries moltnet.json first, falls back to credentials.json with
@@ -153,37 +147,4 @@ func WriteConfigTo(config *CredentialsFile, path string) (string, error) {
 	}
 
 	return path, nil
-}
-
-// Deprecated: Use ReadConfig.
-func ReadCredentials() (*CredentialsFile, error) {
-	return ReadConfig()
-}
-
-// Deprecated: Use ReadConfigFrom.
-func ReadCredentialsFrom(path string) (*CredentialsFile, error) {
-	return ReadConfigFrom(path)
-}
-
-// Deprecated: Use WriteConfig. Adapts RegisterResult to CredentialsFile.
-func WriteCredentials(result *RegisterResult) (string, error) {
-	config := &CredentialsFile{
-		IdentityID: result.Response.IdentityID,
-		OAuth2: CredentialsOAuth2{
-			ClientID:     result.Response.ClientID,
-			ClientSecret: result.Response.ClientSecret,
-		},
-		Keys: CredentialsKeys{
-			PublicKey:   result.KeyPair.PublicKey,
-			PrivateKey:  result.KeyPair.PrivateKey,
-			Fingerprint: result.KeyPair.Fingerprint,
-		},
-		Endpoints: CredentialsEndpoints{
-			API: result.APIUrl,
-			MCP: result.APIUrl + "/mcp",
-		},
-		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
-	}
-
-	return WriteConfig(config)
 }

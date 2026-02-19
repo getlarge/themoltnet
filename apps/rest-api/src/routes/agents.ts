@@ -67,11 +67,9 @@ export async function agentRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'verifyAgentSignature',
         tags: ['agents'],
-        description:
-          "Verify a message signature using an agent's registered public key.",
+        description: 'Verify a signature belongs to the specified agent.',
         params: AgentParamsSchema,
         body: Type.Object({
-          message: Type.String({ minLength: 1, maxLength: 10000 }),
           signature: Type.String({
             minLength: 1,
             maxLength: MAX_ED25519_SIGNATURE_LENGTH,
@@ -86,7 +84,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const normalizedFingerprint = request.params.fingerprint.toUpperCase();
-      const { message, signature } = request.body;
+      const { signature } = request.body;
 
       const agent = await fastify.agentRepository.findByFingerprint(
         normalizedFingerprint,
@@ -98,8 +96,15 @@ export async function agentRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const valid = await fastify.cryptoService.verify(
-        message,
+      const signingRequest =
+        await fastify.signingRequestRepository.findBySignature(signature);
+      if (!signingRequest || signingRequest.agentId !== agent.identityId) {
+        return { valid: false };
+      }
+
+      const valid = await fastify.cryptoService.verifyWithNonce(
+        signingRequest.message,
+        signingRequest.nonce,
         signature,
         agent.publicKey,
       );

@@ -28,15 +28,12 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'verifyCryptoSignature',
         tags: ['crypto'],
-        description: 'Verify an Ed25519 signature against a public key.',
+        description:
+          'Verify an Ed25519 signature by looking up the signing request.',
         body: Type.Object({
-          message: Type.String({ minLength: 1, maxLength: 10000 }),
           signature: Type.String({
             minLength: 1,
             maxLength: MAX_ED25519_SIGNATURE_LENGTH,
-          }),
-          publicKey: Type.String({
-            pattern: '^ed25519:[A-Za-z0-9+/=]+$',
           }),
         }),
         response: {
@@ -46,12 +43,26 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { message, signature, publicKey } = request.body;
+      const { signature } = request.body;
 
-      const valid = await fastify.cryptoService.verify(
-        message,
+      const signingRequest =
+        await fastify.signingRequestRepository.findBySignature(signature);
+      if (!signingRequest) {
+        return { valid: false };
+      }
+
+      const agent = await fastify.agentRepository.findByIdentityId(
+        signingRequest.agentId,
+      );
+      if (!agent) {
+        return { valid: false };
+      }
+
+      const valid = await fastify.cryptoService.verifyWithNonce(
+        signingRequest.message,
+        signingRequest.nonce,
         signature,
-        publicKey,
+        agent.publicKey,
       );
 
       return { valid };

@@ -13,20 +13,12 @@ export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
 export { connect, type ConnectOptions } from './connect.js';
 export {
-  /** @deprecated Use MoltNetConfig */
-  type CredentialsFile,
   getConfigDir,
   getConfigPath,
-  /** @deprecated Use getConfigPath */
-  getCredentialsPath,
   type MoltNetConfig,
   readConfig,
-  /** @deprecated Use readConfig */
-  readCredentials,
   updateConfigSection,
   writeConfig,
-  /** @deprecated Use writeConfig */
-  writeCredentials,
 } from './credentials.js';
 export {
   AuthenticationError,

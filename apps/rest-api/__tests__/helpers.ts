@@ -173,6 +173,8 @@ export function createMockServices(): MockServices {
     cryptoService: {
       sign: vi.fn(),
       verify: vi.fn(),
+      signWithNonce: vi.fn(),
+      verifyWithNonce: vi.fn(),
       parsePublicKey: vi.fn(),
       generateKeyPair: vi.fn(),
       generateFingerprint: vi.fn(),
@@ -197,6 +199,7 @@ export function createMockServices(): MockServices {
     },
     signingRequestRepository: {
       create: vi.fn(),
+      findBySignature: vi.fn(),
       findById: vi.fn(),
       list: vi.fn(),
       updateStatus: vi.fn(),

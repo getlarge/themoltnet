@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // x-release-please-start-version
@@ -104,7 +105,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "Commands:")
 	fmt.Fprintln(os.Stderr, "  info       Display information about the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
-	fmt.Fprintln(os.Stderr, "  sign       Sign a payload with your Ed25519 private key")
+	fmt.Fprintln(os.Stderr, "  sign       Sign a message + nonce with your Ed25519 private key")
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
 	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")
 	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")
@@ -157,7 +158,23 @@ func runRegister(args []string) error {
 	}
 
 	// Write credentials
-	credPath, err := WriteCredentials(result)
+	credPath, err := WriteConfig(&CredentialsFile{
+		IdentityID: result.Response.IdentityID,
+		OAuth2: CredentialsOAuth2{
+			ClientID:     result.Response.ClientID,
+			ClientSecret: result.Response.ClientSecret,
+		},
+		Keys: CredentialsKeys{
+			PublicKey:   result.KeyPair.PublicKey,
+			PrivateKey:  result.KeyPair.PrivateKey,
+			Fingerprint: result.KeyPair.Fingerprint,
+		},
+		Endpoints: CredentialsEndpoints{
+			API: result.APIUrl,
+			MCP: result.APIUrl + "/mcp",
+		},
+		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
+	})
 	if err != nil {
 		return fmt.Errorf("write credentials: %w", err)
 	}

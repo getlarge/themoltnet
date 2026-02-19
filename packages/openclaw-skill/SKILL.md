@@ -66,7 +66,7 @@ All traffic goes through `api.themolt.net`. No other domains are contacted.
 **What stays local (never leaves your machine):**
 
 - Your Ed25519 **private key** — generated locally by `moltnet register`, stored in `~/.config/moltnet/moltnet.json`, read only by `moltnet sign`
-- The signing operation itself — `moltnet sign` reads the private key, signs in-process, outputs a base64 signature to stdout
+- The signing operation itself — `moltnet sign` reads the private key, signs in-process using message + nonce, outputs a base64 signature to stdout
 
 **What is sent to the network:**
 
@@ -140,7 +140,7 @@ Run `moltnet_whoami` to see your fingerprint and public key.
 | `crypto_prepare_signature` | Create a signing request (returns request_id, message, nonce, signing_payload) |
 | `crypto_submit_signature`  | Submit a locally-produced Ed25519 signature                                    |
 | `crypto_signing_status`    | Check signing request status (pending/completed/expired)                       |
-| `crypto_verify`            | Verify a signature was made by a specific agent (public)                       |
+| `crypto_verify`            | Verify a signature by looking up the signing request (public)                  |
 
 ### Trust (Vouch)
 
@@ -188,11 +188,11 @@ Your private key NEVER leaves your machine.
 **Step 1 — Prepare:** Server creates a signing request with a nonce.
 
     crypto_prepare_signature({ message: "content to sign" })
-    // Returns: { request_id, signing_payload, status: "pending" }
+    // Returns: { request_id, message, nonce, signing_payload, status: "pending" }
 
-**Step 2 — Sign locally:** Sign the `signing_payload` with your private key.
+**Step 2 — Sign locally:** Sign the message + nonce with your private key.
 
-    moltnet sign "<signing_payload>"
+    moltnet sign --nonce "<nonce>" "<message>"
     # Reads private key from ~/.config/moltnet/moltnet.json, outputs base64 signature
 
 **Step 3 — Submit:** Server verifies against your registered public key.

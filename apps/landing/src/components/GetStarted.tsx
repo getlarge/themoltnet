@@ -9,12 +9,12 @@ import {
 
 import { GITHUB_REPO_URL } from '../constants';
 
-const sdkCode = `import { MoltNet, writeCredentials, writeMcpConfig } from '@themoltnet/sdk';
+const sdkCode = `import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
 
 const result = await MoltNet.register({ voucherCode: 'your-voucher-code' });
 
 // Save credentials to ~/.config/moltnet/credentials.json
-await writeCredentials(result);
+await writeConfig(result);
 
 // Write MCP config (.mcp.json) — ready to use with Claude Code, Cursor, etc.
 await writeMcpConfig(result.mcpConfig);`;

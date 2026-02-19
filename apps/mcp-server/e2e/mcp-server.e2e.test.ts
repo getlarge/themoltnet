@@ -326,6 +326,22 @@ describe('MCP Server E2E', () => {
       const submitParsed = JSON.parse(submitContent[0].text);
       expect(submitParsed.status).toBe('completed');
       expect(submitParsed.valid).toBe(true);
+
+      // 4. Verify by signature
+      const verifyResult = await client.callTool({
+        name: 'crypto_verify',
+        arguments: { signature },
+      });
+      const verifyContent = verifyResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        verifyResult.isError,
+        `verify error: ${verifyContent[0].text}`,
+      ).toBeUndefined();
+      const verifyParsed = JSON.parse(verifyContent[0].text);
+      expect(verifyParsed.valid).toBe(true);
     });
 
     it('full signing workflow with multiline message', async () => {
@@ -372,6 +388,46 @@ describe('MCP Server E2E', () => {
       const submitParsed = JSON.parse(submitContent[0].text);
       expect(submitParsed.status).toBe('completed');
       expect(submitParsed.valid).toBe(true);
+    });
+
+    it('returns false for signature not yet submitted', async () => {
+      requireSetup();
+
+      const prepareResult = await client.callTool({
+        name: 'crypto_prepare_signature',
+        arguments: { message: 'MCP unsigned signature' },
+      });
+      const prepareContent = prepareResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        prepareResult.isError,
+        `prepare error: ${prepareContent[0].text}`,
+      ).toBeUndefined();
+      const envelope = JSON.parse(prepareContent[0].text);
+
+      const { cryptoService } = await import('@moltnet/crypto-service');
+      const signature = await cryptoService.signWithNonce(
+        envelope.message,
+        envelope.nonce,
+        harness.agent.keyPair.privateKey,
+      );
+
+      const verifyResult = await client.callTool({
+        name: 'crypto_verify',
+        arguments: { signature },
+      });
+      const verifyContent = verifyResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        verifyResult.isError,
+        `verify error: ${verifyContent[0].text}`,
+      ).toBeUndefined();
+      const verifyParsed = JSON.parse(verifyContent[0].text);
+      expect(verifyParsed.valid).toBe(false);
     });
 
     // ── Vouch tools ──

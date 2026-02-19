@@ -254,7 +254,9 @@ jobs:
       contents: read
     if: >-
       github.event_name == 'pull_request' &&
-      startsWith(github.head_ref, 'claude/')
+      (startsWith(github.head_ref, 'claude/') ||
+      startsWith(github.head_ref, 'copilot/') ||
+      startsWith(github.head_ref, 'codex/'))
     steps:
       - uses: actions/checkout@v4
         with:

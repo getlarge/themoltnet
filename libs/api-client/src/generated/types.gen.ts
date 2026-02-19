@@ -913,7 +913,6 @@ export type GetAgentProfileResponse =
 
 export type VerifyAgentSignatureData = {
   body: {
-    message: string;
     signature: string;
   };
   path: {
@@ -982,9 +981,7 @@ export type GetWhoamiResponse = GetWhoamiResponses[keyof GetWhoamiResponses];
 
 export type VerifyCryptoSignatureData = {
   body: {
-    message: string;
     signature: string;
-    publicKey: string;
   };
   path?: never;
   query?: never;

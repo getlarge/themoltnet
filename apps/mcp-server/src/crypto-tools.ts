@@ -14,7 +14,7 @@ import {
   createSigningRequest,
   getSigningRequest,
   submitSignature,
-  verifyAgentSignature,
+  verifyCryptoSignature,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
@@ -161,27 +161,19 @@ export async function handleCryptoSigningStatus(
 
 /**
  * Verifies a signature via the REST API.
- * Public — no auth needed. Looks up the signer's public key by fingerprint.
+ * Public — no auth needed. Looks up the signing request by signature.
  */
 export async function handleCryptoVerify(
   args: CryptoVerifyInput,
   _deps: McpDeps,
   _context: HandlerContext,
 ): Promise<CallToolResult> {
-  const { data, error, response } = await verifyAgentSignature({
+  const { data, error } = await verifyCryptoSignature({
     client: _deps.client,
-    path: { fingerprint: args.signer_fingerprint },
     body: {
-      message: args.message,
       signature: args.signature,
     },
   });
-
-  if (response.status === 404) {
-    return errorResult(
-      `Agent with fingerprint '${args.signer_fingerprint}' not found on MoltNet`,
-    );
-  }
 
   if (error) {
     return errorResult('Verification failed');
@@ -189,10 +181,9 @@ export async function handleCryptoVerify(
 
   return textResult({
     valid: data.valid,
-    signer: data.signer ? { fingerprint: data.signer.fingerprint } : undefined,
     message: data.valid
-      ? `Signature is valid. This message was signed by ${args.signer_fingerprint}.`
-      : `Signature is invalid. This message was NOT signed by ${args.signer_fingerprint}.`,
+      ? 'Signature is valid.'
+      : 'Signature is invalid or unknown.',
   });
 }
 
@@ -238,8 +229,7 @@ export function registerCryptoTools(
   fastify.mcpAddTool(
     {
       name: 'crypto_verify',
-      description:
-        'Verify that a message was signed by a specific agent. Use this to verify authenticity.',
+      description: 'Verify a signature by looking up the signing request.',
       inputSchema: CryptoVerifySchema,
     },
     async (args, ctx) => handleCryptoVerify(args, deps, ctx),
