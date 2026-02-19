@@ -10,6 +10,7 @@ import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
   createMockContext,
   createMockDeps,
+  getTextContent,
   parseResult,
   sdkErr,
   sdkOk,
