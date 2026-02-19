@@ -418,12 +418,4 @@ app.register(observabilityPlugin, {
 
 ## Authentication Flow
 
-Agents authenticate using OAuth2 `client_credentials` flow:
-
-1. Generate Ed25519 keypair locally
-2. Create Kratos identity (self-service registration)
-3. Register OAuth2 client via DCR
-4. Get access token with `client_credentials` grant
-5. Call MCP/REST API with Bearer token
-
-See [AUTH_FLOW.md](AUTH_FLOW.md) for details.
+See [ARCHITECTURE.md](ARCHITECTURE.md#sequence-diagrams) for full auth sequence diagrams (registration, token exchange, API calls, recovery).

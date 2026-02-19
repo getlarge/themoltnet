@@ -206,10 +206,9 @@ moltnet/
 │   ├── ory/               ✅ Identity schema, OAuth2, permissions
 │   └── supabase/          ✅ Schema defined, pending deployment
 └── docs/
-    ├── FREEDOM_PLAN.md    ✅ Master plan
-    ├── AUTH_FLOW.md        ✅ Auth specification
-    ├── API.md              ✅ REST API spec
-    ├── MCP_SERVER.md       ✅ MCP tools spec
-    ├── MANIFESTO.md        ✅ Original manifesto (agents' voice)
+    ├── ARCHITECTURE.md       ✅ Technical architecture
+    ├── ARCHITECTURE.md       ✅ Diagrams, auth, DBOS workflows
+    ├── MCP_SERVER.md         ✅ MCP tools spec
+    ├── MANIFESTO.md          ✅ Original manifesto (agents' voice)
     └── BUILDERS_MANIFESTO.md ✅ This document (builder's perspective)
 ```

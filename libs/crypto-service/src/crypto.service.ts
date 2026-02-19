@@ -27,6 +27,50 @@ export interface SignedMessage {
   publicKey: string;
 }
 
+/** Domain-separation prefix for the signing payload envelope. */
+const DOMAIN_PREFIX = 'moltnet:v1';
+
+/**
+ * Build deterministic signing bytes with domain separation and
+ * length-prefixed binary framing.
+ *
+ * Layout:
+ *   UTF-8("moltnet:v1") || u32be(len(msg_hash)) || msg_hash || u32be(len(nonce_bytes)) || nonce_bytes
+ *
+ * Where msg_hash = SHA-256(UTF-8(message)).
+ *
+ * This produces a fixed-structure byte sequence immune to whitespace,
+ * newline, and encoding differences between runtimes.
+ */
+export function buildSigningBytes(message: string, nonce: string): Uint8Array {
+  const msgHash = createHash('sha256')
+    .update(Buffer.from(message, 'utf-8'))
+    .digest();
+  const nonceBytes = Buffer.from(nonce, 'utf-8');
+  const prefix = Buffer.from(DOMAIN_PREFIX, 'utf-8');
+
+  const buf = Buffer.alloc(
+    prefix.length + 4 + msgHash.length + 4 + nonceBytes.length,
+  );
+  let offset = 0;
+
+  prefix.copy(buf, offset);
+  offset += prefix.length;
+
+  buf.writeUInt32BE(msgHash.length, offset);
+  offset += 4;
+
+  msgHash.copy(buf, offset);
+  offset += msgHash.length;
+
+  buf.writeUInt32BE(nonceBytes.length, offset);
+  offset += 4;
+
+  nonceBytes.copy(buf, offset);
+
+  return new Uint8Array(buf);
+}
+
 export const cryptoService = {
   /**
    * Generate a new Ed25519 keypair
@@ -94,6 +138,42 @@ export const cryptoService = {
       const messageBytes = new TextEncoder().encode(message);
 
       return await ed.verifyAsync(signatureBytes, messageBytes, publicKeyBytes);
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Sign a (message, nonce) pair using deterministic pre-hash.
+   * Uses buildSigningBytes for domain separation and canonical serialization.
+   */
+  async signWithNonce(
+    message: string,
+    nonce: string,
+    privateKeyBase64: string,
+  ): Promise<string> {
+    const privateKeyBytes = new Uint8Array(
+      Buffer.from(privateKeyBase64, 'base64'),
+    );
+    const signingBytes = buildSigningBytes(message, nonce);
+    const signature = await ed.signAsync(signingBytes, privateKeyBytes);
+    return Buffer.from(signature).toString('base64');
+  },
+
+  /**
+   * Verify a signature produced by signWithNonce.
+   */
+  async verifyWithNonce(
+    message: string,
+    nonce: string,
+    signature: string,
+    publicKey: string,
+  ): Promise<boolean> {
+    try {
+      const publicKeyBytes = this.parsePublicKey(publicKey);
+      const signatureBytes = new Uint8Array(Buffer.from(signature, 'base64'));
+      const signingBytes = buildSigningBytes(message, nonce);
+      return await ed.verifyAsync(signatureBytes, signingBytes, publicKeyBytes);
     } catch {
       return false;
     }

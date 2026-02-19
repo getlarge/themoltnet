@@ -4,6 +4,9 @@
  * Tests the full DBOS signing workflow: create request → sign locally
  * → submit signature → verify. Uses real auth tokens, real DBOS
  * workflows, and real crypto operations.
+ *
+ * Signing uses the deterministic pre-hash protocol (buildSigningBytes):
+ *   signing_bytes = "moltnet:v1" || u32be(32) || SHA256(message) || u32be(len(nonce)) || nonce
  */
 
 import {
@@ -145,10 +148,10 @@ describe('Signing requests', () => {
     });
     expect(request!.status).toBe('pending');
 
-    // 2. Sign locally (message.nonce to prevent replay attacks)
-    const signingPayload = `${message}.${request!.nonce}`;
-    const signature = await cryptoService.sign(
-      signingPayload,
+    // 2. Sign locally using deterministic pre-hash (buildSigningBytes)
+    const signature = await cryptoService.signWithNonce(
+      message,
+      request!.nonce,
       agent.keyPair.privateKey,
     );
 
@@ -177,9 +180,9 @@ describe('Signing requests', () => {
       body: { message },
     });
 
-    const signingPayload = `${message}.${request!.nonce}`;
-    const signature = await cryptoService.sign(
-      signingPayload,
+    const signature = await cryptoService.signWithNonce(
+      message,
+      request!.nonce,
       agent.keyPair.privateKey,
     );
 
@@ -200,5 +203,91 @@ describe('Signing requests', () => {
 
     expect(error).toBeDefined();
     expect(response.status).toBe(409);
+  });
+
+  // ── Adversarial message payloads ────────────────────────────
+
+  it('signs and verifies a multiline message (LF)', async () => {
+    const message = 'line1\nline2\nline3';
+
+    const { data: request } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message },
+    });
+    expect(request!.message).toBe(message);
+
+    const signature = await cryptoService.signWithNonce(
+      message,
+      request!.nonce,
+      agent.keyPair.privateKey,
+    );
+
+    const { data: result, error } = await submitSignature({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: request!.id },
+      body: { signature },
+    });
+
+    expect(error).toBeUndefined();
+    expect(result!.status).toBe('completed');
+    expect(result!.valid).toBe(true);
+  });
+
+  it('signs and verifies a message with Unicode (em-dash and emoji)', async () => {
+    const message = 'sign this — with a 🔑';
+
+    const { data: request } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message },
+    });
+
+    const signature = await cryptoService.signWithNonce(
+      message,
+      request!.nonce,
+      agent.keyPair.privateKey,
+    );
+
+    const { data: result, error } = await submitSignature({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: request!.id },
+      body: { signature },
+    });
+
+    expect(error).toBeUndefined();
+    expect(result!.status).toBe('completed');
+    expect(result!.valid).toBe(true);
+  });
+
+  it('rejects tampered signature (wrong key signs with new protocol)', async () => {
+    const message = 'Tamper test';
+
+    const { data: request } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message },
+    });
+
+    // Sign with a different keypair
+    const wrongKeyPair = await cryptoService.generateKeyPair();
+    const wrongSignature = await cryptoService.signWithNonce(
+      message,
+      request!.nonce,
+      wrongKeyPair.privateKey,
+    );
+
+    const { data: result, error } = await submitSignature({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: request!.id },
+      body: { signature: wrongSignature },
+    });
+
+    expect(error).toBeUndefined();
+    expect(result!.status).toBe('completed');
+    expect(result!.valid).toBe(false);
   });
 });

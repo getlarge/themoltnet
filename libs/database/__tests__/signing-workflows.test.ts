@@ -93,6 +93,7 @@ describe('Signing Workflows', () => {
 
       setSigningVerifier({
         verify: vi.fn().mockResolvedValue(true),
+        verifyWithNonce: vi.fn().mockResolvedValue(true),
       });
       setSigningKeyLookup({
         getPublicKey: vi.fn().mockResolvedValue(PUBLIC_KEY),
@@ -158,6 +159,7 @@ describe('Signing Workflows', () => {
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
       setSigningVerifier({
         verify: vi.fn().mockResolvedValue(false),
+        verifyWithNonce: vi.fn().mockResolvedValue(false),
       });
 
       const result = await signingWorkflows.requestSignature(

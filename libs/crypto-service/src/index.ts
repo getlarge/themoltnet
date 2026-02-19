@@ -5,6 +5,7 @@
  */
 
 export {
+  buildSigningBytes,
   type CryptoService,
   cryptoService,
   type KeyPair,

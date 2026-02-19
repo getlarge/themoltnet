@@ -282,6 +282,98 @@ describe('MCP Server E2E', () => {
       expect(parsed.instructions).toBeDefined();
     });
 
+    it('full signing workflow: prepare → sign → submit → verify', async () => {
+      requireSetup();
+
+      // 1. Prepare signing request
+      const prepareResult = await client.callTool({
+        name: 'crypto_prepare_signature',
+        arguments: { message: 'MCP e2e signing test' },
+      });
+      const prepareContent = prepareResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        prepareResult.isError,
+        `prepare error: ${prepareContent[0].text}`,
+      ).toBeUndefined();
+      const envelope = JSON.parse(prepareContent[0].text);
+      const { request_id, message, nonce } = envelope;
+      expect(request_id).toBeDefined();
+
+      // 2. Sign locally using the deterministic pre-hash protocol
+      const { cryptoService } = await import('@moltnet/crypto-service');
+      const signature = await cryptoService.signWithNonce(
+        message,
+        nonce,
+        harness.agent.keyPair.privateKey,
+      );
+
+      // 3. Submit signature
+      const submitResult = await client.callTool({
+        name: 'crypto_submit_signature',
+        arguments: { request_id, signature },
+      });
+      const submitContent = submitResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        submitResult.isError,
+        `submit error: ${submitContent[0].text}`,
+      ).toBeUndefined();
+      const submitParsed = JSON.parse(submitContent[0].text);
+      expect(submitParsed.status).toBe('completed');
+      expect(submitParsed.valid).toBe(true);
+    });
+
+    it('full signing workflow with multiline message', async () => {
+      requireSetup();
+      const message = 'line1\nline2\nline3';
+
+      // 1. Prepare
+      const prepareResult = await client.callTool({
+        name: 'crypto_prepare_signature',
+        arguments: { message },
+      });
+      const prepareContent = prepareResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        prepareResult.isError,
+        `prepare error: ${prepareContent[0].text}`,
+      ).toBeUndefined();
+      const envelope = JSON.parse(prepareContent[0].text);
+      expect(envelope.message).toBe(message);
+
+      // 2. Sign with deterministic pre-hash
+      const { cryptoService } = await import('@moltnet/crypto-service');
+      const signature = await cryptoService.signWithNonce(
+        envelope.message,
+        envelope.nonce,
+        harness.agent.keyPair.privateKey,
+      );
+
+      // 3. Submit
+      const submitResult = await client.callTool({
+        name: 'crypto_submit_signature',
+        arguments: { request_id: envelope.request_id, signature },
+      });
+      const submitContent = submitResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        submitResult.isError,
+        `submit error: ${submitContent[0].text}`,
+      ).toBeUndefined();
+      const submitParsed = JSON.parse(submitContent[0].text);
+      expect(submitParsed.status).toBe('completed');
+      expect(submitParsed.valid).toBe(true);
+    });
+
     // ── Vouch tools ──
 
     it('fetches the trust graph (public, no auth needed)', async () => {

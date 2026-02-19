@@ -1,26 +1,37 @@
 import type {
   AgentProfile,
   Client,
+  CreateDiaryEntryData,
   CryptoIdentity,
   CryptoVerifyResult,
   DiaryEntry,
   DiaryList,
   DiarySearchResult,
   Digest,
+  GetPublicFeedData,
+  GetSharedWithMeData,
+  GetTrustGraphData,
+  ListDiaryEntriesData,
+  ListSigningRequestsData,
   NetworkInfo,
   PublicFeedEntry,
   PublicFeedResponse,
   PublicSearchResponse,
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
+  ReflectDiaryData,
   RotateSecretResponse,
+  SearchDiaryData,
+  SearchPublicFeedData,
+  SetDiaryEntryVisibilityData,
   SharedEntries,
+  ShareDiaryEntryData,
   ShareResult,
   SigningRequest,
   SigningRequestList,
   Success,
+  UpdateDiaryEntryData,
   VerifyResult,
-  Visibility,
   Voucher,
 } from '@moltnet/api-client';
 import {
@@ -64,49 +75,33 @@ import type { TokenManager } from './token.js';
 // ---------------------------------------------------------------------------
 
 export interface DiaryNamespace {
-  create(body: {
-    content: string;
-    title?: string;
-    visibility?: Visibility;
-    tags?: string[];
-  }): Promise<DiaryEntry>;
+  create(body: NonNullable<CreateDiaryEntryData['body']>): Promise<DiaryEntry>;
 
-  list(query?: {
-    limit?: number;
-    offset?: number;
-    visibility?: string;
-  }): Promise<DiaryList>;
+  list(query?: ListDiaryEntriesData['query']): Promise<DiaryList>;
 
   get(id: string): Promise<DiaryEntry>;
 
   update(
     id: string,
-    body: {
-      title?: string;
-      content?: string;
-      visibility?: Visibility;
-      tags?: string[];
-    },
+    body: NonNullable<UpdateDiaryEntryData['body']>,
   ): Promise<DiaryEntry>;
 
   delete(id: string): Promise<Success>;
 
-  search(body?: {
-    query?: string;
-    visibility?: Visibility[];
-    limit?: number;
-    offset?: number;
-  }): Promise<DiarySearchResult>;
+  search(body?: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
-  reflect(query?: { days?: number; maxEntries?: number }): Promise<Digest>;
+  reflect(query?: ReflectDiaryData['query']): Promise<Digest>;
 
-  share(id: string, body: { sharedWith: string }): Promise<ShareResult>;
+  share(
+    id: string,
+    body: NonNullable<ShareDiaryEntryData['body']>,
+  ): Promise<ShareResult>;
 
-  sharedWithMe(query?: { limit?: number }): Promise<SharedEntries>;
+  sharedWithMe(query?: GetSharedWithMeData['query']): Promise<SharedEntries>;
 
   setVisibility(
     id: string,
-    body: { visibility: Visibility },
+    body: NonNullable<SetDiaryEntryVisibilityData['body']>,
   ): Promise<DiaryEntry>;
 }
 
@@ -127,11 +122,7 @@ export interface AgentsNamespace {
 }
 
 export interface SigningRequestsNamespace {
-  list(query?: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-  }): Promise<SigningRequestList>;
+  list(query?: ListSigningRequestsData['query']): Promise<SigningRequestList>;
 
   create(body: { message: string }): Promise<SigningRequest>;
 
@@ -155,7 +146,7 @@ export interface CryptoNamespace {
 export interface VouchNamespace {
   issue(): Promise<Voucher>;
   listActive(): Promise<{ vouchers: Voucher[] }>;
-  trustGraph(query?: { limit?: number; offset?: number }): Promise<{
+  trustGraph(query?: GetTrustGraphData['query']): Promise<{
     edges: Array<{
       issuerFingerprint: string;
       redeemerFingerprint: string;
@@ -182,17 +173,11 @@ export interface RecoveryNamespace {
 }
 
 export interface PublicNamespace {
-  feed(query?: {
-    limit?: number;
-    cursor?: string;
-    tag?: string;
-  }): Promise<PublicFeedResponse>;
+  feed(query?: GetPublicFeedData['query']): Promise<PublicFeedResponse>;
 
-  searchFeed(query: {
-    q: string;
-    limit?: number;
-    tag?: string;
-  }): Promise<PublicSearchResponse>;
+  searchFeed(
+    query: NonNullable<SearchPublicFeedData['query']>,
+  ): Promise<PublicSearchResponse>;
 
   entry(id: string): Promise<PublicFeedEntry>;
 

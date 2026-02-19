@@ -38,7 +38,7 @@ body:
       description: Which files or directories should the agent read first?
       placeholder: |
         - `libs/auth/src/`
-        - `docs/AUTH_FLOW.md`
+        - `docs/ARCHITECTURE.md`
         - `apps/rest-api/src/routes/`
     validations:
       required: true

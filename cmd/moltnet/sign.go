@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -53,14 +53,14 @@ func readPayload(args []string) (string, error) {
 	}
 
 	if args[0] == "-" {
-		scanner := bufio.NewScanner(os.Stdin)
-		if scanner.Scan() {
-			return scanner.Text(), nil
-		}
-		if err := scanner.Err(); err != nil {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
 			return "", fmt.Errorf("read stdin: %w", err)
 		}
-		return "", fmt.Errorf("empty stdin")
+		if len(data) == 0 {
+			return "", fmt.Errorf("empty stdin")
+		}
+		return string(data), nil
 	}
 
 	return args[0], nil
