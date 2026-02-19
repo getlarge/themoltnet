@@ -5,8 +5,44 @@
  * @getlarge/fastify-mcp's mcpAddTool.
  */
 
+import type {
+  CreateDiaryEntryData,
+  CreateSigningRequestData,
+  DeleteDiaryEntryData,
+  EntryType,
+  GetAgentProfileData,
+  GetDiaryEntryData,
+  GetPublicEntryData,
+  GetPublicFeedData,
+  GetSharedWithMeData,
+  GetSigningRequestData,
+  ListDiaryEntriesData,
+  ReflectDiaryData,
+  SearchDiaryData,
+  SearchPublicFeedData,
+  SetDiaryEntryVisibilityData,
+  ShareDiaryEntryData,
+  SubmitSignatureData,
+  UpdateDiaryEntryData,
+  VerifyCryptoSignatureData,
+} from '@moltnet/api-client';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
+
+type BodyOf<T extends { body?: unknown }> = Exclude<T['body'], undefined>;
+type QueryOf<T extends { query?: unknown }> = Exclude<T['query'], undefined>;
+type PathOf<T extends { path?: unknown }> = Exclude<T['path'], undefined>;
+type SnakeCase<S extends string> = S extends `${infer H}${infer T}`
+  ? H extends Lowercase<H>
+    ? `${H}${SnakeCase<T>}`
+    : `_${Lowercase<H>}${SnakeCase<T>}`
+  : S;
+type SnakeCasedProperties<T> = {
+  [K in keyof T as K extends string ? SnakeCase<K> : K]: T[K];
+};
+type SnakePick<T, K extends keyof T> = SnakeCasedProperties<Pick<T, K>>;
+type EmptyInput = {};
+type AssertSchemaToApi<_TSchema extends TApi, TApi> = true;
 
 // --- Diary schemas ---
 
@@ -51,12 +87,15 @@ export const DiaryCreateSchema = Type.Object({
     }),
   ),
 });
-export type DiaryCreateInput = Static<typeof DiaryCreateSchema>;
+type CreateDiaryBody = BodyOf<CreateDiaryEntryData>;
+export type DiaryCreateInput = SnakeCasedProperties<CreateDiaryBody>;
 
 export const DiaryGetSchema = Type.Object({
   entry_id: Type.String({ description: 'The entry ID' }),
 });
-export type DiaryGetInput = Static<typeof DiaryGetSchema>;
+export type DiaryGetInput = {
+  entry_id: PathOf<GetDiaryEntryData>['id'];
+};
 
 export const DiaryListSchema = Type.Object({
   limit: Type.Optional(
@@ -69,7 +108,10 @@ export const DiaryListSchema = Type.Object({
     }),
   ),
 });
-export type DiaryListInput = Static<typeof DiaryListSchema>;
+type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
+export type DiaryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
+  tags?: string[];
+};
 
 export const DiarySearchSchema = Type.Object({
   query: Type.String({
@@ -114,7 +156,21 @@ export const DiarySearchSchema = Type.Object({
     }),
   ),
 });
-export type DiarySearchInput = Static<typeof DiarySearchSchema>;
+type SearchDiaryBody = NonNullable<SearchDiaryData['body']>;
+type DiarySearchFields = SnakePick<
+  SearchDiaryBody,
+  | 'query'
+  | 'limit'
+  | 'tags'
+  | 'wRelevance'
+  | 'wRecency'
+  | 'wImportance'
+  | 'entryTypes'
+  | 'excludeSuperseded'
+>;
+export type DiarySearchInput = Omit<DiarySearchFields, 'query'> & {
+  query: NonNullable<SearchDiaryBody['query']>;
+};
 
 export const DiaryUpdateSchema = Type.Object({
   entry_id: Type.String({ description: 'The entry ID' }),
@@ -137,12 +193,17 @@ export const DiaryUpdateSchema = Type.Object({
     }),
   ),
 });
-export type DiaryUpdateInput = Static<typeof DiaryUpdateSchema>;
+type UpdateDiaryBody = NonNullable<UpdateDiaryEntryData['body']>;
+export type DiaryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
+  entry_id: PathOf<UpdateDiaryEntryData>['id'];
+};
 
 export const DiaryDeleteSchema = Type.Object({
   entry_id: Type.String({ description: 'The entry ID to delete' }),
 });
-export type DiaryDeleteInput = Static<typeof DiaryDeleteSchema>;
+export type DiaryDeleteInput = {
+  entry_id: PathOf<DeleteDiaryEntryData>['id'];
+};
 
 export const DiaryReflectSchema = Type.Object({
   days: Type.Optional(
@@ -159,16 +220,19 @@ export const DiaryReflectSchema = Type.Object({
     }),
   ),
 });
-export type DiaryReflectInput = Static<typeof DiaryReflectSchema>;
+type ReflectDiaryQuery = QueryOf<ReflectDiaryData>;
+export type DiaryReflectInput = {
+  days?: ReflectDiaryQuery['days'];
+  max_entries?: ReflectDiaryQuery['maxEntries'];
+  entry_types?: EntryType[];
+};
 
 // --- Crypto schemas ---
 
 export const CryptoPrepareSignatureSchema = Type.Object({
   message: Type.String({ description: 'The message to sign' }),
 });
-export type CryptoPrepareSignatureInput = Static<
-  typeof CryptoPrepareSignatureSchema
->;
+export type CryptoPrepareSignatureInput = BodyOf<CreateSigningRequestData>;
 
 export const CryptoSubmitSignatureSchema = Type.Object({
   request_id: Type.String({
@@ -176,31 +240,37 @@ export const CryptoSubmitSignatureSchema = Type.Object({
   }),
   signature: Type.String({ description: 'The Ed25519 signature (base64)' }),
 });
-export type CryptoSubmitSignatureInput = Static<
-  typeof CryptoSubmitSignatureSchema
->;
+export type CryptoSubmitSignatureInput = SnakeCasedProperties<
+  BodyOf<SubmitSignatureData>
+> & {
+  request_id: PathOf<SubmitSignatureData>['id'];
+};
 
 export const CryptoSigningStatusSchema = Type.Object({
   request_id: Type.String({ description: 'The signing request ID to check' }),
 });
-export type CryptoSigningStatusInput = Static<typeof CryptoSigningStatusSchema>;
+export type CryptoSigningStatusInput = {
+  request_id: PathOf<GetSigningRequestData>['id'];
+};
 
 export const CryptoVerifySchema = Type.Object({
   signature: Type.String({ description: 'The signature to verify' }),
 });
-export type CryptoVerifyInput = Static<typeof CryptoVerifySchema>;
+export type CryptoVerifyInput = BodyOf<VerifyCryptoSignatureData>;
 
 // --- Identity schemas ---
 
 export const WhoamiSchema = Type.Object({});
-export type WhoamiInput = Static<typeof WhoamiSchema>;
+export type WhoamiInput = EmptyInput;
 
 export const AgentLookupSchema = Type.Object({
   fingerprint: Type.String({
     description: 'The key fingerprint to look up (format: A1B2-C3D4-E5F6-G7H8)',
   }),
 });
-export type AgentLookupInput = Static<typeof AgentLookupSchema>;
+export type AgentLookupInput = {
+  fingerprint: PathOf<GetAgentProfileData>['fingerprint'];
+};
 
 // --- Sharing schemas ---
 
@@ -211,7 +281,11 @@ export const DiarySetVisibilitySchema = Type.Object({
     { description: 'New visibility level' },
   ),
 });
-export type DiarySetVisibilityInput = Static<typeof DiarySetVisibilitySchema>;
+export type DiarySetVisibilityInput = SnakeCasedProperties<
+  BodyOf<SetDiaryEntryVisibilityData>
+> & {
+  entry_id: PathOf<SetDiaryEntryVisibilityData>['id'];
+};
 
 export const DiaryShareSchema = Type.Object({
   entry_id: Type.String({ description: 'The entry ID to share' }),
@@ -219,30 +293,34 @@ export const DiaryShareSchema = Type.Object({
     description: 'Fingerprint of the agent to share with',
   }),
 });
-export type DiaryShareInput = Static<typeof DiaryShareSchema>;
+export type DiaryShareInput = {
+  entry_id: PathOf<ShareDiaryEntryData>['id'];
+  with_agent: BodyOf<ShareDiaryEntryData>['sharedWith'];
+};
 
 export const DiarySharedWithMeSchema = Type.Object({
   limit: Type.Optional(
     Type.Number({ description: 'Max results (default 20)' }),
   ),
 });
-export type DiarySharedWithMeInput = Static<typeof DiarySharedWithMeSchema>;
+type SharedWithMeQuery = QueryOf<GetSharedWithMeData>;
+export type DiarySharedWithMeInput = Pick<SharedWithMeQuery, 'limit'>;
 
 // --- Vouch schemas ---
 
 export const IssueVoucherSchema = Type.Object({});
-export type IssueVoucherInput = Static<typeof IssueVoucherSchema>;
+export type IssueVoucherInput = EmptyInput;
 
 export const ListVouchersSchema = Type.Object({});
-export type ListVouchersInput = Static<typeof ListVouchersSchema>;
+export type ListVouchersInput = EmptyInput;
 
 export const TrustGraphSchema = Type.Object({});
-export type TrustGraphInput = Static<typeof TrustGraphSchema>;
+export type TrustGraphInput = EmptyInput;
 
 // --- Network Info schemas ---
 
 export const MoltnetInfoSchema = Type.Object({});
-export type MoltnetInfoInput = Static<typeof MoltnetInfoSchema>;
+export type MoltnetInfoInput = EmptyInput;
 
 // --- Public Feed schemas ---
 
@@ -255,12 +333,18 @@ export const PublicFeedBrowseSchema = Type.Object({
   ),
   tag: Type.Optional(Type.String({ description: 'Filter entries by tag' })),
 });
-export type PublicFeedBrowseInput = Static<typeof PublicFeedBrowseSchema>;
+type PublicFeedQuery = QueryOf<GetPublicFeedData>;
+export type PublicFeedBrowseInput = Pick<
+  PublicFeedQuery,
+  'limit' | 'cursor' | 'tag'
+>;
 
 export const PublicFeedReadSchema = Type.Object({
   entry_id: Type.String({ description: 'The public entry ID' }),
 });
-export type PublicFeedReadInput = Static<typeof PublicFeedReadSchema>;
+export type PublicFeedReadInput = {
+  entry_id: PathOf<GetPublicEntryData>['id'];
+};
 
 export const PublicFeedSearchSchema = Type.Object({
   query: Type.String({
@@ -271,4 +355,104 @@ export const PublicFeedSearchSchema = Type.Object({
     Type.Number({ description: 'Max results to return (default 10, max 50)' }),
   ),
 });
-export type PublicFeedSearchInput = Static<typeof PublicFeedSearchSchema>;
+type PublicFeedSearchQuery = QueryOf<SearchPublicFeedData>;
+export type PublicFeedSearchInput = {
+  query: PublicFeedSearchQuery['q'];
+  tag?: PublicFeedSearchQuery['tag'];
+  limit?: PublicFeedSearchQuery['limit'];
+};
+
+// --- Compile-time drift checks ---
+
+type _DiaryCreateInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiaryCreateSchema>,
+  DiaryCreateInput
+>;
+type _DiaryGetInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiaryGetSchema>,
+  DiaryGetInput
+>;
+type _DiaryListInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiaryListSchema>,
+  DiaryListInput
+>;
+type _DiarySearchInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiarySearchSchema>,
+  DiarySearchInput
+>;
+type _DiaryUpdateInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiaryUpdateSchema>,
+  DiaryUpdateInput
+>;
+type _DiaryDeleteInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiaryDeleteSchema>,
+  DiaryDeleteInput
+>;
+type _DiaryReflectInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiaryReflectSchema>,
+  DiaryReflectInput
+>;
+type _CryptoPrepareSignatureInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof CryptoPrepareSignatureSchema>,
+  CryptoPrepareSignatureInput
+>;
+type _CryptoSubmitSignatureInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof CryptoSubmitSignatureSchema>,
+  CryptoSubmitSignatureInput
+>;
+type _CryptoSigningStatusInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof CryptoSigningStatusSchema>,
+  CryptoSigningStatusInput
+>;
+type _CryptoVerifyInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof CryptoVerifySchema>,
+  CryptoVerifyInput
+>;
+type _WhoamiInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof WhoamiSchema>,
+  WhoamiInput
+>;
+type _AgentLookupInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof AgentLookupSchema>,
+  AgentLookupInput
+>;
+type _DiarySetVisibilityInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiarySetVisibilitySchema>,
+  DiarySetVisibilityInput
+>;
+type _DiaryShareInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiaryShareSchema>,
+  DiaryShareInput
+>;
+type _DiarySharedWithMeInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiarySharedWithMeSchema>,
+  DiarySharedWithMeInput
+>;
+type _IssueVoucherInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof IssueVoucherSchema>,
+  IssueVoucherInput
+>;
+type _ListVouchersInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof ListVouchersSchema>,
+  ListVouchersInput
+>;
+type _TrustGraphInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof TrustGraphSchema>,
+  TrustGraphInput
+>;
+type _MoltnetInfoInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof MoltnetInfoSchema>,
+  MoltnetInfoInput
+>;
+type _PublicFeedBrowseInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PublicFeedBrowseSchema>,
+  PublicFeedBrowseInput
+>;
+type _PublicFeedReadInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PublicFeedReadSchema>,
+  PublicFeedReadInput
+>;
+type _PublicFeedSearchInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PublicFeedSearchSchema>,
+  PublicFeedSearchInput
+>;
