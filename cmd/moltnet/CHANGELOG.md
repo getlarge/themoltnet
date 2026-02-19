@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/getlarge/themoltnet/compare/cli-v0.16.0...cli-v0.16.1) (2026-02-19)
+
+
+### Bug Fixes
+
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/cli-v0.15.0...cli-v0.16.0) (2026-02-19)
 
 
