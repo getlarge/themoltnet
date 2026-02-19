@@ -128,4 +128,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-18 | handoff    | [SDK Connect + Token Management](2026-02-18-01-sdk-connect-token-management.md)                                   |
 | 2026-02-18 | handoff    | [Documentation Consolidation](2026-02-18-02-docs-consolidation.md)                                                |
 | 2026-02-18 | handoff    | [SDK namespace interfaces derived from api-client Data types](2026-02-18-02-sdk-diary-types-drift-fix.md)         |
+| 2026-02-18 | handoff    | [Deterministic Signing Payload via SHA-256 Pre-Hash](2026-02-18-03-deterministic-signing-payload.md)              |
 | 2026-02-19 | handoff    | [Diary Schema Enrichment & Weighted Scoring](2026-02-19-01-diary-schema-enrichment.md)                            |
