@@ -32,7 +32,7 @@
     "generate:client": "pnpm --filter @moltnet/api-client run generate",
     "generate": "pnpm run generate:openapi && pnpm run generate:client && prettier --write apps/rest-api/public/openapi.json libs/api-client/src/generated/",
     "check:pack": "tsx scripts/check-pack.ts",
-    "check:quickstart": "tsx scripts/check-quickstart-drift.ts",
+    "check:quickstart": "pnpm --filter @moltnet/tools run check-quickstart",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build && pnpm run check:pack && pnpm run check:quickstart",
     "docker:up": "docker compose --env-file .env.local up -d",
     "docker:down": "docker compose down",

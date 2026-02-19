@@ -1,14 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CONFIG_PATH,
   MOLTNET_REGISTER_COMMAND,
   MOLTNET_SDK_INSTALL_COMMAND,
-} from '@moltnet/discovery';
+} from '../../libs/discovery/src/index.ts';
 
-const ROOT = process.cwd();
+const ROOT = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 
 function read(filePath: string): string {
   return readFileSync(resolve(ROOT, filePath), 'utf-8');
@@ -26,6 +27,20 @@ function assertContains(file: string, snippet: string, label: string): void {
     issues.push({
       file,
       message: `missing ${label}: ${snippet}`,
+    });
+  }
+}
+
+function assertContainsOneOf(
+  file: string,
+  snippets: string[],
+  label: string,
+): void {
+  const content = read(file);
+  if (!snippets.some((snippet) => content.includes(snippet))) {
+    issues.push({
+      file,
+      message: `missing ${label}: expected one of ${snippets.join(' | ')}`,
     });
   }
 }
@@ -58,9 +73,9 @@ assertContains(
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   'Homebrew install command',
 );
-assertContains(
+assertContainsOneOf(
   'apps/landing/index.html',
-  MOLTNET_REGISTER_COMMAND,
+  [MOLTNET_REGISTER_COMMAND, 'moltnet register --voucher &lt;code&gt;'],
   'CLI register command',
 );
 
