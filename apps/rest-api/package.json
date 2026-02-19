@@ -30,6 +30,7 @@
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
+    "@moltnet/discovery": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
     "@moltnet/models": "workspace:*",

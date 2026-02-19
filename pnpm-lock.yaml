@@ -261,6 +261,9 @@ importers:
       '@moltnet/design-system':
         specifier: workspace:*
         version: link:../../libs/design-system
+      '@moltnet/discovery':
+        specifier: workspace:*
+        version: link:../../libs/discovery
       react:
         specifier: 'catalog:'
         version: 19.2.4
@@ -383,6 +386,9 @@ importers:
       '@moltnet/diary-service':
         specifier: workspace:*
         version: link:../../libs/diary-service
+      '@moltnet/discovery':
+        specifier: workspace:*
+        version: link:../../libs/discovery
       '@moltnet/embedding-service':
         specifier: workspace:*
         version: link:../../libs/embedding-service
@@ -621,6 +627,8 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
+
+  libs/discovery: {}
 
   libs/embedding-service:
     dependencies:
