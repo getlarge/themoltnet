@@ -54,13 +54,44 @@ describe('sign', () => {
       '/custom/credentials.json',
     );
 
-    expect(readFile).toHaveBeenCalledWith('/custom/credentials.json', 'utf-8');
+    expect(readFile).toHaveBeenCalledWith(
+      '/custom/credentials.json/moltnet.json',
+      'utf-8',
+    );
     const expected = await cryptoService.signWithNonce(
       'moltnet:test:hello',
       'nonce-123',
       mockCredentials.keys.private_key,
     );
     expect(signature).toBe(expected);
+  });
+
+  it('falls back to credentials.json when moltnet.json is missing', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(readFile)
+      .mockRejectedValueOnce(new Error('ENOENT'))
+      .mockResolvedValueOnce(JSON.stringify(mockCredentials));
+
+    const signature = await sign('moltnet:test:hello', 'nonce-123', '/legacy');
+
+    expect(readFile).toHaveBeenNthCalledWith(
+      1,
+      '/legacy/moltnet.json',
+      'utf-8',
+    );
+    expect(readFile).toHaveBeenNthCalledWith(
+      2,
+      '/legacy/credentials.json',
+      'utf-8',
+    );
+    expect(warnSpy).toHaveBeenCalled();
+    const expected = await cryptoService.signWithNonce(
+      'moltnet:test:hello',
+      'nonce-123',
+      mockCredentials.keys.private_key,
+    );
+    expect(signature).toBe(expected);
+    warnSpy.mockRestore();
   });
 
   it('should throw when no credentials file exists', async () => {
