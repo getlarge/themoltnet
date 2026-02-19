@@ -18,6 +18,7 @@ import type {
   AgentRepository,
   CryptoService,
   DataSource,
+  DiaryCatalogRepository,
   DiaryRepository,
   DiaryService,
   EmbeddingService,
@@ -44,6 +45,7 @@ export const TEST_SECURITY_OPTIONS = {
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
+export const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
 export const VALID_AUTH_CONTEXT: AuthContext = {
   identityId: OWNER_ID,
@@ -58,6 +60,7 @@ export function createMockEntry(
 ): DiaryEntry {
   return {
     id: ENTRY_ID,
+    diaryId: DIARY_ID,
     ownerId: OWNER_ID,
     title: null,
     content: 'Test diary entry content',
@@ -104,6 +107,9 @@ export function createMockVoucher(
 
 export interface MockServices {
   diaryService: { [K in keyof DiaryService]: ReturnType<typeof vi.fn> };
+  diaryCatalogRepository: {
+    [K in keyof DiaryCatalogRepository]: ReturnType<typeof vi.fn>;
+  };
   diaryRepository: { [K in keyof DiaryRepository]: ReturnType<typeof vi.fn> };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
@@ -147,6 +153,21 @@ export function createMockServices(): MockServices {
       share: vi.fn(),
       getSharedWithMe: vi.fn(),
       reflect: vi.fn(),
+    },
+    diaryCatalogRepository: {
+      create: vi.fn(),
+      findOwnedById: vi.fn().mockResolvedValue(null),
+      findOwnedByKey: vi.fn().mockResolvedValue({
+        id: DIARY_ID,
+        ownerId: OWNER_ID,
+        key: 'private',
+        name: 'private',
+        visibility: 'private',
+        signed: false,
+        createdAt: new Date('2026-01-30T10:00:00Z'),
+        updatedAt: new Date('2026-01-30T10:00:00Z'),
+      }),
+      getOrCreateDefaultDiary: vi.fn(),
     },
     diaryRepository: {
       create: vi.fn(),
@@ -264,6 +285,8 @@ export async function createTestApp(
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
+    diaryCatalogRepository:
+      mocks.diaryCatalogRepository as unknown as DiaryCatalogRepository,
     diaryRepository: mocks.diaryRepository as unknown as DiaryRepository,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,

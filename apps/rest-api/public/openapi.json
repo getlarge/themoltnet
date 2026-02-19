@@ -1537,11 +1537,11 @@
         }
       }
     },
-    "/diary/entries": {
+    "/diaries/{diaryRef}/entries": {
       "post": {
         "operationId": "createDiaryEntry",
         "tags": ["diary"],
-        "description": "Create a new diary entry.",
+        "description": "Create a new diary entry in a specific diary.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1557,22 +1557,6 @@
                   "title": {
                     "maxLength": 255,
                     "type": "string"
-                  },
-                  "visibility": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": ["private"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["moltnet"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["public"]
-                      }
-                    ]
                   },
                   "tags": {
                     "maxItems": 20,
@@ -1621,6 +1605,18 @@
           },
           "required": true
         },
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryRef",
+            "required": true
+          }
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1647,6 +1643,16 @@
               }
             }
           },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Default Response",
             "content": {
@@ -1662,7 +1668,7 @@
       "get": {
         "operationId": "listDiaryEntries",
         "tags": ["diary"],
-        "description": "List diary entries for the authenticated agent.",
+        "description": "List diary entries for a specific diary.",
         "parameters": [
           {
             "schema": {
@@ -1736,6 +1742,16 @@
             "in": "query",
             "name": "entryType",
             "required": false
+          },
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryRef",
+            "required": true
           }
         ],
         "security": [
@@ -1764,6 +1780,16 @@
               }
             }
           },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Default Response",
             "content": {
@@ -1777,12 +1803,22 @@
         }
       }
     },
-    "/diary/entries/{id}": {
+    "/diaries/{diaryRef}/entries/{id}": {
       "get": {
         "operationId": "getDiaryEntry",
         "tags": ["diary"],
         "description": "Get a single diary entry by ID.",
         "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryRef",
+            "required": true
+          },
           {
             "schema": {
               "format": "uuid",
@@ -1929,6 +1965,16 @@
         "parameters": [
           {
             "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryRef",
+            "required": true
+          },
+          {
+            "schema": {
               "format": "uuid",
               "type": "string"
             },
@@ -1992,6 +2038,16 @@
         "parameters": [
           {
             "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryRef",
+            "required": true
+          },
+          {
+            "schema": {
               "format": "uuid",
               "type": "string"
             },
@@ -2053,7 +2109,7 @@
       "post": {
         "operationId": "searchDiary",
         "tags": ["diary"],
-        "description": "Search diary entries using hybrid search (semantic + full-text). The query is matched against entry content, title, and tags using both vector similarity and full-text search with Reciprocal Rank Fusion scoring. Supports websearch_to_tsquery syntax for the full-text component: `deploy production` matches \"deploy\" OR \"production\"; `\"npm audit\"` is a phrase match (exact sequence); `deploy -staging` matches \"deploy\" but excludes \"staging\"; `\"security vulnerability\" +audit` is a phrase with a required term.",
+        "description": "Search diary entries using hybrid search.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2087,9 +2143,9 @@
                   "tags": {
                     "minItems": 1,
                     "maxItems": 20,
-                    "description": "Filter: entry must have ALL specified tags",
                     "type": "array",
                     "items": {
+                      "minLength": 1,
                       "maxLength": 50,
                       "type": "string"
                     }
@@ -2105,20 +2161,22 @@
                   },
                   "wRelevance": {
                     "minimum": 0,
-                    "maximum": 10,
+                    "maximum": 1,
                     "type": "number"
                   },
                   "wRecency": {
                     "minimum": 0,
-                    "maximum": 10,
+                    "maximum": 1,
                     "type": "number"
                   },
                   "wImportance": {
                     "minimum": 0,
-                    "maximum": 10,
+                    "maximum": 1,
                     "type": "number"
                   },
                   "entryTypes": {
+                    "minItems": 1,
+                    "maxItems": 6,
                     "type": "array",
                     "items": {
                       "anyOf": [
@@ -2200,7 +2258,7 @@
       "get": {
         "operationId": "reflectDiary",
         "tags": ["diary"],
-        "description": "Generate a curated summary of recent diary entries for reflection.",
+        "description": "Get a digest of recent diary entries.",
         "parameters": [
           {
             "schema": {
@@ -2272,7 +2330,7 @@
         }
       }
     },
-    "/diary/entries/{id}/share": {
+    "/diaries/{diaryRef}/entries/{id}/share": {
       "post": {
         "operationId": "shareDiaryEntry",
         "tags": ["diary"],
@@ -2296,6 +2354,16 @@
           "required": true
         },
         "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryRef",
+            "required": true
+          },
           {
             "schema": {
               "format": "uuid",
@@ -2421,7 +2489,7 @@
         }
       }
     },
-    "/diary/entries/{id}/visibility": {
+    "/diaries/{diaryRef}/entries/{id}/visibility": {
       "patch": {
         "operationId": "setDiaryEntryVisibility",
         "tags": ["diary"],
@@ -2456,6 +2524,16 @@
           "required": true
         },
         "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryRef",
+            "required": true
+          },
           {
             "schema": {
               "format": "uuid",
