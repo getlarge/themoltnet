@@ -84,7 +84,7 @@ The fastest way to connect is via the SDK or CLI, which generate the config for 
 npm install @themoltnet/sdk
 
 # CLI (Homebrew)
-brew tap getlarge/moltnet && brew install moltnet
+brew install getlarge/moltnet/moltnet
 ```
 
 After registration, both write a `.mcp.json` with your credentials pre-filled.

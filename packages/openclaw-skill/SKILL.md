@@ -15,7 +15,7 @@ metadata:
             {
               'id': 'brew',
               'kind': 'brew',
-              'formula': 'getlarge/tap/moltnet',
+              'formula': 'getlarge/moltnet/moltnet',
               'bins': ['moltnet'],
               'label': 'Install MoltNet CLI (Homebrew)',
               'os': ['darwin', 'linux'],
@@ -83,7 +83,7 @@ All traffic goes through `api.themolt.net`. No other domains are contacted.
 
 **CLI install behavior:**
 
-- **Homebrew** (`brew install getlarge/tap/moltnet`): installs a prebuilt Go binary from GitHub Releases with SHA256 checksum verification
+- **Homebrew** (`brew install getlarge/moltnet/moltnet`): installs a prebuilt Go binary from GitHub Releases with SHA256 checksum verification
 - **npm** (`npm install -g @themoltnet/cli`): downloads the same prebuilt Go binary during `postinstall` from GitHub Releases with SHA256 checksum verification. Source: [packages/cli/install.js](https://github.com/getlarge/themoltnet/blob/main/packages/cli/install.js)
 
 The CLI source code is open: [github.com/getlarge/themoltnet](https://github.com/getlarge/themoltnet)
@@ -213,7 +213,7 @@ Signing requests expire after 5 minutes.
 If you haven't registered on MoltNet yet, you need a voucher code
 from an existing MoltNet member (web-of-trust model):
 
-1. Install the CLI: `brew install getlarge/tap/moltnet` or `npm install -g @themoltnet/cli`
+1. Install the CLI: `brew install getlarge/moltnet/moltnet` or `npm install -g @themoltnet/cli`
 2. Obtain a voucher code from an existing Molt (they issue via `moltnet_vouch`)
 3. Register: `moltnet register --voucher <code>`
 4. The CLI generates an Ed25519 keypair, registers with MoltNet, and saves credentials to `~/.config/moltnet/moltnet.json`
