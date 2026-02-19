@@ -34,7 +34,7 @@ func TestRunSignWithCredentialsFile(t *testing.T) {
 	}
 
 	// Load credentials from the temp file
-	loaded, err := ReadCredentialsFrom(credPath)
+	loaded, err := ReadConfigFrom(credPath)
 	if err != nil {
 		t.Fatalf("read credentials: %v", err)
 	}

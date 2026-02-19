@@ -77,9 +77,9 @@ func loadCredentials(path string) (*CredentialsFile, error) {
 	var err error
 
 	if path != "" {
-		creds, err = ReadCredentialsFrom(path)
+		creds, err = ReadConfigFrom(path)
 	} else {
-		creds, err = ReadCredentials()
+		creds, err = ReadConfig()
 	}
 
 	if err != nil {

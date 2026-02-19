@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // x-release-please-start-version
@@ -157,7 +158,23 @@ func runRegister(args []string) error {
 	}
 
 	// Write credentials
-	credPath, err := WriteCredentials(result)
+	credPath, err := WriteConfig(&CredentialsFile{
+		IdentityID: result.Response.IdentityID,
+		OAuth2: CredentialsOAuth2{
+			ClientID:     result.Response.ClientID,
+			ClientSecret: result.Response.ClientSecret,
+		},
+		Keys: CredentialsKeys{
+			PublicKey:   result.KeyPair.PublicKey,
+			PrivateKey:  result.KeyPair.PrivateKey,
+			Fingerprint: result.KeyPair.Fingerprint,
+		},
+		Endpoints: CredentialsEndpoints{
+			API: result.APIUrl,
+			MCP: result.APIUrl + "/mcp",
+		},
+		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
+	})
 	if err != nil {
 		return fmt.Errorf("write credentials: %w", err)
 	}

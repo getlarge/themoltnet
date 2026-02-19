@@ -88,24 +88,6 @@ func TestCrossLanguageVectors(t *testing.T) {
 			if kp.Fingerprint != v.Fingerprint {
 				t.Errorf("vector %d: fingerprint mismatch\n  got:  %s\n  want: %s", i, kp.Fingerprint, v.Fingerprint)
 			}
-
-			// Check signature
-			sig, err := Sign(v.SignInput, v.PrivateKeyBase64)
-			if err != nil {
-				t.Fatalf("vector %d: sign: %v", i, err)
-			}
-			if sig != v.SignatureBase64 {
-				t.Errorf("vector %d: signature mismatch\n  got:  %s\n  want: %s", i, sig, v.SignatureBase64)
-			}
-
-			// Verify signature
-			valid, err := Verify(v.SignInput, v.SignatureBase64, v.PublicKey)
-			if err != nil {
-				t.Fatalf("vector %d: verify: %v", i, err)
-			}
-			if !valid {
-				t.Errorf("vector %d: signature verification failed", i)
-			}
 		})
 	}
 }
@@ -133,53 +115,6 @@ func TestGenerateKeyPair(t *testing.T) {
 	// Fingerprint format
 	if len(kp.Fingerprint) != 19 { // XXXX-XXXX-XXXX-XXXX
 		t.Errorf("fingerprint format: got %q (len %d)", kp.Fingerprint, len(kp.Fingerprint))
-	}
-}
-
-func TestSignVerifyRoundTrip(t *testing.T) {
-	kp, err := GenerateKeyPair()
-	if err != nil {
-		t.Fatalf("generate: %v", err)
-	}
-
-	message := "moltnet:test:round-trip"
-	sig, err := Sign(message, kp.PrivateKey)
-	if err != nil {
-		t.Fatalf("sign: %v", err)
-	}
-
-	valid, err := Verify(message, sig, kp.PublicKey)
-	if err != nil {
-		t.Fatalf("verify: %v", err)
-	}
-	if !valid {
-		t.Error("round-trip verification failed")
-	}
-}
-
-func TestVerifyRejectsTamperedSignature(t *testing.T) {
-	kp, err := GenerateKeyPair()
-	if err != nil {
-		t.Fatalf("generate: %v", err)
-	}
-
-	message := "moltnet:test:tamper"
-	sig, err := Sign(message, kp.PrivateKey)
-	if err != nil {
-		t.Fatalf("sign: %v", err)
-	}
-
-	// Flip a bit in the signature
-	sigBytes, _ := base64.StdEncoding.DecodeString(sig)
-	sigBytes[0] ^= 0x01
-	tampered := base64.StdEncoding.EncodeToString(sigBytes)
-
-	valid, err := Verify(message, tampered, kp.PublicKey)
-	if err != nil {
-		t.Fatalf("verify: %v", err)
-	}
-	if valid {
-		t.Error("tampered signature should not verify")
 	}
 }
 

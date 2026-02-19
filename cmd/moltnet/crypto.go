@@ -89,18 +89,6 @@ func BuildSigningBytes(message, nonce string) []byte {
 	return buf
 }
 
-// @deprecated: use BuildSigningBytes + SignForRequest instead
-// Sign signs a message with the given base64-encoded seed and returns a base64-encoded signature.
-func Sign(message string, privateKeyBase64 string) (string, error) {
-	seed, err := base64.StdEncoding.DecodeString(privateKeyBase64)
-	if err != nil {
-		return "", fmt.Errorf("decode private key: %w", err)
-	}
-	priv := ed25519.NewKeyFromSeed(seed)
-	sig := ed25519.Sign(priv, []byte(message))
-	return base64.StdEncoding.EncodeToString(sig), nil
-}
-
 // SignForRequest signs a (message, nonce) pair using BuildSigningBytes.
 func SignForRequest(message, nonce, privateKeyBase64 string) (string, error) {
 	seed, err := base64.StdEncoding.DecodeString(privateKeyBase64)
@@ -111,20 +99,6 @@ func SignForRequest(message, nonce, privateKeyBase64 string) (string, error) {
 	signingBytes := BuildSigningBytes(message, nonce)
 	sig := ed25519.Sign(priv, signingBytes)
 	return base64.StdEncoding.EncodeToString(sig), nil
-}
-
-// @deprecated: use VerifyForRequest instead
-// Verify verifies a signature against a message and public key.
-func Verify(message string, signatureBase64 string, publicKey string) (bool, error) {
-	pubBytes, err := ParsePublicKey(publicKey)
-	if err != nil {
-		return false, err
-	}
-	sig, err := base64.StdEncoding.DecodeString(signatureBase64)
-	if err != nil {
-		return false, fmt.Errorf("decode signature: %w", err)
-	}
-	return ed25519.Verify(pubBytes, []byte(message), sig), nil
 }
 
 // VerifyForRequest verifies a signature produced by SignForRequest.
