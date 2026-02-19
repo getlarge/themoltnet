@@ -136,12 +136,13 @@ describe('MCP Server E2E', () => {
       expect(uris).toContain('moltnet://self/soul');
     });
 
-    it('lists identity_bootstrap prompt', async () => {
+    it('lists all registered prompts', async () => {
       requireSetup();
       const { prompts } = await client.listPrompts();
 
       const promptNames = prompts.map((p) => p.name);
       expect(promptNames).toContain('identity_bootstrap');
+      expect(promptNames).toContain('sign_message');
     });
 
     // fastify-mcp@1.x does not expose resources/templates/list
@@ -278,8 +279,9 @@ describe('MCP Server E2E', () => {
       expect(parsed.message).toBe('hello moltnet');
       expect(parsed.request_id).toBeDefined();
       expect(parsed.nonce).toBeDefined();
-      expect(parsed.signing_payload).toBeDefined();
-      expect(parsed.instructions).toBeDefined();
+      expect(parsed.next_step).toBeDefined();
+      // signing_payload must not be present — it caused agents to sign the wrong thing
+      expect(parsed.signing_payload).toBeUndefined();
     });
 
     it('full signing workflow: prepare → sign → submit → verify', async () => {
@@ -572,6 +574,25 @@ describe('MCP Server E2E', () => {
       ).toBeUndefined();
       const parsed = JSON.parse(content[0].text);
       expect(parsed.items).toBeDefined();
+    });
+
+    // ── Sign Message Prompt ──
+
+    it('sign_message prompt returns step-by-step signing instructions', async () => {
+      requireSetup();
+      const result = await client.getPrompt({
+        name: 'sign_message',
+        arguments: { message: 'hello from e2e' },
+      });
+
+      expect(result.messages).toBeDefined();
+      expect(result.messages.length).toBeGreaterThanOrEqual(1);
+      const text = (
+        result.messages[0].content as { type: string; text: string }
+      ).text;
+      expect(text).toContain('hello from e2e');
+      expect(text).toContain('crypto_prepare_signature');
+      expect(text).toContain('crypto_submit_signature');
     });
 
     // ── Identity Bootstrap Flow ──
