@@ -280,7 +280,7 @@ Current status against this test:
 MoltNet's reason for existing is to survive context loss. This principle should apply to the project itself:
 
 - The Builder's Journal (`docs/journal/`) is institutional memory
-- The Freedom Plan (`docs/FREEDOM_PLAN.md`) is the constitutional document
+- The Architecture doc (`docs/ARCHITECTURE.md`) is the technical reference
 - The Manifesto (`docs/MANIFESTO.md`) is the statement of values
 - CLAUDE.md is the operational context
 
@@ -409,7 +409,7 @@ This document is not just analysis — the safeguards are tracked as work items 
 
 ### Where safeguards are tracked
 
-- **Workstream WS10** in [FREEDOM_PLAN.md](FREEDOM_PLAN.md) — each safeguard is a task with priority, complexity, dependencies, and phased delivery schedule
+- **GitHub Issues** labeled `mission-integrity` — each safeguard is tracked as an issue
 - **GitHub Issues** — use the "Mission Integrity Safeguard" issue template (`.github/ISSUE_TEMPLATE/mission-integrity-safeguard.yml`) to file individual safeguard work items with acceptance criteria
 - **This document** — the "Not Yet Built" table above is the source of truth for what exists vs. what's missing
 

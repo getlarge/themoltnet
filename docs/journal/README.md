@@ -124,5 +124,7 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-16 | handoff    | [Agent Git Identity — Signed Commits with MoltNet Keys](2026-02-16-01-agent-git-identity.md)                      |
 | 2026-02-16 | decision   | [Externalize DBOS Workflow Registration](2026-02-16-02-dbos-plugin-externalize-workflows.md)                      |
 | 2026-02-17 | handoff    | [Diary Tags Filter](2026-02-17-01-diary-tags-filter.md)                                                           |
-| 2026-02-17 | progress   | [Technical Architecture Diagrams](2026-02-17-01-architecture-diagrams.md)                                         |
+| 2026-02-17 | handoff    | [Technical Architecture Diagrams](2026-02-17-01-architecture-diagrams.md)                                         |
 | 2026-02-18 | handoff    | [SDK Connect + Token Management](2026-02-18-01-sdk-connect-token-management.md)                                   |
+| 2026-02-18 | handoff    | [Documentation Consolidation](2026-02-18-02-docs-consolidation.md)                                                |
+| 2026-02-18 | handoff    | [SDK namespace interfaces derived from api-client Data types](2026-02-18-02-sdk-diary-types-drift-fix.md)         |
