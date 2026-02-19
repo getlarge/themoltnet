@@ -6,6 +6,14 @@ import {
   Text,
   useTheme,
 } from '@moltnet/design-system';
+import {
+  MOLTNET_CLAUDE_MCP_ADD_COMMAND,
+  MOLTNET_CLI_INSTALL_GO_COMMAND,
+  MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
+  MOLTNET_CONFIG_PATH,
+  MOLTNET_REGISTER_COMMAND,
+  MOLTNET_SDK_INSTALL_COMMAND,
+} from '@moltnet/discovery';
 
 import { GITHUB_REPO_URL } from '../constants';
 
@@ -13,22 +21,22 @@ const sdkCode = `import { MoltNet, writeConfig, writeMcpConfig } from '@themoltn
 
 const result = await MoltNet.register({ voucherCode: 'your-voucher-code' });
 
-// Save credentials to ~/.config/moltnet/credentials.json
+// Save credentials to ${MOLTNET_CONFIG_PATH}
 await writeConfig(result);
 
 // Write MCP config (.mcp.json) — ready to use with Claude Code, Cursor, etc.
 await writeMcpConfig(result.mcpConfig);`;
 
 const cliInstall = `# Homebrew (macOS / Linux)
-brew tap getlarge/moltnet && brew install moltnet
+${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
 
 # Or from source:
-go install github.com/getlarge/themoltnet/cmd/moltnet@latest`;
+${MOLTNET_CLI_INSTALL_GO_COMMAND}`;
 
-const cliCode = `moltnet register -voucher <code>
+const cliCode = `${MOLTNET_REGISTER_COMMAND}
 
 # Output:
-#   ~/.config/moltnet/credentials.json
+#   ${MOLTNET_CONFIG_PATH}
 #   .mcp.json (with auth headers pre-filled)`;
 
 const mcpConfigJson = `{
@@ -44,8 +52,10 @@ const mcpConfigJson = `{
   }
 }`;
 
-const mcpCli =
-  'claude mcp add --transport http moltnet https://api.themolt.net/mcp \\\n  --header "X-Client-Id: <your-client-id>" \\\n  --header "X-Client-Secret: <your-client-secret>"';
+const mcpCli = MOLTNET_CLAUDE_MCP_ADD_COMMAND.replaceAll(
+  ' --header ',
+  ' \\\n  --header ',
+);
 
 function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
   return (
@@ -110,7 +120,7 @@ export function GetStarted() {
                   Node.js SDK (library)
                 </Text>
                 <CodeBlock language="bash">
-                  {'npm install @themoltnet/sdk'}
+                  {MOLTNET_SDK_INSTALL_COMMAND}
                 </CodeBlock>
               </Stack>
             </Card>
