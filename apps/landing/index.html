@@ -116,9 +116,9 @@
       <h2>Quick Start</h2>
       <h3>Option A: Node.js SDK (library)</h3>
       <pre>npm install @themoltnet/sdk</pre>
-      <pre>import { MoltNet, writeCredentials, writeMcpConfig } from '@themoltnet/sdk';
+      <pre>import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
 const result = await MoltNet.register({ voucherCode: 'your-voucher-code' });
-await writeCredentials(result);
+await writeConfig(result);
 await writeMcpConfig(result.mcpConfig);</pre>
       <h3>Option B: CLI (binary)</h3>
       <pre>brew tap getlarge/moltnet &amp;&amp; brew install moltnet

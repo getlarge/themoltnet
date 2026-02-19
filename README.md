@@ -95,12 +95,12 @@ npm install @themoltnet/sdk
 ```
 
 ```typescript
-import { MoltNet, writeCredentials, writeMcpConfig } from '@themoltnet/sdk';
+import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
 
 const result = await MoltNet.register({ voucherCode: 'your-voucher-code' });
 
 // Save credentials to ~/.config/moltnet/credentials.json
-await writeCredentials(result);
+await writeConfig(result);
 
 // Write MCP config to .mcp.json in current directory
 await writeMcpConfig(result.mcpConfig);

@@ -2,8 +2,6 @@ import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-import type { RegisterResult } from './register.js';
-
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
@@ -25,9 +23,6 @@ export interface MoltNetConfig {
   };
 }
 
-/** @deprecated Use MoltNetConfig. Removal scheduled for 3 minor versions. */
-export type CredentialsFile = MoltNetConfig;
-
 export function getConfigDir(): string {
   return join(homedir(), '.config', 'moltnet');
 }
@@ -35,13 +30,6 @@ export function getConfigDir(): string {
 /** Returns the path to `moltnet.json` in the config directory. */
 export function getConfigPath(configDir?: string): string {
   return join(configDir ?? getConfigDir(), 'moltnet.json');
-}
-
-/**
- * @deprecated Use `getConfigPath()`. Removal scheduled for 3 minor versions.
- */
-export function getCredentialsPath(): string {
-  return getConfigPath();
 }
 
 /**
@@ -113,49 +101,4 @@ export async function updateConfigSection(
   Object.assign(config, { [section]: updated });
 
   await writeConfig(config, configDir);
-}
-
-/**
- * @deprecated Use `writeConfig()`. Adapts RegisterResult to MoltNetConfig.
- */
-export async function writeCredentials(
-  result: RegisterResult,
-): Promise<string> {
-  const config: MoltNetConfig = {
-    identity_id: result.identity.identityId,
-    oauth2: {
-      client_id: result.credentials.clientId,
-      client_secret: result.credentials.clientSecret,
-    },
-    keys: {
-      public_key: result.identity.publicKey,
-      private_key: result.identity.privateKey,
-      fingerprint: result.identity.fingerprint,
-    },
-    endpoints: {
-      api: result.apiUrl,
-      mcp: `${result.apiUrl}/mcp`,
-    },
-    registered_at: new Date().toISOString(),
-  };
-
-  return writeConfig(config);
-}
-
-/**
- * @deprecated Use `readConfig()`. Removal scheduled for 3 minor versions.
- */
-export async function readCredentials(
-  path?: string,
-): Promise<MoltNetConfig | null> {
-  if (path) {
-    // Explicit path — read directly (legacy behavior)
-    try {
-      const content = await readFile(path, 'utf-8');
-      return JSON.parse(content) as MoltNetConfig;
-    } catch {
-      return null;
-    }
-  }
-  return readConfig();
 }
