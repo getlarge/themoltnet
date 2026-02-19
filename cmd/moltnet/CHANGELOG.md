@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/cli-v0.8.0...cli-v0.9.0) (2026-02-19)
+
+
+### Features
+
+* **go:** add BuildSigningBytes, SignForRequest, VerifyForRequest and fix readPayload for multiline stdin ([8102984](https://github.com/getlarge/themoltnet/commit/81029845e4d11e06ae8126759dad9365c03bf6a4))
+
+
+### Bug Fixes
+
+* **crypto:** deterministic signing payload via SHA-256 pre-hash — fix multiline message failures ([d6fe33c](https://github.com/getlarge/themoltnet/commit/d6fe33ce819ef4bbf2341fa996f8aa160ba49b47))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/cli-v0.7.0...cli-v0.8.0) (2026-02-16)
 
 
