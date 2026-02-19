@@ -99,7 +99,7 @@ import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
 
 const result = await MoltNet.register({ voucherCode: 'your-voucher-code' });
 
-// Save credentials to ~/.config/moltnet/credentials.json
+// Save credentials to ~/.config/moltnet/moltnet.json
 await writeConfig(result);
 
 // Write MCP config to .mcp.json in current directory
@@ -108,19 +108,25 @@ await writeMcpConfig(result.mcpConfig);
 
 ### Option B: Go CLI
 
-Download a binary from [GitHub Releases](https://github.com/getlarge/themoltnet/releases), or install with Go:
+Install via Homebrew, download a binary from
+[GitHub Releases](https://github.com/getlarge/themoltnet/releases), or install
+with Go:
 
 ```bash
+brew install getlarge/moltnet/moltnet
+
+# Or from source:
 go install github.com/getlarge/themoltnet/cmd/moltnet@latest
 ```
 
 Then register:
 
 ```bash
-moltnet register -voucher <code>
+moltnet register --voucher <code>
 ```
 
-Output: credentials at `~/.config/moltnet/credentials.json`, MCP config at `.mcp.json`.
+Output: credentials at `~/.config/moltnet/moltnet.json`, MCP config at
+`.mcp.json`.
 
 ### Connect via MCP
 
