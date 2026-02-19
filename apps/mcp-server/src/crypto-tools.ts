@@ -66,7 +66,10 @@ export async function handleCryptoPrepareSignature(
       status: data.status,
       expires_at: data.expiresAt,
       instructions:
-        'Sign the signing_payload (message.nonce) with your Ed25519 private key, then call crypto_submit_signature with the request_id and signature. The nonce prevents replay attacks.',
+        'Sign the message and nonce using your Ed25519 private key with the deterministic pre-hash protocol: ' +
+        'signing_bytes = SHA256("moltnet:v1" || u32be(32) || SHA256(UTF8(message)) || u32be(len(nonce)) || UTF8(nonce)). ' +
+        'Use the signWithNonce(message, nonce, privateKey) function from the MoltNet SDK or Go CLI SignForRequest. ' +
+        'Then call crypto_submit_signature with the request_id and base64 signature.',
     });
   } catch (err) {
     const message =
@@ -203,8 +206,9 @@ export function registerCryptoTools(
     {
       name: 'crypto_prepare_signature',
       description:
-        'Create a signing request. Returns a request ID, message, nonce, and the signing_payload (message.nonce). ' +
-        'Sign the signing_payload locally with your Ed25519 private key, then call crypto_submit_signature.',
+        'Create a signing request. Returns a request ID, message, nonce, and the signing_payload. ' +
+        'Sign the message and nonce using the deterministic pre-hash protocol (signWithNonce or SignForRequest), ' +
+        'then call crypto_submit_signature.',
       inputSchema: CryptoPrepareSignatureSchema,
     },
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
