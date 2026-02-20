@@ -19,10 +19,7 @@ const config: KnipConfig = {
       entry: ['openapi-ts.config.ts'],
       // Generated code — exports are intentionally broad (full API surface)
       ignore: ['src/generated/**'],
-      ignoreDependencies: [
-        // Used as an openapi-ts plugin (string reference, not an import)
-        '@hey-api/client-fetch',
-      ],
+      ignoreDependencies: [],
     },
     'libs/auth': {
       entry: ['__tests__/**/*.test.ts'],
