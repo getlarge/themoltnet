@@ -1,162 +1,146 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
+	"time"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
-// newTestAPISetup creates a token server and api server for testing.
-// The token server always returns the given token.
-func newTestAPISetup(t *testing.T, token string, handler http.HandlerFunc) (*httptest.Server, *httptest.Server, *APIClient) {
+// newTestServer builds a token stub and an ogen-generated API server backed by
+// the given handler, returning both httptest servers and a ready Client.
+func newTestServer(t *testing.T, h moltnetapi.Handler) (*httptest.Server, *httptest.Server, *moltnetapi.Client) {
 	t.Helper()
+
 	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
-			"access_token": token,
+			"access_token": "test-token",
 			"token_type":   "Bearer",
 			"expires_in":   3600,
 		})
 	}))
-	apiSrv := httptest.NewServer(handler)
-	tm := NewTokenManager(tokenSrv.URL, "client-id", "client-secret")
-	client := NewAPIClient(apiSrv.URL, tm)
+
+	// The generated server needs a SecurityHandler even for client-side tests;
+	// use a no-op that always accepts.
+	apiSrv_gen, err := moltnetapi.NewServer(h, noopSecurityHandler{})
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+	apiSrv := httptest.NewServer(apiSrv_gen)
+
+	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
+	client, err := newAuthedClient(apiSrv.URL, tm)
+	if err != nil {
+		t.Fatalf("newAuthedClient: %v", err)
+	}
+
+	t.Cleanup(func() {
+		tokenSrv.Close()
+		apiSrv.Close()
+	})
+
 	return tokenSrv, apiSrv, client
 }
 
-func TestAPIClientGet(t *testing.T) {
-	tokenSrv, apiSrv, client := newTestAPISetup(t, "tok-get", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/agents/whoami" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		auth := r.Header.Get("Authorization")
-		if auth != "Bearer tok-get" {
-			t.Errorf("expected Bearer tok-get, got %q", auth)
-		}
+// noopSecurityHandler accepts all bearer tokens for test servers.
+type noopSecurityHandler struct{}
+
+func (noopSecurityHandler) HandleBearerAuth(_ context.Context, _ moltnetapi.OperationName, _ moltnetapi.BearerAuth) (context.Context, error) {
+	return context.Background(), nil
+}
+
+// TestTokenSecuritySource verifies that GetToken is called and the Bearer header is set.
+func TestTokenSecuritySource(t *testing.T) {
+	called := false
+	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"identity_id":"abc"}`)) //nolint:errcheck
+		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+			"access_token": "injected-token",
+			"token_type":   "Bearer",
+			"expires_in":   3600,
+		})
 	}))
 	defer tokenSrv.Close()
-	defer apiSrv.Close()
 
-	body, err := client.Get("/agents/whoami")
+	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
+	src := &tokenSecuritySource{tm: tm}
+
+	bearer, err := src.BearerAuth(context.Background(), moltnetapi.GetWhoamiOperation)
 	if err != nil {
-		t.Fatalf("Get() error: %v", err)
+		t.Fatalf("BearerAuth() error: %v", err)
 	}
-	if !strings.Contains(string(body), "abc") {
-		t.Errorf("expected body to contain abc, got %q", string(body))
+	if bearer.Token != "injected-token" {
+		t.Errorf("expected token=injected-token, got %q", bearer.Token)
 	}
-}
-
-func TestAPIClientPost(t *testing.T) {
-	tokenSrv, apiSrv, client := newTestAPISetup(t, "tok-post", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/signing-requests" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		if ct := r.Header.Get("Content-Type"); ct != "application/json" {
-			t.Errorf("expected Content-Type application/json, got %q", ct)
-		}
-		var payload map[string]string
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-			t.Errorf("decode body: %v", err)
-		}
-		if payload["message"] != "hello" {
-			t.Errorf("expected message=hello, got %q", payload["message"])
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"id":"req-1"}`)) //nolint:errcheck
-	}))
-	defer tokenSrv.Close()
-	defer apiSrv.Close()
-
-	body, err := client.Post("/signing-requests", map[string]string{"message": "hello"})
-	if err != nil {
-		t.Fatalf("Post() error: %v", err)
-	}
-	if !strings.Contains(string(body), "req-1") {
-		t.Errorf("expected body to contain req-1, got %q", string(body))
+	if !called {
+		t.Error("expected token server to be called")
 	}
 }
 
-func TestAPIClientDelete(t *testing.T) {
-	tokenSrv, apiSrv, client := newTestAPISetup(t, "tok-del", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete || r.URL.Path != "/diary/entry-1" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		w.WriteHeader(http.StatusNoContent)
-	}))
-	defer tokenSrv.Close()
-	defer apiSrv.Close()
-
-	if err := client.Delete("/diary/entry-1"); err != nil {
-		t.Fatalf("Delete() error: %v", err)
-	}
-}
-
-func TestAPIClientPatch(t *testing.T) {
-	tokenSrv, apiSrv, client := newTestAPISetup(t, "tok-patch", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPatch || r.URL.Path != "/diary/entry-1" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"id":"entry-1","content":"updated"}`)) //nolint:errcheck
-	}))
-	defer tokenSrv.Close()
-	defer apiSrv.Close()
-
-	body, err := client.Patch("/diary/entry-1", map[string]string{"content": "updated"})
-	if err != nil {
-		t.Fatalf("Patch() error: %v", err)
-	}
-	if !strings.Contains(string(body), "updated") {
-		t.Errorf("expected body to contain updated, got %q", string(body))
-	}
-}
-
-func TestAPIClientNon2xx(t *testing.T) {
-	tokenSrv, apiSrv, client := newTestAPISetup(t, "tok-err", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, `{"title":"Not Found"}`, http.StatusNotFound)
-	}))
-	defer tokenSrv.Close()
-	defer apiSrv.Close()
-
-	_, err := client.Get("/missing")
-	if err == nil {
-		t.Fatal("expected error for 404, got nil")
-	}
-	if !strings.Contains(err.Error(), "404") {
-		t.Errorf("expected error to contain 404, got %q", err.Error())
-	}
-}
-
-func TestAPIClientRetry401(t *testing.T) {
+// TestTokenSecuritySourceCached verifies that the token is cached on the second call.
+func TestTokenSecuritySourceCached(t *testing.T) {
 	callCount := 0
-	tokenSrv, apiSrv, client := newTestAPISetup(t, "tok-retry", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
-		if callCount == 1 {
-			// First call: simulate token expired
-			w.WriteHeader(http.StatusUnauthorized)
-			io.WriteString(w, `{"error":"token_expired"}`) //nolint:errcheck
-			return
-		}
-		// Second call: success
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"ok":true}`)) //nolint:errcheck
+		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+			"access_token": "cached-token",
+			"token_type":   "Bearer",
+			"expires_in":   3600,
+		})
 	}))
 	defer tokenSrv.Close()
-	defer apiSrv.Close()
 
-	body, err := client.Get("/agents/whoami")
+	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
+	src := &tokenSecuritySource{tm: tm}
+
+	for i := 0; i < 3; i++ {
+		if _, err := src.BearerAuth(context.Background(), moltnetapi.GetWhoamiOperation); err != nil {
+			t.Fatalf("BearerAuth() call %d error: %v", i, err)
+		}
+	}
+	if callCount != 1 {
+		t.Errorf("expected token server called once (cached), got %d", callCount)
+	}
+}
+
+// stubWhoamiHandler returns a fixed Whoami response.
+type stubWhoamiHandler struct {
+	moltnetapi.UnimplementedHandler
+	identityID uuid.UUID
+}
+
+func (h *stubWhoamiHandler) GetWhoami(_ context.Context) (moltnetapi.GetWhoamiRes, error) {
+	return &moltnetapi.Whoami{
+		IdentityId:  h.identityID,
+		Fingerprint: "A1B2-C3D4-E5F6-A1B2",
+		PublicKey:   "ed25519:pk-abc",
+		ClientId:    "client-xyz",
+	}, nil
+}
+
+// TestNewAuthedClientCallsAPI is an integration smoke-test using the generated server stub.
+func TestNewAuthedClientCallsAPI(t *testing.T) {
+	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	_, _, client := newTestServer(t, &stubWhoamiHandler{identityID: wantID})
+
+	res, err := client.GetWhoami(context.Background())
 	if err != nil {
-		t.Fatalf("Get() error after retry: %v", err)
+		t.Fatalf("GetWhoami() error: %v", err)
 	}
-	if !strings.Contains(string(body), "ok") {
-		t.Errorf("expected body to contain ok, got %q", string(body))
+	whoami, ok := res.(*moltnetapi.Whoami)
+	if !ok {
+		t.Fatalf("expected *Whoami, got %T", res)
 	}
-	if callCount != 2 {
-		t.Errorf("expected 2 API calls (original + retry), got %d", callCount)
+	if whoami.IdentityId != wantID {
+		t.Errorf("expected identity_id=%s, got %s", wantID, whoami.IdentityId)
 	}
+	_ = time.Now() // ensure time import used
 }

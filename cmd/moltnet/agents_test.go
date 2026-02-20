@@ -1,74 +1,72 @@
 package main
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"context"
 	"testing"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
+	"github.com/google/uuid"
 )
+
+type stubAgentsHandler struct {
+	moltnetapi.UnimplementedHandler
+}
+
+func (h *stubAgentsHandler) GetWhoami(_ context.Context) (moltnetapi.GetWhoamiRes, error) {
+	return &moltnetapi.Whoami{
+		IdentityId:  uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Fingerprint: "A1B2-C3D4-E5F6-A1B2",
+		PublicKey:   "ed25519:pk-abc",
+		ClientId:    "client-xyz",
+	}, nil
+}
+
+func (h *stubAgentsHandler) GetAgentProfile(_ context.Context, params moltnetapi.GetAgentProfileParams) (moltnetapi.GetAgentProfileRes, error) {
+	return &moltnetapi.AgentProfile{
+		Fingerprint: params.Fingerprint,
+		PublicKey:   "ed25519:pk-looked-up",
+	}, nil
+}
 
 func TestAgentsWhoami(t *testing.T) {
 	// Arrange
-	want := map[string]string{
-		"identityId":  "id-123",
-		"publicKey":   "pk-abc",
-		"fingerprint": "fp-xyz",
-		"clientId":    "ci-000",
-	}
-	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"access_token": "tok", "expires_in": 3600}) //nolint:errcheck
-	}))
-	defer tokenSrv.Close()
-	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/agents/whoami" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(want) //nolint:errcheck
-	}))
-	defer apiSrv.Close()
-	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	client := NewAPIClient(apiSrv.URL, tm)
+	_, _, client := newTestServer(t, &stubAgentsHandler{})
 
 	// Act
-	result, err := agentsWhoami(client)
+	res, err := client.GetWhoami(context.Background())
 
 	// Assert
 	if err != nil {
-		t.Fatalf("agentsWhoami() error: %v", err)
+		t.Fatalf("GetWhoami() error: %v", err)
 	}
-	if result["identityId"] != "id-123" {
-		t.Errorf("expected identityId=id-123, got %q", result["identityId"])
+	whoami, ok := res.(*moltnetapi.Whoami)
+	if !ok {
+		t.Fatalf("expected *Whoami, got %T", res)
+	}
+	if whoami.Fingerprint != "A1B2-C3D4-E5F6-A1B2" {
+		t.Errorf("expected fingerprint=A1B2-C3D4-E5F6-A1B2, got %q", whoami.Fingerprint)
 	}
 }
 
 func TestAgentsLookup(t *testing.T) {
 	// Arrange
-	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"access_token": "tok", "expires_in": 3600}) //nolint:errcheck
-	}))
-	defer tokenSrv.Close()
-	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/agents/fp-abc" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"fingerprint": "fp-abc"}) //nolint:errcheck
-	}))
-	defer apiSrv.Close()
-	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	client := NewAPIClient(apiSrv.URL, tm)
+	_, _, client := newTestServer(t, &stubAgentsHandler{})
+	const fp = "A1B2-C3D4-E5F6-A1B2"
 
 	// Act
-	result, err := agentsLookup(client, "fp-abc")
+	res, err := client.GetAgentProfile(context.Background(), moltnetapi.GetAgentProfileParams{
+		Fingerprint: fp,
+	})
 
 	// Assert
 	if err != nil {
-		t.Fatalf("agentsLookup() error: %v", err)
+		t.Fatalf("GetAgentProfile() error: %v", err)
 	}
-	if result["fingerprint"] != "fp-abc" {
-		t.Errorf("expected fingerprint=fp-abc, got %q", result["fingerprint"])
+	profile, ok := res.(*moltnetapi.AgentProfile)
+	if !ok {
+		t.Fatalf("expected *AgentProfile, got %T", res)
+	}
+	if profile.Fingerprint != fp {
+		t.Errorf("expected fingerprint=%s, got %q", fp, profile.Fingerprint)
 	}
 }

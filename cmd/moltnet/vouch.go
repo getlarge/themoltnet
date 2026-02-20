@@ -1,10 +1,12 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"flag"
 	"fmt"
 	"os"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
 
 func runVouch(args []string) error {
@@ -37,21 +39,19 @@ func runVouchIssue(args []string) error {
 		return err
 	}
 
-	creds, err := loadCredentials("")
+	client, err := newClientFromCreds(*apiURL)
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-	}
-	tm := NewTokenManager(*apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	client := NewAPIClient(*apiURL, tm)
-
-	result, err := vouchIssue(client)
+	res, err := client.IssueVoucher(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("vouch issue: %w", err)
 	}
-	return printJSON(result)
+	voucher, ok := res.(*moltnetapi.Voucher)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(voucher)
 }
 
 func runVouchList(args []string) error {
@@ -67,45 +67,17 @@ func runVouchList(args []string) error {
 		return err
 	}
 
-	creds, err := loadCredentials("")
+	client, err := newClientFromCreds(*apiURL)
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-	}
-	tm := NewTokenManager(*apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	client := NewAPIClient(*apiURL, tm)
-
-	result, err := vouchListActive(client)
+	res, err := client.ListActiveVouchers(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("vouch list: %w", err)
 	}
-	return printJSON(result)
-}
-
-// vouchIssue creates a new voucher code via the API.
-func vouchIssue(client *APIClient) (map[string]interface{}, error) {
-	body, err := client.Post("/vouch", nil)
-	if err != nil {
-		return nil, err
+	vouchers, ok := res.(*moltnetapi.ListActiveVouchersOK)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
 	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	return result, nil
-}
-
-// vouchListActive returns all active (unredeemed) vouchers for the current agent.
-func vouchListActive(client *APIClient) (map[string]interface{}, error) {
-	body, err := client.Get("/vouch/active")
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	return result, nil
+	return printJSON(vouchers)
 }

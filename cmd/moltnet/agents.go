@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
 
 func runAgents(args []string) error {
@@ -37,21 +40,19 @@ func runAgentsWhoami(args []string) error {
 		return err
 	}
 
-	creds, err := loadCredentials("")
+	client, err := newClientFromCreds(*apiURL)
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-	}
-	tm := NewTokenManager(*apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	client := NewAPIClient(*apiURL, tm)
-
-	result, err := agentsWhoami(client)
+	res, err := client.GetWhoami(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("agents whoami: %w", err)
 	}
-	return printJSON(result)
+	whoami, ok := res.(*moltnetapi.Whoami)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(whoami)
 }
 
 func runAgentsLookup(args []string) error {
@@ -70,49 +71,22 @@ func runAgentsLookup(args []string) error {
 		fs.Usage()
 		return fmt.Errorf("fingerprint argument required")
 	}
-	fingerprint := fs.Arg(0)
 
-	creds, err := loadCredentials("")
+	client, err := newClientFromCreds(*apiURL)
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-	}
-	tm := NewTokenManager(*apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	client := NewAPIClient(*apiURL, tm)
-
-	result, err := agentsLookup(client, fingerprint)
+	res, err := client.GetAgentProfile(context.Background(), moltnetapi.GetAgentProfileParams{
+		Fingerprint: fs.Arg(0),
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("agents lookup: %w", err)
 	}
-	return printJSON(result)
-}
-
-// agentsWhoami returns the current agent's identity from the API.
-func agentsWhoami(client *APIClient) (map[string]interface{}, error) {
-	body, err := client.Get("/agents/whoami")
-	if err != nil {
-		return nil, err
+	profile, ok := res.(*moltnetapi.AgentProfile)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
 	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	return result, nil
-}
-
-// agentsLookup returns the agent profile for the given fingerprint.
-func agentsLookup(client *APIClient, fingerprint string) (map[string]interface{}, error) {
-	body, err := client.Get("/agents/" + fingerprint)
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	return result, nil
+	return printJSON(profile)
 }
 
 // printJSON marshals v to indented JSON and writes to stdout.

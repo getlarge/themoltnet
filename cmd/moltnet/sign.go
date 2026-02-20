@@ -1,11 +1,14 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
 func runSign(args []string) error {
@@ -46,8 +49,10 @@ func runSign(args []string) error {
 		if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
 			return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
 		}
-		tm := NewTokenManager(*apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-		client := NewAPIClient(*apiURL, tm)
+		client, err := newClientFromCreds(*apiURL)
+		if err != nil {
+			return err
+		}
 		if err := signWithRequestID(client, *requestID, creds.Keys.PrivateKey); err != nil {
 			return err
 		}
@@ -114,42 +119,37 @@ func loadCredentials(path string) (*CredentialsFile, error) {
 	return creds, nil
 }
 
-// signingRequestResponse holds the fields we need from a signing request.
-type signingRequestResponse struct {
-	ID      string `json:"id"`
-	Message string `json:"message"`
-	Nonce   string `json:"nonce"`
-	Status  string `json:"status"`
-}
-
 // signWithRequestID fetches a signing request by ID, signs the payload, and submits the signature.
-func signWithRequestID(client *APIClient, requestID, privateKey string) error {
+func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) error {
+	rid, err := uuid.Parse(requestID)
+	if err != nil {
+		return fmt.Errorf("invalid request ID %q: %w", requestID, err)
+	}
+
 	// Fetch the signing request
-	body, err := client.Get("/crypto/signing-requests/" + requestID)
+	res, err := client.GetSigningRequest(context.Background(), moltnetapi.GetSigningRequestParams{ID: rid})
 	if err != nil {
 		return fmt.Errorf("fetch signing request: %w", err)
 	}
-	var req signingRequestResponse
-	if err := json.Unmarshal(body, &req); err != nil {
-		return fmt.Errorf("decode signing request: %w", err)
+	req, ok := res.(*moltnetapi.SigningRequest)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
 	}
-	if req.Status != "pending" {
+	if req.Status != moltnetapi.SigningRequestStatusPending {
 		return fmt.Errorf("signing request %s is not pending (status: %s)", requestID, req.Status)
 	}
-	if req.Message == "" || req.Nonce == "" {
-		return fmt.Errorf("signing request %s missing message or nonce", requestID)
-	}
 
-	// Sign
-	sig, err := SignForRequest(req.Message, req.Nonce, privateKey)
+	// Sign using message + nonce (nonce is a UUID, serialise as its string form)
+	sig, err := SignForRequest(req.Message, req.Nonce.String(), privateKey)
 	if err != nil {
 		return fmt.Errorf("sign: %w", err)
 	}
 
 	// Submit
-	_, err = client.Post("/crypto/signing-requests/"+requestID+"/sign", map[string]string{
-		"signature": sig,
-	})
+	_, err = client.SubmitSignature(context.Background(),
+		&moltnetapi.SubmitSignatureReq{Signature: sig},
+		moltnetapi.SubmitSignatureParams{ID: rid},
+	)
 	if err != nil {
 		return fmt.Errorf("submit signature: %w", err)
 	}

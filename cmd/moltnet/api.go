@@ -1,122 +1,46 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
-	"time"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
 
-// APIClient makes authenticated HTTP requests to the MoltNet REST API.
-type APIClient struct {
-	baseURL string
-	tm      *TokenManager
-	http    *http.Client
+// tokenSecuritySource implements moltnetapi.SecuritySource using a TokenManager.
+// It provides Bearer tokens obtained via OAuth2 client_credentials flow.
+type tokenSecuritySource struct {
+	tm *TokenManager
 }
 
-// NewAPIClient creates an APIClient that authenticates via the given TokenManager.
-func NewAPIClient(baseURL string, tm *TokenManager) *APIClient {
-	return &APIClient{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		tm:      tm,
-		http:    &http.Client{Timeout: 30 * time.Second},
-	}
-}
-
-// Get performs an authenticated GET request and returns the response body.
-func (c *APIClient) Get(path string) ([]byte, error) {
-	return c.do(http.MethodGet, path, nil)
-}
-
-// Post performs an authenticated POST request with a JSON body and returns the response body.
-func (c *APIClient) Post(path string, body interface{}) ([]byte, error) {
-	return c.do(http.MethodPost, path, body)
-}
-
-// Delete performs an authenticated DELETE request.
-func (c *APIClient) Delete(path string) error {
-	_, err := c.do(http.MethodDelete, path, nil)
-	return err
-}
-
-// Patch performs an authenticated PATCH request with a JSON body and returns the response body.
-func (c *APIClient) Patch(path string, body interface{}) ([]byte, error) {
-	return c.do(http.MethodPatch, path, body)
-}
-
-// do executes the HTTP request, injecting an Authorization header.
-// On 401, it invalidates the cached token and retries once.
-func (c *APIClient) do(method, path string, body interface{}) ([]byte, error) {
-	data, err := c.doOnce(method, path, body)
-	if err == nil {
-		return data, nil
-	}
-	// Retry once on 401
-	if isUnauthorized(err) {
-		c.tm.Invalidate()
-		return c.doOnce(method, path, body)
-	}
-	return nil, err
-}
-
-func (c *APIClient) doOnce(method, path string, body interface{}) ([]byte, error) {
-	token, err := c.tm.GetToken()
+// BearerAuth satisfies moltnetapi.SecuritySource.
+func (s *tokenSecuritySource) BearerAuth(_ context.Context, _ moltnetapi.OperationName) (moltnetapi.BearerAuth, error) {
+	token, err := s.tm.GetToken()
 	if err != nil {
-		return nil, fmt.Errorf("get token: %w", err)
+		return moltnetapi.BearerAuth{}, fmt.Errorf("get token: %w", err)
 	}
+	return moltnetapi.BearerAuth{Token: token}, nil
+}
 
-	var reqBody io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("marshal request body: %w", err)
-		}
-		reqBody = bytes.NewReader(b)
-	}
+// newAuthedClient builds a moltnetapi.Client authenticated via the TokenManager.
+func newAuthedClient(apiURL string, tm *TokenManager) (*moltnetapi.Client, error) {
+	return moltnetapi.NewClient(
+		strings.TrimRight(apiURL, "/"),
+		&tokenSecuritySource{tm: tm},
+	)
+}
 
-	req, err := http.NewRequest(method, c.baseURL+path, reqBody) //nolint:gosec
+// newClientFromCreds loads stored credentials, creates a TokenManager, and
+// returns a fully authenticated moltnetapi.Client.
+func newClientFromCreds(apiURL string) (*moltnetapi.Client, error) {
+	creds, err := loadCredentials("")
 	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
+		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
+		return nil, fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
 	}
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, &apiError{status: resp.StatusCode, body: respBody}
-	}
-	return respBody, nil
-}
-
-// apiError carries the HTTP status code and response body for non-2xx responses.
-type apiError struct {
-	status int
-	body   []byte
-}
-
-func (e *apiError) Error() string {
-	msg := strings.TrimSpace(string(e.body))
-	if msg == "" {
-		return fmt.Sprintf("API error %d", e.status)
-	}
-	return fmt.Sprintf("API error %d: %s", e.status, msg)
-}
-
-func isUnauthorized(err error) bool {
-	if e, ok := err.(*apiError); ok {
-		return e.status == http.StatusUnauthorized
-	}
-	return false
+	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
+	return newAuthedClient(apiURL, tm)
 }

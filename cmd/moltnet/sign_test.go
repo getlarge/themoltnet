@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
 func TestRunSignWithCredentialsFile(t *testing.T) {
@@ -85,6 +88,40 @@ func TestLoadCredentialsMissing(t *testing.T) {
 	}
 }
 
+// stubSigningHandler implements GetSigningRequest and SubmitSignature for testing.
+type stubSigningHandler struct {
+	moltnetapi.UnimplementedHandler
+	requestID uuid.UUID
+	message   string
+	nonce     uuid.UUID
+	gotSig    string
+}
+
+func (h *stubSigningHandler) GetSigningRequest(_ context.Context, params moltnetapi.GetSigningRequestParams) (moltnetapi.GetSigningRequestRes, error) {
+	return &moltnetapi.SigningRequest{
+		ID:        h.requestID,
+		Message:   h.message,
+		Nonce:     h.nonce,
+		Status:    moltnetapi.SigningRequestStatusPending,
+		AgentId:   uuid.New(),
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	}, nil
+}
+
+func (h *stubSigningHandler) SubmitSignature(_ context.Context, req *moltnetapi.SubmitSignatureReq, params moltnetapi.SubmitSignatureParams) (moltnetapi.SubmitSignatureRes, error) {
+	h.gotSig = req.Signature
+	return &moltnetapi.SigningRequest{
+		ID:        params.ID,
+		Message:   h.message,
+		Nonce:     h.nonce,
+		Status:    moltnetapi.SigningRequestStatusCompleted,
+		AgentId:   uuid.New(),
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	}, nil
+}
+
 func TestSignWithRequestID(t *testing.T) {
 	// Arrange: generate a real keypair
 	kp, err := GenerateKeyPair()
@@ -92,60 +129,32 @@ func TestSignWithRequestID(t *testing.T) {
 		t.Fatalf("generate keypair: %v", err)
 	}
 
-	message := "hello from test"
-	nonce := "nonce-abc-123"
-	requestID := "req-uuid-1"
+	reqID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
+	nonceID := uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000000")
+	handler := &stubSigningHandler{
+		requestID: reqID,
+		message:   "hello from test",
+		nonce:     nonceID,
+	}
 
-	// Track which endpoints were hit
-	getHit := false
-	submitHit := false
-
-	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"access_token": "tok", "expires_in": 3600}) //nolint:errcheck
-	}))
-	defer tokenSrv.Close()
-
-	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/crypto/signing-requests/"+requestID:
-			getHit = true
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
-				"id":      requestID,
-				"message": message,
-				"nonce":   nonce,
-				"status":  "pending",
-			})
-		case r.Method == http.MethodPost && r.URL.Path == "/crypto/signing-requests/"+requestID+"/sign":
-			submitHit = true
-			var body map[string]string
-			json.NewDecoder(r.Body).Decode(&body) //nolint:errcheck
-			if body["signature"] == "" {
-				t.Error("expected non-empty signature in submit body")
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"id": requestID, "status": "completed"}) //nolint:errcheck
-		default:
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-			http.Error(w, "unexpected", http.StatusNotFound)
-		}
-	}))
-	defer apiSrv.Close()
-
-	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	client := NewAPIClient(apiSrv.URL, tm)
+	_, _, client := newTestServer(t, handler)
 
 	// Act
-	if err := signWithRequestID(client, requestID, kp.PrivateKey); err != nil {
+	if err := signWithRequestID(client, reqID.String(), kp.PrivateKey); err != nil {
 		t.Fatalf("signWithRequestID() error: %v", err)
 	}
 
-	// Assert
-	if !getHit {
-		t.Error("expected GET signing request to be called")
+	// Assert: a non-empty signature was submitted
+	if handler.gotSig == "" {
+		t.Error("expected a signature to be submitted")
 	}
-	if !submitHit {
-		t.Error("expected POST sign to be called")
+
+	// Verify the submitted signature is cryptographically valid
+	valid, err := VerifyForRequest(handler.message, nonceID.String(), handler.gotSig, kp.PublicKey)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	if !valid {
+		t.Error("submitted signature failed verification")
 	}
 }

@@ -1,10 +1,12 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"flag"
 	"fmt"
 	"os"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
 
 func runCryptoOps(args []string) error {
@@ -37,21 +39,19 @@ func runCryptoIdentity(args []string) error {
 		return err
 	}
 
-	creds, err := loadCredentials("")
+	client, err := newClientFromCreds(*apiURL)
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-	}
-	tm := NewTokenManager(*apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	client := NewAPIClient(*apiURL, tm)
-
-	result, err := cryptoIdentity(client)
+	res, err := client.GetCryptoIdentity(context.Background())
 	if err != nil {
-		return err
+		return fmt.Errorf("crypto identity: %w", err)
 	}
-	return printJSON(result)
+	identity, ok := res.(*moltnetapi.CryptoIdentity)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(identity)
 }
 
 func runCryptoVerify(args []string) error {
@@ -72,45 +72,19 @@ func runCryptoVerify(args []string) error {
 		return fmt.Errorf("flag -signature is required")
 	}
 
-	creds, err := loadCredentials("")
+	client, err := newClientFromCreds(*apiURL)
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-	}
-	tm := NewTokenManager(*apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	client := NewAPIClient(*apiURL, tm)
-
-	result, err := cryptoVerify(client, *signature)
+	res, err := client.VerifyCryptoSignature(context.Background(), &moltnetapi.VerifyCryptoSignatureReq{
+		Signature: *signature,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("crypto verify: %w", err)
+	}
+	result, ok := res.(*moltnetapi.CryptoVerifyResult)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
 	}
 	return printJSON(result)
-}
-
-// cryptoIdentity fetches the agent's cryptographic identity from the API.
-func cryptoIdentity(client *APIClient) (map[string]interface{}, error) {
-	body, err := client.Get("/crypto/identity")
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	return result, nil
-}
-
-// cryptoVerify submits a signature to the API for verification.
-func cryptoVerify(client *APIClient, signature string) (map[string]interface{}, error) {
-	body, err := client.Post("/crypto/verify", map[string]string{"signature": signature})
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-	return result, nil
 }

@@ -1,73 +1,67 @@
 package main
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"context"
 	"testing"
+
+	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
-func newTestClientPair(t *testing.T, handler http.HandlerFunc) (*httptest.Server, *httptest.Server, *APIClient) {
-	t.Helper()
-	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"access_token": "tok", "expires_in": 3600}) //nolint:errcheck
-	}))
-	apiSrv := httptest.NewServer(handler)
-	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	client := NewAPIClient(apiSrv.URL, tm)
-	return tokenSrv, apiSrv, client
+type stubCryptoHandler struct {
+	moltnetapi.UnimplementedHandler
+}
+
+func (h *stubCryptoHandler) GetCryptoIdentity(_ context.Context) (moltnetapi.GetCryptoIdentityRes, error) {
+	return &moltnetapi.CryptoIdentity{
+		Fingerprint: "A1B2-C3D4-E5F6-A1B2",
+		PublicKey:   "ed25519:pk-abc",
+		IdentityId:  uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+	}, nil
+}
+
+func (h *stubCryptoHandler) VerifyCryptoSignature(_ context.Context, req *moltnetapi.VerifyCryptoSignatureReq) (moltnetapi.VerifyCryptoSignatureRes, error) {
+	return &moltnetapi.CryptoVerifyResult{Valid: req.Signature == "valid-sig"}, nil
 }
 
 func TestCryptoIdentity(t *testing.T) {
 	// Arrange
-	tokenSrv, apiSrv, client := newTestClientPair(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet || r.URL.Path != "/crypto/identity" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"publicKey": "pk-abc", "fingerprint": "fp-xyz"}) //nolint:errcheck
-	}))
-	defer tokenSrv.Close()
-	defer apiSrv.Close()
+	_, _, client := newTestServer(t, &stubCryptoHandler{})
 
 	// Act
-	result, err := cryptoIdentity(client)
+	res, err := client.GetCryptoIdentity(context.Background())
 
 	// Assert
 	if err != nil {
-		t.Fatalf("cryptoIdentity() error: %v", err)
+		t.Fatalf("GetCryptoIdentity() error: %v", err)
 	}
-	if result["fingerprint"] != "fp-xyz" {
-		t.Errorf("expected fingerprint=fp-xyz, got %v", result["fingerprint"])
+	identity, ok := res.(*moltnetapi.CryptoIdentity)
+	if !ok {
+		t.Fatalf("expected *CryptoIdentity, got %T", res)
+	}
+	if identity.Fingerprint != "A1B2-C3D4-E5F6-A1B2" {
+		t.Errorf("expected fingerprint=A1B2-C3D4-E5F6-A1B2, got %q", identity.Fingerprint)
 	}
 }
 
 func TestCryptoVerify(t *testing.T) {
 	// Arrange
-	tokenSrv, apiSrv, client := newTestClientPair(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/crypto/verify" {
-			t.Errorf("unexpected: %s %s", r.Method, r.URL.Path)
-		}
-		var body map[string]string
-		json.NewDecoder(r.Body).Decode(&body) //nolint:errcheck
-		if body["signature"] != "sig-abc" {
-			t.Errorf("expected signature=sig-abc, got %q", body["signature"])
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"valid": true}) //nolint:errcheck
-	}))
-	defer tokenSrv.Close()
-	defer apiSrv.Close()
+	_, _, client := newTestServer(t, &stubCryptoHandler{})
 
 	// Act
-	result, err := cryptoVerify(client, "sig-abc")
+	res, err := client.VerifyCryptoSignature(context.Background(), &moltnetapi.VerifyCryptoSignatureReq{
+		Signature: "valid-sig",
+	})
 
 	// Assert
 	if err != nil {
-		t.Fatalf("cryptoVerify() error: %v", err)
+		t.Fatalf("VerifyCryptoSignature() error: %v", err)
 	}
-	if result["valid"] != true {
-		t.Errorf("expected valid=true, got %v", result["valid"])
+	result, ok := res.(*moltnetapi.CryptoVerifyResult)
+	if !ok {
+		t.Fatalf("expected *CryptoVerifyResult, got %T", res)
+	}
+	if !result.Valid {
+		t.Error("expected valid=true")
 	}
 }
