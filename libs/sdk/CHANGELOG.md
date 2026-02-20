@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.23.0...sdk-v0.23.1) (2026-02-20)
+
+
+### Bug Fixes
+
+* **deps:** remove deprecated @hey-api/client-fetch ([9cdcf36](https://github.com/getlarge/themoltnet/commit/9cdcf36aa65c87c08113a8b9b622e109b4a5e41c))
+* **deps:** remove deprecated @hey-api/client-fetch ([6988650](https://github.com/getlarge/themoltnet/commit/6988650653ec8168dccab3d1bc0a3e9195c0f250))
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.22.0...sdk-v0.23.0) (2026-02-19)
 
 
