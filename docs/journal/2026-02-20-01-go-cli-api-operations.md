@@ -3,108 +3,129 @@ date: '2026-02-20T00:00:00Z'
 author: claude-sonnet-4-6
 session: 220-go-cli-api-ops
 type: handoff
-importance: 0.85
-tags: [cli, go, api-client, oauth2, diary, signing, agents, vouch]
+importance: 0.9
+tags: [cli, go, api-client, ogen, openapi, oauth2, diary, signing, agents, vouch, release]
 supersedes: null
 signature: <pending>
 ---
 
-# Go CLI: Authenticated API Operations (Issue #220)
+# Go CLI: Authenticated API Operations + Generated Client Module (Issue #220)
 
 ## Context
 
-Issue #220 requested extending the Go CLI (`cmd/moltnet`) with authenticated API operations — mirroring what the TypeScript SDK's `Agent` class already provides. The CLI previously only supported registration, local signing, config repair, SSH key export, and git/GitHub setup. Agents using the CLI had no way to interact with the REST API.
+Issue #220 requested extending the Go CLI (`cmd/moltnet`) with authenticated API operations — mirroring what the TypeScript SDK's `Agent` class already provides. This session took the work significantly further: instead of hand-written HTTP helpers, the implementation uses an ogen-generated client from the OpenAPI spec, hosted as a separate Go module for reuse.
 
 ## Substance
 
 ### What was built
 
-Eight new Go source files in `cmd/moltnet/` (all `package main`, stdlib-only except `golang.org/x/crypto`):
+#### New: `cmd/moltnet-api-client/` — separate Go module
 
-**`token.go`** — `TokenManager` for OAuth2 `client_credentials` flow:
-- Caches tokens with early-expiry buffer (default 30s)
-- `sync.Mutex` guards cached/expiresAt for concurrent safety
-- Dedicated `http.Client{Timeout: 30s}` (not `http.DefaultClient`)
-- Posts `scope=openid` as required by Ory Hydra
+Module path: `github.com/getlarge/themoltnet/cmd/moltnet-api-client`
 
-**`api.go`** — `APIClient` wrapping `TokenManager`:
-- `Get`, `Post`, `Delete`, `Patch` methods
-- Injects `Authorization: Bearer <token>` on every request
-- On 401: calls `tm.Invalidate()`, gets fresh token, retries once
-- `apiError` type carries status + body for diagnostic messages
+**`cmd/normalize-spec/main.go`** — Go tool that preprocesses the OpenAPI spec:
+- TypeBox generates `anyOf: [{type: "string", enum: ["a"]}, ...]` for enums
+- ogen doesn't support this pattern natively
+- The normalizer walks the spec and collapses TypeBox-style anyOf enum arrays into standard `{type: "string", enum: ["a", "b", ...]}` objects
+- Run via `go run ./cmd/normalize-spec <input> <output>`
+
+**`generate.go`** — `go:generate` directives:
+```go
+//go:generate go run ./cmd/normalize-spec ../../apps/rest-api/public/openapi.json openapi-normalized.json
+//go:generate go run github.com/ogen-go/ogen/cmd/ogen@latest --target . --package moltnetapi --config ogen.yml --clean openapi-normalized.json
+```
+
+**`ogen.yml`** — `ignore_not_implemented: ["complex anyOf"]` for residual anyOf patterns
+
+**`oas_*.gen.go`** (19 generated files) — typed client, server stubs, schemas, security source interface. Key types:
+- `Client` — typed methods (`GetWhoami`, `CreateDiaryEntry`, `IssueVoucher`, `GetSigningRequest`, `SubmitSignature`, etc.)
+- `UnimplementedHandler` — embeddable base for test stubs
+- `SecuritySource` interface — `BearerAuth(ctx, operationName) (BearerAuth, error)`
+- Typed request/response structs (`DiaryEntry`, `Whoami`, `Voucher`, `SigningRequest`, etc.)
+
+#### CLI changes in `cmd/moltnet/`
+
+**`api.go`** — `tokenSecuritySource` implements `moltnetapi.SecuritySource`:
+- `BearerAuth()` delegates to `TokenManager.GetToken()`
+- `newAuthedClient(apiURL, tm)` and `newClientFromCreds(apiURL)` helpers
 
 **`agents.go`** — `moltnet agents whoami|lookup`:
-- `GET /agents/whoami` — current identity
-- `GET /agents/<fingerprint>` — lookup by fingerprint
+- `client.GetWhoami(ctx)` → `*moltnetapi.Whoami`
+- `client.GetAgentProfile(ctx, params)` → `*moltnetapi.AgentProfile`
 
 **`crypto_ops.go`** — `moltnet crypto identity|verify`:
-- `GET /crypto/identity` — fetch registered crypto identity
-- `POST /crypto/verify` — submit signature for verification
+- Typed client calls, no manual JSON marshaling
 
 **`vouch.go`** — `moltnet vouch issue|list`:
-- `POST /vouch` — issue a new voucher code
-- `GET /vouch/active` — list unredeemed vouchers
+- `client.IssueVoucher` / `client.ListActiveVouchers`
 
 **`diary.go`** — `moltnet diary create|list|get|delete|search`:
-- CRUD + semantic search over diary entries
-- `create` accepts `--content` and `--visibility` flags
+- IDs parsed as `uuid.UUID`; visibility wrapped as `OptCreateDiaryEntryReqVisibility`
+- `SearchDiary` uses `OptSearchDiaryReq{Value: SearchDiaryReq{Query: OptString{...}}}`
 
-**`sign.go`** (extended) — `moltnet sign --request-id <id>`:
-- New `--request-id` flag triggers `signWithRequestID(client, id, privateKey)`
-- Fetches `GET /crypto/signing-requests/<id>`, extracts message+nonce, signs locally, `POST /crypto/signing-requests/<id>/sign`
-- Old `--nonce` + positional arg flow preserved for backward compatibility
+**`sign.go`** — `moltnet sign --request-id <id>`:
+- `signWithRequestID` takes `*moltnetapi.Client`
+- Fetches `GetSigningRequest`, submits with `SubmitSignature`
 
-**`main.go`** (updated) — wires `agents`, `crypto`, `vouch`, `diary` into the switch-case dispatcher and `printUsage()`.
+**`main.go`** — wires all new subcommands into the dispatcher.
 
-### Tests
+#### Tests (67 total, all pass with `-race`)
 
-67 tests total, all passing with `-race`. New tests:
-- `token_test.go`: 5 tests (GetToken, caching, refresh, invalidate, auth-error)
-- `api_test.go`: 6 tests (Get, Post, Delete, Patch, non-2xx, 401-retry)
-- `agents_test.go`: 2 tests (whoami, lookup)
-- `crypto_ops_test.go`: 2 tests (identity, verify)
-- `vouch_test.go`: 2 tests (issue, list-active)
-- `diary_test.go`: 5 tests (create, list, get, delete, search)
-- `sign_test.go`: +1 test (signWithRequestID round-trip with real keypair)
+All test files use **ogen-generated server stubs** (`UnimplementedHandler` + `NewServer`):
+- `api_test.go` — `newTestServer` helper, `tokenSecuritySource` caching tests
+- `agents_test.go` — `stubAgentsHandler`
+- `crypto_ops_test.go` — `stubCryptoHandler`
+- `vouch_test.go` — `stubVouchHandler`
+- `diary_test.go` — `stubDiaryHandler` (all 5 ops; `Importance: 5` required by schema `>= 1` validation)
+- `sign_test.go` — `stubSigningHandler` stores submitted sig; test verifies it with `VerifyForRequest`
 
-All use `httptest.NewServer` stubs — no live API calls, no new dependencies.
+The ogen server validates handler responses against the spec — caught `Importance: 0` immediately.
 
-### Commits on `claude/220-go-cli-api-ops`
+#### Versioning & Release
 
-```
-43b6d8c feat(cli): add OAuth2 token manager with caching and invalidation
-d7e97b8 fix(cli): add HTTP timeout and fix early expiry fallback in TokenManager
-de0e2d8 fix(cli): add scope=openid to token request
-fd041ee fix(cli): add mutex to TokenManager for concurrent safety
-85a8eaa feat(cli): add APIClient with token injection and 401 retry
-f2ef64e feat(cli): add agents, crypto, vouch, diary subcommands with API client
-b521635 feat(cli): add --request-id to moltnet sign for one-shot fetch+sign+submit
-fc48c67 docs(cli): update CHANGELOG with API operations features
-```
+**`release-please-config.json`** — added `cmd/moltnet-api-client` as `release-type: go`, `component: moltnet-api-client`
+
+**`.release-please-manifest.json`** — seeded at `"cmd/moltnet-api-client": "0.1.0"`
+
+**`cmd/moltnet-api-client/CHANGELOG.md`** — initial v0.1.0 entry
+
+**`.github/workflows/release.yml`** changes:
+- Added `api-client-release-created`, `api-client-tag-name`, `api-client-version` outputs to `release-please` job
+- Added `release-api-client` job: pushes `cmd/moltnet-api-client/vX.Y.Z` Go module proxy tag (required by `go get`) and publishes the GitHub release draft
+- `release-cli` now depends on `release-api-client` so the proxy tag exists before goreleaser's before-hook runs
+- Passes `API_CLIENT_VERSION` env var to goreleaser
+
+**`cmd/moltnet/.goreleaser.yml`** — `before.hooks` drops the local `replace` directive and pins the versioned api-client from the proxy using `API_CLIENT_VERSION`
 
 ### Decisions made
 
-1. **Reuse existing `loadCredentials(path string)`** from `sign.go` rather than introducing a new helper — the existing function already handles default path and nil-check.
+1. **ogen over oapi-codegen** — oapi-codegen fails on OpenAPI 3.1 `anyOf`/`null` types. ogen works with `ignore_not_implemented` + spec normalization.
 
-2. **`printJSON` lives in `agents.go`** as a package-level helper — all new subcommands use it for consistent JSON output to stdout.
+2. **Separate Go module** (`cmd/moltnet-api-client/`) — allows other Go consumers to `go get github.com/getlarge/themoltnet/cmd/moltnet-api-client` independently of the CLI. CLI references it via `replace` during local dev, dropped at release time.
 
-3. **`newDiaryClient` local helper in `diary.go`** — avoids repeating the credential-loading + TokenManager + APIClient construction in each of the 5 diary subcommand runners.
+3. **Go spec normalizer over Python** — user explicitly rejected Python. The Go tool lives in `cmd/normalize-spec/` and is invoked by `go:generate`. No Python dependency.
 
-4. **No `signingInput` field used in `--request-id`** — the API's `SigningRequestSchema` doesn't yet expose `signingInput` (that's tracked in issue #251). The current implementation fetches `message` + `nonce` and builds the signing bytes locally via `SignForRequest` (which calls `BuildSigningBytes` internally). Once #251 lands and the API exposes `signingInput`, the `signWithRequestID` function can be updated to skip the local `BuildSigningBytes` call and sign the raw bytes directly.
+4. **ogen server stubs for tests** — the generated `UnimplementedHandler + NewServer` enforces spec validation on responses (not just request routing). This is strictly stronger than raw `httptest.NewServer` stubs.
 
-5. **`testClientPair` helper in `crypto_ops_test.go`** — shared by vouch and crypto tests via the same package. Extracted to reduce duplication.
+5. **Independent versioning** — CLI and api-client have separate release-please components. The goreleaser hook uses `API_CLIENT_VERSION` (not the CLI semver) so they can diverge over time.
 
-## What's not done
+6. **Go module proxy tag format** — the Go toolchain resolves `module@vX.Y.Z` by looking for a git tag `<module-path-suffix>/vX.Y.Z`. For `github.com/getlarge/themoltnet/cmd/moltnet-api-client`, the required tag is `cmd/moltnet-api-client/vX.Y.Z`. release-please creates `moltnet-api-client-vX.Y.Z`; the `release-api-client` job pushes the additional Go proxy tag.
 
-- **Issue #251** (separate): Add `signingInput` to `SigningRequestSchema`, update MCP tool response, update SDK `signBytes()`, update MCP tool descriptions. This is a sibling issue, not part of #220.
-- Diary `update` (PATCH) and visibility/share operations — not in #220 scope, diary covers the core CRUD + search.
-- `vouch graph` — not in #220 scope.
-- Integration tests against live API — only unit tests with httptest stubs.
-
-## Continuity Notes
+## Current State
 
 - Branch: `claude/220-go-cli-api-ops`
 - All 67 tests pass with `-race`
-- Binary builds: `go -C cmd/moltnet build -o /tmp/moltnet-test .` verified
-- PR ready to create — signal file updated to `ready_for_pr`
-- Next: review PR, merge, then issue #251 (signing protocol fix) can reference the `--request-id` flag this adds
+- Binary builds clean: `go -C cmd/moltnet build -o /tmp/moltnet-test .`
+- Signal file: `phase=ready_for_pr`
+
+## What's not done
+
+- **Issue #251** — `signingInput` field in `SigningRequestSchema`. The `--request-id` flow works without it by reconstructing the signing bytes locally.
+- First manual publish of `moltnet-api-client` to Go module proxy (required before automated releases work). Instructions in CLAUDE.md "Initial publish for new packages" — for Go modules it's a git tag push, not npm publish.
+- `go install github.com/getlarge/themoltnet/cmd/moltnet@latest` — the CLI binary also needs a `cmd/moltnet/v*` Go proxy tag for `go install` to work. Not yet wired.
+
+## Where to start next
+
+1. Review and merge this PR
+2. After merge: manually push `cmd/moltnet-api-client/v0.1.0` tag to make the Go module publicly resolvable
+3. Tackle issue #251 (`signingInput`)
