@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type TokenManager struct {
 	earlyExpirySeconds int
 	httpClient         *http.Client
 
+	mu        sync.Mutex
 	cached    string
 	expiresAt time.Time
 }
@@ -34,6 +36,8 @@ func NewTokenManager(apiURL, clientID, clientSecret string) *TokenManager {
 
 // GetToken returns a cached token if still valid, or fetches a fresh one.
 func (t *TokenManager) GetToken() (string, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if t.cached != "" && time.Now().Before(t.expiresAt) {
 		return t.cached, nil
 	}
@@ -43,11 +47,14 @@ func (t *TokenManager) GetToken() (string, error) {
 // Invalidate clears the cached token, forcing the next GetToken call to fetch a new one.
 // Call this when a request returns HTTP 401.
 func (t *TokenManager) Invalidate() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.cached = ""
 	t.expiresAt = time.Time{}
 }
 
 // fetchToken performs the OAuth2 client_credentials grant and updates the cache.
+// Must be called with t.mu held.
 func (t *TokenManager) fetchToken() (string, error) {
 	form := url.Values{}
 	form.Set("grant_type", "client_credentials")

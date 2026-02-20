@@ -16,7 +16,11 @@ func newTestTokenServer(t *testing.T, token string, expiresIn int) *httptest.Ser
 			http.Error(w, "unexpected", http.StatusBadRequest)
 			return
 		}
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			t.Errorf("ParseForm error: %v", err)
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
 		if r.FormValue("grant_type") != "client_credentials" {
 			t.Errorf("expected client_credentials grant, got %q", r.FormValue("grant_type"))
 		}
