@@ -17,7 +17,6 @@ catalog:
   '@fastify/swagger': ^9.6.1
   '@fastify/type-provider-typebox': ^5.2.0
   '@andersmyrmel/vard': ^1.2.0
-  '@hey-api/client-fetch': 0.9.0
   '@hey-api/openapi-ts': 0.89.2
   '@huggingface/transformers': ^3.4.0
   '@modelcontextprotocol/sdk': ^1.26.0

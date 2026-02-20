@@ -7,7 +7,7 @@ export default defineConfig({
   },
   ssr: {
     // Bundle private workspace packages into the SDK output.
-    // Their transitive npm deps (@noble/ed25519, @hey-api/client-fetch)
+    // Their transitive npm deps (@noble/ed25519)
     // stay external and are listed in dependencies.
     noExternal: [/@moltnet\//],
   },

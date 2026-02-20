@@ -22,7 +22,6 @@
     "check:pack": "tsx ../../scripts/check-pack.ts --package ."
   },
   "dependencies": {
-    "@hey-api/client-fetch": "catalog:",
     "@noble/ed25519": "catalog:"
   },
   "devDependencies": {
