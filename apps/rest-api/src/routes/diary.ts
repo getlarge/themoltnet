@@ -16,6 +16,7 @@ import {
   DiaryInvitationListSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
+  DiaryShareListSchema,
   DiaryShareSchema,
   DigestSchema,
   MAX_PUBLIC_CONTENT_LENGTH,
@@ -289,6 +290,40 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       await fastify.relationshipWriter.removeDiaryRelations(diary.id);
 
       return { success: true };
+    },
+  );
+
+  // ── List Diary Shares ──────────────────────────────────────
+  server.get(
+    '/diaries/:diaryRef/share',
+    {
+      schema: {
+        operationId: 'listDiaryShares',
+        tags: ['diary'],
+        description: 'List all shares for a diary (owner only).',
+        security: [{ bearerAuth: [] }],
+        params: DiaryIdParamsSchema,
+        response: {
+          200: Type.Ref(DiaryShareListSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { diaryRef } = request.params;
+
+      const diary = await fastify.diaryCatalogRepository.findOwnedById(
+        request.authContext!.identityId,
+        diaryRef,
+      );
+      if (!diary) {
+        throw createProblem('not-found', 'Diary not found');
+      }
+
+      const shares = await fastify.diaryShareRepository.listByDiary(diary.id);
+      return { shares };
     },
   );
 

@@ -70,6 +70,39 @@ export type ValidationError = {
   message: string;
 };
 
+export type DiaryCatalog = {
+  id: string;
+  ownerId: string;
+  key: string;
+  name: string;
+  visibility: 'private' | 'moltnet' | 'public';
+  signed: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DiaryCatalogList = {
+  items: Array<DiaryCatalog>;
+};
+
+export type DiaryShare = {
+  id: string;
+  diaryId: string;
+  sharedWith: string;
+  role: 'reader' | 'writer';
+  status: 'pending' | 'accepted' | 'declined' | 'revoked';
+  invitedAt: string;
+  respondedAt: string | null;
+};
+
+export type DiaryShareList = {
+  shares: Array<DiaryShare>;
+};
+
+export type DiaryInvitationList = {
+  invitations: Array<DiaryShare>;
+};
+
 export type DiaryEntry = {
   id: string;
   ownerId: string;
@@ -454,6 +487,386 @@ export type GetHealthResponses = {
 };
 
 export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
+
+export type ListDiariesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/diaries';
+};
+
+export type ListDiariesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiariesError = ListDiariesErrors[keyof ListDiariesErrors];
+
+export type ListDiariesResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryCatalogList;
+};
+
+export type ListDiariesResponse =
+  ListDiariesResponses[keyof ListDiariesResponses];
+
+export type CreateDiaryData = {
+  body: {
+    key: string;
+    name?: string;
+    visibility?: 'private' | 'moltnet' | 'public';
+  };
+  path?: never;
+  query?: never;
+  url: '/diaries';
+};
+
+export type CreateDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateDiaryError = CreateDiaryErrors[keyof CreateDiaryErrors];
+
+export type CreateDiaryResponses = {
+  /**
+   * Default Response
+   */
+  201: DiaryCatalog;
+};
+
+export type CreateDiaryResponse =
+  CreateDiaryResponses[keyof CreateDiaryResponses];
+
+export type DeleteDiaryData = {
+  body?: never;
+  path: {
+    diaryRef: string;
+  };
+  query?: never;
+  url: '/diaries/{diaryRef}';
+};
+
+export type DeleteDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DeleteDiaryError = DeleteDiaryErrors[keyof DeleteDiaryErrors];
+
+export type DeleteDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: Success;
+};
+
+export type DeleteDiaryResponse =
+  DeleteDiaryResponses[keyof DeleteDiaryResponses];
+
+export type UpdateDiaryData = {
+  body?: {
+    name?: string;
+    visibility?: 'private' | 'moltnet' | 'public';
+  };
+  path: {
+    diaryRef: string;
+  };
+  query?: never;
+  url: '/diaries/{diaryRef}';
+};
+
+export type UpdateDiaryErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateDiaryError = UpdateDiaryErrors[keyof UpdateDiaryErrors];
+
+export type UpdateDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryCatalog;
+};
+
+export type UpdateDiaryResponse =
+  UpdateDiaryResponses[keyof UpdateDiaryResponses];
+
+export type ListDiarySharesData = {
+  body?: never;
+  path: {
+    diaryRef: string;
+  };
+  query?: never;
+  url: '/diaries/{diaryRef}/share';
+};
+
+export type ListDiarySharesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiarySharesError =
+  ListDiarySharesErrors[keyof ListDiarySharesErrors];
+
+export type ListDiarySharesResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryShareList;
+};
+
+export type ListDiarySharesResponse =
+  ListDiarySharesResponses[keyof ListDiarySharesResponses];
+
+export type ShareDiaryData = {
+  body: {
+    /**
+     * Fingerprint of the agent to invite
+     */
+    fingerprint: string;
+    role?: 'reader' | 'writer';
+  };
+  path: {
+    diaryRef: string;
+  };
+  query?: never;
+  url: '/diaries/{diaryRef}/share';
+};
+
+export type ShareDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ShareDiaryError = ShareDiaryErrors[keyof ShareDiaryErrors];
+
+export type ShareDiaryResponses = {
+  /**
+   * Default Response
+   */
+  201: DiaryShare;
+};
+
+export type ShareDiaryResponse = ShareDiaryResponses[keyof ShareDiaryResponses];
+
+export type ListDiaryInvitationsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/diary/invitations';
+};
+
+export type ListDiaryInvitationsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryInvitationsError =
+  ListDiaryInvitationsErrors[keyof ListDiaryInvitationsErrors];
+
+export type ListDiaryInvitationsResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryInvitationList;
+};
+
+export type ListDiaryInvitationsResponse =
+  ListDiaryInvitationsResponses[keyof ListDiaryInvitationsResponses];
+
+export type AcceptDiaryInvitationData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/diary/invitations/{id}/accept';
+};
+
+export type AcceptDiaryInvitationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type AcceptDiaryInvitationError =
+  AcceptDiaryInvitationErrors[keyof AcceptDiaryInvitationErrors];
+
+export type AcceptDiaryInvitationResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryShare;
+};
+
+export type AcceptDiaryInvitationResponse =
+  AcceptDiaryInvitationResponses[keyof AcceptDiaryInvitationResponses];
+
+export type DeclineDiaryInvitationData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/diary/invitations/{id}/decline';
+};
+
+export type DeclineDiaryInvitationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DeclineDiaryInvitationError =
+  DeclineDiaryInvitationErrors[keyof DeclineDiaryInvitationErrors];
+
+export type DeclineDiaryInvitationResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryShare;
+};
+
+export type DeclineDiaryInvitationResponse =
+  DeclineDiaryInvitationResponses[keyof DeclineDiaryInvitationResponses];
+
+export type RevokeDiaryShareData = {
+  body?: never;
+  path: {
+    diaryRef: string;
+    fingerprint: string;
+  };
+  query?: never;
+  url: '/diaries/{diaryRef}/share/{fingerprint}';
+};
+
+export type RevokeDiaryShareErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type RevokeDiaryShareError =
+  RevokeDiaryShareErrors[keyof RevokeDiaryShareErrors];
+
+export type RevokeDiaryShareResponses = {
+  /**
+   * Default Response
+   */
+  200: Success;
+};
+
+export type RevokeDiaryShareResponse =
+  RevokeDiaryShareResponses[keyof RevokeDiaryShareResponses];
 
 export type ListDiaryEntriesData = {
   body?: never;

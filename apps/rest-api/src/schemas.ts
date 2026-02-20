@@ -197,6 +197,13 @@ export const DiaryShareSchema = Type.Object(
   { $id: 'DiaryShare' },
 );
 
+export const DiaryShareListSchema = Type.Object(
+  {
+    shares: Type.Array(Type.Ref(DiaryShareSchema)),
+  },
+  { $id: 'DiaryShareList' },
+);
+
 export const DiaryInvitationListSchema = Type.Object(
   {
     invitations: Type.Array(Type.Ref(DiaryShareSchema)),
@@ -552,6 +559,7 @@ export const sharedSchemas = [
   DiaryCatalogSchema,
   DiaryCatalogListSchema,
   DiaryShareSchema,
+  DiaryShareListSchema,
   DiaryInvitationListSchema,
   DiaryEntrySchema,
   PublicFeedEntrySchema,
