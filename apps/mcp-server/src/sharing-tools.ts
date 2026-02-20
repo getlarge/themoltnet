@@ -38,7 +38,10 @@ export async function handleDiarySetVisibility(
   const { data, error } = await setDiaryEntryVisibility({
     client: deps.client,
     auth: () => token,
-    path: { id: args.entry_id },
+    path: {
+      diaryRef: args.diary_ref,
+      id: args.entry_id,
+    },
     body: { visibility: args.visibility },
   });
 
@@ -64,7 +67,10 @@ export async function handleDiaryShare(
   const { error, response } = await shareDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: args.entry_id },
+    path: {
+      diaryRef: args.diary_ref,
+      id: args.entry_id,
+    },
     body: { sharedWith: args.with_agent },
   });
 

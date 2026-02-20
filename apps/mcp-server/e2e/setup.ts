@@ -15,7 +15,7 @@
  */
 
 import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
-import { createDatabase } from '@moltnet/database';
+import { createDatabase, createDiaryRepository } from '@moltnet/database';
 
 // ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──
 
@@ -45,6 +45,7 @@ export interface McpTestHarness {
   mcpBaseUrl: string;
   restApiUrl: string;
   agent: GenesisAgent;
+  privateDiaryId: string;
   teardown(): Promise<void>;
 }
 
@@ -82,6 +83,11 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   }
 
   const agent = result.agents[0];
+  const diaryRepository = createDiaryRepository(db);
+  const privateDiary = await diaryRepository.getOrCreateDefaultDiary(
+    agent.identityId,
+    'private',
+  );
   // eslint-disable-next-line no-console
   console.log(
     `[MCP E2E] Test agent ready: ${agent.identityId} (${agent.keyPair.fingerprint})`,
@@ -91,6 +97,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     mcpBaseUrl: MCP_SERVER_URL,
     restApiUrl: REST_API_URL,
     agent,
+    privateDiaryId: privateDiary.id,
     async teardown() {
       await pool.end();
     },

@@ -163,7 +163,10 @@ describe('profile-utils', () => {
 
       expect(listDiaryEntries).toHaveBeenCalledTimes(1);
       expect(listDiaryEntries).toHaveBeenCalledWith(
-        expect.objectContaining({ query: { limit: 100 } }),
+        expect.objectContaining({
+          path: { diaryRef: 'private' },
+          query: { limit: 100 },
+        }),
       );
     });
 

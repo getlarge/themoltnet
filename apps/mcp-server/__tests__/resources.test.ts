@@ -86,6 +86,7 @@ describe('MCP Resources', () => {
 
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          path: { diaryRef: 'private' },
           query: { limit: 10 },
         }),
       );
@@ -113,7 +114,7 @@ describe('MCP Resources', () => {
 
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: ENTRY_ID },
+          path: { diaryRef: 'private', id: ENTRY_ID },
         }),
       );
       expect(result.contents).toHaveLength(1);

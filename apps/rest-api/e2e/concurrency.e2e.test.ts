@@ -10,20 +10,77 @@
 import {
   type Client,
   createClient,
-  createDiaryEntry,
-  deleteDiaryEntry,
-  getDiaryEntry,
+  createDiaryEntry as apiCreateDiaryEntry,
+  deleteDiaryEntry as apiDeleteDiaryEntry,
+  getDiaryEntry as apiGetDiaryEntry,
+  getSharedWithMe,
   issueVoucher,
   listActiveVouchers,
-  shareDiaryEntry,
+  shareDiaryEntry as apiShareDiaryEntry,
 } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
+import { createDiaryRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Concurrency and Atomicity', () => {
+  const PRIVATE_DIARY_REF = 'private';
+
+  function createDiaryEntry(
+    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+      path?: { diaryRef?: string };
+    },
+  ) {
+    return apiCreateDiaryEntry({
+      ...args,
+      path: { diaryRef: args.path?.diaryRef ?? PRIVATE_DIARY_REF },
+    });
+  }
+
+  function getDiaryEntry(
+    args: Parameters<typeof apiGetDiaryEntry>[0] & {
+      path: { id: string; diaryRef?: string };
+    },
+  ) {
+    return apiGetDiaryEntry({
+      ...args,
+      path: {
+        diaryRef: args.path.diaryRef ?? PRIVATE_DIARY_REF,
+        id: args.path.id,
+      },
+    });
+  }
+
+  function deleteDiaryEntry(
+    args: Parameters<typeof apiDeleteDiaryEntry>[0] & {
+      path: { id: string; diaryRef?: string };
+    },
+  ) {
+    return apiDeleteDiaryEntry({
+      ...args,
+      path: {
+        diaryRef: args.path.diaryRef ?? PRIVATE_DIARY_REF,
+        id: args.path.id,
+      },
+    });
+  }
+
+  function shareDiaryEntry(
+    args: Parameters<typeof apiShareDiaryEntry>[0] & {
+      path: { id: string; diaryRef?: string };
+    },
+  ) {
+    return apiShareDiaryEntry({
+      ...args,
+      path: {
+        diaryRef: args.path.diaryRef ?? PRIVATE_DIARY_REF,
+        id: args.path.id,
+      },
+    });
+  }
+
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
@@ -44,6 +101,8 @@ describe('Concurrency and Atomicity', () => {
       webhookApiKey: harness.webhookApiKey,
       voucherCode,
     });
+    const diaryRepository = createDiaryRepository(harness.db);
+    await diaryRepository.getOrCreateDefaultDiary(agent.identityId, 'private');
   });
 
   afterAll(async () => {
@@ -154,6 +213,11 @@ describe('Concurrency and Atomicity', () => {
           webhookApiKey: harness.webhookApiKey,
           voucherCode: freshVoucher,
         });
+        const diaryRepository = createDiaryRepository(harness.db);
+        await diaryRepository.getOrCreateDefaultDiary(
+          freshAgent.identityId,
+          'private',
+        );
 
         // Issue 4 vouchers sequentially
         for (let i = 0; i < 4; i++) {
@@ -299,6 +363,11 @@ describe('Concurrency and Atomicity', () => {
         webhookApiKey: harness.webhookApiKey,
         voucherCode,
       });
+      const diaryRepository = createDiaryRepository(harness.db);
+      await diaryRepository.getOrCreateDefaultDiary(
+        agentB.identityId,
+        'private',
+      );
     });
 
     it('grants Keto viewer permission immediately on share', async () => {
@@ -319,16 +388,17 @@ describe('Concurrency and Atomicity', () => {
 
       expect(shareError).toBeUndefined();
 
-      // Agent B should be able to read immediately (Keto permission granted)
-      const { data: fetched, error: readError } = await getDiaryEntry({
+      // Agent B should see it immediately in shared-with-me.
+      const { data, error } = await getSharedWithMe({
         client,
         auth: () => agentB.accessToken,
-        path: { id: entry!.id },
       });
 
-      expect(readError).toBeUndefined();
-      expect(fetched).toBeDefined();
-      expect(fetched!.content).toBe('Immediate share test');
+      expect(error).toBeUndefined();
+      expect(data).toBeDefined();
+      expect(data!.entries.some((shared) => shared.id === entry!.id)).toBe(
+        true,
+      );
     });
   });
 });

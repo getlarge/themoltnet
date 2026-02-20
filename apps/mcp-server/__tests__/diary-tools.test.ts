@@ -55,19 +55,19 @@ describe('Diary tools', () => {
       const entry = {
         id: ENTRY_ID,
         content: 'My first memory',
-        visibility: 'private',
         tags: [],
       };
       vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as never);
 
       const result = await handleDiaryCreate(
-        { content: 'My first memory' },
+        { diary_ref: 'private', content: 'My first memory' },
         deps,
         context,
       );
 
       expect(createDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
+          path: { diaryRef: 'private' },
           body: { content: 'My first memory' },
         }),
       );
@@ -80,15 +80,15 @@ describe('Diary tools', () => {
       const entry = {
         id: ENTRY_ID,
         content: 'A tagged memory',
-        visibility: 'moltnet',
         tags: ['test', 'memory'],
       };
       vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as never);
 
       const result = await handleDiaryCreate(
         {
+          diary_ref: 'engineering',
           content: 'A tagged memory',
-          visibility: 'moltnet',
+          title: 'Tagged',
           tags: ['test', 'memory'],
         },
         deps,
@@ -97,9 +97,10 @@ describe('Diary tools', () => {
 
       expect(createDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
+          path: { diaryRef: 'engineering' },
           body: {
             content: 'A tagged memory',
-            visibility: 'moltnet',
+            title: 'Tagged',
             tags: ['test', 'memory'],
           },
         }),
@@ -116,7 +117,7 @@ describe('Diary tools', () => {
       );
 
       await handleDiaryCreate(
-        { content: 'test', title: 'My Title' },
+        { diary_ref: 'private', content: 'test', title: 'My Title' },
         deps,
         context,
       );
@@ -131,7 +132,7 @@ describe('Diary tools', () => {
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiaryCreate(
-        { content: 'test' },
+        { diary_ref: 'private', content: 'test' },
         deps,
         unauthContext,
       );
@@ -147,14 +148,14 @@ describe('Diary tools', () => {
       vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
 
       const result = await handleDiaryGet(
-        { entry_id: ENTRY_ID },
+        { diary_ref: 'private', entry_id: ENTRY_ID },
         deps,
         context,
       );
 
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: ENTRY_ID },
+          path: { diaryRef: 'private', id: ENTRY_ID },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -172,7 +173,7 @@ describe('Diary tools', () => {
       );
 
       const result = await handleDiaryGet(
-        { entry_id: 'nonexistent' },
+        { diary_ref: 'private', entry_id: 'nonexistent' },
         deps,
         context,
       );
@@ -184,7 +185,7 @@ describe('Diary tools', () => {
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiaryGet(
-        { entry_id: ENTRY_ID },
+        { diary_ref: 'private', entry_id: ENTRY_ID },
         deps,
         unauthContext,
       );
@@ -204,10 +205,15 @@ describe('Diary tools', () => {
       };
       vi.mocked(listDiaryEntries).mockResolvedValue(sdkOk(data) as never);
 
-      const result = await handleDiaryList({}, deps, context);
+      const result = await handleDiaryList(
+        { diary_ref: 'private' },
+        deps,
+        context,
+      );
 
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          path: { diaryRef: 'private' },
           query: { limit: 20, offset: 0 },
         }),
       );
@@ -221,10 +227,15 @@ describe('Diary tools', () => {
         sdkOk({ items: [], total: 0, limit: 5, offset: 10 }) as never,
       );
 
-      await handleDiaryList({ limit: 5, offset: 10 }, deps, context);
+      await handleDiaryList(
+        { diary_ref: 'private', limit: 5, offset: 10 },
+        deps,
+        context,
+      );
 
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          path: { diaryRef: 'private' },
           query: { limit: 5, offset: 10 },
         }),
       );
@@ -236,13 +247,14 @@ describe('Diary tools', () => {
       );
 
       await handleDiaryList(
-        { tags: ['accountable-commit', 'high-risk'] },
+        { diary_ref: 'private', tags: ['accountable-commit', 'high-risk'] },
         deps,
         context,
       );
 
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          path: { diaryRef: 'private' },
           query: {
             limit: 20,
             offset: 0,
@@ -257,10 +269,11 @@ describe('Diary tools', () => {
         sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
       );
 
-      await handleDiaryList({}, deps, context);
+      await handleDiaryList({ diary_ref: 'private' }, deps, context);
 
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          path: { diaryRef: 'private' },
           query: { limit: 20, offset: 0 },
         }),
       );
@@ -345,14 +358,14 @@ describe('Diary tools', () => {
       vi.mocked(updateDiaryEntry).mockResolvedValue(sdkOk(updated) as never);
 
       const result = await handleDiaryUpdate(
-        { entry_id: ENTRY_ID, tags: ['updated'] },
+        { diary_ref: 'private', entry_id: ENTRY_ID, tags: ['updated'] },
         deps,
         context,
       );
 
       expect(updateDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: ENTRY_ID },
+          path: { diaryRef: 'private', id: ENTRY_ID },
           body: { tags: ['updated'] },
         }),
       );
@@ -371,7 +384,11 @@ describe('Diary tools', () => {
       );
 
       const result = await handleDiaryUpdate(
-        { entry_id: 'nonexistent', content: 'new content' },
+        {
+          diary_ref: 'private',
+          entry_id: 'nonexistent',
+          content: 'new content',
+        },
         deps,
         context,
       );
@@ -388,14 +405,14 @@ describe('Diary tools', () => {
       );
 
       const result = await handleDiaryDelete(
-        { entry_id: ENTRY_ID },
+        { diary_ref: 'private', entry_id: ENTRY_ID },
         deps,
         context,
       );
 
       expect(deleteDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: ENTRY_ID },
+          path: { diaryRef: 'private', id: ENTRY_ID },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -412,7 +429,7 @@ describe('Diary tools', () => {
       );
 
       const result = await handleDiaryDelete(
-        { entry_id: 'nonexistent' },
+        { diary_ref: 'private', entry_id: 'nonexistent' },
         deps,
         context,
       );

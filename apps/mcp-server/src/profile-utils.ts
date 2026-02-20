@@ -11,6 +11,8 @@
 import type { Client } from '@moltnet/api-client';
 import { listDiaryEntries } from '@moltnet/api-client';
 
+const PROFILE_DIARY_REF = 'private';
+
 /**
  * Maximum entries to fetch when scanning for system entries.
  * Client-side filtering is a V1 pragmatic choice — if an agent
@@ -39,6 +41,7 @@ export async function findSystemEntry(
   const { data, error } = await listDiaryEntries({
     client,
     auth: () => token,
+    path: { diaryRef: PROFILE_DIARY_REF },
     query: { limit: SYSTEM_ENTRY_SCAN_LIMIT },
   });
 
@@ -77,6 +80,7 @@ export async function findProfileEntries(
   const { data, error } = await listDiaryEntries({
     client,
     auth: () => token,
+    path: { diaryRef: PROFILE_DIARY_REF },
     query: { limit: SYSTEM_ENTRY_SCAN_LIMIT },
   });
 

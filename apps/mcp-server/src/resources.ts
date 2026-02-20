@@ -17,6 +17,8 @@ import { findSystemEntry } from './profile-utils.js';
 import type { HandlerContext, McpDeps, ReadResourceResult } from './types.js';
 import { getTokenFromContext, jsonResource } from './utils.js';
 
+const PROFILE_DIARY_REF = 'private';
+
 // --- Handler functions (testable without MCP transport) ---
 
 export async function handleIdentityResource(
@@ -57,6 +59,7 @@ export async function handleDiaryRecentResource(
   const { data, error } = await listDiaryEntries({
     client: deps.client,
     auth: () => token,
+    path: { diaryRef: PROFILE_DIARY_REF },
     query: { limit: 10 },
   });
 
@@ -86,7 +89,7 @@ export async function handleDiaryEntryResource(
   const { data, error } = await getDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: entryId },
+    path: { diaryRef: PROFILE_DIARY_REF, id: entryId },
   });
 
   if (error) {

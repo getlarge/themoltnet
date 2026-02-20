@@ -50,10 +50,10 @@ export async function handleDiaryCreate(
   const { data, error } = await createDiaryEntry({
     client: deps.client,
     auth: () => token,
+    path: { diaryRef: args.diary_ref },
     body: {
       content: args.content,
       title: args.title,
-      visibility: args.visibility,
       tags: args.tags,
       importance: args.importance,
       entryType: args.entry_type,
@@ -84,7 +84,10 @@ export async function handleDiaryGet(
   const { data, error } = await getDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: args.entry_id },
+    path: {
+      diaryRef: args.diary_ref,
+      id: args.entry_id,
+    },
   });
 
   if (error) {
@@ -105,6 +108,7 @@ export async function handleDiaryList(
   const { data, error } = await listDiaryEntries({
     client: deps.client,
     auth: () => token,
+    path: { diaryRef: args.diary_ref },
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
@@ -161,7 +165,10 @@ export async function handleDiaryUpdate(
   const { data, error } = await updateDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: entry_id },
+    path: {
+      diaryRef: args.diary_ref,
+      id: entry_id,
+    },
     body: {
       ...updates,
       entryType: entry_type,
@@ -187,7 +194,10 @@ export async function handleDiaryDelete(
   const { error } = await deleteDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: args.entry_id },
+    path: {
+      diaryRef: args.diary_ref,
+      id: args.entry_id,
+    },
   });
 
   if (error) {

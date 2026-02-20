@@ -11,16 +11,41 @@
 import {
   type Client,
   createClient,
-  createDiaryEntry,
-  listDiaryEntries,
+  createDiaryEntry as apiCreateDiaryEntry,
+  listDiaryEntries as apiListDiaryEntries,
   searchDiary,
 } from '@moltnet/api-client';
+import { createDiaryRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary tags filter', () => {
+  const PRIVATE_DIARY_REF = 'private';
+
+  function createDiaryEntry(
+    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+      path?: { diaryRef?: string };
+    },
+  ) {
+    return apiCreateDiaryEntry({
+      ...args,
+      path: { diaryRef: args.path?.diaryRef ?? PRIVATE_DIARY_REF },
+    });
+  }
+
+  function listDiaryEntries(
+    args: Parameters<typeof apiListDiaryEntries>[0] & {
+      path?: { diaryRef?: string };
+    },
+  ) {
+    return apiListDiaryEntries({
+      ...args,
+      path: { diaryRef: args.path?.diaryRef ?? PRIVATE_DIARY_REF },
+    });
+  }
+
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
@@ -41,6 +66,9 @@ describe('Diary tags filter', () => {
       webhookApiKey: harness.webhookApiKey,
       voucherCode,
     });
+
+    const diaryRepository = createDiaryRepository(harness.db);
+    await diaryRepository.getOrCreateDefaultDiary(agent.identityId, 'private');
 
     // Seed entries with distinct tag combinations
     await createDiaryEntry({

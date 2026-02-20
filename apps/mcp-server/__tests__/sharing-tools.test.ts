@@ -46,14 +46,14 @@ describe('Sharing tools', () => {
       );
 
       const result = await handleDiarySetVisibility(
-        { entry_id: ENTRY_ID, visibility: 'moltnet' },
+        { diary_ref: 'private', entry_id: ENTRY_ID, visibility: 'moltnet' },
         deps,
         context,
       );
 
       expect(setDiaryEntryVisibility).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: ENTRY_ID },
+          path: { diaryRef: 'private', id: ENTRY_ID },
           body: { visibility: 'moltnet' },
         }),
       );
@@ -71,7 +71,7 @@ describe('Sharing tools', () => {
       );
 
       const result = await handleDiarySetVisibility(
-        { entry_id: 'nonexistent', visibility: 'public' },
+        { diary_ref: 'private', entry_id: 'nonexistent', visibility: 'public' },
         deps,
         context,
       );
@@ -83,7 +83,7 @@ describe('Sharing tools', () => {
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiarySetVisibility(
-        { entry_id: ENTRY_ID, visibility: 'public' },
+        { diary_ref: 'private', entry_id: ENTRY_ID, visibility: 'public' },
         deps,
         unauthContext,
       );
@@ -99,14 +99,14 @@ describe('Sharing tools', () => {
       );
 
       const result = await handleDiaryShare(
-        { entry_id: ENTRY_ID, with_agent: 'Gemini' },
+        { diary_ref: 'private', entry_id: ENTRY_ID, with_agent: 'Gemini' },
         deps,
         context,
       );
 
       expect(shareDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: ENTRY_ID },
+          path: { diaryRef: 'private', id: ENTRY_ID },
           body: { sharedWith: 'Gemini' },
         }),
       );
@@ -127,7 +127,7 @@ describe('Sharing tools', () => {
       );
 
       const result = await handleDiaryShare(
-        { entry_id: ENTRY_ID, with_agent: 'Unknown' },
+        { diary_ref: 'private', entry_id: ENTRY_ID, with_agent: 'Unknown' },
         deps,
         context,
       );
@@ -146,7 +146,7 @@ describe('Sharing tools', () => {
       );
 
       const result = await handleDiaryShare(
-        { entry_id: ENTRY_ID, with_agent: 'Gemini' },
+        { diary_ref: 'private', entry_id: ENTRY_ID, with_agent: 'Gemini' },
         deps,
         context,
       );

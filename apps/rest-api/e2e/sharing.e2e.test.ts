@@ -1,23 +1,50 @@
 /**
  * E2E: Diary sharing between agents
  *
- * Tests entry sharing, shared-with-me listing, and access control.
- * Uses two real agents with real Keto permissions.
+ * Tests sharing, shared-with-me listing, and authz checks with scoped diary refs.
  */
 
 import {
   type Client,
   createClient,
-  createDiaryEntry,
+  createDiaryEntry as apiCreateDiaryEntry,
   getSharedWithMe,
-  shareDiaryEntry,
+  shareDiaryEntry as apiShareDiaryEntry,
 } from '@moltnet/api-client';
+import { createDiaryRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary Sharing', () => {
+  const PRIVATE_DIARY_REF = 'private';
+
+  function createDiaryEntry(
+    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+      path?: { diaryRef?: string };
+    },
+  ) {
+    return apiCreateDiaryEntry({
+      ...args,
+      path: { diaryRef: args.path?.diaryRef ?? PRIVATE_DIARY_REF },
+    });
+  }
+
+  function shareDiaryEntry(
+    args: Parameters<typeof apiShareDiaryEntry>[0] & {
+      path: { id: string; diaryRef?: string };
+    },
+  ) {
+    return apiShareDiaryEntry({
+      ...args,
+      path: {
+        diaryRef: args.path.diaryRef ?? PRIVATE_DIARY_REF,
+        id: args.path.id,
+      },
+    });
+  }
+
   let harness: TestHarness;
   let client: Client;
   let agentA: TestAgent;
@@ -27,7 +54,6 @@ describe('Diary Sharing', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    // Create two agents
     const voucherA = await createTestVoucher({
       db: harness.db,
       issuerId: harness.bootstrapIdentityId,
@@ -51,28 +77,29 @@ describe('Diary Sharing', () => {
       webhookApiKey: harness.webhookApiKey,
       voucherCode: voucherB,
     });
+
+    const diaryRepository = createDiaryRepository(harness.db);
+    await diaryRepository.getOrCreateDefaultDiary(agentA.identityId, 'private');
+    await diaryRepository.getOrCreateDefaultDiary(agentB.identityId, 'private');
   });
 
   afterAll(async () => {
     await harness?.teardown();
   });
 
-  // ── Share Entry ─────────────────────────────────────────────
-
-  describe('POST /diary/entries/:id/share', () => {
+  describe('POST /diaries/:diaryRef/entries/:id/share', () => {
     it('shares an entry with another agent by fingerprint', async () => {
-      // Agent A creates an entry
       const { data: entry } = await createDiaryEntry({
         client,
         auth: () => agentA.accessToken,
+        path: { diaryRef: PRIVATE_DIARY_REF },
         body: { content: 'Shared knowledge from Agent A', title: 'Shared' },
       });
 
-      // Agent A shares it with Agent B
       const { data, error } = await shareDiaryEntry({
         client,
         auth: () => agentA.accessToken,
-        path: { id: entry!.id },
+        path: { diaryRef: PRIVATE_DIARY_REF, id: entry!.id },
         body: { sharedWith: agentB.keyPair.fingerprint },
       });
 
@@ -85,13 +112,14 @@ describe('Diary Sharing', () => {
       const { data: entry } = await createDiaryEntry({
         client,
         auth: () => agentA.accessToken,
+        path: { diaryRef: PRIVATE_DIARY_REF },
         body: { content: 'Share target missing' },
       });
 
       const { data, error, response } = await shareDiaryEntry({
         client,
         auth: () => agentA.accessToken,
-        path: { id: entry!.id },
+        path: { diaryRef: PRIVATE_DIARY_REF, id: entry!.id },
         body: { sharedWith: 'AAAA-BBBB-CCCC-DDDD' },
       });
 
@@ -100,31 +128,61 @@ describe('Diary Sharing', () => {
       expect(response.status).toBe(404);
     });
 
-    it('returns 403 when sharing entry you do not own', async () => {
-      // Agent A creates an entry
+    it('returns 404 when sharing entry you do not own', async () => {
       const { data: entry } = await createDiaryEntry({
         client,
         auth: () => agentA.accessToken,
+        path: { diaryRef: PRIVATE_DIARY_REF },
         body: { content: 'Only A owns this' },
       });
 
-      // Agent B tries to share A's entry
       const { data, error, response } = await shareDiaryEntry({
         client,
         auth: () => agentB.accessToken,
-        path: { id: entry!.id },
+        path: { diaryRef: PRIVATE_DIARY_REF, id: entry!.id },
         body: { sharedWith: agentA.keyPair.fingerprint },
       });
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(404);
+    });
+
+    it('returns 404 when diary ref does not match entry diary', async () => {
+      const diaryRepository = createDiaryRepository(harness.db);
+      await diaryRepository.create({
+        ownerId: agentA.identityId,
+        key: 'work',
+        name: 'Work',
+        visibility: 'private',
+      });
+
+      const { data: entry } = await createDiaryEntry({
+        client,
+        auth: () => agentA.accessToken,
+        path: { diaryRef: PRIVATE_DIARY_REF },
+        body: { content: 'Wrong diary ref share test' },
+      });
+
+      const { data, error, response } = await shareDiaryEntry({
+        client,
+        auth: () => agentA.accessToken,
+        path: { diaryRef: 'work', id: entry!.id },
+        body: { sharedWith: agentB.keyPair.fingerprint },
+      });
+
+      expect(data).toBeUndefined();
+      expect(error).toBeDefined();
+      expect(response.status).toBe(404);
     });
 
     it('rejects unauthenticated request', async () => {
       const { data, error, response } = await shareDiaryEntry({
         client,
-        path: { id: '00000000-0000-0000-0000-000000000000' },
+        path: {
+          diaryRef: PRIVATE_DIARY_REF,
+          id: '00000000-0000-0000-0000-000000000000',
+        },
         body: { sharedWith: agentB.keyPair.fingerprint },
       });
 
@@ -134,14 +192,12 @@ describe('Diary Sharing', () => {
     });
   });
 
-  // ── Shared With Me ──────────────────────────────────────────
-
   describe('GET /diary/shared-with-me', () => {
     it('lists entries shared with the authenticated agent', async () => {
-      // Agent A creates and shares an entry with Agent B
       const { data: entry } = await createDiaryEntry({
         client,
         auth: () => agentA.accessToken,
+        path: { diaryRef: PRIVATE_DIARY_REF },
         body: {
           content: 'Shared for listing test',
           title: 'SharedWithMeTest',
@@ -151,11 +207,10 @@ describe('Diary Sharing', () => {
       await shareDiaryEntry({
         client,
         auth: () => agentA.accessToken,
-        path: { id: entry!.id },
+        path: { diaryRef: PRIVATE_DIARY_REF, id: entry!.id },
         body: { sharedWith: agentB.keyPair.fingerprint },
       });
 
-      // Agent B checks shared-with-me
       const { data, error } = await getSharedWithMe({
         client,
         auth: () => agentB.accessToken,
@@ -172,7 +227,6 @@ describe('Diary Sharing', () => {
     });
 
     it('returns empty list when nothing is shared', async () => {
-      // Create a fresh agent with nothing shared
       const voucherC = await createTestVoucher({
         db: harness.db,
         issuerId: harness.bootstrapIdentityId,
@@ -184,6 +238,12 @@ describe('Diary Sharing', () => {
         webhookApiKey: harness.webhookApiKey,
         voucherCode: voucherC,
       });
+
+      const diaryRepository = createDiaryRepository(harness.db);
+      await diaryRepository.getOrCreateDefaultDiary(
+        agentC.identityId,
+        'private',
+      );
 
       const { data, error } = await getSharedWithMe({
         client,

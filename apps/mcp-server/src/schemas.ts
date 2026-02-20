@@ -56,19 +56,12 @@ const EntryTypeLiterals = [
 ] as const;
 
 export const DiaryCreateSchema = Type.Object({
+  diary_ref: Type.String({
+    description: 'Diary identifier (ID or key).',
+  }),
   content: Type.String({ description: 'The memory content (1-10000 chars)' }),
   title: Type.Optional(
     Type.String({ description: 'Title for this entry (max 255 chars)' }),
-  ),
-  visibility: Type.Optional(
-    Type.Union(
-      [
-        Type.Literal('private'),
-        Type.Literal('moltnet'),
-        Type.Literal('public'),
-      ],
-      { description: 'Who can see this entry (default: private)' },
-    ),
   ),
   tags: Type.Optional(
     Type.Array(Type.String(), { description: 'Tags for categorization' }),
@@ -88,16 +81,25 @@ export const DiaryCreateSchema = Type.Object({
   ),
 });
 type CreateDiaryBody = BodyOf<CreateDiaryEntryData>;
-export type DiaryCreateInput = SnakeCasedProperties<CreateDiaryBody>;
+export type DiaryCreateInput = SnakeCasedProperties<CreateDiaryBody> & {
+  diary_ref: PathOf<CreateDiaryEntryData>['diaryRef'];
+};
 
 export const DiaryGetSchema = Type.Object({
+  diary_ref: Type.String({
+    description: 'Diary identifier (ID or key).',
+  }),
   entry_id: Type.String({ description: 'The entry ID' }),
 });
 export type DiaryGetInput = {
+  diary_ref: PathOf<GetDiaryEntryData>['diaryRef'];
   entry_id: PathOf<GetDiaryEntryData>['id'];
 };
 
 export const DiaryListSchema = Type.Object({
+  diary_ref: Type.String({
+    description: 'Diary identifier (ID or key).',
+  }),
   limit: Type.Optional(
     Type.Number({ description: 'Max results (default 20)' }),
   ),
@@ -110,6 +112,7 @@ export const DiaryListSchema = Type.Object({
 });
 type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type DiaryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
+  diary_ref: PathOf<ListDiaryEntriesData>['diaryRef'];
   tags?: string[];
 };
 
@@ -173,6 +176,9 @@ export type DiarySearchInput = Omit<DiarySearchFields, 'query'> & {
 };
 
 export const DiaryUpdateSchema = Type.Object({
+  diary_ref: Type.String({
+    description: 'Diary identifier (ID or key).',
+  }),
   entry_id: Type.String({ description: 'The entry ID' }),
   content: Type.Optional(Type.String({ description: 'New content' })),
   tags: Type.Optional(Type.Array(Type.String(), { description: 'New tags' })),
@@ -195,13 +201,18 @@ export const DiaryUpdateSchema = Type.Object({
 });
 type UpdateDiaryBody = NonNullable<UpdateDiaryEntryData['body']>;
 export type DiaryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
+  diary_ref: PathOf<UpdateDiaryEntryData>['diaryRef'];
   entry_id: PathOf<UpdateDiaryEntryData>['id'];
 };
 
 export const DiaryDeleteSchema = Type.Object({
+  diary_ref: Type.String({
+    description: 'Diary identifier (ID or key).',
+  }),
   entry_id: Type.String({ description: 'The entry ID to delete' }),
 });
 export type DiaryDeleteInput = {
+  diary_ref: PathOf<DeleteDiaryEntryData>['diaryRef'];
   entry_id: PathOf<DeleteDiaryEntryData>['id'];
 };
 
@@ -275,6 +286,9 @@ export type AgentLookupInput = {
 // --- Sharing schemas ---
 
 export const DiarySetVisibilitySchema = Type.Object({
+  diary_ref: Type.String({
+    description: 'Diary identifier (ID or key).',
+  }),
   entry_id: Type.String({ description: 'The entry ID' }),
   visibility: Type.Union(
     [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
@@ -284,16 +298,21 @@ export const DiarySetVisibilitySchema = Type.Object({
 export type DiarySetVisibilityInput = SnakeCasedProperties<
   BodyOf<SetDiaryEntryVisibilityData>
 > & {
+  diary_ref: PathOf<SetDiaryEntryVisibilityData>['diaryRef'];
   entry_id: PathOf<SetDiaryEntryVisibilityData>['id'];
 };
 
 export const DiaryShareSchema = Type.Object({
+  diary_ref: Type.String({
+    description: 'Diary identifier (ID or key).',
+  }),
   entry_id: Type.String({ description: 'The entry ID to share' }),
   with_agent: Type.String({
     description: 'Fingerprint of the agent to share with',
   }),
 });
 export type DiaryShareInput = {
+  diary_ref: PathOf<ShareDiaryEntryData>['diaryRef'];
   entry_id: PathOf<ShareDiaryEntryData>['id'];
   with_agent: BodyOf<ShareDiaryEntryData>['sharedWith'];
 };
