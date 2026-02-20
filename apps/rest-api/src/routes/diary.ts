@@ -279,14 +279,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       const deleted = await fastify.diaryCatalogRepository.delete(
-        diaryRef,
+        diary.id,
         request.authContext!.identityId,
       );
       if (!deleted) {
         throw createProblem('not-found', 'Diary not found');
       }
 
-      await fastify.relationshipWriter.removeDiaryRelations(diaryRef);
+      await fastify.relationshipWriter.removeDiaryRelations(diary.id);
 
       return { success: true };
     },
@@ -365,7 +365,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           const updated = await fastify.diaryShareRepository.updateStatus(
             existingShare.id,
             'pending',
-            { respondedAt: undefined },
+            { respondedAt: null, role: role ?? 'reader' },
           );
           if (!updated) {
             throw createProblem('not-found', 'Share not found');
@@ -455,14 +455,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Invitation not found');
       }
 
-      if (share.role === 'writer') {
+      if (updated.role === 'writer') {
         await fastify.relationshipWriter.grantDiaryWriter(
-          share.diaryId,
+          updated.diaryId,
           request.authContext!.identityId,
         );
       } else {
         await fastify.relationshipWriter.grantDiaryReader(
-          share.diaryId,
+          updated.diaryId,
           request.authContext!.identityId,
         );
       }

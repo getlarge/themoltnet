@@ -77,14 +77,23 @@ export function createDiaryShareRepository(db: Database) {
     async updateStatus(
       id: string,
       status: 'pending' | 'accepted' | 'declined' | 'revoked',
-      updates?: { respondedAt?: Date },
+      updates?: {
+        respondedAt?: Date | null;
+        role?: 'reader' | 'writer';
+      },
     ): Promise<DiaryShare | null> {
+      const set: Record<string, unknown> = { status };
+      if (updates && 'respondedAt' in updates) {
+        set.respondedAt = updates.respondedAt;
+      } else {
+        set.respondedAt = new Date();
+      }
+      if (updates?.role) {
+        set.role = updates.role;
+      }
       const [updated] = await getExecutor(db)
         .update(diaryShares)
-        .set({
-          status,
-          respondedAt: updates?.respondedAt ?? new Date(),
-        })
+        .set(set)
         .where(eq(diaryShares.id, id))
         .returning();
       return updated ?? null;

@@ -87,6 +87,26 @@ describe('RelationshipWriter', () => {
         object: DIARY_ID,
       });
     });
+
+    it('removes diary relations for a specific agent', async () => {
+      mockRelationshipApi.deleteRelationships.mockResolvedValue({});
+
+      await writer.removeDiaryRelationForAgent(DIARY_ID, OTHER_AGENT_ID);
+
+      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledTimes(2);
+      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
+        namespace: 'Diary',
+        object: DIARY_ID,
+        relation: 'readers',
+        subjectId: OTHER_AGENT_ID,
+      });
+      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
+        namespace: 'Diary',
+        object: DIARY_ID,
+        relation: 'writers',
+        subjectId: OTHER_AGENT_ID,
+      });
+    });
   });
 
   describe('grantOwnership', () => {
