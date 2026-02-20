@@ -19,7 +19,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X main.commit={{.ShortCommit}}
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
 
 archives:
   - id: default
