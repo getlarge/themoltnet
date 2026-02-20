@@ -53,6 +53,7 @@ func (t *TokenManager) fetchToken() (string, error) {
 	form.Set("grant_type", "client_credentials")
 	form.Set("client_id", t.clientID)
 	form.Set("client_secret", t.clientSecret)
+	form.Set("scope", "openid")
 
 	resp, err := t.httpClient.Post( //nolint:gosec
 		t.apiURL+"/oauth2/token",
