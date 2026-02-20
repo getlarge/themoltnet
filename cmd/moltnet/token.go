@@ -15,6 +15,7 @@ type TokenManager struct {
 	clientID           string
 	clientSecret       string
 	earlyExpirySeconds int
+	httpClient         *http.Client
 
 	cached    string
 	expiresAt time.Time
@@ -27,6 +28,7 @@ func NewTokenManager(apiURL, clientID, clientSecret string) *TokenManager {
 		clientID:           clientID,
 		clientSecret:       clientSecret,
 		earlyExpirySeconds: 30,
+		httpClient:         &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -52,7 +54,7 @@ func (t *TokenManager) fetchToken() (string, error) {
 	form.Set("client_id", t.clientID)
 	form.Set("client_secret", t.clientSecret)
 
-	resp, err := http.Post( //nolint:gosec
+	resp, err := t.httpClient.Post( //nolint:gosec
 		t.apiURL+"/oauth2/token",
 		"application/x-www-form-urlencoded",
 		strings.NewReader(form.Encode()),
@@ -78,11 +80,14 @@ func (t *TokenManager) fetchToken() (string, error) {
 	}
 
 	ttl := time.Duration(payload.ExpiresIn-t.earlyExpirySeconds) * time.Second
-	if ttl <= 0 {
-		ttl = time.Duration(payload.ExpiresIn) * time.Second
-	}
 	t.cached = payload.AccessToken
-	t.expiresAt = time.Now().Add(ttl)
+	if ttl <= 0 {
+		// Token lifetime is shorter than the early expiry buffer — do not cache;
+		// set expiresAt to now so the next call always fetches a fresh token.
+		t.expiresAt = time.Now()
+	} else {
+		t.expiresAt = time.Now().Add(ttl)
+	}
 
 	return t.cached, nil
 }
