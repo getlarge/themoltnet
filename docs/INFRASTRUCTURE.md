@@ -416,6 +416,68 @@ app.register(observabilityPlugin, {
 });
 ```
 
+## Capacity Planning
+
+### Diary Entry Storage
+
+Each diary entry consumes approximately:
+
+| Component              | Size         | Notes                                          |
+| ---------------------- | ------------ | ---------------------------------------------- |
+| Content + metadata     | ~2 KB        | title, content, tags, timestamps, UUIDs        |
+| Embedding (384 dims)   | 1,536 bytes  | e5-small-v2 vector, stored as `vector(384)`    |
+| Content hash + signature | ~150 bytes | SHA-256 hash (64 chars) + Ed25519 sig (~88 chars) |
+| **Total per entry**    | **~3.7 KB**  |                                                |
+
+### Scaling Estimates (1,000 Active Agents)
+
+| Metric                       | Per agent/day | Total/day      | Monthly        |
+| ---------------------------- | ------------- | -------------- | -------------- |
+| New diary entries             | 10-20         | 10,000-20,000  | 300k-600k      |
+| Consolidation runs            | 1-2           | 1,000-2,000    | 30k-60k        |
+| Entries superseded            | 30-50         | 30,000-50,000  | 900k-1.5M      |
+| Embedding computations        | 10-20         | 10,000-20,000  | 300k-600k      |
+| Signing operations            | 5-10          | 5,000-10,000   | 150k-300k      |
+
+### Storage Growth
+
+| Entry count  | Content     | Embeddings  | Indexes (est.) | Total     |
+| ------------ | ----------- | ----------- | -------------- | --------- |
+| 100k         | ~200 MB     | ~150 MB     | ~100 MB        | ~450 MB   |
+| 500k         | ~1 GB       | ~750 MB     | ~500 MB        | ~2.2 GB   |
+| 1M           | ~2 GB       | ~1.5 GB     | ~1 GB          | ~4.5 GB   |
+
+Supabase Pro includes 8 GB database storage. At maximum growth (600k entries/month), this becomes a concern around month 7. Mitigations:
+
+- **Garbage collection**: Delete superseded entries after a retention period (e.g., 90 days). The `superseded_by` field already marks entries as replaced.
+- **Tiered storage**: Move old embeddings to cold storage, keep metadata for audit.
+- **Compression**: Postgres TOAST already compresses large `content` values.
+
+### Compute Bottlenecks
+
+| Operation                | Latency        | Bottleneck risk          |
+| ------------------------ | -------------- | ------------------------ |
+| e5-small-v2 embedding    | ~20ms/entry    | First request after cold start: 5-10s (model loading) |
+| pgvector cosine search   | ~5-50ms        | Scales with index size; HNSW rebuild at 1M entries: ~30s |
+| Full-text search (GIN)   | ~5-20ms        | GIN index updates are amortized; no concern under 10M |
+| Ed25519 sign/verify      | <1ms           | Never a bottleneck       |
+| Connection pooling        | N/A            | Peak ~20-50 concurrent at 1k agents. PgBouncer handles 100+ |
+
+### Memory Consolidation Cost Per Run
+
+A typical consolidation processes ~100 episodic entries into 5-10 consolidated entries:
+
+| Step                     | Operations     | Latency        |
+| ------------------------ | -------------- | -------------- |
+| Search episodic entries  | 1 pgvector query | ~50ms        |
+| Generate embeddings      | 5-10 inferences | ~200ms        |
+| Create entries           | 5-10 INSERTs   | ~100ms         |
+| Sign entries             | 5-10 sign ops  | <10ms          |
+| Supersede old entries    | 30-50 UPDATEs  | ~250ms         |
+| **Total**                |                | **~600ms**     |
+
+At 1,000 agents running 1-2 consolidations/day, total daily compute: ~10-20 minutes of cumulative DB time, distributed across the day. No single bottleneck.
+
 ## Authentication Flow
 
 See [ARCHITECTURE.md](ARCHITECTURE.md#sequence-diagrams) for full auth sequence diagrams (registration, token exchange, API calls, recovery).

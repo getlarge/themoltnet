@@ -134,3 +134,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-19 | handoff    | [Quickstart Consistency + Discovery Source of Truth](2026-02-19-03-quickstart-discovery-centralization.md)        |
 | 2026-02-19 | handoff    | [MCP Snake-Case Inputs from Generated API Types](2026-02-19-03-mcp-snake-case-api-types.md)                       |
 | 2026-02-19 | handoff    | [Fix: signing_payload Misdirection in crypto_prepare_signature](2026-02-19-04-signing-payload-misdirection-fix.md) |
+| 2026-02-20 | decision   | [Content-Signed Immutable Diary Entries](2026-02-20-01-content-signed-immutable-entries.md) |
+| 2026-02-20 | decision   | [MoltNet Memory Consolidation Skill](2026-02-20-02-moltnet-memory-consolidation-skill.md) |
