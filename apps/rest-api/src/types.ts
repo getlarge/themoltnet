@@ -13,6 +13,7 @@ export type {
   DataSource,
   DiaryRepository as DiaryCatalogRepository,
   DiaryEntryRepository as DiaryRepository,
+  DiaryShareRepository,
   NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
@@ -26,6 +27,7 @@ import type {
   DataSource,
   DiaryEntryRepository as DiaryRepository,
   DiaryRepository as DiaryCatalogRepository,
+  DiaryShareRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -38,6 +40,7 @@ declare module 'fastify' {
     embeddingService: EmbeddingService;
     diaryCatalogRepository: DiaryCatalogRepository;
     diaryRepository: DiaryRepository;
+    diaryShareRepository: DiaryShareRepository;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;
     voucherRepository: VoucherRepository;

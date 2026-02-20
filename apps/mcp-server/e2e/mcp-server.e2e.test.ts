@@ -343,6 +343,18 @@ describe('MCP Server E2E', () => {
       expect(content[0].text).toContain('Failed to list entries');
     });
 
+    it('validates required diary_ref for scoped diary tools', async () => {
+      requireSetup();
+      const result = await client.callTool({
+        name: 'diary_create',
+        arguments: { content: 'missing diary ref should fail' },
+      });
+
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(result.isError).toBe(true);
+      expect(content[0].text).toContain('Invalid tool arguments');
+    });
+
     it('returns error when sharing with an unknown agent fingerprint', async () => {
       requireSetup();
       const createResult = await client.callTool({

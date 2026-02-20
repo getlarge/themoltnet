@@ -22,6 +22,7 @@ import {
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
   createDiaryRepository,
+  createDiaryShareRepository,
   createNonceRepository,
   createSigningRequestRepository,
   createVoucherRepository,
@@ -138,6 +139,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
+  const diaryShareRepository = createDiaryShareRepository(dbConnection.db);
   const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
@@ -217,6 +219,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     embeddingService,
     diaryCatalogRepository,
     diaryRepository,
+    diaryShareRepository,
     agentRepository,
     cryptoService,
     voucherRepository,

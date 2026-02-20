@@ -39,6 +39,7 @@ describe('Diary routes', () => {
     };
 
     if (ref === 'id') {
+      mocks.diaryCatalogRepository.findById.mockResolvedValue(diary);
       mocks.diaryCatalogRepository.findOwnedById.mockResolvedValue(diary);
       mocks.diaryCatalogRepository.findOwnedByKey.mockResolvedValue(null);
       return `/diaries/${DIARY_ID}/entries`;

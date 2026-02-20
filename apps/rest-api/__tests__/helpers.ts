@@ -21,6 +21,7 @@ import type {
   DiaryCatalogRepository,
   DiaryRepository,
   DiaryService,
+  DiaryShareRepository,
   EmbeddingService,
   NonceRepository,
   SigningRequestRepository,
@@ -111,6 +112,9 @@ export interface MockServices {
     [K in keyof DiaryCatalogRepository]: ReturnType<typeof vi.fn>;
   };
   diaryRepository: { [K in keyof DiaryRepository]: ReturnType<typeof vi.fn> };
+  diaryShareRepository: {
+    [K in keyof DiaryShareRepository]: ReturnType<typeof vi.fn>;
+  };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
   voucherRepository: {
@@ -156,6 +160,7 @@ export function createMockServices(): MockServices {
     },
     diaryCatalogRepository: {
       create: vi.fn(),
+      findById: vi.fn().mockResolvedValue(null),
       findOwnedById: vi.fn().mockResolvedValue(null),
       findOwnedByKey: vi.fn().mockResolvedValue({
         id: DIARY_ID,
@@ -167,7 +172,19 @@ export function createMockServices(): MockServices {
         createdAt: new Date('2026-01-30T10:00:00Z'),
         updatedAt: new Date('2026-01-30T10:00:00Z'),
       }),
-      getOrCreateDefaultDiary: vi.fn(),
+      getOrCreateDefaultDiary: vi.fn().mockResolvedValue({
+        id: DIARY_ID,
+        ownerId: OWNER_ID,
+        key: 'private',
+        name: 'private',
+        visibility: 'private',
+        signed: false,
+        createdAt: new Date('2026-01-30T10:00:00Z'),
+        updatedAt: new Date('2026-01-30T10:00:00Z'),
+      }),
+      listByOwner: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      delete: vi.fn(),
     },
     diaryRepository: {
       create: vi.fn(),
@@ -183,6 +200,14 @@ export function createMockServices(): MockServices {
       listPublicSince: vi.fn(),
       searchPublic: vi.fn(),
       findPublicById: vi.fn(),
+    },
+    diaryShareRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      findByDiaryAndAgent: vi.fn(),
+      listPendingForAgent: vi.fn().mockResolvedValue([]),
+      listByDiary: vi.fn().mockResolvedValue([]),
+      updateStatus: vi.fn(),
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
@@ -231,12 +256,20 @@ export function createMockServices(): MockServices {
       cleanup: vi.fn(),
     },
     permissionChecker: {
+      canReadDiary: vi.fn(),
+      canWriteDiary: vi.fn(),
+      canManageDiary: vi.fn(),
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
       canShareEntry: vi.fn(),
     },
     relationshipWriter: {
+      grantDiaryOwner: vi.fn(),
+      grantDiaryWriter: vi.fn(),
+      grantDiaryReader: vi.fn(),
+      removeDiaryRelations: vi.fn(),
+      removeDiaryRelationForAgent: vi.fn(),
       grantOwnership: vi.fn(),
       grantViewer: vi.fn(),
       registerAgent: vi.fn(),
@@ -288,6 +321,8 @@ export async function createTestApp(
     diaryCatalogRepository:
       mocks.diaryCatalogRepository as unknown as DiaryCatalogRepository,
     diaryRepository: mocks.diaryRepository as unknown as DiaryRepository,
+    diaryShareRepository:
+      mocks.diaryShareRepository as unknown as DiaryShareRepository,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,

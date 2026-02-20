@@ -39,6 +39,7 @@ import type {
   DiaryCatalogRepository,
   DiaryRepository,
   DiaryService,
+  DiaryShareRepository,
   EmbeddingService,
   NonceRepository,
   SigningRequestRepository,
@@ -72,6 +73,7 @@ export interface AppOptions {
   embeddingService: EmbeddingService;
   diaryCatalogRepository: DiaryCatalogRepository;
   diaryRepository: DiaryRepository;
+  diaryShareRepository: DiaryShareRepository;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   voucherRepository: VoucherRepository;
@@ -180,6 +182,7 @@ export async function registerApiRoutes(
   decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('diaryCatalogRepository', options.diaryCatalogRepository);
   decorateSafe('diaryRepository', options.diaryRepository);
+  decorateSafe('diaryShareRepository', options.diaryShareRepository);
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('voucherRepository', options.voucherRepository);

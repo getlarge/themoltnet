@@ -195,6 +195,40 @@ describe('Diary CRUD', () => {
     expect(problem.code).toBe('UNAUTHORIZED');
   });
 
+  it('rejects create for unknown diary reference', async () => {
+    const { data, error, response } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryRef: 'does-not-exist' },
+      body: { content: 'Should fail with missing diary' },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(404);
+  });
+
+  it('rejects oversized content in public diaries', async () => {
+    const diaryRepository = createDiaryRepository(harness.db);
+    await diaryRepository.create({
+      ownerId: agent.identityId,
+      key: 'public-test',
+      name: 'Public Test',
+      visibility: 'public',
+    });
+
+    const { data, error, response } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryRef: 'public-test' },
+      body: { content: 'x'.repeat(10_001) },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(400);
+  });
+
   // ── Read ────────────────────────────────────────────────────
 
   it('reads back a created entry by id', async () => {
@@ -472,6 +506,24 @@ describe('Diary CRUD', () => {
     });
 
     expect(fetched).toBeUndefined();
+  });
+
+  it('rejects unauthenticated delete', async () => {
+    const { data: created } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryRef: PRIVATE_DIARY_REF },
+      body: { content: 'Delete authz test' },
+    });
+
+    const { data, error, response } = await deleteDiaryEntry({
+      client,
+      path: { diaryRef: PRIVATE_DIARY_REF, id: created!.id },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(401);
   });
 
   // ── Search ──────────────────────────────────────────────────

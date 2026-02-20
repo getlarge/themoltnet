@@ -172,6 +172,15 @@ export async function hookRoutes(fastify: FastifyInstance) {
           });
 
           await fastify.relationshipWriter.registerAgent(identity.id);
+          const privateDiary =
+            await fastify.diaryCatalogRepository.getOrCreateDefaultDiary(
+              identity.id,
+              'private',
+            );
+          await fastify.relationshipWriter.grantDiaryOwner(
+            privateDiary.id,
+            identity.id,
+          );
 
           return { rejected: false as const };
         },
