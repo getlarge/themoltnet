@@ -32,6 +32,10 @@ import type {
   PermissionChecker,
   RelationshipWriter,
 } from '../src/types.js';
+import {
+  initDiaryWorkflows,
+  setDiaryWorkflowDeps,
+} from '../src/workflows/diary-workflows.js';
 
 async function loadEmbeddingService(): Promise<EmbeddingService> {
   if (process.env.EMBEDDING_MODEL !== 'true') {
@@ -100,6 +104,17 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
     };
 
     const embeddingService = await loadEmbeddingService();
+
+    // Wire diary workflows for entry CRUD (used by DiaryService internally)
+    setDiaryWorkflowDeps({
+      diaryEntryRepository: setup.repo,
+      relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
+      embeddingService,
+      dataSource: {
+        runTransaction: async (fn: () => Promise<unknown>) => fn(),
+      } as never,
+    });
+    initDiaryWorkflows();
 
     service = createDiaryService({
       diaryRepository: setup.diaryRepo,

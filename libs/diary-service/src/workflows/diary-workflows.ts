@@ -21,16 +21,36 @@ import { scanForInjection } from '../injection-scanner.js';
 import type {
   CreateEntryInput,
   DiaryEntry,
-  DiaryRepository,
+  DiaryEntryRepository,
   EmbeddingService,
   RelationshipWriter,
   UpdateEntryInput,
 } from '../types.js';
 
+// ── Private Helpers ────────────────────────────────────────────
+
+/**
+ * Build the text sent to the embedding model.
+ * Mirrors `buildEmbeddingText` from diary-service to avoid circular imports.
+ */
+function buildEmbeddingTextLocal(
+  content: string,
+  tags?: string[] | null,
+  title?: string | null,
+): string {
+  const parts: string[] = [];
+  if (title) parts.push(title);
+  parts.push(content);
+  if (tags && tags.length > 0) {
+    parts.push(...tags.map((t) => `tag:${t}`));
+  }
+  return parts.join('\n');
+}
+
 // ── Types ──────────────────────────────────────────────────────
 
 export interface DiaryWorkflowDeps {
-  diaryRepository: DiaryRepository;
+  diaryEntryRepository: DiaryEntryRepository;
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   dataSource: DataSource;
@@ -71,6 +91,7 @@ type UpdateEntryFn = (
   updates: UpdateEntryInput,
   existingContent?: string,
   existingTitle?: string | null,
+  existingTags?: string[] | null,
 ) => Promise<DiaryEntry | null>;
 type DeleteEntryFn = (id: string) => Promise<boolean>;
 
@@ -141,10 +162,15 @@ export function initDiaryWorkflows(): void {
   _workflows = {
     createEntry: DBOS.registerWorkflow(
       async (input: CreateEntryInput): Promise<DiaryEntry> => {
-        const { diaryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, dataSource } = getDeps();
 
         const entryId = await generateIdStep();
-        const embedding = await embedPassageStep(input.content);
+        const embedText = buildEmbeddingTextLocal(
+          input.content,
+          input.tags,
+          input.title,
+        );
+        const embedding = await embedPassageStep(embedText);
         const { injectionRisk } = await scanInjectionStep(
           input.content,
           input.title,
@@ -152,13 +178,11 @@ export function initDiaryWorkflows(): void {
 
         const entry = await dataSource.runTransaction(
           async () => {
-            return diaryRepository.create({
+            return diaryEntryRepository.create({
               id: entryId,
               diaryId: input.diaryId,
-              ownerId: input.ownerId,
               content: input.content,
               title: input.title,
-              visibility: input.diaryVisibility,
               tags: input.tags,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
@@ -168,11 +192,11 @@ export function initDiaryWorkflows(): void {
         );
 
         try {
-          await grantOwnershipStep(entry.id, input.ownerId);
+          await grantOwnershipStep(entry.id, input.requesterId);
         } catch {
           // Compensation: delete the orphaned entry
           await dataSource.runTransaction(
-            () => diaryRepository.delete(entry.id),
+            () => diaryEntryRepository.delete(entry.id),
             { name: 'diary.create.compensate' },
           );
           throw new Error('Failed to grant ownership after entry creation');
@@ -189,8 +213,9 @@ export function initDiaryWorkflows(): void {
         updates: UpdateEntryInput,
         existingContent?: string,
         existingTitle?: string | null,
+        existingTags?: string[] | null,
       ): Promise<DiaryEntry | null> => {
-        const { diaryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, dataSource } = getDeps();
         const repoUpdates: Record<string, unknown> = { ...updates };
 
         if (updates.content !== undefined || updates.title !== undefined) {
@@ -204,13 +229,22 @@ export function initDiaryWorkflows(): void {
           repoUpdates.injectionRisk = injectionRisk;
         }
 
-        if (updates.content !== undefined) {
-          const embedding = await embedPassageStep(updates.content);
+        if (
+          updates.content !== undefined ||
+          updates.tags !== undefined ||
+          updates.title !== undefined
+        ) {
+          const content = updates.content ?? existingContent ?? '';
+          const tags = updates.tags !== undefined ? updates.tags : existingTags;
+          const title =
+            updates.title !== undefined ? updates.title : existingTitle;
+          const embedText = buildEmbeddingTextLocal(content, tags, title);
+          const embedding = await embedPassageStep(embedText);
           if (embedding.length > 0) repoUpdates.embedding = embedding;
         }
 
         return dataSource.runTransaction(
-          () => diaryRepository.update(id, repoUpdates),
+          () => diaryEntryRepository.update(id, repoUpdates),
           { name: 'diary.update.persist' },
         );
       },
@@ -219,10 +253,10 @@ export function initDiaryWorkflows(): void {
 
     deleteEntry: DBOS.registerWorkflow(
       async (id: string): Promise<boolean> => {
-        const { diaryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, dataSource } = getDeps();
 
         const deleted = await dataSource.runTransaction(
-          () => diaryRepository.delete(id),
+          () => diaryEntryRepository.delete(id),
           { name: 'diary.delete.persist' },
         );
 

@@ -27,7 +27,6 @@
  * Keto relationship writes happen inside the transaction.
  */
 
-import { scanForInjection } from './injection-scanner.js';
 import type {
   CreateDiaryInput,
   CreateEntryInput,
@@ -44,6 +43,7 @@ import type {
   UpdateEntryInput,
 } from './types.js';
 import { DiaryServiceError } from './types.js';
+import { diaryWorkflows } from './workflows/diary-workflows.js';
 
 export interface DiaryService {
   // ── Diary container operations ───────────────────────────────
@@ -396,43 +396,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     // ── Entry operations ───────────────────────────────────────
 
-    async create(input: CreateEntryInput): Promise<DiaryEntry> {
-      // TODO: wrap in DBOS workflow
-      let embedding: number[] | undefined;
-
-      try {
-        const text = buildEmbeddingText(input.content, input.tags, input.title);
-        const result = await embeddingService.embedPassage(text);
-        if (result.length > 0) {
-          embedding = result;
-        }
-      } catch {
-        // Embedding generation is best-effort; entry is created without it
-      }
-
-      const { injectionRisk } = scanForInjection(input.content, input.title);
-
-      const entryData = {
-        diaryId: input.diaryId,
-        content: input.content,
-        title: input.title,
-        tags: input.tags,
-        embedding,
-        injectionRisk,
-        importance: input.importance,
-        entryType: input.entryType,
-      };
-
-      const result = await transactionRunner.runInTransaction(
-        async () => {
-          const entry = await diaryEntryRepository.create(entryData);
-          await relationshipWriter.grantOwnership(entry.id, input.requesterId);
-          return entry;
-        },
-        { name: 'diary.create' },
-      );
-
-      return result;
+    create(input: CreateEntryInput): Promise<DiaryEntry> {
+      return diaryWorkflows.createEntry(input);
     },
 
     async getById(id: string, requesterId: string): Promise<DiaryEntry | null> {
@@ -486,77 +451,32 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       requesterId: string,
       updates: UpdateEntryInput,
     ): Promise<DiaryEntry | null> {
-      // TODO: wrap in DBOS workflow
       const allowed = await permissionChecker.canEditEntry(id, requesterId);
       if (!allowed) return null;
 
-      const repoUpdates: Record<string, unknown> = { ...updates };
+      // Fetch existing entry when context is needed to rebuild embedding text
       const needsExisting =
-        updates.content ||
+        updates.content !== undefined ||
         updates.title !== undefined ||
         updates.tags !== undefined;
       const existing = needsExisting
         ? await diaryEntryRepository.findById(id)
         : null;
 
-      // Re-scan for injection risk when content or title changes
-      if (updates.content || updates.title !== undefined) {
-        const contentToScan = updates.content ?? existing?.content ?? '';
-        const titleToScan =
-          updates.title !== undefined ? updates.title : existing?.title;
-        const { injectionRisk } = scanForInjection(contentToScan, titleToScan);
-        repoUpdates.injectionRisk = injectionRisk;
-      }
-
-      if (updates.importance !== undefined) {
-        repoUpdates.importance = updates.importance;
-      }
-      if (updates.entryType !== undefined) {
-        repoUpdates.entryType = updates.entryType;
-      }
-      if (updates.supersededBy !== undefined) {
-        repoUpdates.supersededBy = updates.supersededBy;
-      }
-
-      // Regenerate embedding when content, tags, or title change
-      if (updates.content || updates.tags || updates.title !== undefined) {
-        const content = updates.content ?? existing?.content;
-        const tags = updates.tags ?? existing?.tags;
-        const title =
-          updates.title !== undefined ? updates.title : existing?.title;
-        if (content) {
-          try {
-            const text = buildEmbeddingText(content, tags, title);
-            const result = await embeddingService.embedPassage(text);
-            if (result.length > 0) {
-              repoUpdates.embedding = result;
-            }
-          } catch {
-            // Keep existing embedding if regeneration fails
-          }
-        }
-      }
-
-      return diaryEntryRepository.update(id, repoUpdates);
+      return diaryWorkflows.updateEntry(
+        id,
+        updates,
+        existing?.content,
+        existing?.title,
+        existing?.tags,
+      );
     },
 
     async delete(id: string, requesterId: string): Promise<boolean> {
-      // TODO: wrap in DBOS workflow
       const allowed = await permissionChecker.canDeleteEntry(id, requesterId);
       if (!allowed) return false;
 
-      const result = await transactionRunner.runInTransaction(
-        async () => {
-          const deleted = await diaryEntryRepository.delete(id);
-          if (deleted) {
-            await relationshipWriter.removeEntryRelations(id);
-          }
-          return deleted;
-        },
-        { name: 'diary.delete' },
-      );
-
-      return result;
+      return diaryWorkflows.deleteEntry(id);
     },
 
     async reflect(input: ReflectInput): Promise<Digest> {

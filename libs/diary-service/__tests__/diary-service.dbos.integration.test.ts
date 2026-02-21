@@ -31,6 +31,10 @@ import type {
   PermissionChecker,
   RelationshipWriter,
 } from '../src/types.js';
+import {
+  initDiaryWorkflows,
+  setDiaryWorkflowDeps,
+} from '../src/workflows/diary-workflows.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -120,6 +124,16 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     transactionRunner = dbosSetup.transactionRunner;
 
     const embeddingService = createNoopEmbeddingService();
+
+    // Wire diary workflows with real DBOS dataSource for entry CRUD
+    setDiaryWorkflowDeps({
+      diaryEntryRepository: dbSetup.repo,
+      relationshipWriter:
+        mockRelationshipWriter as unknown as RelationshipWriter,
+      embeddingService,
+      dataSource: dbosSetup.dataSource,
+    });
+    initDiaryWorkflows();
 
     service = createDiaryService({
       diaryRepository: dbSetup.diaryRepo,
