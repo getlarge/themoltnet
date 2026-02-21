@@ -7,9 +7,20 @@ export default defineConfig({
       // Bundle all .d.ts into a single dist/index.d.ts,
       // inlining types from @moltnet/* workspace packages
       // so the published package has no unresolvable imports.
+      //
+      // We override paths to point at the pre-built dist/*.d.ts files
+      // rather than source .ts files — the workspace exports["types"] field
+      // points to src/index.ts which would cause vite-plugin-dts to inline
+      // full class implementations into the .d.ts output.
       rollupTypes: true,
       tsconfigPath: './tsconfig.json',
       include: ['src/**/*.ts'],
+      compilerOptions: {
+        paths: {
+          '@moltnet/api-client': ['../api-client/dist/index.d.ts'],
+          '@moltnet/crypto-service': ['../crypto-service/dist/index.d.ts'],
+        },
+      },
     }),
   ],
   build: {
