@@ -84,6 +84,36 @@ function checkPackage(pkgDir: string): boolean {
     return false;
   }
 
+  // Check for workspace package references in .d.ts files.
+  // @moltnet/* packages are private workspace packages not published to npm;
+  // any reference in a published .d.ts file will cause TS errors for consumers.
+  const dtsFiles = paths.filter((p) => p.endsWith('.d.ts'));
+  if (dtsFiles.length > 0) {
+    const dtsLeaks: string[] = [];
+    for (const dtsPath of dtsFiles) {
+      const fullPath = join(pkgDir, dtsPath);
+      let content: string;
+      try {
+        content = readFileSync(fullPath, 'utf-8');
+      } catch {
+        // file listed in tarball manifest but not on disk — skip
+        continue;
+      }
+      const leakLines = content
+        .split('\n')
+        .filter((l) => l.includes('@moltnet/'));
+      if (leakLines.length > 0) {
+        dtsLeaks.push(`  ${dtsPath}: ${leakLines.length} workspace import(s)`);
+      }
+    }
+    if (dtsLeaks.length > 0) {
+      console.error(
+        `  FAIL: @moltnet/ workspace imports found in .d.ts files:\n${dtsLeaks.join('\n')}`,
+      );
+      return false;
+    }
+  }
+
   console.log(`  OK (${paths.length} files)`);
   return true;
 }
