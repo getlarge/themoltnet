@@ -246,6 +246,11 @@ export const SigningRequestSchema = Type.Object(
     agentId: Type.String({ format: 'uuid' }),
     message: Type.String(),
     nonce: Type.String({ format: 'uuid' }),
+    signingInput: Type.String({
+      description:
+        'Base64-encoded bytes to sign with Ed25519. Base64-decode this value, ' +
+        'sign the raw bytes with your private key, then submit the base64 signature.',
+    }),
     status: Type.Union([
       Type.Literal('pending'),
       Type.Literal('completed'),
