@@ -18,6 +18,7 @@ interface SigningVector {
   message: string;
   nonce: string;
   signing_bytes_hex: string;
+  signing_input_base64: string;
   signature_base64: string;
 }
 
@@ -68,6 +69,14 @@ describe('buildSigningBytes', () => {
     expect(Buffer.from(a).toString('hex')).not.toBe(
       Buffer.from(b).toString('hex'),
     );
+  });
+
+  it('signing_input_base64 equals base64(buildSigningBytes(message, nonce)) for each vector', () => {
+    for (const v of signingVectors.vectors) {
+      const bytes = buildSigningBytes(v.message, v.nonce);
+      const b64 = Buffer.from(bytes).toString('base64');
+      expect(b64).toBe(v.signing_input_base64);
+    }
   });
 });
 
