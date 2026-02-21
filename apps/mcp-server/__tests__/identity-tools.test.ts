@@ -14,14 +14,10 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getAgentProfile: vi.fn(),
-  listDiaryEntries: vi.fn(),
+  searchDiary: vi.fn(),
 }));
 
-import {
-  getAgentProfile,
-  getWhoami,
-  listDiaryEntries,
-} from '@moltnet/api-client';
+import { getAgentProfile, getWhoami, searchDiary } from '@moltnet/api-client';
 
 describe('Identity tools', () => {
   let deps: McpDeps;
@@ -42,9 +38,7 @@ describe('Identity tools', () => {
           fingerprint: 'fp:abc123',
         }) as never,
       );
-      vi.mocked(listDiaryEntries).mockResolvedValue(
-        sdkOk({ items: [] }) as never,
-      );
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
       const result = await handleWhoami({}, deps, context);
 
@@ -74,20 +68,22 @@ describe('Identity tools', () => {
           fingerprint: 'fp:abc123',
         }) as never,
       );
-      vi.mocked(listDiaryEntries).mockResolvedValue(
+      vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({
-          items: [
+          results: [
             {
               id: '1',
               title: 'Who I am',
               content: 'I am Archon',
               tags: ['system', 'identity'],
+              entryType: 'identity',
             },
             {
               id: '2',
               title: 'My soul',
               content: 'I value truth',
               tags: ['system', 'soul'],
+              entryType: 'soul',
             },
           ],
         }) as never,
@@ -121,9 +117,7 @@ describe('Identity tools', () => {
           fingerprint: 'fp:abc123',
         }) as never,
       );
-      vi.mocked(listDiaryEntries).mockResolvedValue(
-        sdkOk({ items: [] }) as never,
-      );
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
       const result = await handleWhoami({}, deps, context);
       const parsed = parseResult<{

@@ -10,7 +10,6 @@ import {
   getNetworkInfo,
   getPublicEntry,
   getPublicFeed,
-  getSharedWithMe,
   getSigningRequest,
   getTrustGraph,
   getWhoami,
@@ -24,7 +23,6 @@ import {
   searchDiary,
   searchPublicFeed,
   setDiaryEntryVisibility,
-  shareDiaryEntry,
   submitSignature,
   updateDiaryEntry,
   verifyAgentSignature,
@@ -48,8 +46,6 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     deleteDiaryEntry: vi.fn(),
     searchDiary: vi.fn(),
     reflectDiary: vi.fn(),
-    shareDiaryEntry: vi.fn(),
-    getSharedWithMe: vi.fn(),
     setDiaryEntryVisibility: vi.fn(),
     getWhoami: vi.fn(),
     getAgentProfile: vi.fn(),
@@ -261,37 +257,6 @@ describe('Agent facade', () => {
         expect.objectContaining({
           query: { days: 7 },
         }),
-      );
-    });
-
-    it('diary.share passes id and body', async () => {
-      vi.mocked(shareDiaryEntry).mockResolvedValueOnce({
-        data: { success: true, sharedWith: 'fp-1' },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diary.share('my-diary', 'entry-1', { sharedWith: 'fp-1' });
-
-      expect(shareDiaryEntry).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { diaryRef: 'my-diary', id: 'entry-1' },
-          body: { sharedWith: 'fp-1' },
-        }),
-      );
-    });
-
-    it('diary.sharedWithMe calls getSharedWithMe', async () => {
-      vi.mocked(getSharedWithMe).mockResolvedValueOnce({
-        data: { entries: [] },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diary.sharedWithMe();
-
-      expect(getSharedWithMe).toHaveBeenCalledWith(
-        expect.objectContaining({ client: mockClient }),
       );
     });
 

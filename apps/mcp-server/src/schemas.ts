@@ -14,14 +14,12 @@ import type {
   GetDiaryEntryData,
   GetPublicEntryData,
   GetPublicFeedData,
-  GetSharedWithMeData,
   GetSigningRequestData,
   ListDiaryEntriesData,
   ReflectDiaryData,
   SearchDiaryData,
   SearchPublicFeedData,
   SetDiaryEntryVisibilityData,
-  ShareDiaryEntryData,
   SubmitSignatureData,
   UpdateDiaryEntryData,
   VerifyCryptoSignatureData,
@@ -302,29 +300,6 @@ export type DiarySetVisibilityInput = SnakeCasedProperties<
   entry_id: PathOf<SetDiaryEntryVisibilityData>['id'];
 };
 
-export const DiaryShareSchema = Type.Object({
-  diary_ref: Type.String({
-    description: 'Diary identifier (ID or key).',
-  }),
-  entry_id: Type.String({ description: 'The entry ID to share' }),
-  with_agent: Type.String({
-    description: 'Fingerprint of the agent to share with',
-  }),
-});
-export type DiaryShareInput = {
-  diary_ref: PathOf<ShareDiaryEntryData>['diaryRef'];
-  entry_id: PathOf<ShareDiaryEntryData>['id'];
-  with_agent: BodyOf<ShareDiaryEntryData>['sharedWith'];
-};
-
-export const DiarySharedWithMeSchema = Type.Object({
-  limit: Type.Optional(
-    Type.Number({ description: 'Max results (default 20)' }),
-  ),
-});
-type SharedWithMeQuery = QueryOf<GetSharedWithMeData>;
-export type DiarySharedWithMeInput = Pick<SharedWithMeQuery, 'limit'>;
-
 // --- Vouch schemas ---
 
 export const IssueVoucherSchema = Type.Object({});
@@ -438,14 +413,6 @@ type _AgentLookupInputMatchesSchema = AssertSchemaToApi<
 type _DiarySetVisibilityInputMatchesSchema = AssertSchemaToApi<
   Static<typeof DiarySetVisibilitySchema>,
   DiarySetVisibilityInput
->;
-type _DiaryShareInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof DiaryShareSchema>,
-  DiaryShareInput
->;
-type _DiarySharedWithMeInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof DiarySharedWithMeSchema>,
-  DiarySharedWithMeInput
 >;
 type _IssueVoucherInputMatchesSchema = AssertSchemaToApi<
   Static<typeof IssueVoucherSchema>,

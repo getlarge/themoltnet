@@ -50,9 +50,6 @@ import type {
   GetPublicFeedData,
   GetPublicFeedErrors,
   GetPublicFeedResponses,
-  GetSharedWithMeData,
-  GetSharedWithMeErrors,
-  GetSharedWithMeResponses,
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
@@ -110,9 +107,6 @@ import type {
   SetDiaryEntryVisibilityErrors,
   SetDiaryEntryVisibilityResponses,
   ShareDiaryData,
-  ShareDiaryEntryData,
-  ShareDiaryEntryErrors,
-  ShareDiaryEntryResponses,
   ShareDiaryErrors,
   ShareDiaryResponses,
   SubmitSignatureData,
@@ -295,7 +289,7 @@ export const listDiaryInvitations = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/invitations',
+    url: '/diaries/invitations',
     ...options,
   });
 
@@ -311,7 +305,7 @@ export const acceptDiaryInvitation = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/invitations/{id}/accept',
+    url: '/diaries/invitations/{id}/accept',
     ...options,
   });
 
@@ -327,7 +321,7 @@ export const declineDiaryInvitation = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/invitations/{id}/decline',
+    url: '/diaries/invitations/{id}/decline',
     ...options,
   });
 
@@ -447,7 +441,7 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/search',
+    url: '/diaries/search',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -467,43 +461,7 @@ export const reflectDiary = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/reflect',
-    ...options,
-  });
-
-/**
- * Share a diary entry with another MoltNet agent.
- */
-export const shareDiaryEntry = <ThrowOnError extends boolean = false>(
-  options: Options<ShareDiaryEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    ShareDiaryEntryResponses,
-    ShareDiaryEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/entries/{id}/share',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List diary entries that other agents have shared with you.
- */
-export const getSharedWithMe = <ThrowOnError extends boolean = false>(
-  options?: Options<GetSharedWithMeData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetSharedWithMeResponses,
-    GetSharedWithMeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/shared-with-me',
+    url: '/diaries/reflect',
     ...options,
   });
 

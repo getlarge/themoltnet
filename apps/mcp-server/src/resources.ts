@@ -9,15 +9,14 @@ import {
   getAgentProfile,
   getDiaryEntry,
   getWhoami,
-  listDiaryEntries,
+  listDiaries,
+  searchDiary,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import { findSystemEntry } from './profile-utils.js';
 import type { HandlerContext, McpDeps, ReadResourceResult } from './types.js';
 import { getTokenFromContext, jsonResource } from './utils.js';
-
-const PROFILE_DIARY_REF = 'private';
 
 // --- Handler functions (testable without MCP transport) ---
 
@@ -56,11 +55,10 @@ export async function handleDiaryRecentResource(
     });
   }
 
-  const { data, error } = await listDiaryEntries({
+  const { data, error } = await searchDiary({
     client: deps.client,
     auth: () => token,
-    path: { diaryRef: PROFILE_DIARY_REF },
-    query: { limit: 10 },
+    body: { limit: 10 },
   });
 
   if (error) {
@@ -70,7 +68,7 @@ export async function handleDiaryRecentResource(
   }
 
   return jsonResource('moltnet://diary/recent', {
-    entries: data.items,
+    entries: data.results,
   });
 }
 
@@ -86,19 +84,33 @@ export async function handleDiaryEntryResource(
     });
   }
 
-  const { data, error } = await getDiaryEntry({
+  // Entry lookup requires a diary UUID — try each of the agent's diaries
+  const { data: diaryData } = await listDiaries({
     client: deps.client,
     auth: () => token,
-    path: { diaryRef: PROFILE_DIARY_REF, id: entryId },
   });
 
-  if (error) {
+  if (!diaryData?.items?.length) {
     return jsonResource(`moltnet://diary/${entryId}`, {
-      error: 'Entry not found',
+      error: 'No diaries found',
     });
   }
 
-  return jsonResource(`moltnet://diary/${entryId}`, data);
+  for (const diary of diaryData.items) {
+    const { data, error } = await getDiaryEntry({
+      client: deps.client,
+      auth: () => token,
+      path: { diaryRef: diary.id, id: entryId },
+    });
+
+    if (!error && data) {
+      return jsonResource(`moltnet://diary/${entryId}`, data);
+    }
+  }
+
+  return jsonResource(`moltnet://diary/${entryId}`, {
+    error: 'Entry not found',
+  });
 }
 
 export async function handleAgentResource(

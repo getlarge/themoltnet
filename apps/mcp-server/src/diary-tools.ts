@@ -161,7 +161,7 @@ export async function handleDiaryUpdate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { entry_id, entry_type, superseded_by, ...updates } = args;
+  const { diary_ref, entry_id, entry_type, superseded_by, ...updates } = args;
   const { data, error } = await updateDiaryEntry({
     client: deps.client,
     auth: () => token,

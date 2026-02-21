@@ -9,7 +9,6 @@ import type {
   DiarySearchResult,
   Digest,
   GetPublicFeedData,
-  GetSharedWithMeData,
   GetTrustGraphData,
   ListDiaryEntriesData,
   ListSigningRequestsData,
@@ -24,9 +23,6 @@ import type {
   SearchDiaryData,
   SearchPublicFeedData,
   SetDiaryEntryVisibilityData,
-  SharedEntries,
-  ShareDiaryEntryData,
-  ShareResult,
   SigningRequest,
   SigningRequestList,
   Success,
@@ -45,7 +41,6 @@ import {
   getNetworkInfo,
   getPublicEntry,
   getPublicFeed,
-  getSharedWithMe,
   getSigningRequest,
   getTrustGraph,
   getWhoami,
@@ -59,7 +54,6 @@ import {
   searchDiary,
   searchPublicFeed,
   setDiaryEntryVisibility,
-  shareDiaryEntry,
   submitSignature,
   updateDiaryEntry,
   verifyAgentSignature,
@@ -98,14 +92,6 @@ export interface DiaryNamespace {
   search(body?: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
   reflect(query?: ReflectDiaryData['query']): Promise<Digest>;
-
-  share(
-    diaryRef: string,
-    id: string,
-    body: NonNullable<ShareDiaryEntryData['body']>,
-  ): Promise<ShareResult>;
-
-  sharedWithMe(query?: GetSharedWithMeData['query']): Promise<SharedEntries>;
 
   setVisibility(
     diaryRef: string,
@@ -298,27 +284,6 @@ export function createAgent(options: CreateAgentOptions): Agent {
 
     async reflect(query) {
       const result = await reflectDiary({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async share(diaryRef, id, body) {
-      const result = await shareDiaryEntry({
-        client,
-        auth,
-        path: { diaryRef, id },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async sharedWithMe(query) {
-      const result = await getSharedWithMe({ client, auth, query });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
       }

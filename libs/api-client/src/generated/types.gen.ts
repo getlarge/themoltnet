@@ -73,7 +73,6 @@ export type ValidationError = {
 export type DiaryCatalog = {
   id: string;
   ownerId: string;
-  key: string;
   name: string;
   visibility: 'private' | 'moltnet' | 'public';
   signed: boolean;
@@ -179,15 +178,6 @@ export type Digest = {
   totalEntries: number;
   periodDays: number;
   generatedAt: string;
-};
-
-export type ShareResult = {
-  success: boolean;
-  sharedWith: string;
-};
-
-export type SharedEntries = {
-  entries: Array<DiaryEntry>;
 };
 
 export type Success = {
@@ -520,8 +510,7 @@ export type ListDiariesResponse =
 
 export type CreateDiaryData = {
   body: {
-    key: string;
-    name?: string;
+    name: string;
     visibility?: 'private' | 'moltnet' | 'public';
   };
   path?: never;
@@ -703,6 +692,10 @@ export type ShareDiaryErrors = {
   /**
    * Default Response
    */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
 };
 
@@ -721,7 +714,7 @@ export type ListDiaryInvitationsData = {
   body?: never;
   path?: never;
   query?: never;
-  url: '/diary/invitations';
+  url: '/diaries/invitations';
 };
 
 export type ListDiaryInvitationsErrors = {
@@ -754,7 +747,7 @@ export type AcceptDiaryInvitationData = {
     id: string;
   };
   query?: never;
-  url: '/diary/invitations/{id}/accept';
+  url: '/diaries/invitations/{id}/accept';
 };
 
 export type AcceptDiaryInvitationErrors = {
@@ -795,7 +788,7 @@ export type DeclineDiaryInvitationData = {
     id: string;
   };
   query?: never;
-  url: '/diary/invitations/{id}/decline';
+  url: '/diaries/invitations/{id}/decline';
 };
 
 export type DeclineDiaryInvitationErrors = {
@@ -1121,7 +1114,7 @@ export type SearchDiaryData = {
   };
   path?: never;
   query?: never;
-  url: '/diary/search';
+  url: '/diaries/search';
 };
 
 export type SearchDiaryErrors = {
@@ -1158,7 +1151,7 @@ export type ReflectDiaryData = {
      */
     entryTypes?: string;
   };
-  url: '/diary/reflect';
+  url: '/diaries/reflect';
 };
 
 export type ReflectDiaryErrors = {
@@ -1183,86 +1176,6 @@ export type ReflectDiaryResponses = {
 
 export type ReflectDiaryResponse =
   ReflectDiaryResponses[keyof ReflectDiaryResponses];
-
-export type ShareDiaryEntryData = {
-  body: {
-    /**
-     * Fingerprint of recipient agent
-     */
-    sharedWith: string;
-  };
-  path: {
-    diaryRef: string;
-    id: string;
-  };
-  query?: never;
-  url: '/diaries/{diaryRef}/entries/{id}/share';
-};
-
-export type ShareDiaryEntryErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  403: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type ShareDiaryEntryError =
-  ShareDiaryEntryErrors[keyof ShareDiaryEntryErrors];
-
-export type ShareDiaryEntryResponses = {
-  /**
-   * Default Response
-   */
-  200: ShareResult;
-};
-
-export type ShareDiaryEntryResponse =
-  ShareDiaryEntryResponses[keyof ShareDiaryEntryResponses];
-
-export type GetSharedWithMeData = {
-  body?: never;
-  path?: never;
-  query?: {
-    limit?: number;
-  };
-  url: '/diary/shared-with-me';
-};
-
-export type GetSharedWithMeErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetSharedWithMeError =
-  GetSharedWithMeErrors[keyof GetSharedWithMeErrors];
-
-export type GetSharedWithMeResponses = {
-  /**
-   * Default Response
-   */
-  200: SharedEntries;
-};
-
-export type GetSharedWithMeResponse =
-  GetSharedWithMeResponses[keyof GetSharedWithMeResponses];
 
 export type SetDiaryEntryVisibilityData = {
   body: {
