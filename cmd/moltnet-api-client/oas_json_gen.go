@@ -12370,6 +12370,10 @@ func (s *SigningRequest) encodeFields(e *jx.Encoder) {
 		s.Signature.Encode(e)
 	}
 	{
+		e.FieldStart("signingInput")
+		e.Str(s.SigningInput)
+	}
+	{
 		e.FieldStart("status")
 		s.Status.Encode(e)
 	}
@@ -12379,17 +12383,18 @@ func (s *SigningRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfSigningRequest = [10]string{
-	0: "agentId",
-	1: "completedAt",
-	2: "createdAt",
-	3: "expiresAt",
-	4: "id",
-	5: "message",
-	6: "nonce",
-	7: "signature",
-	8: "status",
-	9: "valid",
+var jsonFieldsNameOfSigningRequest = [11]string{
+	0:  "agentId",
+	1:  "completedAt",
+	2:  "createdAt",
+	3:  "expiresAt",
+	4:  "id",
+	5:  "message",
+	6:  "nonce",
+	7:  "signature",
+	8:  "signingInput",
+	9:  "status",
+	10: "valid",
 }
 
 // Decode decodes SigningRequest from json.
@@ -12493,8 +12498,20 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"signature\"")
 			}
-		case "status":
+		case "signingInput":
 			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.SigningInput = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signingInput\"")
+			}
+		case "status":
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -12504,7 +12521,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "valid":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.Valid.Decode(d); err != nil {
 					return err
@@ -12524,7 +12541,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
