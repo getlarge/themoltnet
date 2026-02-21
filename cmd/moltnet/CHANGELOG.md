@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/cli-v0.17.0...cli-v0.18.0) (2026-02-21)
+
+
+### Features
+
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+
 ## [Unreleased]
 
 ### Features
