@@ -15,7 +15,7 @@
  */
 
 import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
-import { createDatabase, createDiaryRepository } from '@moltnet/database';
+import { createDatabase } from '@moltnet/database';
 
 // ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──
 
@@ -83,21 +83,37 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   }
 
   const agent = result.agents[0];
-  const diaryRepository = createDiaryRepository(db);
-  const privateDiary = await diaryRepository.getOrCreateDefaultDiary(
-    agent.identityId,
-    'private',
-  );
+
+  // Genesis agents bypass the registration webhook, so no private diary exists yet.
+  // Create it explicitly via the REST API (which also grants Keto ownership).
+  const createDiaryResponse = await fetch(`${REST_API_URL}/diaries`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${agent.accessToken}`,
+    },
+    body: JSON.stringify({ name: 'Private', visibility: 'private' }),
+  });
+  if (!createDiaryResponse.ok) {
+    const body = await createDiaryResponse.text();
+    await pool.end();
+    throw new Error(
+      `Failed to create private diary: ${createDiaryResponse.status} ${body}`,
+    );
+  }
+  const diaryData = (await createDiaryResponse.json()) as { id: string };
+  const privateDiaryId = diaryData.id;
+
   // eslint-disable-next-line no-console
   console.log(
-    `[MCP E2E] Test agent ready: ${agent.identityId} (${agent.keyPair.fingerprint})`,
+    `[MCP E2E] Test agent ready: ${agent.identityId} (${agent.keyPair.fingerprint}) — diary ${privateDiaryId}`,
   );
 
   return {
     mcpBaseUrl: MCP_SERVER_URL,
     restApiUrl: REST_API_URL,
     agent,
-    privateDiaryId: privateDiary.id,
+    privateDiaryId,
     async teardown() {
       await pool.end();
     },
