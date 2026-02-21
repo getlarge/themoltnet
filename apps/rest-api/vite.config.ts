@@ -20,6 +20,11 @@ export default defineConfig({
       'thread-stream',
       '@fastify/otel',
       /^@opentelemetry\//,
+      // onnxruntime-node uses native .node addons loaded via dynamic require().
+      // Rollup cannot resolve these at bundle time; must stay external so Node
+      // resolves them from node_modules at runtime.
+      '@huggingface/transformers',
+      'onnxruntime-node',
     ],
   },
   test: {

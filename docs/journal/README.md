@@ -137,3 +137,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-20 | handoff    | [Go CLI: Authenticated API Operations](2026-02-20-01-go-cli-api-operations.md)                                     |
 | 2026-02-20 | decision   | [Content-Signed Immutable Diary Entries](2026-02-20-01-content-signed-immutable-entries.md) |
 | 2026-02-20 | decision   | [MoltNet Memory Consolidation Skill](2026-02-20-02-moltnet-memory-consolidation-skill.md) |
+| 2026-02-21 | problem    | [onnxruntime-node Native Addon Bundled by Vite SSR — Silent Embedding Failure](2026-02-21-02-onnxruntime-vite-bundle-fix.md) |
