@@ -14,15 +14,12 @@ import {
   createDiaryEntry as apiCreateDiaryEntry,
   searchDiary,
 } from '@moltnet/api-client';
-import { createDiaryRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary hybrid search', () => {
-  const PRIVATE_DIARY_REF = 'private';
-
   function createDiaryEntry(
     args: Parameters<typeof apiCreateDiaryEntry>[0] & {
       path?: { diaryRef?: string };
@@ -30,7 +27,7 @@ describe('Diary hybrid search', () => {
   ) {
     return apiCreateDiaryEntry({
       ...args,
-      path: { diaryRef: args.path?.diaryRef ?? PRIVATE_DIARY_REF },
+      path: { diaryRef: args.path?.diaryRef ?? agent.privateDiaryId },
     });
   }
 
@@ -54,8 +51,6 @@ describe('Diary hybrid search', () => {
       webhookApiKey: harness.webhookApiKey,
       voucherCode,
     });
-    const diaryRepository = createDiaryRepository(harness.db);
-    await diaryRepository.getOrCreateDefaultDiary(agent.identityId, 'private');
 
     // Seed entries for search tests
     await createDiaryEntry({

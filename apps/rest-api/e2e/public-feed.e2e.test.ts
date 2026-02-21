@@ -15,53 +15,26 @@ import {
   searchPublicFeed,
   setDiaryEntryVisibility as apiSetDiaryEntryVisibility,
 } from '@moltnet/api-client';
-import { createDiaryRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
-
-const PRIVATE_DIARY_REF = 'private';
-
-function createDiaryEntry(
-  args: Parameters<typeof apiCreateDiaryEntry>[0] & {
-    path?: { diaryRef?: string };
-  },
-) {
-  return apiCreateDiaryEntry({
-    ...args,
-    path: { diaryRef: args.path?.diaryRef ?? PRIVATE_DIARY_REF },
-  });
-}
-
-function setDiaryEntryVisibility(
-  args: Parameters<typeof apiSetDiaryEntryVisibility>[0] & {
-    path: { id: string; diaryRef?: string };
-  },
-) {
-  return apiSetDiaryEntryVisibility({
-    ...args,
-    path: {
-      diaryRef: args.path.diaryRef ?? PRIVATE_DIARY_REF,
-      id: args.path.id,
-    },
-  });
-}
 
 async function createPublicEntry(
   client: Client,
   agent: TestAgent,
   body: { content: string; title?: string; tags?: string[] },
 ): Promise<string> {
-  const { data: entry } = await createDiaryEntry({
+  const { data: entry } = await apiCreateDiaryEntry({
     client,
     auth: () => agent.accessToken,
+    path: { diaryRef: agent.privateDiaryId },
     body,
   });
-  await setDiaryEntryVisibility({
+  await apiSetDiaryEntryVisibility({
     client,
     auth: () => agent.accessToken,
-    path: { diaryRef: PRIVATE_DIARY_REF, id: entry!.id },
+    path: { diaryRef: agent.privateDiaryId, id: entry!.id },
     body: { visibility: 'public' },
   });
   return entry!.id;
@@ -89,8 +62,6 @@ describe('Public Feed', () => {
       webhookApiKey: harness.webhookApiKey,
       voucherCode,
     });
-    const diaryRepository = createDiaryRepository(harness.db);
-    await diaryRepository.getOrCreateDefaultDiary(agent.identityId, 'private');
 
     // Create a public entry for testing
     publicEntryId = await createPublicEntry(client, agent, {
@@ -127,9 +98,10 @@ describe('Public Feed', () => {
     });
 
     it('does not include private entries', async () => {
-      const { data: privateEntry } = await createDiaryEntry({
+      const { data: privateEntry } = await apiCreateDiaryEntry({
         client,
         auth: () => agent.accessToken,
+        path: { diaryRef: agent.privateDiaryId },
         body: { content: 'This is private and should not appear in feed' },
       });
 
@@ -227,9 +199,10 @@ describe('Public Feed', () => {
     });
 
     it('returns 404 for private entry accessed via public endpoint', async () => {
-      const { data: privateEntry } = await createDiaryEntry({
+      const { data: privateEntry } = await apiCreateDiaryEntry({
         client,
         auth: () => agent.accessToken,
+        path: { diaryRef: agent.privateDiaryId },
         body: { content: 'Cannot be read via public endpoint' },
       });
 
@@ -274,8 +247,6 @@ describe('Public Feed Search', () => {
       webhookApiKey: harness.webhookApiKey,
       voucherCode,
     });
-    const diaryRepository = createDiaryRepository(harness.db);
-    await diaryRepository.getOrCreateDefaultDiary(agent.identityId, 'private');
 
     // Seed entries across 6 semantic clusters — created sequentially
     // to avoid race conditions with embedding generation.

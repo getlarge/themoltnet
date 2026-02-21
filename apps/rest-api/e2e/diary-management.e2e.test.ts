@@ -23,7 +23,6 @@ import {
   updateDiary,
   updateDiaryEntry,
 } from '@moltnet/api-client';
-import { createDiaryRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
@@ -75,12 +74,6 @@ describe('Diary Management', () => {
       webhookApiKey: harness.webhookApiKey,
       voucherCode: voucherC,
     });
-
-    // Create default private diaries for all agents
-    const diaryRepository = createDiaryRepository(harness.db);
-    await diaryRepository.getOrCreateDefaultDiary(agentA.identityId, 'private');
-    await diaryRepository.getOrCreateDefaultDiary(agentB.identityId, 'private');
-    await diaryRepository.getOrCreateDefaultDiary(agentC.identityId, 'private');
   });
 
   afterAll(async () => {
@@ -94,11 +87,14 @@ describe('Diary Management', () => {
 
   // ── Helpers ─────────────────────────────────────────────────
 
-  async function createTestDiary(key: string, visibility = 'private' as const) {
+  async function createTestDiary(
+    name: string,
+    visibility = 'private' as const,
+  ) {
     const { data, error } = await createDiary({
       client,
       auth: authA,
-      body: { key, visibility },
+      body: { name, visibility },
     });
     expect(error).toBeUndefined();
     return data!;
@@ -146,11 +142,10 @@ describe('Diary Management', () => {
       const { data, error } = await createDiary({
         client,
         auth: authA,
-        body: { key: 'work-notes', name: 'Work Notes', visibility: 'private' },
+        body: { name: 'Work Notes', visibility: 'private' },
       });
 
       expect(error).toBeUndefined();
-      expect(data!.key).toBe('work-notes');
       expect(data!.name).toBe('Work Notes');
       expect(data!.visibility).toBe('private');
       expect(data!.ownerId).toBe(agentA.identityId);
@@ -164,36 +159,14 @@ describe('Diary Management', () => {
       });
 
       expect(error).toBeUndefined();
-      const keys = data!.items.map((d) => d.key);
-      expect(keys).toContain('private');
-      expect(keys).toContain('work-notes');
-    });
-
-    it('rejects duplicate diary key', async () => {
-      const { error, response } = await createDiary({
-        client,
-        auth: authA,
-        body: { key: 'work-notes' },
-      });
-
-      expect(error).toBeDefined();
-      expect(response.status).toBe(400);
-    });
-
-    it('rejects invalid diary key format', async () => {
-      const { error, response } = await createDiary({
-        client,
-        auth: authA,
-        body: { key: 'INVALID KEY!' },
-      });
-
-      expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      const names = data!.items.map((d) => d.name);
+      expect(names).toContain('Private');
+      expect(names).toContain('Work Notes');
     });
 
     it('updates diary name', async () => {
       const { data: listData } = await listDiaries({ client, auth: authA });
-      const diary = listData!.items.find((d) => d.key === 'work-notes');
+      const diary = listData!.items.find((d) => d.name === 'Work Notes');
 
       const { data, error } = await updateDiary({
         client,
@@ -204,20 +177,6 @@ describe('Diary Management', () => {
 
       expect(error).toBeUndefined();
       expect(data!.name).toBe('Work Notes Updated');
-    });
-
-    it('rejects deleting the default private diary', async () => {
-      const { data: listData } = await listDiaries({ client, auth: authA });
-      const privateDiary = listData!.items.find((d) => d.key === 'private');
-
-      const { error, response } = await deleteDiary({
-        client,
-        auth: authA,
-        path: { diaryRef: privateDiary!.id },
-      });
-
-      expect(error).toBeDefined();
-      expect(response.status).toBe(400);
     });
 
     it('deletes a custom diary and cascades entries', async () => {
@@ -248,7 +207,7 @@ describe('Diary Management', () => {
     it('rejects unauthenticated diary creation', async () => {
       const { error, response } = await createDiary({
         client,
-        body: { key: 'no-auth' },
+        body: { name: 'no-auth' },
       });
 
       expect(error).toBeDefined();
