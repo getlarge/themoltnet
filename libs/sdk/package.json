@@ -15,11 +15,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build && tsc -b --emitDeclarationOnly --force",
+    "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "test": "vitest run",
     "lint": "eslint src/",
-    "check:pack": "tsx ../../scripts/check-pack.ts --package ."
+    "check:pack": "tsx ../../scripts/check-pack.ts --package .",
+    "check:types-isolation": "tsx ../../scripts/check-sdk-types-isolation.ts"
   },
   "dependencies": {
     "@noble/ed25519": "catalog:"
@@ -30,6 +31,7 @@
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "repository": {

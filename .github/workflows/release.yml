@@ -64,6 +64,9 @@ jobs:
 
       - run: pnpm --filter @themoltnet/sdk run check:pack
 
+      - name: Check SDK type isolation
+        run: pnpm --filter @themoltnet/sdk check:types-isolation
+
       - run: npm install -g npm@latest
 
       - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
