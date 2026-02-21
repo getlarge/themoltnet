@@ -12,12 +12,21 @@
  */
 
 import { execSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const sdkDist = join(root, 'libs/sdk/dist');
+const sdkTypesEntry = join(sdkDist, 'index.d.ts');
+
+if (!existsSync(sdkTypesEntry)) {
+  console.error(
+    `SDK dist types not found at ${sdkTypesEntry}. ` +
+      'Run "pnpm --filter @themoltnet/sdk build" before running this script.',
+  );
+  process.exit(1);
+}
 
 const tmpDir = mkdtempSync(join(tmpdir(), 'sdk-types-isolation-'));
 
