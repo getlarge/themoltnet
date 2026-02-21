@@ -103,9 +103,6 @@ import type {
   SearchPublicFeedData,
   SearchPublicFeedErrors,
   SearchPublicFeedResponses,
-  SetDiaryEntryVisibilityData,
-  SetDiaryEntryVisibilityErrors,
-  SetDiaryEntryVisibilityResponses,
   ShareDiaryData,
   ShareDiaryErrors,
   ShareDiaryResponses,
@@ -433,9 +430,9 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
  * Search diary entries using hybrid search.
  */
 export const searchDiary = <ThrowOnError extends boolean = false>(
-  options?: Options<SearchDiaryData, ThrowOnError>,
+  options: Options<SearchDiaryData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).post<
+  (options.client ?? client).post<
     SearchDiaryResponses,
     SearchDiaryErrors,
     ThrowOnError
@@ -445,7 +442,7 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...options?.headers,
+      ...options.headers,
     },
   });
 
@@ -453,9 +450,9 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
  * Get a digest of recent diary entries.
  */
 export const reflectDiary = <ThrowOnError extends boolean = false>(
-  options?: Options<ReflectDiaryData, ThrowOnError>,
+  options: Options<ReflectDiaryData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).get<
+  (options.client ?? client).get<
     ReflectDiaryResponses,
     ReflectDiaryErrors,
     ThrowOnError
@@ -463,26 +460,6 @@ export const reflectDiary = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/diaries/reflect',
     ...options,
-  });
-
-/**
- * Change the visibility of a diary entry.
- */
-export const setDiaryEntryVisibility = <ThrowOnError extends boolean = false>(
-  options: Options<SetDiaryEntryVisibilityData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    SetDiaryEntryVisibilityResponses,
-    SetDiaryEntryVisibilityErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryId}/entries/{entryId}/visibility',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 /**

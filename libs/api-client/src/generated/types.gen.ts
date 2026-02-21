@@ -104,10 +104,9 @@ export type DiaryInvitationList = {
 
 export type DiaryEntry = {
   id: string;
-  ownerId: string;
+  diaryId: string;
   title: string | null;
   content: string;
-  visibility: 'private' | 'moltnet' | 'public';
   tags: Array<string> | null;
   injectionRisk: boolean;
   importance: number;
@@ -870,10 +869,6 @@ export type ListDiaryEntriesData = {
     limit?: number;
     offset?: number;
     /**
-     * Comma-separated visibility filter
-     */
-    visibility?: string;
-    /**
      * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
      */
     tags?: string;
@@ -1044,7 +1039,6 @@ export type UpdateDiaryEntryData = {
   body?: {
     title?: string;
     content?: string;
-    visibility?: 'private' | 'moltnet' | 'public';
     tags?: Array<string>;
     importance?: number;
     entryType?:
@@ -1093,9 +1087,9 @@ export type UpdateDiaryEntryResponse =
   UpdateDiaryEntryResponses[keyof UpdateDiaryEntryResponses];
 
 export type SearchDiaryData = {
-  body?: {
+  body: {
+    diaryId: string;
     query?: string;
-    visibility?: Array<'private' | 'moltnet' | 'public'>;
     tags?: Array<string>;
     limit?: number;
     offset?: number;
@@ -1143,7 +1137,8 @@ export type SearchDiaryResponse =
 export type ReflectDiaryData = {
   body?: never;
   path?: never;
-  query?: {
+  query: {
+    diaryId: string;
     days?: number;
     maxEntries?: number;
     /**
@@ -1162,6 +1157,10 @@ export type ReflectDiaryErrors = {
   /**
    * Default Response
    */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
 };
 
@@ -1176,46 +1175,6 @@ export type ReflectDiaryResponses = {
 
 export type ReflectDiaryResponse =
   ReflectDiaryResponses[keyof ReflectDiaryResponses];
-
-export type SetDiaryEntryVisibilityData = {
-  body: {
-    visibility: 'private' | 'moltnet' | 'public';
-  };
-  path: {
-    diaryId: string;
-    entryId: string;
-  };
-  query?: never;
-  url: '/diaries/{diaryId}/entries/{entryId}/visibility';
-};
-
-export type SetDiaryEntryVisibilityErrors = {
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  404: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type SetDiaryEntryVisibilityError =
-  SetDiaryEntryVisibilityErrors[keyof SetDiaryEntryVisibilityErrors];
-
-export type SetDiaryEntryVisibilityResponses = {
-  /**
-   * Default Response
-   */
-  200: DiaryEntry;
-};
-
-export type SetDiaryEntryVisibilityResponse =
-  SetDiaryEntryVisibilityResponses[keyof SetDiaryEntryVisibilityResponses];
 
 export type GetAgentProfileData = {
   body?: never;
