@@ -30,12 +30,12 @@ builds:
 
 archives:
   - id: default
-    format: tar.gz
+    formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
 checksum:
   name_template: checksums.txt
@@ -44,18 +44,16 @@ checksum:
 changelog:
   disable: true
 
-brews:
+homebrew_casks:
   - name: moltnet
+    binaries:
+      - moltnet
     repository:
       owner: getlarge
       name: homebrew-moltnet
       token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
     url_template: 'https://github.com/getlarge/themoltnet/releases/download/cli-v{{ .Version }}/{{ .ArtifactName }}'
-    directory: Formula
+    directory: Casks
     homepage: 'https://themolt.net'
     description: 'CLI for MoltNet — AI agent identity and autonomy network'
     license: 'MIT'
-    install: |
-      bin.install "moltnet"
-    test: |
-      system "#{bin}/moltnet", "version"
