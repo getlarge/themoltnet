@@ -37,7 +37,6 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   >['transactionRunner'];
   let tables: {
     diaryEntries: Awaited<ReturnType<typeof setupDatabase>>['diaryEntries'];
-    entryShares: Awaited<ReturnType<typeof setupDatabase>>['entryShares'];
   };
   let mockRelationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
@@ -47,14 +46,13 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   };
 
   const OWNER_ID = '00000000-0000-4000-b000-000000000001';
-  const OTHER_AGENT = '00000000-0000-4000-b000-000000000002';
 
   async function setupDatabase(url: string) {
-    const { createDatabase, createDiaryRepository, diaryEntries, entryShares } =
+    const { createDatabase, createDiaryRepository, diaryEntries } =
       await import('@moltnet/database');
     const database = createDatabase(url);
     const repo = createDiaryRepository(database);
-    return { db: database, repo, diaryEntries, entryShares };
+    return { db: database, repo, diaryEntries };
   }
 
   async function setupDBOS(url: string) {
@@ -80,7 +78,6 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   beforeAll(async () => {
     mockRelationshipWriter = {
       grantOwnership: vi.fn().mockResolvedValue(undefined),
-      grantViewer: vi.fn().mockResolvedValue(undefined),
       registerAgent: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
     };
@@ -89,14 +86,12 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       canViewEntry: vi.fn().mockResolvedValue(true),
       canEditEntry: vi.fn().mockResolvedValue(true),
       canDeleteEntry: vi.fn().mockResolvedValue(true),
-      canShareEntry: vi.fn().mockResolvedValue(true),
     };
 
     const dbSetup = await setupDatabase(DATABASE_URL!);
     db = dbSetup.db.db;
     tables = {
       diaryEntries: dbSetup.diaryEntries,
-      entryShares: dbSetup.entryShares,
     };
 
     const dbosSetup = await setupDBOS(DATABASE_URL!);
@@ -116,13 +111,11 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
 
   afterEach(async () => {
     // Clean up entries between tests
-    await db.delete(tables.entryShares);
     await db.delete(tables.diaryEntries);
     vi.clearAllMocks();
   });
 
   afterAll(async () => {
-    await db.delete(tables.entryShares);
     await db.delete(tables.diaryEntries);
 
     // Shutdown DBOS
@@ -187,24 +180,6 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       const entries = await db.select().from(tables.diaryEntries);
       expect(entries.length).toBe(0);
     });
-
-    it('still shares entry when relationshipWriter fails', async () => {
-      const entry = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Entry to share',
-      });
-
-      mockRelationshipWriter.grantViewer.mockRejectedValueOnce(
-        new Error('Keto unavailable'),
-      );
-
-      const shared = await service.share(entry.id, OWNER_ID, OTHER_AGENT);
-      expect(shared).toBe(true);
-
-      // Verify share record exists
-      const shares = await db.select().from(tables.entryShares);
-      expect(shares.length).toBe(1);
-    });
   });
 
   // ── Concurrency Tests ──────────────────────────────────────────────────
@@ -253,28 +228,6 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         5,
       );
     });
-
-    it('handles concurrent shares without duplicates', async () => {
-      const entry = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Shared entry',
-      });
-
-      // Try to share with the same agent 5 times concurrently
-      const sharePromises = Array.from({ length: 5 }, () =>
-        service.share(entry.id, OWNER_ID, OTHER_AGENT),
-      );
-
-      const results = await Promise.allSettled(sharePromises);
-
-      // At least one should succeed, others may fail due to uniqueness constraint
-      const fulfilled = results.filter((r) => r.status === 'fulfilled');
-      expect(fulfilled.length).toBeGreaterThanOrEqual(1);
-
-      // Only one share record should exist
-      const shares = await db.select().from(tables.entryShares);
-      expect(shares.length).toBe(1);
-    });
   });
 
   // ── RelationshipWriter Execution Tests ──────────────────────────────
@@ -306,21 +259,6 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       );
       expect(mockRelationshipWriter.removeEntryRelations).toHaveBeenCalledWith(
         entry.id,
-      );
-    });
-
-    it('calls grantViewer on share', async () => {
-      const entry = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Entry to share',
-      });
-
-      await service.share(entry.id, OWNER_ID, OTHER_AGENT);
-
-      expect(mockRelationshipWriter.grantViewer).toHaveBeenCalledTimes(1);
-      expect(mockRelationshipWriter.grantViewer).toHaveBeenCalledWith(
-        entry.id,
-        OTHER_AGENT,
       );
     });
   });

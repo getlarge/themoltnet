@@ -73,17 +73,11 @@ type UpdateEntryFn = (
   existingTitle?: string | null,
 ) => Promise<DiaryEntry | null>;
 type DeleteEntryFn = (id: string) => Promise<boolean>;
-type ShareEntryFn = (
-  entryId: string,
-  sharedBy: string,
-  sharedWith: string,
-) => Promise<boolean>;
 
 let _workflows: {
   createEntry: CreateEntryFn;
   updateEntry: UpdateEntryFn;
   deleteEntry: DeleteEntryFn;
-  shareEntry: ShareEntryFn;
 } | null = null;
 
 /**
@@ -132,14 +126,6 @@ export function initDiaryWorkflows(): void {
       await relationshipWriter.grantOwnership(entryId, ownerId);
     },
     { name: 'diary.step.grantOwnership', ...KETO_RETRY },
-  );
-
-  const grantViewerStep = DBOS.registerStep(
-    async (entryId: string, agentId: string): Promise<void> => {
-      const { relationshipWriter } = getDeps();
-      await relationshipWriter.grantViewer(entryId, agentId);
-    },
-    { name: 'diary.step.grantViewer', ...KETO_RETRY },
   );
 
   const removeEntryRelationsStep = DBOS.registerStep(
@@ -248,37 +234,6 @@ export function initDiaryWorkflows(): void {
       },
       { name: 'diary.delete' },
     ),
-
-    shareEntry: DBOS.registerWorkflow(
-      async (
-        entryId: string,
-        sharedBy: string,
-        sharedWith: string,
-      ): Promise<boolean> => {
-        const { diaryRepository, dataSource } = getDeps();
-
-        const shared = await dataSource.runTransaction(
-          () => diaryRepository.share(entryId, sharedBy, sharedWith),
-          { name: 'diary.share.persist' },
-        );
-
-        if (shared) {
-          try {
-            await grantViewerStep(entryId, sharedWith);
-          } catch {
-            // Compensation: remove the orphaned share record
-            await dataSource.runTransaction(
-              () => diaryRepository.unshare(entryId, sharedWith),
-              { name: 'diary.share.compensate' },
-            );
-            throw new Error('Failed to grant viewer after share creation');
-          }
-        }
-
-        return shared;
-      },
-      { name: 'diary.share' },
-    ),
   };
 }
 
@@ -308,13 +263,5 @@ export const diaryWorkflows = {
       );
     }
     return _workflows.deleteEntry;
-  },
-  get shareEntry() {
-    if (!_workflows) {
-      throw new Error(
-        'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
-      );
-    }
-    return _workflows.shareEntry;
   },
 };

@@ -17,12 +17,14 @@ import type {
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
+const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
 const MOCK_EMBEDDING = Array.from({ length: 384 }, (_, i) => i * 0.001);
 
 function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
     id: ENTRY_ID,
+    diaryId: DIARY_ID,
     ownerId: OWNER_ID,
     title: null,
     content: 'Test diary entry content',
@@ -51,9 +53,6 @@ function createMockDiaryRepository(): {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    share: vi.fn(),
-    unshare: vi.fn(),
-    getSharedWithMe: vi.fn(),
     getRecentForDigest: vi.fn(),
   };
 }
@@ -65,7 +64,6 @@ function createMockPermissionChecker(): {
     canViewEntry: vi.fn().mockResolvedValue(true),
     canEditEntry: vi.fn().mockResolvedValue(true),
     canDeleteEntry: vi.fn().mockResolvedValue(true),
-    canShareEntry: vi.fn().mockResolvedValue(true),
   };
 }
 
@@ -74,7 +72,6 @@ function createMockRelationshipWriter(): {
 } {
   return {
     grantOwnership: vi.fn().mockResolvedValue(undefined),
-    grantViewer: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
   };
@@ -125,6 +122,8 @@ describe('DiaryService', () => {
 
       const result = await service.create({
         ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
+        diaryVisibility: 'private',
         content: 'Test diary entry content',
       });
 
@@ -137,6 +136,7 @@ describe('DiaryService', () => {
         'Test diary entry content',
       );
       expect(repo.create).toHaveBeenCalledWith({
+        diaryId: DIARY_ID,
         ownerId: OWNER_ID,
         content: 'Test diary entry content',
         title: undefined,
@@ -144,6 +144,8 @@ describe('DiaryService', () => {
         tags: undefined,
         embedding: MOCK_EMBEDDING,
         injectionRisk: false,
+        importance: undefined,
+        entryType: undefined,
       });
       expect(writer.grantOwnership).toHaveBeenCalledWith(
         mockEntry.id,
@@ -163,9 +165,10 @@ describe('DiaryService', () => {
 
       const result = await service.create({
         ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
+        diaryVisibility: 'moltnet',
         content: 'Test diary entry content',
         title: 'My Entry',
-        visibility: 'moltnet',
         tags: ['test'],
       });
 
@@ -184,6 +187,8 @@ describe('DiaryService', () => {
 
       const result = await service.create({
         ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
+        diaryVisibility: 'private',
         content: 'Test content',
       });
 
@@ -193,12 +198,14 @@ describe('DiaryService', () => {
       );
     });
 
-    it('defaults visibility to private', async () => {
+    it('uses diaryVisibility for entry visibility', async () => {
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(createMockEntry());
 
       await service.create({
         ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
+        diaryVisibility: 'private',
         content: 'Test content',
       });
 
@@ -647,113 +654,6 @@ describe('DiaryService', () => {
         expect.any(Error),
       );
       consoleSpy.mockRestore();
-    });
-  });
-
-  describe('share', () => {
-    it('shares entry in transaction and calls relationshipWriter', async () => {
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(true);
-
-      const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
-
-      expect(result).toBe(true);
-      expect(permissions.canShareEntry).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
-      );
-      expect(transactionRunner.runInTransaction).toHaveBeenCalledWith(
-        expect.any(Function),
-        { name: 'diary.share' },
-      );
-      expect(repo.share).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-      expect(writer.grantViewer).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
-    });
-
-    it('returns false when agent lacks share permission', async () => {
-      permissions.canShareEntry.mockResolvedValue(false);
-
-      const result = await service.share(ENTRY_ID, OTHER_AGENT_ID, OWNER_ID);
-
-      expect(result).toBe(false);
-      expect(repo.share).not.toHaveBeenCalled();
-    });
-
-    it('returns false when repo share fails', async () => {
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(false);
-
-      const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
-
-      expect(result).toBe(false);
-      expect(writer.grantViewer).not.toHaveBeenCalled();
-    });
-
-    it('calls relationshipWriter AFTER transaction commits', async () => {
-      const executionOrder: string[] = [];
-
-      transactionRunner.runInTransaction.mockImplementation(async (fn) => {
-        executionOrder.push('transaction-start');
-        const result = await fn();
-        executionOrder.push('transaction-end');
-        return result;
-      });
-
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(true);
-      writer.grantViewer.mockImplementation(async () => {
-        executionOrder.push('writer-called');
-      });
-
-      await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
-
-      expect(executionOrder).toEqual([
-        'transaction-start',
-        'transaction-end',
-        'writer-called',
-      ]);
-    });
-
-    it('logs grantViewer error but still returns true', async () => {
-      const consoleSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-      permissions.canShareEntry.mockResolvedValue(true);
-      repo.share.mockResolvedValue(true);
-      writer.grantViewer.mockRejectedValue(new Error('Keto unavailable'));
-
-      const result = await service.share(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID);
-
-      expect(result).toBe(true);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Keto grantViewer failed after commit',
-        expect.any(Error),
-      );
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('getSharedWithMe', () => {
-    it('returns entries shared with agent', async () => {
-      const entries = [createMockEntry({ ownerId: OTHER_AGENT_ID })];
-      repo.getSharedWithMe.mockResolvedValue(entries);
-
-      const result = await service.getSharedWithMe(OWNER_ID);
-
-      expect(result).toEqual(entries);
-      expect(repo.getSharedWithMe).toHaveBeenCalledWith(OWNER_ID, undefined);
-    });
-
-    it('passes limit parameter', async () => {
-      repo.getSharedWithMe.mockResolvedValue([]);
-
-      await service.getSharedWithMe(OWNER_ID, 5);
-
-      expect(repo.getSharedWithMe).toHaveBeenCalledWith(OWNER_ID, 5);
     });
   });
 

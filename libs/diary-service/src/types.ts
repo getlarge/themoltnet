@@ -154,13 +154,6 @@ export interface DiaryRepository {
     }>,
   ): Promise<DiaryEntry | null>;
   delete(id: string): Promise<boolean>;
-  share(
-    entryId: string,
-    sharedBy: string,
-    sharedWith: string,
-  ): Promise<boolean>;
-  unshare(entryId: string, sharedWith: string): Promise<boolean>;
-  getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
   getRecentForDigest(
     ownerId: string,
     days?: number,
@@ -173,12 +166,10 @@ export interface PermissionChecker {
   canViewEntry(entryId: string, agentId: string): Promise<boolean>;
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
   canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
-  canShareEntry(entryId: string, agentId: string): Promise<boolean>;
 }
 
 export interface RelationshipWriter {
   grantOwnership(entryId: string, agentId: string): Promise<void>;
-  grantViewer(entryId: string, agentId: string): Promise<void>;
   registerAgent(agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
 }

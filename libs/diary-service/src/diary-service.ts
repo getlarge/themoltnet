@@ -57,12 +57,6 @@ export interface DiaryService {
     updates: UpdateEntryInput,
   ): Promise<DiaryEntry | null>;
   delete(id: string, requesterId: string): Promise<boolean>;
-  share(
-    entryId: string,
-    sharedBy: string,
-    sharedWith: string,
-  ): Promise<boolean>;
-  getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
   reflect(input: ReflectInput): Promise<Digest>;
 }
 
@@ -269,36 +263,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         }
       }
       return deleted;
-    },
-
-    async share(
-      entryId: string,
-      sharedBy: string,
-      sharedWith: string,
-    ): Promise<boolean> {
-      const canShare = await permissionChecker.canShareEntry(entryId, sharedBy);
-      if (!canShare) return false;
-
-      const shared = await transactionRunner.runInTransaction(
-        async () => diaryRepository.share(entryId, sharedBy, sharedWith),
-        { name: 'diary.share' },
-      );
-
-      if (shared) {
-        try {
-          await relationshipWriter.grantViewer(entryId, sharedWith);
-        } catch (err) {
-          console.error('Keto grantViewer failed after commit', err);
-        }
-      }
-      return shared;
-    },
-
-    async getSharedWithMe(
-      agentId: string,
-      limit?: number,
-    ): Promise<DiaryEntry[]> {
-      return diaryRepository.getSharedWithMe(agentId, limit);
     },
 
     async reflect(input: ReflectInput): Promise<Digest> {

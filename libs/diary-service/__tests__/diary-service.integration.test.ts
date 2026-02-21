@@ -43,11 +43,11 @@ async function loadEmbeddingService(): Promise<EmbeddingService> {
 // @moltnet/database is not resolvable (shouldn't happen in this
 // monorepo, but keeps the import conditional on DATABASE_URL).
 async function setupDatabase(url: string) {
-  const { createDatabase, createDiaryRepository, diaryEntries, entryShares } =
+  const { createDatabase, createDiaryRepository, diaryEntries } =
     await import('@moltnet/database');
   const db = createDatabase(url);
   const repo = createDiaryRepository(db);
-  return { db, repo, diaryEntries, entryShares };
+  return { db, repo, diaryEntries };
 }
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -57,7 +57,6 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   let db: Awaited<ReturnType<typeof setupDatabase>>['db'];
   let tables: {
     diaryEntries: Awaited<ReturnType<typeof setupDatabase>>['diaryEntries'];
-    entryShares: Awaited<ReturnType<typeof setupDatabase>>['entryShares'];
   };
   let permissions: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
@@ -74,19 +73,16 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
     db = setup.db;
     tables = {
       diaryEntries: setup.diaryEntries,
-      entryShares: setup.entryShares,
     };
 
     permissions = {
       canViewEntry: vi.fn().mockResolvedValue(true),
       canEditEntry: vi.fn().mockResolvedValue(true),
       canDeleteEntry: vi.fn().mockResolvedValue(true),
-      canShareEntry: vi.fn().mockResolvedValue(true),
     };
 
     relationshipWriter = {
       grantOwnership: vi.fn().mockResolvedValue(undefined),
-      grantViewer: vi.fn().mockResolvedValue(undefined),
       registerAgent: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
     };
@@ -105,13 +101,11 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   });
 
   afterEach(async () => {
-    await db.delete(tables.entryShares);
     await db.delete(tables.diaryEntries);
     vi.clearAllMocks();
   });
 
   afterAll(async () => {
-    await db.delete(tables.entryShares);
     await db.delete(tables.diaryEntries);
   });
 
@@ -361,40 +355,6 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       const deleted = await service.delete(created.id, OTHER_AGENT);
       expect(deleted).toBe(false);
       expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
-    });
-  });
-
-  // ── Share ───────────────────────────────────────────────────────────
-
-  describe('share', () => {
-    it('shares entry when permission checker allows', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Shared thought.',
-      });
-      permissions.canShareEntry.mockResolvedValue(true);
-
-      const shared = await service.share(created.id, OWNER_ID, OTHER_AGENT);
-      expect(shared).toBe(true);
-      expect(relationshipWriter.grantViewer).toHaveBeenCalledWith(
-        created.id,
-        OTHER_AGENT,
-      );
-
-      const received = await service.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(1);
-      expect(received[0].id).toBe(created.id);
-    });
-
-    it('refuses sharing when permission checker denies', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Cannot share.',
-      });
-      permissions.canShareEntry.mockResolvedValue(false);
-
-      const shared = await service.share(created.id, OWNER_ID, OTHER_AGENT);
-      expect(shared).toBe(false);
     });
   });
 

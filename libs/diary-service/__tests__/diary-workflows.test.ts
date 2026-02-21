@@ -27,15 +27,16 @@ vi.mock('@moltnet/database', () => ({
 }));
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
-const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 const GENERATED_ID = '880e8400-e29b-41d4-a716-446655440003';
+const DIARY_ID = '990e8400-e29b-41d4-a716-446655440004';
 
 const MOCK_EMBEDDING = Array.from({ length: 384 }, (_, i) => i * 0.001);
 
 function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
     id: ENTRY_ID,
+    diaryId: DIARY_ID,
     ownerId: OWNER_ID,
     title: null,
     content: 'Test diary entry content',
@@ -59,9 +60,6 @@ function createMockDiaryRepository(): {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    share: vi.fn(),
-    unshare: vi.fn(),
-    getSharedWithMe: vi.fn(),
     getRecentForDigest: vi.fn(),
   };
 }
@@ -71,7 +69,6 @@ function createMockRelationshipWriter(): {
 } {
   return {
     grantOwnership: vi.fn().mockResolvedValue(undefined),
-    grantViewer: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
   };
@@ -130,6 +127,8 @@ describe('Diary Workflows', () => {
 
       const result = await diaryWorkflows.createEntry({
         ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
+        diaryVisibility: 'private',
         content: 'Test diary entry content',
       });
 
@@ -139,6 +138,7 @@ describe('Diary Workflows', () => {
       );
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          diaryId: DIARY_ID,
           ownerId: OWNER_ID,
           content: 'Test diary entry content',
           visibility: 'private',
@@ -260,61 +260,6 @@ describe('Diary Workflows', () => {
 
       expect(result).toBe(false);
       expect(writer.removeEntryRelations).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('diary.share', () => {
-    it('creates share record and grants viewer permission', async () => {
-      repo.share.mockResolvedValue(true);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      const result = await diaryWorkflows.shareEntry(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-
-      expect(result).toBe(true);
-      expect(repo.share).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-      expect(writer.grantViewer).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
-    });
-
-    it('compensates by unsharing when grantViewer fails', async () => {
-      repo.share.mockResolvedValue(true);
-      writer.grantViewer.mockRejectedValue(new Error('Keto unavailable'));
-      repo.unshare.mockResolvedValue(true);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await expect(
-        diaryWorkflows.shareEntry(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID),
-      ).rejects.toThrow('Failed to grant viewer after share creation');
-
-      // Verify compensation: share was removed
-      expect(repo.unshare).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
-    });
-
-    it('skips Keto grant when share record was not created', async () => {
-      repo.share.mockResolvedValue(false);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      const result = await diaryWorkflows.shareEntry(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-
-      expect(result).toBe(false);
-      expect(writer.grantViewer).not.toHaveBeenCalled();
     });
   });
 });
