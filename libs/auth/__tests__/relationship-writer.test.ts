@@ -136,23 +136,6 @@ describe('RelationshipWriter', () => {
     });
   });
 
-  describe('grantViewer', () => {
-    it('creates viewer relation tuple', async () => {
-      mockRelationshipApi.createRelationship.mockResolvedValue({});
-
-      await writer.grantViewer(ENTRY_ID, OTHER_AGENT_ID);
-
-      expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
-        createRelationshipBody: {
-          namespace: 'DiaryEntry',
-          object: ENTRY_ID,
-          relation: 'viewer',
-          subject_id: OTHER_AGENT_ID,
-        },
-      });
-    });
-  });
-
   describe('registerAgent', () => {
     it('creates agent self relation', async () => {
       mockRelationshipApi.createRelationship.mockResolvedValue({});

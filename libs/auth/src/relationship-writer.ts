@@ -21,7 +21,6 @@ export interface RelationshipWriter {
   removeDiaryRelations(diaryId: string): Promise<void>;
   removeDiaryRelationForAgent(diaryId: string, agentId: string): Promise<void>;
   grantOwnership(entryId: string, agentId: string): Promise<void>;
-  grantViewer(entryId: string, agentId: string): Promise<void>;
   registerAgent(agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
 }
@@ -94,17 +93,6 @@ export function createRelationshipWriter(
           namespace: KetoNamespace.DiaryEntry,
           object: entryId,
           relation: DiaryEntryRelation.Owner,
-          subject_id: agentId,
-        },
-      });
-    },
-
-    async grantViewer(entryId: string, agentId: string): Promise<void> {
-      await relationshipApi.createRelationship({
-        createRelationshipBody: {
-          namespace: KetoNamespace.DiaryEntry,
-          object: entryId,
-          relation: DiaryEntryRelation.Viewer,
           subject_id: agentId,
         },
       });
