@@ -12,6 +12,7 @@ import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
   createMockContext,
   createMockDeps,
+  DIARY_ID,
   ENTRY_ID,
   sdkErr,
   sdkOk,
@@ -41,6 +42,9 @@ describe('MCP Resources', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
+    vi.mocked(listDiaries).mockResolvedValue(
+      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+    );
   });
 
   describe('moltnet://identity', () => {
@@ -86,7 +90,7 @@ describe('MCP Resources', () => {
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { limit: 10 },
+          body: { diaryId: DIARY_ID, limit: 10 },
         }),
       );
       expect(result.contents).toHaveLength(1);

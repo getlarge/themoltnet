@@ -55,10 +55,21 @@ export async function handleDiaryRecentResource(
     });
   }
 
+  const { data: diariesData, error: diariesError } = await listDiaries({
+    client: deps.client,
+    auth: () => token,
+  });
+
+  if (diariesError || !diariesData?.items?.length) {
+    return jsonResource('moltnet://diary/recent', { entries: [] });
+  }
+
+  const diaryId = diariesData.items[0].id;
+
   const { data, error } = await searchDiary({
     client: deps.client,
     auth: () => token,
-    body: { limit: 10 },
+    body: { diaryId, limit: 10 },
   });
 
   if (error) {

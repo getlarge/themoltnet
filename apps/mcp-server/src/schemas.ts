@@ -19,12 +19,11 @@ import type {
   ReflectDiaryData,
   SearchDiaryData,
   SearchPublicFeedData,
-  SetDiaryEntryVisibilityData,
   SubmitSignatureData,
   UpdateDiaryEntryData,
   VerifyCryptoSignatureData,
 } from '@moltnet/api-client';
-import { EntryTypeSchema, VisibilitySchema } from '@moltnet/models';
+import { EntryTypeSchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
@@ -107,6 +106,9 @@ export type DiaryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
 };
 
 export const DiarySearchSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   query: Type.String({
     description:
       'Search query — natural language or websearch_to_tsquery syntax. ' +
@@ -152,6 +154,7 @@ export const DiarySearchSchema = Type.Object({
 type SearchDiaryBody = NonNullable<SearchDiaryData['body']>;
 type DiarySearchFields = SnakePick<
   SearchDiaryBody,
+  | 'diaryId'
   | 'query'
   | 'limit'
   | 'tags'
@@ -207,6 +210,9 @@ export type DiaryDeleteInput = {
 };
 
 export const DiaryReflectSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   days: Type.Optional(
     Type.Number({
       description: 'Only include entries from the last N days (default 7)',
@@ -223,6 +229,7 @@ export const DiaryReflectSchema = Type.Object({
 });
 type ReflectDiaryQuery = QueryOf<ReflectDiaryData>;
 export type DiaryReflectInput = {
+  diary_id: ReflectDiaryQuery['diaryId'];
   days?: ReflectDiaryQuery['days'];
   max_entries?: ReflectDiaryQuery['maxEntries'];
   entry_types?: EntryType[];
@@ -271,24 +278,6 @@ export const AgentLookupSchema = Type.Object({
 });
 export type AgentLookupInput = {
   fingerprint: PathOf<GetAgentProfileData>['fingerprint'];
-};
-
-// --- Sharing schemas ---
-
-export const DiarySetVisibilitySchema = Type.Object({
-  diary_id: Type.String({
-    description: 'Diary identifier (UUID).',
-  }),
-  entry_id: Type.String({ description: 'The entry ID' }),
-  visibility: Type.Union([...VisibilitySchema.anyOf], {
-    description: 'New visibility level',
-  }),
-});
-export type DiarySetVisibilityInput = SnakeCasedProperties<
-  BodyOf<SetDiaryEntryVisibilityData>
-> & {
-  diary_id: PathOf<SetDiaryEntryVisibilityData>['diaryId'];
-  entry_id: PathOf<SetDiaryEntryVisibilityData>['entryId'];
 };
 
 // --- Vouch schemas ---
@@ -400,10 +389,6 @@ type _WhoamiInputMatchesSchema = AssertSchemaToApi<
 type _AgentLookupInputMatchesSchema = AssertSchemaToApi<
   Static<typeof AgentLookupSchema>,
   AgentLookupInput
->;
-type _DiarySetVisibilityInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof DiarySetVisibilitySchema>,
-  DiarySetVisibilityInput
 >;
 type _IssueVoucherInputMatchesSchema = AssertSchemaToApi<
   Static<typeof IssueVoucherSchema>,

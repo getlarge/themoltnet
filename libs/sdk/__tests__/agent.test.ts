@@ -22,7 +22,6 @@ import {
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
-  setDiaryEntryVisibility,
   submitSignature,
   updateDiaryEntry,
   verifyAgentSignature,
@@ -46,7 +45,6 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     deleteDiaryEntry: vi.fn(),
     searchDiary: vi.fn(),
     reflectDiary: vi.fn(),
-    setDiaryEntryVisibility: vi.fn(),
     getWhoami: vi.fn(),
     getAgentProfile: vi.fn(),
     verifyAgentSignature: vi.fn(),
@@ -87,10 +85,9 @@ function makeAgent() {
 
 const mockEntry = {
   id: 'entry-1',
-  ownerId: 'owner-1',
+  diaryId: 'diary-1',
   title: 'Test',
   content: 'Hello',
-  visibility: 'private' as const,
   tags: null,
   injectionRisk: false,
   createdAt: '2024-01-01',
@@ -256,25 +253,6 @@ describe('Agent facade', () => {
       expect(reflectDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           query: { days: 7 },
-        }),
-      );
-    });
-
-    it('diary.setVisibility passes id and body', async () => {
-      vi.mocked(setDiaryEntryVisibility).mockResolvedValueOnce({
-        data: { ...mockEntry, visibility: 'public' },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diary.setVisibility('my-diary', 'entry-1', {
-        visibility: 'public',
-      });
-
-      expect(setDiaryEntryVisibility).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { diaryId: 'my-diary', entryId: 'entry-1' },
-          body: { visibility: 'public' },
         }),
       );
     });

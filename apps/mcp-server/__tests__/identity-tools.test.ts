@@ -5,6 +5,7 @@ import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
   createMockContext,
   createMockDeps,
+  DIARY_ID,
   getTextContent,
   parseResult,
   sdkErr,
@@ -14,10 +15,16 @@ import {
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getAgentProfile: vi.fn(),
+  listDiaries: vi.fn(),
   searchDiary: vi.fn(),
 }));
 
-import { getAgentProfile, getWhoami, searchDiary } from '@moltnet/api-client';
+import {
+  getAgentProfile,
+  getWhoami,
+  listDiaries,
+  searchDiary,
+} from '@moltnet/api-client';
 
 describe('Identity tools', () => {
   let deps: McpDeps;
@@ -27,6 +34,9 @@ describe('Identity tools', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
+    vi.mocked(listDiaries).mockResolvedValue(
+      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+    );
   });
 
   describe('moltnet_whoami', () => {

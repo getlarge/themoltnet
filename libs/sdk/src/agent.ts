@@ -22,7 +22,6 @@ import type {
   RotateSecretResponse,
   SearchDiaryData,
   SearchPublicFeedData,
-  SetDiaryEntryVisibilityData,
   SigningRequest,
   SigningRequestList,
   Success,
@@ -53,7 +52,6 @@ import {
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
-  setDiaryEntryVisibility,
   submitSignature,
   updateDiaryEntry,
   verifyAgentSignature,
@@ -89,15 +87,9 @@ export interface DiaryNamespace {
 
   delete(diaryId: string, entryId: string): Promise<Success>;
 
-  search(body?: SearchDiaryData['body']): Promise<DiarySearchResult>;
+  search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
-  reflect(query?: ReflectDiaryData['query']): Promise<Digest>;
-
-  setVisibility(
-    diaryId: string,
-    entryId: string,
-    body: NonNullable<SetDiaryEntryVisibilityData['body']>,
-  ): Promise<DiaryEntry>;
+  reflect(query: ReflectDiaryData['query']): Promise<Digest>;
 }
 
 export interface AgentsNamespace {
@@ -282,21 +274,8 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async reflect(query) {
+    async reflect(query: ReflectDiaryData['query']) {
       const result = await reflectDiary({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async setVisibility(diaryId, entryId, body) {
-      const result = await setDiaryEntryVisibility({
-        client,
-        auth,
-        path: { diaryId, entryId },
-        body,
-      });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
       }

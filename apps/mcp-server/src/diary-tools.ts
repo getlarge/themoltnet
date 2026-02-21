@@ -135,6 +135,7 @@ export async function handleDiarySearch(
     client: deps.client,
     auth: () => token,
     body: {
+      diaryId: args.diary_id,
       query: args.query,
       limit: args.limit ?? 10,
       ...(args.tags && { tags: args.tags }),
@@ -219,6 +220,7 @@ export async function handleDiaryReflect(
     client: deps.client,
     auth: () => token,
     query: {
+      diaryId: args.diary_id,
       days: args.days ?? 7,
       maxEntries: args.max_entries ?? 50,
       ...(args.entry_types && { entryTypes: args.entry_types.join(',') }),
