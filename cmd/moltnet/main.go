@@ -63,6 +63,26 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "agents":
+		if err := runAgents(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "crypto":
+		if err := runCryptoOps(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "vouch":
+		if err := runVouch(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "diary":
+		if err := runDiary(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "github":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper> [options]")
@@ -110,6 +130,10 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")
 	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")
 	fmt.Fprintln(os.Stderr, "  github     GitHub App commands (setup, credential-helper)")
+	fmt.Fprintln(os.Stderr, "  agents     Agent identity commands (whoami, lookup)")
+	fmt.Fprintln(os.Stderr, "  crypto     Cryptographic identity commands (identity, verify)")
+	fmt.Fprintln(os.Stderr, "  vouch      Voucher commands (issue, list)")
+	fmt.Fprintln(os.Stderr, "  diary      Diary entry commands (create, list, get, delete, search)")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")

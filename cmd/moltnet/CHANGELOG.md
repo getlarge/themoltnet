@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Features
+
+* **cli:** add `moltnet agents whoami|lookup` for agent identity queries
+* **cli:** add `moltnet crypto identity|verify` for cryptographic identity
+* **cli:** add `moltnet vouch issue|list` for voucher management
+* **cli:** add `moltnet diary create|list|get|delete|search` for diary entries
+* **cli:** add `--request-id` to `moltnet sign` for one-shot fetch+sign+submit
+* **cli:** add OAuth2 TokenManager with 30s HTTP timeout, early-expiry buffer, and mutex-safe caching
+* **cli:** add APIClient with Bearer token injection and 401 retry
+
 ## [0.17.0](https://github.com/getlarge/themoltnet/compare/cli-v0.16.1...cli-v0.17.0) (2026-02-20)
 
 

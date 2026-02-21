@@ -19,6 +19,9 @@ jobs:
     outputs:
       sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
+      api-client-release-created: ${{ steps.release.outputs['cmd/moltnet-api-client--release_created'] }}
+      api-client-tag-name: ${{ steps.release.outputs['cmd/moltnet-api-client--tag_name'] }}
+      api-client-version: ${{ steps.release.outputs['cmd/moltnet-api-client--version'] }}
       cli-release-created: ${{ steps.release.outputs['cmd/moltnet--release_created'] }}
       cli-tag-name: ${{ steps.release.outputs['cmd/moltnet--tag_name'] }}
       github-agent-release-created: ${{ steps.release.outputs['packages/github-agent--release_created'] }}
@@ -106,10 +109,39 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  release-api-client:
+    name: Tag Go module for moltnet-api-client
+    needs: release-please
+    if: ${{ needs.release-please.outputs.api-client-release-created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push Go module proxy tag
+        # The Go module proxy resolves github.com/getlarge/themoltnet/cmd/moltnet-api-client@vX.Y.Z
+        # by looking for a git tag of the form "cmd/moltnet-api-client/vX.Y.Z".
+        # release-please creates the component tag "moltnet-api-client-vX.Y.Z"; we push the
+        # additional tag that the Go toolchain needs.
+        run: |
+          TAG="cmd/moltnet-api-client/v${{ needs.release-please.outputs.api-client-version }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish API client release
+        run: gh release edit "${{ needs.release-please.outputs.api-client-tag-name }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release-cli:
     name: Release CLI binaries
-    needs: release-please
-    if: ${{ needs.release-please.outputs.cli-release-created == 'true' }}
+    needs: [release-please, release-api-client]
+    if: ${{ always() && needs.release-please.outputs.cli-release-created == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -145,6 +177,7 @@ jobs:
           workdir: cmd/moltnet
         env:
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
+          API_CLIENT_VERSION: v${{ needs.release-please.outputs.api-client-version }}
           HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload binaries to GitHub Release
