@@ -430,10 +430,9 @@
         "type": "object",
         "required": [
           "id",
-          "ownerId",
+          "diaryId",
           "title",
           "content",
-          "visibility",
           "tags",
           "injectionRisk",
           "importance",
@@ -449,7 +448,7 @@
             "format": "uuid",
             "type": "string"
           },
-          "ownerId": {
+          "diaryId": {
             "format": "uuid",
             "type": "string"
           },
@@ -465,22 +464,6 @@
           },
           "content": {
             "type": "string"
-          },
-          "visibility": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": ["private"]
-              },
-              {
-                "type": "string",
-                "enum": ["moltnet"]
-              },
-              {
-                "type": "string",
-                "enum": ["public"]
-              }
-            ]
           },
           "tags": {
             "anyOf": [
@@ -2573,16 +2556,6 @@
           },
           {
             "schema": {
-              "pattern": "^(private|moltnet|public)(,(private|moltnet|public))*$",
-              "type": "string"
-            },
-            "in": "query",
-            "name": "visibility",
-            "required": false,
-            "description": "Comma-separated visibility filter"
-          },
-          {
-            "schema": {
               "pattern": "^[^,]{1,50}(,[^,]{1,50}){0,19}$",
               "maxLength": 1070,
               "type": "string"
@@ -2775,22 +2748,6 @@
                     "minLength": 1,
                     "maxLength": 100000,
                     "type": "string"
-                  },
-                  "visibility": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": ["private"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["moltnet"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["public"]
-                      }
-                    ]
                   },
                   "tags": {
                     "maxItems": 20,
@@ -2993,30 +2950,16 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["diaryId"],
                 "properties": {
+                  "diaryId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "query": {
                     "minLength": 1,
                     "maxLength": 500,
                     "type": "string"
-                  },
-                  "visibility": {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": ["private"]
-                        },
-                        {
-                          "type": "string",
-                          "enum": ["moltnet"]
-                        },
-                        {
-                          "type": "string",
-                          "enum": ["public"]
-                        }
-                      ]
-                    }
                   },
                   "tags": {
                     "minItems": 1,
@@ -3091,7 +3034,8 @@
                 }
               }
             }
-          }
+          },
+          "required": true
         },
         "security": [
           {
@@ -3140,6 +3084,15 @@
         "parameters": [
           {
             "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "diaryId",
+            "required": true
+          },
+          {
+            "schema": {
               "minimum": 1,
               "maximum": 365,
               "type": "number"
@@ -3181,99 +3134,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Digest"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/diaries/{diaryId}/entries/{entryId}/visibility": {
-      "patch": {
-        "operationId": "setDiaryEntryVisibility",
-        "tags": ["diary"],
-        "description": "Change the visibility of a diary entry.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["visibility"],
-                "properties": {
-                  "visibility": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": ["private"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["moltnet"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["public"]
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "parameters": [
-          {
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "in": "path",
-            "name": "diaryId",
-            "required": true
-          },
-          {
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "in": "path",
-            "name": "entryId",
-            "required": true
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiaryEntry"
                 }
               }
             }

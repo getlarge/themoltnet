@@ -233,7 +233,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         parsedCursor = decoded;
       }
 
-      const { items, hasMore } = await fastify.diaryRepository.listPublic({
+      const { items, hasMore } = await fastify.diaryEntryRepository.listPublic({
         cursor: parsedCursor,
         limit,
         tag,
@@ -304,7 +304,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const results = await fastify.diaryRepository.searchPublic({
+      const results = await fastify.diaryEntryRepository.searchPublic({
         query: q,
         embedding,
         tags: tag ? [tag] : undefined,
@@ -339,8 +339,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-
-      const entry = await fastify.diaryRepository.findPublicById(id);
+      // TODO: use service
+      const entry = await fastify.diaryEntryRepository.findPublicById(id);
       if (!entry) {
         throw createProblem('not-found', 'Entry not found');
       }
@@ -428,7 +428,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       try {
         const poller = pollPublicFeed({
-          diaryRepository: fastify.diaryRepository,
+          diaryEntryRepository: fastify.diaryEntryRepository,
           tag,
           signal: ac.signal,
           afterCreatedAt,

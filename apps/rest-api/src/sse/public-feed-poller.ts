@@ -9,7 +9,7 @@
 import type { DiaryEntryRepository, PublicFeedEntry } from '@moltnet/database';
 
 export interface PublicFeedPollerOptions {
-  diaryRepository: DiaryEntryRepository;
+  diaryEntryRepository: DiaryEntryRepository;
   /** Polling interval in milliseconds (default: 3000) */
   intervalMs?: number;
   /** Optional tag filter */
@@ -24,13 +24,13 @@ export interface PublicFeedPollerOptions {
 export async function* pollPublicFeed(
   options: PublicFeedPollerOptions,
 ): AsyncGenerator<PublicFeedEntry> {
-  const { diaryRepository, intervalMs = 3000, tag, signal } = options;
+  const { diaryEntryRepository, intervalMs = 3000, tag, signal } = options;
 
   let cursorCreatedAt = options.afterCreatedAt ?? new Date().toISOString();
   let cursorId = options.afterId ?? '00000000-0000-0000-0000-000000000000';
 
   while (!signal.aborted) {
-    const entries = await diaryRepository.listPublicSince({
+    const entries = await diaryEntryRepository.listPublicSince({
       afterCreatedAt: cursorCreatedAt,
       afterId: cursorId,
       tag,

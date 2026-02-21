@@ -58,14 +58,9 @@ const EntryTypeSchema = Type.Union(
 export const DiaryEntrySchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
-    ownerId: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
     title: Type.Union([Type.String(), Type.Null()]),
     content: Type.String(),
-    visibility: Type.Union([
-      Type.Literal('private'),
-      Type.Literal('moltnet'),
-      Type.Literal('public'),
-    ]),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
     injectionRisk: Type.Boolean(),
     importance: Type.Number({ minimum: 1, maximum: 10 }),
