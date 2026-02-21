@@ -18,10 +18,8 @@ import type {
   AgentRepository,
   CryptoService,
   DataSource,
-  DiaryCatalogRepository,
-  DiaryRepository,
+  DiaryEntryRepository,
   DiaryService,
-  DiaryShareRepository,
   EmbeddingService,
   NonceRepository,
   SigningRequestRepository,
@@ -62,11 +60,9 @@ export function createMockEntry(
   return {
     id: ENTRY_ID,
     diaryId: DIARY_ID,
-    ownerId: OWNER_ID,
     title: null,
     content: 'Test diary entry content',
     embedding: null,
-    visibility: 'private',
     tags: null,
     injectionRisk: false,
     importance: 5,
@@ -108,13 +104,6 @@ export function createMockVoucher(
 
 export interface MockServices {
   diaryService: { [K in keyof DiaryService]: ReturnType<typeof vi.fn> };
-  diaryCatalogRepository: {
-    [K in keyof DiaryCatalogRepository]: ReturnType<typeof vi.fn>;
-  };
-  diaryRepository: { [K in keyof DiaryRepository]: ReturnType<typeof vi.fn> };
-  diaryShareRepository: {
-    [K in keyof DiaryShareRepository]: ReturnType<typeof vi.fn>;
-  };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
   voucherRepository: {
@@ -143,11 +132,27 @@ export interface MockServices {
   transactionRunner: {
     [K in keyof TransactionRunner]: ReturnType<typeof vi.fn>;
   };
+  diaryEntryRepository: {
+    create: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
+    search: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    share: ReturnType<typeof vi.fn>;
+    getSharedWithMe: ReturnType<typeof vi.fn>;
+    getRecentForDigest: ReturnType<typeof vi.fn>;
+    listPublic: ReturnType<typeof vi.fn>;
+    listPublicSince: ReturnType<typeof vi.fn>;
+    searchPublic: ReturnType<typeof vi.fn>;
+    findPublicById: ReturnType<typeof vi.fn>;
+  };
 }
 
 export function createMockServices(): MockServices {
   return {
     diaryService: {
+      // Entry operations
       create: vi.fn(),
       getById: vi.fn(),
       list: vi.fn(),
@@ -155,16 +160,22 @@ export function createMockServices(): MockServices {
       update: vi.fn(),
       delete: vi.fn(),
       reflect: vi.fn(),
+      // Diary container operations
+      createDiary: vi.fn(),
+      listDiaries: vi.fn().mockResolvedValue([]),
+      findDiary: vi.fn(),
+      findOwnedDiary: vi.fn(),
+      updateDiary: vi.fn(),
+      deleteDiary: vi.fn(),
+      // Sharing operations
+      listShares: vi.fn().mockResolvedValue([]),
+      shareDiary: vi.fn(),
+      listInvitations: vi.fn().mockResolvedValue([]),
+      acceptInvitation: vi.fn(),
+      declineInvitation: vi.fn(),
+      revokeShare: vi.fn(),
     },
-    diaryCatalogRepository: {
-      create: vi.fn(),
-      findById: vi.fn().mockResolvedValue(null),
-      findOwnedById: vi.fn().mockResolvedValue(null),
-      listByOwner: vi.fn().mockResolvedValue([]),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    diaryRepository: {
+    diaryEntryRepository: {
       create: vi.fn(),
       findById: vi.fn(),
       list: vi.fn(),
@@ -178,14 +189,6 @@ export function createMockServices(): MockServices {
       listPublicSince: vi.fn(),
       searchPublic: vi.fn(),
       findPublicById: vi.fn(),
-    },
-    diaryShareRepository: {
-      create: vi.fn(),
-      findById: vi.fn(),
-      findByDiaryAndAgent: vi.fn(),
-      listPendingForAgent: vi.fn().mockResolvedValue([]),
-      listByDiary: vi.fn().mockResolvedValue([]),
-      updateStatus: vi.fn(),
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
@@ -293,12 +296,9 @@ export async function createTestApp(
 
   const app = await buildApp({
     diaryService: mocks.diaryService as unknown as DiaryService,
+    diaryEntryRepository:
+      mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
-    diaryCatalogRepository:
-      mocks.diaryCatalogRepository as unknown as DiaryCatalogRepository,
-    diaryRepository: mocks.diaryRepository as unknown as DiaryRepository,
-    diaryShareRepository:
-      mocks.diaryShareRepository as unknown as DiaryShareRepository,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,

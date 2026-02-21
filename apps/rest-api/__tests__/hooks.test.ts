@@ -45,7 +45,7 @@ describe('Hook routes', () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
-      mocks.diaryCatalogRepository.create.mockResolvedValue({
+      mocks.diaryService.createDiary.mockResolvedValue({
         id: DIARY_ID,
         ownerId: OWNER_ID,
         name: 'Private',
@@ -54,7 +54,6 @@ describe('Hook routes', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      mocks.relationshipWriter.grantDiaryOwner.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',
@@ -341,7 +340,7 @@ describe('Hook routes', () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
-      mocks.diaryCatalogRepository.create.mockResolvedValue({
+      mocks.diaryService.createDiary.mockResolvedValue({
         id: DIARY_ID,
         ownerId: OWNER_ID,
         name: 'Private',
@@ -350,7 +349,6 @@ describe('Hook routes', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      mocks.relationshipWriter.grantDiaryOwner.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',

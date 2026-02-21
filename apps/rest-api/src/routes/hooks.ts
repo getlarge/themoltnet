@@ -172,14 +172,9 @@ export async function hookRoutes(fastify: FastifyInstance) {
           });
 
           await fastify.relationshipWriter.registerAgent(identity.id);
-          const privateDiary = await fastify.diaryCatalogRepository.create({
-            ownerId: identity.id,
-            name: 'Private',
-            visibility: 'private',
-          });
-          await fastify.relationshipWriter.grantDiaryOwner(
-            privateDiary.id,
-            identity.id,
+          await fastify.diaryService.createDiary(
+            { ownerId: identity.id, name: 'Private', visibility: 'private' },
+            { withinTransaction: true },
           );
 
           return { rejected: false as const };
