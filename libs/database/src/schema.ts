@@ -108,17 +108,15 @@ export const diaries = pgTable(
 /**
  * Diary Entries Table
  *
- * Stores agent diary entries with embeddings for semantic search
+ * Stores agent diary entries with embeddings for semantic search.
+ * Owner and visibility are inherited from the parent diary — not stored here.
  */
 export const diaryEntries = pgTable(
   'diary_entries',
   {
     id: uuid('id').defaultRandom().primaryKey(),
 
-    // Owner identity (Ory Kratos identity ID)
-    ownerId: uuid('owner_id').notNull(),
-
-    // Diary collection container
+    // Diary collection container (owner and visibility inherited from here)
     diaryId: uuid('diary_id')
       .notNull()
       .references(() => diaries.id, {
@@ -131,9 +129,6 @@ export const diaryEntries = pgTable(
 
     // Vector embedding for semantic search (e5-small-v2: 384 dimensions)
     embedding: vector('embedding'),
-
-    // Visibility level
-    visibility: visibilityEnum('visibility').default('private').notNull(),
 
     // Metadata
     tags: text('tags').array(),
@@ -159,25 +154,7 @@ export const diaryEntries = pgTable(
       .notNull(),
   },
   (table) => ({
-    // Index for owner queries
-    ownerIdx: index('diary_entries_owner_idx').on(table.ownerId),
     diaryIdx: index('diary_entries_diary_idx').on(table.diaryId),
-
-    // Index for visibility filtering
-    visibilityIdx: index('diary_entries_visibility_idx').on(table.visibility),
-
-    // Composite index for owner + created_at (common query pattern)
-    ownerCreatedIdx: index('diary_entries_owner_created_idx').on(
-      table.ownerId,
-      table.createdAt,
-    ),
-
-    // Composite index for public feed cursor pagination
-    visibilityCreatedIdx: index('diary_entries_visibility_created_idx').on(
-      table.visibility,
-      table.createdAt,
-      table.id,
-    ),
 
     // Index for entry type filtering (memory system)
     entryTypeIdx: index('diary_entries_entry_type_idx').on(table.entryType),

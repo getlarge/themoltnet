@@ -92,6 +92,13 @@
       "when": 1771683701907,
       "tag": "0012_conscious_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1771701210663,
+      "tag": "0013_wandering_earthquake",
+      "breakpoints": true
     }
   ]
 }
