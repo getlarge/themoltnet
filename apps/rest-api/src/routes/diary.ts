@@ -119,7 +119,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { name, visibility } = request.body;
-      // TODO: fastify.diaryService.create should be used here instead of direct repository access
 
       const diary = await fastify.diaryCatalogRepository.create({
         ownerId: request.authContext!.identityId,
@@ -153,7 +152,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      // ?fastify.diaryService.list
       const items = await fastify.diaryCatalogRepository.listByOwner(
         request.authContext!.identityId,
       );
@@ -193,7 +191,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { id } = request.params;
       const updates = request.body;
 
-      // TODO: fastify.diaryService.update should be used here instead of direct repository access, but it currently doesn't support partial updates
       const diary = await fastify.diaryCatalogRepository.update(
         id,
         request.authContext!.identityId,
@@ -231,7 +228,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { id } = request.params;
 
-      // TODO: fastify.diaryService.delete should be used here instead of direct repository access,
       const diary = await fastify.diaryCatalogRepository.findOwnedById(
         request.authContext!.identityId,
         id,

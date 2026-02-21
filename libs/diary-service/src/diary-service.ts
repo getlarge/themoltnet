@@ -90,6 +90,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
   return {
     async create(input: CreateEntryInput): Promise<DiaryEntry> {
+      // TODO: wrap in DBOS workflow
       let embedding: number[] | undefined;
 
       try {
@@ -117,17 +118,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         entryType: input.entryType,
       };
 
-      const entry = await transactionRunner.runInTransaction(
-        async () => diaryRepository.create(entryData),
+      const result = await transactionRunner.runInTransaction(
+        async () => {
+          const entry = await diaryRepository.create(entryData);
+          await relationshipWriter.grantOwnership(entry.id, input.ownerId);
+          return entry;
+        },
         { name: 'diary.create' },
       );
 
-      try {
-        await relationshipWriter.grantOwnership(entry.id, input.ownerId);
-      } catch (err) {
-        console.error('Keto grantOwnership failed after commit', err);
-      }
-      return entry;
+      return result;
     },
 
     async getById(id: string, requesterId: string): Promise<DiaryEntry | null> {
@@ -193,6 +193,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       requesterId: string,
       updates: UpdateEntryInput,
     ): Promise<DiaryEntry | null> {
+      // TODO: wrap in DBOS workflow
       const allowed = await permissionChecker.canEditEntry(id, requesterId);
       if (!allowed) return null;
 
@@ -247,22 +248,22 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     },
 
     async delete(id: string, requesterId: string): Promise<boolean> {
+      // TODO: wrap in DBOS workflow
       const allowed = await permissionChecker.canDeleteEntry(id, requesterId);
       if (!allowed) return false;
 
-      const deleted = await transactionRunner.runInTransaction(
-        async () => diaryRepository.delete(id),
+      const result = await transactionRunner.runInTransaction(
+        async () => {
+          const deleted = await diaryRepository.delete(id);
+          if (deleted) {
+            await relationshipWriter.removeEntryRelations(id);
+          }
+          return deleted;
+        },
         { name: 'diary.delete' },
       );
 
-      if (deleted) {
-        try {
-          await relationshipWriter.removeEntryRelations(id);
-        } catch (err) {
-          console.error('Keto removeEntryRelations failed after commit', err);
-        }
-      }
-      return deleted;
+      return result;
     },
 
     async reflect(input: ReflectInput): Promise<Digest> {
