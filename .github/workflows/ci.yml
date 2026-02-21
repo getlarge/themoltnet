@@ -325,7 +325,7 @@ jobs:
         run: cd cmd/moltnet-api-client && go generate ./...
       - name: Check for uncommitted changes (Go)
         run: |
-          if ! git diff --exit-code cmd/moltnet-api-client/; then
+          if ! git diff --exit-code -- 'cmd/moltnet-api-client/*.go'; then
             echo "::error::Go API client is out of date. Run 'cd cmd/moltnet-api-client && go generate ./...' and commit the changes."
             exit 1
           fi
