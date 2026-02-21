@@ -121,7 +121,9 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.diary.create({ content: 'Hello' });
+      const result = await agent.diary.create('my-diary', {
+        content: 'Hello',
+      });
 
       expect(result).toEqual(mockEntry);
       expect(createDiaryEntry).toHaveBeenCalledWith(
@@ -129,6 +131,7 @@ describe('Agent facade', () => {
           client: mockClient,
           auth: mockAuth,
           body: { content: 'Hello' },
+          path: { diaryRef: 'my-diary' },
         }),
       );
     });
@@ -140,9 +143,9 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await expect(agent.diary.create({ content: 'x' })).rejects.toThrow(
-        MoltNetError,
-      );
+      await expect(
+        agent.diary.create('my-diary', { content: 'x' }),
+      ).rejects.toThrow(MoltNetError);
     });
 
     it('diary.list calls listDiaryEntries', async () => {
@@ -158,12 +161,13 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.diary.list({ limit: 10 });
+      const result = await agent.diary.list('my-diary', { limit: 10 });
 
       expect(result).toEqual(listData);
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           query: { limit: 10 },
+          path: { diaryRef: 'my-diary' },
         }),
       );
     });
@@ -175,11 +179,11 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diary.get('entry-1');
+      await agent.diary.get('my-diary', 'entry-1');
 
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: 'entry-1' },
+          path: { diaryRef: 'my-diary', id: 'entry-1' },
         }),
       );
     });
@@ -191,11 +195,13 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diary.update('entry-1', { content: 'Updated' });
+      await agent.diary.update('my-diary', 'entry-1', {
+        content: 'Updated',
+      });
 
       expect(updateDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: 'entry-1' },
+          path: { diaryRef: 'my-diary', id: 'entry-1' },
           body: { content: 'Updated' },
         }),
       );
@@ -208,12 +214,12 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.diary.delete('entry-1');
+      const result = await agent.diary.delete('my-diary', 'entry-1');
 
       expect(result).toEqual({ success: true });
       expect(deleteDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: 'entry-1' },
+          path: { diaryRef: 'my-diary', id: 'entry-1' },
         }),
       );
     });
@@ -265,11 +271,11 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diary.share('entry-1', { sharedWith: 'fp-1' });
+      await agent.diary.share('my-diary', 'entry-1', { sharedWith: 'fp-1' });
 
       expect(shareDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: 'entry-1' },
+          path: { diaryRef: 'my-diary', id: 'entry-1' },
           body: { sharedWith: 'fp-1' },
         }),
       );
@@ -296,11 +302,13 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diary.setVisibility('entry-1', { visibility: 'public' });
+      await agent.diary.setVisibility('my-diary', 'entry-1', {
+        visibility: 'public',
+      });
 
       expect(setDiaryEntryVisibility).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: 'entry-1' },
+          path: { diaryRef: 'my-diary', id: 'entry-1' },
           body: { visibility: 'public' },
         }),
       );

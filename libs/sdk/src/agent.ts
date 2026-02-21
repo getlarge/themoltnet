@@ -75,24 +75,32 @@ import type { TokenManager } from './token.js';
 // ---------------------------------------------------------------------------
 
 export interface DiaryNamespace {
-  create(body: NonNullable<CreateDiaryEntryData['body']>): Promise<DiaryEntry>;
+  create(
+    diaryRef: string,
+    body: NonNullable<CreateDiaryEntryData['body']>,
+  ): Promise<DiaryEntry>;
 
-  list(query?: ListDiaryEntriesData['query']): Promise<DiaryList>;
+  list(
+    diaryRef: string,
+    query?: ListDiaryEntriesData['query'],
+  ): Promise<DiaryList>;
 
-  get(id: string): Promise<DiaryEntry>;
+  get(diaryRef: string, id: string): Promise<DiaryEntry>;
 
   update(
+    diaryRef: string,
     id: string,
     body: NonNullable<UpdateDiaryEntryData['body']>,
   ): Promise<DiaryEntry>;
 
-  delete(id: string): Promise<Success>;
+  delete(diaryRef: string, id: string): Promise<Success>;
 
   search(body?: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
   reflect(query?: ReflectDiaryData['query']): Promise<Digest>;
 
   share(
+    diaryRef: string,
     id: string,
     body: NonNullable<ShareDiaryEntryData['body']>,
   ): Promise<ShareResult>;
@@ -100,6 +108,7 @@ export interface DiaryNamespace {
   sharedWithMe(query?: GetSharedWithMeData['query']): Promise<SharedEntries>;
 
   setVisibility(
+    diaryRef: string,
     id: string,
     body: NonNullable<SetDiaryEntryVisibilityData['body']>,
   ): Promise<DiaryEntry>;
@@ -216,27 +225,12 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const { client, tokenManager, auth } = options;
 
   const diary: DiaryNamespace = {
-    async create(body) {
-      const result = await createDiaryEntry({ client, auth, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async list(query) {
-      const result = await listDiaryEntries({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async get(id) {
-      const result = await getDiaryEntry({
+    async create(diaryRef, body) {
+      const result = await createDiaryEntry({
         client,
         auth,
-        path: { id },
+        body,
+        path: { diaryRef },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -244,11 +238,36 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async update(id, body) {
+    async list(diaryRef, query) {
+      const result = await listDiaryEntries({
+        client,
+        auth,
+        query,
+        path: { diaryRef },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async get(diaryRef, id) {
+      const result = await getDiaryEntry({
+        client,
+        auth,
+        path: { diaryRef, id },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async update(diaryRef, id, body) {
       const result = await updateDiaryEntry({
         client,
         auth,
-        path: { id },
+        path: { diaryRef, id },
         body,
       });
       if (result.error) {
@@ -257,11 +276,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async delete(id) {
+    async delete(diaryRef, id) {
       const result = await deleteDiaryEntry({
         client,
         auth,
-        path: { id },
+        path: { diaryRef, id },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -285,11 +304,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async share(id, body) {
+    async share(diaryRef, id, body) {
       const result = await shareDiaryEntry({
         client,
         auth,
-        path: { id },
+        path: { diaryRef, id },
         body,
       });
       if (result.error) {
@@ -306,11 +325,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async setVisibility(id, body) {
+    async setVisibility(diaryRef, id, body) {
       const result = await setDiaryEntryVisibility({
         client,
         auth,
-        path: { id },
+        path: { diaryRef, id },
         body,
       });
       if (result.error) {
