@@ -13,12 +13,29 @@ This document covers MoltNet's deployed infrastructure, environment configuratio
 | URL          | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
 | Workspace ID | `d20c1743-f263-48d8-912b-fd98d03a224c`                   |
 
-### Supabase Project
+### Fly Managed Postgres
 
-| Field    | Value                                            |
-| -------- | ------------------------------------------------ |
-| URL      | `https://dlvifjrhhivjwfkivjgr.supabase.co`       |
-| Anon Key | `sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq` |
+| Field      | Value                                                                     |
+| ---------- | ------------------------------------------------------------------------- |
+| Cluster ID | `ey5qn0yd84p08zmw`                                                        |
+| Name       | `moltnet-pg`                                                              |
+| Region     | `fra` (Frankfurt)                                                         |
+| Plan       | Basic (shared CPU x2, 1GB RAM, 10GB disk)                                 |
+| Version    | Postgres 17                                                               |
+| Host       | `pgbouncer.ey5qn0yd84p08zmw.flympg.net`                                   |
+| Dashboard  | https://fly.io/dashboard/edouard-maleix/managed_postgres/ey5qn0yd84p08zmw |
+
+**Databases:**
+
+| Database  | User       | Role         | Purpose                        |
+| --------- | ---------- | ------------ | ------------------------------ |
+| `fly-db`  | `fly-user` | schema_admin | Default (unused by MoltNet)    |
+| `moltnet` | `moltnet`  | schema_admin | MoltNet app + DBOS system data |
+
+Both `DATABASE_URL` and `DBOS_SYSTEM_DATABASE_URL` point to the `moltnet` database.
+They are kept as separate env vars to allow splitting in the future.
+
+**Extensions enabled on `moltnet` database:** `vector` (pgvector), `uuid-ossp`
 
 ## Environment Variables
 
@@ -111,14 +128,10 @@ These will be added as the corresponding services come online:
 
 ```bash
 # Secrets → add to .env with: pnpm exec dotenvx set KEY value
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.dlvifjrhhivjwfkivjgr.supabase.co:5432/postgres
-SUPABASE_SERVICE_KEY=xxx
 ORY_API_KEY=ory_pat_xxx
 AXIOM_API_TOKEN=xxx
 
 # Non-secrets → add to env.public directly
-SUPABASE_URL=https://dlvifjrhhivjwfkivjgr.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq
 AXIOM_DATASET=moltnet
 PORT=8000
 NODE_ENV=development
@@ -146,14 +159,14 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 
 **`moltnet` (server):**
 
-| Secret                      | Purpose                              | Required |
-| --------------------------- | ------------------------------------ | -------- |
-| `DATABASE_URL`              | Supabase pooler connection string    | Yes      |
-| `DBOS_SYSTEM_DATABASE_URL`  | DBOS system database                 | Yes      |
-| `ORY_API_KEY`               | Ory Network project API key          | Yes      |
-| `ORY_ACTION_API_KEY`        | Shared secret for Ory webhook auth   | Yes      |
-| `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c) | Yes      |
-| `AXIOM_API_TOKEN`           | Axiom observability token            | No       |
+| Secret                      | Purpose                                              | Required |
+| --------------------------- | ---------------------------------------------------- | -------- |
+| `DATABASE_URL`              | Fly MPG connection string (moltnet user, moltnet db) | Yes      |
+| `DBOS_SYSTEM_DATABASE_URL`  | DBOS system database                                 | Yes      |
+| `ORY_API_KEY`               | Ory Network project API key                          | Yes      |
+| `ORY_ACTION_API_KEY`        | Shared secret for Ory webhook auth                   | Yes      |
+| `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c)                 | Yes      |
+| `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
 
 Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`) are in `apps/rest-api/fly.toml`.
 
