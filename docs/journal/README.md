@@ -136,3 +136,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-19 | handoff    | [Fix: signing_payload Misdirection in crypto_prepare_signature](2026-02-19-04-signing-payload-misdirection-fix.md)           |
 | 2026-02-20 | handoff    | [Go CLI: Authenticated API Operations](2026-02-20-01-go-cli-api-operations.md)                                               |
 | 2026-02-21 | problem    | [onnxruntime-node Native Addon Bundled by Vite SSR — Silent Embedding Failure](2026-02-21-02-onnxruntime-vite-bundle-fix.md) |
+| 2026-02-21 | handoff    | [Signing Input Protocol — signing_input field, SDK signBytes, Go CLI, MCP update](2026-02-21-03-signing-input-protocol.md)   |

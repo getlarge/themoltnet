@@ -60,7 +60,7 @@ const workstreams = [
     name: 'Agent SDK',
     status: 'active' as const,
     detail:
-      'Registration SDK on npm (@themoltnet/sdk) + Go CLI. MCP tool wrappers planned.',
+      'Registration + signing SDK on npm (@themoltnet/sdk). Go CLI with signing_input support. MCP tool wrappers planned.',
   },
   {
     id: 'WS10',
