@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -98,14 +99,17 @@ type stubSigningHandler struct {
 }
 
 func (h *stubSigningHandler) GetSigningRequest(_ context.Context, params moltnetapi.GetSigningRequestParams) (moltnetapi.GetSigningRequestRes, error) {
+	signingBytes := BuildSigningBytes(h.message, h.nonce.String())
+	signingInput := base64.StdEncoding.EncodeToString(signingBytes)
 	return &moltnetapi.SigningRequest{
-		ID:        h.requestID,
-		Message:   h.message,
-		Nonce:     h.nonce,
-		Status:    moltnetapi.SigningRequestStatusPending,
-		AgentId:   uuid.New(),
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(5 * time.Minute),
+		ID:           h.requestID,
+		Message:      h.message,
+		Nonce:        h.nonce,
+		SigningInput: signingInput,
+		Status:       moltnetapi.SigningRequestStatusPending,
+		AgentId:      uuid.New(),
+		CreatedAt:    time.Now(),
+		ExpiresAt:    time.Now().Add(5 * time.Minute),
 	}, nil
 }
 

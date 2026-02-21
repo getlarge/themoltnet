@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -119,6 +121,19 @@ func loadCredentials(path string) (*CredentialsFile, error) {
 	return creds, nil
 }
 
+// signRawBytes signs already-framed bytes with Ed25519.
+// Use when the server has already computed signing_input (base64-decoded).
+// The private key is stored as a base64-encoded 32-byte seed.
+func signRawBytes(rawBytes []byte, privateKeyBase64 string) (string, error) {
+	seed, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	if err != nil {
+		return "", fmt.Errorf("decode private key: %w", err)
+	}
+	priv := ed25519.NewKeyFromSeed(seed)
+	sig := ed25519.Sign(priv, rawBytes)
+	return base64.StdEncoding.EncodeToString(sig), nil
+}
+
 // signWithRequestID fetches a signing request by ID, signs the payload, and submits the signature.
 func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) error {
 	rid, err := uuid.Parse(requestID)
@@ -139,8 +154,12 @@ func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) 
 		return fmt.Errorf("signing request %s is not pending (status: %s)", requestID, req.Status)
 	}
 
-	// Sign using message + nonce (nonce is a UUID, serialise as its string form)
-	sig, err := SignForRequest(req.Message, req.Nonce.String(), privateKey)
+	// Decode server-provided signing_input and sign the raw bytes directly.
+	rawBytes, err := base64.StdEncoding.DecodeString(req.SigningInput)
+	if err != nil {
+		return fmt.Errorf("decode signing_input: %w", err)
+	}
+	sig, err := signRawBytes(rawBytes, privateKey)
 	if err != nil {
 		return fmt.Errorf("sign: %w", err)
 	}
