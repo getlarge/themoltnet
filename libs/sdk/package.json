@@ -15,7 +15,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build && tsc -b --emitDeclarationOnly --force",
+    "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "test": "vitest run",
     "lint": "eslint src/",
