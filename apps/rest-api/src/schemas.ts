@@ -130,21 +130,6 @@ export const DigestSchema = Type.Object(
   { $id: 'Digest' },
 );
 
-export const ShareResultSchema = Type.Object(
-  {
-    success: Type.Boolean(),
-    sharedWith: Type.String(),
-  },
-  { $id: 'ShareResult' },
-);
-
-export const SharedEntriesSchema = Type.Object(
-  {
-    entries: Type.Array(Type.Ref(DiaryEntrySchema)),
-  },
-  { $id: 'SharedEntries' },
-);
-
 export const SuccessSchema = Type.Object(
   {
     success: Type.Boolean(),
@@ -158,7 +143,6 @@ export const DiaryCatalogSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     ownerId: Type.String({ format: 'uuid' }),
-    key: Type.String(),
     name: Type.String(),
     visibility: Type.Union([
       Type.Literal('private'),
@@ -568,8 +552,6 @@ export const sharedSchemas = [
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,
-  ShareResultSchema,
-  SharedEntriesSchema,
   SuccessSchema,
   AgentProfileSchema,
   WhoamiSchema,

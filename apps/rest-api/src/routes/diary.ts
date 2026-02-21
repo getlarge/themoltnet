@@ -20,20 +20,15 @@ import {
   DiaryShareSchema,
   DigestSchema,
   MAX_PUBLIC_CONTENT_LENGTH,
-  SharedEntriesSchema,
-  ShareResultSchema,
   SuccessSchema,
 } from '../schemas.js';
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 const DiaryRefParamsSchema = Type.Object({
-  diaryRef: Type.String({ minLength: 1, maxLength: 100 }),
+  diaryRef: Type.String({ format: 'uuid' }),
 });
 
 const DiaryEntryParamsSchema = Type.Object({
-  diaryRef: Type.String({ minLength: 1, maxLength: 100 }),
+  diaryRef: Type.String({ format: 'uuid' }),
   id: Type.String({ format: 'uuid' }),
 });
 
@@ -55,20 +50,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   }
 
   async function resolveDiary(
-    diaryRef: string,
+    diaryId: string,
     requesterId: string,
     accessMode: 'read' | 'write' | 'manage',
   ) {
-    let diary = null;
-
-    if (UUID_RE.test(diaryRef)) {
-      diary = await fastify.diaryCatalogRepository.findById(diaryRef);
-    } else {
-      diary = await fastify.diaryCatalogRepository.findOwnedByKey(
-        requesterId,
-        diaryRef,
-      );
-    }
+    const diary = await fastify.diaryCatalogRepository.findById(diaryId);
 
     if (!diary) {
       throw createProblem('not-found', 'Diary not found');
@@ -85,8 +71,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
     return diary;
   }
-
-  const DIARY_KEY_RE = /^[a-z0-9-]+$/;
 
   const DiaryIdParamsSchema = Type.Object({
     diaryRef: Type.String({ format: 'uuid' }),
@@ -116,8 +100,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         description: 'Create a new diary.',
         security: [{ bearerAuth: [] }],
         body: Type.Object({
-          key: Type.String({ minLength: 1, maxLength: 100 }),
-          name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+          name: Type.String({ minLength: 1, maxLength: 255 }),
           visibility: Type.Optional(
             Type.Union([
               Type.Literal('private'),
@@ -135,30 +118,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { key, name, visibility } = request.body;
-
-      if (!DIARY_KEY_RE.test(key)) {
-        throw createProblem(
-          'validation-failed',
-          'Diary key must match ^[a-z0-9-]+$',
-        );
-      }
-
-      const existing = await fastify.diaryCatalogRepository.findOwnedByKey(
-        request.authContext!.identityId,
-        key,
-      );
-      if (existing) {
-        throw createProblem(
-          'validation-failed',
-          `Diary with key "${key}" already exists`,
-        );
-      }
+      const { name, visibility } = request.body;
 
       const diary = await fastify.diaryCatalogRepository.create({
         ownerId: request.authContext!.identityId,
-        key,
-        name: name ?? key,
+        name,
         visibility: visibility ?? 'private',
       });
 
@@ -272,22 +236,20 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Diary not found');
       }
 
-      if (diary.key === 'private') {
-        throw createProblem(
-          'validation-failed',
-          'Cannot delete the default private diary',
-        );
-      }
+      await fastify.transactionRunner.runInTransaction(
+        async () => {
+          const deleted = await fastify.diaryCatalogRepository.delete(
+            diary.id,
+            request.authContext!.identityId,
+          );
+          if (!deleted) {
+            throw createProblem('not-found', 'Diary not found');
+          }
 
-      const deleted = await fastify.diaryCatalogRepository.delete(
-        diary.id,
-        request.authContext!.identityId,
+          await fastify.relationshipWriter.removeDiaryRelations(diary.id);
+        },
+        { name: 'diary.delete' },
       );
-      if (!deleted) {
-        throw createProblem('not-found', 'Diary not found');
-      }
-
-      await fastify.relationshipWriter.removeDiaryRelations(diary.id);
 
       return { success: true };
     },
@@ -352,6 +314,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
@@ -388,7 +351,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
       const existingShare =
         await fastify.diaryShareRepository.findByDiaryAndAgent(
-          diaryRef,
+          diary.id,
           targetAgent.identityId,
         );
 
@@ -414,10 +377,17 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       const share = await fastify.diaryShareRepository.create({
-        diaryId: diaryRef,
+        diaryId: diary.id,
         sharedWith: targetAgent.identityId,
         role: role ?? 'reader',
       });
+
+      if (!share) {
+        throw createProblem(
+          'validation-failed',
+          'Share already exists for this diary and agent',
+        );
+      }
 
       return reply.status(201).send(share);
     },
@@ -425,7 +395,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── List Pending Invitations ────────────────────────────────
   server.get(
-    '/diary/invitations',
+    '/diaries/invitations',
     {
       schema: {
         operationId: 'listDiaryInvitations',
@@ -450,7 +420,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Accept Invitation ───────────────────────────────────────
   server.post(
-    '/diary/invitations/:id/accept',
+    '/diaries/invitations/:id/accept',
     {
       schema: {
         operationId: 'acceptDiaryInvitation',
@@ -482,25 +452,32 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const updated = await fastify.diaryShareRepository.updateStatus(
-        id,
-        'accepted',
-      );
-      if (!updated) {
-        throw createProblem('not-found', 'Invitation not found');
-      }
+      const updated = await fastify.transactionRunner.runInTransaction(
+        async () => {
+          const accepted = await fastify.diaryShareRepository.updateStatus(
+            id,
+            'accepted',
+          );
+          if (!accepted) {
+            throw createProblem('not-found', 'Invitation not found');
+          }
 
-      if (updated.role === 'writer') {
-        await fastify.relationshipWriter.grantDiaryWriter(
-          updated.diaryId,
-          request.authContext!.identityId,
-        );
-      } else {
-        await fastify.relationshipWriter.grantDiaryReader(
-          updated.diaryId,
-          request.authContext!.identityId,
-        );
-      }
+          if (accepted.role === 'writer') {
+            await fastify.relationshipWriter.grantDiaryWriter(
+              accepted.diaryId,
+              request.authContext!.identityId,
+            );
+          } else {
+            await fastify.relationshipWriter.grantDiaryReader(
+              accepted.diaryId,
+              request.authContext!.identityId,
+            );
+          }
+
+          return accepted;
+        },
+        { name: 'diary.accept-invitation' },
+      );
 
       return updated;
     },
@@ -508,7 +485,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Decline Invitation ──────────────────────────────────────
   server.post(
-    '/diary/invitations/:id/decline',
+    '/diaries/invitations/:id/decline',
     {
       schema: {
         operationId: 'declineDiaryInvitation',
@@ -593,17 +570,22 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       const share = await fastify.diaryShareRepository.findByDiaryAndAgent(
-        diaryRef,
+        diary.id,
         targetAgent.identityId,
       );
       if (!share) {
         throw createProblem('not-found', 'Share not found');
       }
 
-      await fastify.diaryShareRepository.updateStatus(share.id, 'revoked');
-      await fastify.relationshipWriter.removeDiaryRelationForAgent(
-        diaryRef,
-        targetAgent.identityId,
+      await fastify.transactionRunner.runInTransaction(
+        async () => {
+          await fastify.diaryShareRepository.updateStatus(share.id, 'revoked');
+          await fastify.relationshipWriter.removeDiaryRelationForAgent(
+            diary.id,
+            targetAgent.identityId,
+          );
+        },
+        { name: 'diary.revoke-share' },
       );
 
       return { success: true };
@@ -942,7 +924,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Search ─────────────────────────────────────────────────
   server.post(
-    '/diary/search',
+    '/diaries/search',
     {
       config: { rateLimit: fastify.rateLimitConfig?.embedding },
       schema: {
@@ -1031,7 +1013,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Reflect ────────────────────────────────────────────────
   server.get(
-    '/diary/reflect',
+    '/diaries/reflect',
     {
       schema: {
         operationId: 'reflectDiary',
@@ -1076,103 +1058,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         maxEntries,
         entryTypes: entryTypesFilter,
       });
-    },
-  );
-
-  // ── Share Entry ────────────────────────────────────────────
-  server.post(
-    '/diaries/:diaryRef/entries/:id/share',
-    {
-      schema: {
-        operationId: 'shareDiaryEntry',
-        tags: ['diary'],
-        description: 'Share a diary entry with another MoltNet agent.',
-        security: [{ bearerAuth: [] }],
-        params: DiaryEntryParamsSchema,
-        body: Type.Object({
-          sharedWith: Type.String({
-            pattern:
-              '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
-            description: 'Fingerprint of recipient agent',
-          }),
-        }),
-        response: {
-          200: Type.Ref(ShareResultSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { diaryRef, id } = request.params;
-      const diary = await resolveDiary(
-        diaryRef,
-        request.authContext!.identityId,
-        'manage',
-      );
-      const existing = await fastify.diaryService.getById(
-        id,
-        request.authContext!.identityId,
-      );
-      if (!existing || existing.diaryId !== diary.id) {
-        throw createProblem('not-found', 'Entry not found');
-      }
-
-      const normalizedFingerprint = request.body.sharedWith.toUpperCase();
-      const targetAgent = await fastify.agentRepository.findByFingerprint(
-        normalizedFingerprint,
-      );
-      if (!targetAgent) {
-        throw createProblem(
-          'not-found',
-          `Agent with fingerprint "${normalizedFingerprint}" not found`,
-        );
-      }
-
-      const shared = await fastify.diaryService.share(
-        id,
-        request.authContext!.identityId,
-        targetAgent.identityId,
-      );
-
-      if (!shared) {
-        throw createProblem('forbidden', 'Cannot share this entry');
-      }
-
-      return { success: true, sharedWith: normalizedFingerprint };
-    },
-  );
-
-  // ── Shared With Me ─────────────────────────────────────────
-  server.get(
-    '/diary/shared-with-me',
-    {
-      schema: {
-        operationId: 'getSharedWithMe',
-        tags: ['diary'],
-        description:
-          'List diary entries that other agents have shared with you.',
-        security: [{ bearerAuth: [] }],
-        querystring: Type.Object({
-          limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
-        }),
-        response: {
-          200: Type.Ref(SharedEntriesSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { limit } = request.query;
-      const entries = await fastify.diaryService.getSharedWithMe(
-        request.authContext!.identityId,
-        limit,
-      );
-
-      return { entries };
     },
   );
 

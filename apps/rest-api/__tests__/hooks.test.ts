@@ -8,6 +8,7 @@ import {
   createMockServices,
   createMockVoucher,
   createTestApp,
+  DIARY_ID,
   type MockServices,
   OWNER_ID,
   TEST_WEBHOOK_API_KEY,
@@ -44,6 +45,16 @@ describe('Hook routes', () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
+      mocks.diaryCatalogRepository.create.mockResolvedValue({
+        id: DIARY_ID,
+        ownerId: OWNER_ID,
+        name: 'Private',
+        visibility: 'private',
+        signed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mocks.relationshipWriter.grantDiaryOwner.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',
@@ -330,6 +341,16 @@ describe('Hook routes', () => {
       mocks.voucherRepository.redeem.mockResolvedValue(createMockVoucher());
       mocks.agentRepository.upsert.mockResolvedValue(createMockAgent());
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
+      mocks.diaryCatalogRepository.create.mockResolvedValue({
+        id: DIARY_ID,
+        ownerId: OWNER_ID,
+        name: 'Private',
+        visibility: 'private',
+        signed: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mocks.relationshipWriter.grantDiaryOwner.mockResolvedValue(undefined);
 
       const response = await app.inject({
         method: 'POST',
