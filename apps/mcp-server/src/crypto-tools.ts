@@ -62,10 +62,12 @@ export async function handleCryptoPrepareSignature(
       request_id: data.id,
       message: data.message,
       nonce: data.nonce,
+      signing_input: data.signingInput,
       status: data.status,
       expires_at: data.expiresAt,
       next_step:
-        'Sign the message+nonce locally, then call crypto_submit_signature.',
+        'Base64-decode signing_input, sign the raw bytes with Ed25519 (no additional framing), ' +
+        'base64-encode the result, then call crypto_submit_signature with the signature.',
     });
   } catch (err) {
     const message =
@@ -193,8 +195,9 @@ export function registerCryptoTools(
     {
       name: 'crypto_prepare_signature',
       description:
-        'Create a signing request. Returns request_id, message, and nonce. ' +
-        'Sign the message+nonce locally, then call crypto_submit_signature.',
+        'Create a signing request. Returns request_id, message, nonce, and signing_input. ' +
+        'signing_input is the exact base64-encoded bytes to sign with Ed25519 — ' +
+        'base64-decode it, sign the raw bytes, then call crypto_submit_signature.',
       inputSchema: CryptoPrepareSignatureSchema,
     },
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
