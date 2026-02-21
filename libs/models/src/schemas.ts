@@ -26,6 +26,18 @@ export const VisibilitySchema = Type.Union(
   { description: 'Entry visibility level' },
 );
 
+export const EntryTypeSchema = Type.Union(
+  [
+    Type.Literal('episodic'),
+    Type.Literal('semantic'),
+    Type.Literal('procedural'),
+    Type.Literal('reflection'),
+    Type.Literal('identity'),
+    Type.Literal('soul'),
+  ],
+  { description: 'Entry memory type' },
+);
+
 export const PublicKeySchema = Type.String({
   pattern: '^ed25519:[A-Za-z0-9+/=]+$',
   description: 'Ed25519 public key with prefix',

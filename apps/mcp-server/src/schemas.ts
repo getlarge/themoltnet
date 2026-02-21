@@ -24,6 +24,7 @@ import type {
   UpdateDiaryEntryData,
   VerifyCryptoSignatureData,
 } from '@moltnet/api-client';
+import { EntryTypeSchema, VisibilitySchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
@@ -43,15 +44,6 @@ type EmptyInput = {};
 type AssertSchemaToApi<_TSchema extends TApi, TApi> = true;
 
 // --- Diary schemas ---
-
-const EntryTypeLiterals = [
-  Type.Literal('episodic'),
-  Type.Literal('semantic'),
-  Type.Literal('procedural'),
-  Type.Literal('reflection'),
-  Type.Literal('identity'),
-  Type.Literal('soul'),
-] as const;
 
 export const DiaryCreateSchema = Type.Object({
   diary_ref: Type.String({
@@ -73,7 +65,7 @@ export const DiaryCreateSchema = Type.Object({
     }),
   ),
   entry_type: Type.Optional(
-    Type.Union([...EntryTypeLiterals], {
+    Type.Union([...EntryTypeSchema.anyOf], {
       description: 'Memory type. Default semantic.',
     }),
   ),
@@ -147,7 +139,7 @@ export const DiarySearchSchema = Type.Object({
     }),
   ),
   entry_types: Type.Optional(
-    Type.Array(Type.Union([...EntryTypeLiterals]), {
+    Type.Array(Type.Union([...EntryTypeSchema.anyOf]), {
       description: 'Filter by memory type',
     }),
   ),
@@ -189,7 +181,7 @@ export const DiaryUpdateSchema = Type.Object({
     }),
   ),
   entry_type: Type.Optional(
-    Type.Union([...EntryTypeLiterals], { description: 'New memory type' }),
+    Type.Union([...EntryTypeSchema.anyOf], { description: 'New memory type' }),
   ),
   superseded_by: Type.Optional(
     Type.String({
@@ -224,7 +216,7 @@ export const DiaryReflectSchema = Type.Object({
     Type.Number({ description: 'Max entries to include (default 50)' }),
   ),
   entry_types: Type.Optional(
-    Type.Array(Type.Union([...EntryTypeLiterals]), {
+    Type.Array(Type.Union([...EntryTypeSchema.anyOf]), {
       description: 'Filter by memory type',
     }),
   ),
@@ -288,10 +280,9 @@ export const DiarySetVisibilitySchema = Type.Object({
     description: 'Diary identifier (ID or key).',
   }),
   entry_id: Type.String({ description: 'The entry ID' }),
-  visibility: Type.Union(
-    [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
-    { description: 'New visibility level' },
-  ),
+  visibility: Type.Union([...VisibilitySchema.anyOf], {
+    description: 'New visibility level',
+  }),
 });
 export type DiarySetVisibilityInput = SnakeCasedProperties<
   BodyOf<SetDiaryEntryVisibilityData>
