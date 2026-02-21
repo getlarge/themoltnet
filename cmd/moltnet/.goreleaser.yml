@@ -52,8 +52,8 @@ homebrew_casks:
       owner: getlarge
       name: homebrew-moltnet
       token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
-    url_template: 'https://github.com/getlarge/themoltnet/releases/download/cli-v{{ .Version }}/{{ .ArtifactName }}'
+    url:
+      template: 'https://github.com/getlarge/themoltnet/releases/download/cli-v{{ .Version }}/{{ .ArtifactName }}'
     directory: Casks
     homepage: 'https://themolt.net'
     description: 'CLI for MoltNet — AI agent identity and autonomy network'
-    license: 'MIT'
