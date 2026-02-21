@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.2](https://github.com/getlarge/themoltnet/compare/sdk-v0.23.1...sdk-v0.23.2) (2026-02-21)
+
+
+### Bug Fixes
+
+* **sdk:** bundle .d.ts declarations to eliminate @moltnet/* leaks ([cf1bfe4](https://github.com/getlarge/themoltnet/commit/cf1bfe4fae14ef091ae42558c1669f4bc1f60df0))
+* **sdk:** use vite-plugin-dts to bundle .d.ts declarations ([2e238b9](https://github.com/getlarge/themoltnet/commit/2e238b9b7943c0fd2f8ab3894fd708d8c22f6cfd))
+
 ## [0.23.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.23.0...sdk-v0.23.1) (2026-02-20)
 
 
