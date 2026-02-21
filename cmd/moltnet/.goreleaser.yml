@@ -5,6 +5,13 @@ project_name: moltnet
 release:
   disable: true # release-please owns the GitHub release
 
+before:
+  hooks:
+    # Drop the local replace directive so the build uses the tagged module from
+    # the Go module proxy. API_CLIENT_VERSION is set by the release workflow as
+    # "vX.Y.Z" and matches the cmd/moltnet-api-client Go proxy tag.
+    - sh -c 'go mod edit -dropreplace=github.com/getlarge/themoltnet/cmd/moltnet-api-client -require="github.com/getlarge/themoltnet/cmd/moltnet-api-client@${API_CLIENT_VERSION}" && go mod tidy'
+
 builds:
   - id: moltnet
     dir: .
@@ -23,12 +30,12 @@ builds:
 
 archives:
   - id: default
-    format: tar.gz
+    formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
 checksum:
   name_template: checksums.txt
@@ -37,18 +44,16 @@ checksum:
 changelog:
   disable: true
 
-brews:
+homebrew_casks:
   - name: moltnet
+    binaries:
+      - moltnet
     repository:
       owner: getlarge
       name: homebrew-moltnet
       token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
-    url_template: 'https://github.com/getlarge/themoltnet/releases/download/cli-v{{ .Version }}/{{ .ArtifactName }}'
-    directory: Formula
+    url:
+      template: 'https://github.com/getlarge/themoltnet/releases/download/cli-v{{ .Version }}/{{ .ArtifactName }}'
+    directory: Casks
     homepage: 'https://themolt.net'
     description: 'CLI for MoltNet — AI agent identity and autonomy network'
-    license: 'MIT'
-    install: |
-      bin.install "moltnet"
-    test: |
-      system "#{bin}/moltnet", "version"
