@@ -46,8 +46,8 @@ type AssertSchemaToApi<_TSchema extends TApi, TApi> = true;
 // --- Diary schemas ---
 
 export const DiaryCreateSchema = Type.Object({
-  diary_ref: Type.String({
-    description: 'Diary identifier (ID or key).',
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
   }),
   content: Type.String({ description: 'The memory content (1-10000 chars)' }),
   title: Type.Optional(
@@ -72,23 +72,23 @@ export const DiaryCreateSchema = Type.Object({
 });
 type CreateDiaryBody = BodyOf<CreateDiaryEntryData>;
 export type DiaryCreateInput = SnakeCasedProperties<CreateDiaryBody> & {
-  diary_ref: PathOf<CreateDiaryEntryData>['diaryRef'];
+  diary_id: PathOf<CreateDiaryEntryData>['diaryId'];
 };
 
 export const DiaryGetSchema = Type.Object({
-  diary_ref: Type.String({
-    description: 'Diary identifier (ID or key).',
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
   }),
   entry_id: Type.String({ description: 'The entry ID' }),
 });
 export type DiaryGetInput = {
-  diary_ref: PathOf<GetDiaryEntryData>['diaryRef'];
-  entry_id: PathOf<GetDiaryEntryData>['id'];
+  diary_id: PathOf<GetDiaryEntryData>['diaryId'];
+  entry_id: PathOf<GetDiaryEntryData>['entryId'];
 };
 
 export const DiaryListSchema = Type.Object({
-  diary_ref: Type.String({
-    description: 'Diary identifier (ID or key).',
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
   }),
   limit: Type.Optional(
     Type.Number({ description: 'Max results (default 20)' }),
@@ -102,7 +102,7 @@ export const DiaryListSchema = Type.Object({
 });
 type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type DiaryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
-  diary_ref: PathOf<ListDiaryEntriesData>['diaryRef'];
+  diary_id: PathOf<ListDiaryEntriesData>['diaryId'];
   tags?: string[];
 };
 
@@ -166,8 +166,8 @@ export type DiarySearchInput = Omit<DiarySearchFields, 'query'> & {
 };
 
 export const DiaryUpdateSchema = Type.Object({
-  diary_ref: Type.String({
-    description: 'Diary identifier (ID or key).',
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
   }),
   entry_id: Type.String({ description: 'The entry ID' }),
   content: Type.Optional(Type.String({ description: 'New content' })),
@@ -191,19 +191,19 @@ export const DiaryUpdateSchema = Type.Object({
 });
 type UpdateDiaryBody = NonNullable<UpdateDiaryEntryData['body']>;
 export type DiaryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
-  diary_ref: PathOf<UpdateDiaryEntryData>['diaryRef'];
-  entry_id: PathOf<UpdateDiaryEntryData>['id'];
+  diary_id: PathOf<UpdateDiaryEntryData>['diaryId'];
+  entry_id: PathOf<UpdateDiaryEntryData>['entryId'];
 };
 
 export const DiaryDeleteSchema = Type.Object({
-  diary_ref: Type.String({
-    description: 'Diary identifier (ID or key).',
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
   }),
   entry_id: Type.String({ description: 'The entry ID to delete' }),
 });
 export type DiaryDeleteInput = {
-  diary_ref: PathOf<DeleteDiaryEntryData>['diaryRef'];
-  entry_id: PathOf<DeleteDiaryEntryData>['id'];
+  diary_id: PathOf<DeleteDiaryEntryData>['diaryId'];
+  entry_id: PathOf<DeleteDiaryEntryData>['entryId'];
 };
 
 export const DiaryReflectSchema = Type.Object({
@@ -276,8 +276,8 @@ export type AgentLookupInput = {
 // --- Sharing schemas ---
 
 export const DiarySetVisibilitySchema = Type.Object({
-  diary_ref: Type.String({
-    description: 'Diary identifier (ID or key).',
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
   }),
   entry_id: Type.String({ description: 'The entry ID' }),
   visibility: Type.Union([...VisibilitySchema.anyOf], {
@@ -287,8 +287,8 @@ export const DiarySetVisibilitySchema = Type.Object({
 export type DiarySetVisibilityInput = SnakeCasedProperties<
   BodyOf<SetDiaryEntryVisibilityData>
 > & {
-  diary_ref: PathOf<SetDiaryEntryVisibilityData>['diaryRef'];
-  entry_id: PathOf<SetDiaryEntryVisibilityData>['id'];
+  diary_id: PathOf<SetDiaryEntryVisibilityData>['diaryId'];
+  entry_id: PathOf<SetDiaryEntryVisibilityData>['entryId'];
 };
 
 // --- Vouch schemas ---

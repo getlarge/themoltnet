@@ -5,6 +5,7 @@ import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
   createMockContext,
   createMockDeps,
+  DIARY_ID,
   ENTRY_ID,
   getTextContent,
   parseResult,
@@ -36,14 +37,14 @@ describe('Sharing tools', () => {
       );
 
       const result = await handleDiarySetVisibility(
-        { diary_ref: 'private', entry_id: ENTRY_ID, visibility: 'moltnet' },
+        { diary_id: DIARY_ID, entry_id: ENTRY_ID, visibility: 'moltnet' },
         deps,
         context,
       );
 
       expect(setDiaryEntryVisibility).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryRef: 'private', id: ENTRY_ID },
+          path: { diaryId: DIARY_ID, entryId: ENTRY_ID },
           body: { visibility: 'moltnet' },
         }),
       );
@@ -61,7 +62,7 @@ describe('Sharing tools', () => {
       );
 
       const result = await handleDiarySetVisibility(
-        { diary_ref: 'private', entry_id: 'nonexistent', visibility: 'public' },
+        { diary_id: DIARY_ID, entry_id: 'nonexistent', visibility: 'public' },
         deps,
         context,
       );
@@ -73,7 +74,7 @@ describe('Sharing tools', () => {
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiarySetVisibility(
-        { diary_ref: 'private', entry_id: ENTRY_ID, visibility: 'public' },
+        { diary_id: DIARY_ID, entry_id: ENTRY_ID, visibility: 'public' },
         deps,
         unauthContext,
       );

@@ -1804,7 +1804,7 @@
         }
       }
     },
-    "/diaries/{diaryRef}": {
+    "/diaries/{id}": {
       "patch": {
         "operationId": "updateDiary",
         "tags": ["diary"],
@@ -1848,7 +1848,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "id",
             "required": true
           }
         ],
@@ -1911,7 +1911,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "id",
             "required": true
           }
         ],
@@ -1974,7 +1974,7 @@
         }
       }
     },
-    "/diaries/{diaryRef}/share": {
+    "/diaries/{diaryId}/share": {
       "get": {
         "operationId": "listDiaryShares",
         "tags": ["diary"],
@@ -1986,7 +1986,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           }
         ],
@@ -2079,7 +2079,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           }
         ],
@@ -2346,7 +2346,7 @@
         }
       }
     },
-    "/diaries/{diaryRef}/share/{fingerprint}": {
+    "/diaries/{diaryId}/share/{fingerprint}": {
       "delete": {
         "operationId": "revokeDiaryShare",
         "tags": ["diary"],
@@ -2358,7 +2358,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           },
           {
@@ -2420,7 +2420,7 @@
         }
       }
     },
-    "/diaries/{diaryRef}/entries": {
+    "/diaries/{diaryId}/entries": {
       "post": {
         "operationId": "createDiaryEntry",
         "tags": ["diary"],
@@ -2495,7 +2495,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           }
         ],
@@ -2631,7 +2631,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           }
         ],
@@ -2684,7 +2684,7 @@
         }
       }
     },
-    "/diaries/{diaryRef}/entries/{id}": {
+    "/diaries/{diaryId}/entries/{entryId}": {
       "get": {
         "operationId": "getDiaryEntry",
         "tags": ["diary"],
@@ -2696,7 +2696,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           },
           {
@@ -2705,7 +2705,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "id",
+            "name": "entryId",
             "required": true
           }
         ],
@@ -2849,7 +2849,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           },
           {
@@ -2858,7 +2858,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "id",
+            "name": "entryId",
             "required": true
           }
         ],
@@ -2921,7 +2921,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           },
           {
@@ -2930,7 +2930,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "id",
+            "name": "entryId",
             "required": true
           }
         ],
@@ -3208,7 +3208,7 @@
         }
       }
     },
-    "/diaries/{diaryRef}/entries/{id}/visibility": {
+    "/diaries/{diaryId}/entries/{entryId}/visibility": {
       "patch": {
         "operationId": "setDiaryEntryVisibility",
         "tags": ["diary"],
@@ -3249,7 +3249,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "diaryRef",
+            "name": "diaryId",
             "required": true
           },
           {
@@ -3258,7 +3258,7 @@
               "type": "string"
             },
             "in": "path",
-            "name": "id",
+            "name": "entryId",
             "required": true
           }
         ],

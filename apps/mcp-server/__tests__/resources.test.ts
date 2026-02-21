@@ -119,7 +119,7 @@ describe('MCP Resources', () => {
       expect(listDiaries).toHaveBeenCalled();
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryRef: 'diary-uuid-1', id: ENTRY_ID },
+          path: { diaryId: 'diary-uuid-1', entryId: ENTRY_ID },
         }),
       );
       expect(result.contents).toHaveLength(1);

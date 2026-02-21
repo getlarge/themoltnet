@@ -127,7 +127,7 @@ describe('Agent facade', () => {
           client: mockClient,
           auth: mockAuth,
           body: { content: 'Hello' },
-          path: { diaryRef: 'my-diary' },
+          path: { diaryId: 'my-diary' },
         }),
       );
     });
@@ -163,7 +163,7 @@ describe('Agent facade', () => {
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           query: { limit: 10 },
-          path: { diaryRef: 'my-diary' },
+          path: { diaryId: 'my-diary' },
         }),
       );
     });
@@ -179,7 +179,7 @@ describe('Agent facade', () => {
 
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryRef: 'my-diary', id: 'entry-1' },
+          path: { diaryId: 'my-diary', entryId: 'entry-1' },
         }),
       );
     });
@@ -197,7 +197,7 @@ describe('Agent facade', () => {
 
       expect(updateDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryRef: 'my-diary', id: 'entry-1' },
+          path: { diaryId: 'my-diary', entryId: 'entry-1' },
           body: { content: 'Updated' },
         }),
       );
@@ -215,7 +215,7 @@ describe('Agent facade', () => {
       expect(result).toEqual({ success: true });
       expect(deleteDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryRef: 'my-diary', id: 'entry-1' },
+          path: { diaryId: 'my-diary', entryId: 'entry-1' },
         }),
       );
     });
@@ -273,7 +273,7 @@ describe('Agent facade', () => {
 
       expect(setDiaryEntryVisibility).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryRef: 'my-diary', id: 'entry-1' },
+          path: { diaryId: 'my-diary', entryId: 'entry-1' },
           body: { visibility: 'public' },
         }),
       );

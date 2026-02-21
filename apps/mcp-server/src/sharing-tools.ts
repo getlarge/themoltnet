@@ -27,8 +27,8 @@ export async function handleDiarySetVisibility(
     client: deps.client,
     auth: () => token,
     path: {
-      diaryRef: args.diary_ref,
-      id: args.entry_id,
+      diaryId: args.diary_id,
+      entryId: args.entry_id,
     },
     body: { visibility: args.visibility },
   });

@@ -100,7 +100,7 @@ export async function handleDiaryEntryResource(
     const { data, error } = await getDiaryEntry({
       client: deps.client,
       auth: () => token,
-      path: { diaryRef: diary.id, id: entryId },
+      path: { diaryId: diary.id, entryId: entryId },
     });
 
     if (!error && data) {

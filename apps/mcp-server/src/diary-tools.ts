@@ -50,7 +50,7 @@ export async function handleDiaryCreate(
   const { data, error } = await createDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { diaryRef: args.diary_ref },
+    path: { diaryId: args.diary_id },
     body: {
       content: args.content,
       title: args.title,
@@ -85,8 +85,8 @@ export async function handleDiaryGet(
     client: deps.client,
     auth: () => token,
     path: {
-      diaryRef: args.diary_ref,
-      id: args.entry_id,
+      diaryId: args.diary_id,
+      entryId: args.entry_id,
     },
   });
 
@@ -108,7 +108,7 @@ export async function handleDiaryList(
   const { data, error } = await listDiaryEntries({
     client: deps.client,
     auth: () => token,
-    path: { diaryRef: args.diary_ref },
+    path: { diaryId: args.diary_id },
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
@@ -161,13 +161,13 @@ export async function handleDiaryUpdate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { diary_ref, entry_id, entry_type, superseded_by, ...updates } = args;
+  const { diary_id, entry_id, entry_type, superseded_by, ...updates } = args;
   const { data, error } = await updateDiaryEntry({
     client: deps.client,
     auth: () => token,
     path: {
-      diaryRef: args.diary_ref,
-      id: entry_id,
+      diaryId: diary_id,
+      entryId: entry_id,
     },
     body: {
       ...updates,
@@ -195,8 +195,8 @@ export async function handleDiaryDelete(
     client: deps.client,
     auth: () => token,
     path: {
-      diaryRef: args.diary_ref,
-      id: args.entry_id,
+      diaryId: args.diary_id,
+      entryId: args.entry_id,
     },
   });
 

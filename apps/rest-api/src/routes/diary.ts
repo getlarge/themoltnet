@@ -23,13 +23,13 @@ import {
   SuccessSchema,
 } from '../schemas.js';
 
-const DiaryRefParamsSchema = Type.Object({
-  diaryRef: Type.String({ format: 'uuid' }),
+const NestedDiaryParamsSchema = Type.Object({
+  diaryId: Type.String({ format: 'uuid' }),
 });
 
 const DiaryEntryParamsSchema = Type.Object({
-  diaryRef: Type.String({ format: 'uuid' }),
-  id: Type.String({ format: 'uuid' }),
+  diaryId: Type.String({ format: 'uuid' }),
+  entryId: Type.String({ format: 'uuid' }),
 });
 
 export async function diaryRoutes(fastify: FastifyInstance) {
@@ -60,9 +60,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       throw createProblem('not-found', 'Diary not found');
     }
 
-    if (diary.ownerId === requesterId) {
-      return diary;
-    }
+    // if (diary.ownerId === requesterId) {
+    //   return diary;
+    // }
 
     const allowed = await canAccessDiary(diary.id, requesterId, accessMode);
     if (!allowed) {
@@ -72,12 +72,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     return diary;
   }
 
-  const DiaryIdParamsSchema = Type.Object({
-    diaryRef: Type.String({ format: 'uuid' }),
+  const DiaryParamsSchema = Type.Object({
+    id: Type.String({ format: 'uuid' }),
   });
 
   const DiaryShareParamsSchema = Type.Object({
-    diaryRef: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
     fingerprint: Type.String({
       pattern: '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
     }),
@@ -119,6 +119,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { name, visibility } = request.body;
+      // TODO: fastify.diaryService.create should be used here instead of direct repository access
 
       const diary = await fastify.diaryCatalogRepository.create({
         ownerId: request.authContext!.identityId,
@@ -152,6 +153,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      // ?fastify.diaryService.list
       const items = await fastify.diaryCatalogRepository.listByOwner(
         request.authContext!.identityId,
       );
@@ -161,14 +163,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Update Diary ────────────────────────────────────────────
   server.patch(
-    '/diaries/:diaryRef',
+    '/diaries/:id',
     {
       schema: {
         operationId: 'updateDiary',
         tags: ['diary'],
         description: 'Update diary name or visibility.',
         security: [{ bearerAuth: [] }],
-        params: DiaryIdParamsSchema,
+        params: DiaryParamsSchema,
         body: Type.Object({
           name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
           visibility: Type.Optional(
@@ -188,11 +190,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef } = request.params;
+      const { id } = request.params;
       const updates = request.body;
 
+      // TODO: fastify.diaryService.update should be used here instead of direct repository access, but it currently doesn't support partial updates
       const diary = await fastify.diaryCatalogRepository.update(
-        diaryRef,
+        id,
         request.authContext!.identityId,
         updates,
       );
@@ -207,7 +210,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Delete Diary ────────────────────────────────────────────
   server.delete(
-    '/diaries/:diaryRef',
+    '/diaries/:id',
     {
       schema: {
         operationId: 'deleteDiary',
@@ -215,7 +218,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         description:
           'Delete a diary and cascade-delete its entries and shares.',
         security: [{ bearerAuth: [] }],
-        params: DiaryIdParamsSchema,
+        params: DiaryParamsSchema,
         response: {
           200: Type.Ref(SuccessSchema),
           400: Type.Ref(ProblemDetailsSchema),
@@ -226,11 +229,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef } = request.params;
+      const { id } = request.params;
 
+      // TODO: fastify.diaryService.delete should be used here instead of direct repository access,
       const diary = await fastify.diaryCatalogRepository.findOwnedById(
         request.authContext!.identityId,
-        diaryRef,
+        id,
       );
       if (!diary) {
         throw createProblem('not-found', 'Diary not found');
@@ -257,14 +261,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── List Diary Shares ──────────────────────────────────────
   server.get(
-    '/diaries/:diaryRef/share',
+    '/diaries/:diaryId/share',
     {
       schema: {
         operationId: 'listDiaryShares',
         tags: ['diary'],
         description: 'List all shares for a diary (owner only).',
         security: [{ bearerAuth: [] }],
-        params: DiaryIdParamsSchema,
+        params: NestedDiaryParamsSchema,
         response: {
           200: Type.Ref(DiaryShareListSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -274,11 +278,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef } = request.params;
+      const { diaryId } = request.params;
 
       const diary = await fastify.diaryCatalogRepository.findOwnedById(
         request.authContext!.identityId,
-        diaryRef,
+        diaryId,
       );
       if (!diary) {
         throw createProblem('not-found', 'Diary not found');
@@ -291,14 +295,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Share Diary (Invite) ────────────────────────────────────
   server.post(
-    '/diaries/:diaryRef/share',
+    '/diaries/:diaryId/share',
     {
       schema: {
         operationId: 'shareDiary',
         tags: ['diary'],
         description: 'Invite another agent to a diary.',
         security: [{ bearerAuth: [] }],
-        params: DiaryIdParamsSchema,
+        params: NestedDiaryParamsSchema,
         body: Type.Object({
           fingerprint: Type.String({
             pattern:
@@ -320,12 +324,12 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { diaryRef } = request.params;
+      const { diaryId } = request.params;
       const { fingerprint, role } = request.body;
 
       const diary = await fastify.diaryCatalogRepository.findOwnedById(
         request.authContext!.identityId,
-        diaryRef,
+        diaryId,
       );
       if (!diary) {
         throw createProblem('not-found', 'Diary not found');
@@ -531,7 +535,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Revoke Diary Share ──────────────────────────────────────
   server.delete(
-    '/diaries/:diaryRef/share/:fingerprint',
+    '/diaries/:diaryId/share/:fingerprint',
     {
       schema: {
         operationId: 'revokeDiaryShare',
@@ -548,11 +552,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef, fingerprint } = request.params;
+      const { diaryId, fingerprint } = request.params;
 
       const diary = await fastify.diaryCatalogRepository.findOwnedById(
         request.authContext!.identityId,
-        diaryRef,
+        diaryId,
       );
       if (!diary) {
         throw createProblem('not-found', 'Diary not found');
@@ -594,14 +598,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Create Entry ───────────────────────────────────────────
   server.post(
-    '/diaries/:diaryRef/entries',
+    '/diaries/:diaryId/entries',
     {
       schema: {
         operationId: 'createDiaryEntry',
         tags: ['diary'],
         description: 'Create a new diary entry in a specific diary.',
         security: [{ bearerAuth: [] }],
-        params: DiaryRefParamsSchema,
+        params: NestedDiaryParamsSchema,
         body: Type.Object({
           content: Type.String({ minLength: 1, maxLength: 100000 }),
           title: Type.Optional(Type.String({ maxLength: 255 })),
@@ -629,11 +633,11 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { diaryRef } = request.params;
+      const { diaryId } = request.params;
       const { content, title, tags, importance, entryType } = request.body;
 
       const diary = await resolveDiary(
-        diaryRef,
+        diaryId,
         request.authContext!.identityId,
         'write',
       );
@@ -665,14 +669,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── List Entries ───────────────────────────────────────────
   server.get(
-    '/diaries/:diaryRef/entries',
+    '/diaries/:diaryId/entries',
     {
       schema: {
         operationId: 'listDiaryEntries',
         tags: ['diary'],
         description: 'List diary entries for a specific diary.',
         security: [{ bearerAuth: [] }],
-        params: DiaryRefParamsSchema,
+        params: NestedDiaryParamsSchema,
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
@@ -710,10 +714,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef } = request.params;
+      const { diaryId } = request.params;
       const { limit, offset, visibility, tags, entryType } = request.query;
       const diary = await resolveDiary(
-        diaryRef,
+        diaryId,
         request.authContext!.identityId,
         'read',
       );
@@ -746,7 +750,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Get Entry ──────────────────────────────────────────────
   server.get(
-    '/diaries/:diaryRef/entries/:id',
+    '/diaries/:diaryId/entries/:entryId',
     {
       schema: {
         operationId: 'getDiaryEntry',
@@ -763,15 +767,15 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef, id } = request.params;
+      const { diaryId, entryId } = request.params;
       const diary = await resolveDiary(
-        diaryRef,
+        diaryId,
         request.authContext!.identityId,
         'read',
       );
 
       const entry = await fastify.diaryService.getById(
-        id,
+        entryId,
         request.authContext!.identityId,
       );
 
@@ -785,7 +789,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Update Entry ───────────────────────────────────────────
   server.patch(
-    '/diaries/:diaryRef/entries/:id',
+    '/diaries/:diaryId/entries/:entryId',
     {
       schema: {
         operationId: 'updateDiaryEntry',
@@ -830,9 +834,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef, id } = request.params;
+      const { diaryId, entryId } = request.params;
       const diary = await resolveDiary(
-        diaryRef,
+        diaryId,
         request.authContext!.identityId,
         'write',
       );
@@ -855,7 +859,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       const existing = await fastify.diaryService.getById(
-        id,
+        entryId,
         request.authContext!.identityId,
       );
       if (!existing || existing.diaryId !== diary.id) {
@@ -863,7 +867,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       const entry = await fastify.diaryService.update(
-        id,
+        entryId,
         request.authContext!.identityId,
         updates,
       );
@@ -878,7 +882,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Delete Entry ───────────────────────────────────────────
   server.delete(
-    '/diaries/:diaryRef/entries/:id',
+    '/diaries/:diaryId/entries/:entryId',
     {
       schema: {
         operationId: 'deleteDiaryEntry',
@@ -895,14 +899,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef, id } = request.params;
+      const { diaryId, entryId } = request.params;
       const diary = await resolveDiary(
-        diaryRef,
+        diaryId,
         request.authContext!.identityId,
         'write',
       );
       const existing = await fastify.diaryService.getById(
-        id,
+        entryId,
         request.authContext!.identityId,
       );
       if (!existing || existing.diaryId !== diary.id) {
@@ -910,7 +914,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       const deleted = await fastify.diaryService.delete(
-        id,
+        entryId,
         request.authContext!.identityId,
       );
 
@@ -1063,7 +1067,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
 
   // ── Update Visibility ──────────────────────────────────────
   server.patch(
-    '/diaries/:diaryRef/entries/:id/visibility',
+    '/diaries/:diaryId/entries/:entryId/visibility',
     {
       schema: {
         operationId: 'setDiaryEntryVisibility',
@@ -1087,14 +1091,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { diaryRef, id } = request.params;
+      const { diaryId, entryId } = request.params;
       const diary = await resolveDiary(
-        diaryRef,
+        diaryId,
         request.authContext!.identityId,
         'manage',
       );
       const existing = await fastify.diaryService.getById(
-        id,
+        entryId,
         request.authContext!.identityId,
       );
       if (!existing || existing.diaryId !== diary.id) {
@@ -1104,7 +1108,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { visibility } = request.body;
 
       const entry = await fastify.diaryService.update(
-        id,
+        entryId,
         request.authContext!.identityId,
         { visibility },
       );

@@ -548,10 +548,10 @@ export type CreateDiaryResponse =
 export type DeleteDiaryData = {
   body?: never;
   path: {
-    diaryRef: string;
+    id: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}';
+  url: '/diaries/{id}';
 };
 
 export type DeleteDiaryErrors = {
@@ -591,10 +591,10 @@ export type UpdateDiaryData = {
     visibility?: 'private' | 'moltnet' | 'public';
   };
   path: {
-    diaryRef: string;
+    id: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}';
+  url: '/diaries/{id}';
 };
 
 export type UpdateDiaryErrors = {
@@ -627,10 +627,10 @@ export type UpdateDiaryResponse =
 export type ListDiarySharesData = {
   body?: never;
   path: {
-    diaryRef: string;
+    diaryId: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/share';
+  url: '/diaries/{diaryId}/share';
 };
 
 export type ListDiarySharesErrors = {
@@ -670,10 +670,10 @@ export type ShareDiaryData = {
     role?: 'reader' | 'writer';
   };
   path: {
-    diaryRef: string;
+    diaryId: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/share';
+  url: '/diaries/{diaryId}/share';
 };
 
 export type ShareDiaryErrors = {
@@ -826,11 +826,11 @@ export type DeclineDiaryInvitationResponse =
 export type RevokeDiaryShareData = {
   body?: never;
   path: {
-    diaryRef: string;
+    diaryId: string;
     fingerprint: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/share/{fingerprint}';
+  url: '/diaries/{diaryId}/share/{fingerprint}';
 };
 
 export type RevokeDiaryShareErrors = {
@@ -864,7 +864,7 @@ export type RevokeDiaryShareResponse =
 export type ListDiaryEntriesData = {
   body?: never;
   path: {
-    diaryRef: string;
+    diaryId: string;
   };
   query?: {
     limit?: number;
@@ -885,7 +885,7 @@ export type ListDiaryEntriesData = {
       | 'identity'
       | 'soul';
   };
-  url: '/diaries/{diaryRef}/entries';
+  url: '/diaries/{diaryId}/entries';
 };
 
 export type ListDiaryEntriesErrors = {
@@ -931,10 +931,10 @@ export type CreateDiaryEntryData = {
       | 'soul';
   };
   path: {
-    diaryRef: string;
+    diaryId: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/entries';
+  url: '/diaries/{diaryId}/entries';
 };
 
 export type CreateDiaryEntryErrors = {
@@ -968,11 +968,11 @@ export type CreateDiaryEntryResponse =
 export type DeleteDiaryEntryData = {
   body?: never;
   path: {
-    diaryRef: string;
-    id: string;
+    diaryId: string;
+    entryId: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/entries/{id}';
+  url: '/diaries/{diaryId}/entries/{entryId}';
 };
 
 export type DeleteDiaryEntryErrors = {
@@ -1006,11 +1006,11 @@ export type DeleteDiaryEntryResponse =
 export type GetDiaryEntryData = {
   body?: never;
   path: {
-    diaryRef: string;
-    id: string;
+    diaryId: string;
+    entryId: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/entries/{id}';
+  url: '/diaries/{diaryId}/entries/{entryId}';
 };
 
 export type GetDiaryEntryErrors = {
@@ -1057,11 +1057,11 @@ export type UpdateDiaryEntryData = {
     supersededBy?: string;
   };
   path: {
-    diaryRef: string;
-    id: string;
+    diaryId: string;
+    entryId: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/entries/{id}';
+  url: '/diaries/{diaryId}/entries/{entryId}';
 };
 
 export type UpdateDiaryEntryErrors = {
@@ -1182,11 +1182,11 @@ export type SetDiaryEntryVisibilityData = {
     visibility: 'private' | 'moltnet' | 'public';
   };
   path: {
-    diaryRef: string;
-    id: string;
+    diaryId: string;
+    entryId: string;
   };
   query?: never;
-  url: '/diaries/{diaryRef}/entries/{id}/visibility';
+  url: '/diaries/{diaryId}/entries/{entryId}/visibility';
 };
 
 export type SetDiaryEntryVisibilityErrors = {

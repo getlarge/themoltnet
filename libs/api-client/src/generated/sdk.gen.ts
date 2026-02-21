@@ -217,7 +217,7 @@ export const deleteDiary = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}',
+    url: '/diaries/{id}',
     ...options,
   });
 
@@ -233,7 +233,7 @@ export const updateDiary = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}',
+    url: '/diaries/{id}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ export const listDiaryShares = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/share',
+    url: '/diaries/{diaryId}/share',
     ...options,
   });
 
@@ -269,7 +269,7 @@ export const shareDiary = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/share',
+    url: '/diaries/{diaryId}/share',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -337,7 +337,7 @@ export const revokeDiaryShare = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/share/{fingerprint}',
+    url: '/diaries/{diaryId}/share/{fingerprint}',
     ...options,
   });
 
@@ -353,7 +353,7 @@ export const listDiaryEntries = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/entries',
+    url: '/diaries/{diaryId}/entries',
     ...options,
   });
 
@@ -369,7 +369,7 @@ export const createDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/entries',
+    url: '/diaries/{diaryId}/entries',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -389,7 +389,7 @@ export const deleteDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/entries/{id}',
+    url: '/diaries/{diaryId}/entries/{entryId}',
     ...options,
   });
 
@@ -405,7 +405,7 @@ export const getDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/entries/{id}',
+    url: '/diaries/{diaryId}/entries/{entryId}',
     ...options,
   });
 
@@ -421,7 +421,7 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/entries/{id}',
+    url: '/diaries/{diaryId}/entries/{entryId}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -477,7 +477,7 @@ export const setDiaryEntryVisibility = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryRef}/entries/{id}/visibility',
+    url: '/diaries/{diaryId}/entries/{entryId}/visibility',
     ...options,
     headers: {
       'Content-Type': 'application/json',

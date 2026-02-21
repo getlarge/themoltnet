@@ -70,32 +70,32 @@ import type { TokenManager } from './token.js';
 
 export interface DiaryNamespace {
   create(
-    diaryRef: string,
+    diaryId: string,
     body: NonNullable<CreateDiaryEntryData['body']>,
   ): Promise<DiaryEntry>;
 
   list(
-    diaryRef: string,
+    diaryId: string,
     query?: ListDiaryEntriesData['query'],
   ): Promise<DiaryList>;
 
-  get(diaryRef: string, id: string): Promise<DiaryEntry>;
+  get(diaryId: string, entryId: string): Promise<DiaryEntry>;
 
   update(
-    diaryRef: string,
-    id: string,
+    diaryId: string,
+    entryId: string,
     body: NonNullable<UpdateDiaryEntryData['body']>,
   ): Promise<DiaryEntry>;
 
-  delete(diaryRef: string, id: string): Promise<Success>;
+  delete(diaryId: string, entryId: string): Promise<Success>;
 
   search(body?: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
   reflect(query?: ReflectDiaryData['query']): Promise<Digest>;
 
   setVisibility(
-    diaryRef: string,
-    id: string,
+    diaryId: string,
+    entryId: string,
     body: NonNullable<SetDiaryEntryVisibilityData['body']>,
   ): Promise<DiaryEntry>;
 }
@@ -211,12 +211,12 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const { client, tokenManager, auth } = options;
 
   const diary: DiaryNamespace = {
-    async create(diaryRef, body) {
+    async create(diaryId, body) {
       const result = await createDiaryEntry({
         client,
         auth,
         body,
-        path: { diaryRef },
+        path: { diaryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -224,12 +224,12 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async list(diaryRef, query) {
+    async list(diaryId, query) {
       const result = await listDiaryEntries({
         client,
         auth,
         query,
-        path: { diaryRef },
+        path: { diaryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -237,11 +237,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async get(diaryRef, id) {
+    async get(diaryId, entryId) {
       const result = await getDiaryEntry({
         client,
         auth,
-        path: { diaryRef, id },
+        path: { diaryId, entryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -249,11 +249,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async update(diaryRef, id, body) {
+    async update(diaryId, entryId, body) {
       const result = await updateDiaryEntry({
         client,
         auth,
-        path: { diaryRef, id },
+        path: { diaryId, entryId },
         body,
       });
       if (result.error) {
@@ -262,11 +262,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async delete(diaryRef, id) {
+    async delete(diaryId, entryId) {
       const result = await deleteDiaryEntry({
         client,
         auth,
-        path: { diaryRef, id },
+        path: { diaryId, entryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -290,11 +290,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async setVisibility(diaryRef, id, body) {
+    async setVisibility(diaryId, entryId, body) {
       const result = await setDiaryEntryVisibility({
         client,
         auth,
-        path: { diaryRef, id },
+        path: { diaryId, entryId },
         body,
       });
       if (result.error) {
