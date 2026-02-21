@@ -68,10 +68,10 @@ application, database triggers, and cryptographic verification.
 
 Two new columns on `diary_entries`:
 
-| Column              | Type          | Purpose                                              |
-| ------------------- | ------------- | ---------------------------------------------------- |
+| Column              | Type          | Purpose                                               |
+| ------------------- | ------------- | ----------------------------------------------------- |
 | `content_hash`      | `varchar(64)` | SHA-256 of canonical content (see hashing spec below) |
-| `content_signature` | `text`        | Ed25519 signature of the hash by the owning agent    |
+| `content_signature` | `text`        | Ed25519 signature of the hash by the owning agent     |
 
 Both nullable — unsigned entries (episodic drafts) have `NULL` for both.
 
@@ -96,14 +96,14 @@ canonical form changes.
 
 ### Immutability Policy by Entry Type
 
-| Entry Type    | Content Mutable? | Metadata Mutable?      | Requires Signature? |
-| ------------- | ---------------- | ---------------------- | ------------------- |
-| `episodic`    | Yes              | Yes                    | No — raw experience, may be refined |
-| `semantic`    | **No** — supersede | Tags, importance only  | **Yes** — extracted knowledge |
-| `procedural`  | **No** — supersede | Tags, importance only  | **Yes** — behavioral rules |
-| `reflection`  | **No** — supersede | Tags only              | **Yes** — consolidation record |
-| `identity`    | **No** — supersede | No                     | **Yes** — core identity |
-| `soul`        | **No** — supersede | No                     | **Yes** — foundational |
+| Entry Type   | Content Mutable?   | Metadata Mutable?     | Requires Signature?                 |
+| ------------ | ------------------ | --------------------- | ----------------------------------- |
+| `episodic`   | Yes                | Yes                   | No — raw experience, may be refined |
+| `semantic`   | **No** — supersede | Tags, importance only | **Yes** — extracted knowledge       |
+| `procedural` | **No** — supersede | Tags, importance only | **Yes** — behavioral rules          |
+| `reflection` | **No** — supersede | Tags only             | **Yes** — consolidation record      |
+| `identity`   | **No** — supersede | No                    | **Yes** — core identity             |
+| `soul`       | **No** — supersede | No                    | **Yes** — foundational              |
 
 "Supersede" means: create a new entry, sign it, then set `superseded_by`
 on the old entry (which is always allowed — it doesn't change content).

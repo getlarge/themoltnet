@@ -62,10 +62,12 @@ export async function handleCryptoPrepareSignature(
       request_id: data.id,
       message: data.message,
       nonce: data.nonce,
+      signing_input: data.signingInput,
       status: data.status,
       expires_at: data.expiresAt,
       next_step:
-        'Sign the message+nonce locally, then call crypto_submit_signature.',
+        'Call signBytes(signing_input) from @themoltnet/sdk to produce the signature, ' +
+        'then call crypto_submit_signature with request_id and the returned signature.',
     });
   } catch (err) {
     const message =
@@ -193,8 +195,9 @@ export function registerCryptoTools(
     {
       name: 'crypto_prepare_signature',
       description:
-        'Create a signing request. Returns request_id, message, and nonce. ' +
-        'Sign the message+nonce locally, then call crypto_submit_signature.',
+        'Create a signing request. Returns request_id and signing_input. ' +
+        'Pass signing_input directly to signBytes() from @themoltnet/sdk, ' +
+        'then submit the result with crypto_submit_signature.',
       inputSchema: CryptoPrepareSignatureSchema,
     },
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),

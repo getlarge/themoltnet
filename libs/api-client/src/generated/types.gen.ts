@@ -228,6 +228,10 @@ export type SigningRequest = {
   agentId: string;
   message: string;
   nonce: string;
+  /**
+   * Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.
+   */
+  signingInput: string;
   status: 'pending' | 'completed' | 'expired';
   signature: string | null;
   valid: boolean | null;

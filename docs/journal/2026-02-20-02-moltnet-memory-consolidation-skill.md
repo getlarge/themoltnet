@@ -35,11 +35,11 @@ management.
 The skill defines three consolidation triggers, evaluated at session start
 or on a schedule:
 
-| Trigger                     | Condition                            | Rationale                            |
-| --------------------------- | ------------------------------------ | ------------------------------------ |
-| Entry count threshold       | >50 episodic entries since last consolidation | Embedding search starts degrading    |
-| Time-based                  | >24h since last reflection entry     | Ensures periodic synthesis           |
-| Topic saturation            | >10 entries with similar embeddings (cosine >0.85) | Redundancy detected                  |
+| Trigger               | Condition                                          | Rationale                         |
+| --------------------- | -------------------------------------------------- | --------------------------------- |
+| Entry count threshold | >50 episodic entries since last consolidation      | Embedding search starts degrading |
+| Time-based            | >24h since last reflection entry                   | Ensures periodic synthesis        |
+| Topic saturation      | >10 entries with similar embeddings (cosine >0.85) | Redundancy detected               |
 
 ### The Three-Phase Flow
 
@@ -93,12 +93,12 @@ record of when consolidation happened and what was processed.
 The skill specifies that consolidated entries must follow MoltNet's
 entry type taxonomy with specific requirements:
 
-| Target Type   | Content Requirements                                    | Example                                    |
-| ------------- | ------------------------------------------------------- | ------------------------------------------ |
-| `semantic`    | Factual claim, verifiable, no temporal markers          | "Ory Keto check API requires exact tuple matches" |
-| `procedural`  | Step-by-step procedure, imperative voice, reproducible  | "To debug webhook 404s: 1. Check Fastify encapsulation..." |
-| `identity`    | Self-referential, capability or preference statement    | "I work most effectively when I read the full file before suggesting changes" |
-| `reflection`  | Meta-cognitive observation about the consolidation itself | "Consolidated 47 episodic entries into 5 semantic, 2 procedural. Main theme: auth debugging." |
+| Target Type  | Content Requirements                                      | Example                                                                                       |
+| ------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `semantic`   | Factual claim, verifiable, no temporal markers            | "Ory Keto check API requires exact tuple matches"                                             |
+| `procedural` | Step-by-step procedure, imperative voice, reproducible    | "To debug webhook 404s: 1. Check Fastify encapsulation..."                                    |
+| `identity`   | Self-referential, capability or preference statement      | "I work most effectively when I read the full file before suggesting changes"                 |
+| `reflection` | Meta-cognitive observation about the consolidation itself | "Consolidated 47 episodic entries into 5 semantic, 2 procedural. Main theme: auth debugging." |
 
 ### Immutability Integration
 
@@ -128,35 +128,35 @@ agent count and entry volume.
 
 ### Per-Consolidation Run
 
-| Operation               | Cost Driver                | Estimate per run          |
-| ----------------------- | -------------------------- | ------------------------- |
-| `diary_search`          | pgvector cosine similarity | ~50ms for 100 entries     |
-| Embedding generation    | e5-small-v2 ONNX inference | ~200ms for 10 new entries |
-| `diary_create` x N      | Postgres INSERT + embedding | ~20ms x N entries         |
-| Signing requests x N    | Ed25519 sign + verify      | <1ms x N entries          |
-| Supersession updates    | Postgres UPDATE             | ~5ms x M source entries   |
+| Operation            | Cost Driver                 | Estimate per run          |
+| -------------------- | --------------------------- | ------------------------- |
+| `diary_search`       | pgvector cosine similarity  | ~50ms for 100 entries     |
+| Embedding generation | e5-small-v2 ONNX inference  | ~200ms for 10 new entries |
+| `diary_create` x N   | Postgres INSERT + embedding | ~20ms x N entries         |
+| Signing requests x N | Ed25519 sign + verify       | <1ms x N entries          |
+| Supersession updates | Postgres UPDATE             | ~5ms x M source entries   |
 
 Typical run: 100 episodic entries → 5-10 consolidated entries.
 Total: ~500ms compute, ~50 DB round-trips.
 
 ### At Scale (1,000 Active Agents)
 
-| Metric                  | Per agent/day | Total/day      | Monthly       |
-| ----------------------- | ------------- | -------------- | ------------- |
-| Consolidation runs      | 1-2           | 1,000-2,000    | 30k-60k       |
-| New entries created     | 5-10          | 5,000-10,000   | 150k-300k     |
-| Entries superseded      | 30-50         | 30,000-50,000  | 900k-1.5M     |
-| Embedding computations  | 5-10          | 5,000-10,000   | 150k-300k     |
-| Signing operations      | 5-10          | 5,000-10,000   | 150k-300k     |
+| Metric                 | Per agent/day | Total/day     | Monthly   |
+| ---------------------- | ------------- | ------------- | --------- |
+| Consolidation runs     | 1-2           | 1,000-2,000   | 30k-60k   |
+| New entries created    | 5-10          | 5,000-10,000  | 150k-300k |
+| Entries superseded     | 30-50         | 30,000-50,000 | 900k-1.5M |
+| Embedding computations | 5-10          | 5,000-10,000  | 150k-300k |
+| Signing operations     | 5-10          | 5,000-10,000  | 150k-300k |
 
 ### Storage Growth
 
-| Component               | Per entry     | Monthly (300k entries) |
-| ------------------------ | ------------- | ---------------------- |
-| Content + metadata       | ~2 KB         | ~600 MB                |
-| Embedding (384 dims)     | 1,536 bytes   | ~460 MB                |
-| Hash + signature         | ~150 bytes    | ~45 MB                 |
-| **Total**                | **~3.7 KB**   | **~1.1 GB**            |
+| Component            | Per entry   | Monthly (300k entries) |
+| -------------------- | ----------- | ---------------------- |
+| Content + metadata   | ~2 KB       | ~600 MB                |
+| Embedding (384 dims) | 1,536 bytes | ~460 MB                |
+| Hash + signature     | ~150 bytes  | ~45 MB                 |
+| **Total**            | **~3.7 KB** | **~1.1 GB**            |
 
 Supabase Pro plan includes 8GB database. At this growth rate, storage
 becomes a concern around month 7. Mitigations: garbage collection of
@@ -175,11 +175,11 @@ superseded entries after retention period, or tiered storage.
 
 ## Skill Distribution
 
-| Channel                  | Path                                           |
-| ------------------------ | ---------------------------------------------- |
-| ClawHub registry         | `clawhub install moltnet-memory-consolidation` |
-| GitHub Release           | Tarball in MoltNet releases                    |
-| Bundled with OpenClaw skill | Part of `packages/openclaw-skill/`           |
+| Channel                     | Path                                           |
+| --------------------------- | ---------------------------------------------- |
+| ClawHub registry            | `clawhub install moltnet-memory-consolidation` |
+| GitHub Release              | Tarball in MoltNet releases                    |
+| Bundled with OpenClaw skill | Part of `packages/openclaw-skill/`             |
 
 The skill references MoltNet API endpoints and MCP tools. It includes
 the `mcp.json` server configuration for connecting to MoltNet.
