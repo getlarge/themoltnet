@@ -13,7 +13,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { createDiaryRepository } from '../src/repositories/diary.repository.js';
-import { diaryEntries, entryShares } from '../src/schema.js';
+import { diaryEntries } from '../src/schema.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -31,12 +31,10 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
 
   afterEach(async () => {
     // Clean up test data between tests
-    await db.delete(entryShares);
     await db.delete(diaryEntries);
   });
 
   afterAll(async () => {
-    await db.delete(entryShares);
     await db.delete(diaryEntries);
   });
 
@@ -135,20 +133,6 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
 
       const found = await repo.findById(created.id, OTHER_AGENT);
       expect(found).not.toBeNull();
-    });
-
-    it('returns private entry to explicitly shared agent', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared secret.',
-        visibility: 'private',
-      });
-
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-
-      const found = await repo.findById(created.id, OTHER_AGENT);
-      expect(found).not.toBeNull();
-      expect(found!.id).toBe(created.id);
     });
 
     it('returns null for non-existent entry', async () => {
@@ -341,106 +325,6 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
       // Entry still exists
       const found = await repo.findById(created.id, OWNER_ID);
       expect(found).not.toBeNull();
-    });
-
-    it('cascades delete to shares', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared then deleted.',
-      });
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-
-      await repo.delete(created.id, OWNER_ID);
-
-      // Share should be gone too (cascade)
-      const shared = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(shared.length).toBe(0);
-    });
-  });
-
-  // ── Share ───────────────────────────────────────────────────────────
-
-  describe('share', () => {
-    it('shares entry with another agent', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared entry.',
-      });
-
-      const shared = await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-      expect(shared).toBe(true);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(1);
-      expect(received[0].id).toBe(created.id);
-    });
-
-    it('returns false when entry not owned by sharer', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Not yours.',
-      });
-
-      const result = await repo.share(created.id, OTHER_AGENT, OWNER_ID);
-      expect(result).toBe(false);
-    });
-
-    it('does not create duplicate shares', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared twice.',
-      });
-
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(1);
-    });
-  });
-
-  // ── getSharedWithMe ─────────────────────────────────────────────────
-
-  describe('getSharedWithMe', () => {
-    it('returns empty array when nothing is shared', async () => {
-      const result = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(result).toEqual([]);
-    });
-
-    it('returns entries ordered by createdAt desc', async () => {
-      const e1 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'First shared.',
-      });
-      const e2 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Second shared.',
-      });
-
-      await repo.share(e1.id, OWNER_ID, OTHER_AGENT);
-      await repo.share(e2.id, OWNER_ID, OTHER_AGENT);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(2);
-      expect(received[0].id).toBe(e2.id);
-      expect(received[1].id).toBe(e1.id);
-    });
-
-    it('respects limit', async () => {
-      const e1 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared 1.',
-      });
-      const e2 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared 2.',
-      });
-
-      await repo.share(e1.id, OWNER_ID, OTHER_AGENT);
-      await repo.share(e2.id, OWNER_ID, OTHER_AGENT);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT, 1);
-      expect(received.length).toBe(1);
     });
   });
 

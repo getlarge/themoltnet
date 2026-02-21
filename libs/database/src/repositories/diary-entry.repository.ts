@@ -23,7 +23,6 @@ import {
   agentKeys,
   diaryEntries,
   type DiaryEntry,
-  entryShares,
   type NewDiaryEntry,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
@@ -488,61 +487,6 @@ export function createDiaryEntryRepository(db: Database) {
     },
 
     /**
-     * Insert share record (no ownership check — service layer checks Keto)
-     */
-    async share(
-      entryId: string,
-      sharedBy: string,
-      sharedWith: string,
-    ): Promise<boolean> {
-      const result = await getExecutor(db)
-        .insert(entryShares)
-        .values({ entryId, sharedBy, sharedWith })
-        .onConflictDoNothing()
-        .returning({ entryId: entryShares.entryId });
-
-      return result.length > 0;
-    },
-
-    /**
-     * Remove a share record (compensation for failed permission grants).
-     */
-    async unshare(entryId: string, sharedWith: string): Promise<boolean> {
-      const result = await getExecutor(db)
-        .delete(entryShares)
-        .where(
-          and(
-            eq(entryShares.entryId, entryId),
-            eq(entryShares.sharedWith, sharedWith),
-          ),
-        );
-
-      return (result.rowCount ?? 0) > 0;
-    },
-
-    /**
-     * Get entries shared with an agent
-     */
-    async getSharedWithMe(agentId: string, limit = 20): Promise<DiaryEntry[]> {
-      const shares = await db
-        .select({ entryId: entryShares.entryId })
-        .from(entryShares)
-        .where(eq(entryShares.sharedWith, agentId))
-        .limit(limit);
-
-      if (shares.length === 0) return [];
-
-      const entryIds = shares.map((s) => s.entryId);
-
-      const rows = await db
-        .select(publicColumns)
-        .from(diaryEntries)
-        .where(inArray(diaryEntries.id, entryIds))
-        .orderBy(desc(diaryEntries.createdAt));
-      return rows.map((row) => ({ ...row, embedding: null }));
-    },
-
-    /**
      * Get recent entries for digest/reflection
      */
     async getRecentForDigest(
@@ -741,7 +685,3 @@ export function createDiaryEntryRepository(db: Database) {
 export type DiaryEntryRepository = ReturnType<
   typeof createDiaryEntryRepository
 >;
-
-// Backward-compatible aliases during migration.
-export const createDiaryRepository = createDiaryEntryRepository;
-export type DiaryRepository = DiaryEntryRepository;

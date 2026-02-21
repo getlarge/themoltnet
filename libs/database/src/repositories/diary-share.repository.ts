@@ -4,7 +4,7 @@
  * Manages diary-level sharing and invitation lifecycle.
  */
 
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type DiaryShare, diaryShares } from '../schema.js';
@@ -16,7 +16,7 @@ export function createDiaryShareRepository(db: Database) {
       diaryId: string;
       sharedWith: string;
       role: 'reader' | 'writer';
-    }): Promise<DiaryShare> {
+    }): Promise<DiaryShare | null> {
       const [created] = await getExecutor(db)
         .insert(diaryShares)
         .values({
@@ -25,8 +25,9 @@ export function createDiaryShareRepository(db: Database) {
           role: input.role,
           status: 'pending',
         })
+        .onConflictDoNothing()
         .returning();
-      return created;
+      return created ?? null;
     },
 
     async findById(id: string): Promise<DiaryShare | null> {
@@ -67,11 +68,19 @@ export function createDiaryShareRepository(db: Database) {
         );
     },
 
-    async listByDiary(diaryId: string): Promise<DiaryShare[]> {
+    async listByDiary(
+      diaryId: string,
+      statuses: DiaryShare['status'][] = ['pending', 'accepted'],
+    ): Promise<DiaryShare[]> {
       return db
         .select()
         .from(diaryShares)
-        .where(eq(diaryShares.diaryId, diaryId));
+        .where(
+          and(
+            eq(diaryShares.diaryId, diaryId),
+            inArray(diaryShares.status, statuses),
+          ),
+        );
     },
 
     async updateStatus(

@@ -69,8 +69,7 @@ export const entryTypeEnum = pgEnum('entry_type', [
 /**
  * Diaries Table
  *
- * Grouping unit for diary entries. Visibility is progressively moving
- * from entry-level to diary-level during the multi-diary migration.
+ * Grouping unit for diary entries. Identified by UUID only.
  */
 export const diaries = pgTable(
   'diaries',
@@ -80,8 +79,7 @@ export const diaries = pgTable(
     // Owner identity (Ory Kratos identity ID)
     ownerId: uuid('owner_id').notNull(),
 
-    // Human-readable diary name (unique per owner)
-    key: varchar('key', { length: 100 }).notNull(),
+    // Human-readable display name
     name: varchar('name', { length: 255 }).notNull(),
 
     // Visibility inherited by entries in this diary
@@ -103,14 +101,6 @@ export const diaries = pgTable(
     ownerVisibilityIdx: index('diaries_owner_visibility_idx').on(
       table.ownerId,
       table.visibility,
-    ),
-    ownerNameUnique: uniqueIndex('diaries_owner_name_unique_idx').on(
-      table.ownerId,
-      table.name,
-    ),
-    ownerKeyUnique: uniqueIndex('diaries_owner_key_unique_idx').on(
-      table.ownerId,
-      table.key,
     ),
   }),
 );
@@ -197,47 +187,6 @@ export const diaryEntries = pgTable(
 
     // HNSW index for vector similarity (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_embedding_idx ON diary_entries USING hnsw (embedding vector_cosine_ops);
-  }),
-);
-
-/**
- * Entry Shares Table
- *
- * Tracks explicit sharing of entries between agents
- */
-export const entryShares = pgTable(
-  'entry_shares',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-
-    // The shared entry
-    entryId: uuid('entry_id')
-      .notNull()
-      .references(() => diaryEntries.id, { onDelete: 'cascade' }),
-
-    // Who shared it (Ory Kratos identity ID)
-    sharedBy: uuid('shared_by').notNull(),
-
-    // Who it's shared with (Ory Kratos identity ID)
-    sharedWith: uuid('shared_with').notNull(),
-
-    // When it was shared
-    sharedAt: timestamp('shared_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    // Unique constraint: can only share an entry with someone once
-    uniqueShare: uniqueIndex('entry_shares_unique_idx').on(
-      table.entryId,
-      table.sharedWith,
-    ),
-
-    // Index for finding entries shared with a specific agent
-    sharedWithIdx: index('entry_shares_shared_with_idx').on(table.sharedWith),
-
-    // Index for finding entries shared by a specific agent
-    sharedByIdx: index('entry_shares_shared_by_idx').on(table.sharedBy),
   }),
 );
 
@@ -446,8 +395,6 @@ export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
 export type Diary = typeof diaries.$inferSelect;
 export type NewDiary = typeof diaries.$inferInsert;
-export type EntryShare = typeof entryShares.$inferSelect;
-export type NewEntryShare = typeof entryShares.$inferInsert;
 export type DiaryShare = typeof diaryShares.$inferSelect;
 export type NewDiaryShare = typeof diaryShares.$inferInsert;
 export type AgentKey = typeof agentKeys.$inferSelect;

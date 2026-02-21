@@ -2,6 +2,7 @@
  * Diary Repository (catalog)
  *
  * Owns diary containers (not entries).
+ * Diaries are identified by UUID only — no key-based resolution.
  */
 
 import { and, desc, eq } from 'drizzle-orm';
@@ -14,16 +15,14 @@ export function createDiaryRepository(db: Database) {
   return {
     async create(input: {
       ownerId: string;
-      key: string;
-      name?: string;
+      name: string;
       visibility: 'private' | 'moltnet' | 'public';
     }): Promise<Diary> {
       const [created] = await getExecutor(db)
         .insert(diaries)
         .values({
           ownerId: input.ownerId,
-          key: input.key,
-          name: input.name ?? input.key,
+          name: input.name,
           visibility: input.visibility,
         })
         .returning();
@@ -44,15 +43,6 @@ export function createDiaryRepository(db: Database) {
         .select()
         .from(diaries)
         .where(and(eq(diaries.id, id), eq(diaries.ownerId, ownerId)))
-        .limit(1);
-      return row ?? null;
-    },
-
-    async findOwnedByKey(ownerId: string, key: string): Promise<Diary | null> {
-      const [row] = await db
-        .select()
-        .from(diaries)
-        .where(and(eq(diaries.key, key), eq(diaries.ownerId, ownerId)))
         .limit(1);
       return row ?? null;
     },
@@ -84,28 +74,6 @@ export function createDiaryRepository(db: Database) {
         .where(and(eq(diaries.id, id), eq(diaries.ownerId, ownerId)))
         .returning({ id: diaries.id });
       return result.length > 0;
-    },
-
-    async getOrCreateDefaultDiary(
-      ownerId: string,
-      visibility: 'private' | 'moltnet' | 'public',
-    ): Promise<Diary> {
-      const key = visibility;
-      const existing = await this.findOwnedByKey(ownerId, key);
-      if (existing) return existing;
-
-      try {
-        return await this.create({
-          ownerId,
-          key,
-          name: visibility,
-          visibility,
-        });
-      } catch {
-        const raced = await this.findOwnedByKey(ownerId, key);
-        if (!raced) throw new Error('Failed to resolve default diary');
-        return raced;
-      }
     },
   };
 }
