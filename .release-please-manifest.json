@@ -1,7 +1,7 @@
 {
-  "libs/sdk": "0.23.1",
+  "libs/sdk": "0.23.2",
   "cmd/moltnet-api-client": "0.1.0",
-  "cmd/moltnet": "0.24.0",
+  "cmd/moltnet": "0.25.0",
   "packages/github-agent": "0.3.0",
   "packages/openclaw-skill": "0.15.0"
 }
