@@ -10,8 +10,7 @@ before:
     # Drop the local replace directive so the build uses the tagged module from
     # the Go module proxy. API_CLIENT_VERSION is set by the release workflow as
     # "vX.Y.Z" and matches the cmd/moltnet-api-client Go proxy tag.
-    - cmd: sh -c 'go mod edit -dropreplace=github.com/getlarge/themoltnet/cmd/moltnet-api-client -require=github.com/getlarge/themoltnet/cmd/moltnet-api-client@${API_CLIENT_VERSION} && go mod download'
-      dir: .
+    - sh -c 'go mod edit -dropreplace=github.com/getlarge/themoltnet/cmd/moltnet-api-client -require="github.com/getlarge/themoltnet/cmd/moltnet-api-client@${API_CLIENT_VERSION}" && go mod download'
 
 builds:
   - id: moltnet

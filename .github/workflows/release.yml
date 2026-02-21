@@ -160,6 +160,14 @@ jobs:
           TAG="${{ needs.release-please.outputs.cli-tag-name }}"
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
+          # Resolve the api-client version: use the release-please output when
+          # the api-client is being released in the same run, otherwise fall
+          # back to the version recorded in the manifest.
+          API_CLIENT_VER="${{ needs.release-please.outputs.api-client-version }}"
+          if [ -z "$API_CLIENT_VER" ]; then
+            API_CLIENT_VER=$(jq -r '.["cmd/moltnet-api-client"]' .release-please-manifest.json)
+          fi
+          echo "api_client_version=v${API_CLIENT_VER}" >> "$GITHUB_OUTPUT"
 
       - name: Generate GitHub App token for Homebrew tap
         uses: actions/create-github-app-token@v1
@@ -177,7 +185,7 @@ jobs:
           workdir: cmd/moltnet
         env:
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
-          API_CLIENT_VERSION: v${{ needs.release-please.outputs.api-client-version }}
+          API_CLIENT_VERSION: ${{ steps.tag.outputs.api_client_version }}
           HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Upload binaries to GitHub Release
