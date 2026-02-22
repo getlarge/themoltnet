@@ -449,9 +449,9 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
  * Search diary entries using hybrid search.
  */
 export const searchDiary = <ThrowOnError extends boolean = false>(
-  options: Options<SearchDiaryData, ThrowOnError>,
+  options?: Options<SearchDiaryData, ThrowOnError>,
 ) =>
-  (options.client ?? client).post<
+  (options?.client ?? client).post<
     SearchDiaryResponses,
     SearchDiaryErrors,
     ThrowOnError
@@ -461,7 +461,7 @@ export const searchDiary = <ThrowOnError extends boolean = false>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...options?.headers,
     },
   });
 

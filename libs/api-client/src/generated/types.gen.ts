@@ -572,6 +572,10 @@ export type DeleteDiaryErrors = {
   /**
    * Default Response
    */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
   404: ProblemDetails;
   /**
    * Default Response
@@ -649,6 +653,10 @@ export type UpdateDiaryErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
   /**
    * Default Response
    */
@@ -1056,6 +1064,10 @@ export type DeleteDiaryEntryErrors = {
   /**
    * Default Response
    */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
   404: ProblemDetails;
   /**
    * Default Response
@@ -1097,6 +1109,10 @@ export type GetDiaryEntryErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
   /**
    * Default Response
    */
@@ -1156,6 +1172,10 @@ export type UpdateDiaryEntryErrors = {
   /**
    * Default Response
    */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
   404: ProblemDetails;
   /**
    * Default Response
@@ -1177,8 +1197,8 @@ export type UpdateDiaryEntryResponse =
   UpdateDiaryEntryResponses[keyof UpdateDiaryEntryResponses];
 
 export type SearchDiaryData = {
-  body: {
-    diaryId: string;
+  body?: {
+    diaryId?: string;
     query?: string;
     tags?: Array<string>;
     limit?: number;
