@@ -606,7 +606,7 @@ describe('Unauthorized access (no token)', () => {
 
   it('GET /diaries/:id/entries/:entryId → 401', async () => {
     const response = await fetch(
-      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/fake-entry-id`,
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/00000000-0000-0000-0000-000000000000`,
     );
 
     expect(response.status).toBe(401);
@@ -614,7 +614,7 @@ describe('Unauthorized access (no token)', () => {
 
   it('PATCH /diaries/:id/entries/:entryId → 401', async () => {
     const response = await fetch(
-      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/fake-entry-id`,
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/00000000-0000-0000-0000-000000000000`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -627,7 +627,7 @@ describe('Unauthorized access (no token)', () => {
 
   it('DELETE /diaries/:id/entries/:entryId → 401', async () => {
     const response = await fetch(
-      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/fake-entry-id`,
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/00000000-0000-0000-0000-000000000000`,
       { method: 'DELETE' },
     );
 

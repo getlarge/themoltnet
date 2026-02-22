@@ -972,7 +972,7 @@ describe('Diary Management', () => {
 
     it('DELETE /diaries/:id/share/:fingerprint → 401', async () => {
       const response = await fetch(
-        `${harness.baseUrl}/diaries/${agentA.privateDiaryId}/share/fake-id`,
+        `${harness.baseUrl}/diaries/${agentA.privateDiaryId}/share/AAAA-BBBB-CCCC-DDDD`,
         { method: 'DELETE' },
       );
 
@@ -987,7 +987,7 @@ describe('Diary Management', () => {
 
     it('POST /diaries/invitations/:id/accept → 401', async () => {
       const response = await fetch(
-        `${harness.baseUrl}/diaries/invitations/fake-id/accept`,
+        `${harness.baseUrl}/diaries/invitations/00000000-0000-0000-0000-000000000000/accept`,
         { method: 'POST' },
       );
 
@@ -996,7 +996,7 @@ describe('Diary Management', () => {
 
     it('POST /diaries/invitations/:id/decline → 401', async () => {
       const response = await fetch(
-        `${harness.baseUrl}/diaries/invitations/fake-id/decline`,
+        `${harness.baseUrl}/diaries/invitations/00000000-0000-0000-0000-000000000000/decline`,
         { method: 'POST' },
       );
 
