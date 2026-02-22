@@ -57,21 +57,20 @@ export function createDiaryRepository(db: Database) {
 
     async update(
       id: string,
-      ownerId: string,
       updates: { name?: string; visibility?: 'private' | 'moltnet' | 'public' },
     ): Promise<Diary | null> {
       const [updated] = await getExecutor(db)
         .update(diaries)
         .set({ ...updates, updatedAt: new Date() })
-        .where(and(eq(diaries.id, id), eq(diaries.ownerId, ownerId)))
+        .where(eq(diaries.id, id))
         .returning();
       return updated ?? null;
     },
 
-    async delete(id: string, ownerId: string): Promise<boolean> {
+    async delete(id: string): Promise<boolean> {
       const result = await getExecutor(db)
         .delete(diaries)
-        .where(and(eq(diaries.id, id), eq(diaries.ownerId, ownerId)))
+        .where(eq(diaries.id, id))
         .returning({ id: diaries.id });
       return result.length > 0;
     },

@@ -36,7 +36,7 @@ const { embedding: _embedding, ...publicColumns } =
   getTableColumns(diaryEntries);
 
 export interface DiarySearchOptions {
-  diaryId: string;
+  diaryId?: string;
   query?: string;
   embedding?: number[];
   tags?: string[];
@@ -50,7 +50,7 @@ export interface DiarySearchOptions {
 }
 
 export interface DiaryListOptions {
-  diaryId: string;
+  diaryId?: string;
   tags?: string[];
   limit?: number;
   offset?: number;
@@ -190,7 +190,7 @@ export function createDiaryEntryRepository(db: Database) {
     async list(options: DiaryListOptions): Promise<DiaryEntry[]> {
       const { diaryId, tags, limit = 20, offset = 0, entryType } = options;
 
-      const conditions = [eq(diaryEntries.diaryId, diaryId)];
+      const conditions = diaryId ? [eq(diaryEntries.diaryId, diaryId)] : [];
       if (tags && tags.length > 0) {
         conditions.push(
           sql`${diaryEntries.tags} @> ARRAY[${sql.join(
@@ -220,6 +220,7 @@ export function createDiaryEntryRepository(db: Database) {
      * the `diary_search()` SQL function which uses RRF scoring.
      * Embedding-only falls back to vector similarity search.
      */
+    // TODO: how to seach across multiple diaries?
     async search(options: DiarySearchOptions): Promise<DiaryEntry[]> {
       const {
         diaryId,
@@ -316,7 +317,7 @@ export function createDiaryEntryRepository(db: Database) {
       // Embedding only → vector similarity search (no query to pass)
       if (embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
-        const conditions = [eq(diaryEntries.diaryId, diaryId)];
+        const conditions = diaryId ? [eq(diaryEntries.diaryId, diaryId)] : [];
         if (tags && tags.length > 0) {
           conditions.push(
             sql`${diaryEntries.tags} @> ARRAY[${sql.join(
