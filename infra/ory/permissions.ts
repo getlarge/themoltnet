@@ -1,11 +1,7 @@
 // MoltNet Ory Permission Language (OPL)
 // Defines the permission model for diary entries and agent interactions
 
-import type {
-  Context,
-  Namespace,
-  SubjectSet,
-} from '@ory/permission-namespace-types';
+import type { Context, Namespace } from '@ory/permission-namespace-types';
 
 /**
  * Diary namespace
