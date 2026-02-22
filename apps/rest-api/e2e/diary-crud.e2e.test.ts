@@ -583,6 +583,19 @@ describe('Unauthorized access (no token)', () => {
     await harness?.teardown();
   });
 
+  it('POST /diaries/:id/entries → 401', async () => {
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/00000000-0000-0000-0000-000000000000/entries`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'no-auth entry' }),
+      },
+    );
+
+    expect(response.status).toBe(401);
+  });
+
   it('GET /diaries/:id/entries → 401', async () => {
     const response = await fetch(
       `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries`,

@@ -913,6 +913,33 @@ describe('Diary Management', () => {
       expect(response.status).toBe(401);
     });
 
+    it('GET /diaries → 401', async () => {
+      const response = await fetch(`${harness.baseUrl}/diaries`);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('GET /diaries/:id → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/00000000-0000-0000-0000-000000000000`,
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('PATCH /diaries/:id → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/00000000-0000-0000-0000-000000000000`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'no-auth patch' }),
+        },
+      );
+
+      expect(response.status).toBe(401);
+    });
+
     it('DELETE /diaries/:id → 401', async () => {
       const response = await fetch(
         `${harness.baseUrl}/diaries/${agentA.privateDiaryId}`,
