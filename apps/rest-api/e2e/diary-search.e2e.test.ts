@@ -12,6 +12,7 @@ import {
   type Client,
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
+  reflectDiary,
   searchDiary,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -210,5 +211,48 @@ describe('Diary hybrid search', () => {
 
     const match = results.find((r) => r.title === 'API Design Review');
     expect(match).toBeDefined();
+  });
+
+  // ── Cross-agent isolation ───────────────────────────────────
+
+  describe('Cross-agent isolation', () => {
+    let agentB: TestAgent;
+
+    beforeAll(async () => {
+      const voucherB = await createTestVoucher({
+        db: harness.db,
+        issuerId: harness.bootstrapIdentityId,
+      });
+
+      agentB = await createAgent({
+        baseUrl: harness.baseUrl,
+        identityApi: harness.identityApi,
+        hydraAdminOAuth2: harness.hydraAdminOAuth2,
+        webhookApiKey: harness.webhookApiKey,
+        voucherCode: voucherB,
+      });
+    });
+
+    it('agentB cannot search agentA diary', async () => {
+      const { error, response } = await searchDiary({
+        client,
+        auth: () => agentB.accessToken,
+        body: { query: 'npm audit', diaryId: agent.privateDiaryId },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(403);
+    });
+
+    it('agentB cannot reflect on agentA diary', async () => {
+      const { error, response } = await reflectDiary({
+        client,
+        auth: () => agentB.accessToken,
+        query: { diaryId: agent.privateDiaryId },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(403);
+    });
   });
 });

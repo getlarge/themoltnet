@@ -899,4 +899,267 @@ describe('Diary Management', () => {
       });
     });
   });
+
+  // ── Unauthorized access (no token) ──────────────────────────
+
+  describe('Unauthorized access (no token)', () => {
+    it('POST /diaries → 401', async () => {
+      const response = await fetch(`${harness.baseUrl}/diaries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'no-auth' }),
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('DELETE /diaries/:id → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/${agentA.privateDiaryId}`,
+        { method: 'DELETE' },
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('POST /diaries/:id/share → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/${agentA.privateDiaryId}/share`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint: 'FAKE-FING-ERPR-INT0' }),
+        },
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('GET /diaries/:id/share → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/${agentA.privateDiaryId}/share`,
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('DELETE /diaries/:id/share/:fingerprint → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/${agentA.privateDiaryId}/share/fake-id`,
+        { method: 'DELETE' },
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('GET /diaries/invitations → 401', async () => {
+      const response = await fetch(`${harness.baseUrl}/diaries/invitations`);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('POST /diaries/invitations/:id/accept → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/invitations/fake-id/accept`,
+        { method: 'POST' },
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('POST /diaries/invitations/:id/decline → 401', async () => {
+      const response = await fetch(
+        `${harness.baseUrl}/diaries/invitations/fake-id/decline`,
+        { method: 'POST' },
+      );
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  // ── Invitation isolation ─────────────────────────────────────
+
+  describe('Invitation isolation', () => {
+    let isolationDiaryId: string;
+    let shareId: string;
+
+    beforeAll(async () => {
+      const diary = await createTestDiary('invitation-isolation-test');
+      isolationDiaryId = diary.id;
+
+      const { data: shareData, error: shareError } = await shareDiary({
+        client,
+        auth: authA,
+        path: { diaryId: isolationDiaryId },
+        body: { fingerprint: agentB.keyPair.fingerprint, role: 'reader' },
+      });
+      expect(shareError).toBeUndefined();
+      shareId = shareData!.id;
+    });
+
+    it('agentA cannot accept their own invitation', async () => {
+      // agentA is the owner; this invitation was sent TO agentB — agentA should not be able to accept it
+      const { error, response } = await acceptDiaryInvitation({
+        client,
+        auth: authA,
+        path: { id: shareId },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(404);
+    });
+
+    it('agentB can accept the invitation', async () => {
+      const { data, error } = await acceptDiaryInvitation({
+        client,
+        auth: authB,
+        path: { id: shareId },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.status).toBe('accepted');
+    });
+
+    it('agentB cannot accept the same invitation twice', async () => {
+      const { error, response } = await acceptDiaryInvitation({
+        client,
+        auth: authB,
+        path: { id: shareId },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(400);
+    });
+  });
+
+  // ── Shared diary entry access (transitive Keto permissions) ──
+
+  describe('Shared diary entry access (transitive Keto permissions)', () => {
+    let sharedDiaryId: string;
+    let ownerEntryId: string;
+
+    beforeAll(async () => {
+      const diary = await createTestDiary('transitive-keto-test');
+      sharedDiaryId = diary.id;
+
+      // Owner creates an initial entry
+      const { data: entryData, error: entryError } = await createDiaryEntry({
+        client,
+        auth: authA,
+        path: { diaryId: sharedDiaryId },
+        body: { content: 'Owner initial entry' },
+      });
+      expect(entryError).toBeUndefined();
+      ownerEntryId = entryData!.id;
+
+      // Invite agentB as writer and agentC as reader; accept both
+      await inviteAndAccept(sharedDiaryId, agentB, 'writer');
+      await inviteAndAccept(sharedDiaryId, agentC, 'reader');
+    });
+
+    it('owner (agentA) can create entries in shared diary', async () => {
+      const { data, error } = await createDiaryEntry({
+        client,
+        auth: authA,
+        path: { diaryId: sharedDiaryId },
+        body: { content: 'Owner creates entry in shared diary' },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.content).toBe('Owner creates entry in shared diary');
+    });
+
+    it('writer (agentB) can create entries in shared diary', async () => {
+      const { data, error } = await createDiaryEntry({
+        client,
+        auth: authB,
+        path: { diaryId: sharedDiaryId },
+        body: { content: 'Writer agentB creates entry' },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.content).toBe('Writer agentB creates entry');
+    });
+
+    it('reader (agentC) cannot create entries in shared diary', async () => {
+      const { error, response } = await createDiaryEntry({
+        client,
+        auth: authC,
+        path: { diaryId: sharedDiaryId },
+        body: { content: 'Reader agentC should not write' },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(404);
+    });
+
+    it('writer (agentB) can read entries (list) in shared diary', async () => {
+      const { data, error } = await listDiaryEntries({
+        client,
+        auth: authB,
+        path: { diaryId: sharedDiaryId },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.items.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('reader (agentC) can read entries (list) in shared diary', async () => {
+      const { data, error } = await listDiaryEntries({
+        client,
+        auth: authC,
+        path: { diaryId: sharedDiaryId },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.items.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('writer (agentB) can update an entry in shared diary', async () => {
+      const { data, error } = await updateDiaryEntry({
+        client,
+        auth: authB,
+        path: { diaryId: sharedDiaryId, entryId: ownerEntryId },
+        body: { content: 'Writer agentB updated this entry' },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.content).toBe('Writer agentB updated this entry');
+    });
+
+    it('reader (agentC) cannot update entries in shared diary', async () => {
+      const { error, response } = await updateDiaryEntry({
+        client,
+        auth: authC,
+        path: { diaryId: sharedDiaryId, entryId: ownerEntryId },
+        body: { content: 'Reader agentC should not update' },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(404);
+    });
+
+    it('reader (agentC) cannot delete entries in shared diary', async () => {
+      const { error, response } = await deleteDiaryEntry({
+        client,
+        auth: authC,
+        path: { diaryId: sharedDiaryId, entryId: ownerEntryId },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(404);
+    });
+
+    it('unauthorized agent cannot access entries of an unshared diary', async () => {
+      // agentB has access to sharedDiaryId but NOT to agentA's privateDiaryId
+      const { error, response } = await listDiaryEntries({
+        client,
+        auth: authB,
+        path: { diaryId: agentA.privateDiaryId },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(404);
+    });
+  });
 });

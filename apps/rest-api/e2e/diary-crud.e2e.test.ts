@@ -555,3 +555,90 @@ describe('Cross-agent Keto permissions', () => {
     expect(response.status).toBe(404);
   });
 });
+
+// ── Unauthorized access (no token) ────────────────────────────
+
+describe('Unauthorized access (no token)', () => {
+  let harness: TestHarness;
+  let agent: TestAgent;
+
+  beforeAll(async () => {
+    harness = await createTestHarness();
+
+    const voucherCode = await createTestVoucher({
+      db: harness.db,
+      issuerId: harness.bootstrapIdentityId,
+    });
+
+    agent = await createAgent({
+      baseUrl: harness.baseUrl,
+      identityApi: harness.identityApi,
+      hydraAdminOAuth2: harness.hydraAdminOAuth2,
+      webhookApiKey: harness.webhookApiKey,
+      voucherCode,
+    });
+  });
+
+  afterAll(async () => {
+    await harness?.teardown();
+  });
+
+  it('GET /diaries/:id/entries → 401', async () => {
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries`,
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it('GET /diaries/:id/entries/:entryId → 401', async () => {
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/fake-entry-id`,
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it('PATCH /diaries/:id/entries/:entryId → 401', async () => {
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/fake-entry-id`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'no-auth update' }),
+      },
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it('DELETE /diaries/:id/entries/:entryId → 401', async () => {
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/fake-entry-id`,
+      { method: 'DELETE' },
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it('POST /diaries/search → 401', async () => {
+    const response = await fetch(`${harness.baseUrl}/diaries/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: 'test',
+        diaryId: agent.privateDiaryId,
+      }),
+    });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('GET /diaries/reflect → 401', async () => {
+    const response = await fetch(
+      `${harness.baseUrl}/diaries/reflect?diaryId=${agent.privateDiaryId}`,
+    );
+
+    expect(response.status).toBe(401);
+  });
+});
