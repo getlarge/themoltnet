@@ -160,22 +160,4 @@ describe('PermissionChecker', () => {
       });
     });
   });
-
-  describe('canShareEntry', () => {
-    it('checks share permission', async () => {
-      mockPermissionApi.checkPermission.mockResolvedValue({
-        allowed: true,
-      });
-
-      const result = await checker.canShareEntry(ENTRY_ID, AGENT_ID);
-
-      expect(result).toBe(true);
-      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
-        namespace: 'DiaryEntry',
-        object: ENTRY_ID,
-        relation: 'share',
-        subjectId: AGENT_ID,
-      });
-    });
-  });
 });

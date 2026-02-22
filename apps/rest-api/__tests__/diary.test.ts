@@ -52,7 +52,6 @@ describe('Diary routes', () => {
       expect(response.statusCode).toBe(201);
       expect(response.json().content).toBe('Test diary entry content');
       expect(mocks.diaryService.create).toHaveBeenCalledWith({
-        requesterId: OWNER_ID,
         diaryId: DIARY_ID,
         content: 'Test diary entry content',
         title: undefined,

@@ -109,18 +109,22 @@ describe('RelationshipWriter', () => {
     });
   });
 
-  describe('grantOwnership', () => {
-    it('creates owner relation tuple', async () => {
+  describe('grantEntryParent', () => {
+    it('creates parent relation tuple using subject_set', async () => {
       mockRelationshipApi.createRelationship.mockResolvedValue({});
 
-      await writer.grantOwnership(ENTRY_ID, AGENT_ID);
+      await writer.grantEntryParent(ENTRY_ID, DIARY_ID);
 
       expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
         createRelationshipBody: {
           namespace: 'DiaryEntry',
           object: ENTRY_ID,
-          relation: 'owner',
-          subject_id: AGENT_ID,
+          relation: 'parent',
+          subject_set: {
+            namespace: 'Diary',
+            object: DIARY_ID,
+            relation: '',
+          },
         },
       });
     });
@@ -130,7 +134,7 @@ describe('RelationshipWriter', () => {
         new Error('Keto unavailable'),
       );
 
-      await expect(writer.grantOwnership(ENTRY_ID, AGENT_ID)).rejects.toThrow(
+      await expect(writer.grantEntryParent(ENTRY_ID, DIARY_ID)).rejects.toThrow(
         'Keto unavailable',
       );
     });

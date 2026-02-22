@@ -26,7 +26,6 @@ vi.mock('@moltnet/database', () => ({
   },
 }));
 
-const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 const GENERATED_ID = '880e8400-e29b-41d4-a716-446655440003';
 const DIARY_ID = '990e8400-e29b-41d4-a716-446655440004';
@@ -71,9 +70,14 @@ function createMockRelationshipWriter(): {
   [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
 } {
   return {
-    grantOwnership: vi.fn().mockResolvedValue(undefined),
+    grantEntryParent: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
+    grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
+    grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
+    grantDiaryReader: vi.fn().mockResolvedValue(undefined),
+    removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
+    removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -129,7 +133,6 @@ describe('Diary Workflows', () => {
         await import('../src/workflows/diary-workflows.js');
 
       const result = await diaryWorkflows.createEntry({
-        requesterId: OWNER_ID,
         diaryId: DIARY_ID,
         content: 'Test diary entry content',
       });
@@ -146,9 +149,9 @@ describe('Diary Workflows', () => {
           injectionRisk: false,
         }),
       );
-      expect(writer.grantOwnership).toHaveBeenCalledWith(
+      expect(writer.grantEntryParent).toHaveBeenCalledWith(
         mockEntry.id,
-        OWNER_ID,
+        DIARY_ID,
       );
     });
 
@@ -165,7 +168,6 @@ describe('Diary Workflows', () => {
         await import('../src/workflows/diary-workflows.js');
 
       await diaryWorkflows.createEntry({
-        requesterId: OWNER_ID,
         diaryId: DIARY_ID,
         content: 'Deployed v3',
         title: 'Deploy Log',
@@ -186,7 +188,6 @@ describe('Diary Workflows', () => {
         await import('../src/workflows/diary-workflows.js');
 
       const result = await diaryWorkflows.createEntry({
-        requesterId: OWNER_ID,
         diaryId: DIARY_ID,
         content: 'Test content',
       });
@@ -197,11 +198,11 @@ describe('Diary Workflows', () => {
       );
     });
 
-    it('compensates by deleting entry when grantOwnership fails', async () => {
+    it('compensates by deleting entry when grantEntryParent fails', async () => {
       const mockEntry = createMockEntry();
       embeddings.embedPassage.mockResolvedValue([]);
       repo.create.mockResolvedValue(mockEntry);
-      writer.grantOwnership.mockRejectedValue(new Error('Keto unavailable'));
+      writer.grantEntryParent.mockRejectedValue(new Error('Keto unavailable'));
       repo.delete.mockResolvedValue(true);
 
       const { diaryWorkflows } =
@@ -209,11 +210,10 @@ describe('Diary Workflows', () => {
 
       await expect(
         diaryWorkflows.createEntry({
-          requesterId: OWNER_ID,
           diaryId: DIARY_ID,
           content: 'Test content',
         }),
-      ).rejects.toThrow('Failed to grant ownership after entry creation');
+      ).rejects.toThrow('Failed to link entry to diary after creation');
 
       // Verify compensation: entry was deleted
       expect(repo.delete).toHaveBeenCalledWith(mockEntry.id);
