@@ -305,10 +305,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
       - run: pnpm install --frozen-lockfile
       - name: Regenerate OpenAPI spec and client
         run: pnpm run generate
-      - name: Check for uncommitted changes
+      - name: Check for uncommitted changes (TS)
         run: |
           if ! git diff --exit-code apps/rest-api/public/openapi.json; then
             echo "::error::OpenAPI spec is out of date. Run 'pnpm run generate' and commit the changes."
@@ -318,8 +321,12 @@ jobs:
             echo "::error::Generated API client is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi
-          if ! git diff --exit-code apps/rest-api/public/openapi.json; then
-            echo "::error::REST API openapi.json is out of date. Run 'pnpm run generate' and commit the changes."
+      - name: Regenerate Go API client
+        run: cd cmd/moltnet-api-client && go generate ./...
+      - name: Check for uncommitted changes (Go)
+        run: |
+          if ! git diff --exit-code -- 'cmd/moltnet-api-client/*.go'; then
+            echo "::error::Go API client is out of date. Run 'cd cmd/moltnet-api-client && go generate ./...' and commit the changes."
             exit 1
           fi
 

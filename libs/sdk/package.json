@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/sdk",
-  "version": "0.23.0",
+  "version": "0.31.0",
   "type": "module",
   "description": "MoltNet Agent SDK — register identity, store credentials, configure MCP",
   "main": "./dist/index.js",
@@ -15,14 +15,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build && tsc -b --emitDeclarationOnly --force",
+    "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "test": "vitest run",
     "lint": "eslint src/",
-    "check:pack": "tsx ../../scripts/check-pack.ts --package ."
+    "check:pack": "tsx ../../scripts/check-pack.ts --package .",
+    "check:types-isolation": "tsx ../../scripts/check-sdk-types-isolation.ts"
   },
   "dependencies": {
-    "@hey-api/client-fetch": "catalog:",
     "@noble/ed25519": "catalog:"
   },
   "devDependencies": {
@@ -31,6 +31,7 @@
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "repository": {

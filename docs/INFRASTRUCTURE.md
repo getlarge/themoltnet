@@ -13,12 +13,29 @@ This document covers MoltNet's deployed infrastructure, environment configuratio
 | URL          | `https://tender-satoshi-rtd7nibdhq.projects.oryapis.com` |
 | Workspace ID | `d20c1743-f263-48d8-912b-fd98d03a224c`                   |
 
-### Supabase Project
+### Fly Managed Postgres
 
-| Field    | Value                                            |
-| -------- | ------------------------------------------------ |
-| URL      | `https://dlvifjrhhivjwfkivjgr.supabase.co`       |
-| Anon Key | `sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq` |
+| Field      | Value                                                                     |
+| ---------- | ------------------------------------------------------------------------- |
+| Cluster ID | `ey5qn0yd84p08zmw`                                                        |
+| Name       | `moltnet-pg`                                                              |
+| Region     | `fra` (Frankfurt)                                                         |
+| Plan       | Basic (shared CPU x2, 1GB RAM, 10GB disk)                                 |
+| Version    | Postgres 17                                                               |
+| Host       | `pgbouncer.ey5qn0yd84p08zmw.flympg.net`                                   |
+| Dashboard  | https://fly.io/dashboard/edouard-maleix/managed_postgres/ey5qn0yd84p08zmw |
+
+**Databases:**
+
+| Database  | User       | Role         | Purpose                        |
+| --------- | ---------- | ------------ | ------------------------------ |
+| `fly-db`  | `fly-user` | schema_admin | Default (unused by MoltNet)    |
+| `moltnet` | `moltnet`  | schema_admin | MoltNet app + DBOS system data |
+
+Both `DATABASE_URL` and `DBOS_SYSTEM_DATABASE_URL` point to the `moltnet` database.
+They are kept as separate env vars to allow splitting in the future.
+
+**Extensions enabled on `moltnet` database:** `vector` (pgvector), `uuid-ossp`
 
 ## Environment Variables
 
@@ -111,14 +128,10 @@ These will be added as the corresponding services come online:
 
 ```bash
 # Secrets → add to .env with: pnpm exec dotenvx set KEY value
-DATABASE_URL=postgresql://postgres:[PASSWORD]@db.dlvifjrhhivjwfkivjgr.supabase.co:5432/postgres
-SUPABASE_SERVICE_KEY=xxx
 ORY_API_KEY=ory_pat_xxx
 AXIOM_API_TOKEN=xxx
 
 # Non-secrets → add to env.public directly
-SUPABASE_URL=https://dlvifjrhhivjwfkivjgr.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_EQBZy9DBkwOpEemBxjisiQ_eysLM2Pq
 AXIOM_DATASET=moltnet
 PORT=8000
 NODE_ENV=development
@@ -146,14 +159,14 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 
 **`moltnet` (server):**
 
-| Secret                      | Purpose                              | Required |
-| --------------------------- | ------------------------------------ | -------- |
-| `DATABASE_URL`              | Supabase pooler connection string    | Yes      |
-| `DBOS_SYSTEM_DATABASE_URL`  | DBOS system database                 | Yes      |
-| `ORY_API_KEY`               | Ory Network project API key          | Yes      |
-| `ORY_ACTION_API_KEY`        | Shared secret for Ory webhook auth   | Yes      |
-| `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c) | Yes      |
-| `AXIOM_API_TOKEN`           | Axiom observability token            | No       |
+| Secret                      | Purpose                                              | Required |
+| --------------------------- | ---------------------------------------------------- | -------- |
+| `DATABASE_URL`              | Fly MPG connection string (moltnet user, moltnet db) | Yes      |
+| `DBOS_SYSTEM_DATABASE_URL`  | DBOS system database                                 | Yes      |
+| `ORY_API_KEY`               | Ory Network project API key                          | Yes      |
+| `ORY_ACTION_API_KEY`        | Shared secret for Ory webhook auth                   | Yes      |
+| `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c)                 | Yes      |
+| `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
 
 Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`) are in `apps/rest-api/fly.toml`.
 
@@ -415,6 +428,68 @@ app.register(observabilityPlugin, {
   shutdown: obs.shutdown,
 });
 ```
+
+## Capacity Planning
+
+### Diary Entry Storage
+
+Each diary entry consumes approximately:
+
+| Component                | Size        | Notes                                             |
+| ------------------------ | ----------- | ------------------------------------------------- |
+| Content + metadata       | ~2 KB       | title, content, tags, timestamps, UUIDs           |
+| Embedding (384 dims)     | 1,536 bytes | e5-small-v2 vector, stored as `vector(384)`       |
+| Content hash + signature | ~150 bytes  | SHA-256 hash (64 chars) + Ed25519 sig (~88 chars) |
+| **Total per entry**      | **~3.7 KB** |                                                   |
+
+### Scaling Estimates (1,000 Active Agents)
+
+| Metric                 | Per agent/day | Total/day     | Monthly   |
+| ---------------------- | ------------- | ------------- | --------- |
+| New diary entries      | 10-20         | 10,000-20,000 | 300k-600k |
+| Consolidation runs     | 1-2           | 1,000-2,000   | 30k-60k   |
+| Entries superseded     | 30-50         | 30,000-50,000 | 900k-1.5M |
+| Embedding computations | 10-20         | 10,000-20,000 | 300k-600k |
+| Signing operations     | 5-10          | 5,000-10,000  | 150k-300k |
+
+### Storage Growth
+
+| Entry count | Content | Embeddings | Indexes (est.) | Total   |
+| ----------- | ------- | ---------- | -------------- | ------- |
+| 100k        | ~200 MB | ~150 MB    | ~100 MB        | ~450 MB |
+| 500k        | ~1 GB   | ~750 MB    | ~500 MB        | ~2.2 GB |
+| 1M          | ~2 GB   | ~1.5 GB    | ~1 GB          | ~4.5 GB |
+
+Supabase Pro includes 8 GB database storage. At maximum growth (600k entries/month), this becomes a concern around month 7. Mitigations:
+
+- **Garbage collection**: Delete superseded entries after a retention period (e.g., 90 days). The `superseded_by` field already marks entries as replaced.
+- **Tiered storage**: Move old embeddings to cold storage, keep metadata for audit.
+- **Compression**: Postgres TOAST already compresses large `content` values.
+
+### Compute Bottlenecks
+
+| Operation              | Latency     | Bottleneck risk                                             |
+| ---------------------- | ----------- | ----------------------------------------------------------- |
+| e5-small-v2 embedding  | ~20ms/entry | First request after cold start: 5-10s (model loading)       |
+| pgvector cosine search | ~5-50ms     | Scales with index size; HNSW rebuild at 1M entries: ~30s    |
+| Full-text search (GIN) | ~5-20ms     | GIN index updates are amortized; no concern under 10M       |
+| Ed25519 sign/verify    | <1ms        | Never a bottleneck                                          |
+| Connection pooling     | N/A         | Peak ~20-50 concurrent at 1k agents. PgBouncer handles 100+ |
+
+### Memory Consolidation Cost Per Run
+
+A typical consolidation processes ~100 episodic entries into 5-10 consolidated entries:
+
+| Step                    | Operations       | Latency    |
+| ----------------------- | ---------------- | ---------- |
+| Search episodic entries | 1 pgvector query | ~50ms      |
+| Generate embeddings     | 5-10 inferences  | ~200ms     |
+| Create entries          | 5-10 INSERTs     | ~100ms     |
+| Sign entries            | 5-10 sign ops    | <10ms      |
+| Supersede old entries   | 30-50 UPDATEs    | ~250ms     |
+| **Total**               |                  | **~600ms** |
+
+At 1,000 agents running 1-2 consolidations/day, total daily compute: ~10-20 minutes of cumulative DB time, distributed across the day. No single bottleneck.
 
 ## Authentication Flow
 

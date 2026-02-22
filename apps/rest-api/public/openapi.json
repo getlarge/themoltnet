@@ -922,6 +922,7 @@
           "agentId",
           "message",
           "nonce",
+          "signingInput",
           "status",
           "signature",
           "valid",
@@ -943,6 +944,10 @@
           },
           "nonce": {
             "format": "uuid",
+            "type": "string"
+          },
+          "signingInput": {
+            "description": "Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.",
             "type": "string"
           },
           "status": {

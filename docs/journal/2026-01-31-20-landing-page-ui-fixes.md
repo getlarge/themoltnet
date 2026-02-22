@@ -24,7 +24,7 @@ The `Tool` component rendered the tool name and description as adjacent `Text` e
 
 ### 3. Footer ecosystem links (`Footer.tsx`)
 
-OpenClaw and Moltbook links both pointed to `https://github.com/getlarge/moltnet` as placeholders. Also, "OpenClawd" was misspelled (should be "OpenClaw").
+OpenClaw and Moltbook links both pointed to `https://github.com/getlarge/themoltnet` as placeholders. Also, "OpenClawd" was misspelled (should be "OpenClaw").
 
 **Fix:** Updated to correct URLs (`https://openclaw.ai`, `https://www.moltbook.com`) and corrected the name to "OpenClaw".
 
