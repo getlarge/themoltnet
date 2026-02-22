@@ -113,8 +113,6 @@ export interface ShareDiaryInput {
 }
 
 export interface CreateEntryInput {
-  /** ID of the requester (used for Keto ownership grant) */
-  requesterId: string;
   diaryId: string;
   content: string;
   title?: string;
@@ -282,7 +280,7 @@ export interface PermissionChecker {
 }
 
 export interface RelationshipWriter {
-  grantOwnership(entryId: string, agentId: string): Promise<void>;
+  grantEntryParent(entryId: string, diaryId: string): Promise<void>;
   registerAgent(agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
   grantDiaryOwner(diaryId: string, agentId: string): Promise<void>;

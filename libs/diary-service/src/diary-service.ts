@@ -13,7 +13,7 @@
  * ├────────────────────┼──────────────┼─────────────────────────────┤
  * │ diaries            │ INSERT       │ Diary:{id}#owner@Agent:{ownerId}           │
  * │ diaries            │ DELETE       │ Remove ALL Diary:{id} relations            │
- * │ diary_entries      │ INSERT       │ DiaryEntry:{id}#owner@Agent:{requesterId}  │
+ * │ diary_entries      │ INSERT       │ DiaryEntry:{id}#parent@Diary:{diaryId}             │
  * │ diary_entries      │ DELETE       │ Remove ALL DiaryEntry:{id} relations       │
  * │ agent_keys         │ INSERT       │ Agent:{identityId}#self@Agent:{identityId} │
  * └────────────────────┴──────────────┴─────────────────────────────┘

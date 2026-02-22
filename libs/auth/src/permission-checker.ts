@@ -20,7 +20,6 @@ export interface PermissionChecker {
   canViewEntry(entryId: string, agentId: string): Promise<boolean>;
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
   canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
-  canShareEntry(entryId: string, agentId: string): Promise<boolean>;
 }
 
 async function checkPermission(
@@ -103,16 +102,6 @@ export function createPermissionChecker(
         KetoNamespace.DiaryEntry,
         entryId,
         DiaryEntryPermission.Delete,
-        agentId,
-      );
-    },
-
-    canShareEntry(entryId: string, agentId: string): Promise<boolean> {
-      return checkPermission(
-        permissionApi,
-        KetoNamespace.DiaryEntry,
-        entryId,
-        DiaryEntryPermission.Share,
         agentId,
       );
     },

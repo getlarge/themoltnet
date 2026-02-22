@@ -23,8 +23,6 @@ export enum AgentRelation {
  * Relations for the DiaryEntry namespace
  */
 export enum DiaryEntryRelation {
-  Owner = 'owner',
-  Viewer = 'viewer',
   Parent = 'parent',
 }
 
@@ -44,7 +42,6 @@ export enum DiaryEntryPermission {
   View = 'view',
   Edit = 'edit',
   Delete = 'delete',
-  Share = 'share',
 }
 
 /**

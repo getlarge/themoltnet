@@ -462,7 +462,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       }
 
       const entry = await fastify.diaryService.create({
-        requesterId: request.authContext!.identityId,
         diaryId: diary.id,
         content,
         title,
@@ -601,7 +600,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'updateDiaryEntry',
         tags: ['diary'],
-        description: 'Update a diary entry (content, title, visibility, tags).',
+        description: 'Update a diary entry (content, title, tags).',
         security: [{ bearerAuth: [] }],
         params: DiaryEntryParamsSchema,
         body: Type.Object({

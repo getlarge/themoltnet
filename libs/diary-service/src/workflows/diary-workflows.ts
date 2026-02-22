@@ -141,12 +141,12 @@ export function initDiaryWorkflows(): void {
     { name: 'diary.step.scanInjection' },
   );
 
-  const grantOwnershipStep = DBOS.registerStep(
-    async (entryId: string, ownerId: string): Promise<void> => {
+  const grantEntryParentStep = DBOS.registerStep(
+    async (entryId: string, diaryId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
-      await relationshipWriter.grantOwnership(entryId, ownerId);
+      await relationshipWriter.grantEntryParent(entryId, diaryId);
     },
-    { name: 'diary.step.grantOwnership', ...KETO_RETRY },
+    { name: 'diary.step.grantEntryParent', ...KETO_RETRY },
   );
 
   const removeEntryRelationsStep = DBOS.registerStep(
@@ -192,14 +192,14 @@ export function initDiaryWorkflows(): void {
         );
 
         try {
-          await grantOwnershipStep(entry.id, input.requesterId);
+          await grantEntryParentStep(entry.id, input.diaryId);
         } catch {
           // Compensation: delete the orphaned entry
           await dataSource.runTransaction(
             () => diaryEntryRepository.delete(entry.id),
             { name: 'diary.create.compensate' },
           );
-          throw new Error('Failed to grant ownership after entry creation');
+          throw new Error('Failed to link entry to diary after creation');
         }
 
         return entry;
