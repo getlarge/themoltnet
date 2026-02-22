@@ -17,8 +17,8 @@ export type {
   TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
-export type { DiaryService, EmbeddingService } from '@moltnet/diary-service';
-
+export type { DiaryService } from '@moltnet/diary-service';
+export type { EmbeddingService } from '@moltnet/embedding-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,

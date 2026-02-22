@@ -19,8 +19,6 @@ export const MAX_ED25519_SIGNATURE_LENGTH = 88;
 export const MAX_CHALLENGE_LENGTH = 500;
 // Ed25519 public key: "ed25519:" prefix (8 chars) + ~44 base64 chars + margin
 export const MAX_PUBLIC_KEY_LENGTH = 60;
-// Public diary entries: limit to prevent abuse via oversized content
-export const MAX_PUBLIC_CONTENT_LENGTH = 10_000;
 
 // ── Reusable Atoms ──────────────────────────────────────────
 
