@@ -124,7 +124,7 @@ describe('Diary Workflows', () => {
   });
 
   describe('diary.create', () => {
-    it('creates entry with embedding and grants ownership', async () => {
+    it('creates entry with embedding and links to parent diary', async () => {
       const mockEntry = createMockEntry({ id: GENERATED_ID });
       embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
       repo.create.mockResolvedValue(mockEntry);
