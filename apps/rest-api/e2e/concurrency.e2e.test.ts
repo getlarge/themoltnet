@@ -25,39 +25,39 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('Concurrency and Atomicity', () => {
   function createDiaryEntry(
     args: Parameters<typeof apiCreateDiaryEntry>[0] & {
-      path?: { diaryRef?: string };
+      path?: { diaryId?: string };
     },
   ) {
     return apiCreateDiaryEntry({
       ...args,
-      path: { diaryRef: args.path?.diaryRef ?? agent.privateDiaryId },
+      path: { diaryId: args.path?.diaryId ?? agent.privateDiaryId },
     });
   }
 
   function getDiaryEntry(
     args: Parameters<typeof apiGetDiaryEntry>[0] & {
-      path: { id: string; diaryRef?: string };
+      path: { entryId: string; diaryId?: string };
     },
   ) {
     return apiGetDiaryEntry({
       ...args,
       path: {
-        diaryRef: args.path.diaryRef ?? agent.privateDiaryId,
-        id: args.path.id,
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
       },
     });
   }
 
   function deleteDiaryEntry(
     args: Parameters<typeof apiDeleteDiaryEntry>[0] & {
-      path: { id: string; diaryRef?: string };
+      path: { entryId: string; diaryId?: string };
     },
   ) {
     return apiDeleteDiaryEntry({
       ...args,
       path: {
-        diaryRef: args.path.diaryRef ?? agent.privateDiaryId,
-        id: args.path.id,
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
       },
     });
   }
@@ -123,7 +123,7 @@ describe('Concurrency and Atomicity', () => {
     const { data: fetched, error: readError } = await getDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: entry!.id },
+      path: { entryId: entry!.id },
     });
 
     expect(readError).toBeUndefined();
@@ -151,7 +151,7 @@ describe('Concurrency and Atomicity', () => {
       deleteDiaryEntry({
         client,
         auth: () => agent.accessToken,
-        path: { id: e.id },
+        path: { entryId: e.id },
       }),
     );
 
@@ -167,7 +167,7 @@ describe('Concurrency and Atomicity', () => {
       const { data } = await getDiaryEntry({
         client,
         auth: () => agent.accessToken,
-        path: { id: entry.id },
+        path: { entryId: entry.id },
       });
       expect(data).toBeUndefined();
     }

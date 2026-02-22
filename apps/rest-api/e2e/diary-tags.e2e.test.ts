@@ -23,23 +23,23 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('Diary tags filter', () => {
   function createDiaryEntry(
     args: Parameters<typeof apiCreateDiaryEntry>[0] & {
-      path?: { diaryRef?: string };
+      path?: { diaryId?: string };
     },
   ) {
     return apiCreateDiaryEntry({
       ...args,
-      path: { diaryRef: args.path?.diaryRef ?? agent.privateDiaryId },
+      path: { diaryId: args.path?.diaryId ?? agent.privateDiaryId },
     });
   }
 
   function listDiaryEntries(
     args: Parameters<typeof apiListDiaryEntries>[0] & {
-      path?: { diaryRef?: string };
+      path?: { diaryId?: string };
     },
   ) {
     return apiListDiaryEntries({
       ...args,
-      path: { diaryRef: args.path?.diaryRef ?? agent.privateDiaryId },
+      path: { diaryId: args.path?.diaryId ?? agent.privateDiaryId },
     });
   }
 
@@ -176,7 +176,11 @@ describe('Diary tags filter', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'deploy', tags: ['production'] },
+      body: {
+        query: 'deploy',
+        tags: ['production'],
+        diaryId: agent.privateDiaryId,
+      },
     });
 
     expect(error).toBeUndefined();
@@ -195,7 +199,11 @@ describe('Diary tags filter', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'deploy', tags: ['code-review'] },
+      body: {
+        query: 'deploy',
+        tags: ['code-review'],
+        diaryId: agent.privateDiaryId,
+      },
     });
 
     expect(error).toBeUndefined();
@@ -214,7 +222,11 @@ describe('Diary tags filter', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'deploy', tags: ['does-not-exist'] },
+      body: {
+        query: 'deploy',
+        tags: ['does-not-exist'],
+        diaryId: agent.privateDiaryId,
+      },
     });
 
     expect(error).toBeUndefined();
@@ -240,7 +252,7 @@ describe('Diary tags filter', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'hotfix' },
+      body: { query: 'hotfix', diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -261,7 +273,7 @@ describe('Diary tags filter', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { tags: ['accountable-commit'] },
+      body: { tags: ['accountable-commit'], diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();

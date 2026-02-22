@@ -14,7 +14,6 @@ import {
   listDiaryEntries as apiListDiaryEntries,
   reflectDiary,
   searchDiary,
-  setDiaryEntryVisibility as apiSetDiaryEntryVisibility,
   updateDiaryEntry as apiUpdateDiaryEntry,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -25,82 +24,68 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('Diary CRUD', () => {
   function createDiaryEntry(
     args: Parameters<typeof apiCreateDiaryEntry>[0] & {
-      path?: { diaryRef?: string };
+      path?: { diaryId?: string };
     },
   ) {
     return apiCreateDiaryEntry({
       ...args,
       path: {
-        diaryRef: args.path?.diaryRef ?? agent.privateDiaryId,
+        diaryId: args.path?.diaryId ?? agent.privateDiaryId,
       },
     });
   }
 
   function getDiaryEntry(
     args: Parameters<typeof apiGetDiaryEntry>[0] & {
-      path: { id: string; diaryRef?: string };
+      path: { entryId: string; diaryId?: string };
     },
   ) {
     return apiGetDiaryEntry({
       ...args,
       path: {
-        diaryRef: args.path.diaryRef ?? agent.privateDiaryId,
-        id: args.path.id,
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
       },
     });
   }
 
   function listDiaryEntries(
     args: Parameters<typeof apiListDiaryEntries>[0] & {
-      path?: { diaryRef?: string };
+      path?: { diaryId?: string };
     },
   ) {
     return apiListDiaryEntries({
       ...args,
       path: {
-        diaryRef: args.path?.diaryRef ?? agent.privateDiaryId,
+        diaryId: args.path?.diaryId ?? agent.privateDiaryId,
       },
     });
   }
 
   function updateDiaryEntry(
     args: Parameters<typeof apiUpdateDiaryEntry>[0] & {
-      path: { id: string; diaryRef?: string };
+      path: { entryId: string; diaryId?: string };
     },
   ) {
     return apiUpdateDiaryEntry({
       ...args,
       path: {
-        diaryRef: args.path.diaryRef ?? agent.privateDiaryId,
-        id: args.path.id,
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
       },
     });
   }
 
   function deleteDiaryEntry(
     args: Parameters<typeof apiDeleteDiaryEntry>[0] & {
-      path: { id: string; diaryRef?: string };
+      path: { entryId: string; diaryId?: string };
     },
   ) {
     return apiDeleteDiaryEntry({
       ...args,
       path: {
-        diaryRef: args.path.diaryRef ?? agent.privateDiaryId,
-        id: args.path.id,
-      },
-    });
-  }
-
-  function setDiaryEntryVisibility(
-    args: Parameters<typeof apiSetDiaryEntryVisibility>[0] & {
-      path: { id: string; diaryRef?: string };
-    },
-  ) {
-    return apiSetDiaryEntryVisibility({
-      ...args,
-      path: {
-        diaryRef: args.path.diaryRef ?? agent.privateDiaryId,
-        id: args.path.id,
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
       },
     });
   }
@@ -144,9 +129,8 @@ describe('Diary CRUD', () => {
     expect(error).toBeUndefined();
     expect(data!.content).toBe('First e2e entry');
     expect(data!.title).toBe('Hello');
-    expect(data!.ownerId).toBe(agent.identityId);
-    expect(data!.visibility).toBe('private');
     expect(data!.id).toBeDefined();
+    expect(data!.diaryId).toBe(agent.privateDiaryId);
     expect(data!.injectionRisk).toBe(false);
   });
 
@@ -167,7 +151,7 @@ describe('Diary CRUD', () => {
   it('rejects unauthenticated create with RFC 9457 format', async () => {
     const { data, error, response } = await createDiaryEntry({
       client,
-      path: { diaryRef: agent.privateDiaryId },
+      path: { diaryId: agent.privateDiaryId },
       body: { content: 'Should fail' },
     });
 
@@ -189,7 +173,7 @@ describe('Diary CRUD', () => {
     const { data, error, response } = await createDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { diaryRef: '00000000-0000-0000-0000-000000000000' },
+      path: { diaryId: '00000000-0000-0000-0000-000000000000' },
       body: { content: 'Should fail with missing diary' },
     });
 
@@ -210,7 +194,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await getDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(error).toBeUndefined();
@@ -227,7 +211,7 @@ describe('Diary CRUD', () => {
 
     const { data, error, response } = await getDiaryEntry({
       client,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(data).toBeUndefined();
@@ -245,7 +229,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await getDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { diaryRef: created!.diaryId, id: created!.id },
+      path: { diaryId: created!.diaryId, entryId: created!.id },
     });
 
     expect(error).toBeUndefined();
@@ -319,7 +303,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await updateDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
       body: { content: 'After update', title: 'Updated' },
     });
 
@@ -337,35 +321,13 @@ describe('Diary CRUD', () => {
 
     const { data, error, response } = await updateDiaryEntry({
       client,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
       body: { content: 'Should fail' },
     });
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
     expect(response.status).toBe(401);
-  });
-
-  // ── Visibility ──────────────────────────────────────────────
-
-  it('changes entry visibility', async () => {
-    const { data: created } = await createDiaryEntry({
-      client,
-      auth: () => agent.accessToken,
-      body: { content: 'Visibility test' },
-    });
-
-    expect(created!.visibility).toBe('private');
-
-    const { data, error } = await setDiaryEntryVisibility({
-      client,
-      auth: () => agent.accessToken,
-      path: { id: created!.id },
-      body: { visibility: 'public' },
-    });
-
-    expect(error).toBeUndefined();
-    expect(data!.visibility).toBe('public');
   });
 
   // ── Delete ──────────────────────────────────────────────────
@@ -380,7 +342,7 @@ describe('Diary CRUD', () => {
     const { error: deleteError } = await deleteDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(deleteError).toBeUndefined();
@@ -389,7 +351,7 @@ describe('Diary CRUD', () => {
     const { data: fetched } = await getDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(fetched).toBeUndefined();
@@ -404,7 +366,7 @@ describe('Diary CRUD', () => {
 
     const { data, error, response } = await deleteDiaryEntry({
       client,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(data).toBeUndefined();
@@ -427,7 +389,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'quantum entanglement' },
+      body: { query: 'quantum entanglement', diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -446,6 +408,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await reflectDiary({
       client,
       auth: () => agent.accessToken,
+      query: { diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -475,7 +438,7 @@ describe('Diary CRUD', () => {
     await apiCreateDiaryEntry({
       client,
       auth: () => otherAgent.accessToken,
-      path: { diaryRef: otherAgent.privateDiaryId },
+      path: { diaryId: otherAgent.privateDiaryId },
       body: { content: 'Private to other agent' },
     });
 
@@ -538,14 +501,14 @@ describe('Cross-agent Keto permissions', () => {
     const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
-      path: { diaryRef: agentA.privateDiaryId },
+      path: { diaryId: agentA.privateDiaryId },
       body: { content: 'Private to A only' },
     });
 
     const { data, error, response } = await apiGetDiaryEntry({
       client,
       auth: () => agentB.accessToken,
-      path: { diaryRef: agentA.privateDiaryId, id: entry!.id },
+      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
     });
 
     expect(data).toBeUndefined();
@@ -557,14 +520,14 @@ describe('Cross-agent Keto permissions', () => {
     const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
-      path: { diaryRef: agentA.privateDiaryId },
+      path: { diaryId: agentA.privateDiaryId },
       body: { content: 'Cannot be updated by B' },
     });
 
     const { data, error, response } = await apiUpdateDiaryEntry({
       client,
       auth: () => agentB.accessToken,
-      path: { diaryRef: agentA.privateDiaryId, id: entry!.id },
+      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
       body: { title: 'Hacked by B' },
     });
 
@@ -577,40 +540,14 @@ describe('Cross-agent Keto permissions', () => {
     const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
-      path: { diaryRef: agentA.privateDiaryId },
+      path: { diaryId: agentA.privateDiaryId },
       body: { content: 'Cannot be deleted by B' },
     });
 
     const { data, error, response } = await apiDeleteDiaryEntry({
       client,
       auth: () => agentB.accessToken,
-      path: { diaryRef: agentA.privateDiaryId, id: entry!.id },
-    });
-
-    expect(data).toBeUndefined();
-    expect(error).toBeDefined();
-    expect(response.status).toBe(404);
-  });
-
-  it('still denies direct entry read across owners even with moltnet visibility', async () => {
-    const { data: entry } = await apiCreateDiaryEntry({
-      client,
-      auth: () => agentA.accessToken,
-      path: { diaryRef: agentA.privateDiaryId },
-      body: { content: 'Visible to all MoltNet agents' },
-    });
-
-    await apiSetDiaryEntryVisibility({
-      client,
-      auth: () => agentA.accessToken,
-      path: { diaryRef: agentA.privateDiaryId, id: entry!.id },
-      body: { visibility: 'moltnet' },
-    });
-
-    const { data, error, response } = await apiGetDiaryEntry({
-      client,
-      auth: () => agentB.accessToken,
-      path: { diaryRef: agentA.privateDiaryId, id: entry!.id },
+      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
     });
 
     expect(data).toBeUndefined();

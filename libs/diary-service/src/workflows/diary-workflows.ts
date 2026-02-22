@@ -280,7 +280,9 @@ export const diaryWorkflows = {
         'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
       );
     }
-    return _workflows.createEntry;
+    // bind(undefined) prevents `this = diaryWorkflows` when called as a method,
+    // which would trigger DBOSInvalidWorkflowTransitionError (expects ConfiguredInstance or undefined)
+    return _workflows.createEntry.bind(undefined);
   },
   get updateEntry() {
     if (!_workflows) {
@@ -288,7 +290,7 @@ export const diaryWorkflows = {
         'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
       );
     }
-    return _workflows.updateEntry;
+    return _workflows.updateEntry.bind(undefined);
   },
   get deleteEntry() {
     if (!_workflows) {
@@ -296,6 +298,6 @@ export const diaryWorkflows = {
         'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
       );
     }
-    return _workflows.deleteEntry;
+    return _workflows.deleteEntry.bind(undefined);
   },
 };

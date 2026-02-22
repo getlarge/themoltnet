@@ -110,7 +110,7 @@ describe('Diary Management', () => {
     const { data: shareData, error: shareError } = await shareDiary({
       client,
       auth: authA,
-      path: { diaryRef: diaryId },
+      path: { diaryId: diaryId },
       body: { fingerprint: invitee.keyPair.fingerprint, role },
     });
     expect(shareError).toBeUndefined();
@@ -130,7 +130,7 @@ describe('Diary Management', () => {
     const { error } = await revokeDiaryShare({
       client,
       auth: authA,
-      path: { diaryRef: diaryId, fingerprint: agent.keyPair.fingerprint },
+      path: { diaryId: diaryId, fingerprint: agent.keyPair.fingerprint },
     });
     expect(error).toBeUndefined();
   }
@@ -171,7 +171,7 @@ describe('Diary Management', () => {
       const { data, error } = await updateDiary({
         client,
         auth: authA,
-        path: { diaryRef: diary!.id },
+        path: { id: diary!.id },
         body: { name: 'Work Notes Updated' },
       });
 
@@ -185,21 +185,21 @@ describe('Diary Management', () => {
       await createDiaryEntry({
         client,
         auth: authA,
-        path: { diaryRef: diary.id },
+        path: { diaryId: diary.id },
         body: { content: 'Entry in temp diary' },
       });
 
       const { error: deleteError } = await deleteDiary({
         client,
         auth: authA,
-        path: { diaryRef: diary.id },
+        path: { id: diary.id },
       });
       expect(deleteError).toBeUndefined();
 
       const { error } = await listDiaryEntries({
         client,
         auth: authA,
-        path: { diaryRef: diary.id },
+        path: { diaryId: diary.id },
       });
       expect(error).toBeDefined();
     });
@@ -229,7 +229,7 @@ describe('Diary Management', () => {
       const { data, error } = await createDiaryEntry({
         client,
         auth: authA,
-        path: { diaryRef: sharedDiaryId },
+        path: { diaryId: sharedDiaryId },
         body: { content: 'Entry via Keto owner write' },
       });
 
@@ -241,7 +241,7 @@ describe('Diary Management', () => {
       const { error, response } = await listDiaryEntries({
         client,
         auth: authB,
-        path: { diaryRef: sharedDiaryId },
+        path: { diaryId: sharedDiaryId },
       });
 
       expect(error).toBeDefined();
@@ -252,7 +252,7 @@ describe('Diary Management', () => {
       const { error, response } = await createDiaryEntry({
         client,
         auth: authB,
-        path: { diaryRef: sharedDiaryId },
+        path: { diaryId: sharedDiaryId },
         body: { content: 'Should not be created' },
       });
 
@@ -274,7 +274,7 @@ describe('Diary Management', () => {
       await createDiaryEntry({
         client,
         auth: authA,
-        path: { diaryRef: shareDiaryId },
+        path: { diaryId: shareDiaryId },
         body: { content: 'Shared diary entry' },
       });
     });
@@ -283,7 +283,7 @@ describe('Diary Management', () => {
       const { data, error, response } = await shareDiary({
         client,
         auth: authA,
-        path: { diaryRef: shareDiaryId },
+        path: { diaryId: shareDiaryId },
         body: { fingerprint: agentB.keyPair.fingerprint, role: 'writer' },
       });
 
@@ -322,7 +322,7 @@ describe('Diary Management', () => {
       const { data, error } = await listDiaryEntries({
         client,
         auth: authB,
-        path: { diaryRef: shareDiaryId },
+        path: { diaryId: shareDiaryId },
       });
 
       expect(error).toBeUndefined();
@@ -333,7 +333,7 @@ describe('Diary Management', () => {
       const { data, error } = await createDiaryEntry({
         client,
         auth: authB,
-        path: { diaryRef: shareDiaryId },
+        path: { diaryId: shareDiaryId },
         body: { content: 'Entry by Agent B writer' },
       });
 
@@ -346,7 +346,7 @@ describe('Diary Management', () => {
         client,
         auth: authA,
         path: {
-          diaryRef: shareDiaryId,
+          diaryId: shareDiaryId,
           fingerprint: agentB.keyPair.fingerprint,
         },
       });
@@ -358,7 +358,7 @@ describe('Diary Management', () => {
       const { error, response } = await listDiaryEntries({
         client,
         auth: authB,
-        path: { diaryRef: shareDiaryId },
+        path: { diaryId: shareDiaryId },
       });
 
       expect(error).toBeDefined();
@@ -373,7 +373,7 @@ describe('Diary Management', () => {
       } = await shareDiary({
         client,
         auth: authA,
-        path: { diaryRef: shareDiaryId },
+        path: { diaryId: shareDiaryId },
         body: { fingerprint: agentB.keyPair.fingerprint, role: 'reader' },
       });
       expect(shareError).toBeUndefined();
@@ -390,7 +390,7 @@ describe('Diary Management', () => {
       const { data, error } = await listDiaryEntries({
         client,
         auth: authB,
-        path: { diaryRef: shareDiaryId },
+        path: { diaryId: shareDiaryId },
       });
       expect(error).toBeUndefined();
       expect(data!.items.length).toBeGreaterThanOrEqual(1);
@@ -409,7 +409,7 @@ describe('Diary Management', () => {
       await createDiaryEntry({
         client,
         auth: authA,
-        path: { diaryRef: declineDiaryId },
+        path: { diaryId: declineDiaryId },
         body: { content: 'Private content' },
       });
     });
@@ -418,7 +418,7 @@ describe('Diary Management', () => {
       const { data: shareData } = await shareDiary({
         client,
         auth: authA,
-        path: { diaryRef: declineDiaryId },
+        path: { diaryId: declineDiaryId },
         body: { fingerprint: agentB.keyPair.fingerprint },
       });
 
@@ -432,7 +432,7 @@ describe('Diary Management', () => {
       const { error, response } = await listDiaryEntries({
         client,
         auth: authB,
-        path: { diaryRef: declineDiaryId },
+        path: { diaryId: declineDiaryId },
       });
       expect(error).toBeDefined();
       expect(response.status).toBe(404);
@@ -453,7 +453,7 @@ describe('Diary Management', () => {
       const { error, response } = await shareDiary({
         client,
         auth: authA,
-        path: { diaryRef: edgeDiaryId },
+        path: { diaryId: edgeDiaryId },
         body: { fingerprint: agentA.keyPair.fingerprint },
       });
 
@@ -465,7 +465,7 @@ describe('Diary Management', () => {
       const { error, response } = await shareDiary({
         client,
         auth: authA,
-        path: { diaryRef: edgeDiaryId },
+        path: { diaryId: edgeDiaryId },
         body: { fingerprint: 'AAAA-BBBB-CCCC-DDDD' },
       });
 
@@ -477,7 +477,7 @@ describe('Diary Management', () => {
       const { data: shareData } = await shareDiary({
         client,
         auth: authA,
-        path: { diaryRef: edgeDiaryId },
+        path: { diaryId: edgeDiaryId },
         body: { fingerprint: agentB.keyPair.fingerprint },
       });
 
@@ -500,7 +500,7 @@ describe('Diary Management', () => {
     it('rejects unauthenticated share operations', async () => {
       const { error, response } = await shareDiary({
         client,
-        path: { diaryRef: edgeDiaryId },
+        path: { diaryId: edgeDiaryId },
         body: { fingerprint: agentB.keyPair.fingerprint },
       });
 
@@ -523,7 +523,7 @@ describe('Diary Management', () => {
         const { data: entryData } = await createDiaryEntry({
           client,
           auth: authA,
-          path: { diaryRef: readerDiaryId },
+          path: { diaryId: readerDiaryId },
           body: { content: 'Owner entry for reader test' },
         });
         ownerEntryId = entryData!.id;
@@ -535,7 +535,7 @@ describe('Diary Management', () => {
         const { data, error } = await listDiaryEntries({
           client,
           auth: authB,
-          path: { diaryRef: readerDiaryId },
+          path: { diaryId: readerDiaryId },
         });
 
         expect(error).toBeUndefined();
@@ -546,7 +546,7 @@ describe('Diary Management', () => {
         const { error, response } = await createDiaryEntry({
           client,
           auth: authB,
-          path: { diaryRef: readerDiaryId },
+          path: { diaryId: readerDiaryId },
           body: { content: 'Reader should not write' },
         });
 
@@ -558,7 +558,7 @@ describe('Diary Management', () => {
         const { error, response } = await updateDiaryEntry({
           client,
           auth: authB,
-          path: { diaryRef: readerDiaryId, id: ownerEntryId },
+          path: { diaryId: readerDiaryId, entryId: ownerEntryId },
           body: { content: 'Reader should not update' },
         });
 
@@ -570,7 +570,7 @@ describe('Diary Management', () => {
         const { error, response } = await deleteDiaryEntry({
           client,
           auth: authB,
-          path: { diaryRef: readerDiaryId, id: ownerEntryId },
+          path: { diaryId: readerDiaryId, entryId: ownerEntryId },
         });
 
         expect(error).toBeDefined();
@@ -592,7 +592,7 @@ describe('Diary Management', () => {
         const { error } = await listDiaryEntries({
           client,
           auth: authC,
-          path: { diaryRef: writerDiaryId },
+          path: { diaryId: writerDiaryId },
         });
 
         expect(error).toBeUndefined();
@@ -602,7 +602,7 @@ describe('Diary Management', () => {
         const { data, error } = await createDiaryEntry({
           client,
           auth: authC,
-          path: { diaryRef: writerDiaryId },
+          path: { diaryId: writerDiaryId },
           body: { content: 'Writer entry in shared diary' },
         });
 
@@ -614,7 +614,7 @@ describe('Diary Management', () => {
         const { error, response } = await updateDiary({
           client,
           auth: authC,
-          path: { diaryRef: writerDiaryId },
+          path: { id: writerDiaryId },
           body: { name: 'Writer should not manage' },
         });
 
@@ -626,7 +626,7 @@ describe('Diary Management', () => {
         const { error, response } = await deleteDiary({
           client,
           auth: authC,
-          path: { diaryRef: writerDiaryId },
+          path: { id: writerDiaryId },
         });
 
         expect(error).toBeDefined();
@@ -637,7 +637,7 @@ describe('Diary Management', () => {
         const { error, response } = await shareDiary({
           client,
           auth: authC,
-          path: { diaryRef: writerDiaryId },
+          path: { diaryId: writerDiaryId },
           body: { fingerprint: agentB.keyPair.fingerprint },
         });
 
@@ -656,7 +656,7 @@ describe('Diary Management', () => {
         await createDiaryEntry({
           client,
           auth: authA,
-          path: { diaryRef: roleDiaryId },
+          path: { diaryId: roleDiaryId },
           body: { content: 'Entry for role change test' },
         });
       });
@@ -667,7 +667,7 @@ describe('Diary Management', () => {
         const { error: writeError } = await createDiaryEntry({
           client,
           auth: authB,
-          path: { diaryRef: roleDiaryId },
+          path: { diaryId: roleDiaryId },
           body: { content: 'B writes as writer' },
         });
         expect(writeError).toBeUndefined();
@@ -678,14 +678,14 @@ describe('Diary Management', () => {
         const { error: readError } = await listDiaryEntries({
           client,
           auth: authB,
-          path: { diaryRef: roleDiaryId },
+          path: { diaryId: roleDiaryId },
         });
         expect(readError).toBeUndefined();
 
         const { error: writeError2, response } = await createDiaryEntry({
           client,
           auth: authB,
-          path: { diaryRef: roleDiaryId },
+          path: { diaryId: roleDiaryId },
           body: { content: 'B tries to write as reader' },
         });
         expect(writeError2).toBeDefined();
@@ -708,7 +708,7 @@ describe('Diary Management', () => {
         const { data, error } = await createDiaryEntry({
           client,
           auth: authA,
-          path: { diaryRef: ownerDiaryId },
+          path: { diaryId: ownerDiaryId },
           body: { content: 'Owner writes after sharing' },
         });
 
@@ -720,7 +720,7 @@ describe('Diary Management', () => {
         const { data, error } = await updateDiary({
           client,
           auth: authA,
-          path: { diaryRef: ownerDiaryId },
+          path: { id: ownerDiaryId },
           body: { name: 'Owner Updated After Sharing' },
         });
 
@@ -732,14 +732,14 @@ describe('Diary Management', () => {
         const { data: entryData } = await createDiaryEntry({
           client,
           auth: authA,
-          path: { diaryRef: ownerDiaryId },
+          path: { diaryId: ownerDiaryId },
           body: { content: 'Entry to delete' },
         });
 
         const { error } = await deleteDiaryEntry({
           client,
           auth: authA,
-          path: { diaryRef: ownerDiaryId, id: entryData!.id },
+          path: { diaryId: ownerDiaryId, entryId: entryData!.id },
         });
 
         expect(error).toBeUndefined();
@@ -758,7 +758,7 @@ describe('Diary Management', () => {
         const { error } = await createDiaryEntry({
           client,
           auth: authB,
-          path: { diaryRef: deleteDiaryId },
+          path: { diaryId: deleteDiaryId },
           body: { content: 'B entry before diary delete' },
         });
         expect(error).toBeUndefined();
@@ -768,14 +768,14 @@ describe('Diary Management', () => {
         const { error: deleteError } = await deleteDiary({
           client,
           auth: authA,
-          path: { diaryRef: deleteDiaryId },
+          path: { id: deleteDiaryId },
         });
         expect(deleteError).toBeUndefined();
 
         const { error, response } = await listDiaryEntries({
           client,
           auth: authB,
-          path: { diaryRef: deleteDiaryId },
+          path: { diaryId: deleteDiaryId },
         });
         expect(error).toBeDefined();
         expect(response.status).toBe(404);
@@ -794,7 +794,7 @@ describe('Diary Management', () => {
         const { error, response } = await updateDiary({
           client,
           auth: authB,
-          path: { diaryRef: manageDiaryId },
+          path: { id: manageDiaryId },
           body: { name: 'Hijacked' },
         });
 
@@ -806,7 +806,7 @@ describe('Diary Management', () => {
         const { error, response } = await deleteDiary({
           client,
           auth: authB,
-          path: { diaryRef: manageDiaryId },
+          path: { id: manageDiaryId },
         });
 
         expect(error).toBeDefined();
@@ -817,7 +817,7 @@ describe('Diary Management', () => {
         const { error, response } = await shareDiary({
           client,
           auth: authB,
-          path: { diaryRef: manageDiaryId },
+          path: { diaryId: manageDiaryId },
           body: { fingerprint: agentC.keyPair.fingerprint },
         });
 
@@ -829,7 +829,7 @@ describe('Diary Management', () => {
         const { error, response } = await listDiaryShares({
           client,
           auth: authB,
-          path: { diaryRef: manageDiaryId },
+          path: { diaryId: manageDiaryId },
         });
 
         expect(error).toBeDefined();
@@ -841,7 +841,7 @@ describe('Diary Management', () => {
           client,
           auth: authB,
           path: {
-            diaryRef: manageDiaryId,
+            diaryId: manageDiaryId,
             fingerprint: agentC.keyPair.fingerprint,
           },
         });
@@ -866,7 +866,7 @@ describe('Diary Management', () => {
         const { data, error } = await listDiaryShares({
           client,
           auth: authA,
-          path: { diaryRef: listSharesDiaryId },
+          path: { diaryId: listSharesDiaryId },
         });
 
         expect(error).toBeUndefined();
@@ -891,7 +891,7 @@ describe('Diary Management', () => {
         const { error, response } = await listDiaryShares({
           client,
           auth: authB,
-          path: { diaryRef: listSharesDiaryId },
+          path: { diaryId: listSharesDiaryId },
         });
 
         expect(error).toBeDefined();
