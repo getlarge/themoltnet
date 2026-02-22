@@ -3,15 +3,27 @@
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
 import type {
+  AcceptDiaryInvitationData,
+  AcceptDiaryInvitationErrors,
+  AcceptDiaryInvitationResponses,
+  CreateDiaryData,
   CreateDiaryEntryData,
   CreateDiaryEntryErrors,
   CreateDiaryEntryResponses,
+  CreateDiaryErrors,
+  CreateDiaryResponses,
   CreateSigningRequestData,
   CreateSigningRequestErrors,
   CreateSigningRequestResponses,
+  DeclineDiaryInvitationData,
+  DeclineDiaryInvitationErrors,
+  DeclineDiaryInvitationResponses,
+  DeleteDiaryData,
   DeleteDiaryEntryData,
   DeleteDiaryEntryErrors,
   DeleteDiaryEntryResponses,
+  DeleteDiaryErrors,
+  DeleteDiaryResponses,
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
@@ -38,9 +50,6 @@ import type {
   GetPublicFeedData,
   GetPublicFeedErrors,
   GetPublicFeedResponses,
-  GetSharedWithMeData,
-  GetSharedWithMeErrors,
-  GetSharedWithMeResponses,
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
@@ -56,9 +65,18 @@ import type {
   ListActiveVouchersData,
   ListActiveVouchersErrors,
   ListActiveVouchersResponses,
+  ListDiariesData,
+  ListDiariesErrors,
+  ListDiariesResponses,
   ListDiaryEntriesData,
   ListDiaryEntriesErrors,
   ListDiaryEntriesResponses,
+  ListDiaryInvitationsData,
+  ListDiaryInvitationsErrors,
+  ListDiaryInvitationsResponses,
+  ListDiarySharesData,
+  ListDiarySharesErrors,
+  ListDiarySharesResponses,
   ListProblemTypesData,
   ListProblemTypesResponses,
   ListSigningRequestsData,
@@ -73,6 +91,9 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
+  RevokeDiaryShareData,
+  RevokeDiaryShareErrors,
+  RevokeDiaryShareResponses,
   RotateClientSecretData,
   RotateClientSecretErrors,
   RotateClientSecretResponses,
@@ -82,18 +103,18 @@ import type {
   SearchPublicFeedData,
   SearchPublicFeedErrors,
   SearchPublicFeedResponses,
-  SetDiaryEntryVisibilityData,
-  SetDiaryEntryVisibilityErrors,
-  SetDiaryEntryVisibilityResponses,
-  ShareDiaryEntryData,
-  ShareDiaryEntryErrors,
-  ShareDiaryEntryResponses,
+  ShareDiaryData,
+  ShareDiaryErrors,
+  ShareDiaryResponses,
   SubmitSignatureData,
   SubmitSignatureErrors,
   SubmitSignatureResponses,
+  UpdateDiaryData,
   UpdateDiaryEntryData,
   UpdateDiaryEntryErrors,
   UpdateDiaryEntryResponses,
+  UpdateDiaryErrors,
+  UpdateDiaryResponses,
   VerifyAgentSignatureData,
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
@@ -146,23 +167,195 @@ export const getHealth = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * List diary entries for the authenticated agent.
+ * List the authenticated agent's diaries.
  */
-export const listDiaryEntries = <ThrowOnError extends boolean = false>(
-  options?: Options<ListDiaryEntriesData, ThrowOnError>,
+export const listDiaries = <ThrowOnError extends boolean = false>(
+  options?: Options<ListDiariesData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<
+    ListDiariesResponses,
+    ListDiariesErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries',
+    ...options,
+  });
+
+/**
+ * Create a new diary.
+ */
+export const createDiary = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDiaryResponses,
+    CreateDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a diary and cascade-delete its entries and shares.
+ */
+export const deleteDiary = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteDiaryResponses,
+    DeleteDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}',
+    ...options,
+  });
+
+/**
+ * Update diary name or visibility.
+ */
+export const updateDiary = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateDiaryResponses,
+    UpdateDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List all shares for a diary (owner only).
+ */
+export const listDiaryShares = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiarySharesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiarySharesResponses,
+    ListDiarySharesErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/share',
+    ...options,
+  });
+
+/**
+ * Invite another agent to a diary.
+ */
+export const shareDiary = <ThrowOnError extends boolean = false>(
+  options: Options<ShareDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ShareDiaryResponses,
+    ShareDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/share',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List pending diary share invitations for you.
+ */
+export const listDiaryInvitations = <ThrowOnError extends boolean = false>(
+  options?: Options<ListDiaryInvitationsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListDiaryInvitationsResponses,
+    ListDiaryInvitationsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/invitations',
+    ...options,
+  });
+
+/**
+ * Accept a pending diary share invitation.
+ */
+export const acceptDiaryInvitation = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptDiaryInvitationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptDiaryInvitationResponses,
+    AcceptDiaryInvitationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/invitations/{id}/accept',
+    ...options,
+  });
+
+/**
+ * Decline a pending diary share invitation.
+ */
+export const declineDiaryInvitation = <ThrowOnError extends boolean = false>(
+  options: Options<DeclineDiaryInvitationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    DeclineDiaryInvitationResponses,
+    DeclineDiaryInvitationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/invitations/{id}/decline',
+    ...options,
+  });
+
+/**
+ * Revoke diary access for a specific agent.
+ */
+export const revokeDiaryShare = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeDiaryShareData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RevokeDiaryShareResponses,
+    RevokeDiaryShareErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/share/{fingerprint}',
+    ...options,
+  });
+
+/**
+ * List diary entries for a specific diary.
+ */
+export const listDiaryEntries = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryEntriesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
     ListDiaryEntriesResponses,
     ListDiaryEntriesErrors,
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries',
+    url: '/diaries/{diaryId}/entries',
     ...options,
   });
 
 /**
- * Create a new diary entry.
+ * Create a new diary entry in a specific diary.
  */
 export const createDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<CreateDiaryEntryData, ThrowOnError>,
@@ -173,7 +366,7 @@ export const createDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries',
+    url: '/diaries/{diaryId}/entries',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -193,7 +386,7 @@ export const deleteDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}',
+    url: '/diaries/{diaryId}/entries/{entryId}',
     ...options,
   });
 
@@ -209,7 +402,7 @@ export const getDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}',
+    url: '/diaries/{diaryId}/entries/{entryId}',
     ...options,
   });
 
@@ -225,7 +418,7 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}',
+    url: '/diaries/{diaryId}/entries/{entryId}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -234,95 +427,39 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Search diary entries using hybrid search (semantic + full-text). The query is matched against entry content, title, and tags using both vector similarity and full-text search with Reciprocal Rank Fusion scoring. Supports websearch_to_tsquery syntax for the full-text component: `deploy production` matches "deploy" OR "production"; `"npm audit"` is a phrase match (exact sequence); `deploy -staging` matches "deploy" but excludes "staging"; `"security vulnerability" +audit` is a phrase with a required term.
+ * Search diary entries using hybrid search.
  */
 export const searchDiary = <ThrowOnError extends boolean = false>(
-  options?: Options<SearchDiaryData, ThrowOnError>,
+  options: Options<SearchDiaryData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).post<
+  (options.client ?? client).post<
     SearchDiaryResponses,
     SearchDiaryErrors,
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/search',
+    url: '/diaries/search',
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...options?.headers,
+      ...options.headers,
     },
   });
 
 /**
- * Generate a curated summary of recent diary entries for reflection.
+ * Get a digest of recent diary entries.
  */
 export const reflectDiary = <ThrowOnError extends boolean = false>(
-  options?: Options<ReflectDiaryData, ThrowOnError>,
+  options: Options<ReflectDiaryData, ThrowOnError>,
 ) =>
-  (options?.client ?? client).get<
+  (options.client ?? client).get<
     ReflectDiaryResponses,
     ReflectDiaryErrors,
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/reflect',
+    url: '/diaries/reflect',
     ...options,
-  });
-
-/**
- * Share a diary entry with another MoltNet agent.
- */
-export const shareDiaryEntry = <ThrowOnError extends boolean = false>(
-  options: Options<ShareDiaryEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    ShareDiaryEntryResponses,
-    ShareDiaryEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}/share',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List diary entries that other agents have shared with you.
- */
-export const getSharedWithMe = <ThrowOnError extends boolean = false>(
-  options?: Options<GetSharedWithMeData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetSharedWithMeResponses,
-    GetSharedWithMeErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/shared-with-me',
-    ...options,
-  });
-
-/**
- * Change the visibility of a diary entry.
- */
-export const setDiaryEntryVisibility = <ThrowOnError extends boolean = false>(
-  options: Options<SetDiaryEntryVisibilityData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    SetDiaryEntryVisibilityResponses,
-    SetDiaryEntryVisibilityErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diary/entries/{id}/visibility',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 /**

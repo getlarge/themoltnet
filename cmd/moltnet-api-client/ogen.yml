@@ -1,2 +1,2 @@
 generator:
-  ignore_not_implemented: ["complex anyOf"]
+  ignore_not_implemented: ['complex anyOf']

@@ -3,19 +3,18 @@
  *
  * Tests concurrent diary and voucher operations to verify atomicity and
  * consistency at the HTTP API level. These tests verify that Keto permissions
- * are immediately available after create/share operations complete, and that
+ * are immediately available after create/delete operations complete, and that
  * voucher race conditions are properly handled.
  */
 
 import {
   type Client,
   createClient,
-  createDiaryEntry,
-  deleteDiaryEntry,
-  getDiaryEntry,
+  createDiaryEntry as apiCreateDiaryEntry,
+  deleteDiaryEntry as apiDeleteDiaryEntry,
+  getDiaryEntry as apiGetDiaryEntry,
   issueVoucher,
   listActiveVouchers,
-  shareDiaryEntry,
 } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -24,6 +23,45 @@ import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Concurrency and Atomicity', () => {
+  function createDiaryEntry(
+    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+      path?: { diaryId?: string };
+    },
+  ) {
+    return apiCreateDiaryEntry({
+      ...args,
+      path: { diaryId: args.path?.diaryId ?? agent.privateDiaryId },
+    });
+  }
+
+  function getDiaryEntry(
+    args: Parameters<typeof apiGetDiaryEntry>[0] & {
+      path: { entryId: string; diaryId?: string };
+    },
+  ) {
+    return apiGetDiaryEntry({
+      ...args,
+      path: {
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
+      },
+    });
+  }
+
+  function deleteDiaryEntry(
+    args: Parameters<typeof apiDeleteDiaryEntry>[0] & {
+      path: { entryId: string; diaryId?: string };
+    },
+  ) {
+    return apiDeleteDiaryEntry({
+      ...args,
+      path: {
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
+      },
+    });
+  }
+
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
@@ -85,7 +123,7 @@ describe('Concurrency and Atomicity', () => {
     const { data: fetched, error: readError } = await getDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: entry!.id },
+      path: { entryId: entry!.id },
     });
 
     expect(readError).toBeUndefined();
@@ -113,7 +151,7 @@ describe('Concurrency and Atomicity', () => {
       deleteDiaryEntry({
         client,
         auth: () => agent.accessToken,
-        path: { id: e.id },
+        path: { entryId: e.id },
       }),
     );
 
@@ -129,7 +167,7 @@ describe('Concurrency and Atomicity', () => {
       const { data } = await getDiaryEntry({
         client,
         auth: () => agent.accessToken,
-        path: { id: entry.id },
+        path: { entryId: entry.id },
       });
       expect(data).toBeUndefined();
     }
@@ -278,57 +316,6 @@ describe('Concurrency and Atomicity', () => {
 
       // Exactly one should succeed (200), the other should fail (403)
       expect(statuses).toEqual([200, 403]);
-    });
-  });
-
-  // ── Sharing Atomicity ──────────────────────────────────────
-
-  describe('sharing atomicity', () => {
-    let agentB: TestAgent;
-
-    beforeAll(async () => {
-      const voucherCode = await createTestVoucher({
-        db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
-      });
-
-      agentB = await createAgent({
-        baseUrl: harness.baseUrl,
-        identityApi: harness.identityApi,
-        hydraAdminOAuth2: harness.hydraAdminOAuth2,
-        webhookApiKey: harness.webhookApiKey,
-        voucherCode,
-      });
-    });
-
-    it('grants Keto viewer permission immediately on share', async () => {
-      // Agent A creates an entry
-      const { data: entry } = await createDiaryEntry({
-        client,
-        auth: () => agent.accessToken,
-        body: { content: 'Immediate share test' },
-      });
-
-      // Agent A shares with Agent B
-      const { error: shareError } = await shareDiaryEntry({
-        client,
-        auth: () => agent.accessToken,
-        path: { id: entry!.id },
-        body: { sharedWith: agentB.keyPair.fingerprint },
-      });
-
-      expect(shareError).toBeUndefined();
-
-      // Agent B should be able to read immediately (Keto permission granted)
-      const { data: fetched, error: readError } = await getDiaryEntry({
-        client,
-        auth: () => agentB.accessToken,
-        path: { id: entry!.id },
-      });
-
-      expect(readError).toBeUndefined();
-      expect(fetched).toBeDefined();
-      expect(fetched!.content).toBe('Immediate share test');
     });
   });
 });

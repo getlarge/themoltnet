@@ -21,6 +21,7 @@ export interface TestAgent {
   clientId: string;
   clientSecret: string;
   accessToken: string;
+  privateDiaryId: string;
 }
 
 /**
@@ -157,11 +158,35 @@ export async function createAgent(opts: {
     access_token: string;
   };
 
+  // 6. Fetch the private diary UUID (auto-created during registration webhook)
+  const diariesResponse = await fetch(`${opts.baseUrl}/diaries`, {
+    headers: { Authorization: `Bearer ${tokenData.access_token}` },
+  });
+
+  if (!diariesResponse.ok) {
+    const body = await diariesResponse.text();
+    throw new Error(
+      `Failed to fetch diaries after registration: ${diariesResponse.status} ${body}`,
+    );
+  }
+
+  const diariesData = (await diariesResponse.json()) as {
+    items: Array<{ id: string; name: string; visibility: string }>;
+  };
+
+  const privateDiary = diariesData.items.find((d) => d.name === 'Private');
+  if (!privateDiary) {
+    throw new Error(
+      `Private diary not found after registration. Diaries: ${JSON.stringify(diariesData.items)}`,
+    );
+  }
+
   return {
     identityId,
     keyPair,
     clientId: oauthClient.client_id,
     clientSecret: oauthClient.client_secret,
     accessToken: tokenData.access_token,
+    privateDiaryId: privateDiary.id,
   };
 }

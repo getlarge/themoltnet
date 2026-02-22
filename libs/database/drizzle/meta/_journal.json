@@ -78,6 +78,27 @@
       "when": 1774560000000,
       "tag": "0010_signing_requests_signature_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1771493232009,
+      "tag": "0011_multi_diary_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1771683701907,
+      "tag": "0012_conscious_silverclaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1774560000001,
+      "tag": "0013_wandering_earthquake",
+      "breakpoints": true
     }
   ]
 }

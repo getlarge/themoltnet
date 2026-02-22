@@ -21,16 +21,36 @@ import { scanForInjection } from '../injection-scanner.js';
 import type {
   CreateEntryInput,
   DiaryEntry,
-  DiaryRepository,
+  DiaryEntryRepository,
   EmbeddingService,
   RelationshipWriter,
   UpdateEntryInput,
 } from '../types.js';
 
+// ── Private Helpers ────────────────────────────────────────────
+
+/**
+ * Build the text sent to the embedding model.
+ * Mirrors `buildEmbeddingText` from diary-service to avoid circular imports.
+ */
+function buildEmbeddingTextLocal(
+  content: string,
+  tags?: string[] | null,
+  title?: string | null,
+): string {
+  const parts: string[] = [];
+  if (title) parts.push(title);
+  parts.push(content);
+  if (tags && tags.length > 0) {
+    parts.push(...tags.map((t) => `tag:${t}`));
+  }
+  return parts.join('\n');
+}
+
 // ── Types ──────────────────────────────────────────────────────
 
 export interface DiaryWorkflowDeps {
-  diaryRepository: DiaryRepository;
+  diaryEntryRepository: DiaryEntryRepository;
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   dataSource: DataSource;
@@ -71,19 +91,14 @@ type UpdateEntryFn = (
   updates: UpdateEntryInput,
   existingContent?: string,
   existingTitle?: string | null,
+  existingTags?: string[] | null,
 ) => Promise<DiaryEntry | null>;
 type DeleteEntryFn = (id: string) => Promise<boolean>;
-type ShareEntryFn = (
-  entryId: string,
-  sharedBy: string,
-  sharedWith: string,
-) => Promise<boolean>;
 
 let _workflows: {
   createEntry: CreateEntryFn;
   updateEntry: UpdateEntryFn;
   deleteEntry: DeleteEntryFn;
-  shareEntry: ShareEntryFn;
 } | null = null;
 
 /**
@@ -134,14 +149,6 @@ export function initDiaryWorkflows(): void {
     { name: 'diary.step.grantOwnership', ...KETO_RETRY },
   );
 
-  const grantViewerStep = DBOS.registerStep(
-    async (entryId: string, agentId: string): Promise<void> => {
-      const { relationshipWriter } = getDeps();
-      await relationshipWriter.grantViewer(entryId, agentId);
-    },
-    { name: 'diary.step.grantViewer', ...KETO_RETRY },
-  );
-
   const removeEntryRelationsStep = DBOS.registerStep(
     async (entryId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
@@ -155,36 +162,41 @@ export function initDiaryWorkflows(): void {
   _workflows = {
     createEntry: DBOS.registerWorkflow(
       async (input: CreateEntryInput): Promise<DiaryEntry> => {
-        const { diaryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, dataSource } = getDeps();
 
         const entryId = await generateIdStep();
-        const embedding = await embedPassageStep(input.content);
+        const embedText = buildEmbeddingTextLocal(
+          input.content,
+          input.tags,
+          input.title,
+        );
+        const embedding = await embedPassageStep(embedText);
         const { injectionRisk } = await scanInjectionStep(
           input.content,
           input.title,
         );
 
         const entry = await dataSource.runTransaction(
-          () =>
-            diaryRepository.create({
+          async () => {
+            return diaryEntryRepository.create({
               id: entryId,
-              ownerId: input.ownerId,
+              diaryId: input.diaryId,
               content: input.content,
               title: input.title,
-              visibility: input.visibility ?? 'private',
               tags: input.tags,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
-            }),
+            });
+          },
           { name: 'diary.create.persist' },
         );
 
         try {
-          await grantOwnershipStep(entry.id, input.ownerId);
+          await grantOwnershipStep(entry.id, input.requesterId);
         } catch {
           // Compensation: delete the orphaned entry
           await dataSource.runTransaction(
-            () => diaryRepository.delete(entry.id),
+            () => diaryEntryRepository.delete(entry.id),
             { name: 'diary.create.compensate' },
           );
           throw new Error('Failed to grant ownership after entry creation');
@@ -201,8 +213,9 @@ export function initDiaryWorkflows(): void {
         updates: UpdateEntryInput,
         existingContent?: string,
         existingTitle?: string | null,
+        existingTags?: string[] | null,
       ): Promise<DiaryEntry | null> => {
-        const { diaryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, dataSource } = getDeps();
         const repoUpdates: Record<string, unknown> = { ...updates };
 
         if (updates.content !== undefined || updates.title !== undefined) {
@@ -216,13 +229,22 @@ export function initDiaryWorkflows(): void {
           repoUpdates.injectionRisk = injectionRisk;
         }
 
-        if (updates.content !== undefined) {
-          const embedding = await embedPassageStep(updates.content);
+        if (
+          updates.content !== undefined ||
+          updates.tags !== undefined ||
+          updates.title !== undefined
+        ) {
+          const content = updates.content ?? existingContent ?? '';
+          const tags = updates.tags !== undefined ? updates.tags : existingTags;
+          const title =
+            updates.title !== undefined ? updates.title : existingTitle;
+          const embedText = buildEmbeddingTextLocal(content, tags, title);
+          const embedding = await embedPassageStep(embedText);
           if (embedding.length > 0) repoUpdates.embedding = embedding;
         }
 
         return dataSource.runTransaction(
-          () => diaryRepository.update(id, repoUpdates),
+          () => diaryEntryRepository.update(id, repoUpdates),
           { name: 'diary.update.persist' },
         );
       },
@@ -231,10 +253,10 @@ export function initDiaryWorkflows(): void {
 
     deleteEntry: DBOS.registerWorkflow(
       async (id: string): Promise<boolean> => {
-        const { diaryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, dataSource } = getDeps();
 
         const deleted = await dataSource.runTransaction(
-          () => diaryRepository.delete(id),
+          () => diaryEntryRepository.delete(id),
           { name: 'diary.delete.persist' },
         );
 
@@ -245,37 +267,6 @@ export function initDiaryWorkflows(): void {
         return deleted;
       },
       { name: 'diary.delete' },
-    ),
-
-    shareEntry: DBOS.registerWorkflow(
-      async (
-        entryId: string,
-        sharedBy: string,
-        sharedWith: string,
-      ): Promise<boolean> => {
-        const { diaryRepository, dataSource } = getDeps();
-
-        const shared = await dataSource.runTransaction(
-          () => diaryRepository.share(entryId, sharedBy, sharedWith),
-          { name: 'diary.share.persist' },
-        );
-
-        if (shared) {
-          try {
-            await grantViewerStep(entryId, sharedWith);
-          } catch {
-            // Compensation: remove the orphaned share record
-            await dataSource.runTransaction(
-              () => diaryRepository.unshare(entryId, sharedWith),
-              { name: 'diary.share.compensate' },
-            );
-            throw new Error('Failed to grant viewer after share creation');
-          }
-        }
-
-        return shared;
-      },
-      { name: 'diary.share' },
     ),
   };
 }
@@ -289,7 +280,9 @@ export const diaryWorkflows = {
         'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
       );
     }
-    return _workflows.createEntry;
+    // bind(undefined) prevents `this = diaryWorkflows` when called as a method,
+    // which would trigger DBOSInvalidWorkflowTransitionError (expects ConfiguredInstance or undefined)
+    return _workflows.createEntry.bind(undefined);
   },
   get updateEntry() {
     if (!_workflows) {
@@ -297,7 +290,7 @@ export const diaryWorkflows = {
         'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
       );
     }
-    return _workflows.updateEntry;
+    return _workflows.updateEntry.bind(undefined);
   },
   get deleteEntry() {
     if (!_workflows) {
@@ -305,14 +298,6 @@ export const diaryWorkflows = {
         'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
       );
     }
-    return _workflows.deleteEntry;
-  },
-  get shareEntry() {
-    if (!_workflows) {
-      throw new Error(
-        'Diary workflows not initialized. Call initDiaryWorkflows() after configureDBOS().',
-      );
-    }
-    return _workflows.shareEntry;
+    return _workflows.deleteEntry.bind(undefined);
   },
 };

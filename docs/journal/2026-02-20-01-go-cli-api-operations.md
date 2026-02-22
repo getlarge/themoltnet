@@ -4,7 +4,20 @@ author: claude-sonnet-4-6
 session: 220-go-cli-api-ops
 type: handoff
 importance: 0.9
-tags: [cli, go, api-client, ogen, openapi, oauth2, diary, signing, agents, vouch, release]
+tags:
+  [
+    cli,
+    go,
+    api-client,
+    ogen,
+    openapi,
+    oauth2,
+    diary,
+    signing,
+    agents,
+    vouch,
+    release,
+  ]
 supersedes: null
 signature: <pending>
 ---
@@ -24,12 +37,14 @@ Issue #220 requested extending the Go CLI (`cmd/moltnet`) with authenticated API
 Module path: `github.com/getlarge/themoltnet/cmd/moltnet-api-client`
 
 **`cmd/normalize-spec/main.go`** — Go tool that preprocesses the OpenAPI spec:
+
 - TypeBox generates `anyOf: [{type: "string", enum: ["a"]}, ...]` for enums
 - ogen doesn't support this pattern natively
 - The normalizer walks the spec and collapses TypeBox-style anyOf enum arrays into standard `{type: "string", enum: ["a", "b", ...]}` objects
 - Run via `go run ./cmd/normalize-spec <input> <output>`
 
 **`generate.go`** — `go:generate` directives:
+
 ```go
 //go:generate go run ./cmd/normalize-spec ../../apps/rest-api/public/openapi.json openapi-normalized.json
 //go:generate go run github.com/ogen-go/ogen/cmd/ogen@latest --target . --package moltnetapi --config ogen.yml --clean openapi-normalized.json
@@ -38,6 +53,7 @@ Module path: `github.com/getlarge/themoltnet/cmd/moltnet-api-client`
 **`ogen.yml`** — `ignore_not_implemented: ["complex anyOf"]` for residual anyOf patterns
 
 **`oas_*.gen.go`** (19 generated files) — typed client, server stubs, schemas, security source interface. Key types:
+
 - `Client` — typed methods (`GetWhoami`, `CreateDiaryEntry`, `IssueVoucher`, `GetSigningRequest`, `SubmitSignature`, etc.)
 - `UnimplementedHandler` — embeddable base for test stubs
 - `SecuritySource` interface — `BearerAuth(ctx, operationName) (BearerAuth, error)`
@@ -46,24 +62,30 @@ Module path: `github.com/getlarge/themoltnet/cmd/moltnet-api-client`
 #### CLI changes in `cmd/moltnet/`
 
 **`api.go`** — `tokenSecuritySource` implements `moltnetapi.SecuritySource`:
+
 - `BearerAuth()` delegates to `TokenManager.GetToken()`
 - `newAuthedClient(apiURL, tm)` and `newClientFromCreds(apiURL)` helpers
 
 **`agents.go`** — `moltnet agents whoami|lookup`:
+
 - `client.GetWhoami(ctx)` → `*moltnetapi.Whoami`
 - `client.GetAgentProfile(ctx, params)` → `*moltnetapi.AgentProfile`
 
 **`crypto_ops.go`** — `moltnet crypto identity|verify`:
+
 - Typed client calls, no manual JSON marshaling
 
 **`vouch.go`** — `moltnet vouch issue|list`:
+
 - `client.IssueVoucher` / `client.ListActiveVouchers`
 
 **`diary.go`** — `moltnet diary create|list|get|delete|search`:
+
 - IDs parsed as `uuid.UUID`; visibility wrapped as `OptCreateDiaryEntryReqVisibility`
 - `SearchDiary` uses `OptSearchDiaryReq{Value: SearchDiaryReq{Query: OptString{...}}}`
 
 **`sign.go`** — `moltnet sign --request-id <id>`:
+
 - `signWithRequestID` takes `*moltnetapi.Client`
 - Fetches `GetSigningRequest`, submits with `SubmitSignature`
 
@@ -72,6 +94,7 @@ Module path: `github.com/getlarge/themoltnet/cmd/moltnet-api-client`
 #### Tests (67 total, all pass with `-race`)
 
 All test files use **ogen-generated server stubs** (`UnimplementedHandler` + `NewServer`):
+
 - `api_test.go` — `newTestServer` helper, `tokenSecuritySource` caching tests
 - `agents_test.go` — `stubAgentsHandler`
 - `crypto_ops_test.go` — `stubCryptoHandler`
@@ -90,6 +113,7 @@ The ogen server validates handler responses against the spec — caught `Importa
 **`cmd/moltnet-api-client/CHANGELOG.md`** — initial v0.1.0 entry
 
 **`.github/workflows/release.yml`** changes:
+
 - Added `api-client-release-created`, `api-client-tag-name`, `api-client-version` outputs to `release-please` job
 - Added `release-api-client` job: pushes `cmd/moltnet-api-client/vX.Y.Z` Go module proxy tag (required by `go get`) and publishes the GitHub release draft
 - `release-cli` now depends on `release-api-client` so the proxy tag exists before goreleaser's before-hook runs

@@ -129,7 +129,7 @@ describe('Public feed routes', () => {
           createdAt: new Date('2026-02-09T10:00:00Z'),
         }),
       ];
-      mocks.diaryRepository.listPublic.mockResolvedValue({
+      mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: entries,
         hasMore: false,
       });
@@ -148,7 +148,7 @@ describe('Public feed routes', () => {
 
     it('returns nextCursor when more entries exist', async () => {
       const entries = [createMockPublicEntry()];
-      mocks.diaryRepository.listPublic.mockResolvedValue({
+      mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: entries,
         hasMore: true,
       });
@@ -165,7 +165,7 @@ describe('Public feed routes', () => {
     });
 
     it('passes cursor to repository', async () => {
-      mocks.diaryRepository.listPublic.mockResolvedValue({
+      mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: [],
         hasMore: false,
       });
@@ -183,7 +183,7 @@ describe('Public feed routes', () => {
         url: `/public/feed?cursor=${cursor}`,
       });
 
-      expect(mocks.diaryRepository.listPublic).toHaveBeenCalledWith({
+      expect(mocks.diaryEntryRepository.listPublic).toHaveBeenCalledWith({
         cursor: {
           createdAt: '2026-02-10T10:00:00.000Z',
           id: ENTRY_ID,
@@ -194,7 +194,7 @@ describe('Public feed routes', () => {
     });
 
     it('passes tag filter to repository', async () => {
-      mocks.diaryRepository.listPublic.mockResolvedValue({
+      mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: [],
         hasMore: false,
       });
@@ -204,7 +204,7 @@ describe('Public feed routes', () => {
         url: '/public/feed?tag=reflection',
       });
 
-      expect(mocks.diaryRepository.listPublic).toHaveBeenCalledWith({
+      expect(mocks.diaryEntryRepository.listPublic).toHaveBeenCalledWith({
         cursor: undefined,
         limit: 20,
         tag: 'reflection',
@@ -221,7 +221,7 @@ describe('Public feed routes', () => {
     });
 
     it('does not require authentication', async () => {
-      mocks.diaryRepository.listPublic.mockResolvedValue({
+      mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: [],
         hasMore: false,
       });
@@ -235,7 +235,7 @@ describe('Public feed routes', () => {
     });
 
     it('includes Cache-Control header', async () => {
-      mocks.diaryRepository.listPublic.mockResolvedValue({
+      mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: [],
         hasMore: false,
       });
@@ -249,7 +249,7 @@ describe('Public feed routes', () => {
     });
 
     it('does not include ownerId or embedding in response', async () => {
-      mocks.diaryRepository.listPublic.mockResolvedValue({
+      mocks.diaryEntryRepository.listPublic.mockResolvedValue({
         items: [createMockPublicEntry()],
         hasMore: false,
       });
@@ -285,7 +285,7 @@ describe('Public feed routes', () => {
       mocks.embeddingService.embedQuery.mockResolvedValue(
         new Array(384).fill(0.1),
       );
-      mocks.diaryRepository.searchPublic.mockResolvedValue(mockResults);
+      mocks.diaryEntryRepository.searchPublic.mockResolvedValue(mockResults);
 
       const response = await app.inject({
         method: 'GET',
@@ -305,7 +305,7 @@ describe('Public feed routes', () => {
       mocks.embeddingService.embedQuery.mockRejectedValue(
         new Error('ONNX failed'),
       );
-      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+      mocks.diaryEntryRepository.searchPublic.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'GET',
@@ -314,7 +314,7 @@ describe('Public feed routes', () => {
 
       expect(response.statusCode).toBe(200);
       // Verify searchPublic was called without embedding
-      expect(mocks.diaryRepository.searchPublic).toHaveBeenCalledWith(
+      expect(mocks.diaryEntryRepository.searchPublic).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: undefined }),
       );
     });
@@ -347,14 +347,14 @@ describe('Public feed routes', () => {
       mocks.embeddingService.embedQuery.mockResolvedValue(
         new Array(384).fill(0.1),
       );
-      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+      mocks.diaryEntryRepository.searchPublic.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
         url: '/public/feed/search?q=test&limit=5',
       });
 
-      expect(mocks.diaryRepository.searchPublic).toHaveBeenCalledWith(
+      expect(mocks.diaryEntryRepository.searchPublic).toHaveBeenCalledWith(
         expect.objectContaining({ limit: 5 }),
       );
     });
@@ -363,14 +363,14 @@ describe('Public feed routes', () => {
       mocks.embeddingService.embedQuery.mockResolvedValue(
         new Array(384).fill(0.1),
       );
-      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+      mocks.diaryEntryRepository.searchPublic.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
         url: '/public/feed/search?q=test&tag=philosophy',
       });
 
-      expect(mocks.diaryRepository.searchPublic).toHaveBeenCalledWith(
+      expect(mocks.diaryEntryRepository.searchPublic).toHaveBeenCalledWith(
         expect.objectContaining({ tags: ['philosophy'] }),
       );
     });
@@ -379,7 +379,7 @@ describe('Public feed routes', () => {
       mocks.embeddingService.embedQuery.mockResolvedValue(
         new Array(384).fill(0.1),
       );
-      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+      mocks.diaryEntryRepository.searchPublic.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'GET',
@@ -396,7 +396,7 @@ describe('Public feed routes', () => {
       mocks.embeddingService.embedQuery.mockResolvedValue(
         new Array(384).fill(0.1),
       );
-      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+      mocks.diaryEntryRepository.searchPublic.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'GET',
@@ -410,7 +410,7 @@ describe('Public feed routes', () => {
       mocks.embeddingService.embedQuery.mockResolvedValue(
         new Array(384).fill(0.1),
       );
-      mocks.diaryRepository.searchPublic.mockResolvedValue([]);
+      mocks.diaryEntryRepository.searchPublic.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'GET',
@@ -424,7 +424,7 @@ describe('Public feed routes', () => {
 
   describe('GET /public/entry/:id', () => {
     it('returns a public entry', async () => {
-      mocks.diaryRepository.findPublicById.mockResolvedValue(
+      mocks.diaryEntryRepository.findPublicById.mockResolvedValue(
         createMockPublicEntry(),
       );
 
@@ -440,7 +440,7 @@ describe('Public feed routes', () => {
     });
 
     it('returns 404 when entry not found', async () => {
-      mocks.diaryRepository.findPublicById.mockResolvedValue(null);
+      mocks.diaryEntryRepository.findPublicById.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'GET',
@@ -455,7 +455,7 @@ describe('Public feed routes', () => {
     });
 
     it('does not require authentication', async () => {
-      mocks.diaryRepository.findPublicById.mockResolvedValue(
+      mocks.diaryEntryRepository.findPublicById.mockResolvedValue(
         createMockPublicEntry(),
       );
 
@@ -468,7 +468,7 @@ describe('Public feed routes', () => {
     });
 
     it('includes Cache-Control header with longer TTL', async () => {
-      mocks.diaryRepository.findPublicById.mockResolvedValue(
+      mocks.diaryEntryRepository.findPublicById.mockResolvedValue(
         createMockPublicEntry(),
       );
 

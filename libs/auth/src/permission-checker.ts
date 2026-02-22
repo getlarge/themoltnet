@@ -7,9 +7,16 @@
 
 import type { PermissionApi } from '@ory/client-fetch';
 
-import { DiaryEntryPermission, KetoNamespace } from './keto-constants.js';
+import {
+  DiaryEntryPermission,
+  DiaryPermission,
+  KetoNamespace,
+} from './keto-constants.js';
 
 export interface PermissionChecker {
+  canReadDiary(diaryId: string, agentId: string): Promise<boolean>;
+  canWriteDiary(diaryId: string, agentId: string): Promise<boolean>;
+  canManageDiary(diaryId: string, agentId: string): Promise<boolean>;
   canViewEntry(entryId: string, agentId: string): Promise<boolean>;
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
   canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
@@ -40,6 +47,36 @@ export function createPermissionChecker(
   permissionApi: PermissionApi,
 ): PermissionChecker {
   return {
+    canReadDiary(diaryId: string, agentId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Diary,
+        diaryId,
+        DiaryPermission.Read,
+        agentId,
+      );
+    },
+
+    canWriteDiary(diaryId: string, agentId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Diary,
+        diaryId,
+        DiaryPermission.Write,
+        agentId,
+      );
+    },
+
+    canManageDiary(diaryId: string, agentId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Diary,
+        diaryId,
+        DiaryPermission.Manage,
+        agentId,
+      );
+    },
+
     canViewEntry(entryId: string, agentId: string): Promise<boolean> {
       return checkPermission(
         permissionApi,

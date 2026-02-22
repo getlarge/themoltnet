@@ -316,6 +316,9 @@ importers:
       '@moltnet/mcp-auth-proxy':
         specifier: workspace:*
         version: link:../../libs/mcp-auth-proxy
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48

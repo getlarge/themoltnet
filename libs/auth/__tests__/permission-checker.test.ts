@@ -15,6 +15,7 @@ function createMockPermissionApi(): MockPermissionApi {
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
+const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 describe('PermissionChecker', () => {
@@ -24,6 +25,56 @@ describe('PermissionChecker', () => {
   beforeEach(() => {
     mockPermissionApi = createMockPermissionApi();
     checker = createPermissionChecker(mockPermissionApi as any);
+  });
+
+  describe('diary permissions', () => {
+    it('checks canReadDiary against Diary namespace', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: true,
+      });
+
+      const result = await checker.canReadDiary(DIARY_ID, AGENT_ID);
+
+      expect(result).toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Diary',
+        object: DIARY_ID,
+        relation: 'read',
+        subjectId: AGENT_ID,
+      });
+    });
+
+    it('checks canWriteDiary against Diary namespace', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: true,
+      });
+
+      const result = await checker.canWriteDiary(DIARY_ID, AGENT_ID);
+
+      expect(result).toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Diary',
+        object: DIARY_ID,
+        relation: 'write',
+        subjectId: AGENT_ID,
+      });
+    });
+
+    it('checks canManageDiary against Diary namespace', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: false,
+      });
+
+      const result = await checker.canManageDiary(DIARY_ID, OTHER_AGENT_ID);
+
+      expect(result).toBe(false);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Diary',
+        object: DIARY_ID,
+        relation: 'manage',
+        subjectId: OTHER_AGENT_ID,
+      });
+    });
   });
 
   describe('canViewEntry', () => {

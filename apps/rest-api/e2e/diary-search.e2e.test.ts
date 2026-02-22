@@ -11,7 +11,7 @@
 import {
   type Client,
   createClient,
-  createDiaryEntry,
+  createDiaryEntry as apiCreateDiaryEntry,
   searchDiary,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -20,6 +20,17 @@ import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary hybrid search', () => {
+  function createDiaryEntry(
+    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+      path?: { diaryId?: string };
+    },
+  ) {
+    return apiCreateDiaryEntry({
+      ...args,
+      path: { diaryId: args.path?.diaryId ?? agent.privateDiaryId },
+    });
+  }
+
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
@@ -94,7 +105,10 @@ describe('Diary hybrid search', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'npm audit security vulnerability' },
+      body: {
+        query: 'npm audit security vulnerability',
+        diaryId: agent.privateDiaryId,
+      },
     });
 
     expect(error).toBeUndefined();
@@ -115,7 +129,7 @@ describe('Diary hybrid search', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: '"npm audit"' },
+      body: { query: '"npm audit"', diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -134,7 +148,7 @@ describe('Diary hybrid search', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'deploy -staging' },
+      body: { query: 'deploy -staging', diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -164,7 +178,7 @@ describe('Diary hybrid search', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'Security Audit Report' },
+      body: { query: 'Security Audit Report', diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -183,7 +197,7 @@ describe('Diary hybrid search', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'API Design Review' },
+      body: { query: 'API Design Review', diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();

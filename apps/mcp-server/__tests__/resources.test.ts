@@ -12,6 +12,7 @@ import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
   createMockContext,
   createMockDeps,
+  DIARY_ID,
   ENTRY_ID,
   sdkErr,
   sdkOk,
@@ -19,7 +20,8 @@ import {
 
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
-  listDiaryEntries: vi.fn(),
+  listDiaries: vi.fn(),
+  searchDiary: vi.fn(),
   getDiaryEntry: vi.fn(),
   getAgentProfile: vi.fn(),
 }));
@@ -28,7 +30,8 @@ import {
   getAgentProfile,
   getDiaryEntry,
   getWhoami,
-  listDiaryEntries,
+  listDiaries,
+  searchDiary,
 } from '@moltnet/api-client';
 
 describe('MCP Resources', () => {
@@ -39,6 +42,9 @@ describe('MCP Resources', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
+    vi.mocked(listDiaries).mockResolvedValue(
+      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+    );
   });
 
   describe('moltnet://identity', () => {
@@ -73,20 +79,18 @@ describe('MCP Resources', () => {
 
   describe('moltnet://diary/recent', () => {
     it('returns recent diary entries', async () => {
-      vi.mocked(listDiaryEntries).mockResolvedValue(
+      vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({
-          items: [{ id: ENTRY_ID }, { id: 'entry-2' }],
+          results: [{ id: ENTRY_ID }, { id: 'entry-2' }],
           total: 2,
-          limit: 10,
-          offset: 0,
         }) as never,
       );
 
       const result = await handleDiaryRecentResource(deps, context);
 
-      expect(listDiaryEntries).toHaveBeenCalledWith(
+      expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: { limit: 10 },
+          body: { diaryId: DIARY_ID, limit: 10 },
         }),
       );
       expect(result.contents).toHaveLength(1);
@@ -107,13 +111,19 @@ describe('MCP Resources', () => {
   describe('moltnet://diary/{id}', () => {
     it('returns a specific entry', async () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
+      vi.mocked(listDiaries).mockResolvedValue(
+        sdkOk({
+          items: [{ id: 'diary-uuid-1' }],
+        }) as never,
+      );
       vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
 
       const result = await handleDiaryEntryResource(deps, ENTRY_ID, context);
 
+      expect(listDiaries).toHaveBeenCalled();
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { id: ENTRY_ID },
+          path: { diaryId: 'diary-uuid-1', entryId: ENTRY_ID },
         }),
       );
       expect(result.contents).toHaveLength(1);
@@ -122,6 +132,11 @@ describe('MCP Resources', () => {
     });
 
     it('returns not found for missing entry', async () => {
+      vi.mocked(listDiaries).mockResolvedValue(
+        sdkOk({
+          items: [{ id: 'diary-uuid-1' }],
+        }) as never,
+      );
       vi.mocked(getDiaryEntry).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
@@ -189,14 +204,15 @@ describe('MCP Resources', () => {
 
   describe('moltnet://self/whoami', () => {
     it('returns whoami entry when it exists', async () => {
-      vi.mocked(listDiaryEntries).mockResolvedValue(
+      vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({
-          items: [
+          results: [
             {
               id: '1',
               title: 'I am Archon',
               content: 'My identity...',
               tags: ['system', 'identity'],
+              entryType: 'identity',
             },
           ],
         }) as never,
@@ -212,9 +228,7 @@ describe('MCP Resources', () => {
     });
 
     it('returns exists:false when no whoami entry', async () => {
-      vi.mocked(listDiaryEntries).mockResolvedValue(
-        sdkOk({ items: [] }) as never,
-      );
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
       const result = await handleSelfWhoamiResource(deps, context);
 
@@ -235,14 +249,15 @@ describe('MCP Resources', () => {
 
   describe('moltnet://self/soul', () => {
     it('returns soul entry when it exists', async () => {
-      vi.mocked(listDiaryEntries).mockResolvedValue(
+      vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({
-          items: [
+          results: [
             {
               id: '2',
               title: 'My values',
               content: 'I value truth...',
               tags: ['system', 'soul'],
+              entryType: 'soul',
             },
           ],
         }) as never,
@@ -257,9 +272,7 @@ describe('MCP Resources', () => {
     });
 
     it('returns exists:false when no soul entry', async () => {
-      vi.mocked(listDiaryEntries).mockResolvedValue(
-        sdkOk({ items: [] }) as never,
-      );
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
       const result = await handleSelfSoulResource(deps, context);
 

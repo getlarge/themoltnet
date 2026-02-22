@@ -8,15 +8,13 @@
 import {
   type Client,
   createClient,
-  createDiaryEntry,
-  deleteDiaryEntry,
-  getDiaryEntry,
-  listDiaryEntries,
+  createDiaryEntry as apiCreateDiaryEntry,
+  deleteDiaryEntry as apiDeleteDiaryEntry,
+  getDiaryEntry as apiGetDiaryEntry,
+  listDiaryEntries as apiListDiaryEntries,
   reflectDiary,
   searchDiary,
-  setDiaryEntryVisibility,
-  shareDiaryEntry,
-  updateDiaryEntry,
+  updateDiaryEntry as apiUpdateDiaryEntry,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -24,6 +22,74 @@ import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary CRUD', () => {
+  function createDiaryEntry(
+    args: Parameters<typeof apiCreateDiaryEntry>[0] & {
+      path?: { diaryId?: string };
+    },
+  ) {
+    return apiCreateDiaryEntry({
+      ...args,
+      path: {
+        diaryId: args.path?.diaryId ?? agent.privateDiaryId,
+      },
+    });
+  }
+
+  function getDiaryEntry(
+    args: Parameters<typeof apiGetDiaryEntry>[0] & {
+      path: { entryId: string; diaryId?: string };
+    },
+  ) {
+    return apiGetDiaryEntry({
+      ...args,
+      path: {
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
+      },
+    });
+  }
+
+  function listDiaryEntries(
+    args: Parameters<typeof apiListDiaryEntries>[0] & {
+      path?: { diaryId?: string };
+    },
+  ) {
+    return apiListDiaryEntries({
+      ...args,
+      path: {
+        diaryId: args.path?.diaryId ?? agent.privateDiaryId,
+      },
+    });
+  }
+
+  function updateDiaryEntry(
+    args: Parameters<typeof apiUpdateDiaryEntry>[0] & {
+      path: { entryId: string; diaryId?: string };
+    },
+  ) {
+    return apiUpdateDiaryEntry({
+      ...args,
+      path: {
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
+      },
+    });
+  }
+
+  function deleteDiaryEntry(
+    args: Parameters<typeof apiDeleteDiaryEntry>[0] & {
+      path: { entryId: string; diaryId?: string };
+    },
+  ) {
+    return apiDeleteDiaryEntry({
+      ...args,
+      path: {
+        diaryId: args.path.diaryId ?? agent.privateDiaryId,
+        entryId: args.path.entryId,
+      },
+    });
+  }
+
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
@@ -63,9 +129,8 @@ describe('Diary CRUD', () => {
     expect(error).toBeUndefined();
     expect(data!.content).toBe('First e2e entry');
     expect(data!.title).toBe('Hello');
-    expect(data!.ownerId).toBe(agent.identityId);
-    expect(data!.visibility).toBe('private');
     expect(data!.id).toBeDefined();
+    expect(data!.diaryId).toBe(agent.privateDiaryId);
     expect(data!.injectionRisk).toBe(false);
   });
 
@@ -86,6 +151,7 @@ describe('Diary CRUD', () => {
   it('rejects unauthenticated create with RFC 9457 format', async () => {
     const { data, error, response } = await createDiaryEntry({
       client,
+      path: { diaryId: agent.privateDiaryId },
       body: { content: 'Should fail' },
     });
 
@@ -103,6 +169,19 @@ describe('Diary CRUD', () => {
     expect(problem.code).toBe('UNAUTHORIZED');
   });
 
+  it('rejects create for unknown diary reference', async () => {
+    const { data, error, response } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: '00000000-0000-0000-0000-000000000000' },
+      body: { content: 'Should fail with missing diary' },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(404);
+  });
+
   // ── Read ────────────────────────────────────────────────────
 
   it('reads back a created entry by id', async () => {
@@ -115,12 +194,47 @@ describe('Diary CRUD', () => {
     const { data, error } = await getDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(error).toBeUndefined();
     expect(data!.id).toBe(created!.id);
     expect(data!.content).toBe('Read me back');
+  });
+
+  it('rejects unauthenticated read', async () => {
+    const { data: created } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      body: { content: 'Read authz test' },
+    });
+
+    const { data, error, response } = await getDiaryEntry({
+      client,
+      path: { entryId: created!.id },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(401);
+  });
+
+  it('reads an entry using the diary id as route reference', async () => {
+    const { data: created } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      body: { content: 'Read by diary id' },
+    });
+
+    const { data, error } = await getDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: created!.diaryId, entryId: created!.id },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.id).toBe(created!.id);
+    expect(data!.content).toBe('Read by diary id');
   });
 
   // ── List ────────────────────────────────────────────────────
@@ -166,6 +280,17 @@ describe('Diary CRUD', () => {
     expect(paginated.items.length).toBe(1);
   });
 
+  it('rejects unauthenticated list', async () => {
+    const { data, error, response } = await listDiaryEntries({
+      client,
+      query: { limit: 1 },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(401);
+  });
+
   // ── Update ──────────────────────────────────────────────────
 
   it('updates an entry', async () => {
@@ -178,7 +303,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await updateDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
       body: { content: 'After update', title: 'Updated' },
     });
 
@@ -187,26 +312,22 @@ describe('Diary CRUD', () => {
     expect(data!.title).toBe('Updated');
   });
 
-  // ── Visibility ──────────────────────────────────────────────
-
-  it('changes entry visibility', async () => {
+  it('rejects unauthenticated update', async () => {
     const { data: created } = await createDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      body: { content: 'Visibility test' },
+      body: { content: 'Update authz test' },
     });
 
-    expect(created!.visibility).toBe('private');
-
-    const { data, error } = await setDiaryEntryVisibility({
+    const { data, error, response } = await updateDiaryEntry({
       client,
-      auth: () => agent.accessToken,
-      path: { id: created!.id },
-      body: { visibility: 'public' },
+      path: { entryId: created!.id },
+      body: { content: 'Should fail' },
     });
 
-    expect(error).toBeUndefined();
-    expect(data!.visibility).toBe('public');
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(401);
   });
 
   // ── Delete ──────────────────────────────────────────────────
@@ -221,7 +342,7 @@ describe('Diary CRUD', () => {
     const { error: deleteError } = await deleteDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(deleteError).toBeUndefined();
@@ -230,10 +351,27 @@ describe('Diary CRUD', () => {
     const { data: fetched } = await getDiaryEntry({
       client,
       auth: () => agent.accessToken,
-      path: { id: created!.id },
+      path: { entryId: created!.id },
     });
 
     expect(fetched).toBeUndefined();
+  });
+
+  it('rejects unauthenticated delete', async () => {
+    const { data: created } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      body: { content: 'Delete authz test' },
+    });
+
+    const { data, error, response } = await deleteDiaryEntry({
+      client,
+      path: { entryId: created!.id },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(401);
   });
 
   // ── Search ──────────────────────────────────────────────────
@@ -251,7 +389,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
-      body: { query: 'quantum entanglement' },
+      body: { query: 'quantum entanglement', diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -270,6 +408,7 @@ describe('Diary CRUD', () => {
     const { data, error } = await reflectDiary({
       client,
       auth: () => agent.accessToken,
+      query: { diaryId: agent.privateDiaryId },
     });
 
     expect(error).toBeUndefined();
@@ -295,10 +434,11 @@ describe('Diary CRUD', () => {
       voucherCode: otherVoucherCode,
     });
 
-    // Other agent creates an entry
-    await createDiaryEntry({
+    // Other agent creates an entry in their own private diary
+    await apiCreateDiaryEntry({
       client,
       auth: () => otherAgent.accessToken,
+      path: { diaryId: otherAgent.privateDiaryId },
       body: { content: 'Private to other agent' },
     });
 
@@ -358,16 +498,17 @@ describe('Cross-agent Keto permissions', () => {
   });
 
   it('denies Agent B reading Agent A private entry → 404', async () => {
-    const { data: entry } = await createDiaryEntry({
+    const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
-      body: { content: 'Private to A only', visibility: 'private' },
+      path: { diaryId: agentA.privateDiaryId },
+      body: { content: 'Private to A only' },
     });
 
-    const { data, error, response } = await getDiaryEntry({
+    const { data, error, response } = await apiGetDiaryEntry({
       client,
       auth: () => agentB.accessToken,
-      path: { id: entry!.id },
+      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
     });
 
     expect(data).toBeUndefined();
@@ -376,16 +517,17 @@ describe('Cross-agent Keto permissions', () => {
   });
 
   it('denies Agent B updating Agent A entry → 404', async () => {
-    const { data: entry } = await createDiaryEntry({
+    const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
+      path: { diaryId: agentA.privateDiaryId },
       body: { content: 'Cannot be updated by B' },
     });
 
-    const { data, error, response } = await updateDiaryEntry({
+    const { data, error, response } = await apiUpdateDiaryEntry({
       client,
       auth: () => agentB.accessToken,
-      path: { id: entry!.id },
+      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
       body: { title: 'Hacked by B' },
     });
 
@@ -395,66 +537,21 @@ describe('Cross-agent Keto permissions', () => {
   });
 
   it('denies Agent B deleting Agent A entry → 404', async () => {
-    const { data: entry } = await createDiaryEntry({
+    const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
+      path: { diaryId: agentA.privateDiaryId },
       body: { content: 'Cannot be deleted by B' },
     });
 
-    const { data, error, response } = await deleteDiaryEntry({
+    const { data, error, response } = await apiDeleteDiaryEntry({
       client,
       auth: () => agentB.accessToken,
-      path: { id: entry!.id },
+      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
     });
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
     expect(response.status).toBe(404);
-  });
-
-  it('allows Agent B to read shared entry (Keto viewer)', async () => {
-    const { data: entry } = await createDiaryEntry({
-      client,
-      auth: () => agentA.accessToken,
-      body: { content: 'Shared with B via Keto' },
-    });
-
-    // Agent A shares the entry with Agent B
-    await shareDiaryEntry({
-      client,
-      auth: () => agentA.accessToken,
-      path: { id: entry!.id },
-      body: { sharedWith: agentB.keyPair.fingerprint },
-    });
-
-    // Agent B should now be able to read the private entry
-    const { data, error } = await getDiaryEntry({
-      client,
-      auth: () => agentB.accessToken,
-      path: { id: entry!.id },
-    });
-
-    expect(error).toBeUndefined();
-    expect(data).toBeDefined();
-    expect(data!.content).toBe('Shared with B via Keto');
-  });
-
-  it('allows Agent B to read moltnet-visible entry without share', async () => {
-    const { data: entry } = await createDiaryEntry({
-      client,
-      auth: () => agentA.accessToken,
-      body: { content: 'Visible to all MoltNet agents', visibility: 'moltnet' },
-    });
-
-    // Agent B can read moltnet-visible entries without explicit share
-    const { data, error } = await getDiaryEntry({
-      client,
-      auth: () => agentB.accessToken,
-      path: { id: entry!.id },
-    });
-
-    expect(error).toBeUndefined();
-    expect(data).toBeDefined();
-    expect(data!.content).toBe('Visible to all MoltNet agents');
   });
 });

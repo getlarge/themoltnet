@@ -2,14 +2,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleIdentityBootstrap } from '../src/prompts.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
-import { createMockContext, createMockDeps, sdkErr, sdkOk } from './helpers.js';
+import {
+  createMockContext,
+  createMockDeps,
+  DIARY_ID,
+  sdkErr,
+  sdkOk,
+} from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
-  listDiaryEntries: vi.fn(),
+  listDiaries: vi.fn(),
+  searchDiary: vi.fn(),
 }));
 
-import { getWhoami, listDiaryEntries } from '@moltnet/api-client';
+import { getWhoami, listDiaries, searchDiary } from '@moltnet/api-client';
 
 function getPromptText(result: { messages: { content: unknown }[] }): string {
   return (result.messages[0].content as { type: string; text: string }).text;
@@ -23,6 +30,9 @@ describe('identity_bootstrap prompt', () => {
     vi.clearAllMocks();
     deps = createMockDeps();
     context = createMockContext();
+    vi.mocked(listDiaries).mockResolvedValue(
+      sdkOk({ items: [{ id: DIARY_ID }] }) as never,
+    );
   });
 
   it('returns auth error when not authenticated', async () => {
@@ -56,9 +66,7 @@ describe('identity_bootstrap prompt', () => {
         fingerprint: 'A1B2-C3D4',
       }) as never,
     );
-    vi.mocked(listDiaryEntries).mockResolvedValue(
-      sdkOk({ items: [] }) as never,
-    );
+    vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
     const result = await handleIdentityBootstrap(deps, context);
 
@@ -80,18 +88,20 @@ describe('identity_bootstrap prompt', () => {
         fingerprint: 'A1B2-C3D4',
       }) as never,
     );
-    vi.mocked(listDiaryEntries).mockResolvedValue(
+    vi.mocked(searchDiary).mockResolvedValue(
       sdkOk({
-        items: [
+        results: [
           {
             id: '1',
             content: 'I am Archon',
             tags: ['system', 'identity'],
+            entryType: 'identity',
           },
           {
             id: '2',
             content: 'I value truth',
             tags: ['system', 'soul'],
+            entryType: 'soul',
           },
         ],
       }) as never,
@@ -114,13 +124,14 @@ describe('identity_bootstrap prompt', () => {
         fingerprint: 'A1B2-C3D4',
       }) as never,
     );
-    vi.mocked(listDiaryEntries).mockResolvedValue(
+    vi.mocked(searchDiary).mockResolvedValue(
       sdkOk({
-        items: [
+        results: [
           {
             id: '1',
             content: 'I am Archon',
             tags: ['system', 'identity'],
+            entryType: 'identity',
           },
         ],
       }) as never,

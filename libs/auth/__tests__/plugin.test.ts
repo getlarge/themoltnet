@@ -37,7 +37,6 @@ function createMockPermissionChecker() {
 function createMockRelationshipWriter() {
   return {
     grantOwnership: vi.fn(),
-    grantViewer: vi.fn(),
     registerAgent: vi.fn(),
     removeEntryRelations: vi.fn(),
   };

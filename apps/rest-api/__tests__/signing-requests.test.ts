@@ -109,8 +109,6 @@ function createApp(
       search: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      share: vi.fn(),
-      getSharedWithMe: vi.fn(),
       reflect: vi.fn(),
     } as unknown as DiaryService,
     diaryRepository: new Proxy(
@@ -156,11 +154,9 @@ function createApp(
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
-      canShareEntry: vi.fn(),
     } as unknown as PermissionChecker,
     relationshipWriter: {
       grantOwnership: vi.fn(),
-      grantViewer: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
     } as unknown as RelationshipWriter,

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   DiaryEntry,
-  DiaryRepository,
+  DiaryEntryRepository,
   EmbeddingService,
   RelationshipWriter,
 } from '../src/types.js';
@@ -27,30 +27,34 @@ vi.mock('@moltnet/database', () => ({
 }));
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
-const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 const GENERATED_ID = '880e8400-e29b-41d4-a716-446655440003';
+const DIARY_ID = '990e8400-e29b-41d4-a716-446655440004';
 
 const MOCK_EMBEDDING = Array.from({ length: 384 }, (_, i) => i * 0.001);
 
 function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
     id: ENTRY_ID,
-    ownerId: OWNER_ID,
+    diaryId: DIARY_ID,
     title: null,
     content: 'Test diary entry content',
     embedding: null,
-    visibility: 'private',
     tags: null,
     injectionRisk: false,
+    importance: 5,
+    accessCount: 0,
+    lastAccessedAt: null,
+    entryType: 'semantic' as const,
+    supersededBy: null,
     createdAt: new Date('2026-01-30T10:00:00Z'),
     updatedAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,
   };
 }
 
-function createMockDiaryRepository(): {
-  [K in keyof DiaryRepository]: ReturnType<typeof vi.fn>;
+function createMockDiaryEntryRepository(): {
+  [K in keyof DiaryEntryRepository]: ReturnType<typeof vi.fn>;
 } {
   return {
     create: vi.fn(),
@@ -59,9 +63,6 @@ function createMockDiaryRepository(): {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    share: vi.fn(),
-    unshare: vi.fn(),
-    getSharedWithMe: vi.fn(),
     getRecentForDigest: vi.fn(),
   };
 }
@@ -71,7 +72,6 @@ function createMockRelationshipWriter(): {
 } {
   return {
     grantOwnership: vi.fn().mockResolvedValue(undefined),
-    grantViewer: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
   };
@@ -87,7 +87,7 @@ function createMockEmbeddingService(): {
 }
 
 describe('Diary Workflows', () => {
-  let repo: ReturnType<typeof createMockDiaryRepository>;
+  let repo: ReturnType<typeof createMockDiaryEntryRepository>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
 
@@ -98,7 +98,7 @@ describe('Diary Workflows', () => {
     // Reset the module to force re-init
     vi.resetModules();
 
-    repo = createMockDiaryRepository();
+    repo = createMockDiaryEntryRepository();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
     mockRunTransaction.mockImplementation(async (fn) => fn());
@@ -108,7 +108,7 @@ describe('Diary Workflows', () => {
       await import('../src/workflows/diary-workflows.js');
 
     setDiaryWorkflowDeps({
-      diaryRepository: repo as unknown as DiaryRepository,
+      diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
       dataSource: {
@@ -129,7 +129,8 @@ describe('Diary Workflows', () => {
         await import('../src/workflows/diary-workflows.js');
 
       const result = await diaryWorkflows.createEntry({
-        ownerId: OWNER_ID,
+        requesterId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Test diary entry content',
       });
 
@@ -139,9 +140,8 @@ describe('Diary Workflows', () => {
       );
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          ownerId: OWNER_ID,
+          diaryId: DIARY_ID,
           content: 'Test diary entry content',
-          visibility: 'private',
           embedding: MOCK_EMBEDDING,
           injectionRisk: false,
         }),
@@ -149,6 +149,31 @@ describe('Diary Workflows', () => {
       expect(writer.grantOwnership).toHaveBeenCalledWith(
         mockEntry.id,
         OWNER_ID,
+      );
+    });
+
+    it('includes title and tags in embedding text', async () => {
+      const mockEntry = createMockEntry({
+        id: GENERATED_ID,
+        title: 'Deploy Log',
+        tags: ['deploy'],
+      });
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(mockEntry);
+
+      const { diaryWorkflows } =
+        await import('../src/workflows/diary-workflows.js');
+
+      await diaryWorkflows.createEntry({
+        requesterId: OWNER_ID,
+        diaryId: DIARY_ID,
+        content: 'Deployed v3',
+        title: 'Deploy Log',
+        tags: ['deploy'],
+      });
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Deploy Log\nDeployed v3\ntag:deploy',
       );
     });
 
@@ -161,7 +186,8 @@ describe('Diary Workflows', () => {
         await import('../src/workflows/diary-workflows.js');
 
       const result = await diaryWorkflows.createEntry({
-        ownerId: OWNER_ID,
+        requesterId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Test content',
       });
 
@@ -183,7 +209,8 @@ describe('Diary Workflows', () => {
 
       await expect(
         diaryWorkflows.createEntry({
-          ownerId: OWNER_ID,
+          requesterId: OWNER_ID,
+          diaryId: DIARY_ID,
           content: 'Test content',
         }),
       ).rejects.toThrow('Failed to grant ownership after entry creation');
@@ -194,7 +221,7 @@ describe('Diary Workflows', () => {
   });
 
   describe('diary.update', () => {
-    it('regenerates embedding and scans injection when content changes', async () => {
+    it('regenerates embedding with existing title when only content changes', async () => {
       const updated = createMockEntry({
         content: 'New content',
         embedding: MOCK_EMBEDDING,
@@ -213,7 +240,10 @@ describe('Diary Workflows', () => {
       );
 
       expect(result).toEqual(updated);
-      expect(embeddings.embedPassage).toHaveBeenCalledWith('New content');
+      // existingTitle is preserved in the embedding text
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Old title\nNew content',
+      );
       expect(repo.update).toHaveBeenCalledWith(
         ENTRY_ID,
         expect.objectContaining({
@@ -224,13 +254,59 @@ describe('Diary Workflows', () => {
       );
     });
 
-    it('does not regenerate embedding when only visibility changes', async () => {
-      repo.update.mockResolvedValue(createMockEntry({ visibility: 'moltnet' }));
+    it('regenerates embedding when only tags change', async () => {
+      const updated = createMockEntry({ tags: ['new-tag'] });
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.update.mockResolvedValue(updated);
 
       const { diaryWorkflows } =
         await import('../src/workflows/diary-workflows.js');
 
-      await diaryWorkflows.updateEntry(ENTRY_ID, { visibility: 'moltnet' });
+      await diaryWorkflows.updateEntry(
+        ENTRY_ID,
+        { tags: ['new-tag'] },
+        'Original content',
+        null,
+        ['old-tag'],
+      );
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'Original content\ntag:new-tag',
+      );
+    });
+
+    it('regenerates embedding when only title changes', async () => {
+      const updated = createMockEntry({ title: 'New Title' });
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.update.mockResolvedValue(updated);
+
+      const { diaryWorkflows } =
+        await import('../src/workflows/diary-workflows.js');
+
+      await diaryWorkflows.updateEntry(
+        ENTRY_ID,
+        { title: 'New Title' },
+        'Body text',
+        'Old Title',
+      );
+
+      expect(embeddings.embedPassage).toHaveBeenCalledWith(
+        'New Title\nBody text',
+      );
+    });
+
+    it('does not regenerate embedding when only metadata changes', async () => {
+      repo.update.mockResolvedValue(
+        createMockEntry({ importance: 9, entryType: 'soul' }),
+      );
+
+      const { diaryWorkflows } =
+        await import('../src/workflows/diary-workflows.js');
+
+      await diaryWorkflows.updateEntry(ENTRY_ID, {
+        importance: 9,
+        entryType: 'soul',
+      });
 
       expect(embeddings.embedPassage).not.toHaveBeenCalled();
     });
@@ -260,61 +336,6 @@ describe('Diary Workflows', () => {
 
       expect(result).toBe(false);
       expect(writer.removeEntryRelations).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('diary.share', () => {
-    it('creates share record and grants viewer permission', async () => {
-      repo.share.mockResolvedValue(true);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      const result = await diaryWorkflows.shareEntry(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-
-      expect(result).toBe(true);
-      expect(repo.share).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-      expect(writer.grantViewer).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
-    });
-
-    it('compensates by unsharing when grantViewer fails', async () => {
-      repo.share.mockResolvedValue(true);
-      writer.grantViewer.mockRejectedValue(new Error('Keto unavailable'));
-      repo.unshare.mockResolvedValue(true);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await expect(
-        diaryWorkflows.shareEntry(ENTRY_ID, OWNER_ID, OTHER_AGENT_ID),
-      ).rejects.toThrow('Failed to grant viewer after share creation');
-
-      // Verify compensation: share was removed
-      expect(repo.unshare).toHaveBeenCalledWith(ENTRY_ID, OTHER_AGENT_ID);
-    });
-
-    it('skips Keto grant when share record was not created', async () => {
-      repo.share.mockResolvedValue(false);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      const result = await diaryWorkflows.shareEntry(
-        ENTRY_ID,
-        OWNER_ID,
-        OTHER_AGENT_ID,
-      );
-
-      expect(result).toBe(false);
-      expect(writer.grantViewer).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,5 +1,5 @@
 /**
- * DiaryRepository Integration Tests
+ * DiaryEntryRepository Integration Tests
  *
  * Runs against a real PostgreSQL + pgvector database.
  * Requires DATABASE_URL environment variable pointing to a test database
@@ -12,31 +12,28 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
-import { createDiaryRepository } from '../src/repositories/diary.repository.js';
-import { diaryEntries, entryShares } from '../src/schema.js';
+import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
+import { diaryEntries } from '../src/schema.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
-describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
+describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
   let db: Database;
-  let repo: ReturnType<typeof createDiaryRepository>;
+  let repo: ReturnType<typeof createDiaryEntryRepository>;
 
-  const OWNER_ID = '00000000-0000-4000-a000-000000000001';
-  const OTHER_AGENT = '00000000-0000-4000-a000-000000000002';
+  const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
   beforeAll(() => {
     db = createDatabase(DATABASE_URL!);
-    repo = createDiaryRepository(db);
+    repo = createDiaryEntryRepository(db);
   });
 
   afterEach(async () => {
     // Clean up test data between tests
-    await db.delete(entryShares);
     await db.delete(diaryEntries);
   });
 
   afterAll(async () => {
-    await db.delete(entryShares);
     await db.delete(diaryEntries);
   });
 
@@ -45,14 +42,13 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
   describe('create', () => {
     it('creates entry with required fields', async () => {
       const entry = await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'I learned about Ed25519 today.',
       });
 
       expect(entry.id).toBeDefined();
-      expect(entry.ownerId).toBe(OWNER_ID);
+      expect(entry.diaryId).toBe(DIARY_ID);
       expect(entry.content).toBe('I learned about Ed25519 today.');
-      expect(entry.visibility).toBe('private');
       expect(entry.title).toBeNull();
       expect(entry.embedding).toBeNull();
       expect(entry.tags).toBeNull();
@@ -62,15 +58,13 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
 
     it('creates entry with all optional fields', async () => {
       const entry = await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Deep learning about cryptography.',
         title: 'Crypto Diary',
-        visibility: 'moltnet',
         tags: ['crypto', 'learning'],
       });
 
       expect(entry.title).toBe('Crypto Diary');
-      expect(entry.visibility).toBe('moltnet');
       expect(entry.tags).toEqual(['crypto', 'learning']);
     });
 
@@ -78,7 +72,7 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
       const embedding = Array.from({ length: 384 }, (_, i) => i * 0.001);
 
       const entry = await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Entry with vector embedding.',
         embedding,
       });
@@ -92,70 +86,19 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
   });
 
   describe('findById', () => {
-    it('returns entry when requester is the owner', async () => {
+    it('returns entry when it exists', async () => {
       const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'My private entry.',
+        diaryId: DIARY_ID,
+        content: 'My entry.',
       });
 
-      const found = await repo.findById(created.id, OWNER_ID);
-      expect(found).not.toBeNull();
-      expect(found!.id).toBe(created.id);
-    });
-
-    it('returns null for private entry when requester is not the owner', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Private entry.',
-        visibility: 'private',
-      });
-
-      const found = await repo.findById(created.id, OTHER_AGENT);
-      expect(found).toBeNull();
-    });
-
-    it('returns public entry to any requester', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Public entry.',
-        visibility: 'public',
-      });
-
-      const found = await repo.findById(created.id, OTHER_AGENT);
-      expect(found).not.toBeNull();
-      expect(found!.id).toBe(created.id);
-    });
-
-    it('returns moltnet-visible entry to any requester', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Moltnet-visible entry.',
-        visibility: 'moltnet',
-      });
-
-      const found = await repo.findById(created.id, OTHER_AGENT);
-      expect(found).not.toBeNull();
-    });
-
-    it('returns private entry to explicitly shared agent', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared secret.',
-        visibility: 'private',
-      });
-
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-
-      const found = await repo.findById(created.id, OTHER_AGENT);
+      const found = await repo.findById(created.id);
       expect(found).not.toBeNull();
       expect(found!.id).toBe(created.id);
     });
 
     it('returns null for non-existent entry', async () => {
-      const found = await repo.findById(
-        '99999999-0000-4000-a000-000000000000',
-        OWNER_ID,
-      );
+      const found = await repo.findById('99999999-0000-4000-a000-000000000000');
       expect(found).toBeNull();
     });
   });
@@ -163,73 +106,57 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
   // ── List ────────────────────────────────────────────────────────────
 
   describe('list', () => {
-    it('lists entries for owner ordered by createdAt desc', async () => {
-      await repo.create({ ownerId: OWNER_ID, content: 'First entry.' });
+    it('lists entries for diary ordered by createdAt desc', async () => {
+      await repo.create({ diaryId: DIARY_ID, content: 'First entry.' });
       // Small delay so timestamps differ
-      await repo.create({ ownerId: OWNER_ID, content: 'Second entry.' });
-      await repo.create({ ownerId: OWNER_ID, content: 'Third entry.' });
+      await repo.create({ diaryId: DIARY_ID, content: 'Second entry.' });
+      await repo.create({ diaryId: DIARY_ID, content: 'Third entry.' });
 
-      const entries = await repo.list({ ownerId: OWNER_ID });
+      const entries = await repo.list({ diaryId: DIARY_ID });
 
       expect(entries.length).toBe(3);
       expect(entries[0].content).toBe('Third entry.');
       expect(entries[2].content).toBe('First entry.');
     });
 
-    it('does not return entries from other owners', async () => {
-      await repo.create({ ownerId: OWNER_ID, content: 'My entry.' });
-      await repo.create({ ownerId: OTHER_AGENT, content: 'Their entry.' });
-
-      const entries = await repo.list({ ownerId: OWNER_ID });
-
-      expect(entries.length).toBe(1);
-      expect(entries[0].content).toBe('My entry.');
-    });
-
-    it('filters by visibility', async () => {
+    it('filters by entryType', async () => {
       await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Private.',
-        visibility: 'private',
+        diaryId: DIARY_ID,
+        content: 'Episodic entry.',
+        entryType: 'episodic',
       });
       await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Public.',
-        visibility: 'public',
+        diaryId: DIARY_ID,
+        content: 'Semantic entry.',
+        entryType: 'semantic',
       });
       await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Moltnet.',
-        visibility: 'moltnet',
+        diaryId: DIARY_ID,
+        content: 'Reflection entry.',
+        entryType: 'reflection',
       });
 
-      const publicOnly = await repo.list({
-        ownerId: OWNER_ID,
-        visibility: ['public'],
+      const episodicOnly = await repo.list({
+        diaryId: DIARY_ID,
+        entryType: 'episodic',
       });
-      expect(publicOnly.length).toBe(1);
-      expect(publicOnly[0].content).toBe('Public.');
-
-      const publicAndMoltnet = await repo.list({
-        ownerId: OWNER_ID,
-        visibility: ['public', 'moltnet'],
-      });
-      expect(publicAndMoltnet.length).toBe(2);
+      expect(episodicOnly.length).toBe(1);
+      expect(episodicOnly[0].content).toBe('Episodic entry.');
     });
 
     it('respects limit and offset', async () => {
       for (let i = 0; i < 5; i++) {
         await repo.create({
-          ownerId: OWNER_ID,
+          diaryId: DIARY_ID,
           content: `Entry ${i}`,
         });
       }
 
-      const page1 = await repo.list({ ownerId: OWNER_ID, limit: 2 });
+      const page1 = await repo.list({ diaryId: DIARY_ID, limit: 2 });
       expect(page1.length).toBe(2);
 
       const page2 = await repo.list({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         limit: 2,
         offset: 2,
       });
@@ -245,11 +172,11 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
   describe('update', () => {
     it('updates title and content', async () => {
       const created = await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Original content.',
       });
 
-      const updated = await repo.update(created.id, OWNER_ID, {
+      const updated = await repo.update(created.id, {
         title: 'New Title',
         content: 'Updated content.',
       });
@@ -262,53 +189,37 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
       );
     });
 
-    it('updates visibility', async () => {
+    it('updates importance', async () => {
       const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Private entry.',
-        visibility: 'private',
+        diaryId: DIARY_ID,
+        content: 'Important entry.',
       });
 
-      const updated = await repo.update(created.id, OWNER_ID, {
-        visibility: 'public',
+      const updated = await repo.update(created.id, {
+        importance: 9,
       });
 
-      expect(updated!.visibility).toBe('public');
+      expect(updated!.importance).toBe(9);
     });
 
     it('updates tags', async () => {
       const created = await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Tagged entry.',
         tags: ['old'],
       });
 
-      const updated = await repo.update(created.id, OWNER_ID, {
+      const updated = await repo.update(created.id, {
         tags: ['new', 'updated'],
       });
 
       expect(updated!.tags).toEqual(['new', 'updated']);
     });
 
-    it('returns null when entry does not belong to requester', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'My entry.',
-      });
-
-      const result = await repo.update(created.id, OTHER_AGENT, {
-        title: 'Hacked',
-      });
-
-      expect(result).toBeNull();
-    });
-
     it('returns null for non-existent entry', async () => {
-      const result = await repo.update(
-        '99999999-0000-4000-a000-000000000000',
-        OWNER_ID,
-        { title: 'x' },
-      );
+      const result = await repo.update('99999999-0000-4000-a000-000000000000', {
+        title: 'x',
+      });
       expect(result).toBeNull();
     });
   });
@@ -316,131 +227,22 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
   // ── Delete ──────────────────────────────────────────────────────────
 
   describe('delete', () => {
-    it('deletes entry when owner matches', async () => {
+    it('deletes entry by id', async () => {
       const created = await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'To be deleted.',
       });
 
-      const deleted = await repo.delete(created.id, OWNER_ID);
+      const deleted = await repo.delete(created.id);
       expect(deleted).toBe(true);
 
-      const found = await repo.findById(created.id, OWNER_ID);
+      const found = await repo.findById(created.id);
       expect(found).toBeNull();
     });
 
-    it('returns false when owner does not match', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Protected entry.',
-      });
-
-      const deleted = await repo.delete(created.id, OTHER_AGENT);
+    it('returns false for non-existent entry', async () => {
+      const deleted = await repo.delete('99999999-0000-4000-a000-000000000000');
       expect(deleted).toBe(false);
-
-      // Entry still exists
-      const found = await repo.findById(created.id, OWNER_ID);
-      expect(found).not.toBeNull();
-    });
-
-    it('cascades delete to shares', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared then deleted.',
-      });
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-
-      await repo.delete(created.id, OWNER_ID);
-
-      // Share should be gone too (cascade)
-      const shared = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(shared.length).toBe(0);
-    });
-  });
-
-  // ── Share ───────────────────────────────────────────────────────────
-
-  describe('share', () => {
-    it('shares entry with another agent', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared entry.',
-      });
-
-      const shared = await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-      expect(shared).toBe(true);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(1);
-      expect(received[0].id).toBe(created.id);
-    });
-
-    it('returns false when entry not owned by sharer', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Not yours.',
-      });
-
-      const result = await repo.share(created.id, OTHER_AGENT, OWNER_ID);
-      expect(result).toBe(false);
-    });
-
-    it('does not create duplicate shares', async () => {
-      const created = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared twice.',
-      });
-
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-      await repo.share(created.id, OWNER_ID, OTHER_AGENT);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(1);
-    });
-  });
-
-  // ── getSharedWithMe ─────────────────────────────────────────────────
-
-  describe('getSharedWithMe', () => {
-    it('returns empty array when nothing is shared', async () => {
-      const result = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(result).toEqual([]);
-    });
-
-    it('returns entries ordered by createdAt desc', async () => {
-      const e1 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'First shared.',
-      });
-      const e2 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Second shared.',
-      });
-
-      await repo.share(e1.id, OWNER_ID, OTHER_AGENT);
-      await repo.share(e2.id, OWNER_ID, OTHER_AGENT);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(2);
-      expect(received[0].id).toBe(e2.id);
-      expect(received[1].id).toBe(e1.id);
-    });
-
-    it('respects limit', async () => {
-      const e1 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared 1.',
-      });
-      const e2 = await repo.create({
-        ownerId: OWNER_ID,
-        content: 'Shared 2.',
-      });
-
-      await repo.share(e1.id, OWNER_ID, OTHER_AGENT);
-      await repo.share(e2.id, OWNER_ID, OTHER_AGENT);
-
-      const received = await repo.getSharedWithMe(OTHER_AGENT, 1);
-      expect(received.length).toBe(1);
     });
   });
 
@@ -449,29 +251,33 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
   describe('getRecentForDigest', () => {
     it('returns entries within the specified day range', async () => {
       await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Recent entry.',
       });
 
-      const entries = await repo.getRecentForDigest(OWNER_ID, 7, 50);
+      const entries = await repo.getRecentForDigest(DIARY_ID, 7, 50);
       expect(entries.length).toBe(1);
       expect(entries[0].content).toBe('Recent entry.');
     });
 
-    it('returns empty when no entries exist for owner', async () => {
-      const entries = await repo.getRecentForDigest(OTHER_AGENT, 7, 50);
+    it('returns empty when no entries exist for diary', async () => {
+      const entries = await repo.getRecentForDigest(
+        'bb0e8400-e29b-41d4-a716-446655440099',
+        7,
+        50,
+      );
       expect(entries.length).toBe(0);
     });
 
     it('respects limit', async () => {
       for (let i = 0; i < 5; i++) {
         await repo.create({
-          ownerId: OWNER_ID,
+          diaryId: DIARY_ID,
           content: `Entry ${i}`,
         });
       }
 
-      const entries = await repo.getRecentForDigest(OWNER_ID, 7, 3);
+      const entries = await repo.getRecentForDigest(DIARY_ID, 7, 3);
       expect(entries.length).toBe(3);
     });
   });
@@ -481,17 +287,17 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
   describe('search', () => {
     it('searches by full-text query', async () => {
       await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content:
           'I learned about cryptographic signatures and Ed25519 algorithms today.',
       });
       await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Had a nice walk in the park and saw some ducks.',
       });
 
       const results = await repo.search({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         query: 'cryptographic signatures',
       });
 
@@ -500,10 +306,10 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
     });
 
     it('falls back to list when no query or embedding provided', async () => {
-      await repo.create({ ownerId: OWNER_ID, content: 'Entry A.' });
-      await repo.create({ ownerId: OWNER_ID, content: 'Entry B.' });
+      await repo.create({ diaryId: DIARY_ID, content: 'Entry A.' });
+      await repo.create({ diaryId: DIARY_ID, content: 'Entry B.' });
 
-      const results = await repo.search({ ownerId: OWNER_ID });
+      const results = await repo.search({ diaryId: DIARY_ID });
       expect(results.length).toBe(2);
     });
 
@@ -513,12 +319,12 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
       const farEmbedding = Array.from({ length: 384 }, () => 0.9);
 
       await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Close entry.',
         embedding: closeEmbedding,
       });
       await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Far entry.',
         embedding: farEmbedding,
       });
@@ -526,7 +332,7 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
       // Search with a query embedding close to closeEmbedding
       const queryEmbedding = Array.from({ length: 384 }, () => 0.1);
       const results = await repo.search({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         embedding: queryEmbedding,
       });
 
@@ -544,20 +350,20 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
       );
 
       await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content:
           'I studied cryptographic signature algorithms and key derivation functions.',
         embedding: cryptoEmbedding,
       });
       await repo.create({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         content: 'Observed mallard ducks and geese at the pond today.',
         embedding: duckEmbedding,
       });
 
       // Search with both text query and embedding matching crypto entry
       const results = await repo.search({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         query: 'cryptographic algorithms',
         embedding: cryptoEmbedding,
       });
@@ -566,7 +372,7 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
       expect(results[0].content).toContain('cryptographic');
       // Verify the result has the expected DiaryEntry shape
       expect(results[0].id).toBeDefined();
-      expect(results[0].ownerId).toBe(OWNER_ID);
+      expect(results[0].diaryId).toBe(DIARY_ID);
       expect(results[0].createdAt).toBeInstanceOf(Date);
       expect(results[0].updatedAt).toBeInstanceOf(Date);
     });
@@ -574,13 +380,13 @@ describe.runIf(DATABASE_URL)('DiaryRepository (integration)', () => {
     it('respects limit parameter', async () => {
       for (let i = 0; i < 5; i++) {
         await repo.create({
-          ownerId: OWNER_ID,
+          diaryId: DIARY_ID,
           content: `Searchable entry number ${i} about algorithms.`,
         });
       }
 
       const results = await repo.search({
-        ownerId: OWNER_ID,
+        diaryId: DIARY_ID,
         query: 'algorithms',
         limit: 2,
       });

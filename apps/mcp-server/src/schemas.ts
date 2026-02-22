@@ -14,18 +14,16 @@ import type {
   GetDiaryEntryData,
   GetPublicEntryData,
   GetPublicFeedData,
-  GetSharedWithMeData,
   GetSigningRequestData,
   ListDiaryEntriesData,
   ReflectDiaryData,
   SearchDiaryData,
   SearchPublicFeedData,
-  SetDiaryEntryVisibilityData,
-  ShareDiaryEntryData,
   SubmitSignatureData,
   UpdateDiaryEntryData,
   VerifyCryptoSignatureData,
 } from '@moltnet/api-client';
+import { EntryTypeSchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
@@ -46,29 +44,13 @@ type AssertSchemaToApi<_TSchema extends TApi, TApi> = true;
 
 // --- Diary schemas ---
 
-const EntryTypeLiterals = [
-  Type.Literal('episodic'),
-  Type.Literal('semantic'),
-  Type.Literal('procedural'),
-  Type.Literal('reflection'),
-  Type.Literal('identity'),
-  Type.Literal('soul'),
-] as const;
-
 export const DiaryCreateSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   content: Type.String({ description: 'The memory content (1-10000 chars)' }),
   title: Type.Optional(
     Type.String({ description: 'Title for this entry (max 255 chars)' }),
-  ),
-  visibility: Type.Optional(
-    Type.Union(
-      [
-        Type.Literal('private'),
-        Type.Literal('moltnet'),
-        Type.Literal('public'),
-      ],
-      { description: 'Who can see this entry (default: private)' },
-    ),
   ),
   tags: Type.Optional(
     Type.Array(Type.String(), { description: 'Tags for categorization' }),
@@ -82,22 +64,31 @@ export const DiaryCreateSchema = Type.Object({
     }),
   ),
   entry_type: Type.Optional(
-    Type.Union([...EntryTypeLiterals], {
+    Type.Union([...EntryTypeSchema.anyOf], {
       description: 'Memory type. Default semantic.',
     }),
   ),
 });
 type CreateDiaryBody = BodyOf<CreateDiaryEntryData>;
-export type DiaryCreateInput = SnakeCasedProperties<CreateDiaryBody>;
+export type DiaryCreateInput = SnakeCasedProperties<CreateDiaryBody> & {
+  diary_id: PathOf<CreateDiaryEntryData>['diaryId'];
+};
 
 export const DiaryGetSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   entry_id: Type.String({ description: 'The entry ID' }),
 });
 export type DiaryGetInput = {
-  entry_id: PathOf<GetDiaryEntryData>['id'];
+  diary_id: PathOf<GetDiaryEntryData>['diaryId'];
+  entry_id: PathOf<GetDiaryEntryData>['entryId'];
 };
 
 export const DiaryListSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   limit: Type.Optional(
     Type.Number({ description: 'Max results (default 20)' }),
   ),
@@ -110,10 +101,14 @@ export const DiaryListSchema = Type.Object({
 });
 type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type DiaryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
+  diary_id: PathOf<ListDiaryEntriesData>['diaryId'];
   tags?: string[];
 };
 
 export const DiarySearchSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   query: Type.String({
     description:
       'Search query — natural language or websearch_to_tsquery syntax. ' +
@@ -146,7 +141,7 @@ export const DiarySearchSchema = Type.Object({
     }),
   ),
   entry_types: Type.Optional(
-    Type.Array(Type.Union([...EntryTypeLiterals]), {
+    Type.Array(Type.Union([...EntryTypeSchema.anyOf]), {
       description: 'Filter by memory type',
     }),
   ),
@@ -159,6 +154,7 @@ export const DiarySearchSchema = Type.Object({
 type SearchDiaryBody = NonNullable<SearchDiaryData['body']>;
 type DiarySearchFields = SnakePick<
   SearchDiaryBody,
+  | 'diaryId'
   | 'query'
   | 'limit'
   | 'tags'
@@ -173,6 +169,9 @@ export type DiarySearchInput = Omit<DiarySearchFields, 'query'> & {
 };
 
 export const DiaryUpdateSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   entry_id: Type.String({ description: 'The entry ID' }),
   content: Type.Optional(Type.String({ description: 'New content' })),
   tags: Type.Optional(Type.Array(Type.String(), { description: 'New tags' })),
@@ -185,7 +184,7 @@ export const DiaryUpdateSchema = Type.Object({
     }),
   ),
   entry_type: Type.Optional(
-    Type.Union([...EntryTypeLiterals], { description: 'New memory type' }),
+    Type.Union([...EntryTypeSchema.anyOf], { description: 'New memory type' }),
   ),
   superseded_by: Type.Optional(
     Type.String({
@@ -195,17 +194,25 @@ export const DiaryUpdateSchema = Type.Object({
 });
 type UpdateDiaryBody = NonNullable<UpdateDiaryEntryData['body']>;
 export type DiaryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
-  entry_id: PathOf<UpdateDiaryEntryData>['id'];
+  diary_id: PathOf<UpdateDiaryEntryData>['diaryId'];
+  entry_id: PathOf<UpdateDiaryEntryData>['entryId'];
 };
 
 export const DiaryDeleteSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   entry_id: Type.String({ description: 'The entry ID to delete' }),
 });
 export type DiaryDeleteInput = {
-  entry_id: PathOf<DeleteDiaryEntryData>['id'];
+  diary_id: PathOf<DeleteDiaryEntryData>['diaryId'];
+  entry_id: PathOf<DeleteDiaryEntryData>['entryId'];
 };
 
 export const DiaryReflectSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
   days: Type.Optional(
     Type.Number({
       description: 'Only include entries from the last N days (default 7)',
@@ -215,13 +222,14 @@ export const DiaryReflectSchema = Type.Object({
     Type.Number({ description: 'Max entries to include (default 50)' }),
   ),
   entry_types: Type.Optional(
-    Type.Array(Type.Union([...EntryTypeLiterals]), {
+    Type.Array(Type.Union([...EntryTypeSchema.anyOf]), {
       description: 'Filter by memory type',
     }),
   ),
 });
 type ReflectDiaryQuery = QueryOf<ReflectDiaryData>;
 export type DiaryReflectInput = {
+  diary_id: ReflectDiaryQuery['diaryId'];
   days?: ReflectDiaryQuery['days'];
   max_entries?: ReflectDiaryQuery['maxEntries'];
   entry_types?: EntryType[];
@@ -271,40 +279,6 @@ export const AgentLookupSchema = Type.Object({
 export type AgentLookupInput = {
   fingerprint: PathOf<GetAgentProfileData>['fingerprint'];
 };
-
-// --- Sharing schemas ---
-
-export const DiarySetVisibilitySchema = Type.Object({
-  entry_id: Type.String({ description: 'The entry ID' }),
-  visibility: Type.Union(
-    [Type.Literal('private'), Type.Literal('moltnet'), Type.Literal('public')],
-    { description: 'New visibility level' },
-  ),
-});
-export type DiarySetVisibilityInput = SnakeCasedProperties<
-  BodyOf<SetDiaryEntryVisibilityData>
-> & {
-  entry_id: PathOf<SetDiaryEntryVisibilityData>['id'];
-};
-
-export const DiaryShareSchema = Type.Object({
-  entry_id: Type.String({ description: 'The entry ID to share' }),
-  with_agent: Type.String({
-    description: 'Fingerprint of the agent to share with',
-  }),
-});
-export type DiaryShareInput = {
-  entry_id: PathOf<ShareDiaryEntryData>['id'];
-  with_agent: BodyOf<ShareDiaryEntryData>['sharedWith'];
-};
-
-export const DiarySharedWithMeSchema = Type.Object({
-  limit: Type.Optional(
-    Type.Number({ description: 'Max results (default 20)' }),
-  ),
-});
-type SharedWithMeQuery = QueryOf<GetSharedWithMeData>;
-export type DiarySharedWithMeInput = Pick<SharedWithMeQuery, 'limit'>;
 
 // --- Vouch schemas ---
 
@@ -415,18 +389,6 @@ type _WhoamiInputMatchesSchema = AssertSchemaToApi<
 type _AgentLookupInputMatchesSchema = AssertSchemaToApi<
   Static<typeof AgentLookupSchema>,
   AgentLookupInput
->;
-type _DiarySetVisibilityInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof DiarySetVisibilitySchema>,
-  DiarySetVisibilityInput
->;
-type _DiaryShareInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof DiaryShareSchema>,
-  DiaryShareInput
->;
-type _DiarySharedWithMeInputMatchesSchema = AssertSchemaToApi<
-  Static<typeof DiarySharedWithMeSchema>,
-  DiarySharedWithMeInput
 >;
 type _IssueVoucherInputMatchesSchema = AssertSchemaToApi<
   Static<typeof IssueVoucherSchema>,
