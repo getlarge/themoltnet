@@ -2,22 +2,24 @@
  * @moltnet/diary-service — Type Definitions
  */
 
-export interface EmbeddingService {
-  /** Generate a 384-dimensional embedding for a passage (diary entry content) */
-  embedPassage(text: string): Promise<number[]>;
-  /** Generate a 384-dimensional embedding for a search query */
-  embedQuery(text: string): Promise<number[]>;
-}
+import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
+import type {
+  AgentRepository,
+  DiaryEntryRepository,
+  DiaryRepository,
+  DiaryShareRepository,
+} from '@moltnet/database';
+import type { EmbeddingService } from '@moltnet/embedding-service';
 
 export interface DiaryServiceDeps {
   diaryRepository: DiaryRepository;
   diaryEntryRepository: DiaryEntryRepository;
   diaryShareRepository: DiaryShareRepository;
-  agentRepository: AgentLookupRepository;
+  agentRepository: AgentRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
-  /** Runs callbacks inside a database transaction (DBOS-backed in production) */
+  /** Runs callbacks inside a database transaction */
   transactionRunner: TransactionRunner;
 }
 
@@ -131,7 +133,7 @@ export interface UpdateEntryInput {
 }
 
 export interface SearchInput {
-  diaryId: string;
+  diaryId?: string;
   query?: string;
   tags?: string[];
   limit?: number;
@@ -175,122 +177,6 @@ export interface Digest {
 }
 
 // ============================================================================
-// Repository interfaces (minimal structural — avoids importing database/auth)
-// ============================================================================
-
-export interface DiaryRepository {
-  create(input: {
-    ownerId: string;
-    name: string;
-    visibility: DiaryVisibility;
-  }): Promise<Diary>;
-  findById(id: string): Promise<Diary | null>;
-  findOwnedById(ownerId: string, id: string): Promise<Diary | null>;
-  listByOwner(ownerId: string): Promise<Diary[]>;
-  update(
-    id: string,
-    ownerId: string,
-    updates: { name?: string; visibility?: DiaryVisibility },
-  ): Promise<Diary | null>;
-  delete(id: string, ownerId: string): Promise<boolean>;
-}
-
-export interface DiaryEntryRepository {
-  create(entry: {
-    id?: string;
-    diaryId: string;
-    content: string;
-    title?: string | null;
-    tags?: string[] | null;
-    embedding?: number[] | null;
-    injectionRisk?: boolean;
-    importance?: number;
-    entryType?: EntryType;
-  }): Promise<DiaryEntry>;
-  findById(id: string): Promise<DiaryEntry | null>;
-  list(options: ListInput): Promise<DiaryEntry[]>;
-  search(options: {
-    diaryId: string;
-    query?: string;
-    embedding?: number[];
-    tags?: string[];
-    limit?: number;
-    offset?: number;
-    wRelevance?: number;
-    wRecency?: number;
-    wImportance?: number;
-    entryTypes?: EntryType[];
-    excludeSuperseded?: boolean;
-  }): Promise<DiaryEntry[]>;
-  update(
-    id: string,
-    updates: Partial<{
-      title: string | null;
-      content: string;
-      tags: string[] | null;
-      embedding: number[] | null;
-      injectionRisk: boolean;
-      importance: number;
-      entryType: EntryType;
-      supersededBy: string | null;
-    }>,
-  ): Promise<DiaryEntry | null>;
-  delete(id: string): Promise<boolean>;
-  getRecentForDigest(
-    diaryId: string,
-    days?: number,
-    limit?: number,
-    entryTypes?: EntryType[],
-  ): Promise<DiaryEntry[]>;
-}
-
-export interface DiaryShareRepository {
-  create(input: {
-    diaryId: string;
-    sharedWith: string;
-    role: DiaryShareRole;
-  }): Promise<DiaryShare | null>;
-  findById(id: string): Promise<DiaryShare | null>;
-  findByDiaryAndAgent(
-    diaryId: string,
-    sharedWith: string,
-  ): Promise<DiaryShare | null>;
-  listByDiary(diaryId: string): Promise<DiaryShare[]>;
-  listPendingForAgent(agentId: string): Promise<DiaryShare[]>;
-  updateStatus(
-    id: string,
-    status: DiaryShareStatus,
-    updates?: { respondedAt?: Date | null; role?: DiaryShareRole },
-  ): Promise<DiaryShare | null>;
-}
-
-export interface AgentLookupRepository {
-  findByFingerprint(
-    fingerprint: string,
-  ): Promise<{ identityId: string } | null>;
-}
-
-export interface PermissionChecker {
-  canViewEntry(entryId: string, agentId: string): Promise<boolean>;
-  canEditEntry(entryId: string, agentId: string): Promise<boolean>;
-  canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
-  canReadDiary(diaryId: string, agentId: string): Promise<boolean>;
-  canWriteDiary(diaryId: string, agentId: string): Promise<boolean>;
-  canManageDiary(diaryId: string, agentId: string): Promise<boolean>;
-}
-
-export interface RelationshipWriter {
-  grantEntryParent(entryId: string, diaryId: string): Promise<void>;
-  registerAgent(agentId: string): Promise<void>;
-  removeEntryRelations(entryId: string): Promise<void>;
-  grantDiaryOwner(diaryId: string, agentId: string): Promise<void>;
-  grantDiaryWriter(diaryId: string, agentId: string): Promise<void>;
-  grantDiaryReader(diaryId: string, agentId: string): Promise<void>;
-  removeDiaryRelations(diaryId: string): Promise<void>;
-  removeDiaryRelationForAgent(diaryId: string, agentId: string): Promise<void>;
-}
-
-// ============================================================================
 // Error
 // ============================================================================
 
@@ -298,9 +184,11 @@ export class DiaryServiceError extends Error {
   constructor(
     public readonly code:
       | 'not_found'
+      | 'forbidden'
       | 'self_share'
       | 'already_shared'
-      | 'wrong_status',
+      | 'wrong_status'
+      | 'validation_failed',
     message: string,
   ) {
     super(message);

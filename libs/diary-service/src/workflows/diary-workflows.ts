@@ -15,15 +15,18 @@
  * The Fastify DBOS plugin calls `initDiaryWorkflows()` after `configureDBOS()`.
  */
 
-import { type DataSource, DBOS } from '@moltnet/database';
+import { type RelationshipWriter } from '@moltnet/auth';
+import {
+  type DataSource,
+  DBOS,
+  type DiaryEntryRepository,
+} from '@moltnet/database';
+import type { EmbeddingService } from '@moltnet/embedding-service';
 
 import { scanForInjection } from '../injection-scanner.js';
 import type {
   CreateEntryInput,
   DiaryEntry,
-  DiaryEntryRepository,
-  EmbeddingService,
-  RelationshipWriter,
   UpdateEntryInput,
 } from '../types.js';
 

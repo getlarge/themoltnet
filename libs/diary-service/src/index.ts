@@ -14,25 +14,19 @@ export {
 export { createNoopEmbeddingService } from './embedding-service.js';
 export { scanForInjection, type ScanResult } from './injection-scanner.js';
 export type {
-  AgentLookupRepository,
   CreateDiaryInput,
   CreateEntryInput,
   Diary,
   DiaryEntry,
-  DiaryRepository,
   DiaryServiceDeps,
   DiaryShare,
-  DiaryShareRepository,
   DiaryShareRole,
   DiaryShareStatus,
   DiaryVisibility,
   Digest,
   DigestEntry,
-  EmbeddingService,
   ListInput,
-  PermissionChecker,
   ReflectInput,
-  RelationshipWriter,
   SearchInput,
   ShareDiaryInput,
   TransactionRunner,
@@ -40,3 +34,11 @@ export type {
   UpdateEntryInput,
 } from './types.js';
 export { DiaryServiceError } from './types.js';
+// Re-export from source packages for consumers that import via diary-service
+export type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
+export type {
+  AgentRepository as AgentLookupRepository,
+  DiaryRepository,
+  DiaryShareRepository,
+} from '@moltnet/database';
+export type { EmbeddingService } from '@moltnet/embedding-service';
