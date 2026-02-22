@@ -184,6 +184,8 @@ export function initDiaryWorkflows(): void {
               content: input.content,
               title: input.title,
               tags: input.tags,
+              importance: input.importance,
+              entryType: input.entryType,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
             });
