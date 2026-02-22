@@ -1793,6 +1793,70 @@
       }
     },
     "/diaries/{id}": {
+      "get": {
+        "operationId": "getDiary",
+        "tags": ["diary"],
+        "description": "Get a diary by ID.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryCatalog"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "operationId": "updateDiary",
         "tags": ["diary"],
@@ -1837,7 +1901,8 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -1900,7 +1965,8 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -1975,7 +2041,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2068,7 +2135,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2197,7 +2265,8 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2272,7 +2341,8 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2347,7 +2417,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           },
           {
             "schema": {
@@ -2356,7 +2427,8 @@
             },
             "in": "path",
             "name": "fingerprint",
-            "required": true
+            "required": true,
+            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
           }
         ],
         "security": [
@@ -2484,7 +2556,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2610,7 +2683,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2675,7 +2749,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           },
           {
             "schema": {
@@ -2684,7 +2759,8 @@
             },
             "in": "path",
             "name": "entryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2738,7 +2814,7 @@
       "patch": {
         "operationId": "updateDiaryEntry",
         "tags": ["diary"],
-        "description": "Update a diary entry (content, title, visibility, tags).",
+        "description": "Update a diary entry (content, title, tags).",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2812,7 +2888,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           },
           {
             "schema": {
@@ -2821,7 +2898,8 @@
             },
             "in": "path",
             "name": "entryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2884,7 +2962,8 @@
             },
             "in": "path",
             "name": "diaryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           },
           {
             "schema": {
@@ -2893,7 +2972,8 @@
             },
             "in": "path",
             "name": "entryId",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [

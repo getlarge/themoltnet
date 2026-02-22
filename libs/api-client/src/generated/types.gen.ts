@@ -551,6 +551,9 @@ export type CreateDiaryResponse =
 export type DeleteDiaryData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -588,12 +591,53 @@ export type DeleteDiaryResponses = {
 export type DeleteDiaryResponse =
   DeleteDiaryResponses[keyof DeleteDiaryResponses];
 
+export type GetDiaryData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}';
+};
+
+export type GetDiaryErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetDiaryError = GetDiaryErrors[keyof GetDiaryErrors];
+
+export type GetDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryCatalog;
+};
+
+export type GetDiaryResponse = GetDiaryResponses[keyof GetDiaryResponses];
+
 export type UpdateDiaryData = {
   body?: {
     name?: string;
     visibility?: 'private' | 'moltnet' | 'public';
   };
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -630,6 +674,9 @@ export type UpdateDiaryResponse =
 export type ListDiarySharesData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
   };
   query?: never;
@@ -673,6 +720,9 @@ export type ShareDiaryData = {
     role?: 'reader' | 'writer';
   };
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
   };
   query?: never;
@@ -747,6 +797,9 @@ export type ListDiaryInvitationsResponse =
 export type AcceptDiaryInvitationData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -788,6 +841,9 @@ export type AcceptDiaryInvitationResponse =
 export type DeclineDiaryInvitationData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -829,7 +885,13 @@ export type DeclineDiaryInvitationResponse =
 export type RevokeDiaryShareData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
+    /**
+     * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+     */
     fingerprint: string;
   };
   query?: never;
@@ -867,6 +929,9 @@ export type RevokeDiaryShareResponse =
 export type ListDiaryEntriesData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
   };
   query?: {
@@ -930,6 +995,9 @@ export type CreateDiaryEntryData = {
       | 'soul';
   };
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
   };
   query?: never;
@@ -967,7 +1035,13 @@ export type CreateDiaryEntryResponse =
 export type DeleteDiaryEntryData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
+    /**
+     * UUID v4 identifier
+     */
     entryId: string;
   };
   query?: never;
@@ -1005,7 +1079,13 @@ export type DeleteDiaryEntryResponse =
 export type GetDiaryEntryData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
+    /**
+     * UUID v4 identifier
+     */
     entryId: string;
   };
   query?: never;
@@ -1055,7 +1135,13 @@ export type UpdateDiaryEntryData = {
     supersededBy?: string;
   };
   path: {
+    /**
+     * UUID v4 identifier
+     */
     diaryId: string;
+    /**
+     * UUID v4 identifier
+     */
     entryId: string;
   };
   query?: never;

@@ -30,9 +30,12 @@ import type {
   GetCryptoIdentityData,
   GetCryptoIdentityErrors,
   GetCryptoIdentityResponses,
+  GetDiaryData,
   GetDiaryEntryData,
   GetDiaryEntryErrors,
   GetDiaryEntryResponses,
+  GetDiaryErrors,
+  GetDiaryResponses,
   GetHealthData,
   GetHealthResponses,
   GetLlmsTxtData,
@@ -211,6 +214,22 @@ export const deleteDiary = <ThrowOnError extends boolean = false>(
   (options.client ?? client).delete<
     DeleteDiaryResponses,
     DeleteDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}',
+    ...options,
+  });
+
+/**
+ * Get a diary by ID.
+ */
+export const getDiary = <ThrowOnError extends boolean = false>(
+  options: Options<GetDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetDiaryResponses,
+    GetDiaryErrors,
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
@@ -407,7 +426,7 @@ export const getDiaryEntry = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Update a diary entry (content, title, visibility, tags).
+ * Update a diary entry (content, title, tags).
  */
 export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<UpdateDiaryEntryData, ThrowOnError>,
