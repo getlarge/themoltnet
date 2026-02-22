@@ -14,9 +14,9 @@
  *   tsx scripts/migrate-keto-entry-parent.ts --dry-run
  *
  * Required environment variables:
- *   DATABASE_URL        — Postgres connection string
- *   ORY_KETO_WRITE_URL  — Keto admin/write API base URL (e.g. http://localhost:4467)
- *   ORY_KETO_READ_URL   — Keto public/read API base URL  (e.g. http://localhost:4466)
+ *   DATABASE_URL         — Postgres connection string (always required)
+ *   ORY_KETO_ADMIN_URL   — Keto admin/write API base URL (e.g. http://localhost:4467, optional in dry-run mode)
+ *   ORY_KETO_PUBLIC_URL  — Keto public/read API base URL  (e.g. http://localhost:4466, optional in dry-run mode)
  */
 
 import { setTimeout } from 'node:timers/promises';
@@ -50,9 +50,9 @@ Options:
   -h, --help  Show this help message
 
 Required environment variables:
-  DATABASE_URL        Postgres connection string
-  ORY_KETO_WRITE_URL  Keto admin/write API base URL
-  ORY_KETO_READ_URL   Keto public/read API base URL
+  DATABASE_URL         Postgres connection string (always required)
+  ORY_KETO_ADMIN_URL   Keto admin/write API base URL (optional in dry-run mode)
+  ORY_KETO_PUBLIC_URL  Keto public/read API base URL (optional in dry-run mode)
 `);
   process.exit(0);
 }
@@ -85,14 +85,14 @@ async function main(): Promise<void> {
   console.log(`============================`);
   console.log(`Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
 
-  // Resolve env vars (only required in live mode)
+  // DATABASE_URL is always required; Keto URLs are optional in dry-run mode
   const databaseUrl = requireEnv('DATABASE_URL');
   const ketoWriteUrl = dryRun
-    ? (process.env['ORY_KETO_WRITE_URL'] ?? 'http://localhost:4467')
-    : requireEnv('ORY_KETO_WRITE_URL');
+    ? (process.env['ORY_KETO_ADMIN_URL'] ?? 'http://localhost:4467')
+    : requireEnv('ORY_KETO_ADMIN_URL');
   const ketoReadUrl = dryRun
-    ? (process.env['ORY_KETO_READ_URL'] ?? 'http://localhost:4466')
-    : requireEnv('ORY_KETO_READ_URL');
+    ? (process.env['ORY_KETO_PUBLIC_URL'] ?? 'http://localhost:4466')
+    : requireEnv('ORY_KETO_PUBLIC_URL');
 
   // ── Database query ──────────────────────────────────────────
 
@@ -259,7 +259,7 @@ async function main(): Promise<void> {
     console.log(``);
     console.log(`Failures (${failures.length}):`);
     for (const { index, entryId, error } of failures) {
-      console.log(`  [${index}] entry_${entryId}: ${error}`);
+      console.log(`  [${index}] entry=${entryId}: ${error}`);
     }
     exitCode = 1;
   }
