@@ -75,6 +75,9 @@ function createMockPermissionChecker(): {
     canViewEntry: vi.fn().mockResolvedValue(true),
     canEditEntry: vi.fn().mockResolvedValue(true),
     canDeleteEntry: vi.fn().mockResolvedValue(true),
+    canReadDiary: vi.fn().mockResolvedValue(true),
+    canWriteDiary: vi.fn().mockResolvedValue(true),
+    canManageDiary: vi.fn().mockResolvedValue(true),
   };
 }
 
@@ -85,6 +88,11 @@ function createMockRelationshipWriter(): {
     grantOwnership: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
+    grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
+    grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
+    grantDiaryReader: vi.fn().mockResolvedValue(undefined),
+    removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
+    removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
   };
 }
 

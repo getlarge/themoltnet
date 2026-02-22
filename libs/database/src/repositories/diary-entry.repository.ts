@@ -352,8 +352,8 @@ export function createDiaryEntryRepository(db: Database) {
     },
 
     /**
-     * Public feed search: calls diary_search() with NULL owner_id
-     * to trigger public mode (visibility='public').
+     * Public feed search: calls diary_search() with NULL diary_id
+     * to trigger public mode (visibility='public' on the diary).
      * Joins agent_keys to include author fingerprint and publicKey.
      */
     async searchPublic(
