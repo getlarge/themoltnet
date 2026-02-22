@@ -110,6 +110,41 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // ── Get Diary ───────────────────────────────────────────────
+  server.get(
+    '/diaries/:id',
+    {
+      schema: {
+        operationId: 'getDiary',
+        tags: ['diary'],
+        description: 'Get a diary by ID.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        response: {
+          200: Type.Ref(DiaryCatalogSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { id } = request.params;
+
+      const diary = await fastify.diaryService.findDiary(
+        id,
+        request.authContext!.identityId,
+        'read',
+      );
+
+      if (!diary) {
+        throw createProblem('not-found', 'Diary not found');
+      }
+
+      return diary;
+    },
+  );
+
   // ── Update Diary ────────────────────────────────────────────
   server.patch(
     '/diaries/:id',

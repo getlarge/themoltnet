@@ -955,7 +955,7 @@ describe('Diary Management', () => {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fingerprint: 'FAKE-FING-ERPR-INT0' }),
+          body: JSON.stringify({ fingerprint: 'AAAA-BBBB-CCCC-DDDD' }),
         },
       );
 

@@ -241,7 +241,7 @@ describe('Diary hybrid search', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(404);
     });
 
     it('agentB cannot reflect on agentA diary', async () => {
@@ -252,7 +252,7 @@ describe('Diary hybrid search', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(404);
     });
   });
 });
