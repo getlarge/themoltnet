@@ -25,6 +25,7 @@ import type {
   RelationshipWriter,
   TransactionRunner,
 } from '../src/types.js';
+import { DiaryServiceError } from '../src/types.js';
 import { diaryWorkflows } from '../src/workflows/diary-workflows.js';
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -139,9 +140,20 @@ function createMockAgentLookupRepository(): {
   };
 }
 
+const MOCK_DIARY = {
+  id: DIARY_ID,
+  ownerId: OWNER_ID,
+  name: 'default',
+  visibility: 'private' as const,
+  signed: false,
+  createdAt: new Date('2026-01-30T10:00:00Z'),
+  updatedAt: new Date('2026-01-30T10:00:00Z'),
+};
+
 describe('DiaryService', () => {
   let service: DiaryService;
   let repo: ReturnType<typeof createMockDiaryEntryRepository>;
+  let diaryRepo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
@@ -155,6 +167,8 @@ describe('DiaryService', () => {
     vi.mocked(diaryWorkflows.deleteEntry).mockReset();
 
     repo = createMockDiaryEntryRepository();
+    diaryRepo = createMockDiaryRepository();
+    diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
     permissions = createMockPermissionChecker();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
@@ -163,8 +177,7 @@ describe('DiaryService', () => {
     };
 
     service = createDiaryService({
-      diaryRepository:
-        createMockDiaryRepository() as unknown as DiaryRepository,
+      diaryRepository: diaryRepo as unknown as DiaryRepository,
       diaryShareRepository:
         createMockDiaryShareRepository() as unknown as DiaryShareRepository,
       agentRepository:
@@ -183,7 +196,6 @@ describe('DiaryService', () => {
       vi.mocked(diaryWorkflows.createEntry).mockResolvedValue(mockEntry);
 
       const input = {
-        requesterId: OWNER_ID,
         diaryId: DIARY_ID,
         content: 'Test diary entry content',
         title: 'My Entry',
@@ -191,7 +203,7 @@ describe('DiaryService', () => {
         importance: 8,
         entryType: 'identity' as const,
       };
-      const result = await service.create(input);
+      const result = await service.createEntry(input, OWNER_ID);
 
       expect(result).toEqual(mockEntry);
       expect(diaryWorkflows.createEntry).toHaveBeenCalledWith(input);
@@ -203,11 +215,7 @@ describe('DiaryService', () => {
       );
 
       await expect(
-        service.create({
-          requesterId: OWNER_ID,
-          diaryId: DIARY_ID,
-          content: 'Test',
-        }),
+        service.createEntry({ diaryId: DIARY_ID, content: 'Test' }, OWNER_ID),
       ).rejects.toThrow('Failed to grant ownership after entry creation');
     });
   });
@@ -218,21 +226,21 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(mockEntry);
       permissions.canViewEntry.mockResolvedValue(true);
 
-      const result = await service.getById(ENTRY_ID, OWNER_ID);
+      const result = await service.getEntryById(ENTRY_ID, DIARY_ID, OWNER_ID);
 
       expect(result).toEqual(mockEntry);
       expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID);
       expect(permissions.canViewEntry).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
     });
 
-    it('returns null when Keto denies', async () => {
+    it('throws forbidden when Keto denies', async () => {
       const mockEntry = createMockEntry();
       repo.findById.mockResolvedValue(mockEntry);
       permissions.canViewEntry.mockResolvedValue(false);
 
-      const result = await service.getById(ENTRY_ID, OTHER_AGENT_ID);
-
-      expect(result).toBeNull();
+      await expect(
+        service.getEntryById(ENTRY_ID, DIARY_ID, OTHER_AGENT_ID),
+      ).rejects.toThrow(DiaryServiceError);
       expect(permissions.canViewEntry).toHaveBeenCalledWith(
         ENTRY_ID,
         OTHER_AGENT_ID,
@@ -245,7 +253,7 @@ describe('DiaryService', () => {
       const entries = [createMockEntry(), createMockEntry({ id: 'other-id' })];
       repo.list.mockResolvedValue(entries);
 
-      const result = await service.list({ diaryId: DIARY_ID });
+      const result = await service.listEntries({ diaryId: DIARY_ID });
 
       expect(result).toEqual(entries);
       expect(repo.list).toHaveBeenCalledWith({
@@ -258,7 +266,7 @@ describe('DiaryService', () => {
     it('passes filtering options through', async () => {
       repo.list.mockResolvedValue([]);
 
-      await service.list({
+      await service.listEntries({
         diaryId: DIARY_ID,
         limit: 10,
         offset: 5,
@@ -276,7 +284,7 @@ describe('DiaryService', () => {
     it('passes entryType filter to repository', async () => {
       repo.list.mockResolvedValue([]);
 
-      await service.list({
+      await service.listEntries({
         diaryId: DIARY_ID,
         entryType: 'reflection',
       });
@@ -296,7 +304,7 @@ describe('DiaryService', () => {
       embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
       repo.search.mockResolvedValue(entries);
 
-      const result = await service.search({
+      const result = await service.searchEntries({
         diaryId: DIARY_ID,
         query: 'find relevant entries',
       });
@@ -317,7 +325,7 @@ describe('DiaryService', () => {
     it('searches without embedding if no query provided', async () => {
       repo.search.mockResolvedValue([]);
 
-      await service.search({ diaryId: DIARY_ID });
+      await service.searchEntries({ diaryId: DIARY_ID });
 
       expect(embeddings.embedQuery).not.toHaveBeenCalled();
       expect(repo.search).toHaveBeenCalledWith(
@@ -329,7 +337,7 @@ describe('DiaryService', () => {
       embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
       repo.search.mockResolvedValue([]);
 
-      await service.search({
+      await service.searchEntries({
         diaryId: DIARY_ID,
         query: 'important memories',
         wRelevance: 1.0,
@@ -354,7 +362,7 @@ describe('DiaryService', () => {
       embeddings.embedQuery.mockRejectedValue(new Error('Embed failed'));
       repo.search.mockResolvedValue([]);
 
-      await service.search({
+      await service.searchEntries({
         diaryId: DIARY_ID,
         query: 'test query',
       });
@@ -369,14 +377,14 @@ describe('DiaryService', () => {
   });
 
   describe('update', () => {
-    it('returns null when Keto denies edit', async () => {
+    it('throws forbidden when Keto denies edit', async () => {
       permissions.canEditEntry.mockResolvedValue(false);
 
-      const result = await service.update(ENTRY_ID, OTHER_AGENT_ID, {
-        title: 'Hacked',
-      });
-
-      expect(result).toBeNull();
+      await expect(
+        service.updateEntry(ENTRY_ID, DIARY_ID, OTHER_AGENT_ID, {
+          title: 'Hacked',
+        }),
+      ).rejects.toThrow(DiaryServiceError);
       expect(diaryWorkflows.updateEntry).not.toHaveBeenCalled();
     });
 
@@ -387,7 +395,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(existing);
       vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(updated);
 
-      const result = await service.update(ENTRY_ID, OWNER_ID, {
+      const result = await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
         title: 'Updated Title',
       });
 
@@ -408,7 +416,9 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(existing);
       vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(existing);
 
-      await service.update(ENTRY_ID, OWNER_ID, { content: 'New content' });
+      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        content: 'New content',
+      });
       expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID);
     });
 
@@ -418,7 +428,7 @@ describe('DiaryService', () => {
         createMockEntry({ importance: 9 }),
       );
 
-      await service.update(ENTRY_ID, OWNER_ID, {
+      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
         importance: 9,
         entryType: 'soul',
         supersededBy: 'some-entry-id',
@@ -436,12 +446,12 @@ describe('DiaryService', () => {
   });
 
   describe('delete', () => {
-    it('returns false when Keto denies delete', async () => {
+    it('throws forbidden when Keto denies delete', async () => {
       permissions.canDeleteEntry.mockResolvedValue(false);
 
-      const result = await service.delete(ENTRY_ID, OTHER_AGENT_ID);
-
-      expect(result).toBe(false);
+      await expect(
+        service.deleteEntry(ENTRY_ID, DIARY_ID, OTHER_AGENT_ID),
+      ).rejects.toThrow(DiaryServiceError);
       expect(diaryWorkflows.deleteEntry).not.toHaveBeenCalled();
     });
 
@@ -449,7 +459,7 @@ describe('DiaryService', () => {
       permissions.canDeleteEntry.mockResolvedValue(true);
       vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(true);
 
-      const result = await service.delete(ENTRY_ID, OWNER_ID);
+      const result = await service.deleteEntry(ENTRY_ID, DIARY_ID, OWNER_ID);
 
       expect(result).toBe(true);
       expect(permissions.canDeleteEntry).toHaveBeenCalledWith(
@@ -463,7 +473,7 @@ describe('DiaryService', () => {
       permissions.canDeleteEntry.mockResolvedValue(true);
       vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(false);
 
-      const result = await service.delete(ENTRY_ID, OWNER_ID);
+      const result = await service.deleteEntry(ENTRY_ID, DIARY_ID, OWNER_ID);
 
       expect(result).toBe(false);
     });
@@ -657,7 +667,7 @@ describe('DiaryService — tags filter', () => {
     it('passes tags filter to repository', async () => {
       repo.list.mockResolvedValue([]);
 
-      await service.list({
+      await service.listEntries({
         diaryId: DIARY_ID,
         tags: ['accountable-commit'],
       });
@@ -673,7 +683,7 @@ describe('DiaryService — tags filter', () => {
     it('passes tags with other filters', async () => {
       repo.list.mockResolvedValue([]);
 
-      await service.list({
+      await service.listEntries({
         diaryId: DIARY_ID,
         tags: ['tag-a', 'tag-b'],
         limit: 5,
@@ -693,7 +703,7 @@ describe('DiaryService — tags filter', () => {
       embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
       repo.search.mockResolvedValue([]);
 
-      await service.search({
+      await service.searchEntries({
         diaryId: DIARY_ID,
         query: 'something',
         tags: ['accountable-commit'],
@@ -712,7 +722,7 @@ describe('DiaryService — tags filter', () => {
     it('passes tags without query', async () => {
       repo.search.mockResolvedValue([]);
 
-      await service.search({
+      await service.searchEntries({
         diaryId: DIARY_ID,
         tags: ['high-risk'],
       });

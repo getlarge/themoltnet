@@ -1,3 +1,4 @@
+import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -40,7 +41,7 @@ describe('Diary routes', () => {
   describe(`POST /diaries/${DIARY_ID}/entries`, () => {
     it('creates an entry', async () => {
       const mockEntry = createMockEntry();
-      mocks.diaryService.create.mockResolvedValue(mockEntry);
+      mocks.diaryService.createEntry.mockResolvedValue(mockEntry);
 
       const response = await app.inject({
         method: 'POST',
@@ -51,14 +52,17 @@ describe('Diary routes', () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json().content).toBe('Test diary entry content');
-      expect(mocks.diaryService.create).toHaveBeenCalledWith({
-        diaryId: DIARY_ID,
-        content: 'Test diary entry content',
-        title: undefined,
-        tags: undefined,
-        importance: undefined,
-        entryType: undefined,
-      });
+      expect(mocks.diaryService.createEntry).toHaveBeenCalledWith(
+        {
+          diaryId: DIARY_ID,
+          content: 'Test diary entry content',
+          title: undefined,
+          tags: undefined,
+          importance: undefined,
+          entryType: undefined,
+        },
+        OWNER_ID,
+      );
     });
 
     it('creates entry with all optional fields', async () => {
@@ -66,7 +70,7 @@ describe('Diary routes', () => {
         title: 'My Title',
         tags: ['test'],
       });
-      mocks.diaryService.create.mockResolvedValue(mockEntry);
+      mocks.diaryService.createEntry.mockResolvedValue(mockEntry);
 
       const response = await app.inject({
         method: 'POST',
@@ -108,7 +112,9 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when diary not found', async () => {
-      mocks.diaryService.findDiary.mockResolvedValue(null);
+      mocks.diaryService.createEntry.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary not found'),
+      );
 
       const response = await app.inject({
         method: 'POST',
@@ -124,7 +130,7 @@ describe('Diary routes', () => {
   describe(`GET /diaries/${DIARY_ID}/entries`, () => {
     it('lists entries for authenticated user', async () => {
       const entries = [createMockEntry(), createMockEntry({ id: 'other-id' })];
-      mocks.diaryService.list.mockResolvedValue(entries);
+      mocks.diaryService.listEntries.mockResolvedValue(entries);
 
       const response = await app.inject({
         method: 'GET',
@@ -139,7 +145,7 @@ describe('Diary routes', () => {
     });
 
     it('passes query parameters through', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
@@ -147,13 +153,13 @@ describe('Diary routes', () => {
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({ diaryId: DIARY_ID, limit: 10, offset: 5 }),
       );
     });
 
     it('passes tags filter from query string', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
@@ -161,7 +167,7 @@ describe('Diary routes', () => {
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           diaryId: DIARY_ID,
           tags: ['accountable-commit', 'high-risk'],
@@ -170,7 +176,7 @@ describe('Diary routes', () => {
     });
 
     it('passes single tag from query string', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
@@ -178,7 +184,7 @@ describe('Diary routes', () => {
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           diaryId: DIARY_ID,
           tags: ['deploy'],
@@ -219,7 +225,7 @@ describe('Diary routes', () => {
     });
 
     it('omits tags when not in query string', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
@@ -227,7 +233,7 @@ describe('Diary routes', () => {
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           diaryId: DIARY_ID,
           tags: undefined,
@@ -238,7 +244,7 @@ describe('Diary routes', () => {
 
   describe(`GET /diaries/${DIARY_ID}/entries/:id`, () => {
     it('returns entry when found', async () => {
-      mocks.diaryService.getById.mockResolvedValue(createMockEntry());
+      mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
 
       const response = await app.inject({
         method: 'GET',
@@ -251,7 +257,9 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when not found', async () => {
-      mocks.diaryService.getById.mockResolvedValue(null);
+      mocks.diaryService.getEntryById.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary entry not found'),
+      );
 
       const response = await app.inject({
         method: 'GET',
@@ -269,9 +277,9 @@ describe('Diary routes', () => {
 
   describe(`PATCH /diaries/${DIARY_ID}/entries/:id`, () => {
     it('updates entry', async () => {
-      mocks.diaryService.getById.mockResolvedValue(createMockEntry());
+      mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
       const updated = createMockEntry({ title: 'Updated' });
-      mocks.diaryService.update.mockResolvedValue(updated);
+      mocks.diaryService.updateEntry.mockResolvedValue(updated);
 
       const response = await app.inject({
         method: 'PATCH',
@@ -285,7 +293,7 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when not found or not owner', async () => {
-      mocks.diaryService.getById.mockResolvedValue(null);
+      mocks.diaryService.getEntryById.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'PATCH',
@@ -304,8 +312,8 @@ describe('Diary routes', () => {
 
   describe(`DELETE /diaries/${DIARY_ID}/entries/:id`, () => {
     it('deletes entry', async () => {
-      mocks.diaryService.getById.mockResolvedValue(createMockEntry());
-      mocks.diaryService.delete.mockResolvedValue(true);
+      mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
+      mocks.diaryService.deleteEntry.mockResolvedValue(true);
 
       const response = await app.inject({
         method: 'DELETE',
@@ -318,7 +326,7 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when not found', async () => {
-      mocks.diaryService.getById.mockResolvedValue(null);
+      mocks.diaryService.getEntryById.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'DELETE',
@@ -336,7 +344,7 @@ describe('Diary routes', () => {
 
   describe('POST /diaries/search', () => {
     it('searches with query', async () => {
-      mocks.diaryService.search.mockResolvedValue([createMockEntry()]);
+      mocks.diaryService.searchEntries.mockResolvedValue([createMockEntry()]);
 
       const response = await app.inject({
         method: 'POST',
@@ -350,7 +358,7 @@ describe('Diary routes', () => {
     });
 
     it('searches without query (lists all)', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'POST',
@@ -363,7 +371,7 @@ describe('Diary routes', () => {
     });
 
     it('passes tags filter to service', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'POST',
@@ -377,7 +385,7 @@ describe('Diary routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           tags: ['accountable-commit'],
         }),
@@ -385,7 +393,7 @@ describe('Diary routes', () => {
     });
 
     it('passes multiple tags to service', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'POST',
@@ -394,7 +402,7 @@ describe('Diary routes', () => {
         payload: { diaryId: DIARY_ID, tags: ['tag-a', 'tag-b'] },
       });
 
-      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           tags: ['tag-a', 'tag-b'],
         }),
@@ -402,7 +410,7 @@ describe('Diary routes', () => {
     });
 
     it('omits tags when not provided', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'POST',
@@ -411,7 +419,7 @@ describe('Diary routes', () => {
         payload: { diaryId: DIARY_ID, query: 'test' },
       });
 
-      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           tags: undefined,
         }),
@@ -442,7 +450,7 @@ describe('Diary routes', () => {
   describe('embedding exclusion', () => {
     it(`does not include embedding in POST /diaries/${DIARY_ID}/entries response`, async () => {
       const mockEntry = createMockEntry({ embedding: [0.1, 0.2, 0.3] });
-      mocks.diaryService.create.mockResolvedValue(mockEntry);
+      mocks.diaryService.createEntry.mockResolvedValue(mockEntry);
 
       const response = await app.inject({
         method: 'POST',
@@ -461,7 +469,7 @@ describe('Diary routes', () => {
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
         createMockEntry({ id: 'other-id', embedding: [0.4, 0.5, 0.6] }),
       ];
-      mocks.diaryService.list.mockResolvedValue(entries);
+      mocks.diaryService.listEntries.mockResolvedValue(entries);
 
       const response = await app.inject({
         method: 'GET',
@@ -477,7 +485,7 @@ describe('Diary routes', () => {
     });
 
     it(`does not include embedding in GET /diaries/${DIARY_ID}/entries/:id response`, async () => {
-      mocks.diaryService.getById.mockResolvedValue(
+      mocks.diaryService.getEntryById.mockResolvedValue(
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
       );
 
@@ -493,7 +501,7 @@ describe('Diary routes', () => {
     });
 
     it('does not include embedding in POST /diaries/search response', async () => {
-      mocks.diaryService.search.mockResolvedValue([
+      mocks.diaryService.searchEntries.mockResolvedValue([
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
       ]);
 

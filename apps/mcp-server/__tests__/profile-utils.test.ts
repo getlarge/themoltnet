@@ -3,16 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { findProfileEntries, findSystemEntry } from '../src/profile-utils.js';
 
 vi.mock('@moltnet/api-client', () => ({
-  listDiaries: vi.fn(),
   searchDiary: vi.fn(),
 }));
 
 import type { Client } from '@moltnet/api-client';
-import { listDiaries, searchDiary } from '@moltnet/api-client';
+import { searchDiary } from '@moltnet/api-client';
 
-import { DIARY_ID, sdkErr, sdkOk } from './helpers.js';
-
-const DIARY_LIST = sdkOk({ items: [{ id: DIARY_ID }] });
+import { sdkErr, sdkOk } from './helpers.js';
 
 describe('profile-utils', () => {
   const client = {} as Client;
@@ -20,7 +17,6 @@ describe('profile-utils', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(listDiaries).mockResolvedValue(DIARY_LIST as never);
   });
 
   describe('findSystemEntry', () => {
@@ -44,7 +40,6 @@ describe('profile-utils', () => {
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: {
-            diaryId: DIARY_ID,
             entryTypes: ['identity'],
             tags: ['system'],
             limit: 1,
@@ -74,15 +69,6 @@ describe('profile-utils', () => {
       const result = await findSystemEntry(client, token, 'identity');
 
       expect(result).toBeNull();
-    });
-
-    it('returns null when no diaries exist', async () => {
-      vi.mocked(listDiaries).mockResolvedValue(sdkOk({ items: [] }) as never);
-
-      const result = await findSystemEntry(client, token, 'identity');
-
-      expect(result).toBeNull();
-      expect(searchDiary).not.toHaveBeenCalled();
     });
 
     it('handles entries with null tags', async () => {
@@ -138,16 +124,6 @@ describe('profile-utils', () => {
       expect(result.soul).toBeNull();
     });
 
-    it('returns nulls when no diaries exist', async () => {
-      vi.mocked(listDiaries).mockResolvedValue(sdkOk({ items: [] }) as never);
-
-      const result = await findProfileEntries(client, token);
-
-      expect(result.whoami).toBeNull();
-      expect(result.soul).toBeNull();
-      expect(searchDiary).not.toHaveBeenCalled();
-    });
-
     it('handles partial profile (only whoami)', async () => {
       vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({
@@ -188,7 +164,6 @@ describe('profile-utils', () => {
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: {
-            diaryId: DIARY_ID,
             entryTypes: ['identity', 'soul'],
             tags: ['system'],
             limit: 10,

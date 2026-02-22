@@ -30,7 +30,7 @@ import type {
   DiaryShareRepository,
   PermissionChecker,
   RelationshipWriter,
-} from '../src/types.js';
+} from '../src/index.js';
 import {
   initDiaryWorkflows,
   setDiaryWorkflowDeps,
@@ -103,6 +103,9 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       canViewEntry: vi.fn().mockResolvedValue(true),
       canEditEntry: vi.fn().mockResolvedValue(true),
       canDeleteEntry: vi.fn().mockResolvedValue(true),
+      canReadDiary: vi.fn().mockResolvedValue(true),
+      canWriteDiary: vi.fn().mockResolvedValue(true),
+      canManageDiary: vi.fn().mockResolvedValue(true),
     };
 
     const dbSetup = await setupDatabase(DATABASE_URL!);
@@ -176,11 +179,13 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
 
   describe('atomicity', () => {
     it('creates entry and calls relationshipWriter', async () => {
-      const entry = await service.create({
-        requesterId: OWNER_ID,
-        diaryId: DIARY_ID,
-        content: 'Test atomic create',
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Test atomic create',
+        },
+        OWNER_ID,
+      );
 
       expect(entry.id).toBeDefined();
       expect(entry.diaryId).toBe(DIARY_ID);
@@ -203,11 +208,13 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       );
 
       // Entry should still be created (relationship failure is logged, not thrown)
-      const entry = await service.create({
-        requesterId: OWNER_ID,
-        diaryId: DIARY_ID,
-        content: 'Should still persist',
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Should still persist',
+        },
+        OWNER_ID,
+      );
 
       expect(entry.id).toBeDefined();
       const entries = await db.select().from(tables.diaryEntries);
@@ -215,17 +222,19 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     });
 
     it('still deletes entry when relationshipWriter fails', async () => {
-      const entry = await service.create({
-        requesterId: OWNER_ID,
-        diaryId: DIARY_ID,
-        content: 'Entry to delete',
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Entry to delete',
+        },
+        OWNER_ID,
+      );
 
       mockRelationshipWriter.removeEntryRelations.mockRejectedValueOnce(
         new Error('Keto unavailable'),
       );
 
-      const deleted = await service.delete(entry.id, OWNER_ID);
+      const deleted = await service.deleteEntry(entry.id, DIARY_ID, OWNER_ID);
       expect(deleted).toBe(true);
 
       // Verify entry is deleted from database
@@ -239,11 +248,13 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   describe('concurrency', () => {
     it('handles 10 concurrent creates without race conditions', async () => {
       const promises = Array.from({ length: 10 }, (_, i) =>
-        service.create({
-          requesterId: OWNER_ID,
-          diaryId: DIARY_ID,
-          content: `Entry ${i}`,
-        }),
+        service.createEntry(
+          {
+            diaryId: DIARY_ID,
+            content: `Entry ${i}`,
+          },
+          OWNER_ID,
+        ),
       );
 
       const results = await Promise.allSettled(promises);
@@ -251,7 +262,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         (
           r,
         ): r is PromiseFulfilledResult<
-          Awaited<ReturnType<typeof service.create>>
+          Awaited<ReturnType<typeof service.createEntry>>
         > => r.status === 'fulfilled',
       );
 
@@ -267,16 +278,20 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       // Create 5 entries
       const entries = await Promise.all(
         Array.from({ length: 5 }, (_, i) =>
-          service.create({
-            requesterId: OWNER_ID,
-            diaryId: DIARY_ID,
-            content: `Entry ${i}`,
-          }),
+          service.createEntry(
+            {
+              diaryId: DIARY_ID,
+              content: `Entry ${i}`,
+            },
+            OWNER_ID,
+          ),
         ),
       );
 
       // Concurrently delete them all
-      const deletePromises = entries.map((e) => service.delete(e.id, OWNER_ID));
+      const deletePromises = entries.map((e) =>
+        service.deleteEntry(e.id, DIARY_ID, OWNER_ID),
+      );
       await Promise.all(deletePromises);
 
       // Verify all entries are gone
@@ -294,11 +309,13 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
 
   describe('relationship writer execution', () => {
     it('calls grantOwnership on create', async () => {
-      const entry = await service.create({
-        requesterId: OWNER_ID,
-        diaryId: DIARY_ID,
-        content: 'Test workflow execution',
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Test workflow execution',
+        },
+        OWNER_ID,
+      );
 
       expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledTimes(1);
       expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledWith(
@@ -308,13 +325,15 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     });
 
     it('calls removeEntryRelations on delete', async () => {
-      const entry = await service.create({
-        requesterId: OWNER_ID,
-        diaryId: DIARY_ID,
-        content: 'Entry to delete',
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Entry to delete',
+        },
+        OWNER_ID,
+      );
 
-      await service.delete(entry.id, OWNER_ID);
+      await service.deleteEntry(entry.id, DIARY_ID, OWNER_ID);
 
       expect(mockRelationshipWriter.removeEntryRelations).toHaveBeenCalledTimes(
         1,

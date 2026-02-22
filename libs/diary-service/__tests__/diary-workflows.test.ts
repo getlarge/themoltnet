@@ -179,6 +179,35 @@ describe('Diary Workflows', () => {
       );
     });
 
+    it('persists importance and entryType when provided', async () => {
+      const mockEntry = createMockEntry({
+        id: GENERATED_ID,
+        importance: 9,
+        entryType: 'soul',
+      });
+      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+      repo.create.mockResolvedValue(mockEntry);
+
+      const { diaryWorkflows } =
+        await import('../src/workflows/diary-workflows.js');
+
+      await diaryWorkflows.createEntry({
+        diaryId: DIARY_ID,
+        content: 'Core values',
+        importance: 9,
+        entryType: 'soul',
+      });
+
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diaryId: DIARY_ID,
+          content: 'Core values',
+          importance: 9,
+          entryType: 'soul',
+        }),
+      );
+    });
+
     it('creates entry without embedding if embedding service fails', async () => {
       const mockEntry = createMockEntry();
       embeddings.embedPassage.mockRejectedValue(new Error('Embedding failed'));

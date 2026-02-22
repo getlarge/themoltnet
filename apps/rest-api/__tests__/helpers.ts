@@ -153,12 +153,12 @@ export function createMockServices(): MockServices {
   return {
     diaryService: {
       // Entry operations
-      create: vi.fn(),
-      getById: vi.fn(),
-      list: vi.fn(),
-      search: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
+      createEntry: vi.fn(),
+      getEntryById: vi.fn(),
+      listEntries: vi.fn(),
+      searchEntries: vi.fn(),
+      updateEntry: vi.fn(),
+      deleteEntry: vi.fn(),
       reflect: vi.fn(),
       // Diary container operations
       createDiary: vi.fn(),
