@@ -278,6 +278,7 @@ describe('createEmbeddingService', () => {
 
     it('disables remote models when allowRemoteModels is false', async () => {
       // Arrange
+      const { pipeline } = await import('@huggingface/transformers');
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
       const service = createEmbeddingService({ allowRemoteModels: false });
@@ -285,12 +286,18 @@ describe('createEmbeddingService', () => {
       // Act
       await service.embedPassage('text');
 
-      // Assert
-      expect(mockEnv.allowRemoteModels).toBe(false);
+      // Assert: local_files_only passed to pipeline, env restored after load
+      expect(pipeline).toHaveBeenCalledWith(
+        'feature-extraction',
+        expect.any(String),
+        expect.objectContaining({ local_files_only: true }),
+      );
+      expect(mockEnv.allowRemoteModels).toBe(true); // restored to initial value
     });
 
     it('allows remote models by default', async () => {
       // Arrange
+      const { pipeline } = await import('@huggingface/transformers');
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
       const service = createEmbeddingService();
@@ -298,8 +305,13 @@ describe('createEmbeddingService', () => {
       // Act
       await service.embedPassage('text');
 
-      // Assert
-      expect(mockEnv.allowRemoteModels).toBe(true);
+      // Assert: local_files_only not passed, env restored after load
+      expect(pipeline).not.toHaveBeenCalledWith(
+        'feature-extraction',
+        expect.any(String),
+        expect.objectContaining({ local_files_only: true }),
+      );
+      expect(mockEnv.allowRemoteModels).toBe(true); // restored to initial value
     });
   });
 });

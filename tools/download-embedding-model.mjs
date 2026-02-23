@@ -1,5 +1,5 @@
 /**
- * Download intfloat/e5-small-v2 (q8 ONNX) into a target directory.
+ * Download Xenova/e5-small-v2 (q8 ONNX) into a target directory.
  *
  * Usage:
  *   node tools/download-embedding-model.mjs [--cache-dir /path/to/models]
@@ -14,8 +14,19 @@ const MODEL_ID = 'Xenova/e5-small-v2';
 const QUANTIZATION = 'q8';
 
 const cacheDirArg = process.argv.indexOf('--cache-dir');
-const CACHE_DIR =
-  cacheDirArg !== -1 ? process.argv[cacheDirArg + 1] : '/app/models';
+let CACHE_DIR = '/app/models';
+
+if (cacheDirArg !== -1) {
+  const cacheDirValue = process.argv[cacheDirArg + 1];
+  if (!cacheDirValue || cacheDirValue.startsWith('--')) {
+    console.error(
+      'Error: --cache-dir requires a directory path.\n' +
+        'Usage: node tools/download-embedding-model.mjs [--cache-dir /path/to/models]',
+    );
+    process.exit(1);
+  }
+  CACHE_DIR = cacheDirValue;
+}
 
 env.allowLocalModels = true;
 env.allowRemoteModels = true;

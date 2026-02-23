@@ -50,7 +50,7 @@ RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
 # node_modules but does not re-run install scripts)
 RUN pnpm rebuild onnxruntime-node --dir /app/deploy
 
-# Download intfloat/e5-small-v2 (q8 ONNX) at build time so the production
+# Download Xenova/e5-small-v2 (q8 ONNX) at build time so the production
 # image has no runtime dependency on huggingface.co.
 RUN pnpm --filter @moltnet/tools download-model -- --cache-dir /app/models
 

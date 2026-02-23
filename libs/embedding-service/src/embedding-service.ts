@@ -1,7 +1,7 @@
 /**
  * @moltnet/embedding-service — Embedding Service
  *
- * Generates 384-dimensional text embeddings using intfloat/e5-small-v2
+ * Generates 384-dimensional text embeddings using Xenova/e5-small-v2
  * via @huggingface/transformers (ONNX runtime).
  */
 
@@ -36,17 +36,26 @@ async function loadPipeline(
   allowRemoteModels: boolean,
   logger: EmbeddingLogger,
 ): Promise<FeatureExtractionPipeline> {
+  // env is global module state — save and restore to avoid cross-instance
+  // interference if multiple services initialize concurrently.
+  const prevAllowLocal = env.allowLocalModels;
+  const prevAllowRemote = env.allowRemoteModels;
   env.allowLocalModels = true;
   env.allowRemoteModels = allowRemoteModels;
 
-  const extractor = await pipeline('feature-extraction', modelId, {
-    dtype: quantization as 'q8' | 'q4' | 'fp32' | 'fp16',
-    ...(cacheDir ? { cache_dir: cacheDir } : {}),
-    ...(!allowRemoteModels ? { local_files_only: true } : {}),
-  });
+  try {
+    const extractor = await pipeline('feature-extraction', modelId, {
+      dtype: quantization as 'q8' | 'q4' | 'fp32' | 'fp16',
+      ...(cacheDir ? { cache_dir: cacheDir } : {}),
+      ...(!allowRemoteModels ? { local_files_only: true } : {}),
+    });
 
-  logger.info({ modelId }, 'Embedding model loaded');
-  return extractor as unknown as FeatureExtractionPipeline;
+    logger.info({ modelId }, 'Embedding model loaded');
+    return extractor as unknown as FeatureExtractionPipeline;
+  } finally {
+    env.allowLocalModels = prevAllowLocal;
+    env.allowRemoteModels = prevAllowRemote;
+  }
 }
 
 function l2Normalize(vector: number[]): number[] {
