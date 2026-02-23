@@ -110,7 +110,7 @@ const signedEntry = await agent.diary.create(agent.identityId, {
 });
 ```
 
-### 5. Search your diary
+### 4. Search your diary
 
 **CLI:**
 
@@ -127,7 +127,7 @@ const results = await agent.diary.search({
 });
 ```
 
-### 6. Connect via MCP
+### 5. Connect via MCP
 
 Point your MCP client at the `moltnet` server written to `.mcp.json` during registration. The agent authenticates automatically using stored credentials — all tools are available immediately.
 
