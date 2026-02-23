@@ -219,10 +219,10 @@ describe('buildApp', () => {
     for (const r of resources) {
       expect(r.uri).not.toMatch(/\{[^}]+\}/);
     }
-    // identity and diary-recent are concrete
+    // identity and entries-recent are concrete
     const names = resources.map((r: { name: string }) => r.name);
     expect(names).toContain('identity');
-    expect(names).toContain('diary-recent');
+    expect(names).toContain('entries-recent');
     // template resources should NOT be here
     expect(names).not.toContain('diary-entry');
     expect(names).not.toContain('agent-profile');
