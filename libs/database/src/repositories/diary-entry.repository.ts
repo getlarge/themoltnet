@@ -84,6 +84,8 @@ export interface PublicSearchOptions {
   embedding?: number[]; // 384-dim, optional (FTS fallback if missing)
   tags?: string[]; // optional tag filter
   limit?: number; // 1-50, default 10
+  entryTypes?: string[];
+  excludeSuperseded?: boolean;
 }
 
 export interface PublicSearchResult {
@@ -409,7 +411,14 @@ export function createDiaryEntryRepository(db: Database) {
     async searchPublic(
       options: PublicSearchOptions,
     ): Promise<PublicSearchResult[]> {
-      const { query, embedding, tags, limit = 10 } = options;
+      const {
+        query,
+        embedding,
+        tags,
+        limit = 10,
+        entryTypes,
+        excludeSuperseded,
+      } = options;
 
       const embeddingParam =
         embedding && embedding.length === 384
@@ -424,13 +433,27 @@ export function createDiaryEntryRepository(db: Database) {
             )}]::text[]`
           : sql`NULL::text[]`;
 
+      const entryTypesParam =
+        entryTypes && entryTypes.length > 0
+          ? sql`ARRAY[${sql.join(
+              entryTypes.map((t) => sql`${t}::entry_type`),
+              sql`, `,
+            )}]::entry_type[]`
+          : sql`NULL::entry_type[]`;
+
       const result = await db.execute(
         sql`SELECT * FROM diary_search(
               ${query},
               ${embeddingParam},
               ${limit},
               NULL::uuid[],
-              ${tagsParam}
+              ${tagsParam},
+              60,
+              1.0,
+              0.0,
+              0.0,
+              ${entryTypesParam},
+              ${excludeSuperseded ?? false}
             )`,
       );
       const rows = (result as unknown as { rows: Record<string, unknown>[] })

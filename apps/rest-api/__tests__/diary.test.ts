@@ -390,6 +390,7 @@ describe('Diary routes', () => {
         expect.objectContaining({
           tags: ['accountable-commit'],
         }),
+        expect.any(String),
       );
     });
 
@@ -407,6 +408,7 @@ describe('Diary routes', () => {
         expect.objectContaining({
           tags: ['tag-a', 'tag-b'],
         }),
+        expect.any(String),
       );
     });
 
@@ -424,6 +426,7 @@ describe('Diary routes', () => {
         expect.objectContaining({
           tags: undefined,
         }),
+        expect.any(String),
       );
     });
   });

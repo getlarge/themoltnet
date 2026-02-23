@@ -128,6 +128,7 @@ function createMockDiaryShareRepository(): {
     findByDiaryAndAgent: vi.fn(),
     listByDiary: vi.fn(),
     listPendingForAgent: vi.fn(),
+    listAcceptedForAgent: vi.fn(),
     updateStatus: vi.fn(),
   };
 }
@@ -632,6 +633,7 @@ describe('buildEmbeddingText', () => {
 describe('DiaryService — tags filter', () => {
   let service: DiaryService;
   let repo: ReturnType<typeof createMockDiaryEntryRepository>;
+  let diaryRepo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
@@ -641,6 +643,8 @@ describe('DiaryService — tags filter', () => {
 
   beforeEach(() => {
     repo = createMockDiaryEntryRepository();
+    diaryRepo = createMockDiaryRepository();
+    diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
     permissions = createMockPermissionChecker();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
@@ -649,8 +653,7 @@ describe('DiaryService — tags filter', () => {
     };
 
     service = createDiaryService({
-      diaryRepository:
-        createMockDiaryRepository() as unknown as DiaryRepository,
+      diaryRepository: diaryRepo as unknown as DiaryRepository,
       diaryShareRepository:
         createMockDiaryShareRepository() as unknown as DiaryShareRepository,
       agentRepository:
@@ -703,11 +706,14 @@ describe('DiaryService — tags filter', () => {
       embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
       repo.search.mockResolvedValue([]);
 
-      await service.searchEntries({
-        diaryId: DIARY_ID,
-        query: 'something',
-        tags: ['accountable-commit'],
-      });
+      await service.searchEntries(
+        {
+          diaryId: DIARY_ID,
+          query: 'something',
+          tags: ['accountable-commit'],
+        },
+        OWNER_ID,
+      );
 
       expect(repo.search).toHaveBeenCalledWith({
         diaryId: DIARY_ID,
@@ -722,10 +728,13 @@ describe('DiaryService — tags filter', () => {
     it('passes tags without query', async () => {
       repo.search.mockResolvedValue([]);
 
-      await service.searchEntries({
-        diaryId: DIARY_ID,
-        tags: ['high-risk'],
-      });
+      await service.searchEntries(
+        {
+          diaryId: DIARY_ID,
+          tags: ['high-risk'],
+        },
+        OWNER_ID,
+      );
 
       expect(repo.search).toHaveBeenCalledWith(
         expect.objectContaining({ tags: ['high-risk'] }),

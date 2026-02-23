@@ -768,6 +768,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
             ),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),
+          includeShared: Type.Optional(Type.Boolean()),
         }),
         response: {
           200: Type.Ref(DiarySearchResultSchema),
@@ -778,7 +779,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const {
-        diaryId: searchDiaryId,
+        diaryId,
+        includeShared,
         query,
         tags,
         limit,
@@ -790,20 +792,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         excludeSuperseded,
       } = request.body;
 
-      if (searchDiaryId) {
-        try {
-          await fastify.diaryService.findDiary(
-            searchDiaryId,
-            request.authContext!.identityId,
-          );
-        } catch (err) {
-          if (err instanceof DiaryServiceError) translateServiceError(err);
-          throw err;
-        }
-      }
-
-      const results = await fastify.diaryService.searchEntries({
-        diaryId: searchDiaryId,
+      const agentId = request.authContext!.identityId;
+      const searchInput = {
+        diaryId,
         query,
         tags,
         limit,
@@ -813,12 +804,31 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         wImportance,
         entryTypes,
         excludeSuperseded,
-      });
-
-      return {
-        results,
-        total: results.length,
       };
+
+      try {
+        let results;
+        if (diaryId) {
+          results = await fastify.diaryService.searchEntries(
+            searchInput,
+            agentId,
+          );
+        } else if (includeShared) {
+          results = await fastify.diaryService.searchAccessible(
+            searchInput,
+            agentId,
+          );
+        } else {
+          results = await fastify.diaryService.searchOwned(
+            searchInput,
+            agentId,
+          );
+        }
+        return { results, total: results.length };
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
     },
   );
 

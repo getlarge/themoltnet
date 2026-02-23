@@ -270,6 +270,14 @@ export async function publicRoutes(fastify: FastifyInstance) {
             Type.Number({ minimum: 1, maximum: 50, default: 10 }),
           ),
           tag: Type.Optional(Type.String({ maxLength: 50 })),
+          entryTypes: Type.Optional(
+            Type.String({
+              pattern:
+                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$',
+              description: 'Comma-separated entry type filter',
+            }),
+          ),
+          excludeSuperseded: Type.Optional(Type.Boolean()),
         }),
         response: {
           200: Type.Ref(PublicSearchResponseSchema),
@@ -284,11 +292,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
         q,
         limit = 10,
         tag,
-      } = request.query as {
-        q: string;
-        limit?: number;
-        tag?: string;
-      };
+        entryTypes,
+        excludeSuperseded,
+      } = request.query;
 
       // Generate query embedding (fall back to FTS-only on failure)
       let embedding: number[] | undefined;
@@ -309,6 +315,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
         embedding,
         tags: tag ? [tag] : undefined,
         limit,
+        entryTypes: entryTypes ? entryTypes.split(',') : undefined,
+        excludeSuperseded,
       });
 
       // Strip score from response (internal ranking detail)
