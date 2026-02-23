@@ -61,7 +61,7 @@ describe('Diary tools', () => {
       vi.mocked(createDiaryEntry).mockResolvedValue(sdkOk(entry, 201) as never);
 
       const result = await handleDiaryCreate(
-        { diary_id: DIARY_ID, content: 'My first memory' },
+        { diary_ref: DIARY_ID, content: 'My first memory' },
         deps,
         context,
       );
@@ -87,7 +87,7 @@ describe('Diary tools', () => {
 
       const result = await handleDiaryCreate(
         {
-          diary_id: DIARY_ID,
+          diary_ref: DIARY_ID,
           content: 'A tagged memory',
           title: 'Tagged',
           tags: ['test', 'memory'],
@@ -118,7 +118,7 @@ describe('Diary tools', () => {
       );
 
       await handleDiaryCreate(
-        { diary_id: DIARY_ID, content: 'test', title: 'My Title' },
+        { diary_ref: DIARY_ID, content: 'test', title: 'My Title' },
         deps,
         context,
       );
@@ -133,7 +133,7 @@ describe('Diary tools', () => {
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiaryCreate(
-        { diary_id: DIARY_ID, content: 'test' },
+        { diary_ref: DIARY_ID, content: 'test' },
         deps,
         unauthContext,
       );
@@ -149,7 +149,7 @@ describe('Diary tools', () => {
       vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
 
       const result = await handleDiaryGet(
-        { diary_id: DIARY_ID, entry_id: ENTRY_ID },
+        { diary_ref: DIARY_ID, entry_id: ENTRY_ID },
         deps,
         context,
       );
@@ -174,7 +174,7 @@ describe('Diary tools', () => {
       );
 
       const result = await handleDiaryGet(
-        { diary_id: DIARY_ID, entry_id: 'nonexistent' },
+        { diary_ref: DIARY_ID, entry_id: 'nonexistent' },
         deps,
         context,
       );
@@ -186,7 +186,7 @@ describe('Diary tools', () => {
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleDiaryGet(
-        { diary_id: DIARY_ID, entry_id: ENTRY_ID },
+        { diary_ref: DIARY_ID, entry_id: ENTRY_ID },
         deps,
         unauthContext,
       );
@@ -207,7 +207,7 @@ describe('Diary tools', () => {
       vi.mocked(listDiaryEntries).mockResolvedValue(sdkOk(data) as never);
 
       const result = await handleDiaryList(
-        { diary_id: DIARY_ID },
+        { diary_ref: DIARY_ID },
         deps,
         context,
       );
@@ -229,7 +229,7 @@ describe('Diary tools', () => {
       );
 
       await handleDiaryList(
-        { diary_id: DIARY_ID, limit: 5, offset: 10 },
+        { diary_ref: DIARY_ID, limit: 5, offset: 10 },
         deps,
         context,
       );
@@ -248,7 +248,7 @@ describe('Diary tools', () => {
       );
 
       await handleDiaryList(
-        { diary_id: DIARY_ID, tags: ['accountable-commit', 'high-risk'] },
+        { diary_ref: DIARY_ID, tags: ['accountable-commit', 'high-risk'] },
         deps,
         context,
       );
@@ -270,7 +270,7 @@ describe('Diary tools', () => {
         sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
       );
 
-      await handleDiaryList({ diary_id: DIARY_ID }, deps, context);
+      await handleDiaryList({ diary_ref: DIARY_ID }, deps, context);
 
       expect(listDiaryEntries).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -359,7 +359,7 @@ describe('Diary tools', () => {
       vi.mocked(updateDiaryEntry).mockResolvedValue(sdkOk(updated) as never);
 
       const result = await handleDiaryUpdate(
-        { diary_id: DIARY_ID, entry_id: ENTRY_ID, tags: ['updated'] },
+        { diary_ref: DIARY_ID, entry_id: ENTRY_ID, tags: ['updated'] },
         deps,
         context,
       );
@@ -386,7 +386,7 @@ describe('Diary tools', () => {
 
       const result = await handleDiaryUpdate(
         {
-          diary_id: DIARY_ID,
+          diary_ref: DIARY_ID,
           entry_id: 'nonexistent',
           content: 'new content',
         },
@@ -406,7 +406,7 @@ describe('Diary tools', () => {
       );
 
       const result = await handleDiaryDelete(
-        { diary_id: DIARY_ID, entry_id: ENTRY_ID },
+        { diary_ref: DIARY_ID, entry_id: ENTRY_ID },
         deps,
         context,
       );
@@ -430,7 +430,7 @@ describe('Diary tools', () => {
       );
 
       const result = await handleDiaryDelete(
-        { diary_id: DIARY_ID, entry_id: 'nonexistent' },
+        { diary_ref: DIARY_ID, entry_id: 'nonexistent' },
         deps,
         context,
       );

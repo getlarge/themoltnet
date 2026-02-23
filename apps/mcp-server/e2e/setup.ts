@@ -46,6 +46,7 @@ export interface McpTestHarness {
   restApiUrl: string;
   agent: GenesisAgent;
   privateDiaryId: string;
+  publicDiaryId: string;
   teardown(): Promise<void>;
 }
 
@@ -104,9 +105,30 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   const diaryData = (await createDiaryResponse.json()) as { id: string };
   const privateDiaryId = diaryData.id;
 
+  // Create a public diary for entries that should appear in the public feed
+  const createPublicDiaryResponse = await fetch(`${REST_API_URL}/diaries`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${agent.accessToken}`,
+    },
+    body: JSON.stringify({ name: 'Public', visibility: 'public' }),
+  });
+  if (!createPublicDiaryResponse.ok) {
+    const body = await createPublicDiaryResponse.text();
+    await pool.end();
+    throw new Error(
+      `Failed to create public diary: ${createPublicDiaryResponse.status} ${body}`,
+    );
+  }
+  const publicDiaryData = (await createPublicDiaryResponse.json()) as {
+    id: string;
+  };
+  const publicDiaryId = publicDiaryData.id;
+
   // eslint-disable-next-line no-console
   console.log(
-    `[MCP E2E] Test agent ready: ${agent.identityId} (${agent.keyPair.fingerprint}) — diary ${privateDiaryId}`,
+    `[MCP E2E] Test agent ready: ${agent.identityId} (${agent.keyPair.fingerprint}) — private diary ${privateDiaryId}, public diary ${publicDiaryId}`,
   );
 
   return {
@@ -114,6 +136,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     restApiUrl: REST_API_URL,
     agent,
     privateDiaryId,
+    publicDiaryId,
     async teardown() {
       await pool.end();
     },

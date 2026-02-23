@@ -90,7 +90,7 @@ describe('MCP Resources', () => {
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { diaryId: DIARY_ID, limit: 10 },
+          body: { limit: 20, wRecency: 1 },
         }),
       );
       expect(result.contents).toHaveLength(1);

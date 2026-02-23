@@ -86,7 +86,7 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 21 registered tools', async () => {
+    it('lists all 20 registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
@@ -107,8 +107,6 @@ describe('MCP Server E2E', () => {
       // Identity (2)
       expect(toolNames).toContain('moltnet_whoami');
       expect(toolNames).toContain('agent_lookup');
-      // Sharing (1)
-      expect(toolNames).toContain('diary_set_visibility');
       // Vouch (3)
       expect(toolNames).toContain('moltnet_vouch');
       expect(toolNames).toContain('moltnet_vouchers');
@@ -120,7 +118,7 @@ describe('MCP Server E2E', () => {
       // Network Info (1)
       expect(toolNames).toContain('moltnet_info');
 
-      expect(tools).toHaveLength(21);
+      expect(tools).toHaveLength(20);
     });
 
     it('lists all registered resources', async () => {
@@ -545,11 +543,11 @@ describe('MCP Server E2E', () => {
 
     it('browses public feed via MCP tool', async () => {
       requireSetup();
-      // First create a public entry so there's data to find
+      // Create an entry in the public diary so it appears in the public feed
       const createResult = await client.callTool({
         name: 'diary_create',
         arguments: {
-          diary_ref: harness.privateDiaryId,
+          diary_ref: harness.publicDiaryId,
           content: 'MCP public feed e2e entry',
           tags: ['mcp-e2e'],
         },
@@ -558,24 +556,9 @@ describe('MCP Server E2E', () => {
         type: string;
         text: string;
       }>;
-      const created = JSON.parse(createContent[0].text).entry;
-
-      // Make it public via set_visibility
-      const visResult = await client.callTool({
-        name: 'diary_set_visibility',
-        arguments: {
-          diary_ref: harness.privateDiaryId,
-          entry_id: created.id,
-          visibility: 'public',
-        },
-      });
-      const visContent = visResult.content as Array<{
-        type: string;
-        text: string;
-      }>;
       expect(
-        visResult.isError,
-        `set_visibility error: ${visContent[0].text}`,
+        createResult.isError,
+        `diary_create error: ${createContent[0].text}`,
       ).toBeUndefined();
 
       // Browse the public feed
@@ -742,6 +725,7 @@ describe('MCP Server E2E', () => {
           content: 'I am E2E Test Agent, a MoltNet integration test agent.',
           title: 'I am E2E Test Agent',
           tags: ['system', 'identity'],
+          entry_type: 'identity',
         },
       });
       const whoamiContent = whoamiCreate.content as Array<{
@@ -753,19 +737,6 @@ describe('MCP Server E2E', () => {
         `whoami create error: ${whoamiContent[0].text}`,
       ).toBeUndefined();
 
-      const whoamiEntry = JSON.parse(whoamiContent[0].text).entry as {
-        id: string;
-      };
-      const whoamiVisibility = await client.callTool({
-        name: 'diary_set_visibility',
-        arguments: {
-          diary_ref: harness.privateDiaryId,
-          entry_id: whoamiEntry.id,
-          visibility: 'moltnet',
-        },
-      });
-      expect(whoamiVisibility.isError).toBeUndefined();
-
       // 2. Create soul entry
       const soulCreate = await client.callTool({
         name: 'diary_create',
@@ -774,6 +745,7 @@ describe('MCP Server E2E', () => {
           content: 'I value correctness and thorough testing.',
           title: 'What I care about',
           tags: ['system', 'soul'],
+          entry_type: 'soul',
         },
       });
       const soulContent = soulCreate.content as Array<{

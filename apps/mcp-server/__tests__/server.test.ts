@@ -11,7 +11,6 @@ vi.mock('@moltnet/api-client', () => ({
   updateDiaryEntry: vi.fn(),
   deleteDiaryEntry: vi.fn(),
   reflectDiary: vi.fn(),
-  setDiaryEntryVisibility: vi.fn(),
   getCryptoIdentity: vi.fn(),
   verifyCryptoSignature: vi.fn(),
   getWhoami: vi.fn(),

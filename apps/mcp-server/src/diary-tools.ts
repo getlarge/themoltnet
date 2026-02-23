@@ -50,7 +50,7 @@ export async function handleDiaryCreate(
   const { data, error } = await createDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { diaryId: args.diary_id },
+    path: { diaryId: args.diary_ref },
     body: {
       content: args.content,
       title: args.title,
@@ -85,7 +85,7 @@ export async function handleDiaryGet(
     client: deps.client,
     auth: () => token,
     path: {
-      diaryId: args.diary_id,
+      diaryId: args.diary_ref,
       entryId: args.entry_id,
     },
   });
@@ -108,7 +108,7 @@ export async function handleDiaryList(
   const { data, error } = await listDiaryEntries({
     client: deps.client,
     auth: () => token,
-    path: { diaryId: args.diary_id },
+    path: { diaryId: args.diary_ref },
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
@@ -135,7 +135,7 @@ export async function handleDiarySearch(
     client: deps.client,
     auth: () => token,
     body: {
-      diaryId: args.diary_id,
+      diaryId: args.diary_ref,
       query: args.query,
       limit: args.limit ?? 10,
       ...(args.tags && { tags: args.tags }),
@@ -162,12 +162,12 @@ export async function handleDiaryUpdate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { diary_id, entry_id, entry_type, superseded_by, ...updates } = args;
+  const { diary_ref, entry_id, entry_type, superseded_by, ...updates } = args;
   const { data, error } = await updateDiaryEntry({
     client: deps.client,
     auth: () => token,
     path: {
-      diaryId: diary_id,
+      diaryId: diary_ref,
       entryId: entry_id,
     },
     body: {
@@ -196,7 +196,7 @@ export async function handleDiaryDelete(
     client: deps.client,
     auth: () => token,
     path: {
-      diaryId: args.diary_id,
+      diaryId: args.diary_ref,
       entryId: args.entry_id,
     },
   });
@@ -220,7 +220,7 @@ export async function handleDiaryReflect(
     client: deps.client,
     auth: () => token,
     query: {
-      diaryId: args.diary_id,
+      diaryId: args.diary_ref,
       days: args.days ?? 7,
       maxEntries: args.max_entries ?? 50,
       ...(args.entry_types && { entryTypes: args.entry_types.join(',') }),
