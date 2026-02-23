@@ -86,19 +86,23 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 20 registered tools', async () => {
+    it('lists all 23 registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
       const toolNames = tools.map((t) => t.name);
-      // Diary (7)
-      expect(toolNames).toContain('diary_create');
-      expect(toolNames).toContain('diary_get');
-      expect(toolNames).toContain('diary_list');
-      expect(toolNames).toContain('diary_search');
-      expect(toolNames).toContain('diary_update');
-      expect(toolNames).toContain('diary_delete');
-      expect(toolNames).toContain('diary_reflect');
+      // Diaries catalog (3)
+      expect(toolNames).toContain('diaries_list');
+      expect(toolNames).toContain('diaries_create');
+      expect(toolNames).toContain('diaries_get');
+      // Entries (6) + reflect (1)
+      expect(toolNames).toContain('entries_create');
+      expect(toolNames).toContain('entries_get');
+      expect(toolNames).toContain('entries_list');
+      expect(toolNames).toContain('entries_search');
+      expect(toolNames).toContain('entries_update');
+      expect(toolNames).toContain('entries_delete');
+      expect(toolNames).toContain('reflect');
       // Crypto (4)
       expect(toolNames).toContain('crypto_prepare_signature');
       expect(toolNames).toContain('crypto_submit_signature');
@@ -118,7 +122,7 @@ describe('MCP Server E2E', () => {
       // Network Info (1)
       expect(toolNames).toContain('moltnet_info');
 
-      expect(tools).toHaveLength(20);
+      expect(tools).toHaveLength(23);
     });
 
     it('lists all registered resources', async () => {
@@ -206,7 +210,7 @@ describe('MCP Server E2E', () => {
     it('creates and reads back a diary entry', async () => {
       requireSetup();
       const createResult = await client.callTool({
-        name: 'diary_create',
+        name: 'entries_create',
         arguments: {
           diary_id: harness.privateDiaryId,
           content: 'MCP e2e test entry',
@@ -219,7 +223,7 @@ describe('MCP Server E2E', () => {
       }>;
       expect(
         createResult.isError,
-        `diary_create error: ${createContent[0].text}`,
+        `entries_create error: ${createContent[0].text}`,
       ).toBeUndefined();
       const createParsed = JSON.parse(createContent[0].text);
       expect(createParsed.entry).toBeDefined();
@@ -228,7 +232,7 @@ describe('MCP Server E2E', () => {
 
       // Read back
       const getResult = await client.callTool({
-        name: 'diary_get',
+        name: 'entries_get',
         arguments: { diary_id: harness.privateDiaryId, entry_id: created.id },
       });
 
@@ -238,7 +242,7 @@ describe('MCP Server E2E', () => {
       }>;
       expect(
         getResult.isError,
-        `diary_get error: ${getContent[0].text}`,
+        `entries_get error: ${getContent[0].text}`,
       ).toBeUndefined();
       const getParsed = JSON.parse(getContent[0].text);
       const fetched = getParsed.entry ?? getParsed;
@@ -249,7 +253,7 @@ describe('MCP Server E2E', () => {
     it('supports diary_id for read operations', async () => {
       requireSetup();
       const createResult = await client.callTool({
-        name: 'diary_create',
+        name: 'entries_create',
         arguments: {
           diary_id: harness.privateDiaryId,
           content: 'MCP diary id ref test',
@@ -261,13 +265,13 @@ describe('MCP Server E2E', () => {
       }>;
       expect(
         createResult.isError,
-        `diary_create error: ${createContent[0].text}`,
+        `entries_create error: ${createContent[0].text}`,
       ).toBeUndefined();
       const createParsed = JSON.parse(createContent[0].text);
       const created = createParsed.entry as { id: string };
 
       const getResult = await client.callTool({
-        name: 'diary_get',
+        name: 'entries_get',
         arguments: { diary_id: harness.privateDiaryId, entry_id: created.id },
       });
       const getContent = getResult.content as Array<{
@@ -276,14 +280,14 @@ describe('MCP Server E2E', () => {
       }>;
       expect(
         getResult.isError,
-        `diary_get by diary id error: ${getContent[0].text}`,
+        `entries_get by diary id error: ${getContent[0].text}`,
       ).toBeUndefined();
     });
 
     it('returns error when diary_id does not match the entry diary', async () => {
       requireSetup();
       const createResult = await client.callTool({
-        name: 'diary_create',
+        name: 'entries_create',
         arguments: {
           diary_id: harness.privateDiaryId,
           content: 'MCP wrong diary ref test',
@@ -298,7 +302,7 @@ describe('MCP Server E2E', () => {
       const created = createParsed.entry as { id: string };
 
       const getResult = await client.callTool({
-        name: 'diary_get',
+        name: 'entries_get',
         arguments: { diary_id: 'does-not-exist', entry_id: created.id },
       });
       const getContent = getResult.content as Array<{
@@ -312,14 +316,14 @@ describe('MCP Server E2E', () => {
     it('lists diary entries', async () => {
       requireSetup();
       const result = await client.callTool({
-        name: 'diary_list',
+        name: 'entries_list',
         arguments: { diary_id: harness.privateDiaryId },
       });
 
       const content = result.content as Array<{ type: string; text: string }>;
       expect(
         result.isError,
-        `diary_list error: ${content[0].text}`,
+        `entries_list error: ${content[0].text}`,
       ).toBeUndefined();
       const parsed = JSON.parse(content[0].text);
       expect(parsed.items).toBeDefined();
@@ -329,7 +333,7 @@ describe('MCP Server E2E', () => {
     it('returns error when listing an unknown diary_id', async () => {
       requireSetup();
       const result = await client.callTool({
-        name: 'diary_list',
+        name: 'entries_list',
         arguments: { diary_id: 'does-not-exist' },
       });
 
@@ -338,10 +342,10 @@ describe('MCP Server E2E', () => {
       expect(content[0].text).toContain('Failed to list entries');
     });
 
-    it('validates required diary_id for scoped diary tools', async () => {
+    it('validates required diary_id for scoped entry tools', async () => {
       requireSetup();
       const result = await client.callTool({
-        name: 'diary_create',
+        name: 'entries_create',
         arguments: { content: 'missing diary ref should fail' },
       });
 
@@ -545,7 +549,7 @@ describe('MCP Server E2E', () => {
       requireSetup();
       // Create an entry in the public diary so it appears in the public feed
       const createResult = await client.callTool({
-        name: 'diary_create',
+        name: 'entries_create',
         arguments: {
           diary_id: harness.publicDiaryId,
           content: 'MCP public feed e2e entry',
@@ -558,7 +562,7 @@ describe('MCP Server E2E', () => {
       }>;
       expect(
         createResult.isError,
-        `diary_create error: ${createContent[0].text}`,
+        `entries_create error: ${createContent[0].text}`,
       ).toBeUndefined();
 
       // Browse the public feed
@@ -719,7 +723,7 @@ describe('MCP Server E2E', () => {
 
       // 1. Create whoami entry
       const whoamiCreate = await client.callTool({
-        name: 'diary_create',
+        name: 'entries_create',
         arguments: {
           diary_id: harness.privateDiaryId,
           content: 'I am E2E Test Agent, a MoltNet integration test agent.',
@@ -739,7 +743,7 @@ describe('MCP Server E2E', () => {
 
       // 2. Create soul entry
       const soulCreate = await client.callTool({
-        name: 'diary_create',
+        name: 'entries_create',
         arguments: {
           diary_id: harness.privateDiaryId,
           content: 'I value correctness and thorough testing.',
