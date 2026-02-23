@@ -67,8 +67,8 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       diaries,
     } = await import('@moltnet/database');
     const database = createDatabase(url);
-    const repo = createDiaryEntryRepository(database);
-    const diaryRepo = createDiaryRepository(database);
+    const repo = createDiaryEntryRepository(database.db);
+    const diaryRepo = createDiaryRepository(database.db);
     return { db: database, repo, diaryRepo, diaryEntries, diaries };
   }
 

@@ -57,7 +57,7 @@ async function setupDatabase(url: string) {
     diaryEntries,
     diaries,
   } = await import('@moltnet/database');
-  const db = createDatabase(url);
+  const { db } = createDatabase(url);
   const repo = createDiaryEntryRepository(db);
   const diaryRepo = createDiaryRepository(db);
   return { db, repo, diaryRepo, diaryEntries, diaries };
