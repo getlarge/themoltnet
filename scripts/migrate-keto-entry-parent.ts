@@ -22,13 +22,14 @@
 import { setTimeout } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 
-import { createDatabase } from '@moltnet/database';
 import {
   Configuration,
   PermissionApi,
   RelationshipApi,
 } from '@ory/client-fetch';
 import { sql } from 'drizzle-orm';
+
+import { createDatabase } from '../libs/database/src/index.ts';
 
 // ── CLI Arguments ────────────────────────────────────────────
 
