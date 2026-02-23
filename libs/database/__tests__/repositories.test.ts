@@ -163,14 +163,6 @@ describe('createDiaryRepository', () => {
     expect(result).toBeNull();
   });
 
-  it('list calls select with ownerId', async () => {
-    db._chain.offset.mockResolvedValue([mockEntry]);
-
-    const result = await repo.list({ ownerId: AGENT_ID });
-    expect(db.select).toHaveBeenCalled();
-    expect(result).toEqual([mockEntry]);
-  });
-
   it('update returns updated entry', async () => {
     const updated = { ...mockEntry, title: 'Updated' };
     db._chain.returning.mockResolvedValue([updated]);
@@ -199,25 +191,5 @@ describe('createDiaryRepository', () => {
 
     const result = await repo.delete(ENTRY_ID);
     expect(result).toBe(false);
-  });
-
-  it('share creates share record and returns true when inserted', async () => {
-    db._chain.returning.mockResolvedValueOnce([{ entryId: ENTRY_ID }]);
-    const result = await repo.share(ENTRY_ID, AGENT_ID, 'other-agent');
-    expect(result).toBe(true);
-    expect(db.insert).toHaveBeenCalled();
-  });
-
-  it('share returns false when record already exists', async () => {
-    db._chain.returning.mockResolvedValueOnce([]);
-    const result = await repo.share(ENTRY_ID, AGENT_ID, 'other-agent');
-    expect(result).toBe(false);
-  });
-
-  it('getSharedWithMe returns empty array when no shares', async () => {
-    db._chain.limit.mockResolvedValue([]);
-
-    const result = await repo.getSharedWithMe('some-agent');
-    expect(result).toEqual([]);
   });
 });

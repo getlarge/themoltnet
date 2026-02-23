@@ -233,7 +233,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         parsedCursor = decoded;
       }
 
-      const { items, hasMore } = await fastify.diaryRepository.listPublic({
+      const { items, hasMore } = await fastify.diaryEntryRepository.listPublic({
         cursor: parsedCursor,
         limit,
         tag,
@@ -270,6 +270,14 @@ export async function publicRoutes(fastify: FastifyInstance) {
             Type.Number({ minimum: 1, maximum: 50, default: 10 }),
           ),
           tag: Type.Optional(Type.String({ maxLength: 50 })),
+          entryTypes: Type.Optional(
+            Type.String({
+              pattern:
+                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$',
+              description: 'Comma-separated entry type filter',
+            }),
+          ),
+          excludeSuperseded: Type.Optional(Type.Boolean()),
         }),
         response: {
           200: Type.Ref(PublicSearchResponseSchema),
@@ -284,11 +292,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
         q,
         limit = 10,
         tag,
-      } = request.query as {
-        q: string;
-        limit?: number;
-        tag?: string;
-      };
+        entryTypes,
+        excludeSuperseded,
+      } = request.query;
 
       // Generate query embedding (fall back to FTS-only on failure)
       let embedding: number[] | undefined;
@@ -304,11 +310,13 @@ export async function publicRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const results = await fastify.diaryRepository.searchPublic({
+      const results = await fastify.diaryEntryRepository.searchPublic({
         query: q,
         embedding,
         tags: tag ? [tag] : undefined,
         limit,
+        entryTypes: entryTypes ? entryTypes.split(',') : undefined,
+        excludeSuperseded,
       });
 
       // Strip score from response (internal ranking detail)
@@ -339,8 +347,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-
-      const entry = await fastify.diaryRepository.findPublicById(id);
+      // TODO: use service
+      const entry = await fastify.diaryEntryRepository.findPublicById(id);
       if (!entry) {
         throw createProblem('not-found', 'Entry not found');
       }
@@ -428,7 +436,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       try {
         const poller = pollPublicFeed({
-          diaryRepository: fastify.diaryRepository,
+          diaryEntryRepository: fastify.diaryEntryRepository,
           tag,
           signal: ac.signal,
           afterCreatedAt,

@@ -144,6 +144,15 @@ export const problemTypes: Record<string, ProblemType> = {
       'The workflow already processed a signature for this request',
     ],
   },
+  conflict: {
+    slug: 'conflict',
+    code: 'CONFLICT',
+    status: 409,
+    title: 'Conflict',
+    description:
+      'The request conflicts with the current state of the resource.',
+    commonCauses: ['Duplicate resource', 'Concurrent modification'],
+  },
   'registration-failed': {
     slug: 'registration-failed',
     code: 'REGISTRATION_FAILED',

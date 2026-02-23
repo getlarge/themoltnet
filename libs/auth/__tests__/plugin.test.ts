@@ -30,16 +30,22 @@ function createMockPermissionChecker() {
     canViewEntry: vi.fn(),
     canEditEntry: vi.fn(),
     canDeleteEntry: vi.fn(),
-    canShareEntry: vi.fn(),
+    canReadDiary: vi.fn(),
+    canWriteDiary: vi.fn(),
+    canManageDiary: vi.fn(),
   };
 }
 
 function createMockRelationshipWriter() {
   return {
-    grantOwnership: vi.fn(),
-    grantViewer: vi.fn(),
+    grantEntryParent: vi.fn(),
     registerAgent: vi.fn(),
     removeEntryRelations: vi.fn(),
+    grantDiaryOwner: vi.fn(),
+    grantDiaryWriter: vi.fn(),
+    grantDiaryReader: vi.fn(),
+    removeDiaryRelations: vi.fn(),
+    removeDiaryRelationForAgent: vi.fn(),
   };
 }
 

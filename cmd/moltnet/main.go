@@ -219,14 +219,14 @@ func runRegister(args []string) error {
 
 func outputJSON(result *RegisterResult) error {
 	out := map[string]interface{}{
-		"identity_id": result.Response.IdentityID,
-		"fingerprint": result.KeyPair.Fingerprint,
-		"public_key":  result.KeyPair.PublicKey,
-		"private_key": result.KeyPair.PrivateKey,
-		"client_id":   result.Response.ClientID,
+		"identity_id":   result.Response.IdentityID,
+		"fingerprint":   result.KeyPair.Fingerprint,
+		"public_key":    result.KeyPair.PublicKey,
+		"private_key":   result.KeyPair.PrivateKey,
+		"client_id":     result.Response.ClientID,
 		"client_secret": result.Response.ClientSecret,
-		"api_url":     result.APIUrl,
-		"mcp_url":     result.APIUrl + "/mcp",
+		"api_url":       result.APIUrl,
+		"mcp_url":       result.APIUrl + "/mcp",
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")

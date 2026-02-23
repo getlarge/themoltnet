@@ -34,9 +34,9 @@ type ProblemDetails struct {
 
 // RegisterResult holds everything needed after registration.
 type RegisterResult struct {
-	KeyPair      *KeyPair
-	Response     *RegisterResponse
-	APIUrl       string
+	KeyPair  *KeyPair
+	Response *RegisterResponse
+	APIUrl   string
 }
 
 // DoRegister generates a keypair and registers with the API.

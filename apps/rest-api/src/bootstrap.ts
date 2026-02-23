@@ -20,7 +20,9 @@ import {
   createAgentRepository,
   createDatabase,
   createDBOSTransactionRunner,
+  createDiaryEntryRepository,
   createDiaryRepository,
+  createDiaryShareRepository,
   createNonceRepository,
   createSigningRequestRepository,
   createVoucherRepository,
@@ -132,10 +134,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // ── Repositories ───────────────────────────────────────────────
   const agentRepository = createAgentRepository(dbConnection.db);
   const diaryRepository = createDiaryRepository(dbConnection.db);
+  const diaryEntryRepository = createDiaryEntryRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
+  const diaryShareRepository = createDiaryShareRepository(dbConnection.db);
   const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
@@ -185,7 +189,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       (dataSource) => {
         setDiaryWorkflowDeps({
-          diaryRepository,
+          diaryEntryRepository,
           relationshipWriter,
           embeddingService,
           dataSource,
@@ -199,6 +203,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   const diaryService = createDiaryService({
     diaryRepository,
+    diaryEntryRepository,
+    diaryShareRepository,
+    agentRepository,
     permissionChecker,
     relationshipWriter,
     embeddingService,
@@ -212,8 +219,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // ── REST API routes ────────────────────────────────────────────
   await registerApiRoutes(app, {
     diaryService,
+    diaryEntryRepository,
     embeddingService,
-    diaryRepository,
     agentRepository,
     cryptoService,
     voucherRepository,

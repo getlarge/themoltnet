@@ -15,12 +15,13 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-// DeleteDiaryEntryParams is parameters of deleteDiaryEntry operation.
-type DeleteDiaryEntryParams struct {
+// AcceptDiaryInvitationParams is parameters of acceptDiaryInvitation operation.
+type AcceptDiaryInvitationParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
-func unpackDeleteDiaryEntryParams(packed middleware.Parameters) (params DeleteDiaryEntryParams) {
+func unpackAcceptDiaryInvitationParams(packed middleware.Parameters) (params AcceptDiaryInvitationParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "id",
@@ -31,7 +32,7 @@ func unpackDeleteDiaryEntryParams(packed middleware.Parameters) (params DeleteDi
 	return params
 }
 
-func decodeDeleteDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDiaryEntryParams, _ error) {
+func decodeAcceptDiaryInvitationParams(args [1]string, argsEscaped bool, r *http.Request) (params AcceptDiaryInvitationParams, _ error) {
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -73,6 +74,324 @@ func decodeDeleteDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// CreateDiaryEntryParams is parameters of createDiaryEntry operation.
+type CreateDiaryEntryParams struct {
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
+}
+
+func unpackCreateDiaryEntryParams(packed middleware.Parameters) (params CreateDiaryEntryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "path",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateDiaryEntryParams, _ error) {
+	// Decode path: diaryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diaryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeclineDiaryInvitationParams is parameters of declineDiaryInvitation operation.
+type DeclineDiaryInvitationParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackDeclineDiaryInvitationParams(packed middleware.Parameters) (params DeclineDiaryInvitationParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeclineDiaryInvitationParams(args [1]string, argsEscaped bool, r *http.Request) (params DeclineDiaryInvitationParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteDiaryParams is parameters of deleteDiary operation.
+type DeleteDiaryParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackDeleteDiaryParams(packed middleware.Parameters) (params DeleteDiaryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDiaryParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteDiaryEntryParams is parameters of deleteDiaryEntry operation.
+type DeleteDiaryEntryParams struct {
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
+	// UUID v4 identifier.
+	EntryId uuid.UUID
+}
+
+func unpackDeleteDiaryEntryParams(packed middleware.Parameters) (params DeleteDiaryEntryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "path",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "entryId",
+			In:   "path",
+		}
+		params.EntryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Request) (params DeleteDiaryEntryParams, _ error) {
+	// Decode path: diaryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diaryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: entryId.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "entryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.EntryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryId",
 			In:   "path",
 			Err:  err,
 		}
@@ -165,12 +484,13 @@ func decodeGetAgentProfileParams(args [1]string, argsEscaped bool, r *http.Reque
 	return params, nil
 }
 
-// GetDiaryEntryParams is parameters of getDiaryEntry operation.
-type GetDiaryEntryParams struct {
+// GetDiaryParams is parameters of getDiary operation.
+type GetDiaryParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
-func unpackGetDiaryEntryParams(packed middleware.Parameters) (params GetDiaryEntryParams) {
+func unpackGetDiaryParams(packed middleware.Parameters) (params GetDiaryParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "id",
@@ -181,7 +501,7 @@ func unpackGetDiaryEntryParams(packed middleware.Parameters) (params GetDiaryEnt
 	return params
 }
 
-func decodeGetDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDiaryEntryParams, _ error) {
+func decodeGetDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDiaryParams, _ error) {
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -223,6 +543,126 @@ func decodeGetDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetDiaryEntryParams is parameters of getDiaryEntry operation.
+type GetDiaryEntryParams struct {
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
+	// UUID v4 identifier.
+	EntryId uuid.UUID
+}
+
+func unpackGetDiaryEntryParams(packed middleware.Parameters) (params GetDiaryEntryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "path",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "entryId",
+			In:   "path",
+		}
+		params.EntryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Request) (params GetDiaryEntryParams, _ error) {
+	// Decode path: diaryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diaryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: entryId.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "entryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.EntryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryId",
 			In:   "path",
 			Err:  err,
 		}
@@ -591,95 +1031,6 @@ func decodeGetPublicFeedParams(args [0]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
-// GetSharedWithMeParams is parameters of getSharedWithMe operation.
-type GetSharedWithMeParams struct {
-	Limit OptFloat64 `json:",omitempty,omitzero"`
-}
-
-func unpackGetSharedWithMeParams(packed middleware.Parameters) (params GetSharedWithMeParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "limit",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Limit = v.(OptFloat64)
-		}
-	}
-	return params
-}
-
-func decodeGetSharedWithMeParams(args [0]string, argsEscaped bool, r *http.Request) (params GetSharedWithMeParams, _ error) {
-	q := uri.NewQueryDecoder(r.URL.Query())
-	// Decode query: limit.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "limit",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotLimitVal float64
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToFloat64(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotLimitVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Limit.SetTo(paramsDotLimitVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Limit.Get(); ok {
-					if err := func() error {
-						if err := (validate.Float{
-							MinSet:        true,
-							Min:           1,
-							MaxSet:        true,
-							Max:           100,
-							MinExclusive:  false,
-							MaxExclusive:  false,
-							MultipleOfSet: false,
-							MultipleOf:    nil,
-							Pattern:       nil,
-						}).Validate(float64(value)); err != nil {
-							return errors.Wrap(err, "float")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "limit",
-			In:   "query",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // GetSigningRequestParams is parameters of getSigningRequest operation.
 type GetSigningRequestParams struct {
 	ID uuid.UUID
@@ -924,11 +1275,11 @@ func decodeGetTrustGraphParams(args [0]string, argsEscaped bool, r *http.Request
 type ListDiaryEntriesParams struct {
 	Limit  OptFloat64 `json:",omitempty,omitzero"`
 	Offset OptFloat64 `json:",omitempty,omitzero"`
-	// Comma-separated visibility filter.
-	Visibility OptString `json:",omitempty,omitzero"`
 	// Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each).
 	Tags      OptString                    `json:",omitempty,omitzero"`
 	EntryType OptListDiaryEntriesEntryType `json:",omitempty,omitzero"`
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
 }
 
 func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiaryEntriesParams) {
@@ -952,15 +1303,6 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "visibility",
-			In:   "query",
-		}
-		if v, ok := packed[key]; ok {
-			params.Visibility = v.(OptString)
-		}
-	}
-	{
-		key := middleware.ParameterKey{
 			Name: "tags",
 			In:   "query",
 		}
@@ -977,10 +1319,17 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 			params.EntryType = v.(OptListDiaryEntriesEntryType)
 		}
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "path",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
 	return params
 }
 
-func decodeListDiaryEntriesParams(args [0]string, argsEscaped bool, r *http.Request) (params ListDiaryEntriesParams, _ error) {
+func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Request) (params ListDiaryEntriesParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
 	// Decode query: limit.
 	if err := func() error {
@@ -1114,74 +1463,6 @@ func decodeListDiaryEntriesParams(args [0]string, argsEscaped bool, r *http.Requ
 			Err:  err,
 		}
 	}
-	// Decode query: visibility.
-	if err := func() error {
-		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "visibility",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.HasParam(cfg); err == nil {
-			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotVisibilityVal string
-				if err := func() error {
-					val, err := d.DecodeValue()
-					if err != nil {
-						return err
-					}
-
-					c, err := conv.ToString(val)
-					if err != nil {
-						return err
-					}
-
-					paramsDotVisibilityVal = c
-					return nil
-				}(); err != nil {
-					return err
-				}
-				params.Visibility.SetTo(paramsDotVisibilityVal)
-				return nil
-			}); err != nil {
-				return err
-			}
-			if err := func() error {
-				if value, ok := params.Visibility.Get(); ok {
-					if err := func() error {
-						if err := (validate.String{
-							MinLength:     0,
-							MinLengthSet:  false,
-							MaxLength:     0,
-							MaxLengthSet:  false,
-							Email:         false,
-							Hostname:      false,
-							Regex:         regexMap["^(private|moltnet|public)(,(private|moltnet|public))*$"],
-							MinNumeric:    0,
-							MinNumericSet: false,
-							MaxNumeric:    0,
-							MaxNumericSet: false,
-						}).Validate(string(value)); err != nil {
-							return errors.Wrap(err, "string")
-						}
-						return nil
-					}(); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "visibility",
-			In:   "query",
-			Err:  err,
-		}
-	}
 	// Decode query: tags.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -1303,6 +1584,117 @@ func decodeListDiaryEntriesParams(args [0]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "entryType",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode path: diaryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diaryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListDiarySharesParams is parameters of listDiaryShares operation.
+type ListDiarySharesParams struct {
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
+}
+
+func unpackListDiarySharesParams(packed middleware.Parameters) (params ListDiarySharesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "path",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListDiarySharesParams(args [1]string, argsEscaped bool, r *http.Request) (params ListDiarySharesParams, _ error) {
+	// Decode path: diaryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diaryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "path",
 			Err:  err,
 		}
 	}
@@ -1555,6 +1947,7 @@ func decodeListSigningRequestsParams(args [0]string, argsEscaped bool, r *http.R
 
 // ReflectDiaryParams is parameters of reflectDiary operation.
 type ReflectDiaryParams struct {
+	DiaryId    uuid.UUID
 	Days       OptFloat64 `json:",omitempty,omitzero"`
 	MaxEntries OptFloat64 `json:",omitempty,omitzero"`
 	// Comma-separated entry type filter.
@@ -1562,6 +1955,13 @@ type ReflectDiaryParams struct {
 }
 
 func unpackReflectDiaryParams(packed middleware.Parameters) (params ReflectDiaryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "query",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "days",
@@ -1594,6 +1994,42 @@ func unpackReflectDiaryParams(packed middleware.Parameters) (params ReflectDiary
 
 func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request) (params ReflectDiaryParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: diaryId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "diaryId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "query",
+			Err:  err,
+		}
+	}
 	// Decode query: days.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -1797,11 +2233,154 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 	return params, nil
 }
 
+// RevokeDiaryShareParams is parameters of revokeDiaryShare operation.
+type RevokeDiaryShareParams struct {
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
+	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
+	Fingerprint string
+}
+
+func unpackRevokeDiaryShareParams(packed middleware.Parameters) (params RevokeDiaryShareParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "path",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "fingerprint",
+			In:   "path",
+		}
+		params.Fingerprint = packed[key].(string)
+	}
+	return params
+}
+
+func decodeRevokeDiaryShareParams(args [2]string, argsEscaped bool, r *http.Request) (params RevokeDiaryShareParams, _ error) {
+	// Decode path: diaryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diaryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: fingerprint.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "fingerprint",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Fingerprint = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.Fingerprint)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "fingerprint",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // SearchPublicFeedParams is parameters of searchPublicFeed operation.
 type SearchPublicFeedParams struct {
 	Q     string
 	Limit OptFloat64 `json:",omitempty,omitzero"`
 	Tag   OptString  `json:",omitempty,omitzero"`
+	// Comma-separated entry type filter.
+	EntryTypes        OptString `json:",omitempty,omitzero"`
+	ExcludeSuperseded OptBool   `json:",omitempty,omitzero"`
 }
 
 func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPublicFeedParams) {
@@ -1828,6 +2407,24 @@ func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPu
 		}
 		if v, ok := packed[key]; ok {
 			params.Tag = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "entryTypes",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.EntryTypes = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "excludeSuperseded",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ExcludeSuperseded = v.(OptBool)
 		}
 	}
 	return params
@@ -2030,92 +2627,137 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 			Err:  err,
 		}
 	}
-	return params, nil
-}
-
-// SetDiaryEntryVisibilityParams is parameters of setDiaryEntryVisibility operation.
-type SetDiaryEntryVisibilityParams struct {
-	ID uuid.UUID
-}
-
-func unpackSetDiaryEntryVisibilityParams(packed middleware.Parameters) (params SetDiaryEntryVisibilityParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
-		}
-		params.ID = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeSetDiaryEntryVisibilityParams(args [1]string, argsEscaped bool, r *http.Request) (params SetDiaryEntryVisibilityParams, _ error) {
-	// Decode path: id.
+	// Decode query: entryTypes.
 	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "entryTypes",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
 		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
 
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotEntryTypesVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotEntryTypesVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.EntryTypes.SetTo(paramsDotEntryTypesVal)
+				return nil
+			}); err != nil {
+				return err
+			}
 			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
+				if value, ok := params.EntryTypes.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     0,
+							MaxLengthSet:  false,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
 				return nil
 			}(); err != nil {
 				return err
 			}
-		} else {
-			return validate.ErrFieldRequired
 		}
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
+			Name: "entryTypes",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: excludeSuperseded.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "excludeSuperseded",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotExcludeSupersededVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotExcludeSupersededVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ExcludeSuperseded.SetTo(paramsDotExcludeSupersededVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "excludeSuperseded",
+			In:   "query",
 			Err:  err,
 		}
 	}
 	return params, nil
 }
 
-// ShareDiaryEntryParams is parameters of shareDiaryEntry operation.
-type ShareDiaryEntryParams struct {
-	ID uuid.UUID
+// ShareDiaryParams is parameters of shareDiary operation.
+type ShareDiaryParams struct {
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
 }
 
-func unpackShareDiaryEntryParams(packed middleware.Parameters) (params ShareDiaryEntryParams) {
+func unpackShareDiaryParams(packed middleware.Parameters) (params ShareDiaryParams) {
 	{
 		key := middleware.ParameterKey{
-			Name: "id",
+			Name: "diaryId",
 			In:   "path",
 		}
-		params.ID = packed[key].(uuid.UUID)
+		params.DiaryId = packed[key].(uuid.UUID)
 	}
 	return params
 }
 
-func decodeShareDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Request) (params ShareDiaryEntryParams, _ error) {
-	// Decode path: id.
+func decodeShareDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params ShareDiaryParams, _ error) {
+	// Decode path: diaryId.
 	if err := func() error {
 		param := args[0]
 		if argsEscaped {
@@ -2127,7 +2769,7 @@ func decodeShareDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Reque
 		}
 		if len(param) > 0 {
 			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
+				Param:   "diaryId",
 				Value:   param,
 				Style:   uri.PathStyleSimple,
 				Explode: false,
@@ -2144,7 +2786,7 @@ func decodeShareDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Reque
 					return err
 				}
 
-				params.ID = c
+				params.DiaryId = c
 				return nil
 			}(); err != nil {
 				return err
@@ -2155,7 +2797,7 @@ func decodeShareDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Reque
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
+			Name: "diaryId",
 			In:   "path",
 			Err:  err,
 		}
@@ -2228,12 +2870,13 @@ func decodeSubmitSignatureParams(args [1]string, argsEscaped bool, r *http.Reque
 	return params, nil
 }
 
-// UpdateDiaryEntryParams is parameters of updateDiaryEntry operation.
-type UpdateDiaryEntryParams struct {
+// UpdateDiaryParams is parameters of updateDiary operation.
+type UpdateDiaryParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
-func unpackUpdateDiaryEntryParams(packed middleware.Parameters) (params UpdateDiaryEntryParams) {
+func unpackUpdateDiaryParams(packed middleware.Parameters) (params UpdateDiaryParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "id",
@@ -2244,7 +2887,7 @@ func unpackUpdateDiaryEntryParams(packed middleware.Parameters) (params UpdateDi
 	return params
 }
 
-func decodeUpdateDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateDiaryEntryParams, _ error) {
+func decodeUpdateDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateDiaryParams, _ error) {
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -2286,6 +2929,126 @@ func decodeUpdateDiaryEntryParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateDiaryEntryParams is parameters of updateDiaryEntry operation.
+type UpdateDiaryEntryParams struct {
+	// UUID v4 identifier.
+	DiaryId uuid.UUID
+	// UUID v4 identifier.
+	EntryId uuid.UUID
+}
+
+func unpackUpdateDiaryEntryParams(packed middleware.Parameters) (params UpdateDiaryEntryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryId",
+			In:   "path",
+		}
+		params.DiaryId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "entryId",
+			In:   "path",
+		}
+		params.EntryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Request) (params UpdateDiaryEntryParams, _ error) {
+	// Decode path: diaryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diaryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.DiaryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: entryId.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "entryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.EntryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryId",
 			In:   "path",
 			Err:  err,
 		}

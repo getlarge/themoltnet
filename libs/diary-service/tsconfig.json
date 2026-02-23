@@ -7,5 +7,15 @@
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "__tests__"],
-  "references": [{ "path": "../database" }, { "path": "../embedding-service" }]
+  "references": [
+    {
+      "path": "../auth"
+    },
+    {
+      "path": "../database"
+    },
+    {
+      "path": "../embedding-service"
+    }
+  ]
 }

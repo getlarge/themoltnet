@@ -7,9 +7,10 @@
 
 import {
   getAgentProfile,
+  getDiary,
   getDiaryEntry,
   getWhoami,
-  listDiaryEntries,
+  searchDiary,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
@@ -43,42 +44,42 @@ export async function handleIdentityResource(
   });
 }
 
-export async function handleDiaryRecentResource(
+export async function handleDiariesResource(
   deps: McpDeps,
+  diaryId: string,
   context: HandlerContext,
 ): Promise<ReadResourceResult> {
   const token = getTokenFromContext(context);
   if (!token) {
-    return jsonResource('moltnet://diary/recent', {
+    return jsonResource(`moltnet://diaries/${diaryId}`, {
       error: 'Not authenticated',
     });
   }
 
-  const { data, error } = await listDiaryEntries({
+  const { data, error } = await getDiary({
     client: deps.client,
     auth: () => token,
-    query: { limit: 10 },
+    path: { id: diaryId },
   });
 
   if (error) {
-    return jsonResource('moltnet://diary/recent', {
-      error: 'Failed to fetch entries',
+    return jsonResource(`moltnet://diaries/${diaryId}`, {
+      error: 'Diary not found',
     });
   }
 
-  return jsonResource('moltnet://diary/recent', {
-    entries: data.items,
-  });
+  return jsonResource(`moltnet://diaries/${diaryId}`, data);
 }
 
 export async function handleDiaryEntryResource(
   deps: McpDeps,
+  diaryId: string,
   entryId: string,
   context: HandlerContext,
 ): Promise<ReadResourceResult> {
   const token = getTokenFromContext(context);
   if (!token) {
-    return jsonResource(`moltnet://diary/${entryId}`, {
+    return jsonResource(`moltnet://diaries/${diaryId}/entries/${entryId}`, {
       error: 'Not authenticated',
     });
   }
@@ -86,16 +87,42 @@ export async function handleDiaryEntryResource(
   const { data, error } = await getDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: entryId },
+    path: { diaryId, entryId },
   });
 
   if (error) {
-    return jsonResource(`moltnet://diary/${entryId}`, {
+    return jsonResource(`moltnet://diaries/${diaryId}/entries/${entryId}`, {
       error: 'Entry not found',
     });
   }
 
-  return jsonResource(`moltnet://diary/${entryId}`, data);
+  return jsonResource(`moltnet://diaries/${diaryId}/entries/${entryId}`, data);
+}
+
+export async function handleEntriesRecentResource(
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<ReadResourceResult> {
+  const token = getTokenFromContext(context);
+  if (!token) {
+    return jsonResource('moltnet://entries/recent', {
+      error: 'Not authenticated',
+    });
+  }
+
+  const { data, error } = await searchDiary({
+    client: deps.client,
+    auth: () => token,
+    body: { limit: 10, includeShared: true, wRecency: 1.0 },
+  });
+
+  if (error) {
+    return jsonResource('moltnet://entries/recent', {
+      error: 'Failed to fetch entries',
+    });
+  }
+
+  return jsonResource('moltnet://entries/recent', { entries: data.results });
 }
 
 export async function handleAgentResource(
@@ -190,25 +217,41 @@ export function registerResources(
 
   fastify.mcpAddResource(
     {
-      name: 'diary-recent',
-      uriPattern: 'moltnet://diary/recent',
-      description: 'Last 10 diary entries',
+      name: 'diary',
+      uriPattern: 'moltnet://diaries/{diaryId}',
+      description: 'Diary metadata by ID',
       mimeType: 'application/json',
     },
-    async (_uri, ctx) => handleDiaryRecentResource(deps, ctx),
+    async (uri, ctx) => {
+      const diaryId = String(uri)
+        .replace('moltnet://diaries/', '')
+        .split('/')[0];
+      return handleDiariesResource(deps, diaryId, ctx);
+    },
   );
 
   fastify.mcpAddResource(
     {
       name: 'diary-entry',
-      uriPattern: 'moltnet://diary/{id}',
-      description: 'Specific diary entry by ID',
+      uriPattern: 'moltnet://diaries/{diaryId}/entries/{entryId}',
+      description: 'Specific diary entry by diary and entry ID',
       mimeType: 'application/json',
     },
     async (uri, ctx) => {
-      const id = String(uri).replace('moltnet://diary/', '');
-      return handleDiaryEntryResource(deps, id, ctx);
+      const withoutPrefix = String(uri).replace('moltnet://diaries/', '');
+      const [diaryId, entryId] = withoutPrefix.split('/entries/');
+      return handleDiaryEntryResource(deps, diaryId, entryId, ctx);
     },
+  );
+
+  fastify.mcpAddResource(
+    {
+      name: 'entries-recent',
+      uriPattern: 'moltnet://entries/recent',
+      description: 'Recent diary entries across all accessible diaries',
+      mimeType: 'application/json',
+    },
+    async (_uri, ctx) => handleEntriesRecentResource(deps, ctx),
   );
 
   fastify.mcpAddResource(

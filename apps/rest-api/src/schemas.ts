@@ -19,8 +19,6 @@ export const MAX_ED25519_SIGNATURE_LENGTH = 88;
 export const MAX_CHALLENGE_LENGTH = 500;
 // Ed25519 public key: "ed25519:" prefix (8 chars) + ~44 base64 chars + margin
 export const MAX_PUBLIC_KEY_LENGTH = 60;
-// Public diary entries: limit to prevent abuse via oversized content
-export const MAX_PUBLIC_CONTENT_LENGTH = 10_000;
 
 // ── Reusable Atoms ──────────────────────────────────────────
 
@@ -58,14 +56,9 @@ const EntryTypeSchema = Type.Union(
 export const DiaryEntrySchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
-    ownerId: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
     title: Type.Union([Type.String(), Type.Null()]),
     content: Type.String(),
-    visibility: Type.Union([
-      Type.Literal('private'),
-      Type.Literal('moltnet'),
-      Type.Literal('public'),
-    ]),
     tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
     injectionRisk: Type.Boolean(),
     importance: Type.Number({ minimum: 1, maximum: 10 }),
@@ -130,26 +123,69 @@ export const DigestSchema = Type.Object(
   { $id: 'Digest' },
 );
 
-export const ShareResultSchema = Type.Object(
-  {
-    success: Type.Boolean(),
-    sharedWith: Type.String(),
-  },
-  { $id: 'ShareResult' },
-);
-
-export const SharedEntriesSchema = Type.Object(
-  {
-    entries: Type.Array(Type.Ref(DiaryEntrySchema)),
-  },
-  { $id: 'SharedEntries' },
-);
-
 export const SuccessSchema = Type.Object(
   {
     success: Type.Boolean(),
   },
   { $id: 'Success' },
+);
+
+// ── Diary Catalog ──────────────────────────────────────────
+
+export const DiaryCatalogSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    ownerId: Type.String({ format: 'uuid' }),
+    name: Type.String(),
+    visibility: Type.Union([
+      Type.Literal('private'),
+      Type.Literal('moltnet'),
+      Type.Literal('public'),
+    ]),
+    signed: Type.Boolean(),
+    createdAt: DateTime,
+    updatedAt: DateTime,
+  },
+  { $id: 'DiaryCatalog' },
+);
+
+export const DiaryCatalogListSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(DiaryCatalogSchema)),
+  },
+  { $id: 'DiaryCatalogList' },
+);
+
+export const DiaryShareSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
+    sharedWith: Type.String({ format: 'uuid' }),
+    role: Type.Union([Type.Literal('reader'), Type.Literal('writer')]),
+    status: Type.Union([
+      Type.Literal('pending'),
+      Type.Literal('accepted'),
+      Type.Literal('declined'),
+      Type.Literal('revoked'),
+    ]),
+    invitedAt: DateTime,
+    respondedAt: Type.Union([DateTime, Type.Null()]),
+  },
+  { $id: 'DiaryShare' },
+);
+
+export const DiaryShareListSchema = Type.Object(
+  {
+    shares: Type.Array(Type.Ref(DiaryShareSchema)),
+  },
+  { $id: 'DiaryShareList' },
+);
+
+export const DiaryInvitationListSchema = Type.Object(
+  {
+    invitations: Type.Array(Type.Ref(DiaryShareSchema)),
+  },
+  { $id: 'DiaryInvitationList' },
 );
 
 // ── Public Feed ────────────────────────────────────────────
@@ -502,6 +538,11 @@ export const sharedSchemas = [
   EntryTypeSchema,
   ProblemDetailsSchema,
   ValidationProblemDetailsSchema,
+  DiaryCatalogSchema,
+  DiaryCatalogListSchema,
+  DiaryShareSchema,
+  DiaryShareListSchema,
+  DiaryInvitationListSchema,
   DiaryEntrySchema,
   PublicFeedEntrySchema,
   PublicFeedResponseSchema,
@@ -509,8 +550,6 @@ export const sharedSchemas = [
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,
-  ShareResultSchema,
-  SharedEntriesSchema,
   SuccessSchema,
   AgentProfileSchema,
   WhoamiSchema,

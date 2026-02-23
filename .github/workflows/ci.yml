@@ -55,9 +55,25 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: moltnet
+          POSTGRES_PASSWORD: moltnet_secret
+          POSTGRES_DB: moltnet
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U moltnet"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5432/moltnet
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -66,6 +82,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Run database migrations
+        run: pnpm run db:migrate
       - run: pnpm run test
 
   code-analysis:
@@ -193,11 +211,14 @@ jobs:
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        env:
+          AUDIT_EXIT_CODE: ${{ steps.audit.outputs.exit_code }}
+          AUDIT_OUTPUT: ${{ steps.audit.outputs.output }}
         with:
           script: |
             const marker = '<!-- audit-report -->';
-            const exitCode = '${{ steps.audit.outputs.exit_code }}';
-            const output = `${{ steps.audit.outputs.output }}`;
+            const exitCode = process.env.AUDIT_EXIT_CODE;
+            const output = process.env.AUDIT_OUTPUT;
 
             let body;
             if (exitCode === '0') {

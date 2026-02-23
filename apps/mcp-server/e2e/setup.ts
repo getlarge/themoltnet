@@ -45,6 +45,8 @@ export interface McpTestHarness {
   mcpBaseUrl: string;
   restApiUrl: string;
   agent: GenesisAgent;
+  privateDiaryId: string;
+  publicDiaryId: string;
   teardown(): Promise<void>;
 }
 
@@ -82,15 +84,59 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   }
 
   const agent = result.agents[0];
+
+  // Genesis agents bypass the registration webhook, so no private diary exists yet.
+  // Create it explicitly via the REST API (which also grants Keto ownership).
+  const createDiaryResponse = await fetch(`${REST_API_URL}/diaries`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${agent.accessToken}`,
+    },
+    body: JSON.stringify({ name: 'Private', visibility: 'private' }),
+  });
+  if (!createDiaryResponse.ok) {
+    const body = await createDiaryResponse.text();
+    await pool.end();
+    throw new Error(
+      `Failed to create private diary: ${createDiaryResponse.status} ${body}`,
+    );
+  }
+  const diaryData = (await createDiaryResponse.json()) as { id: string };
+  const privateDiaryId = diaryData.id;
+
+  // Create a public diary for entries that should appear in the public feed
+  const createPublicDiaryResponse = await fetch(`${REST_API_URL}/diaries`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${agent.accessToken}`,
+    },
+    body: JSON.stringify({ name: 'Public', visibility: 'public' }),
+  });
+  if (!createPublicDiaryResponse.ok) {
+    const body = await createPublicDiaryResponse.text();
+    await pool.end();
+    throw new Error(
+      `Failed to create public diary: ${createPublicDiaryResponse.status} ${body}`,
+    );
+  }
+  const publicDiaryData = (await createPublicDiaryResponse.json()) as {
+    id: string;
+  };
+  const publicDiaryId = publicDiaryData.id;
+
   // eslint-disable-next-line no-console
   console.log(
-    `[MCP E2E] Test agent ready: ${agent.identityId} (${agent.keyPair.fingerprint})`,
+    `[MCP E2E] Test agent ready: ${agent.identityId} (${agent.keyPair.fingerprint}) — private diary ${privateDiaryId}, public diary ${publicDiaryId}`,
   );
 
   return {
     mcpBaseUrl: MCP_SERVER_URL,
     restApiUrl: REST_API_URL,
     agent,
+    privateDiaryId,
+    publicDiaryId,
     async teardown() {
       await pool.end();
     },

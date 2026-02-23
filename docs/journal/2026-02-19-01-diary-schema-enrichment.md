@@ -21,7 +21,7 @@ Implemented comprehensive memory system enrichment for the diary schema, adding 
   - Entry type filtering (`entryTypes[]`) in search and list operations
   - Superseded exclusion (`excludeSuperseded`) to filter out replaced entries
   - Fire-and-forget access tracking (`accessCount`, `lastAccessedAt`) on `findById()` and `search()`
-- **rest-api**: 
+- **rest-api**:
   - Added TypeBox schemas for all new fields (importance, entryType, supersededBy, weight params)
   - Exposed memory system fields on all diary endpoints (create, update, list, search)
   - Updated OpenAPI spec with new parameters and response fields
@@ -43,7 +43,7 @@ Implemented comprehensive memory system enrichment for the diary schema, adding 
 
 ## Test Coverage
 
-- **Unit tests**: 
+- **Unit tests**:
   - `diary-service.test.ts`: 12 new tests for create/update/search/list/reflect with new fields
   - `repositories.test.ts`: Access tracking validation
 - **Mock updates**: All factory functions updated with default values for new fields

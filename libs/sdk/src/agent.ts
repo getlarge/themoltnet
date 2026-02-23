@@ -9,7 +9,6 @@ import type {
   DiarySearchResult,
   Digest,
   GetPublicFeedData,
-  GetSharedWithMeData,
   GetTrustGraphData,
   ListDiaryEntriesData,
   ListSigningRequestsData,
@@ -23,10 +22,6 @@ import type {
   RotateSecretResponse,
   SearchDiaryData,
   SearchPublicFeedData,
-  SetDiaryEntryVisibilityData,
-  SharedEntries,
-  ShareDiaryEntryData,
-  ShareResult,
   SigningRequest,
   SigningRequestList,
   Success,
@@ -45,7 +40,6 @@ import {
   getNetworkInfo,
   getPublicEntry,
   getPublicFeed,
-  getSharedWithMe,
   getSigningRequest,
   getTrustGraph,
   getWhoami,
@@ -58,8 +52,6 @@ import {
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
-  setDiaryEntryVisibility,
-  shareDiaryEntry,
   submitSignature,
   updateDiaryEntry,
   verifyAgentSignature,
@@ -75,34 +67,29 @@ import type { TokenManager } from './token.js';
 // ---------------------------------------------------------------------------
 
 export interface DiaryNamespace {
-  create(body: NonNullable<CreateDiaryEntryData['body']>): Promise<DiaryEntry>;
+  create(
+    diaryId: string,
+    body: NonNullable<CreateDiaryEntryData['body']>,
+  ): Promise<DiaryEntry>;
 
-  list(query?: ListDiaryEntriesData['query']): Promise<DiaryList>;
+  list(
+    diaryId: string,
+    query?: ListDiaryEntriesData['query'],
+  ): Promise<DiaryList>;
 
-  get(id: string): Promise<DiaryEntry>;
+  get(diaryId: string, entryId: string): Promise<DiaryEntry>;
 
   update(
-    id: string,
+    diaryId: string,
+    entryId: string,
     body: NonNullable<UpdateDiaryEntryData['body']>,
   ): Promise<DiaryEntry>;
 
-  delete(id: string): Promise<Success>;
+  delete(diaryId: string, entryId: string): Promise<Success>;
 
-  search(body?: SearchDiaryData['body']): Promise<DiarySearchResult>;
+  search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
-  reflect(query?: ReflectDiaryData['query']): Promise<Digest>;
-
-  share(
-    id: string,
-    body: NonNullable<ShareDiaryEntryData['body']>,
-  ): Promise<ShareResult>;
-
-  sharedWithMe(query?: GetSharedWithMeData['query']): Promise<SharedEntries>;
-
-  setVisibility(
-    id: string,
-    body: NonNullable<SetDiaryEntryVisibilityData['body']>,
-  ): Promise<DiaryEntry>;
+  reflect(query: ReflectDiaryData['query']): Promise<Digest>;
 }
 
 export interface AgentsNamespace {
@@ -216,27 +203,12 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const { client, tokenManager, auth } = options;
 
   const diary: DiaryNamespace = {
-    async create(body) {
-      const result = await createDiaryEntry({ client, auth, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async list(query) {
-      const result = await listDiaryEntries({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async get(id) {
-      const result = await getDiaryEntry({
+    async create(diaryId, body) {
+      const result = await createDiaryEntry({
         client,
         auth,
-        path: { id },
+        body,
+        path: { diaryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -244,11 +216,36 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async update(id, body) {
+    async list(diaryId, query) {
+      const result = await listDiaryEntries({
+        client,
+        auth,
+        query,
+        path: { diaryId },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async get(diaryId, entryId) {
+      const result = await getDiaryEntry({
+        client,
+        auth,
+        path: { diaryId, entryId },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async update(diaryId, entryId, body) {
       const result = await updateDiaryEntry({
         client,
         auth,
-        path: { id },
+        path: { diaryId, entryId },
         body,
       });
       if (result.error) {
@@ -257,11 +254,11 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async delete(id) {
+    async delete(diaryId, entryId) {
       const result = await deleteDiaryEntry({
         client,
         auth,
-        path: { id },
+        path: { diaryId, entryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -277,42 +274,8 @@ export function createAgent(options: CreateAgentOptions): Agent {
       return result.data;
     },
 
-    async reflect(query) {
+    async reflect(query: ReflectDiaryData['query']) {
       const result = await reflectDiary({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async share(id, body) {
-      const result = await shareDiaryEntry({
-        client,
-        auth,
-        path: { id },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async sharedWithMe(query) {
-      const result = await getSharedWithMe({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async setVisibility(id, body) {
-      const result = await setDiaryEntryVisibility({
-        client,
-        auth,
-        path: { id },
-        body,
-      });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
       }

@@ -1,44 +1,59 @@
 // MoltNet Ory Permission Language (OPL)
 // Defines the permission model for diary entries and agent interactions
 
-import type {
-  Context,
-  Namespace,
-  SubjectSet,
-} from '@ory/permission-namespace-types';
+import type { Context, Namespace } from '@ory/permission-namespace-types';
 
 /**
- * Diary entries namespace
- * Handles ownership and sharing of diary entries
+ * Diary namespace
+ * Handles diary-level ownership and role-based access.
  */
-class DiaryEntry implements Namespace {
+class Diary implements Namespace {
   related: {
-    // The owner of this entry (always one agent)
     owner: Agent[];
-
-    // Agents this entry is explicitly shared with
-    viewer: Agent[];
-
-    // Parent namespace for inherited permissions (not used currently)
-    parent: DiaryEntry[];
+    writers: Agent[];
+    readers: Agent[];
   };
 
   permits = {
-    // Can view this entry
-    view: (ctx: Context) =>
-      // Owner can always view
+    read: (ctx: Context) =>
       this.related.owner.includes(ctx.subject) ||
-      // Explicit viewers can view
-      this.related.viewer.includes(ctx.subject),
+      this.related.writers.includes(ctx.subject) ||
+      this.related.readers.includes(ctx.subject),
 
-    // Can edit this entry (only owner)
-    edit: (ctx: Context) => this.related.owner.includes(ctx.subject),
+    write: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.writers.includes(ctx.subject),
 
-    // Can delete this entry (only owner)
-    delete: (ctx: Context) => this.related.owner.includes(ctx.subject),
+    manage: (ctx: Context) => this.related.owner.includes(ctx.subject),
+  };
+}
 
-    // Can share this entry (only owner)
-    share: (ctx: Context) => this.related.owner.includes(ctx.subject),
+/**
+ * DiaryEntry namespace
+ * Permissions are inherited transitively from the parent Diary.
+ * The sole relation is `parent: Diary[]` — one entry belongs to one diary.
+ *
+ * Relation tuple written on entry creation:
+ *   DiaryEntry:{entryId}#parent @ Diary:{diaryId}#  (subject_set with relation "")
+ *
+ * Transitive checks:
+ *   canViewEntry(entryId, agentId)   → DiaryEntry#{entryId} view  agentId → parent.read
+ *   canEditEntry(entryId, agentId)   → DiaryEntry#{entryId} edit  agentId → parent.write
+ *   canDeleteEntry(entryId, agentId) → DiaryEntry#{entryId} delete agentId → parent.write
+ */
+class DiaryEntry implements Namespace {
+  related: {
+    // The diary that owns this entry — one tuple per entry
+    parent: Diary[];
+  };
+
+  permits = {
+    view: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.read(ctx)),
+    edit: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.write(ctx)),
+    delete: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.write(ctx)),
   };
 }
 
@@ -57,17 +72,3 @@ class Agent implements Namespace {
     act_as: (ctx: Context) => this.related.self.includes(ctx.subject),
   };
 }
-
-// Example relation tuples that would be created:
-//
-// When agent "claude" creates entry "entry_123":
-//   diary_entries:entry_123#owner@agents:claude
-//
-// When "claude" shares with "pith":
-//   diary_entries:entry_123#viewer@agents:pith
-//
-// Check if "pith" can view:
-//   check(diary_entries:entry_123, view, agents:pith) -> true
-//
-// Check if "pith" can edit:
-//   check(diary_entries:entry_123, edit, agents:pith) -> false

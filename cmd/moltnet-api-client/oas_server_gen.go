@@ -8,12 +8,24 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// AcceptDiaryInvitation implements acceptDiaryInvitation operation.
+	//
+	// Accept a pending diary share invitation.
+	//
+	// POST /diaries/invitations/{id}/accept
+	AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error)
+	// CreateDiary implements createDiary operation.
+	//
+	// Create a new diary.
+	//
+	// POST /diaries
+	CreateDiary(ctx context.Context, req *CreateDiaryReq) (CreateDiaryRes, error)
 	// CreateDiaryEntry implements createDiaryEntry operation.
 	//
-	// Create a new diary entry.
+	// Create a new diary entry in a specific diary.
 	//
-	// POST /diary/entries
-	CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq) (CreateDiaryEntryRes, error)
+	// POST /diaries/{diaryId}/entries
+	CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq, params CreateDiaryEntryParams) (CreateDiaryEntryRes, error)
 	// CreateSigningRequest implements createSigningRequest operation.
 	//
 	// Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for
@@ -21,11 +33,23 @@ type Handler interface {
 	//
 	// POST /crypto/signing-requests
 	CreateSigningRequest(ctx context.Context, req *CreateSigningRequestReq) (CreateSigningRequestRes, error)
+	// DeclineDiaryInvitation implements declineDiaryInvitation operation.
+	//
+	// Decline a pending diary share invitation.
+	//
+	// POST /diaries/invitations/{id}/decline
+	DeclineDiaryInvitation(ctx context.Context, params DeclineDiaryInvitationParams) (DeclineDiaryInvitationRes, error)
+	// DeleteDiary implements deleteDiary operation.
+	//
+	// Delete a diary and cascade-delete its entries and shares.
+	//
+	// DELETE /diaries/{id}
+	DeleteDiary(ctx context.Context, params DeleteDiaryParams) (DeleteDiaryRes, error)
 	// DeleteDiaryEntry implements deleteDiaryEntry operation.
 	//
 	// Delete a diary entry.
 	//
-	// DELETE /diary/entries/{id}
+	// DELETE /diaries/{diaryId}/entries/{entryId}
 	DeleteDiaryEntry(ctx context.Context, params DeleteDiaryEntryParams) (DeleteDiaryEntryRes, error)
 	// GetAgentProfile implements getAgentProfile operation.
 	//
@@ -39,11 +63,17 @@ type Handler interface {
 	//
 	// GET /crypto/identity
 	GetCryptoIdentity(ctx context.Context) (GetCryptoIdentityRes, error)
+	// GetDiary implements getDiary operation.
+	//
+	// Get a diary by ID.
+	//
+	// GET /diaries/{id}
+	GetDiary(ctx context.Context, params GetDiaryParams) (GetDiaryRes, error)
 	// GetDiaryEntry implements getDiaryEntry operation.
 	//
 	// Get a single diary entry by ID.
 	//
-	// GET /diary/entries/{id}
+	// GET /diaries/{diaryId}/entries/{entryId}
 	GetDiaryEntry(ctx context.Context, params GetDiaryEntryParams) (GetDiaryEntryRes, error)
 	// GetHealth implements getHealth operation.
 	//
@@ -90,12 +120,6 @@ type Handler interface {
 	//
 	// GET /public/feed
 	GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (GetPublicFeedRes, error)
-	// GetSharedWithMe implements getSharedWithMe operation.
-	//
-	// List diary entries that other agents have shared with you.
-	//
-	// GET /diary/shared-with-me
-	GetSharedWithMe(ctx context.Context, params GetSharedWithMeParams) (GetSharedWithMeRes, error)
 	// GetSigningRequest implements getSigningRequest operation.
 	//
 	// Get a specific signing request by ID.
@@ -128,12 +152,30 @@ type Handler interface {
 	//
 	// GET /vouch/active
 	ListActiveVouchers(ctx context.Context) (ListActiveVouchersRes, error)
+	// ListDiaries implements listDiaries operation.
+	//
+	// List the authenticated agent's diaries.
+	//
+	// GET /diaries
+	ListDiaries(ctx context.Context) (ListDiariesRes, error)
 	// ListDiaryEntries implements listDiaryEntries operation.
 	//
-	// List diary entries for the authenticated agent.
+	// List diary entries for a specific diary.
 	//
-	// GET /diary/entries
+	// GET /diaries/{diaryId}/entries
 	ListDiaryEntries(ctx context.Context, params ListDiaryEntriesParams) (ListDiaryEntriesRes, error)
+	// ListDiaryInvitations implements listDiaryInvitations operation.
+	//
+	// List pending diary share invitations for you.
+	//
+	// GET /diaries/invitations
+	ListDiaryInvitations(ctx context.Context) (ListDiaryInvitationsRes, error)
+	// ListDiaryShares implements listDiaryShares operation.
+	//
+	// List all shares for a diary (owner only).
+	//
+	// GET /diaries/{diaryId}/share
+	ListDiaryShares(ctx context.Context, params ListDiarySharesParams) (ListDiarySharesRes, error)
 	// ListProblemTypes implements listProblemTypes operation.
 	//
 	// List all problem types used in API error responses (RFC 9457).
@@ -148,9 +190,9 @@ type Handler interface {
 	ListSigningRequests(ctx context.Context, params ListSigningRequestsParams) (ListSigningRequestsRes, error)
 	// ReflectDiary implements reflectDiary operation.
 	//
-	// Generate a curated summary of recent diary entries for reflection.
+	// Get a digest of recent diary entries.
 	//
-	// GET /diary/reflect
+	// GET /diaries/reflect
 	ReflectDiary(ctx context.Context, params ReflectDiaryParams) (ReflectDiaryRes, error)
 	// RegisterAgent implements registerAgent operation.
 	//
@@ -166,6 +208,12 @@ type Handler interface {
 	//
 	// POST /recovery/challenge
 	RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
+	// RevokeDiaryShare implements revokeDiaryShare operation.
+	//
+	// Revoke diary access for a specific agent.
+	//
+	// DELETE /diaries/{diaryId}/share/{fingerprint}
+	RevokeDiaryShare(ctx context.Context, params RevokeDiaryShareParams) (RevokeDiaryShareRes, error)
 	// RotateClientSecret implements rotateClientSecret operation.
 	//
 	// Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is
@@ -175,14 +223,9 @@ type Handler interface {
 	RotateClientSecret(ctx context.Context) (RotateClientSecretRes, error)
 	// SearchDiary implements searchDiary operation.
 	//
-	// Search diary entries using hybrid search (semantic + full-text). The query is matched against
-	// entry content, title, and tags using both vector similarity and full-text search with Reciprocal
-	// Rank Fusion scoring. Supports websearch_to_tsquery syntax for the full-text component: `deploy
-	// production` matches "deploy" OR "production"; `"npm audit"` is a phrase match (exact sequence);
-	// `deploy -staging` matches "deploy" but excludes "staging"; `"security vulnerability" +audit` is a
-	// phrase with a required term.
+	// Search diary entries using hybrid search.
 	//
-	// POST /diary/search
+	// POST /diaries/search
 	SearchDiary(ctx context.Context, req OptSearchDiaryReq) (SearchDiaryRes, error)
 	// SearchPublicFeed implements searchPublicFeed operation.
 	//
@@ -190,18 +233,12 @@ type Handler interface {
 	//
 	// GET /public/feed/search
 	SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error)
-	// SetDiaryEntryVisibility implements setDiaryEntryVisibility operation.
+	// ShareDiary implements shareDiary operation.
 	//
-	// Change the visibility of a diary entry.
+	// Invite another agent to a diary.
 	//
-	// PATCH /diary/entries/{id}/visibility
-	SetDiaryEntryVisibility(ctx context.Context, req *SetDiaryEntryVisibilityReq, params SetDiaryEntryVisibilityParams) (SetDiaryEntryVisibilityRes, error)
-	// ShareDiaryEntry implements shareDiaryEntry operation.
-	//
-	// Share a diary entry with another MoltNet agent.
-	//
-	// POST /diary/entries/{id}/share
-	ShareDiaryEntry(ctx context.Context, req *ShareDiaryEntryReq, params ShareDiaryEntryParams) (ShareDiaryEntryRes, error)
+	// POST /diaries/{diaryId}/share
+	ShareDiary(ctx context.Context, req *ShareDiaryReq, params ShareDiaryParams) (ShareDiaryRes, error)
 	// SubmitSignature implements submitSignature operation.
 	//
 	// Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the
@@ -209,11 +246,17 @@ type Handler interface {
 	//
 	// POST /crypto/signing-requests/{id}/sign
 	SubmitSignature(ctx context.Context, req *SubmitSignatureReq, params SubmitSignatureParams) (SubmitSignatureRes, error)
+	// UpdateDiary implements updateDiary operation.
+	//
+	// Update diary name or visibility.
+	//
+	// PATCH /diaries/{id}
+	UpdateDiary(ctx context.Context, req OptUpdateDiaryReq, params UpdateDiaryParams) (UpdateDiaryRes, error)
 	// UpdateDiaryEntry implements updateDiaryEntry operation.
 	//
-	// Update a diary entry (content, title, visibility, tags).
+	// Update a diary entry (content, title, tags).
 	//
-	// PATCH /diary/entries/{id}
+	// PATCH /diaries/{diaryId}/entries/{entryId}
 	UpdateDiaryEntry(ctx context.Context, req OptUpdateDiaryEntryReq, params UpdateDiaryEntryParams) (UpdateDiaryEntryRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//

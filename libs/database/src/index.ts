@@ -32,8 +32,12 @@ export {
 } from './repositories/agent.repository.js';
 export {
   createDiaryRepository,
-  type DiaryListOptions,
   type DiaryRepository,
+} from './repositories/diary.repository.js';
+export {
+  createDiaryEntryRepository,
+  type DiaryEntryRepository,
+  type DiaryListOptions,
   type DiarySearchOptions,
   type ListPublicSinceOptions,
   type PublicFeedCursor,
@@ -41,7 +45,11 @@ export {
   type PublicFeedOptions,
   type PublicSearchOptions,
   type PublicSearchResult,
-} from './repositories/diary.repository.js';
+} from './repositories/diary-entry.repository.js';
+export {
+  createDiaryShareRepository,
+  type DiaryShareRepository,
+} from './repositories/diary-share.repository.js';
 export {
   createNonceRepository,
   type NonceRepository,

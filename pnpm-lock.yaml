@@ -316,6 +316,9 @@ importers:
       '@moltnet/mcp-auth-proxy':
         specifier: workspace:*
         version: link:../../libs/mcp-auth-proxy
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -611,13 +614,19 @@ importers:
       '@andersmyrmel/vard':
         specifier: 'catalog:'
         version: 1.2.0
+    devDependencies:
+      '@moltnet/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@moltnet/database':
         specifier: workspace:*
         version: link:../database
-    devDependencies:
       '@moltnet/embedding-service':
         specifier: workspace:*
         version: link:../embedding-service
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
