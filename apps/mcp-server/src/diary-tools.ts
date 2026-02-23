@@ -144,6 +144,7 @@ export async function handleDiarySearch(
       wImportance: args.w_importance,
       entryTypes: args.entry_types,
       excludeSuperseded: args.exclude_superseded,
+      includeShared: args.include_shared,
     },
   });
 
