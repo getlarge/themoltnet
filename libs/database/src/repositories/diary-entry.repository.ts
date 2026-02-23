@@ -37,6 +37,7 @@ const { embedding: _embedding, ...publicColumns } =
 
 export interface DiarySearchOptions {
   diaryId?: string;
+  diaryIds?: string[];
   query?: string;
   embedding?: number[];
   tags?: string[];
@@ -51,11 +52,13 @@ export interface DiarySearchOptions {
 
 export interface DiaryListOptions {
   diaryId?: string;
+  diaryIds?: string[];
   tags?: string[];
   limit?: number;
   offset?: number;
   entryType?: string;
   entryTypes?: string[];
+  excludeSuperseded?: boolean;
 }
 
 export interface PublicFeedCursor {
@@ -191,14 +194,23 @@ export function createDiaryEntryRepository(db: Database) {
     async list(options: DiaryListOptions): Promise<DiaryEntry[]> {
       const {
         diaryId,
+        diaryIds,
         tags,
         limit = 20,
         offset = 0,
         entryType,
         entryTypes,
+        excludeSuperseded,
       } = options;
 
-      const conditions = diaryId ? [eq(diaryEntries.diaryId, diaryId)] : [];
+      const conditions = [];
+
+      if (diaryIds && diaryIds.length > 0) {
+        conditions.push(inArray(diaryEntries.diaryId, diaryIds));
+      } else if (diaryId) {
+        conditions.push(eq(diaryEntries.diaryId, diaryId));
+      }
+
       if (tags && tags.length > 0) {
         conditions.push(
           sql`${diaryEntries.tags} @> ARRAY[${sql.join(
@@ -213,6 +225,10 @@ export function createDiaryEntryRepository(db: Database) {
         conditions.push(
           inArray(diaryEntries.entryType, entryTypes as EntryType[]),
         );
+      }
+
+      if (excludeSuperseded) {
+        conditions.push(sql`${diaryEntries.supersededBy} IS NULL`);
       }
 
       const rows = await db
@@ -232,10 +248,10 @@ export function createDiaryEntryRepository(db: Database) {
      * the `diary_search()` SQL function which uses RRF scoring.
      * Embedding-only falls back to vector similarity search.
      */
-    // TODO: how to seach across multiple diaries?
     async search(options: DiarySearchOptions): Promise<DiaryEntry[]> {
       const {
         diaryId,
+        diaryIds,
         query,
         embedding,
         tags,
@@ -247,6 +263,16 @@ export function createDiaryEntryRepository(db: Database) {
         entryTypes,
         excludeSuperseded,
       } = options;
+
+      // Build diary_ids param: explicit array > single id > NULL (public mode)
+      const resolvedIds = diaryIds ?? (diaryId ? [diaryId] : null);
+      const diaryIdsParam =
+        resolvedIds && resolvedIds.length > 0
+          ? sql`ARRAY[${sql.join(
+              resolvedIds.map((id) => sql`${id}::uuid`),
+              sql`,`,
+            )}]::uuid[]`
+          : sql`NULL::uuid[]`;
 
       const tagsParam =
         tags && tags.length > 0
@@ -285,7 +311,7 @@ export function createDiaryEntryRepository(db: Database) {
                 ${query},
                 ${vectorString}::vector(384),
                 ${limit},
-                ${diaryId}::uuid,
+                ${diaryIdsParam},
                 ${tagsParam},
                 60,
                 ${wRelevance ?? 1.0},
@@ -309,7 +335,7 @@ export function createDiaryEntryRepository(db: Database) {
                 ${query},
                 NULL::vector(384),
                 ${limit},
-                ${diaryId}::uuid,
+                ${diaryIdsParam},
                 ${tagsParam},
                 60,
                 ${wRelevance ?? 1.0},
@@ -329,7 +355,10 @@ export function createDiaryEntryRepository(db: Database) {
       // Embedding only → vector similarity search (no query to pass)
       if (embedding && embedding.length === 384) {
         const vectorString = `[${embedding.join(',')}]`;
-        const conditions = diaryId ? [eq(diaryEntries.diaryId, diaryId)] : [];
+        const conditions =
+          resolvedIds && resolvedIds.length > 0
+            ? [inArray(diaryEntries.diaryId, resolvedIds)]
+            : [];
         if (tags && tags.length > 0) {
           conditions.push(
             sql`${diaryEntries.tags} @> ARRAY[${sql.join(
@@ -360,8 +389,16 @@ export function createDiaryEntryRepository(db: Database) {
         return entries;
       }
 
-      // No query/embedding → fall back to list (pass entryTypes filter)
-      return this.list({ diaryId, tags, limit, offset, entryTypes });
+      // No query/embedding → fall back to list (pass all filters)
+      return this.list({
+        diaryId,
+        diaryIds,
+        tags,
+        limit,
+        offset,
+        entryTypes,
+        excludeSuperseded,
+      });
     },
 
     /**
@@ -392,7 +429,7 @@ export function createDiaryEntryRepository(db: Database) {
               ${query},
               ${embeddingParam},
               ${limit},
-              NULL::uuid,
+              NULL::uuid[],
               ${tagsParam}
             )`,
       );
