@@ -14,22 +14,23 @@ type stubDiaryHandler struct {
 	moltnetapi.UnimplementedHandler
 }
 
+var testDiaryID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 var testEntryID = uuid.MustParse("00000000-0000-0000-0000-000000000042")
 
 func newTestEntry(content string) *moltnetapi.DiaryEntry {
 	return &moltnetapi.DiaryEntry{
-		ID:         testEntryID,
-		Content:    content,
-		EntryType:  moltnetapi.DiaryEntryEntryTypeEpisodic,
-		Visibility: moltnetapi.DiaryEntryVisibilityPrivate,
+		ID:        testEntryID,
+		DiaryId:   testDiaryID,
+		Content:   content,
+		EntryType: moltnetapi.DiaryEntryEntryTypeEpisodic,
 		Importance: 5,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
-		Tags:       []string{},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Tags:      []string{},
 	}
 }
 
-func (h *stubDiaryHandler) CreateDiaryEntry(_ context.Context, req *moltnetapi.CreateDiaryEntryReq) (moltnetapi.CreateDiaryEntryRes, error) {
+func (h *stubDiaryHandler) CreateDiaryEntry(_ context.Context, req *moltnetapi.CreateDiaryEntryReq, _ moltnetapi.CreateDiaryEntryParams) (moltnetapi.CreateDiaryEntryRes, error) {
 	return newTestEntry(req.Content), nil
 }
 
@@ -43,7 +44,7 @@ func (h *stubDiaryHandler) ListDiaryEntries(_ context.Context, _ moltnetapi.List
 
 func (h *stubDiaryHandler) GetDiaryEntry(_ context.Context, params moltnetapi.GetDiaryEntryParams) (moltnetapi.GetDiaryEntryRes, error) {
 	e := newTestEntry("fetched content")
-	e.ID = params.ID
+	e.ID = params.EntryId
 	return e, nil
 }
 
@@ -65,7 +66,7 @@ func TestDiaryCreate(t *testing.T) {
 	// Act
 	res, err := client.CreateDiaryEntry(context.Background(), &moltnetapi.CreateDiaryEntryReq{
 		Content: "hello world",
-	})
+	}, moltnetapi.CreateDiaryEntryParams{DiaryId: testDiaryID})
 
 	// Assert
 	if err != nil {
@@ -85,7 +86,7 @@ func TestDiaryList(t *testing.T) {
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
 	// Act
-	res, err := client.ListDiaryEntries(context.Background(), moltnetapi.ListDiaryEntriesParams{})
+	res, err := client.ListDiaryEntries(context.Background(), moltnetapi.ListDiaryEntriesParams{DiaryId: testDiaryID})
 
 	// Assert
 	if err != nil {
@@ -106,7 +107,8 @@ func TestDiaryGet(t *testing.T) {
 
 	// Act
 	res, err := client.GetDiaryEntry(context.Background(), moltnetapi.GetDiaryEntryParams{
-		ID: testEntryID,
+		DiaryId: testDiaryID,
+		EntryId: testEntryID,
 	})
 
 	// Assert
@@ -128,7 +130,8 @@ func TestDiaryDelete(t *testing.T) {
 
 	// Act
 	res, err := client.DeleteDiaryEntry(context.Background(), moltnetapi.DeleteDiaryEntryParams{
-		ID: testEntryID,
+		DiaryId: testDiaryID,
+		EntryId: testEntryID,
 	})
 
 	// Assert

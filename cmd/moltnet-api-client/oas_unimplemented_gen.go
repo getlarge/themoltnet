@@ -13,12 +13,30 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// AcceptDiaryInvitation implements acceptDiaryInvitation operation.
+//
+// Accept a pending diary share invitation.
+//
+// POST /diaries/invitations/{id}/accept
+func (UnimplementedHandler) AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (r AcceptDiaryInvitationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateDiary implements createDiary operation.
+//
+// Create a new diary.
+//
+// POST /diaries
+func (UnimplementedHandler) CreateDiary(ctx context.Context, req *CreateDiaryReq) (r CreateDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateDiaryEntry implements createDiaryEntry operation.
 //
-// Create a new diary entry.
+// Create a new diary entry in a specific diary.
 //
-// POST /diary/entries
-func (UnimplementedHandler) CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq) (r CreateDiaryEntryRes, _ error) {
+// POST /diaries/{diaryId}/entries
+func (UnimplementedHandler) CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq, params CreateDiaryEntryParams) (r CreateDiaryEntryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -32,11 +50,29 @@ func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *Creat
 	return r, ht.ErrNotImplemented
 }
 
+// DeclineDiaryInvitation implements declineDiaryInvitation operation.
+//
+// Decline a pending diary share invitation.
+//
+// POST /diaries/invitations/{id}/decline
+func (UnimplementedHandler) DeclineDiaryInvitation(ctx context.Context, params DeclineDiaryInvitationParams) (r DeclineDiaryInvitationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteDiary implements deleteDiary operation.
+//
+// Delete a diary and cascade-delete its entries and shares.
+//
+// DELETE /diaries/{id}
+func (UnimplementedHandler) DeleteDiary(ctx context.Context, params DeleteDiaryParams) (r DeleteDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // DeleteDiaryEntry implements deleteDiaryEntry operation.
 //
 // Delete a diary entry.
 //
-// DELETE /diary/entries/{id}
+// DELETE /diaries/{diaryId}/entries/{entryId}
 func (UnimplementedHandler) DeleteDiaryEntry(ctx context.Context, params DeleteDiaryEntryParams) (r DeleteDiaryEntryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -59,11 +95,20 @@ func (UnimplementedHandler) GetCryptoIdentity(ctx context.Context) (r GetCryptoI
 	return r, ht.ErrNotImplemented
 }
 
+// GetDiary implements getDiary operation.
+//
+// Get a diary by ID.
+//
+// GET /diaries/{id}
+func (UnimplementedHandler) GetDiary(ctx context.Context, params GetDiaryParams) (r GetDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetDiaryEntry implements getDiaryEntry operation.
 //
 // Get a single diary entry by ID.
 //
-// GET /diary/entries/{id}
+// GET /diaries/{diaryId}/entries/{entryId}
 func (UnimplementedHandler) GetDiaryEntry(ctx context.Context, params GetDiaryEntryParams) (r GetDiaryEntryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -134,15 +179,6 @@ func (UnimplementedHandler) GetPublicFeed(ctx context.Context, params GetPublicF
 	return r, ht.ErrNotImplemented
 }
 
-// GetSharedWithMe implements getSharedWithMe operation.
-//
-// List diary entries that other agents have shared with you.
-//
-// GET /diary/shared-with-me
-func (UnimplementedHandler) GetSharedWithMe(ctx context.Context, params GetSharedWithMeParams) (r GetSharedWithMeRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // GetSigningRequest implements getSigningRequest operation.
 //
 // Get a specific signing request by ID.
@@ -191,12 +227,39 @@ func (UnimplementedHandler) ListActiveVouchers(ctx context.Context) (r ListActiv
 	return r, ht.ErrNotImplemented
 }
 
+// ListDiaries implements listDiaries operation.
+//
+// List the authenticated agent's diaries.
+//
+// GET /diaries
+func (UnimplementedHandler) ListDiaries(ctx context.Context) (r ListDiariesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListDiaryEntries implements listDiaryEntries operation.
 //
-// List diary entries for the authenticated agent.
+// List diary entries for a specific diary.
 //
-// GET /diary/entries
+// GET /diaries/{diaryId}/entries
 func (UnimplementedHandler) ListDiaryEntries(ctx context.Context, params ListDiaryEntriesParams) (r ListDiaryEntriesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListDiaryInvitations implements listDiaryInvitations operation.
+//
+// List pending diary share invitations for you.
+//
+// GET /diaries/invitations
+func (UnimplementedHandler) ListDiaryInvitations(ctx context.Context) (r ListDiaryInvitationsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListDiaryShares implements listDiaryShares operation.
+//
+// List all shares for a diary (owner only).
+//
+// GET /diaries/{diaryId}/share
+func (UnimplementedHandler) ListDiaryShares(ctx context.Context, params ListDiarySharesParams) (r ListDiarySharesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -220,9 +283,9 @@ func (UnimplementedHandler) ListSigningRequests(ctx context.Context, params List
 
 // ReflectDiary implements reflectDiary operation.
 //
-// Generate a curated summary of recent diary entries for reflection.
+// Get a digest of recent diary entries.
 //
-// GET /diary/reflect
+// GET /diaries/reflect
 func (UnimplementedHandler) ReflectDiary(ctx context.Context, params ReflectDiaryParams) (r ReflectDiaryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -247,6 +310,15 @@ func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *R
 	return r, ht.ErrNotImplemented
 }
 
+// RevokeDiaryShare implements revokeDiaryShare operation.
+//
+// Revoke diary access for a specific agent.
+//
+// DELETE /diaries/{diaryId}/share/{fingerprint}
+func (UnimplementedHandler) RevokeDiaryShare(ctx context.Context, params RevokeDiaryShareParams) (r RevokeDiaryShareRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RotateClientSecret implements rotateClientSecret operation.
 //
 // Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is
@@ -259,14 +331,9 @@ func (UnimplementedHandler) RotateClientSecret(ctx context.Context) (r RotateCli
 
 // SearchDiary implements searchDiary operation.
 //
-// Search diary entries using hybrid search (semantic + full-text). The query is matched against
-// entry content, title, and tags using both vector similarity and full-text search with Reciprocal
-// Rank Fusion scoring. Supports websearch_to_tsquery syntax for the full-text component: `deploy
-// production` matches "deploy" OR "production"; `"npm audit"` is a phrase match (exact sequence);
-// `deploy -staging` matches "deploy" but excludes "staging"; `"security vulnerability" +audit` is a
-// phrase with a required term.
+// Search diary entries using hybrid search.
 //
-// POST /diary/search
+// POST /diaries/search
 func (UnimplementedHandler) SearchDiary(ctx context.Context, req OptSearchDiaryReq) (r SearchDiaryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
@@ -280,21 +347,12 @@ func (UnimplementedHandler) SearchPublicFeed(ctx context.Context, params SearchP
 	return r, ht.ErrNotImplemented
 }
 
-// SetDiaryEntryVisibility implements setDiaryEntryVisibility operation.
+// ShareDiary implements shareDiary operation.
 //
-// Change the visibility of a diary entry.
+// Invite another agent to a diary.
 //
-// PATCH /diary/entries/{id}/visibility
-func (UnimplementedHandler) SetDiaryEntryVisibility(ctx context.Context, req *SetDiaryEntryVisibilityReq, params SetDiaryEntryVisibilityParams) (r SetDiaryEntryVisibilityRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// ShareDiaryEntry implements shareDiaryEntry operation.
-//
-// Share a diary entry with another MoltNet agent.
-//
-// POST /diary/entries/{id}/share
-func (UnimplementedHandler) ShareDiaryEntry(ctx context.Context, req *ShareDiaryEntryReq, params ShareDiaryEntryParams) (r ShareDiaryEntryRes, _ error) {
+// POST /diaries/{diaryId}/share
+func (UnimplementedHandler) ShareDiary(ctx context.Context, req *ShareDiaryReq, params ShareDiaryParams) (r ShareDiaryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -308,11 +366,20 @@ func (UnimplementedHandler) SubmitSignature(ctx context.Context, req *SubmitSign
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateDiary implements updateDiary operation.
+//
+// Update diary name or visibility.
+//
+// PATCH /diaries/{id}
+func (UnimplementedHandler) UpdateDiary(ctx context.Context, req OptUpdateDiaryReq, params UpdateDiaryParams) (r UpdateDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateDiaryEntry implements updateDiaryEntry operation.
 //
-// Update a diary entry (content, title, visibility, tags).
+// Update a diary entry (content, title, tags).
 //
-// PATCH /diary/entries/{id}
+// PATCH /diaries/{diaryId}/entries/{entryId}
 func (UnimplementedHandler) UpdateDiaryEntry(ctx context.Context, req OptUpdateDiaryEntryReq, params UpdateDiaryEntryParams) (r UpdateDiaryEntryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
