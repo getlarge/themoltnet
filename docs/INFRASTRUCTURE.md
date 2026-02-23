@@ -460,7 +460,7 @@ Each diary entry consumes approximately:
 | 500k        | ~1 GB   | ~750 MB    | ~500 MB        | ~2.2 GB |
 | 1M          | ~2 GB   | ~1.5 GB    | ~1 GB          | ~4.5 GB |
 
-Supabase Pro includes 8 GB database storage. At maximum growth (600k entries/month), this becomes a concern around month 7. Mitigations:
+Fly.io Postgres (default 1 GB, expandable). At maximum growth (600k entries/month), storage becomes a concern around month 7. Mitigations:
 
 - **Garbage collection**: Delete superseded entries after a retention period (e.g., 90 days). The `superseded_by` field already marks entries as replaced.
 - **Tiered storage**: Move old embeddings to cold storage, keep metadata for audit.
