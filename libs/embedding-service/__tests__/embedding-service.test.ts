@@ -4,7 +4,7 @@ import type { EmbeddingLogger } from '../src/types.js';
 
 const { mockExtractor, mockEnv } = vi.hoisted(() => ({
   mockExtractor: vi.fn(),
-  mockEnv: { allowLocalModels: false, cacheDir: '' },
+  mockEnv: { allowLocalModels: false, allowRemoteModels: true, cacheDir: '' },
 }));
 
 vi.mock('@huggingface/transformers', () => ({
@@ -34,6 +34,7 @@ describe('createEmbeddingService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEnv.allowLocalModels = false;
+    mockEnv.allowRemoteModels = true;
     mockEnv.cacheDir = '';
   });
 
@@ -255,8 +256,9 @@ describe('createEmbeddingService', () => {
       );
     });
 
-    it('sets cacheDir on env when provided', async () => {
+    it('passes cacheDir to pipeline when provided', async () => {
       // Arrange
+      const { pipeline } = await import('@huggingface/transformers');
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
       const service = createEmbeddingService({
@@ -267,7 +269,49 @@ describe('createEmbeddingService', () => {
       await service.embedPassage('text');
 
       // Assert
-      expect(mockEnv.cacheDir).toBe('/tmp/models');
+      expect(pipeline).toHaveBeenCalledWith(
+        'feature-extraction',
+        expect.any(String),
+        expect.objectContaining({ cache_dir: '/tmp/models' }),
+      );
+    });
+
+    it('disables remote models when allowRemoteModels is false', async () => {
+      // Arrange
+      const { pipeline } = await import('@huggingface/transformers');
+      const raw = makeRawVector(384);
+      mockExtractor.mockResolvedValue({ tolist: () => [raw] });
+      const service = createEmbeddingService({ allowRemoteModels: false });
+
+      // Act
+      await service.embedPassage('text');
+
+      // Assert: local_files_only passed to pipeline, env restored after load
+      expect(pipeline).toHaveBeenCalledWith(
+        'feature-extraction',
+        expect.any(String),
+        expect.objectContaining({ local_files_only: true }),
+      );
+      expect(mockEnv.allowRemoteModels).toBe(true); // restored to initial value
+    });
+
+    it('allows remote models by default', async () => {
+      // Arrange
+      const { pipeline } = await import('@huggingface/transformers');
+      const raw = makeRawVector(384);
+      mockExtractor.mockResolvedValue({ tolist: () => [raw] });
+      const service = createEmbeddingService();
+
+      // Act
+      await service.embedPassage('text');
+
+      // Assert: local_files_only not passed, env restored after load
+      expect(pipeline).not.toHaveBeenCalledWith(
+        'feature-extraction',
+        expect.any(String),
+        expect.objectContaining({ local_files_only: true }),
+      );
+      expect(mockEnv.allowRemoteModels).toBe(true); // restored to initial value
     });
   });
 });

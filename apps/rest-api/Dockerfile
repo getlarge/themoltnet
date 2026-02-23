@@ -50,6 +50,10 @@ RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
 # node_modules but does not re-run install scripts)
 RUN pnpm rebuild onnxruntime-node --dir /app/deploy
 
+# Download Xenova/e5-small-v2 (q8 ONNX) at build time so the production
+# image has no runtime dependency on huggingface.co.
+RUN pnpm --filter @moltnet/tools download-model -- --cache-dir /app/models
+
 # ---------- production ----------
 FROM node:22-slim AS production
 
@@ -58,10 +62,16 @@ LABEL org.opencontainers.image.description="MoltNet REST API"
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV NODE_ENV=production
+# Model is baked in — no remote download needed at runtime
+ENV EMBEDDING_CACHE_DIR=/app/models
+ENV EMBEDDING_ALLOW_REMOTE_MODELS=false
 WORKDIR /app
 
 # REST API with production-only dependencies (via pnpm deploy)
 COPY --from=build /app/deploy ./
+
+# Pre-downloaded model files (no huggingface.co access needed at runtime)
+COPY --from=build /app/models ./models
 
 # OpenAPI spec for static serving
 COPY --from=build /app/apps/rest-api/public ./public
