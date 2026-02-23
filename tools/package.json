@@ -8,12 +8,14 @@
     "bootstrap": "tsx src/bootstrap-genesis-agents.ts",
     "check-secrets": "tsx src/check-secrets.ts",
     "check-quickstart": "node --import tsx src/check-quickstart-drift.ts",
+    "download-model": "node download-embedding-model.mjs",
     "seed-feed": "tsx src/seed-public-feed.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@huggingface/transformers": "catalog:",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",

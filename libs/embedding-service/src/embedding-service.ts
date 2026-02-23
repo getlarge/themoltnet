@@ -13,7 +13,7 @@ import type {
   EmbeddingServiceOptions,
 } from './types.js';
 
-const DEFAULT_MODEL_ID = 'intfloat/e5-small-v2';
+const DEFAULT_MODEL_ID = 'Xenova/e5-small-v2';
 const DEFAULT_DIMENSIONS = 384;
 const DEFAULT_QUANTIZATION = 'q8';
 
@@ -33,16 +33,16 @@ async function loadPipeline(
   modelId: string,
   quantization: string,
   cacheDir: string | undefined,
+  allowRemoteModels: boolean,
   logger: EmbeddingLogger,
 ): Promise<FeatureExtractionPipeline> {
-  // Disable remote model fetching attempts via browser APIs
   env.allowLocalModels = true;
-  if (cacheDir) {
-    env.cacheDir = cacheDir;
-  }
+  env.allowRemoteModels = allowRemoteModels;
 
   const extractor = await pipeline('feature-extraction', modelId, {
     dtype: quantization as 'q8' | 'q4' | 'fp32' | 'fp16',
+    ...(cacheDir ? { cache_dir: cacheDir } : {}),
+    ...(!allowRemoteModels ? { local_files_only: true } : {}),
   });
 
   logger.info({ modelId }, 'Embedding model loaded');
@@ -68,6 +68,7 @@ export function createEmbeddingService(
   const dimensions = options?.dimensions ?? DEFAULT_DIMENSIONS;
   const quantization = options?.quantization ?? DEFAULT_QUANTIZATION;
   const cacheDir = options?.cacheDir;
+  const allowRemoteModels = options?.allowRemoteModels ?? true;
   const logger = options?.logger ?? noopLogger;
 
   let pipelinePromise: Promise<FeatureExtractionPipeline> | null = null;
@@ -82,6 +83,7 @@ export function createEmbeddingService(
         modelId,
         quantization,
         cacheDir,
+        allowRemoteModels,
         logger,
       ).catch((err) => {
         pipelinePromise = null;

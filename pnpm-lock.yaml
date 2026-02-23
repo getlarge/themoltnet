@@ -781,6 +781,9 @@ importers:
 
   tools:
     dependencies:
+      '@huggingface/transformers':
+        specifier: 'catalog:'
+        version: 3.8.1
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../libs/bootstrap

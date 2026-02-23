@@ -14,6 +14,8 @@ export interface EmbeddingServiceOptions {
   dimensions?: number;
   quantization?: 'q8' | 'q4' | 'fp32' | 'fp16';
   cacheDir?: string;
+  /** Allow downloading models from huggingface.co at runtime (default: true) */
+  allowRemoteModels?: boolean;
   logger?: EmbeddingLogger;
 }
 
