@@ -271,6 +271,18 @@ describe('MCP Resources', () => {
       expect(result.contents[0].uri).toBe('moltnet://self/whoami');
     });
 
+    it('searches with entryTypes=identity, tags=system, limit=1', async () => {
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
+
+      await handleSelfWhoamiResource(deps, context);
+
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { entryTypes: ['identity'], tags: ['system'], limit: 1 },
+        }),
+      );
+    });
+
     it('returns exists:false when no whoami entry', async () => {
       vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
 
@@ -314,6 +326,18 @@ describe('MCP Resources', () => {
       expect(data).toHaveProperty('exists', true);
       expect(data).toHaveProperty('content', 'I value truth...');
       expect(result.contents[0].uri).toBe('moltnet://self/soul');
+    });
+
+    it('searches with entryTypes=soul, tags=system, limit=1', async () => {
+      vi.mocked(searchDiary).mockResolvedValue(sdkOk({ results: [] }) as never);
+
+      await handleSelfSoulResource(deps, context);
+
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { entryTypes: ['soul'], tags: ['system'], limit: 1 },
+        }),
+      );
     });
 
     it('returns exists:false when no soul entry', async () => {

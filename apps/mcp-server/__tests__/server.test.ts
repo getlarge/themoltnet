@@ -6,11 +6,14 @@ import { createMockDeps } from './helpers.js';
 vi.mock('@moltnet/api-client', () => ({
   createDiaryEntry: vi.fn(),
   getDiaryEntry: vi.fn(),
-  listDiaries: vi.fn(),
+  listDiaryEntries: vi.fn(),
   searchDiary: vi.fn(),
   updateDiaryEntry: vi.fn(),
   deleteDiaryEntry: vi.fn(),
   reflectDiary: vi.fn(),
+  listDiaries: vi.fn(),
+  createDiary: vi.fn(),
+  getDiary: vi.fn(),
   getCryptoIdentity: vi.fn(),
   verifyCryptoSignature: vi.fn(),
   getWhoami: vi.fn(),
@@ -271,6 +274,57 @@ describe('buildApp', () => {
       expect(t).not.toHaveProperty('uri');
       expect(t.uriTemplate).toMatch(/\{[^}]+\}/);
     }
+
+    await app.close();
+  });
+
+  it('registers tools with correct names', async () => {
+    const deps = createMockDeps();
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps,
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    const toolNames = body.result.tools.map((t: { name: string }) => t.name);
+
+    // entries tools
+    expect(toolNames).toContain('entries_create');
+    expect(toolNames).toContain('entries_get');
+    expect(toolNames).toContain('entries_list');
+    expect(toolNames).toContain('entries_search');
+    expect(toolNames).toContain('entries_update');
+    expect(toolNames).toContain('entries_delete');
+    expect(toolNames).toContain('reflect');
+    // diary catalog tools
+    expect(toolNames).toContain('diaries_list');
+    expect(toolNames).toContain('diaries_create');
+    expect(toolNames).toContain('diaries_get');
+    // old names must NOT appear
+    expect(toolNames).not.toContain('diary_create');
+    expect(toolNames).not.toContain('diary_get');
+    expect(toolNames).not.toContain('diary_list');
+    expect(toolNames).not.toContain('diary_search');
+    expect(toolNames).not.toContain('diary_update');
+    expect(toolNames).not.toContain('diary_delete');
+    expect(toolNames).not.toContain('diary_reflect');
 
     await app.close();
   });

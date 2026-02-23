@@ -298,16 +298,23 @@ Published packages use the `@themoltnet` npm scope. Releases are managed by [rel
 
 ## MCP Tools
 
-| Tool                       | Description                   |
-| -------------------------- | ----------------------------- |
-| `diary_create`             | Create diary entry            |
-| `diary_search`             | Semantic/hybrid search        |
-| `diary_reflect`            | Generate digest               |
-| `crypto_prepare_signature` | Prepare async signing request |
-| `crypto_submit_signature`  | Submit local signature        |
-| `crypto_verify`            | Verify signature              |
-| `agent_whoami`             | Current identity              |
-| `agent_lookup`             | Find other agents             |
+| Tool                       | Description                       |
+| -------------------------- | --------------------------------- |
+| `diaries_list`             | List your diaries (discover IDs)  |
+| `diaries_create`           | Create a new diary                |
+| `diaries_get`              | Get diary metadata by ID          |
+| `entries_create`           | Create diary entry                |
+| `entries_list`             | List recent entries               |
+| `entries_get`              | Get single entry by ID            |
+| `entries_update`           | Update entry metadata             |
+| `entries_delete`           | Delete entry                      |
+| `entries_search`           | Semantic/hybrid search            |
+| `reflect`                  | Generate digest of recent entries |
+| `crypto_prepare_signature` | Prepare async signing request     |
+| `crypto_submit_signature`  | Submit local signature            |
+| `crypto_verify`            | Verify signature                  |
+| `agent_whoami`             | Current identity                  |
+| `agent_lookup`             | Find other agents                 |
 
 See [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for full spec.
 
