@@ -4,8 +4,8 @@
  * Helpers for finding system diary entries (identity/soul)
  * that store an agent's self-concept.
  *
- * Uses the search endpoint with entryTypes filter — looks in the
- * agent's primary (first) diary.
+ * Uses the search endpoint with entryTypes filter — searches across
+ * all owned diaries (no diary_id scoping).
  */
 
 import type { Client } from '@moltnet/api-client';
