@@ -134,6 +134,7 @@ export interface UpdateEntryInput {
 
 export interface SearchInput {
   diaryId?: string;
+  diaryIds?: string[];
   query?: string;
   tags?: string[];
   limit?: number;

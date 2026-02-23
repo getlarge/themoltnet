@@ -95,6 +95,8 @@ export interface DiaryService {
   ): Promise<DiaryEntry>;
   listEntries(input: ListInput): Promise<DiaryEntry[]>;
   searchEntries(input: SearchInput): Promise<DiaryEntry[]>;
+  searchOwned(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
+  searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   updateEntry(
     id: string,
     diaryId: string,
@@ -139,6 +141,18 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     embeddingService,
     transactionRunner,
   } = deps;
+
+  const resolveEmbedding = async (
+    query?: string,
+  ): Promise<number[] | undefined> => {
+    if (!query) return undefined;
+    try {
+      const result = await embeddingService.embedQuery(query);
+      return result.length > 0 ? result : undefined;
+    } catch {
+      return undefined;
+    }
+  };
 
   return {
     // ── Diary container operations ─────────────────────────────
@@ -465,31 +479,44 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     },
 
     async searchEntries(input: SearchInput): Promise<DiaryEntry[]> {
-      let embedding: number[] | undefined;
-
-      if (input.query) {
-        try {
-          const result = await embeddingService.embedQuery(input.query);
-          if (result.length > 0) {
-            embedding = result;
-          }
-        } catch {
-          // Fall back to text-only search
-        }
-      }
-
       return diaryEntryRepository.search({
-        diaryId: input.diaryId,
-        query: input.query,
-        embedding,
-        tags: input.tags,
-        limit: input.limit,
-        offset: input.offset,
-        wRelevance: input.wRelevance,
-        wRecency: input.wRecency,
-        wImportance: input.wImportance,
-        entryTypes: input.entryTypes,
-        excludeSuperseded: input.excludeSuperseded,
+        ...input,
+        embedding: await resolveEmbedding(input.query),
+      });
+    },
+
+    async searchOwned(
+      input: SearchInput,
+      agentId: string,
+    ): Promise<DiaryEntry[]> {
+      const ownedDiaries = await diaryRepository.listByOwner(agentId);
+      if (!ownedDiaries.length) return [];
+      return diaryEntryRepository.search({
+        ...input,
+        diaryIds: ownedDiaries.map((d) => d.id),
+        embedding: await resolveEmbedding(input.query),
+      });
+    },
+
+    async searchAccessible(
+      input: SearchInput,
+      agentId: string,
+    ): Promise<DiaryEntry[]> {
+      const [ownedDiaries, acceptedShares] = await Promise.all([
+        diaryRepository.listByOwner(agentId),
+        diaryShareRepository.listAcceptedForAgent(agentId),
+      ]);
+      const diaryIds = [
+        ...new Set([
+          ...ownedDiaries.map((d) => d.id),
+          ...acceptedShares.map((s) => s.diaryId),
+        ]),
+      ];
+      if (!diaryIds.length) return [];
+      return diaryEntryRepository.search({
+        ...input,
+        diaryIds,
+        embedding: await resolveEmbedding(input.query),
       });
     },
 
