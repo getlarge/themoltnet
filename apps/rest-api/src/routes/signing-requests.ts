@@ -19,6 +19,8 @@
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
+import { buildSigningBytes } from '@moltnet/crypto-service';
+import type { SigningRequest } from '@moltnet/database';
 import { DBOS, parseStatusFilter, signingWorkflows } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -31,6 +33,24 @@ import {
   SigningRequestParamsSchema,
   SigningRequestSchema,
 } from '../schemas.js';
+
+function toSigningResponse(row: SigningRequest) {
+  return {
+    id: row.id,
+    agentId: row.agentId,
+    message: row.message,
+    nonce: row.nonce,
+    signingInput: Buffer.from(
+      buildSigningBytes(row.message, row.nonce),
+    ).toString('base64'),
+    status: row.status,
+    signature: row.signature,
+    valid: row.valid,
+    createdAt: row.createdAt,
+    expiresAt: row.expiresAt,
+    completedAt: row.completedAt,
+  };
+}
 
 export async function signingRequestRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -86,7 +106,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         workflowId: workflowHandle.workflowID,
       });
 
-      return reply.status(201).send(created);
+      return reply.status(201).send(toSigningResponse(created));
     },
   );
 
@@ -130,7 +150,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       });
 
       return {
-        items,
+        items: items.map(toSigningResponse),
         total,
         limit: limit ?? 20,
         offset: offset ?? 0,
@@ -168,7 +188,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Signing request not found');
       }
 
-      return signingRequest;
+      return toSigningResponse(signingRequest);
     },
   );
 
@@ -256,7 +276,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         });
       }
 
-      return updated;
+      return toSigningResponse(updated);
     },
   );
 }

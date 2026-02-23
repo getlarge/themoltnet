@@ -36,7 +36,7 @@ export {
   type RegisterResult,
 } from './register.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
-export { sign } from './sign.js';
+export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
 

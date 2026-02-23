@@ -58,6 +58,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm --filter @moltnet/api-client build
+
+      - run: pnpm --filter @moltnet/crypto-service build
+
       - run: pnpm --filter @themoltnet/sdk build
 
       - run: pnpm --filter @themoltnet/sdk test

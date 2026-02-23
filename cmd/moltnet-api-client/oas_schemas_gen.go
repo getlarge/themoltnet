@@ -4624,16 +4624,19 @@ func (*SharedEntries) getSharedWithMeRes() {}
 
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
-	AgentId     uuid.UUID            `json:"agentId"`
-	CompletedAt NilDateTime          `json:"completedAt"`
-	CreatedAt   time.Time            `json:"createdAt"`
-	ExpiresAt   time.Time            `json:"expiresAt"`
-	ID          uuid.UUID            `json:"id"`
-	Message     string               `json:"message"`
-	Nonce       uuid.UUID            `json:"nonce"`
-	Signature   NilString            `json:"signature"`
-	Status      SigningRequestStatus `json:"status"`
-	Valid       NilBool              `json:"valid"`
+	AgentId     uuid.UUID   `json:"agentId"`
+	CompletedAt NilDateTime `json:"completedAt"`
+	CreatedAt   time.Time   `json:"createdAt"`
+	ExpiresAt   time.Time   `json:"expiresAt"`
+	ID          uuid.UUID   `json:"id"`
+	Message     string      `json:"message"`
+	Nonce       uuid.UUID   `json:"nonce"`
+	Signature   NilString   `json:"signature"`
+	// Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your
+	// private key, then submit the base64 signature.
+	SigningInput string               `json:"signingInput"`
+	Status       SigningRequestStatus `json:"status"`
+	Valid        NilBool              `json:"valid"`
 }
 
 // GetAgentId returns the value of AgentId.
@@ -4674,6 +4677,11 @@ func (s *SigningRequest) GetNonce() uuid.UUID {
 // GetSignature returns the value of Signature.
 func (s *SigningRequest) GetSignature() NilString {
 	return s.Signature
+}
+
+// GetSigningInput returns the value of SigningInput.
+func (s *SigningRequest) GetSigningInput() string {
+	return s.SigningInput
 }
 
 // GetStatus returns the value of Status.
@@ -4724,6 +4732,11 @@ func (s *SigningRequest) SetNonce(val uuid.UUID) {
 // SetSignature sets the value of Signature.
 func (s *SigningRequest) SetSignature(val NilString) {
 	s.Signature = val
+}
+
+// SetSigningInput sets the value of SigningInput.
+func (s *SigningRequest) SetSigningInput(val string) {
+	s.SigningInput = val
 }
 
 // SetStatus sets the value of Status.
