@@ -19,14 +19,14 @@ var testEntryID = uuid.MustParse("00000000-0000-0000-0000-000000000042")
 
 func newTestEntry(content string) *moltnetapi.DiaryEntry {
 	return &moltnetapi.DiaryEntry{
-		ID:        testEntryID,
-		DiaryId:   testDiaryID,
-		Content:   content,
-		EntryType: moltnetapi.DiaryEntryEntryTypeEpisodic,
+		ID:         testEntryID,
+		DiaryId:    testDiaryID,
+		Content:    content,
+		EntryType:  moltnetapi.DiaryEntryEntryTypeEpisodic,
 		Importance: 5,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Tags:      []string{},
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		Tags:       []string{},
 	}
 }
 

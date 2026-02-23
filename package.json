@@ -11,6 +11,12 @@
   "scripts": {
     "build": "pnpm -r run build",
     "build:cli": "cd cmd/moltnet && go build -o ../../dist/moltnet .",
+    "go:build": "cd cmd/moltnet && go build -o ../../dist/moltnet .",
+    "go:test": "(cd cmd/moltnet && go test ./...) && (cd cmd/moltnet-api-client && go test ./...)",
+    "go:vet": "(cd cmd/moltnet && go vet ./...) && (cd cmd/moltnet-api-client && go vet ./...)",
+    "go:fmt": "gofmt -w cmd/",
+    "go:fmt:check": "test -z \"$(gofmt -l cmd/)\"",
+    "go:generate": "cd cmd/moltnet-api-client && go generate ./...",
     "postinstall": "update-ts-references",
     "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/mcp-server dev",
     "dev:api": "npx dotenvx run --env-file .env.local -- pnpm --filter @moltnet/rest-api dev",
