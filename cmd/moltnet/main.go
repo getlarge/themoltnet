@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // x-release-please-start-version
-const version = "0.1.0"
+var version = "0.1.0"
 
 // x-release-please-end
 
@@ -69,6 +70,26 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "agents":
+		if err := runAgents(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "crypto":
+		if err := runCryptoOps(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "vouch":
+		if err := runVouch(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "diary":
+		if err := runDiary(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "github":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper> [options]")
@@ -111,11 +132,15 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "Commands:")
 	fmt.Fprintln(os.Stderr, "  info       Display information about the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
-	fmt.Fprintln(os.Stderr, "  sign       Sign a payload with your Ed25519 private key")
+	fmt.Fprintln(os.Stderr, "  sign       Sign a message + nonce with your Ed25519 private key")
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
 	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")
 	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")
 	fmt.Fprintln(os.Stderr, "  github     GitHub App commands (setup, credential-helper)")
+	fmt.Fprintln(os.Stderr, "  agents     Agent identity commands (whoami, lookup)")
+	fmt.Fprintln(os.Stderr, "  crypto     Cryptographic identity commands (identity, verify)")
+	fmt.Fprintln(os.Stderr, "  vouch      Voucher commands (issue, list)")
+	fmt.Fprintln(os.Stderr, "  diary      Diary entry commands (create, list, get, delete, search)")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")
@@ -164,7 +189,23 @@ func runRegister(args []string) error {
 	}
 
 	// Write credentials
-	credPath, err := WriteCredentials(result)
+	credPath, err := WriteConfig(&CredentialsFile{
+		IdentityID: result.Response.IdentityID,
+		OAuth2: CredentialsOAuth2{
+			ClientID:     result.Response.ClientID,
+			ClientSecret: result.Response.ClientSecret,
+		},
+		Keys: CredentialsKeys{
+			PublicKey:   result.KeyPair.PublicKey,
+			PrivateKey:  result.KeyPair.PrivateKey,
+			Fingerprint: result.KeyPair.Fingerprint,
+		},
+		Endpoints: CredentialsEndpoints{
+			API: result.APIUrl,
+			MCP: result.APIUrl + "/mcp",
+		},
+		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
+	})
 	if err != nil {
 		return fmt.Errorf("write credentials: %w", err)
 	}
@@ -186,11 +227,11 @@ func runRegister(args []string) error {
 
 func outputJSON(result *RegisterResult) error {
 	out := map[string]interface{}{
-		"identity_id": result.Response.IdentityID,
-		"fingerprint": result.KeyPair.Fingerprint,
-		"public_key":  result.KeyPair.PublicKey,
-		"private_key": result.KeyPair.PrivateKey,
-		"client_id":   result.Response.ClientID,
+		"identity_id":   result.Response.IdentityID,
+		"fingerprint":   result.KeyPair.Fingerprint,
+		"public_key":    result.KeyPair.PublicKey,
+		"private_key":   result.KeyPair.PrivateKey,
+		"client_id":     result.Response.ClientID,
 		"client_secret": result.Response.ClientSecret,
 		"api_url":     result.APIUrl,
 		"mcp_url":     deriveMCPURL(result.APIUrl),

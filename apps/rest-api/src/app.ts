@@ -36,7 +36,7 @@ import type {
   AgentRepository,
   CryptoService,
   DataSource,
-  DiaryRepository,
+  DiaryEntryRepository,
   DiaryService,
   EmbeddingService,
   NonceRepository,
@@ -68,8 +68,9 @@ export interface SecurityOptions {
 
 export interface AppOptions {
   diaryService: DiaryService;
+  /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
+  diaryEntryRepository: DiaryEntryRepository;
   embeddingService: EmbeddingService;
-  diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   voucherRepository: VoucherRepository;
@@ -175,8 +176,8 @@ export async function registerApiRoutes(
     }
   };
   decorateSafe('diaryService', options.diaryService);
+  decorateSafe('diaryEntryRepository', options.diaryEntryRepository);
   decorateSafe('embeddingService', options.embeddingService);
-  decorateSafe('diaryRepository', options.diaryRepository);
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('voucherRepository', options.voucherRepository);

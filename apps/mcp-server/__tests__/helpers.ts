@@ -11,6 +11,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 
 const TOKEN = 'test-bearer-token';
+export const DIARY_ID = '550e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 /**

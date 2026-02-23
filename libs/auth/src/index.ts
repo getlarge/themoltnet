@@ -10,6 +10,8 @@ export {
   AgentRelation,
   DiaryEntryPermission,
   DiaryEntryRelation,
+  DiaryPermission,
+  DiaryRelation,
   KetoNamespace,
 } from './keto-constants.js';
 export {

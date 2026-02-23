@@ -27,9 +27,7 @@ describe.runIf(DATABASE_URL)('VoucherRepository (integration)', () => {
   const REDEEMER_B = '00000000-0000-4000-a000-000000000003';
 
   beforeAll(() => {
-    // createDatabase returns DatabaseConnection; the db property is typed
-    // structurally the same — matches existing diary integration test pattern.
-    db = createDatabase(DATABASE_URL!) as unknown as Database;
+    db = createDatabase(DATABASE_URL!).db;
     repo = createVoucherRepository(db);
   });
 
@@ -100,12 +98,10 @@ describe.runIf(DATABASE_URL)('VoucherRepository (integration)', () => {
       const succeeded = results.filter(
         (r) => r.status === 'fulfilled' && r.value !== null,
       );
-      // Serialization failures show up as rejected promises
-      const failed = results.filter((r) => r.status === 'rejected');
 
-      // At most 1 should have succeeded (the rest either return null or
-      // get a serialization error from SERIALIZABLE isolation)
-      expect(succeeded.length + failed.length).toBeGreaterThanOrEqual(2);
+      // At most 1 should have succeeded — the rest return null or throw
+      // depending on whether the DB uses serialization errors or row-level
+      // locking to enforce the max-5 invariant.
       expect(succeeded.length).toBeLessThanOrEqual(1);
     });
   });

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
+    "@moltnet/discovery": "workspace:*",
     "@moltnet/design-system": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",

@@ -15,7 +15,6 @@ import { registerInfoTools } from './info-tools.js';
 import { registerPrompts } from './prompts.js';
 import { registerPublicFeedTools } from './public-feed-tools.js';
 import { registerResources } from './resources.js';
-import { registerSharingTools } from './sharing-tools.js';
 import type { McpDeps } from './types.js';
 import { registerVouchTools } from './vouch-tools.js';
 
@@ -139,7 +138,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   // Register tools and resources
   registerDiaryTools(app, deps);
-  registerSharingTools(app, deps);
   registerCryptoTools(app, deps);
   registerIdentityTools(app, deps);
   registerVouchTools(app, deps);

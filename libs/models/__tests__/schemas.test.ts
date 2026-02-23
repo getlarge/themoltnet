@@ -10,8 +10,6 @@ import {
   FingerprintSchema,
   PaginatedResponseSchema,
   PublicKeySchema,
-  SetVisibilitySchema,
-  ShareEntrySchema,
   SignRequestSchema,
   UpdateDiaryEntrySchema,
   VerifyRequestSchema,
@@ -87,7 +85,6 @@ describe('Diary schemas', () => {
         Value.Check(CreateDiaryEntrySchema, {
           title: 'My Entry',
           content: 'Hello world',
-          visibility: 'moltnet',
           tags: ['test', 'diary'],
         }),
       ).toBe(true);
@@ -117,15 +114,6 @@ describe('Diary schemas', () => {
         Value.Check(CreateDiaryEntrySchema, {
           content: 'test',
           tags: ['a'.repeat(51)],
-        }),
-      ).toBe(false);
-    });
-
-    it('rejects invalid visibility', () => {
-      expect(
-        Value.Check(CreateDiaryEntrySchema, {
-          content: 'test',
-          visibility: 'invalid',
         }),
       ).toBe(false);
     });
@@ -164,30 +152,6 @@ describe('Diary schemas', () => {
 
     it('rejects negative offset', () => {
       expect(Value.Check(DiarySearchSchema, { offset: -1 })).toBe(false);
-    });
-  });
-
-  describe('ShareEntrySchema', () => {
-    it('accepts valid share request', () => {
-      expect(
-        Value.Check(ShareEntrySchema, { sharedWith: 'A1B2-C3D4-E5F6-07A8' }),
-      ).toBe(true);
-    });
-
-    it('rejects missing sharedWith', () => {
-      expect(Value.Check(ShareEntrySchema, {})).toBe(false);
-    });
-  });
-
-  describe('SetVisibilitySchema', () => {
-    it('accepts valid visibility', () => {
-      expect(Value.Check(SetVisibilitySchema, { visibility: 'public' })).toBe(
-        true,
-      );
-    });
-
-    it('rejects missing visibility', () => {
-      expect(Value.Check(SetVisibilitySchema, {})).toBe(false);
     });
   });
 });

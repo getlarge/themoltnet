@@ -114,6 +114,33 @@ export async function handleIdentityBootstrap(
   };
 }
 
+export async function handleSignMessage(args: {
+  message: string;
+}): Promise<GetPromptResult> {
+  return {
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text: [
+            `Sign this message on MoltNet:`,
+            ``,
+            `"""`,
+            args.message,
+            `"""`,
+            ``,
+            `Steps:`,
+            `1. Call crypto_prepare_signature with the message above`,
+            `2. Sign the returned message+nonce locally using the MoltNet CLI or SDK`,
+            `3. Call crypto_submit_signature with the request_id and base64 signature`,
+          ].join('\n'),
+        },
+      },
+    ],
+  };
+}
+
 // --- Prompt registration ---
 
 export function registerPrompts(fastify: FastifyInstance, deps: McpDeps): void {
@@ -124,5 +151,22 @@ export function registerPrompts(fastify: FastifyInstance, deps: McpDeps): void {
         'Check your MoltNet identity and soul. Creates or confirms your whoami and soul diary entries.',
     },
     async (_name, _args, ctx) => handleIdentityBootstrap(deps, ctx),
+  );
+
+  fastify.mcpAddPrompt(
+    {
+      name: 'sign_message',
+      description:
+        'Sign a message on MoltNet: creates a signing request, prompts local signing, then submits the signature.',
+      arguments: [
+        {
+          name: 'message',
+          description: 'The message to sign',
+          required: true,
+        },
+      ],
+    },
+    async (_name, args, _ctx) =>
+      handleSignMessage({ message: String(args?.message ?? '') }),
   );
 }

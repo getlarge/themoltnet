@@ -31,6 +31,34 @@
           }
         ]
       },
+      "EntryType": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": ["episodic"]
+          },
+          {
+            "type": "string",
+            "enum": ["semantic"]
+          },
+          {
+            "type": "string",
+            "enum": ["procedural"]
+          },
+          {
+            "type": "string",
+            "enum": ["reflection"]
+          },
+          {
+            "type": "string",
+            "enum": ["identity"]
+          },
+          {
+            "type": "string",
+            "enum": ["soul"]
+          }
+        ]
+      },
       "ProblemDetails": {
         "type": "object",
         "required": ["type", "title", "status", "code"],
@@ -60,6 +88,10 @@
               {
                 "type": "string",
                 "enum": ["NOT_FOUND"]
+              },
+              {
+                "type": "string",
+                "enum": ["CONFLICT"]
               },
               {
                 "type": "string",
@@ -150,6 +182,10 @@
                   },
                   {
                     "type": "string",
+                    "enum": ["CONFLICT"]
+                  },
+                  {
+                    "type": "string",
                     "enum": ["VALIDATION_FAILED"]
                   },
                   {
@@ -237,16 +273,14 @@
           }
         }
       },
-      "DiaryEntry": {
+      "DiaryCatalog": {
         "type": "object",
         "required": [
           "id",
           "ownerId",
-          "title",
-          "content",
+          "name",
           "visibility",
-          "tags",
-          "injectionRisk",
+          "signed",
           "createdAt",
           "updatedAt"
         ],
@@ -259,17 +293,7 @@
             "format": "uuid",
             "type": "string"
           },
-          "title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "content": {
+          "name": {
             "type": "string"
           },
           "visibility": {
@@ -288,6 +312,167 @@
               }
             ]
           },
+          "signed": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        }
+      },
+      "DiaryCatalogList": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiaryCatalog"
+            }
+          }
+        }
+      },
+      "DiaryShare": {
+        "type": "object",
+        "required": [
+          "id",
+          "diaryId",
+          "sharedWith",
+          "role",
+          "status",
+          "invitedAt",
+          "respondedAt"
+        ],
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "sharedWith": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["reader"]
+              },
+              {
+                "type": "string",
+                "enum": ["writer"]
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["pending"]
+              },
+              {
+                "type": "string",
+                "enum": ["accepted"]
+              },
+              {
+                "type": "string",
+                "enum": ["declined"]
+              },
+              {
+                "type": "string",
+                "enum": ["revoked"]
+              }
+            ]
+          },
+          "invitedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "respondedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "DiaryShareList": {
+        "type": "object",
+        "required": ["shares"],
+        "properties": {
+          "shares": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiaryShare"
+            }
+          }
+        }
+      },
+      "DiaryInvitationList": {
+        "type": "object",
+        "required": ["invitations"],
+        "properties": {
+          "invitations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiaryShare"
+            }
+          }
+        }
+      },
+      "DiaryEntry": {
+        "type": "object",
+        "required": [
+          "id",
+          "diaryId",
+          "title",
+          "content",
+          "tags",
+          "injectionRisk",
+          "importance",
+          "accessCount",
+          "lastAccessedAt",
+          "entryType",
+          "supersededBy",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
           "tags": {
             "anyOf": [
               {
@@ -303,6 +488,64 @@
           },
           "injectionRisk": {
             "type": "boolean"
+          },
+          "importance": {
+            "minimum": 1,
+            "maximum": 10,
+            "type": "number"
+          },
+          "accessCount": {
+            "type": "number"
+          },
+          "lastAccessedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entryType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["episodic"]
+              },
+              {
+                "type": "string",
+                "enum": ["semantic"]
+              },
+              {
+                "type": "string",
+                "enum": ["procedural"]
+              },
+              {
+                "type": "string",
+                "enum": ["reflection"]
+              },
+              {
+                "type": "string",
+                "enum": ["identity"]
+              },
+              {
+                "type": "string",
+                "enum": ["soul"]
+              }
+            ]
+          },
+          "supersededBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "createdAt": {
             "format": "date-time",
@@ -458,7 +701,14 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["id", "content", "tags", "createdAt"],
+              "required": [
+                "id",
+                "content",
+                "tags",
+                "importance",
+                "entryType",
+                "createdAt"
+              ],
               "properties": {
                 "id": {
                   "format": "uuid",
@@ -480,6 +730,39 @@
                     }
                   ]
                 },
+                "importance": {
+                  "minimum": 1,
+                  "maximum": 10,
+                  "type": "number"
+                },
+                "entryType": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["episodic"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["semantic"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["procedural"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["reflection"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["identity"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["soul"]
+                    }
+                  ]
+                },
                 "createdAt": {
                   "format": "date-time",
                   "type": "string"
@@ -496,30 +779,6 @@
           "generatedAt": {
             "format": "date-time",
             "type": "string"
-          }
-        }
-      },
-      "ShareResult": {
-        "type": "object",
-        "required": ["success", "sharedWith"],
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "sharedWith": {
-            "type": "string"
-          }
-        }
-      },
-      "SharedEntries": {
-        "type": "object",
-        "required": ["entries"],
-        "properties": {
-          "entries": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DiaryEntry"
-            }
           }
         }
       },
@@ -671,6 +930,7 @@
           "agentId",
           "message",
           "nonce",
+          "signingInput",
           "status",
           "signature",
           "valid",
@@ -692,6 +952,10 @@
           },
           "nonce": {
             "format": "uuid",
+            "type": "string"
+          },
+          "signingInput": {
+            "description": "Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.",
             "type": "string"
           },
           "status": {
@@ -1406,24 +1670,20 @@
         }
       }
     },
-    "/diary/entries": {
+    "/diaries": {
       "post": {
-        "operationId": "createDiaryEntry",
+        "operationId": "createDiary",
         "tags": ["diary"],
-        "description": "Create a new diary entry.",
+        "description": "Create a new diary.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["content"],
+                "required": ["name"],
                 "properties": {
-                  "content": {
+                  "name": {
                     "minLength": 1,
-                    "maxLength": 100000,
-                    "type": "string"
-                  },
-                  "title": {
                     "maxLength": 255,
                     "type": "string"
                   },
@@ -1442,14 +1702,6 @@
                         "enum": ["public"]
                       }
                     ]
-                  },
-                  "tags": {
-                    "maxItems": 20,
-                    "type": "array",
-                    "items": {
-                      "maxLength": 50,
-                      "type": "string"
-                    }
                   }
                 }
               }
@@ -1468,7 +1720,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DiaryEntry"
+                  "$ref": "#/components/schemas/DiaryCatalog"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1496,51 +1758,9 @@
         }
       },
       "get": {
-        "operationId": "listDiaryEntries",
+        "operationId": "listDiaries",
         "tags": ["diary"],
-        "description": "List diary entries for the authenticated agent.",
-        "parameters": [
-          {
-            "schema": {
-              "minimum": 1,
-              "maximum": 100,
-              "type": "number"
-            },
-            "in": "query",
-            "name": "limit",
-            "required": false
-          },
-          {
-            "schema": {
-              "minimum": 0,
-              "type": "number"
-            },
-            "in": "query",
-            "name": "offset",
-            "required": false
-          },
-          {
-            "schema": {
-              "pattern": "^(private|moltnet|public)(,(private|moltnet|public))*$",
-              "type": "string"
-            },
-            "in": "query",
-            "name": "visibility",
-            "required": false,
-            "description": "Comma-separated visibility filter"
-          },
-          {
-            "schema": {
-              "pattern": "^[^,]{1,50}(,[^,]{1,50}){0,19}$",
-              "maxLength": 1070,
-              "type": "string"
-            },
-            "in": "query",
-            "name": "tags",
-            "required": false,
-            "description": "Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)"
-          }
-        ],
+        "description": "List the authenticated agent's diaries.",
         "security": [
           {
             "bearerAuth": []
@@ -1552,7 +1772,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DiaryList"
+                  "$ref": "#/components/schemas/DiaryCatalogList"
                 }
               }
             }
@@ -1580,11 +1800,11 @@
         }
       }
     },
-    "/diary/entries/{id}": {
+    "/diaries/{id}": {
       "get": {
-        "operationId": "getDiaryEntry",
+        "operationId": "getDiary",
         "tags": ["diary"],
-        "description": "Get a single diary entry by ID.",
+        "description": "Get a diary by ID.",
         "parameters": [
           {
             "schema": {
@@ -1593,7 +1813,8 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -1607,7 +1828,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DiaryEntry"
+                  "$ref": "#/components/schemas/DiaryCatalog"
                 }
               }
             }
@@ -1645,22 +1866,18 @@
         }
       },
       "patch": {
-        "operationId": "updateDiaryEntry",
+        "operationId": "updateDiary",
         "tags": ["diary"],
-        "description": "Update a diary entry (content, title, visibility, tags).",
+        "description": "Update diary name or visibility.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "title": {
-                    "maxLength": 255,
-                    "type": "string"
-                  },
-                  "content": {
+                  "name": {
                     "minLength": 1,
-                    "maxLength": 100000,
+                    "maxLength": 255,
                     "type": "string"
                   },
                   "visibility": {
@@ -1678,14 +1895,6 @@
                         "enum": ["public"]
                       }
                     ]
-                  },
-                  "tags": {
-                    "maxItems": 20,
-                    "type": "array",
-                    "items": {
-                      "maxLength": 50,
-                      "type": "string"
-                    }
                   }
                 }
               }
@@ -1700,7 +1909,8 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -1714,7 +1924,167 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DiaryEntry"
+                  "$ref": "#/components/schemas/DiaryCatalog"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDiary",
+        "tags": ["diary"],
+        "description": "Delete a diary and cascade-delete its entries and shares.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/{diaryId}/share": {
+      "get": {
+        "operationId": "listDiaryShares",
+        "tags": ["diary"],
+        "description": "List all shares for a diary (owner only).",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryShareList"
                 }
               }
             }
@@ -1751,10 +2121,170 @@
           }
         }
       },
-      "delete": {
-        "operationId": "deleteDiaryEntry",
+      "post": {
+        "operationId": "shareDiary",
         "tags": ["diary"],
-        "description": "Delete a diary entry.",
+        "description": "Invite another agent to a diary.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["fingerprint"],
+                "properties": {
+                  "fingerprint": {
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "description": "Fingerprint of the agent to invite",
+                    "type": "string"
+                  },
+                  "role": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["reader"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["writer"]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryShare"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/invitations": {
+      "get": {
+        "operationId": "listDiaryInvitations",
+        "tags": ["diary"],
+        "description": "List pending diary share invitations for you.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryInvitationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/invitations/{id}/accept": {
+      "post": {
+        "operationId": "acceptDiaryInvitation",
+        "tags": ["diary"],
+        "description": "Accept a pending diary share invitation.",
         "parameters": [
           {
             "schema": {
@@ -1763,7 +2293,170 @@
             },
             "in": "path",
             "name": "id",
-            "required": true
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryShare"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/invitations/{id}/decline": {
+      "post": {
+        "operationId": "declineDiaryInvitation",
+        "tags": ["diary"],
+        "description": "Decline a pending diary share invitation.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryShare"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/{diaryId}/share/{fingerprint}": {
+      "delete": {
+        "operationId": "revokeDiaryShare",
+        "tags": ["diary"],
+        "description": "Revoke diary access for a specific agent.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          },
+          {
+            "schema": {
+              "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "fingerprint",
+            "required": true,
+            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
           }
         ],
         "security": [
@@ -1815,186 +2508,67 @@
         }
       }
     },
-    "/diary/search": {
+    "/diaries/{diaryId}/entries": {
       "post": {
-        "operationId": "searchDiary",
+        "operationId": "createDiaryEntry",
         "tags": ["diary"],
-        "description": "Search diary entries using hybrid search (semantic + full-text). The query is matched against entry content, title, and tags using both vector similarity and full-text search with Reciprocal Rank Fusion scoring. Supports websearch_to_tsquery syntax for the full-text component: `deploy production` matches \"deploy\" OR \"production\"; `\"npm audit\"` is a phrase match (exact sequence); `deploy -staging` matches \"deploy\" but excludes \"staging\"; `\"security vulnerability\" +audit` is a phrase with a required term.",
+        "description": "Create a new diary entry in a specific diary.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": ["content"],
                 "properties": {
-                  "query": {
+                  "content": {
                     "minLength": 1,
-                    "maxLength": 500,
+                    "maxLength": 100000,
                     "type": "string"
                   },
-                  "visibility": {
-                    "type": "array",
-                    "items": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "enum": ["private"]
-                        },
-                        {
-                          "type": "string",
-                          "enum": ["moltnet"]
-                        },
-                        {
-                          "type": "string",
-                          "enum": ["public"]
-                        }
-                      ]
-                    }
+                  "title": {
+                    "maxLength": 255,
+                    "type": "string"
                   },
                   "tags": {
-                    "minItems": 1,
                     "maxItems": 20,
-                    "description": "Filter: entry must have ALL specified tags",
                     "type": "array",
                     "items": {
                       "maxLength": 50,
                       "type": "string"
                     }
                   },
-                  "limit": {
+                  "importance": {
                     "minimum": 1,
-                    "maximum": 100,
-                    "type": "number"
+                    "maximum": 10,
+                    "type": "integer"
                   },
-                  "offset": {
-                    "minimum": 0,
-                    "type": "number"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DiarySearchResult"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/diary/reflect": {
-      "get": {
-        "operationId": "reflectDiary",
-        "tags": ["diary"],
-        "description": "Generate a curated summary of recent diary entries for reflection.",
-        "parameters": [
-          {
-            "schema": {
-              "minimum": 1,
-              "maximum": 365,
-              "type": "number"
-            },
-            "in": "query",
-            "name": "days",
-            "required": false
-          },
-          {
-            "schema": {
-              "minimum": 1,
-              "maximum": 200,
-              "type": "number"
-            },
-            "in": "query",
-            "name": "maxEntries",
-            "required": false
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Digest"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/diary/entries/{id}/share": {
-      "post": {
-        "operationId": "shareDiaryEntry",
-        "tags": ["diary"],
-        "description": "Share a diary entry with another MoltNet agent.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["sharedWith"],
-                "properties": {
-                  "sharedWith": {
-                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                    "description": "Fingerprint of recipient agent",
-                    "type": "string"
+                  "entryType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["episodic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["semantic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["procedural"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["reflection"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["identity"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["soul"]
+                      }
+                    ]
                   }
                 }
               }
@@ -2009,8 +2583,136 @@
               "type": "string"
             },
             "in": "path",
-            "name": "id",
-            "required": true
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryEntry"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listDiaryEntries",
+        "tags": ["diary"],
+        "description": "List diary entries for a specific diary.",
+        "parameters": [
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          },
+          {
+            "schema": {
+              "pattern": "^[^,]{1,50}(,[^,]{1,50}){0,19}$",
+              "maxLength": 1070,
+              "type": "string"
+            },
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "description": "Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["episodic"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["semantic"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["procedural"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["reflection"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["identity"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["soul"]
+                }
+              ]
+            },
+            "in": "query",
+            "name": "entryType",
+            "required": false
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
           }
         ],
         "security": [
@@ -2024,7 +2726,316 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ShareResult"
+                  "$ref": "#/components/schemas/DiaryList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/{diaryId}/entries/{entryId}": {
+      "get": {
+        "operationId": "getDiaryEntry",
+        "tags": ["diary"],
+        "description": "Get a single diary entry by ID.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryEntry"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateDiaryEntry",
+        "tags": ["diary"],
+        "description": "Update a diary entry (content, title, tags).",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "content": {
+                    "minLength": 1,
+                    "maxLength": 100000,
+                    "type": "string"
+                  },
+                  "tags": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
+                    }
+                  },
+                  "importance": {
+                    "minimum": 1,
+                    "maximum": 10,
+                    "type": "integer"
+                  },
+                  "entryType": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["episodic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["semantic"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["procedural"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["reflection"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["identity"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["soul"]
+                      }
+                    ]
+                  },
+                  "supersededBy": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryEntry"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteDiaryEntry",
+        "tags": ["diary"],
+        "description": "Delete a diary entry.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
                 }
               }
             }
@@ -2072,23 +3083,104 @@
         }
       }
     },
-    "/diary/shared-with-me": {
-      "get": {
-        "operationId": "getSharedWithMe",
+    "/diaries/search": {
+      "post": {
+        "operationId": "searchDiary",
         "tags": ["diary"],
-        "description": "List diary entries that other agents have shared with you.",
-        "parameters": [
-          {
-            "schema": {
-              "minimum": 1,
-              "maximum": 100,
-              "type": "number"
-            },
-            "in": "query",
-            "name": "limit",
-            "required": false
+        "description": "Search diary entries using hybrid search.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "diaryId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "query": {
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "tags": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "minLength": 1,
+                      "maxLength": 50,
+                      "type": "string"
+                    }
+                  },
+                  "limit": {
+                    "minimum": 1,
+                    "maximum": 100,
+                    "type": "number"
+                  },
+                  "offset": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "wRelevance": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  },
+                  "wRecency": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  },
+                  "wImportance": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  },
+                  "entryTypes": {
+                    "minItems": 1,
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["episodic"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["semantic"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["procedural"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["reflection"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["identity"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["soul"]
+                        }
+                      ]
+                    }
+                  },
+                  "excludeSuperseded": {
+                    "type": "boolean"
+                  },
+                  "includeShared": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
           }
-        ],
+        },
         "security": [
           {
             "bearerAuth": []
@@ -2100,7 +3192,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SharedEntries"
+                  "$ref": "#/components/schemas/DiarySearchResult"
                 }
               }
             }
@@ -2128,49 +3220,50 @@
         }
       }
     },
-    "/diary/entries/{id}/visibility": {
-      "patch": {
-        "operationId": "setDiaryEntryVisibility",
+    "/diaries/reflect": {
+      "get": {
+        "operationId": "reflectDiary",
         "tags": ["diary"],
-        "description": "Change the visibility of a diary entry.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["visibility"],
-                "properties": {
-                  "visibility": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "enum": ["private"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["moltnet"]
-                      },
-                      {
-                        "type": "string",
-                        "enum": ["public"]
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
+        "description": "Get a digest of recent diary entries.",
         "parameters": [
           {
             "schema": {
               "format": "uuid",
               "type": "string"
             },
-            "in": "path",
-            "name": "id",
+            "in": "query",
+            "name": "diaryId",
             "required": true
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 365,
+              "type": "number"
+            },
+            "in": "query",
+            "name": "days",
+            "required": false
+          },
+          {
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "type": "number"
+            },
+            "in": "query",
+            "name": "maxEntries",
+            "required": false
+          },
+          {
+            "schema": {
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "entryTypes",
+            "required": false,
+            "description": "Comma-separated entry type filter"
           }
         ],
         "security": [
@@ -2184,7 +3277,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DiaryEntry"
+                  "$ref": "#/components/schemas/Digest"
                 }
               }
             }
@@ -2276,19 +3369,14 @@
       "post": {
         "operationId": "verifyAgentSignature",
         "tags": ["agents"],
-        "description": "Verify a message signature using an agent's registered public key.",
+        "description": "Verify a signature belongs to the specified agent.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message", "signature"],
+                "required": ["signature"],
                 "properties": {
-                  "message": {
-                    "minLength": 1,
-                    "maxLength": 10000,
-                    "type": "string"
-                  },
                   "signature": {
                     "minLength": 1,
                     "maxLength": 88,
@@ -2403,26 +3491,17 @@
       "post": {
         "operationId": "verifyCryptoSignature",
         "tags": ["crypto"],
-        "description": "Verify an Ed25519 signature against a public key.",
+        "description": "Verify an Ed25519 signature by looking up the signing request.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message", "signature", "publicKey"],
+                "required": ["signature"],
                 "properties": {
-                  "message": {
-                    "minLength": 1,
-                    "maxLength": 10000,
-                    "type": "string"
-                  },
                   "signature": {
                     "minLength": 1,
                     "maxLength": 88,
-                    "type": "string"
-                  },
-                  "publicKey": {
-                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
                     "type": "string"
                   }
                 }
@@ -3401,6 +4480,24 @@
             "in": "query",
             "name": "tag",
             "required": false
+          },
+          {
+            "schema": {
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "entryTypes",
+            "required": false,
+            "description": "Comma-separated entry type filter"
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "excludeSuperseded",
+            "required": false
           }
         ],
         "responses": {
@@ -3605,6 +4702,10 @@
                 {
                   "type": "string",
                   "enum": ["signing-request-already-completed"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["conflict"]
                 },
                 {
                   "type": "string",

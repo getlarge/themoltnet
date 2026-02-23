@@ -50,11 +50,13 @@ export async function handleDiaryCreate(
   const { data, error } = await createDiaryEntry({
     client: deps.client,
     auth: () => token,
+    path: { diaryId: args.diary_id },
     body: {
       content: args.content,
       title: args.title,
-      visibility: args.visibility,
       tags: args.tags,
+      importance: args.importance,
+      entryType: args.entry_type,
     },
   });
 
@@ -82,7 +84,10 @@ export async function handleDiaryGet(
   const { data, error } = await getDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: args.entry_id },
+    path: {
+      diaryId: args.diary_id,
+      entryId: args.entry_id,
+    },
   });
 
   if (error) {
@@ -103,6 +108,7 @@ export async function handleDiaryList(
   const { data, error } = await listDiaryEntries({
     client: deps.client,
     auth: () => token,
+    path: { diaryId: args.diary_id },
     query: {
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
@@ -129,9 +135,16 @@ export async function handleDiarySearch(
     client: deps.client,
     auth: () => token,
     body: {
+      diaryId: args.diary_id,
       query: args.query,
       limit: args.limit ?? 10,
       ...(args.tags && { tags: args.tags }),
+      wRelevance: args.w_relevance,
+      wRecency: args.w_recency,
+      wImportance: args.w_importance,
+      entryTypes: args.entry_types,
+      excludeSuperseded: args.exclude_superseded,
+      includeShared: args.include_shared,
     },
   });
 
@@ -150,12 +163,19 @@ export async function handleDiaryUpdate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { entry_id, ...updates } = args;
+  const { diary_id, entry_id, entry_type, superseded_by, ...updates } = args;
   const { data, error } = await updateDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: entry_id },
-    body: updates,
+    path: {
+      diaryId: diary_id,
+      entryId: entry_id,
+    },
+    body: {
+      ...updates,
+      entryType: entry_type,
+      supersededBy: superseded_by,
+    },
   });
 
   if (error) {
@@ -176,7 +196,10 @@ export async function handleDiaryDelete(
   const { error } = await deleteDiaryEntry({
     client: deps.client,
     auth: () => token,
-    path: { id: args.entry_id },
+    path: {
+      diaryId: args.diary_id,
+      entryId: args.entry_id,
+    },
   });
 
   if (error) {
@@ -198,8 +221,10 @@ export async function handleDiaryReflect(
     client: deps.client,
     auth: () => token,
     query: {
+      diaryId: args.diary_id,
       days: args.days ?? 7,
       maxEntries: args.max_entries ?? 50,
+      ...(args.entry_types && { entryTypes: args.entry_types.join(',') }),
     },
   });
 

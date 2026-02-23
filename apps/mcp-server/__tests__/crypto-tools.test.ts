@@ -20,14 +20,14 @@ vi.mock('@moltnet/api-client', () => ({
   createSigningRequest: vi.fn(),
   submitSignature: vi.fn(),
   getSigningRequest: vi.fn(),
-  verifyAgentSignature: vi.fn(),
+  verifyCryptoSignature: vi.fn(),
 }));
 
 import {
   createSigningRequest,
   getSigningRequest,
   submitSignature,
-  verifyAgentSignature,
+  verifyCryptoSignature,
 } from '@moltnet/api-client';
 
 describe('Crypto tools', () => {
@@ -63,10 +63,8 @@ describe('Crypto tools', () => {
       expect(parsed).toHaveProperty('request_id', 'req-123');
       expect(parsed).toHaveProperty('message', 'Hello, world!');
       expect(parsed).toHaveProperty('nonce', 'nonce-abc');
-      expect(parsed).toHaveProperty(
-        'signing_payload',
-        'Hello, world!.nonce-abc',
-      );
+      expect(parsed).toHaveProperty('next_step');
+      expect(parsed).not.toHaveProperty('signing_payload');
       expect(parsed).toHaveProperty('status', 'pending');
     });
 
@@ -193,47 +191,37 @@ describe('Crypto tools', () => {
 
   describe('crypto_verify', () => {
     it('verifies a valid signature', async () => {
-      vi.mocked(verifyAgentSignature).mockResolvedValue(
-        sdkOk({
-          valid: true,
-          signer: { fingerprint: 'fp:abc123' },
-        }) as never,
+      vi.mocked(verifyCryptoSignature).mockResolvedValue(
+        sdkOk({ valid: true }) as never,
       );
 
       const result = await handleCryptoVerify(
         {
-          message: 'Hello, world!',
           signature: 'ed25519:sig123',
-          signer_fingerprint: 'A1B2-C3D4-E5F6-07A8',
         },
         deps,
         context,
       );
 
-      expect(verifyAgentSignature).toHaveBeenCalledWith(
+      expect(verifyCryptoSignature).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { fingerprint: 'A1B2-C3D4-E5F6-07A8' },
           body: {
-            message: 'Hello, world!',
             signature: 'ed25519:sig123',
           },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('valid', true);
-      expect(parsed.signer).toHaveProperty('fingerprint', 'fp:abc123');
     });
 
     it('returns invalid for bad signature', async () => {
-      vi.mocked(verifyAgentSignature).mockResolvedValue(
+      vi.mocked(verifyCryptoSignature).mockResolvedValue(
         sdkOk({ valid: false }) as never,
       );
 
       const result = await handleCryptoVerify(
         {
-          message: 'Hello',
           signature: 'bad-sig',
-          signer_fingerprint: 'A1B2-C3D4-E5F6-07A8',
         },
         deps,
         context,
@@ -243,42 +231,15 @@ describe('Crypto tools', () => {
       expect(parsed).toHaveProperty('valid', false);
     });
 
-    it('returns error when signer not found', async () => {
-      vi.mocked(verifyAgentSignature).mockResolvedValue(
-        sdkErr(
-          { error: 'Not Found', message: 'Agent not found', statusCode: 404 },
-          404,
-        ) as never,
-      );
-
-      const result = await handleCryptoVerify(
-        {
-          message: 'Hello',
-          signature: 'sig',
-          signer_fingerprint: 'AAAA-BBBB-CCCC-DDDD',
-        },
-        deps,
-        context,
-      );
-
-      expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('not found');
-    });
-
     it('does not require authentication', async () => {
       const unauthContext = createMockContext(null);
-      vi.mocked(verifyAgentSignature).mockResolvedValue(
-        sdkOk({
-          valid: true,
-          signer: { fingerprint: 'fp:abc123' },
-        }) as never,
+      vi.mocked(verifyCryptoSignature).mockResolvedValue(
+        sdkOk({ valid: true }) as never,
       );
 
       const result = await handleCryptoVerify(
         {
-          message: 'Hello',
           signature: 'sig',
-          signer_fingerprint: 'A1B2-C3D4-E5F6-07A8',
         },
         deps,
         unauthContext,

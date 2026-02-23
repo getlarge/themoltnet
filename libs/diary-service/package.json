@@ -23,11 +23,13 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@andersmyrmel/vard": "catalog:",
-    "@moltnet/database": "workspace:*"
+    "@andersmyrmel/vard": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/auth": "workspace:*",
+    "@moltnet/database": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
+    "drizzle-orm": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

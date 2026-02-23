@@ -2,7 +2,10 @@
  * DiaryService Integration Tests
  *
  * Tests the diary service layer wired with a real DiaryRepository
- * against PostgreSQL + pgvector.
+ * against PostgreSQL + pgvector + real DBOS runtime.
+ *
+ * Uses DATABASE_URL as both the app database and DBOS system database
+ * (DBOS creates its system tables in a `dbos` schema within the same DB).
  *
  * Without EMBEDDING_MODEL: uses noop embedding service (text search only).
  * With EMBEDDING_MODEL=true: uses @moltnet/embedding-service for real
@@ -13,6 +16,7 @@
  * Run with embeddings: DATABASE_URL=... EMBEDDING_MODEL=true pnpm --filter @moltnet/diary-service test
  */
 
+import { eq } from 'drizzle-orm';
 import {
   afterAll,
   afterEach,
@@ -26,10 +30,17 @@ import {
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import { createNoopEmbeddingService } from '../src/embedding-service.js';
 import type {
+  AgentLookupRepository,
+  DiaryShareRepository,
   EmbeddingService,
   PermissionChecker,
   RelationshipWriter,
-} from '../src/types.js';
+} from '../src/index.js';
+import { DiaryServiceError } from '../src/types.js';
+import {
+  initDiaryWorkflows,
+  setDiaryWorkflowDeps,
+} from '../src/workflows/diary-workflows.js';
 
 async function loadEmbeddingService(): Promise<EmbeddingService> {
   if (process.env.EMBEDDING_MODEL !== 'true') {
@@ -39,15 +50,40 @@ async function loadEmbeddingService(): Promise<EmbeddingService> {
   return createEmbeddingService();
 }
 
-// Dynamic import so the test file doesn't fail to parse when
-// @moltnet/database is not resolvable (shouldn't happen in this
-// monorepo, but keeps the import conditional on DATABASE_URL).
 async function setupDatabase(url: string) {
-  const { createDatabase, createDiaryRepository, diaryEntries, entryShares } =
-    await import('@moltnet/database');
-  const db = createDatabase(url);
-  const repo = createDiaryRepository(db);
-  return { db, repo, diaryEntries, entryShares };
+  const {
+    createDatabase,
+    createDiaryEntryRepository,
+    createDiaryRepository,
+    diaryEntries,
+    diaries,
+  } = await import('@moltnet/database');
+  const { db } = createDatabase(url);
+  const repo = createDiaryEntryRepository(db);
+  const diaryRepo = createDiaryRepository(db);
+  return { db, repo, diaryRepo, diaryEntries, diaries };
+}
+
+async function setupDBOS(url: string) {
+  const {
+    configureDBOS,
+    initDBOS,
+    launchDBOS,
+    getDataSource,
+    createDBOSTransactionRunner,
+  } = await import('@moltnet/database');
+
+  // Use app database as DBOS system database — DBOS creates its tables
+  // in a `dbos` schema within the same database.
+  configureDBOS(url);
+  await initDBOS({ databaseUrl: url, systemDatabaseUrl: url });
+  await launchDBOS();
+
+  const dataSource = getDataSource();
+  return {
+    dataSource,
+    transactionRunner: createDBOSTransactionRunner(dataSource),
+  };
 }
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -57,7 +93,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   let db: Awaited<ReturnType<typeof setupDatabase>>['db'];
   let tables: {
     diaryEntries: Awaited<ReturnType<typeof setupDatabase>>['diaryEntries'];
-    entryShares: Awaited<ReturnType<typeof setupDatabase>>['entryShares'];
+    diaries: Awaited<ReturnType<typeof setupDatabase>>['diaries'];
   };
   let permissions: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
@@ -65,96 +101,177 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   let relationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
   };
+  let DIARY_ID: string;
+  let OTHER_DIARY_ID: string;
 
   const OWNER_ID = '00000000-0000-4000-b000-000000000001';
   const OTHER_AGENT = '00000000-0000-4000-b000-000000000002';
 
   beforeAll(async () => {
+    // Register DBOS workflows BEFORE launchDBOS() — DBOS requirement.
+    // Deps are accessed lazily at execution time, so registration before
+    // setDiaryWorkflowDeps() is safe.
+    initDiaryWorkflows();
+
     const setup = await setupDatabase(DATABASE_URL!);
     db = setup.db;
     tables = {
       diaryEntries: setup.diaryEntries,
-      entryShares: setup.entryShares,
+      diaries: setup.diaries,
     };
 
     permissions = {
       canViewEntry: vi.fn().mockResolvedValue(true),
       canEditEntry: vi.fn().mockResolvedValue(true),
       canDeleteEntry: vi.fn().mockResolvedValue(true),
-      canShareEntry: vi.fn().mockResolvedValue(true),
+      canReadDiary: vi.fn().mockResolvedValue(true),
+      canWriteDiary: vi.fn().mockResolvedValue(true),
+      canManageDiary: vi.fn().mockResolvedValue(true),
     };
 
     relationshipWriter = {
-      grantOwnership: vi.fn().mockResolvedValue(undefined),
-      grantViewer: vi.fn().mockResolvedValue(undefined),
+      grantEntryParent: vi.fn().mockResolvedValue(undefined),
       registerAgent: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
+      grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
+      grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
+      grantDiaryReader: vi.fn().mockResolvedValue(undefined),
+      removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
+      removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
     };
 
     const embeddingService = await loadEmbeddingService();
 
+    // Launch DBOS after workflow registration
+    const dbosSetup = await setupDBOS(DATABASE_URL!);
+
+    // Wire diary workflow deps (dataSource available now; deps are lazy)
+    setDiaryWorkflowDeps({
+      diaryEntryRepository: setup.repo,
+      relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
+      embeddingService,
+      dataSource: dbosSetup.dataSource,
+    });
+
     service = createDiaryService({
-      diaryRepository: setup.repo,
+      diaryRepository: setup.diaryRepo,
+      diaryShareRepository: {
+        create: vi.fn(),
+        findById: vi.fn(),
+        findByDiaryAndAgent: vi.fn(),
+        listByDiary: vi.fn(),
+        listPendingForAgent: vi.fn(),
+        listAcceptedForAgent: vi.fn(),
+        updateStatus: vi.fn(),
+      } as unknown as DiaryShareRepository,
+      agentRepository: {
+        findByFingerprint: vi.fn(),
+      } as unknown as AgentLookupRepository,
+      diaryEntryRepository: setup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
       relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
       embeddingService,
-      transactionRunner: {
-        runInTransaction: async (fn) => fn(),
-      },
+      transactionRunner: dbosSetup.transactionRunner,
     });
+
+    // Create test diary containers so diary_entries FK constraint is satisfied
+    const diary = await setup.diaryRepo.create({
+      ownerId: OWNER_ID,
+      name: 'Test Diary',
+      visibility: 'private',
+    });
+    DIARY_ID = diary.id;
+
+    const otherDiary = await setup.diaryRepo.create({
+      ownerId: OTHER_AGENT,
+      name: 'Other Test Diary',
+      visibility: 'private',
+    });
+    OTHER_DIARY_ID = otherDiary.id;
   });
 
   afterEach(async () => {
-    await db.delete(tables.entryShares);
-    await db.delete(tables.diaryEntries);
+    // Clean up only entries for our test diaries to avoid cross-test interference
+    if (DIARY_ID) {
+      await db
+        .delete(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
+    }
+    if (OTHER_DIARY_ID) {
+      await db
+        .delete(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, OTHER_DIARY_ID));
+    }
     vi.clearAllMocks();
   });
 
   afterAll(async () => {
-    await db.delete(tables.entryShares);
-    await db.delete(tables.diaryEntries);
+    // Scope cleanup by diary ID to avoid deleting other tests' diaries
+    if (DIARY_ID) {
+      await db
+        .delete(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
+      await db.delete(tables.diaries).where(eq(tables.diaries.id, DIARY_ID));
+    }
+    if (OTHER_DIARY_ID) {
+      await db
+        .delete(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, OTHER_DIARY_ID));
+      await db
+        .delete(tables.diaries)
+        .where(eq(tables.diaries.id, OTHER_DIARY_ID));
+    }
+
+    const { shutdownDBOS } = await import('@moltnet/database');
+    await shutdownDBOS();
   });
 
   // ── Create ──────────────────────────────────────────────────────────
 
   describe('create', () => {
-    it('creates entry and grants ownership', async () => {
-      const entry = await service.create({
-        ownerId: OWNER_ID,
-        content: 'My first diary entry about MoltNet.',
-      });
+    it('creates entry and links to parent diary', async () => {
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'My first diary entry about MoltNet.',
+        },
+        OWNER_ID,
+      );
 
       expect(entry.id).toBeDefined();
-      expect(entry.ownerId).toBe(OWNER_ID);
+      expect(entry.diaryId).toBe(DIARY_ID);
       expect(entry.content).toBe('My first diary entry about MoltNet.');
-      expect(entry.visibility).toBe('private');
-      expect(relationshipWriter.grantOwnership).toHaveBeenCalledWith(
+      expect(relationshipWriter.grantEntryParent).toHaveBeenCalledWith(
         entry.id,
-        OWNER_ID,
+        DIARY_ID,
       );
     });
 
     it('creates entry with all fields', async () => {
-      const entry = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Learning about Ed25519 signatures.',
-        title: 'Crypto Day',
-        visibility: 'moltnet',
-        tags: ['crypto', 'learning'],
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Learning about Ed25519 signatures.',
+          title: 'Crypto Day',
+          tags: ['crypto', 'learning'],
+        },
+        OWNER_ID,
+      );
 
       expect(entry.title).toBe('Crypto Day');
-      expect(entry.visibility).toBe('moltnet');
       expect(entry.tags).toEqual(['crypto', 'learning']);
     });
 
     it('creates entry without embedding when noop service is used', async () => {
       if (process.env.EMBEDDING_MODEL === 'true') return;
 
-      const entry = await service.create({
-        ownerId: OWNER_ID,
-        content: 'No embedding here.',
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'No embedding here.',
+        },
+        OWNER_ID,
+      );
 
       expect(entry.embedding).toBeNull();
     });
@@ -162,10 +279,13 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
     it('creates entry with embedding when real service is used', async () => {
       if (process.env.EMBEDDING_MODEL !== 'true') return;
 
-      const entry = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Ed25519 cryptographic identity for autonomous agents.',
-      });
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Ed25519 cryptographic identity for autonomous agents.',
+        },
+        OWNER_ID,
+      );
 
       expect(entry.embedding).not.toBeNull();
       expect(entry.embedding).toHaveLength(384);
@@ -176,69 +296,57 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
   describe('getById', () => {
     it('returns entry when Keto allows', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Private thought.',
-      });
+      const created = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Private thought.',
+        },
+        OWNER_ID,
+      );
 
       permissions.canViewEntry.mockResolvedValue(true);
-      const found = await service.getById(created.id, OWNER_ID);
+      const found = await service.getEntryById(created.id, DIARY_ID, OWNER_ID);
       expect(found).not.toBeNull();
       expect(found!.content).toBe('Private thought.');
     });
 
-    it('returns null when Keto denies viewing private entry', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Secret entry.',
-        visibility: 'private',
-      });
+    it('throws forbidden when Keto denies', async () => {
+      const created = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Secret entry.',
+        },
+        OWNER_ID,
+      );
 
       permissions.canViewEntry.mockResolvedValue(false);
-      const found = await service.getById(created.id, OTHER_AGENT);
-      expect(found).toBeNull();
-    });
-
-    it('returns public entry without Keto check', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Public thought.',
-        visibility: 'public',
-      });
-
-      permissions.canViewEntry.mockClear();
-      const found = await service.getById(created.id, OTHER_AGENT);
-      expect(found).not.toBeNull();
-      expect(found!.content).toBe('Public thought.');
-      expect(permissions.canViewEntry).not.toHaveBeenCalled();
-    });
-
-    it('returns moltnet entry without Keto check', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Moltnet-visible thought.',
-        visibility: 'moltnet',
-      });
-
-      permissions.canViewEntry.mockClear();
-      const found = await service.getById(created.id, OTHER_AGENT);
-      expect(found).not.toBeNull();
-      expect(permissions.canViewEntry).not.toHaveBeenCalled();
+      await expect(
+        service.getEntryById(created.id, DIARY_ID, OTHER_AGENT),
+      ).rejects.toThrow(DiaryServiceError);
     });
   });
 
   // ── List ────────────────────────────────────────────────────────────
 
   describe('list', () => {
-    it('lists entries for owner', async () => {
-      await service.create({ ownerId: OWNER_ID, content: 'Entry 1.' });
-      await service.create({ ownerId: OWNER_ID, content: 'Entry 2.' });
-      await service.create({ ownerId: OTHER_AGENT, content: 'Not mine.' });
+    it('lists entries for a diary', async () => {
+      await service.createEntry(
+        { diaryId: DIARY_ID, content: 'Entry 1.' },
+        OWNER_ID,
+      );
+      await service.createEntry(
+        { diaryId: DIARY_ID, content: 'Entry 2.' },
+        OWNER_ID,
+      );
+      await service.createEntry(
+        { diaryId: OTHER_DIARY_ID, content: 'Not mine.' },
+        OTHER_AGENT,
+      );
 
-      const entries = await service.list({ ownerId: OWNER_ID });
+      const entries = await service.listEntries({ diaryId: DIARY_ID });
 
       expect(entries.length).toBe(2);
-      expect(entries.every((e) => e.ownerId === OWNER_ID)).toBe(true);
+      expect(entries.every((e) => e.diaryId === DIARY_ID)).toBe(true);
     });
   });
 
@@ -246,49 +354,64 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
   describe('search', () => {
     it('searches by text query', async () => {
-      await service.create({
-        ownerId: OWNER_ID,
-        content: 'Cryptographic key exchange protocols are fascinating.',
-      });
-      await service.create({
-        ownerId: OWNER_ID,
-        content: 'The weather is sunny today.',
-      });
+      await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Cryptographic key exchange protocols are fascinating.',
+        },
+        OWNER_ID,
+      );
+      await service.createEntry(
+        { diaryId: DIARY_ID, content: 'The weather is sunny today.' },
+        OWNER_ID,
+      );
 
-      const results = await service.search({
-        ownerId: OWNER_ID,
-        query: 'cryptographic protocols',
-      });
+      const results = await service.searchEntries(
+        { diaryId: DIARY_ID, query: 'cryptographic protocols' },
+        OWNER_ID,
+      );
 
       expect(results.length).toBe(1);
       expect(results[0].content).toContain('Cryptographic');
     });
 
     it('returns all entries when no query is provided', async () => {
-      await service.create({ ownerId: OWNER_ID, content: 'A.' });
-      await service.create({ ownerId: OWNER_ID, content: 'B.' });
+      await service.createEntry({ diaryId: DIARY_ID, content: 'A.' }, OWNER_ID);
+      await service.createEntry({ diaryId: DIARY_ID, content: 'B.' }, OWNER_ID);
 
-      const results = await service.search({ ownerId: OWNER_ID });
+      const results = await service.searchEntries(
+        { diaryId: DIARY_ID },
+        OWNER_ID,
+      );
       expect(results.length).toBe(2);
     });
 
     it('finds semantically similar entries via hybrid search', async () => {
       if (process.env.EMBEDDING_MODEL !== 'true') return;
 
-      await service.create({
-        ownerId: OWNER_ID,
-        content:
-          'Ed25519 is an elliptic curve digital signature algorithm used for cryptographic identity verification.',
-      });
-      await service.create({
-        ownerId: OWNER_ID,
-        content: 'I had pasta with tomato sauce for dinner last night.',
-      });
+      await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content:
+            'Ed25519 is an elliptic curve digital signature algorithm used for cryptographic identity verification.',
+        },
+        OWNER_ID,
+      );
+      await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'I had pasta with tomato sauce for dinner last night.',
+        },
+        OWNER_ID,
+      );
 
-      const results = await service.search({
-        ownerId: OWNER_ID,
-        query: 'public key cryptography and digital signatures',
-      });
+      const results = await service.searchEntries(
+        {
+          diaryId: DIARY_ID,
+          query: 'public key cryptography and digital signatures',
+        },
+        OWNER_ID,
+      );
 
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].content).toContain('Ed25519');
@@ -299,34 +422,36 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
   describe('update', () => {
     it('updates entry fields when Keto allows', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Original.',
-      });
+      const created = await service.createEntry(
+        { diaryId: DIARY_ID, content: 'Original.' },
+        OWNER_ID,
+      );
 
       permissions.canEditEntry.mockResolvedValue(true);
-      const updated = await service.update(created.id, OWNER_ID, {
-        title: 'Updated Title',
-        content: 'New content.',
-      });
+      const updated = await service.updateEntry(
+        created.id,
+        DIARY_ID,
+        OWNER_ID,
+        { title: 'Updated Title', content: 'New content.' },
+      );
 
       expect(updated).not.toBeNull();
       expect(updated!.title).toBe('Updated Title');
       expect(updated!.content).toBe('New content.');
     });
 
-    it('returns null when Keto denies edit', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Protected.',
-      });
+    it('throws forbidden when Keto denies edit', async () => {
+      const created = await service.createEntry(
+        { diaryId: DIARY_ID, content: 'Protected.' },
+        OWNER_ID,
+      );
 
       permissions.canEditEntry.mockResolvedValue(false);
-      const result = await service.update(created.id, OTHER_AGENT, {
-        title: 'Hacked',
-      });
-
-      expect(result).toBeNull();
+      await expect(
+        service.updateEntry(created.id, DIARY_ID, OTHER_AGENT, {
+          title: 'Hacked',
+        }),
+      ).rejects.toThrow(DiaryServiceError);
     });
   });
 
@@ -334,67 +459,35 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
   describe('delete', () => {
     it('deletes entry and removes permission relations when Keto allows', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'To delete.',
-      });
+      const created = await service.createEntry(
+        { diaryId: DIARY_ID, content: 'To delete.' },
+        OWNER_ID,
+      );
 
       permissions.canDeleteEntry.mockResolvedValue(true);
-      const deleted = await service.delete(created.id, OWNER_ID);
+      const deleted = await service.deleteEntry(created.id, DIARY_ID, OWNER_ID);
       expect(deleted).toBe(true);
       expect(relationshipWriter.removeEntryRelations).toHaveBeenCalledWith(
         created.id,
       );
 
       permissions.canViewEntry.mockResolvedValue(true);
-      const found = await service.getById(created.id, OWNER_ID);
-      expect(found).toBeNull();
+      await expect(
+        service.getEntryById(created.id, DIARY_ID, OWNER_ID),
+      ).rejects.toThrow(DiaryServiceError);
     });
 
-    it('returns false when Keto denies delete', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Protected.',
-      });
-
-      permissions.canDeleteEntry.mockResolvedValue(false);
-      const deleted = await service.delete(created.id, OTHER_AGENT);
-      expect(deleted).toBe(false);
-      expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
-    });
-  });
-
-  // ── Share ───────────────────────────────────────────────────────────
-
-  describe('share', () => {
-    it('shares entry when permission checker allows', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Shared thought.',
-      });
-      permissions.canShareEntry.mockResolvedValue(true);
-
-      const shared = await service.share(created.id, OWNER_ID, OTHER_AGENT);
-      expect(shared).toBe(true);
-      expect(relationshipWriter.grantViewer).toHaveBeenCalledWith(
-        created.id,
-        OTHER_AGENT,
+    it('throws forbidden when Keto denies delete', async () => {
+      const created = await service.createEntry(
+        { diaryId: DIARY_ID, content: 'Protected.' },
+        OWNER_ID,
       );
 
-      const received = await service.getSharedWithMe(OTHER_AGENT);
-      expect(received.length).toBe(1);
-      expect(received[0].id).toBe(created.id);
-    });
-
-    it('refuses sharing when permission checker denies', async () => {
-      const created = await service.create({
-        ownerId: OWNER_ID,
-        content: 'Cannot share.',
-      });
-      permissions.canShareEntry.mockResolvedValue(false);
-
-      const shared = await service.share(created.id, OWNER_ID, OTHER_AGENT);
-      expect(shared).toBe(false);
+      permissions.canDeleteEntry.mockResolvedValue(false);
+      await expect(
+        service.deleteEntry(created.id, DIARY_ID, OTHER_AGENT),
+      ).rejects.toThrow(DiaryServiceError);
+      expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
     });
   });
 
@@ -402,18 +495,24 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
   describe('reflect', () => {
     it('generates digest from recent entries', async () => {
-      await service.create({
-        ownerId: OWNER_ID,
-        content: 'Day 1: Started learning about MoltNet.',
-        tags: ['learning'],
-      });
-      await service.create({
-        ownerId: OWNER_ID,
-        content: 'Day 2: Registered my first identity.',
-        tags: ['identity'],
-      });
+      await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Day 1: Started learning about MoltNet.',
+          tags: ['learning'],
+        },
+        OWNER_ID,
+      );
+      await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Day 2: Registered my first identity.',
+          tags: ['identity'],
+        },
+        OWNER_ID,
+      );
 
-      const digest = await service.reflect({ ownerId: OWNER_ID });
+      const digest = await service.reflect({ diaryId: DIARY_ID });
 
       expect(digest.totalEntries).toBe(2);
       expect(digest.periodDays).toBe(7);
@@ -423,7 +522,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
     });
 
     it('returns empty digest when no entries exist', async () => {
-      const digest = await service.reflect({ ownerId: OWNER_ID });
+      const digest = await service.reflect({ diaryId: DIARY_ID });
 
       expect(digest.totalEntries).toBe(0);
       expect(digest.entries.length).toBe(0);

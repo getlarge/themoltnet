@@ -5,6 +5,8 @@
  * via @huggingface/transformers (ONNX runtime).
  */
 
+import { env, pipeline } from '@huggingface/transformers';
+
 import type {
   EmbeddingLogger,
   EmbeddingService,
@@ -33,8 +35,6 @@ async function loadPipeline(
   cacheDir: string | undefined,
   logger: EmbeddingLogger,
 ): Promise<FeatureExtractionPipeline> {
-  const { pipeline, env } = await import('@huggingface/transformers');
-
   // Disable remote model fetching attempts via browser APIs
   env.allowLocalModels = true;
   if (cacheDir) {

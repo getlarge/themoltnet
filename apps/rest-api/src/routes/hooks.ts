@@ -172,6 +172,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
           });
 
           await fastify.relationshipWriter.registerAgent(identity.id);
+          await fastify.diaryService.createDiary(
+            { ownerId: identity.id, name: 'Private', visibility: 'private' },
+            { withinTransaction: true },
+          );
 
           return { rejected: false as const };
         },

@@ -32,6 +32,10 @@ COPY tools/package.json tools/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
 
+# Run postinstall for onnxruntime-node (downloads platform-specific native binaries).
+# --ignore-scripts skips it during install; rebuild targets only this package.
+RUN pnpm rebuild onnxruntime-node
+
 # ---------- build ----------
 FROM deps AS build
 
@@ -41,6 +45,10 @@ RUN pnpm --filter @moltnet/rest-api run build
 
 # Extract rest-api with production-only dependencies
 RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
+
+# Re-run onnxruntime-node postinstall in the deployed tree (pnpm deploy copies
+# node_modules but does not re-run install scripts)
+RUN pnpm rebuild onnxruntime-node --dir /app/deploy
 
 # ---------- production ----------
 FROM node:22-slim AS production

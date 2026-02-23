@@ -1,10 +1,11 @@
 name: Deploy Ory Network
 
 on:
-  push:
+  workflow_run:
+    workflows: [Deploy API]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'infra/ory/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,9 +18,14 @@ jobs:
   deploy:
     name: Deploy Ory Config
     runs-on: ubuntu-latest
-
+    environment: production
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:

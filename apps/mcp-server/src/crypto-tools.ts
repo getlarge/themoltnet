@@ -14,7 +14,7 @@ import {
   createSigningRequest,
   getSigningRequest,
   submitSignature,
-  verifyAgentSignature,
+  verifyCryptoSignature,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
@@ -37,7 +37,7 @@ import { errorResult, getTokenFromContext, textResult } from './utils.js';
 
 /**
  * Creates a signing request via the REST API (DBOS workflow).
- * Returns the request ID, message, nonce, and signing_payload for the agent.
+ * Returns the request ID, message, nonce, and how-to instructions for the agent.
  */
 export async function handleCryptoPrepareSignature(
   args: CryptoPrepareSignatureInput,
@@ -62,14 +62,12 @@ export async function handleCryptoPrepareSignature(
       request_id: data.id,
       message: data.message,
       nonce: data.nonce,
-      signing_payload: `${data.message}.${data.nonce}`,
+      signing_input: data.signingInput,
       status: data.status,
       expires_at: data.expiresAt,
-      instructions:
-        'Sign the message and nonce using your Ed25519 private key with the deterministic pre-hash protocol: ' +
-        'signing_bytes = SHA256("moltnet:v1" || u32be(32) || SHA256(UTF8(message)) || u32be(len(nonce)) || UTF8(nonce)). ' +
-        'Use the signWithNonce(message, nonce, privateKey) function from the MoltNet SDK or Go CLI SignForRequest. ' +
-        'Then call crypto_submit_signature with the request_id and base64 signature.',
+      next_step:
+        'Call signBytes(signing_input) from @themoltnet/sdk to produce the signature, ' +
+        'then call crypto_submit_signature with request_id and the returned signature.',
     });
   } catch (err) {
     const message =
@@ -161,27 +159,19 @@ export async function handleCryptoSigningStatus(
 
 /**
  * Verifies a signature via the REST API.
- * Public — no auth needed. Looks up the signer's public key by fingerprint.
+ * Public — no auth needed. Looks up the signing request by signature.
  */
 export async function handleCryptoVerify(
   args: CryptoVerifyInput,
   _deps: McpDeps,
   _context: HandlerContext,
 ): Promise<CallToolResult> {
-  const { data, error, response } = await verifyAgentSignature({
+  const { data, error } = await verifyCryptoSignature({
     client: _deps.client,
-    path: { fingerprint: args.signer_fingerprint },
     body: {
-      message: args.message,
       signature: args.signature,
     },
   });
-
-  if (response.status === 404) {
-    return errorResult(
-      `Agent with fingerprint '${args.signer_fingerprint}' not found on MoltNet`,
-    );
-  }
 
   if (error) {
     return errorResult('Verification failed');
@@ -189,10 +179,9 @@ export async function handleCryptoVerify(
 
   return textResult({
     valid: data.valid,
-    signer: data.signer ? { fingerprint: data.signer.fingerprint } : undefined,
     message: data.valid
-      ? `Signature is valid. This message was signed by ${args.signer_fingerprint}.`
-      : `Signature is invalid. This message was NOT signed by ${args.signer_fingerprint}.`,
+      ? 'Signature is valid.'
+      : 'Signature is invalid or unknown.',
   });
 }
 
@@ -206,9 +195,9 @@ export function registerCryptoTools(
     {
       name: 'crypto_prepare_signature',
       description:
-        'Create a signing request. Returns a request ID, message, nonce, and the signing_payload. ' +
-        'Sign the message and nonce using the deterministic pre-hash protocol (signWithNonce or SignForRequest), ' +
-        'then call crypto_submit_signature.',
+        'Create a signing request. Returns request_id and signing_input. ' +
+        'Pass signing_input directly to signBytes() from @themoltnet/sdk, ' +
+        'then submit the result with crypto_submit_signature.',
       inputSchema: CryptoPrepareSignatureSchema,
     },
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
@@ -238,8 +227,7 @@ export function registerCryptoTools(
   fastify.mcpAddTool(
     {
       name: 'crypto_verify',
-      description:
-        'Verify that a message was signed by a specific agent. Use this to verify authenticity.',
+      description: 'Verify a signature by looking up the signing request.',
       inputSchema: CryptoVerifySchema,
     },
     async (args, ctx) => handleCryptoVerify(args, deps, ctx),

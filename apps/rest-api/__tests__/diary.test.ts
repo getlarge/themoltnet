@@ -1,3 +1,4 @@
+import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -5,6 +6,7 @@ import {
   createMockEntry,
   createMockServices,
   createTestApp,
+  DIARY_ID,
   ENTRY_ID,
   type MockServices,
   OTHER_AGENT_ID,
@@ -15,6 +17,16 @@ import {
 
 const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 
+const MOCK_DIARY = {
+  id: DIARY_ID,
+  ownerId: OWNER_ID,
+  name: 'private',
+  visibility: 'private' as const,
+  signed: false,
+  createdAt: new Date('2026-01-30T10:00:00Z'),
+  updatedAt: new Date('2026-01-30T10:00:00Z'),
+};
+
 describe('Diary routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
@@ -22,47 +34,52 @@ describe('Diary routes', () => {
   beforeEach(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    // Default: diary is found and accessible
+    mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
+    mocks.diaryService.findOwnedDiary.mockResolvedValue(MOCK_DIARY);
   });
 
-  describe('POST /diary/entries', () => {
+  describe(`POST /diaries/${DIARY_ID}/entries`, () => {
     it('creates an entry', async () => {
       const mockEntry = createMockEntry();
-      mocks.diaryService.create.mockResolvedValue(mockEntry);
+      mocks.diaryService.createEntry.mockResolvedValue(mockEntry);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         headers: authHeaders,
         payload: { content: 'Test diary entry content' },
       });
 
       expect(response.statusCode).toBe(201);
       expect(response.json().content).toBe('Test diary entry content');
-      expect(mocks.diaryService.create).toHaveBeenCalledWith({
-        ownerId: OWNER_ID,
-        content: 'Test diary entry content',
-        title: undefined,
-        visibility: undefined,
-        tags: undefined,
-      });
+      expect(mocks.diaryService.createEntry).toHaveBeenCalledWith(
+        {
+          diaryId: DIARY_ID,
+          content: 'Test diary entry content',
+          title: undefined,
+          tags: undefined,
+          importance: undefined,
+          entryType: undefined,
+        },
+        OWNER_ID,
+      );
     });
 
     it('creates entry with all optional fields', async () => {
       const mockEntry = createMockEntry({
         title: 'My Title',
-        visibility: 'moltnet',
         tags: ['test'],
       });
-      mocks.diaryService.create.mockResolvedValue(mockEntry);
+      mocks.diaryService.createEntry.mockResolvedValue(mockEntry);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         headers: authHeaders,
         payload: {
           content: 'Test content',
           title: 'My Title',
-          visibility: 'moltnet',
           tags: ['test'],
         },
       });
@@ -73,7 +90,7 @@ describe('Diary routes', () => {
     it('rejects empty content', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         headers: authHeaders,
         payload: { content: '' },
       });
@@ -84,7 +101,7 @@ describe('Diary routes', () => {
     it('returns 401 without auth', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         payload: { content: 'test' },
       });
 
@@ -94,16 +111,31 @@ describe('Diary routes', () => {
       );
       expect(response.json().code).toBe('UNAUTHORIZED');
     });
+
+    it('returns 404 when diary not found', async () => {
+      mocks.diaryService.createEntry.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary not found'),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/entries`,
+        headers: authHeaders,
+        payload: { content: 'test' },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
   });
 
-  describe('GET /diary/entries', () => {
+  describe(`GET /diaries/${DIARY_ID}/entries`, () => {
     it('lists entries for authenticated user', async () => {
       const entries = [createMockEntry(), createMockEntry({ id: 'other-id' })];
-      mocks.diaryService.list.mockResolvedValue(entries);
+      mocks.diaryService.listEntries.mockResolvedValue(entries);
 
       const response = await app.inject({
         method: 'GET',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         headers: authHeaders,
       });
 
@@ -114,46 +146,48 @@ describe('Diary routes', () => {
     });
 
     it('passes query parameters through', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
-        url: '/diary/entries?limit=10&offset=5',
+        url: `/diaries/${DIARY_ID}/entries?limit=10&offset=5`,
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 10, offset: 5 }),
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
+        expect.objectContaining({ diaryId: DIARY_ID, limit: 10, offset: 5 }),
       );
     });
 
     it('passes tags filter from query string', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
-        url: '/diary/entries?tags=accountable-commit,high-risk',
+        url: `/diaries/${DIARY_ID}/entries?tags=accountable-commit,high-risk`,
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          diaryId: DIARY_ID,
           tags: ['accountable-commit', 'high-risk'],
         }),
       );
     });
 
     it('passes single tag from query string', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
-        url: '/diary/entries?tags=deploy',
+        url: `/diaries/${DIARY_ID}/entries?tags=deploy`,
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          diaryId: DIARY_ID,
           tags: ['deploy'],
         }),
       );
@@ -162,7 +196,7 @@ describe('Diary routes', () => {
     it('rejects empty tag in comma-separated list', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/diary/entries?tags=deploy,,staging',
+        url: `/diaries/${DIARY_ID}/entries?tags=deploy,,staging`,
         headers: authHeaders,
       });
 
@@ -173,7 +207,7 @@ describe('Diary routes', () => {
       const longTag = 'a'.repeat(51);
       const response = await app.inject({
         method: 'GET',
-        url: `/diary/entries?tags=${longTag}`,
+        url: `/diaries/${DIARY_ID}/entries?tags=${longTag}`,
         headers: authHeaders,
       });
 
@@ -184,7 +218,7 @@ describe('Diary routes', () => {
       const tags = Array.from({ length: 21 }, (_, i) => `tag-${i}`).join(',');
       const response = await app.inject({
         method: 'GET',
-        url: `/diary/entries?tags=${tags}`,
+        url: `/diaries/${DIARY_ID}/entries?tags=${tags}`,
         headers: authHeaders,
       });
 
@@ -192,29 +226,30 @@ describe('Diary routes', () => {
     });
 
     it('omits tags when not in query string', async () => {
-      mocks.diaryService.list.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'GET',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         headers: authHeaders,
       });
 
-      expect(mocks.diaryService.list).toHaveBeenCalledWith(
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
         expect.objectContaining({
+          diaryId: DIARY_ID,
           tags: undefined,
         }),
       );
     });
   });
 
-  describe('GET /diary/entries/:id', () => {
+  describe(`GET /diaries/${DIARY_ID}/entries/:id`, () => {
     it('returns entry when found', async () => {
-      mocks.diaryService.getById.mockResolvedValue(createMockEntry());
+      mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diary/entries/${ENTRY_ID}`,
+        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
         headers: authHeaders,
       });
 
@@ -223,11 +258,13 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when not found', async () => {
-      mocks.diaryService.getById.mockResolvedValue(null);
+      mocks.diaryService.getEntryById.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary entry not found'),
+      );
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diary/entries/${ENTRY_ID}`,
+        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
         headers: authHeaders,
       });
 
@@ -239,14 +276,15 @@ describe('Diary routes', () => {
     });
   });
 
-  describe('PATCH /diary/entries/:id', () => {
+  describe(`PATCH /diaries/${DIARY_ID}/entries/:id`, () => {
     it('updates entry', async () => {
+      mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
       const updated = createMockEntry({ title: 'Updated' });
-      mocks.diaryService.update.mockResolvedValue(updated);
+      mocks.diaryService.updateEntry.mockResolvedValue(updated);
 
       const response = await app.inject({
         method: 'PATCH',
-        url: `/diary/entries/${ENTRY_ID}`,
+        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
         headers: authHeaders,
         payload: { title: 'Updated' },
       });
@@ -256,11 +294,11 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when not found or not owner', async () => {
-      mocks.diaryService.update.mockResolvedValue(null);
+      mocks.diaryService.getEntryById.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'PATCH',
-        url: `/diary/entries/${ENTRY_ID}`,
+        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
         headers: authHeaders,
         payload: { title: 'Updated' },
       });
@@ -273,13 +311,14 @@ describe('Diary routes', () => {
     });
   });
 
-  describe('DELETE /diary/entries/:id', () => {
+  describe(`DELETE /diaries/${DIARY_ID}/entries/:id`, () => {
     it('deletes entry', async () => {
-      mocks.diaryService.delete.mockResolvedValue(true);
+      mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
+      mocks.diaryService.deleteEntry.mockResolvedValue(true);
 
       const response = await app.inject({
         method: 'DELETE',
-        url: `/diary/entries/${ENTRY_ID}`,
+        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
         headers: authHeaders,
       });
 
@@ -288,11 +327,11 @@ describe('Diary routes', () => {
     });
 
     it('returns 404 when not found', async () => {
-      mocks.diaryService.delete.mockResolvedValue(false);
+      mocks.diaryService.getEntryById.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'DELETE',
-        url: `/diary/entries/${ENTRY_ID}`,
+        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
         headers: authHeaders,
       });
 
@@ -304,15 +343,15 @@ describe('Diary routes', () => {
     });
   });
 
-  describe('POST /diary/search', () => {
+  describe('POST /diaries/search', () => {
     it('searches with query', async () => {
-      mocks.diaryService.search.mockResolvedValue([createMockEntry()]);
+      mocks.diaryService.searchEntries.mockResolvedValue([createMockEntry()]);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/search',
+        url: '/diaries/search',
         headers: authHeaders,
-        payload: { query: 'test query' },
+        payload: { diaryId: DIARY_ID, query: 'test query' },
       });
 
       expect(response.statusCode).toBe(200);
@@ -320,72 +359,79 @@ describe('Diary routes', () => {
     });
 
     it('searches without query (lists all)', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/search',
+        url: '/diaries/search',
         headers: authHeaders,
-        payload: {},
+        payload: { diaryId: DIARY_ID },
       });
 
       expect(response.statusCode).toBe(200);
     });
 
     it('passes tags filter to service', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/search',
+        url: '/diaries/search',
         headers: authHeaders,
-        payload: { query: 'test', tags: ['accountable-commit'] },
+        payload: {
+          diaryId: DIARY_ID,
+          query: 'test',
+          tags: ['accountable-commit'],
+        },
       });
 
       expect(response.statusCode).toBe(200);
-      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           tags: ['accountable-commit'],
         }),
+        expect.any(String),
       );
     });
 
     it('passes multiple tags to service', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'POST',
-        url: '/diary/search',
+        url: '/diaries/search',
         headers: authHeaders,
-        payload: { tags: ['tag-a', 'tag-b'] },
+        payload: { diaryId: DIARY_ID, tags: ['tag-a', 'tag-b'] },
       });
 
-      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           tags: ['tag-a', 'tag-b'],
         }),
+        expect.any(String),
       );
     });
 
     it('omits tags when not provided', async () => {
-      mocks.diaryService.search.mockResolvedValue([]);
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
 
       await app.inject({
         method: 'POST',
-        url: '/diary/search',
+        url: '/diaries/search',
         headers: authHeaders,
-        payload: { query: 'test' },
+        payload: { diaryId: DIARY_ID, query: 'test' },
       });
 
-      expect(mocks.diaryService.search).toHaveBeenCalledWith(
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           tags: undefined,
         }),
+        expect.any(String),
       );
     });
   });
 
-  describe('GET /diary/reflect', () => {
+  describe('GET /diaries/reflect', () => {
     it('returns reflection digest', async () => {
       mocks.diaryService.reflect.mockResolvedValue({
         entries: [],
@@ -396,7 +442,7 @@ describe('Diary routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/diary/reflect',
+        url: `/diaries/reflect?diaryId=${DIARY_ID}`,
         headers: authHeaders,
       });
 
@@ -405,89 +451,195 @@ describe('Diary routes', () => {
     });
   });
 
-  describe('POST /diary/entries/:id/share', () => {
-    it('shares entry with another agent', async () => {
-      mocks.agentRepository.findByFingerprint.mockResolvedValue({
-        identityId: OTHER_AGENT_ID,
-        fingerprint: 'B2C3-D4E5-F607-A8B9',
-      });
-      mocks.diaryService.share.mockResolvedValue(true);
+  // ── Sharing & invitation routes ──────────────────────────────────────────
+
+  describe(`POST /diaries/${DIARY_ID}/share`, () => {
+    const MOCK_SHARE = {
+      id: '990e8400-e29b-41d4-a716-446655440005',
+      diaryId: DIARY_ID,
+      sharedWith: OTHER_AGENT_ID,
+      role: 'reader' as const,
+      status: 'pending' as const,
+      invitedAt: new Date(),
+      respondedAt: null,
+    };
+
+    it('creates a share invitation and returns 201', async () => {
+      mocks.diaryService.shareDiary.mockResolvedValue(MOCK_SHARE);
 
       const response = await app.inject({
         method: 'POST',
-        url: `/diary/entries/${ENTRY_ID}/share`,
+        url: `/diaries/${DIARY_ID}/share`,
         headers: authHeaders,
-        payload: { sharedWith: 'B2C3-D4E5-F607-A8B9' },
+        payload: { fingerprint: 'A1B2-C3D4-E5F6-07A8' },
       });
 
-      expect(response.statusCode).toBe(200);
-      expect(response.json().success).toBe(true);
+      expect(response.statusCode).toBe(201);
+      expect(mocks.diaryService.shareDiary).toHaveBeenCalledWith(
+        expect.objectContaining({ diaryId: DIARY_ID }),
+      );
     });
 
-    it('returns 404 when target agent not found', async () => {
-      mocks.agentRepository.findByFingerprint.mockResolvedValue(null);
+    it('returns 409 when agent is already invited', async () => {
+      mocks.diaryService.shareDiary.mockRejectedValue(
+        new DiaryServiceError('already_shared', 'Already invited'),
+      );
 
       const response = await app.inject({
         method: 'POST',
-        url: `/diary/entries/${ENTRY_ID}/share`,
+        url: `/diaries/${DIARY_ID}/share`,
         headers: authHeaders,
-        payload: { sharedWith: 'AAAA-BBBB-CCCC-DDDD' },
+        payload: { fingerprint: 'A1B2-C3D4-E5F6-07A8' },
+      });
+
+      expect(response.statusCode).toBe(409);
+    });
+
+    it('returns 404 when diary not found', async () => {
+      mocks.diaryService.shareDiary.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary not found'),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/share`,
+        headers: authHeaders,
+        payload: { fingerprint: 'A1B2-C3D4-E5F6-07A8' },
       });
 
       expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
-      expect(response.json().code).toBe('NOT_FOUND');
-    });
-
-    it('returns 403 when share is not allowed', async () => {
-      mocks.agentRepository.findByFingerprint.mockResolvedValue({
-        identityId: OTHER_AGENT_ID,
-        fingerprint: 'B2C3-D4E5-F607-A8B9',
-      });
-      mocks.diaryService.share.mockResolvedValue(false);
-
-      const response = await app.inject({
-        method: 'POST',
-        url: `/diary/entries/${ENTRY_ID}/share`,
-        headers: authHeaders,
-        payload: { sharedWith: 'B2C3-D4E5-F607-A8B9' },
-      });
-
-      expect(response.statusCode).toBe(403);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
-      expect(response.json().code).toBe('FORBIDDEN');
     });
   });
 
-  describe('GET /diary/shared-with-me', () => {
-    it('returns shared entries', async () => {
-      mocks.diaryService.getSharedWithMe.mockResolvedValue([
-        createMockEntry({ ownerId: OTHER_AGENT_ID }),
-      ]);
+  describe('POST /diaries/invitations/:id/accept', () => {
+    const INVITATION_ID = 'aa0e8400-e29b-41d4-a716-446655440006';
+    const ACCEPTED_SHARE = {
+      id: INVITATION_ID,
+      diaryId: DIARY_ID,
+      sharedWith: OWNER_ID,
+      role: 'reader' as const,
+      status: 'accepted' as const,
+      invitedAt: new Date(),
+      respondedAt: new Date(),
+    };
+
+    it('accepts an invitation and returns 200', async () => {
+      mocks.diaryService.acceptInvitation.mockResolvedValue(ACCEPTED_SHARE);
 
       const response = await app.inject({
-        method: 'GET',
-        url: '/diary/shared-with-me',
+        method: 'POST',
+        url: `/diaries/invitations/${INVITATION_ID}/accept`,
         headers: authHeaders,
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json().entries).toHaveLength(1);
+      expect(mocks.diaryService.acceptInvitation).toHaveBeenCalledWith(
+        INVITATION_ID,
+        OWNER_ID,
+      );
+    });
+
+    it('returns 404 when invitation not found', async () => {
+      mocks.diaryService.acceptInvitation.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Invitation not found'),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/invitations/${INVITATION_ID}/accept`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('returns 400 when invitation already responded', async () => {
+      mocks.diaryService.acceptInvitation.mockRejectedValue(
+        new DiaryServiceError(
+          'wrong_status',
+          'Invitation has already been accepted',
+        ),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/invitations/${INVITATION_ID}/accept`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe(`DELETE /diaries/${DIARY_ID}/share/:fingerprint`, () => {
+    it('revokes a share and returns 200', async () => {
+      mocks.diaryService.revokeShare.mockResolvedValue(undefined);
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/diaries/${DIARY_ID}/share/A1B2-C3D4-E5F6-07A8`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.diaryService.revokeShare).toHaveBeenCalledWith(
+        DIARY_ID,
+        'A1B2-C3D4-E5F6-07A8',
+        OWNER_ID,
+      );
+    });
+
+    it('returns 404 when share not found', async () => {
+      mocks.diaryService.revokeShare.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Share not found'),
+      );
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/diaries/${DIARY_ID}/share/A1B2-C3D4-E5F6-07A8`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe(`DELETE /diaries/${DIARY_ID}`, () => {
+    it('deletes a diary and returns 200', async () => {
+      mocks.diaryService.deleteDiary.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/diaries/${DIARY_ID}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('returns 404 when diary not found', async () => {
+      mocks.diaryService.deleteDiary.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary not found'),
+      );
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/diaries/${DIARY_ID}`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(404);
     });
   });
 
   describe('embedding exclusion', () => {
-    it('does not include embedding in POST /diary/entries response', async () => {
+    it(`does not include embedding in POST /diaries/${DIARY_ID}/entries response`, async () => {
       const mockEntry = createMockEntry({ embedding: [0.1, 0.2, 0.3] });
-      mocks.diaryService.create.mockResolvedValue(mockEntry);
+      mocks.diaryService.createEntry.mockResolvedValue(mockEntry);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         headers: authHeaders,
         payload: { content: 'Test content' },
       });
@@ -497,16 +649,16 @@ describe('Diary routes', () => {
       expect(body).not.toHaveProperty('embedding');
     });
 
-    it('does not include embedding in GET /diary/entries response', async () => {
+    it(`does not include embedding in GET /diaries/${DIARY_ID}/entries response`, async () => {
       const entries = [
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
         createMockEntry({ id: 'other-id', embedding: [0.4, 0.5, 0.6] }),
       ];
-      mocks.diaryService.list.mockResolvedValue(entries);
+      mocks.diaryService.listEntries.mockResolvedValue(entries);
 
       const response = await app.inject({
         method: 'GET',
-        url: '/diary/entries',
+        url: `/diaries/${DIARY_ID}/entries`,
         headers: authHeaders,
       });
 
@@ -517,14 +669,14 @@ describe('Diary routes', () => {
       }
     });
 
-    it('does not include embedding in GET /diary/entries/:id response', async () => {
-      mocks.diaryService.getById.mockResolvedValue(
+    it(`does not include embedding in GET /diaries/${DIARY_ID}/entries/:id response`, async () => {
+      mocks.diaryService.getEntryById.mockResolvedValue(
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
       );
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diary/entries/${ENTRY_ID}`,
+        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
         headers: authHeaders,
       });
 
@@ -533,16 +685,16 @@ describe('Diary routes', () => {
       expect(body).not.toHaveProperty('embedding');
     });
 
-    it('does not include embedding in POST /diary/search response', async () => {
-      mocks.diaryService.search.mockResolvedValue([
+    it('does not include embedding in POST /diaries/search response', async () => {
+      mocks.diaryService.searchEntries.mockResolvedValue([
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
       ]);
 
       const response = await app.inject({
         method: 'POST',
-        url: '/diary/search',
+        url: '/diaries/search',
         headers: authHeaders,
-        payload: { query: 'test' },
+        payload: { diaryId: DIARY_ID, query: 'test' },
       });
 
       expect(response.statusCode).toBe(200);
@@ -550,34 +702,6 @@ describe('Diary routes', () => {
       for (const result of body.results) {
         expect(result).not.toHaveProperty('embedding');
       }
-    });
-  });
-
-  describe('PATCH /diary/entries/:id/visibility', () => {
-    it('updates visibility', async () => {
-      const updated = createMockEntry({ visibility: 'public' });
-      mocks.diaryService.update.mockResolvedValue(updated);
-
-      const response = await app.inject({
-        method: 'PATCH',
-        url: `/diary/entries/${ENTRY_ID}/visibility`,
-        headers: authHeaders,
-        payload: { visibility: 'public' },
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.json().visibility).toBe('public');
-    });
-
-    it('rejects invalid visibility', async () => {
-      const response = await app.inject({
-        method: 'PATCH',
-        url: `/diary/entries/${ENTRY_ID}/visibility`,
-        headers: authHeaders,
-        payload: { visibility: 'secret' },
-      });
-
-      expect(response.statusCode).toBe(400);
     });
   });
 });

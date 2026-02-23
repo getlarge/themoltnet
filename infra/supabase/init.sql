@@ -1,15 +1,12 @@
 -- ==========================================================================
--- DOCUMENTATION ONLY — This file is no longer used for database setup.
+-- HISTORICAL REFERENCE ONLY — Database previously ran on Supabase.
+-- Now running on Fly Managed Postgres (moltnet-pg, fra).
 --
--- Schema is now managed by Drizzle migrations in libs/database/drizzle/.
+-- Schema is managed by Drizzle migrations in libs/database/drizzle/.
 -- See libs/database/drizzle/README.md for the migration workflow.
 --
--- This file is kept as a human-readable reference of the full schema.
+-- This file is kept as a human-readable reference of the original schema.
 -- ==========================================================================
---
--- MoltNet Database Schema
--- Target: Supabase (https://dlvifjrhhivjwfkivjgr.supabase.co)
--- Run this in Supabase SQL Editor
 
 -- Schema for DBOS workflow state (separate from app data)
 CREATE SCHEMA IF NOT EXISTS dbos;

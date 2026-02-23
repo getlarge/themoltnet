@@ -26,6 +26,18 @@ export const VisibilitySchema = Type.Union(
   { description: 'Entry visibility level' },
 );
 
+export const EntryTypeSchema = Type.Union(
+  [
+    Type.Literal('episodic'),
+    Type.Literal('semantic'),
+    Type.Literal('procedural'),
+    Type.Literal('reflection'),
+    Type.Literal('identity'),
+    Type.Literal('soul'),
+  ],
+  { description: 'Entry memory type' },
+);
+
 export const PublicKeySchema = Type.String({
   pattern: '^ed25519:[A-Za-z0-9+/=]+$',
   description: 'Ed25519 public key with prefix',
@@ -42,10 +54,8 @@ export const FingerprintSchema = Type.String({
 
 export const DiaryEntrySchema = Type.Object({
   id: UuidSchema,
-  ownerId: UuidSchema,
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.String({ minLength: 1 }),
-  visibility: VisibilitySchema,
   tags: Type.Optional(Type.Array(Type.String())),
   injectionRisk: Type.Optional(Type.Boolean()),
   createdAt: TimestampSchema,
@@ -55,7 +65,6 @@ export const DiaryEntrySchema = Type.Object({
 export const CreateDiaryEntrySchema = Type.Object({
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.String({ minLength: 1, maxLength: 100000 }),
-  visibility: Type.Optional(VisibilitySchema),
   tags: Type.Optional(
     Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
   ),
@@ -64,7 +73,6 @@ export const CreateDiaryEntrySchema = Type.Object({
 export const UpdateDiaryEntrySchema = Type.Object({
   title: Type.Optional(Type.String({ maxLength: 255 })),
   content: Type.Optional(Type.String({ minLength: 1, maxLength: 100000 })),
-  visibility: Type.Optional(VisibilitySchema),
   tags: Type.Optional(
     Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
   ),
@@ -72,7 +80,6 @@ export const UpdateDiaryEntrySchema = Type.Object({
 
 export const DiarySearchSchema = Type.Object({
   query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
-  visibility: Type.Optional(Type.Array(VisibilitySchema)),
   tags: Type.Optional(
     Type.Array(Type.String({ maxLength: 50 }), {
       minItems: 1,
@@ -82,17 +89,6 @@ export const DiarySearchSchema = Type.Object({
   ),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100, default: 20 })),
   offset: Type.Optional(Type.Number({ minimum: 0, default: 0 })),
-});
-
-export const ShareEntrySchema = Type.Object({
-  sharedWith: Type.String({
-    pattern: '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
-    description: 'Fingerprint of recipient agent (A1B2-C3D4-E5F6-G7H8)',
-  }),
-});
-
-export const SetVisibilitySchema = Type.Object({
-  visibility: VisibilitySchema,
 });
 
 // ============================================================================
@@ -174,6 +170,32 @@ export const PaginatedResponseSchema = <
   });
 
 // ============================================================================
+// Route Params Schemas
+// ============================================================================
+
+export const NestedDiaryParamsSchema = Type.Object({
+  diaryId: UuidSchema,
+});
+
+export const DiaryEntryParamsSchema = Type.Object({
+  diaryId: UuidSchema,
+  entryId: UuidSchema,
+});
+
+export const DiaryParamsSchema = Type.Object({
+  id: UuidSchema,
+});
+
+export const DiaryShareParamsSchema = Type.Object({
+  diaryId: UuidSchema,
+  fingerprint: FingerprintSchema,
+});
+
+export const InvitationIdParamsSchema = Type.Object({
+  id: UuidSchema,
+});
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -182,8 +204,6 @@ export type DiaryEntry = Static<typeof DiaryEntrySchema>;
 export type CreateDiaryEntry = Static<typeof CreateDiaryEntrySchema>;
 export type UpdateDiaryEntry = Static<typeof UpdateDiaryEntrySchema>;
 export type DiarySearch = Static<typeof DiarySearchSchema>;
-export type ShareEntry = Static<typeof ShareEntrySchema>;
-export type SetVisibility = Static<typeof SetVisibilitySchema>;
 export type AgentProfile = Static<typeof AgentProfileSchema>;
 export type AgentLookupResponse = Static<typeof AgentLookupResponseSchema>;
 export type SignRequest = Static<typeof SignRequestSchema>;
@@ -192,3 +212,8 @@ export type VerifyRequest = Static<typeof VerifyRequestSchema>;
 export type VerifyResponse = Static<typeof VerifyResponseSchema>;
 export type AuthContext = Static<typeof AuthContextSchema>;
 export type SuccessResponse = Static<typeof SuccessResponseSchema>;
+export type NestedDiaryParams = Static<typeof NestedDiaryParamsSchema>;
+export type DiaryEntryParams = Static<typeof DiaryEntryParamsSchema>;
+export type DiaryParams = Static<typeof DiaryParamsSchema>;
+export type DiaryShareParams = Static<typeof DiaryShareParamsSchema>;
+export type InvitationIdParams = Static<typeof InvitationIdParamsSchema>;

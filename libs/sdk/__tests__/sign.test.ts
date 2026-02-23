@@ -35,11 +35,14 @@ describe('sign', () => {
   it('should sign a payload using credentials from the default path', async () => {
     vi.mocked(readFile).mockResolvedValue(JSON.stringify(mockCredentials));
 
-    const signature = await sign('moltnet:test:hello');
+    const signature = await sign('moltnet:test:hello', 'nonce-123');
 
-    expect(signature).toBe(
-      'eyt0UK7IZfCyM4If36ciACoXelW5DHc3OK7LqnHPer/wE3Cvr+GRlpyoM/u9ziRttztFjUcch5nNNG36J5/jAg==',
+    const expected = await cryptoService.signWithNonce(
+      'moltnet:test:hello',
+      'nonce-123',
+      mockCredentials.keys.private_key,
     );
+    expect(signature).toBe(expected);
   });
 
   it('should sign using credentials from a custom path', async () => {
@@ -47,29 +50,68 @@ describe('sign', () => {
 
     const signature = await sign(
       'moltnet:test:hello',
+      'nonce-123',
       '/custom/credentials.json',
     );
 
-    expect(readFile).toHaveBeenCalledWith('/custom/credentials.json', 'utf-8');
-    expect(signature).toBe(
-      'eyt0UK7IZfCyM4If36ciACoXelW5DHc3OK7LqnHPer/wE3Cvr+GRlpyoM/u9ziRttztFjUcch5nNNG36J5/jAg==',
+    expect(readFile).toHaveBeenCalledWith(
+      '/custom/credentials.json/moltnet.json',
+      'utf-8',
     );
+    const expected = await cryptoService.signWithNonce(
+      'moltnet:test:hello',
+      'nonce-123',
+      mockCredentials.keys.private_key,
+    );
+    expect(signature).toBe(expected);
+  });
+
+  it('falls back to credentials.json when moltnet.json is missing', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(readFile)
+      .mockRejectedValueOnce(new Error('ENOENT'))
+      .mockResolvedValueOnce(JSON.stringify(mockCredentials));
+
+    const signature = await sign('moltnet:test:hello', 'nonce-123', '/legacy');
+
+    expect(readFile).toHaveBeenNthCalledWith(
+      1,
+      '/legacy/moltnet.json',
+      'utf-8',
+    );
+    expect(readFile).toHaveBeenNthCalledWith(
+      2,
+      '/legacy/credentials.json',
+      'utf-8',
+    );
+    expect(warnSpy).toHaveBeenCalled();
+    const expected = await cryptoService.signWithNonce(
+      'moltnet:test:hello',
+      'nonce-123',
+      mockCredentials.keys.private_key,
+    );
+    expect(signature).toBe(expected);
+    warnSpy.mockRestore();
   });
 
   it('should throw when no credentials file exists', async () => {
     vi.mocked(readFile).mockRejectedValue(new Error('ENOENT'));
 
-    await expect(sign('payload')).rejects.toThrow('No credentials found');
+    await expect(sign('payload', 'nonce-123')).rejects.toThrow(
+      'No credentials found',
+    );
   });
 
   it('should produce a signature verifiable with the public key', async () => {
     vi.mocked(readFile).mockResolvedValue(JSON.stringify(mockCredentials));
 
-    const payload = 'moltnet:test:round-trip';
-    const signature = await sign(payload);
+    const message = 'moltnet:test:round-trip';
+    const nonce = 'nonce-round-trip';
+    const signature = await sign(message, nonce);
 
-    const valid = await cryptoService.verify(
-      payload,
+    const valid = await cryptoService.verifyWithNonce(
+      message,
+      nonce,
       signature,
       mockCredentials.keys.public_key,
     );

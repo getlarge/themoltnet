@@ -48,6 +48,9 @@
       "path": "libs/diary-service"
     },
     {
+      "path": "libs/discovery"
+    },
+    {
       "path": "libs/embedding-service"
     },
     {

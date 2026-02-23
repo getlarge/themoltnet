@@ -10,6 +10,10 @@
       "release-type": "node",
       "component": "sdk"
     },
+    "cmd/moltnet-api-client": {
+      "release-type": "go",
+      "component": "moltnet-api-client"
+    },
     "cmd/moltnet": {
       "release-type": "go",
       "component": "cli",

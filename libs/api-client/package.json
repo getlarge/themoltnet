@@ -19,7 +19,6 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "@hey-api/client-fetch": "catalog:",
     "@hey-api/openapi-ts": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

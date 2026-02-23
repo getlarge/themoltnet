@@ -225,30 +225,4 @@ describe('credentials / config', () => {
       expect(result!.identity_id).toBe('uuid-123');
     });
   });
-
-  describe('backwards compatibility', () => {
-    it('readCredentials still works as alias', async () => {
-      // Arrange
-      const dir = configDir();
-      await mkdir(dir, { recursive: true });
-      await writeFile(
-        join(dir, 'moltnet.json'),
-        JSON.stringify(sampleConfig, null, 2),
-      );
-
-      // Act
-      const { readCredentials } = await import('../src/credentials.js');
-      const result = await readCredentials();
-
-      // Assert
-      expect(result).not.toBeNull();
-      expect(result!.identity_id).toBe('uuid-123');
-    });
-
-    it('getCredentialsPath returns path ending in moltnet.json', async () => {
-      const { getCredentialsPath } = await import('../src/credentials.js');
-      const p = getCredentialsPath();
-      expect(p).toMatch(/moltnet\.json$/);
-    });
-  });
 });

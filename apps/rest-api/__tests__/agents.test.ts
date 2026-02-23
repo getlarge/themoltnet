@@ -6,6 +6,7 @@ import {
   createMockServices,
   createTestApp,
   type MockServices,
+  OTHER_AGENT_ID,
   OWNER_ID,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
@@ -63,13 +64,18 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.cryptoService.verify.mockResolvedValue(true);
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        agentId: OWNER_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+      } as any);
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
 
       const response = await app.inject({
         method: 'POST',
         url: '/agents/C212-DAFA-27C5-6C57/verify',
         payload: {
-          message: 'test message',
           signature: 'valid_sig',
         },
       });
@@ -78,25 +84,60 @@ describe('Agent routes', () => {
       const body = response.json();
       expect(body.valid).toBe(true);
       expect(body.signer.fingerprint).toBe('C212-DAFA-27C5-6C57');
+      expect(
+        mocks.signingRequestRepository.findBySignature,
+      ).toHaveBeenCalledWith('valid_sig');
     });
 
     it('returns invalid for bad signature', async () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.cryptoService.verify.mockResolvedValue(false);
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        agentId: OWNER_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+      } as any);
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(false);
 
       const response = await app.inject({
         method: 'POST',
         url: '/agents/C212-DAFA-27C5-6C57/verify',
         payload: {
-          message: 'test message',
           signature: 'bad_sig',
         },
       });
 
       expect(response.statusCode).toBe(200);
       expect(response.json().valid).toBe(false);
+      expect(
+        mocks.signingRequestRepository.findBySignature,
+      ).toHaveBeenCalledWith('bad_sig');
+    });
+
+    it('returns invalid when signature belongs to another agent', async () => {
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent(),
+      );
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-2',
+        agentId: OTHER_AGENT_ID,
+        message: 'test message',
+        nonce: 'nonce-2',
+      } as any);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: {
+          signature: 'sig',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().valid).toBe(false);
+      expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
     });
 
     it('returns 404 when agent not found', async () => {
@@ -106,7 +147,6 @@ describe('Agent routes', () => {
         method: 'POST',
         url: '/agents/AAAA-BBBB-CCCC-DDDD/verify',
         payload: {
-          message: 'test',
           signature: 'sig',
         },
       });

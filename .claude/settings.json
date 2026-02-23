@@ -30,7 +30,17 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:google.aip.dev)",
       "WebFetch(domain:nx.dev)",
-      "Bash(pnpm run typecheck *)"
+      "Bash(pnpm run typecheck*)",
+      "Bash(pnpm run lint*)",
+      "Bash(pnpm run test*)",
+      "Bash(pnpm run build*)",
+      "Bash(pnpm run validate*)",
+      "Bash(pnpm run format*)",
+      "Bash(pnpm run db:*)",
+      "Bash(pnpm --filter * run test*)",
+      "Bash(pnpm --filter * run build*)",
+      "Bash(pnpm --filter * run typecheck*)",
+      "Bash(pnpm --filter * run lint*)"
     ]
   },
   "hooks": {

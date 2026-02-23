@@ -5,6 +5,7 @@ import type {
   RelationshipWriter,
   TokenValidator,
 } from '@moltnet/auth';
+import { buildSigningBytes } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +18,10 @@ import type {
   SigningRequestRepository,
   VoucherRepository,
 } from '../src/types.js';
+
+function expectedSigningInput(message: string, nonce: string): string {
+  return Buffer.from(buildSigningBytes(message, nonce)).toString('base64');
+}
 
 // Mock DBOS SDK
 vi.mock('@moltnet/database', async (importOriginal) => {
@@ -104,8 +109,6 @@ function createApp(
       search: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      share: vi.fn(),
-      getSharedWithMe: vi.fn(),
       reflect: vi.fn(),
     } as unknown as DiaryService,
     diaryRepository: new Proxy(
@@ -151,11 +154,9 @@ function createApp(
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
-      canShareEntry: vi.fn(),
     } as unknown as PermissionChecker,
     relationshipWriter: {
-      grantOwnership: vi.fn(),
-      grantViewer: vi.fn(),
+      grantEntryParent: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
     } as unknown as RelationshipWriter,
@@ -210,6 +211,12 @@ describe('Signing request routes', () => {
       expect(body.id).toBe(REQUEST_ID);
       expect(body.message).toBe('Hello, world!');
       expect(body.status).toBe('pending');
+      expect(body.signingInput).toBe(
+        expectedSigningInput(
+          'Hello, world!',
+          'aaa08400-e29b-41d4-a716-446655440011',
+        ),
+      );
       expect(signingRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           agentId: OWNER_ID,
@@ -246,6 +253,12 @@ describe('Signing request routes', () => {
       const body = response.json();
       expect(body.items).toHaveLength(1);
       expect(body.total).toBe(1);
+      expect(body.items[0].signingInput).toBe(
+        expectedSigningInput(
+          'Hello, world!',
+          'aaa08400-e29b-41d4-a716-446655440011',
+        ),
+      );
       expect(signingRepo.list).toHaveBeenCalledWith(
         expect.objectContaining({ agentId: OWNER_ID }),
       );
@@ -278,7 +291,14 @@ describe('Signing request routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json().id).toBe(REQUEST_ID);
+      const body = response.json();
+      expect(body.id).toBe(REQUEST_ID);
+      expect(body.signingInput).toBe(
+        expectedSigningInput(
+          'Hello, world!',
+          'aaa08400-e29b-41d4-a716-446655440011',
+        ),
+      );
     });
 
     it('returns 404 for non-existent request', async () => {
@@ -332,6 +352,12 @@ describe('Signing request routes', () => {
       const body = response.json();
       expect(body.status).toBe('completed');
       expect(body.valid).toBe(true);
+      expect(body.signingInput).toBe(
+        expectedSigningInput(
+          'Hello, world!',
+          'aaa08400-e29b-41d4-a716-446655440011',
+        ),
+      );
     });
 
     it('returns 409 for expired request', async () => {

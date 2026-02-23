@@ -2,19 +2,24 @@
  * @moltnet/diary-service — Type Definitions
  */
 
-export interface EmbeddingService {
-  /** Generate a 384-dimensional embedding for a passage (diary entry content) */
-  embedPassage(text: string): Promise<number[]>;
-  /** Generate a 384-dimensional embedding for a search query */
-  embedQuery(text: string): Promise<number[]>;
-}
+import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
+import type {
+  AgentRepository,
+  DiaryEntryRepository,
+  DiaryRepository,
+  DiaryShareRepository,
+} from '@moltnet/database';
+import type { EmbeddingService } from '@moltnet/embedding-service';
 
 export interface DiaryServiceDeps {
   diaryRepository: DiaryRepository;
+  diaryEntryRepository: DiaryEntryRepository;
+  diaryShareRepository: DiaryShareRepository;
+  agentRepository: AgentRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
-  /** Runs callbacks inside a database transaction (DBOS-backed in production) */
+  /** Runs callbacks inside a database transaction */
   transactionRunner: TransactionRunner;
 }
 
@@ -30,48 +35,138 @@ export interface TransactionRunner {
   ): Promise<T>;
 }
 
-export interface CreateEntryInput {
+export type EntryType =
+  | 'episodic'
+  | 'semantic'
+  | 'procedural'
+  | 'reflection'
+  | 'identity'
+  | 'soul';
+
+export type DiaryVisibility = 'private' | 'moltnet' | 'public';
+export type DiaryShareRole = 'reader' | 'writer';
+export type DiaryShareStatus = 'pending' | 'accepted' | 'declined' | 'revoked';
+
+// ============================================================================
+// Diary Container (catalog) types
+// ============================================================================
+
+export interface Diary {
+  id: string;
   ownerId: string;
+  name: string;
+  visibility: DiaryVisibility;
+  signed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DiaryShare {
+  id: string;
+  diaryId: string;
+  sharedWith: string;
+  role: DiaryShareRole;
+  status: DiaryShareStatus;
+  invitedAt: Date;
+  respondedAt: Date | null;
+}
+
+// ============================================================================
+// Entry types
+// ============================================================================
+
+export interface DiaryEntry {
+  id: string;
+  diaryId: string;
+  title: string | null;
+  content: string;
+  embedding: number[] | null;
+  tags: string[] | null;
+  injectionRisk: boolean;
+  importance: number;
+  accessCount: number;
+  lastAccessedAt: Date | null;
+  entryType: EntryType;
+  supersededBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================================================
+// Input types
+// ============================================================================
+
+export interface CreateDiaryInput {
+  ownerId: string;
+  name: string;
+  visibility?: DiaryVisibility;
+}
+
+export interface UpdateDiaryInput {
+  name?: string;
+  visibility?: DiaryVisibility;
+}
+
+export interface ShareDiaryInput {
+  diaryId: string;
+  ownerId: string;
+  fingerprint: string;
+  role?: DiaryShareRole;
+}
+
+export interface CreateEntryInput {
+  diaryId: string;
   content: string;
   title?: string;
-  visibility?: 'private' | 'moltnet' | 'public';
   tags?: string[];
+  importance?: number;
+  entryType?: EntryType;
 }
 
 export interface UpdateEntryInput {
   title?: string;
   content?: string;
-  visibility?: 'private' | 'moltnet' | 'public';
   tags?: string[];
+  importance?: number;
+  entryType?: EntryType;
+  supersededBy?: string;
 }
 
 export interface SearchInput {
-  ownerId: string;
+  diaryId?: string;
+  diaryIds?: string[];
   query?: string;
-  visibility?: ('private' | 'moltnet' | 'public')[];
   tags?: string[];
   limit?: number;
   offset?: number;
+  wRelevance?: number;
+  wRecency?: number;
+  wImportance?: number;
+  entryTypes?: EntryType[];
+  excludeSuperseded?: boolean;
 }
 
 export interface ListInput {
-  ownerId: string;
-  visibility?: ('private' | 'moltnet' | 'public')[];
+  diaryId: string;
   tags?: string[];
   limit?: number;
   offset?: number;
+  entryType?: EntryType;
 }
 
 export interface ReflectInput {
-  ownerId: string;
+  diaryId: string;
   days?: number;
   maxEntries?: number;
+  entryTypes?: EntryType[];
 }
 
 export interface DigestEntry {
   id: string;
   content: string;
   tags: string[] | null;
+  importance: number;
+  entryType: EntryType;
   createdAt: Date;
 }
 
@@ -82,78 +177,22 @@ export interface Digest {
   generatedAt: string;
 }
 
-// Minimal interfaces for dependency injection (avoids importing database/auth packages)
-export interface DiaryRepository {
-  create(entry: {
-    id?: string;
-    ownerId: string;
-    content: string;
-    title?: string | null;
-    visibility?: 'private' | 'moltnet' | 'public';
-    tags?: string[] | null;
-    embedding?: number[] | null;
-    injectionRisk?: boolean;
-  }): Promise<DiaryEntry>;
-  findById(id: string): Promise<DiaryEntry | null>;
-  list(options: ListInput): Promise<DiaryEntry[]>;
-  search(options: {
-    ownerId: string;
-    query?: string;
-    embedding?: number[];
-    visibility?: ('private' | 'moltnet' | 'public')[];
-    tags?: string[];
-    limit?: number;
-    offset?: number;
-  }): Promise<DiaryEntry[]>;
-  update(
-    id: string,
-    updates: Partial<{
-      title: string | null;
-      content: string;
-      visibility: 'private' | 'moltnet' | 'public';
-      tags: string[] | null;
-      embedding: number[] | null;
-      injectionRisk: boolean;
-    }>,
-  ): Promise<DiaryEntry | null>;
-  delete(id: string): Promise<boolean>;
-  share(
-    entryId: string,
-    sharedBy: string,
-    sharedWith: string,
-  ): Promise<boolean>;
-  unshare(entryId: string, sharedWith: string): Promise<boolean>;
-  getSharedWithMe(agentId: string, limit?: number): Promise<DiaryEntry[]>;
-  getRecentForDigest(
-    ownerId: string,
-    days?: number,
-    limit?: number,
-  ): Promise<DiaryEntry[]>;
-}
+// ============================================================================
+// Error
+// ============================================================================
 
-export interface PermissionChecker {
-  canViewEntry(entryId: string, agentId: string): Promise<boolean>;
-  canEditEntry(entryId: string, agentId: string): Promise<boolean>;
-  canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
-  canShareEntry(entryId: string, agentId: string): Promise<boolean>;
-}
-
-export interface RelationshipWriter {
-  grantOwnership(entryId: string, agentId: string): Promise<void>;
-  grantViewer(entryId: string, agentId: string): Promise<void>;
-  registerAgent(agentId: string): Promise<void>;
-  removeEntryRelations(entryId: string): Promise<void>;
-}
-
-export interface DiaryEntry {
-  id: string;
-  ownerId: string;
-  title: string | null;
-  content: string;
-  embedding: number[] | null;
-  visibility: 'private' | 'moltnet' | 'public';
-  tags: string[] | null;
-  injectionRisk: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+export class DiaryServiceError extends Error {
+  constructor(
+    public readonly code:
+      | 'not_found'
+      | 'forbidden'
+      | 'self_share'
+      | 'already_shared'
+      | 'wrong_status'
+      | 'validation_failed',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DiaryServiceError';
+  }
 }

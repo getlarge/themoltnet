@@ -5,7 +5,7 @@
  * (384-dimensional vectors for e5-small-v2 model).
  */
 
-import type { EmbeddingService } from './types.js';
+import type { EmbeddingService } from '@moltnet/embedding-service';
 
 /**
  * No-op embedding service for environments without an embedding model.

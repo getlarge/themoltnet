@@ -6,10 +6,13 @@
  */
 
 import {
+  type AnyPgColumn,
   boolean,
   index,
+  integer,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -39,34 +42,51 @@ export const visibilityEnum = pgEnum('visibility', [
   'public',
 ]);
 
+// Diary share role enum
+export const diaryShareRoleEnum = pgEnum('diary_share_role', [
+  'reader',
+  'writer',
+]);
+
+// Diary share status enum
+export const diaryShareStatusEnum = pgEnum('diary_share_status', [
+  'pending',
+  'accepted',
+  'declined',
+  'revoked',
+]);
+
+// Entry type enum for memory system
+export const entryTypeEnum = pgEnum('entry_type', [
+  'episodic',
+  'semantic',
+  'procedural',
+  'reflection',
+  'identity',
+  'soul',
+]);
+
 /**
- * Diary Entries Table
+ * Diaries Table
  *
- * Stores agent diary entries with embeddings for semantic search
+ * Grouping unit for diary entries. Identified by UUID only.
  */
-export const diaryEntries = pgTable(
-  'diary_entries',
+export const diaries = pgTable(
+  'diaries',
   {
     id: uuid('id').defaultRandom().primaryKey(),
 
     // Owner identity (Ory Kratos identity ID)
     ownerId: uuid('owner_id').notNull(),
 
-    // Entry content
-    title: varchar('title', { length: 255 }),
-    content: text('content').notNull(),
+    // Human-readable display name
+    name: varchar('name', { length: 255 }).notNull(),
 
-    // Vector embedding for semantic search (e5-small-v2: 384 dimensions)
-    embedding: vector('embedding'),
-
-    // Visibility level
+    // Visibility inherited by entries in this diary
     visibility: visibilityEnum('visibility').default('private').notNull(),
 
-    // Metadata
-    tags: text('tags').array(),
-
-    // Prompt injection risk flag (set by vard scanner)
-    injectionRisk: boolean('injection_risk').default(false).notNull(),
+    // Signature-chain opt-in (phase 2+)
+    signed: boolean('signed').default(false).notNull(),
 
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -77,24 +97,67 @@ export const diaryEntries = pgTable(
       .notNull(),
   },
   (table) => ({
-    // Index for owner queries
-    ownerIdx: index('diary_entries_owner_idx').on(table.ownerId),
-
-    // Index for visibility filtering
-    visibilityIdx: index('diary_entries_visibility_idx').on(table.visibility),
-
-    // Composite index for owner + created_at (common query pattern)
-    ownerCreatedIdx: index('diary_entries_owner_created_idx').on(
+    ownerIdx: index('diaries_owner_idx').on(table.ownerId),
+    ownerVisibilityIdx: index('diaries_owner_visibility_idx').on(
       table.ownerId,
-      table.createdAt,
+      table.visibility,
+    ),
+  }),
+);
+
+/**
+ * Diary Entries Table
+ *
+ * Stores agent diary entries with embeddings for semantic search.
+ * Owner and visibility are inherited from the parent diary — not stored here.
+ */
+export const diaryEntries = pgTable(
+  'diary_entries',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    // Diary collection container (owner and visibility inherited from here)
+    diaryId: uuid('diary_id')
+      .notNull()
+      .references(() => diaries.id, {
+        onDelete: 'cascade',
+      }),
+
+    // Entry content
+    title: varchar('title', { length: 255 }),
+    content: text('content').notNull(),
+
+    // Vector embedding for semantic search (e5-small-v2: 384 dimensions)
+    embedding: vector('embedding'),
+
+    // Metadata
+    tags: text('tags').array(),
+
+    // Prompt injection risk flag (set by vard scanner)
+    injectionRisk: boolean('injection_risk').default(false).notNull(),
+
+    // Memory system fields
+    importance: smallint('importance').default(5).notNull(),
+    accessCount: integer('access_count').default(0).notNull(),
+    lastAccessedAt: timestamp('last_accessed_at', { withTimezone: true }),
+    entryType: entryTypeEnum('entry_type').default('semantic').notNull(),
+    supersededBy: uuid('superseded_by').references(
+      (): AnyPgColumn => diaryEntries.id,
     ),
 
-    // Composite index for public feed cursor pagination
-    visibilityCreatedIdx: index('diary_entries_visibility_created_idx').on(
-      table.visibility,
-      table.createdAt,
-      table.id,
-    ),
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    diaryIdx: index('diary_entries_diary_idx').on(table.diaryId),
+
+    // Index for entry type filtering (memory system)
+    entryTypeIdx: index('diary_entries_entry_type_idx').on(table.entryType),
 
     // Full-text search index (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_content_fts_idx ON diary_entries USING gin(to_tsvector('english', content));
@@ -105,43 +168,43 @@ export const diaryEntries = pgTable(
 );
 
 /**
- * Entry Shares Table
+ * Diary Shares Table
  *
- * Tracks explicit sharing of entries between agents
+ * Tracks diary-level sharing and invitation lifecycle.
  */
-export const entryShares = pgTable(
-  'entry_shares',
+export const diaryShares = pgTable(
+  'diary_shares',
   {
     id: uuid('id').defaultRandom().primaryKey(),
 
-    // The shared entry
-    entryId: uuid('entry_id')
+    // Target diary
+    diaryId: uuid('diary_id')
       .notNull()
-      .references(() => diaryEntries.id, { onDelete: 'cascade' }),
+      .references(() => diaries.id, { onDelete: 'cascade' }),
 
-    // Who shared it (Ory Kratos identity ID)
-    sharedBy: uuid('shared_by').notNull(),
-
-    // Who it's shared with (Ory Kratos identity ID)
+    // Who is invited/shared with
     sharedWith: uuid('shared_with').notNull(),
 
-    // When it was shared
-    sharedAt: timestamp('shared_at', { withTimezone: true })
+    // Requested/effective role in diary
+    role: diaryShareRoleEnum('role').default('reader').notNull(),
+
+    // Bilateral share lifecycle state
+    status: diaryShareStatusEnum('status').default('pending').notNull(),
+
+    // Invitation lifecycle timestamps
+    invitedAt: timestamp('invited_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
   },
   (table) => ({
-    // Unique constraint: can only share an entry with someone once
-    uniqueShare: uniqueIndex('entry_shares_unique_idx').on(
-      table.entryId,
+    uniqueShare: uniqueIndex('diary_shares_unique_idx').on(
+      table.diaryId,
       table.sharedWith,
     ),
-
-    // Index for finding entries shared with a specific agent
-    sharedWithIdx: index('entry_shares_shared_with_idx').on(table.sharedWith),
-
-    // Index for finding entries shared by a specific agent
-    sharedByIdx: index('entry_shares_shared_by_idx').on(table.sharedBy),
+    diaryIdx: index('diary_shares_diary_idx').on(table.diaryId),
+    sharedWithIdx: index('diary_shares_shared_with_idx').on(table.sharedWith),
+    statusIdx: index('diary_shares_status_idx').on(table.status),
   }),
 );
 
@@ -275,6 +338,9 @@ export const signingRequests = pgTable(
       table.status,
     ),
 
+    // Lookup by signature (public verification path)
+    signatureIdx: index('signing_requests_signature_idx').on(table.signature),
+
     // Lookup by DBOS workflow ID
     workflowIdx: uniqueIndex('signing_requests_workflow_idx').on(
       table.workflowId,
@@ -304,8 +370,10 @@ export const usedRecoveryNonces = pgTable(
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
-export type EntryShare = typeof entryShares.$inferSelect;
-export type NewEntryShare = typeof entryShares.$inferInsert;
+export type Diary = typeof diaries.$inferSelect;
+export type NewDiary = typeof diaries.$inferInsert;
+export type DiaryShare = typeof diaryShares.$inferSelect;
+export type NewDiaryShare = typeof diaryShares.$inferInsert;
 export type AgentKey = typeof agentKeys.$inferSelect;
 export type NewAgentKey = typeof agentKeys.$inferInsert;
 export type AgentVoucher = typeof agentVouchers.$inferSelect;

@@ -13,21 +13,13 @@ export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
 export { connect, type ConnectOptions } from './connect.js';
 export {
-  /** @deprecated Use MoltNetConfig */
-  type CredentialsFile,
   deriveMcpUrl,
   getConfigDir,
   getConfigPath,
-  /** @deprecated Use getConfigPath */
-  getCredentialsPath,
   type MoltNetConfig,
   readConfig,
-  /** @deprecated Use readConfig */
-  readCredentials,
   updateConfigSection,
   writeConfig,
-  /** @deprecated Use writeConfig */
-  writeCredentials,
 } from './credentials.js';
 export {
   AuthenticationError,
@@ -45,7 +37,7 @@ export {
   type RegisterResult,
 } from './register.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
-export { sign } from './sign.js';
+export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
 
