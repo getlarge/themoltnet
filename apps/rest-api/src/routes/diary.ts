@@ -137,12 +137,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const diary = await fastify.diaryService.findDiary(
-        id,
-        request.authContext!.identityId,
-      );
-
-      return diary;
+      try {
+        const diary = await fastify.diaryService.findDiary(
+          id,
+          request.authContext!.identityId,
+        );
+        return diary;
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
     },
   );
 
@@ -552,10 +556,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const { diaryId } = request.params;
       const { limit, offset, tags, entryType } = request.query;
 
-      const diary = await fastify.diaryService.findDiary(
-        diaryId,
-        request.authContext!.identityId,
-      );
+      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
+      try {
+        diary = await fastify.diaryService.findDiary(
+          diaryId,
+          request.authContext!.identityId,
+        );
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
 
       const tagsFilter = tags
         ? tags.split(',').map((t) => t.trim())
@@ -780,6 +790,18 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         excludeSuperseded,
       } = request.body;
 
+      if (searchDiaryId) {
+        try {
+          await fastify.diaryService.findDiary(
+            searchDiaryId,
+            request.authContext!.identityId,
+          );
+        } catch (err) {
+          if (err instanceof DiaryServiceError) translateServiceError(err);
+          throw err;
+        }
+      }
+
       const results = await fastify.diaryService.searchEntries({
         diaryId: searchDiaryId,
         query,
@@ -832,10 +854,16 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { diaryId, days, maxEntries, entryTypes } = request.query;
 
-      const diary = await fastify.diaryService.findDiary(
-        diaryId,
-        request.authContext!.identityId,
-      );
+      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
+      try {
+        diary = await fastify.diaryService.findDiary(
+          diaryId,
+          request.authContext!.identityId,
+        );
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
 
       const entryTypesFilter = entryTypes
         ? (entryTypes.split(',') as (

@@ -55,6 +55,7 @@ export interface DiaryListOptions {
   limit?: number;
   offset?: number;
   entryType?: string;
+  entryTypes?: string[];
 }
 
 export interface PublicFeedCursor {
@@ -188,7 +189,14 @@ export function createDiaryEntryRepository(db: Database) {
      * List entries for a diary
      */
     async list(options: DiaryListOptions): Promise<DiaryEntry[]> {
-      const { diaryId, tags, limit = 20, offset = 0, entryType } = options;
+      const {
+        diaryId,
+        tags,
+        limit = 20,
+        offset = 0,
+        entryType,
+        entryTypes,
+      } = options;
 
       const conditions = diaryId ? [eq(diaryEntries.diaryId, diaryId)] : [];
       if (tags && tags.length > 0) {
@@ -201,6 +209,10 @@ export function createDiaryEntryRepository(db: Database) {
       }
       if (entryType) {
         conditions.push(eq(diaryEntries.entryType, entryType as EntryType));
+      } else if (entryTypes && entryTypes.length > 0) {
+        conditions.push(
+          inArray(diaryEntries.entryType, entryTypes as EntryType[]),
+        );
       }
 
       const rows = await db
@@ -348,8 +360,8 @@ export function createDiaryEntryRepository(db: Database) {
         return entries;
       }
 
-      // No query/embedding → fall back to list
-      return this.list({ diaryId, tags, limit, offset });
+      // No query/embedding → fall back to list (pass entryTypes filter)
+      return this.list({ diaryId, tags, limit, offset, entryTypes });
     },
 
     /**

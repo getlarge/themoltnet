@@ -257,7 +257,7 @@ describe('Diary Management', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(403);
     });
   });
 
@@ -551,7 +551,7 @@ describe('Diary Management', () => {
         });
 
         expect(error).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
 
       it('reader CANNOT update entry', async () => {
@@ -563,7 +563,7 @@ describe('Diary Management', () => {
         });
 
         expect(error).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
 
       it('reader CANNOT delete entry', async () => {
@@ -574,7 +574,7 @@ describe('Diary Management', () => {
         });
 
         expect(error).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
     });
 
@@ -619,7 +619,7 @@ describe('Diary Management', () => {
         });
 
         expect(error).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
 
       it('writer CANNOT delete diary', async () => {
@@ -630,7 +630,7 @@ describe('Diary Management', () => {
         });
 
         expect(error).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
 
       it('writer CANNOT share diary with others', async () => {
@@ -689,7 +689,7 @@ describe('Diary Management', () => {
           body: { content: 'B tries to write as reader' },
         });
         expect(writeError2).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
     });
 
@@ -799,7 +799,7 @@ describe('Diary Management', () => {
         });
 
         expect(error).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
 
       it('non-owner cannot DELETE diary', async () => {
@@ -810,7 +810,7 @@ describe('Diary Management', () => {
         });
 
         expect(error).toBeDefined();
-        expect(response.status).toBe(404);
+        expect(response.status).toBe(403);
       });
 
       it('non-owner cannot POST share', async () => {
@@ -1117,7 +1117,7 @@ describe('Diary Management', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(403);
     });
 
     it('writer (agentB) can read entries (list) in shared diary', async () => {
@@ -1163,7 +1163,7 @@ describe('Diary Management', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(403);
     });
 
     it('reader (agentC) cannot delete entries in shared diary', async () => {
@@ -1174,7 +1174,7 @@ describe('Diary Management', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(403);
     });
 
     it('unauthorized agent cannot access entries of an unshared diary', async () => {

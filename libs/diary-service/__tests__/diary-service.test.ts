@@ -24,7 +24,7 @@ import type {
   PermissionChecker,
   RelationshipWriter,
   TransactionRunner,
-} from '../src/types.js';
+} from '../src/index.js';
 import { DiaryServiceError } from '../src/types.js';
 import { diaryWorkflows } from '../src/workflows/diary-workflows.js';
 

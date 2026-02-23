@@ -38,6 +38,7 @@ export { DiaryServiceError } from './types.js';
 export type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
 export type {
   AgentRepository as AgentLookupRepository,
+  DiaryEntryRepository,
   DiaryRepository,
   DiaryShareRepository,
 } from '@moltnet/database';

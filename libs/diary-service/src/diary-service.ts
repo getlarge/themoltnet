@@ -197,7 +197,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     ): Promise<Diary | null> {
       const diary = await diaryRepository.findById(id);
       if (!diary) return null;
-      const allowed = await permissionChecker.canWriteDiary(diary.id, agentId);
+      const allowed = await permissionChecker.canManageDiary(diary.id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
       return diaryRepository.update(id, updates);
@@ -207,7 +207,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const diary = await diaryRepository.findById(id);
       if (!diary) return false;
 
-      const allowed = await permissionChecker.canWriteDiary(diary.id, agentId);
+      const allowed = await permissionChecker.canManageDiary(diary.id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
@@ -411,6 +411,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       input: CreateEntryInput,
       requesterId: string,
     ): Promise<DiaryEntry> {
+      const diary = await diaryRepository.findById(input.diaryId);
+      if (!diary) {
+        throw new DiaryServiceError('not_found', 'Diary not found');
+      }
       const allowed = await permissionChecker.canWriteDiary(
         input.diaryId,
         requesterId,
@@ -420,10 +424,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           'forbidden',
           'You do not have permission to write to this diary',
         );
-      }
-      const diary = await diaryRepository.findById(input.diaryId);
-      if (!diary) {
-        throw new DiaryServiceError('not_found', 'Diary not found');
       }
       if (
         diary.visibility === 'public' &&

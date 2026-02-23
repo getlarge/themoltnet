@@ -497,7 +497,7 @@ describe('Cross-agent Keto permissions', () => {
     await harness?.teardown();
   });
 
-  it('denies Agent B reading Agent A private entry → 404', async () => {
+  it('denies Agent B reading Agent A private entry → 403', async () => {
     const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
@@ -513,7 +513,7 @@ describe('Cross-agent Keto permissions', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(403);
   });
 
   it('denies Agent B updating Agent A entry → 404', async () => {
