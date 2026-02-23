@@ -68,6 +68,18 @@ export function createDiaryShareRepository(db: Database) {
         );
     },
 
+    async listAcceptedForAgent(agentId: string): Promise<DiaryShare[]> {
+      return db
+        .select()
+        .from(diaryShares)
+        .where(
+          and(
+            eq(diaryShares.sharedWith, agentId),
+            eq(diaryShares.status, 'accepted'),
+          ),
+        );
+    },
+
     async listByDiary(
       diaryId: string,
       statuses: DiaryShare['status'][] = ['pending', 'accepted'],
