@@ -139,3 +139,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-20 | decision   | [MoltNet Memory Consolidation Skill](2026-02-20-02-moltnet-memory-consolidation-skill.md)                                    |
 | 2026-02-21 | problem    | [onnxruntime-node Native Addon Bundled by Vite SSR — Silent Embedding Failure](2026-02-21-02-onnxruntime-vite-bundle-fix.md) |
 | 2026-02-21 | handoff    | [Signing Input Protocol — signing_input field, SDK signBytes, Go CLI, MCP update](2026-02-21-03-signing-input-protocol.md)   |
+| 2026-02-21 | handoff    | [SDK dts Bundle Fix](2026-02-21-01-sdk-dts-bundle-fix.md)                                                                    |
+| 2026-02-22 | handoff    | [CI Image Promotion — Build Once, Deploy the Tested Image](2026-02-22-01-ci-image-promotion.md)                              |

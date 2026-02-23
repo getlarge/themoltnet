@@ -8,16 +8,21 @@ on:
         required: true
         type: string
       image-name:
-        description: 'Container image name (under ghcr.io/<owner>/)'
+        description: 'Production image name (under ghcr.io/<repo>/)'
         required: true
         type: string
-      dockerfile:
-        description: 'Path to Dockerfile (relative to repo root)'
+      ci-image-name:
+        description: 'CI image name (under ghcr.io/<repo>/), as built by CI'
         required: true
         type: string
       working-directory:
         description: 'Directory containing fly.toml'
         required: true
+        type: string
+      head-sha:
+        description: 'Commit SHA to promote. Leave empty to redeploy current latest.'
+        required: false
+        default: ''
         type: string
       deploy:
         description: 'Whether to deploy to Fly.io'
@@ -33,25 +38,16 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build:
-    name: Build
+  promote:
+    name: Promote CI image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     outputs:
-      image_digest: ${{ steps.build.outputs.digest }}
-
+      image_ref: ${{ steps.promote.outputs.image_ref }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Log in to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -59,50 +55,59 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Fly.io CLI
-        if: github.event_name != 'pull_request'
         uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # v1.5
 
       - name: Log in to Fly.io registry
-        if: github.event_name != 'pull_request'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl auth docker
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ inputs.image-name }}
-            registry.fly.io/${{ inputs.fly-app }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=,format=long
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Promote image
+        id: promote
+        run: |
+          REGISTRY="${{ env.REGISTRY }}"
+          REPO="${{ github.repository }}"
+          SHA="${{ inputs.head-sha }}"
+          GHCR_IMAGE="${REGISTRY}/${REPO}/${{ inputs.image-name }}"
+          FLY_IMAGE="registry.fly.io/${{ inputs.fly-app }}"
 
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ inputs.dockerfile }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          if [ -n "$SHA" ]; then
+            SOURCE="${REGISTRY}/${REPO}/${{ inputs.ci-image-name }}:ci-${SHA}"
+            echo "Validating CI image: $SOURCE"
+            if ! docker buildx imagetools inspect "$SOURCE" > /dev/null 2>&1; then
+              echo "::error::CI image not found: $SOURCE"
+              echo "Ensure the CI workflow completed successfully for SHA ${SHA}"
+              exit 1
+            fi
+            docker buildx imagetools create \
+              --tag "${GHCR_IMAGE}:latest" \
+              --tag "${GHCR_IMAGE}:${SHA}" \
+              --tag "${FLY_IMAGE}:latest" \
+              --tag "${FLY_IMAGE}:${SHA}" \
+              "$SOURCE"
+            echo "image_ref=${FLY_IMAGE}:${SHA}" >> "$GITHUB_OUTPUT"
+          else
+            SOURCE="${GHCR_IMAGE}:latest"
+            echo "No SHA provided, falling back to: $SOURCE"
+            if ! docker buildx imagetools inspect "$SOURCE" > /dev/null 2>&1; then
+              echo "::error::Latest image not found: $SOURCE"
+              echo "No prior successful deploy exists. Provide an explicit SHA or trigger via workflow_run."
+              exit 1
+            fi
+            docker buildx imagetools create \
+              --tag "${FLY_IMAGE}:latest" \
+              "$SOURCE"
+            echo "image_ref=${FLY_IMAGE}:latest" >> "$GITHUB_OUTPUT"
+          fi
 
   deploy:
     name: Deploy to Fly.io
-    needs: build
+    needs: promote
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
-      packages: read
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      inputs.deploy
-
+    if: inputs.deploy
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -114,4 +119,10 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         working-directory: ${{ inputs.working-directory }}
-        run: flyctl deploy --image registry.fly.io/${{ inputs.fly-app }}:${{ github.sha }}
+        run: |
+          IMAGE_REF="${{ needs.promote.outputs.image_ref }}"
+          if [ -z "$IMAGE_REF" ]; then
+            echo "::error::image_ref output from promote job is empty"
+            exit 1
+          fi
+          flyctl deploy --image "$IMAGE_REF"
