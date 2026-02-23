@@ -4385,6 +4385,40 @@ func (c *Client) sendSearchPublicFeed(ctx context.Context, params SearchPublicFe
 			return res, errors.Wrap(err, "encode query")
 		}
 	}
+	{
+		// Encode "entryTypes" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "entryTypes",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.EntryTypes.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "excludeSuperseded" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "excludeSuperseded",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.ExcludeSuperseded.Get(); ok {
+				return e.EncodeValue(conv.BoolToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
 	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"

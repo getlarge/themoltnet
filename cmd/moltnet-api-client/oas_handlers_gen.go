@@ -6046,6 +6046,14 @@ func (s *Server) handleSearchPublicFeedRequest(args [0]string, argsEscaped bool,
 					Name: "tag",
 					In:   "query",
 				}: params.Tag,
+				{
+					Name: "entryTypes",
+					In:   "query",
+				}: params.EntryTypes,
+				{
+					Name: "excludeSuperseded",
+					In:   "query",
+				}: params.ExcludeSuperseded,
 			},
 			Raw: r,
 		}

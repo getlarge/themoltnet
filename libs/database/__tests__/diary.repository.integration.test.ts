@@ -13,7 +13,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
-import { diaryEntries } from '../src/schema.js';
+import { diaries, diaryEntries } from '../src/schema.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -22,10 +22,21 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
   let repo: ReturnType<typeof createDiaryEntryRepository>;
 
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
+  const OWNER_ID = '00000000-0000-4000-a000-000000000001';
 
-  beforeAll(() => {
+  beforeAll(async () => {
     db = createDatabase(DATABASE_URL!).db;
     repo = createDiaryEntryRepository(db);
+    // diary_entries.diary_id has a FK to diaries.id — seed the parent row
+    await db
+      .insert(diaries)
+      .values({
+        id: DIARY_ID,
+        ownerId: OWNER_ID,
+        name: 'Test Diary',
+        visibility: 'private',
+      })
+      .onConflictDoNothing();
   });
 
   afterEach(async () => {
@@ -35,6 +46,7 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
 
   afterAll(async () => {
     await db.delete(diaryEntries);
+    await db.delete(diaries);
   });
 
   // ── CRUD ───────────────────────────────────────────────────────────

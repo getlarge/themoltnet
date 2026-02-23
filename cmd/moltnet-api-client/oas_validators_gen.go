@@ -1222,6 +1222,8 @@ func (s GetProblemTypeType) Validate() error {
 		return nil
 	case "signing-request-already-completed":
 		return nil
+	case "conflict":
+		return nil
 	case "registration-failed":
 		return nil
 	case "upstream-error":
@@ -2004,6 +2006,8 @@ func (s ProblemDetailsCode) Validate() error {
 	case "FORBIDDEN":
 		return nil
 	case "NOT_FOUND":
+		return nil
+	case "CONFLICT":
 		return nil
 	case "VALIDATION_FAILED":
 		return nil

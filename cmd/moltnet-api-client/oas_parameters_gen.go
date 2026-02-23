@@ -2378,6 +2378,9 @@ type SearchPublicFeedParams struct {
 	Q     string
 	Limit OptFloat64 `json:",omitempty,omitzero"`
 	Tag   OptString  `json:",omitempty,omitzero"`
+	// Comma-separated entry type filter.
+	EntryTypes        OptString `json:",omitempty,omitzero"`
+	ExcludeSuperseded OptBool   `json:",omitempty,omitzero"`
 }
 
 func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPublicFeedParams) {
@@ -2404,6 +2407,24 @@ func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPu
 		}
 		if v, ok := packed[key]; ok {
 			params.Tag = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "entryTypes",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.EntryTypes = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "excludeSuperseded",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ExcludeSuperseded = v.(OptBool)
 		}
 	}
 	return params
@@ -2602,6 +2623,115 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "tag",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: entryTypes.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "entryTypes",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotEntryTypesVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotEntryTypesVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.EntryTypes.SetTo(paramsDotEntryTypesVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.EntryTypes.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     0,
+							MaxLengthSet:  false,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryTypes",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: excludeSuperseded.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "excludeSuperseded",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotExcludeSupersededVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotExcludeSupersededVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ExcludeSuperseded.SetTo(paramsDotExcludeSupersededVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "excludeSuperseded",
 			In:   "query",
 			Err:  err,
 		}

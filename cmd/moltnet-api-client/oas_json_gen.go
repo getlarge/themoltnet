@@ -11335,6 +11335,8 @@ func (s *ProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ProblemDetailsCodeFORBIDDEN
 	case ProblemDetailsCodeNOTFOUND:
 		*s = ProblemDetailsCodeNOTFOUND
+	case ProblemDetailsCodeCONFLICT:
+		*s = ProblemDetailsCodeCONFLICT
 	case ProblemDetailsCodeVALIDATIONFAILED:
 		*s = ProblemDetailsCodeVALIDATIONFAILED
 	case ProblemDetailsCodeINVALIDCHALLENGE:
@@ -13303,6 +13305,12 @@ func (s *SearchDiaryReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.IncludeShared.Set {
+			e.FieldStart("includeShared")
+			s.IncludeShared.Encode(e)
+		}
+	}
+	{
 		if s.Limit.Set {
 			e.FieldStart("limit")
 			s.Limit.Encode(e)
@@ -13350,17 +13358,18 @@ func (s *SearchDiaryReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfSearchDiaryReq = [10]string{
-	0: "diaryId",
-	1: "entryTypes",
-	2: "excludeSuperseded",
-	3: "limit",
-	4: "offset",
-	5: "query",
-	6: "tags",
-	7: "wImportance",
-	8: "wRecency",
-	9: "wRelevance",
+var jsonFieldsNameOfSearchDiaryReq = [11]string{
+	0:  "diaryId",
+	1:  "entryTypes",
+	2:  "excludeSuperseded",
+	3:  "includeShared",
+	4:  "limit",
+	5:  "offset",
+	6:  "query",
+	7:  "tags",
+	8:  "wImportance",
+	9:  "wRecency",
+	10: "wRelevance",
 }
 
 // Decode decodes SearchDiaryReq from json.
@@ -13407,6 +13416,16 @@ func (s *SearchDiaryReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"excludeSuperseded\"")
+			}
+		case "includeShared":
+			if err := func() error {
+				s.IncludeShared.Reset()
+				if err := s.IncludeShared.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"includeShared\"")
 			}
 		case "limit":
 			if err := func() error {

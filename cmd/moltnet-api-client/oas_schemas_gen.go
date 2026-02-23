@@ -1575,6 +1575,7 @@ const (
 	GetProblemTypeTypeRateLimitExceeded              GetProblemTypeType = "rate-limit-exceeded"
 	GetProblemTypeTypeSigningRequestExpired          GetProblemTypeType = "signing-request-expired"
 	GetProblemTypeTypeSigningRequestAlreadyCompleted GetProblemTypeType = "signing-request-already-completed"
+	GetProblemTypeTypeConflict                       GetProblemTypeType = "conflict"
 	GetProblemTypeTypeRegistrationFailed             GetProblemTypeType = "registration-failed"
 	GetProblemTypeTypeUpstreamError                  GetProblemTypeType = "upstream-error"
 	GetProblemTypeTypeInternalServerError            GetProblemTypeType = "internal-server-error"
@@ -1594,6 +1595,7 @@ func (GetProblemTypeType) AllValues() []GetProblemTypeType {
 		GetProblemTypeTypeRateLimitExceeded,
 		GetProblemTypeTypeSigningRequestExpired,
 		GetProblemTypeTypeSigningRequestAlreadyCompleted,
+		GetProblemTypeTypeConflict,
 		GetProblemTypeTypeRegistrationFailed,
 		GetProblemTypeTypeUpstreamError,
 		GetProblemTypeTypeInternalServerError,
@@ -1624,6 +1626,8 @@ func (s GetProblemTypeType) MarshalText() ([]byte, error) {
 	case GetProblemTypeTypeSigningRequestExpired:
 		return []byte(s), nil
 	case GetProblemTypeTypeSigningRequestAlreadyCompleted:
+		return []byte(s), nil
+	case GetProblemTypeTypeConflict:
 		return []byte(s), nil
 	case GetProblemTypeTypeRegistrationFailed:
 		return []byte(s), nil
@@ -1671,6 +1675,9 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 		return nil
 	case GetProblemTypeTypeSigningRequestAlreadyCompleted:
 		*s = GetProblemTypeTypeSigningRequestAlreadyCompleted
+		return nil
+	case GetProblemTypeTypeConflict:
+		*s = GetProblemTypeTypeConflict
 		return nil
 	case GetProblemTypeTypeRegistrationFailed:
 		*s = GetProblemTypeTypeRegistrationFailed
@@ -4226,6 +4233,7 @@ const (
 	ProblemDetailsCodeUNAUTHORIZED                   ProblemDetailsCode = "UNAUTHORIZED"
 	ProblemDetailsCodeFORBIDDEN                      ProblemDetailsCode = "FORBIDDEN"
 	ProblemDetailsCodeNOTFOUND                       ProblemDetailsCode = "NOT_FOUND"
+	ProblemDetailsCodeCONFLICT                       ProblemDetailsCode = "CONFLICT"
 	ProblemDetailsCodeVALIDATIONFAILED               ProblemDetailsCode = "VALIDATION_FAILED"
 	ProblemDetailsCodeINVALIDCHALLENGE               ProblemDetailsCode = "INVALID_CHALLENGE"
 	ProblemDetailsCodeINVALIDSIGNATURE               ProblemDetailsCode = "INVALID_SIGNATURE"
@@ -4245,6 +4253,7 @@ func (ProblemDetailsCode) AllValues() []ProblemDetailsCode {
 		ProblemDetailsCodeUNAUTHORIZED,
 		ProblemDetailsCodeFORBIDDEN,
 		ProblemDetailsCodeNOTFOUND,
+		ProblemDetailsCodeCONFLICT,
 		ProblemDetailsCodeVALIDATIONFAILED,
 		ProblemDetailsCodeINVALIDCHALLENGE,
 		ProblemDetailsCodeINVALIDSIGNATURE,
@@ -4267,6 +4276,8 @@ func (s ProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsCodeFORBIDDEN:
 		return []byte(s), nil
 	case ProblemDetailsCodeNOTFOUND:
+		return []byte(s), nil
+	case ProblemDetailsCodeCONFLICT:
 		return []byte(s), nil
 	case ProblemDetailsCodeVALIDATIONFAILED:
 		return []byte(s), nil
@@ -4306,6 +4317,9 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsCodeNOTFOUND:
 		*s = ProblemDetailsCodeNOTFOUND
+		return nil
+	case ProblemDetailsCodeCONFLICT:
+		*s = ProblemDetailsCodeCONFLICT
 		return nil
 	case ProblemDetailsCodeVALIDATIONFAILED:
 		*s = ProblemDetailsCodeVALIDATIONFAILED
@@ -4768,6 +4782,7 @@ type SearchDiaryReq struct {
 	DiaryId           OptUUID                        `json:"diaryId"`
 	EntryTypes        []SearchDiaryReqEntryTypesItem `json:"entryTypes"`
 	ExcludeSuperseded OptBool                        `json:"excludeSuperseded"`
+	IncludeShared     OptBool                        `json:"includeShared"`
 	Limit             OptFloat64                     `json:"limit"`
 	Offset            OptFloat64                     `json:"offset"`
 	Query             OptString                      `json:"query"`
@@ -4790,6 +4805,11 @@ func (s *SearchDiaryReq) GetEntryTypes() []SearchDiaryReqEntryTypesItem {
 // GetExcludeSuperseded returns the value of ExcludeSuperseded.
 func (s *SearchDiaryReq) GetExcludeSuperseded() OptBool {
 	return s.ExcludeSuperseded
+}
+
+// GetIncludeShared returns the value of IncludeShared.
+func (s *SearchDiaryReq) GetIncludeShared() OptBool {
+	return s.IncludeShared
 }
 
 // GetLimit returns the value of Limit.
@@ -4840,6 +4860,11 @@ func (s *SearchDiaryReq) SetEntryTypes(val []SearchDiaryReqEntryTypesItem) {
 // SetExcludeSuperseded sets the value of ExcludeSuperseded.
 func (s *SearchDiaryReq) SetExcludeSuperseded(val OptBool) {
 	s.ExcludeSuperseded = val
+}
+
+// SetIncludeShared sets the value of IncludeShared.
+func (s *SearchDiaryReq) SetIncludeShared(val OptBool) {
+	s.IncludeShared = val
 }
 
 // SetLimit sets the value of Limit.

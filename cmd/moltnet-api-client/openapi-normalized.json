@@ -883,6 +883,7 @@
               "UNAUTHORIZED",
               "FORBIDDEN",
               "NOT_FOUND",
+              "CONFLICT",
               "VALIDATION_FAILED",
               "INVALID_CHALLENGE",
               "INVALID_SIGNATURE",
@@ -1219,6 +1220,7 @@
                   "UNAUTHORIZED",
                   "FORBIDDEN",
                   "NOT_FOUND",
+                  "CONFLICT",
                   "VALIDATION_FAILED",
                   "INVALID_CHALLENGE",
                   "INVALID_SIGNATURE",
@@ -2504,6 +2506,9 @@
                     "type": "array"
                   },
                   "excludeSuperseded": {
+                    "type": "boolean"
+                  },
+                  "includeShared": {
                     "type": "boolean"
                   },
                   "limit": {
@@ -3811,6 +3816,7 @@
                 "rate-limit-exceeded",
                 "signing-request-expired",
                 "signing-request-already-completed",
+                "conflict",
                 "registration-failed",
                 "upstream-error",
                 "internal-server-error"
@@ -3989,6 +3995,24 @@
             "schema": {
               "maxLength": 50,
               "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated entry type filter",
+            "in": "query",
+            "name": "entryTypes",
+            "required": false,
+            "schema": {
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "excludeSuperseded",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
