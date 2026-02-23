@@ -60,7 +60,7 @@ async function securityHeaders(fastify: FastifyInstance) {
     // Cross-Origin policies
     crossOriginEmbedderPolicy: false, // May need to be false for some API use cases
     crossOriginOpenerPolicy: { policy: 'same-origin' },
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
   });
 
   // Override CSP for /docs routes — Scalar API reference loads scripts/styles from CDN
@@ -75,8 +75,7 @@ async function securityHeaders(fastify: FastifyInstance) {
           })
           .join('; ');
         reply.header('Content-Security-Policy', directives);
-        // Allow cross-origin resource loading for Scalar CDN assets
-        reply.removeHeader('Cross-Origin-Resource-Policy');
+        reply.header('Cross-Origin-Resource-Policy', 'cross-origin');
       }
     },
   );
