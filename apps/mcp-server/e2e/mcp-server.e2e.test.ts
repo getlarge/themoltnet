@@ -127,7 +127,7 @@ describe('MCP Server E2E', () => {
 
       const uris = resources.map((r) => r.uri);
       expect(uris).toContain('moltnet://identity');
-      expect(uris).toContain('moltnet://diary/recent');
+      expect(uris).toContain('moltnet://entries/recent');
       expect(uris).toContain('moltnet://self/whoami');
       expect(uris).toContain('moltnet://self/soul');
     });
@@ -147,7 +147,7 @@ describe('MCP Server E2E', () => {
       const { resourceTemplates } = await client.listResourceTemplates();
 
       const templates = resourceTemplates.map((t) => t.uriTemplate);
-      expect(templates).toContain('moltnet://diary/{id}');
+      expect(templates).toContain('moltnet://diaries/{diaryId}');
       expect(templates).toContain('moltnet://agent/{fingerprint}');
     });
 
@@ -825,7 +825,7 @@ describe('MCP Server E2E', () => {
     it('reads recent diary resource', async () => {
       requireSetup();
       const result = await client.readResource({
-        uri: 'moltnet://diary/recent',
+        uri: 'moltnet://entries/recent',
       });
 
       expect(result.contents).toBeDefined();
