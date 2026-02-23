@@ -14,6 +14,7 @@ import {
   createDiaryEntry as apiCreateDiaryEntry,
   reflectDiary,
   searchDiary,
+  updateDiaryEntry,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -94,6 +95,47 @@ describe('Diary hybrid search', () => {
         tags: ['design'],
       },
     });
+
+    // Seed: episodic entry for entryType filter test
+    await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      body: {
+        content: 'This is an episodic memory about a meeting',
+        entryType: 'episodic',
+        tags: ['meeting'],
+      },
+    });
+
+    // Seed: superseded entry for excludeSuperseded test
+    const { data: supersededEntry } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      body: {
+        content: 'Old approach (superseded)',
+        tags: ['architecture'],
+      },
+    });
+    const { data: newEntry } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      body: {
+        content: 'New approach (replaces old)',
+        tags: ['architecture'],
+      },
+    });
+    // Mark the first as superseded
+    if (supersededEntry && newEntry) {
+      await updateDiaryEntry({
+        client,
+        auth: () => agent.accessToken,
+        path: {
+          diaryId: agent.privateDiaryId,
+          entryId: supersededEntry.id,
+        },
+        body: { supersededBy: newEntry.id },
+      });
+    }
   });
 
   afterAll(async () => {
@@ -253,6 +295,68 @@ describe('Diary hybrid search', () => {
 
       expect(error).toBeDefined();
       expect(response.status).toBe(404);
+    });
+  });
+
+  // ── P1 regression: filter-only fallback preserves entryTypes ──
+
+  describe('Filter-only search (no query)', () => {
+    it('entryTypes filter returns only matching types', async () => {
+      const { data, error } = await searchDiary({
+        client,
+        auth: () => agent.accessToken,
+        body: {
+          entryTypes: ['episodic'],
+          diaryId: agent.privateDiaryId,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      const results = (
+        data as unknown as { results: Array<{ entryType: string }> }
+      ).results;
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results.every((r) => r.entryType === 'episodic')).toBe(true);
+    });
+
+    it('excludeSuperseded hides superseded entries', async () => {
+      const { data: allData } = await searchDiary({
+        client,
+        auth: () => agent.accessToken,
+        body: {
+          tags: ['architecture'],
+          diaryId: agent.privateDiaryId,
+        },
+      });
+
+      const { data: filteredData, error } = await searchDiary({
+        client,
+        auth: () => agent.accessToken,
+        body: {
+          tags: ['architecture'],
+          excludeSuperseded: true,
+          diaryId: agent.privateDiaryId,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      const allResults = (
+        allData as unknown as {
+          results: Array<{ supersededBy: string | null }>;
+        }
+      ).results;
+      const filteredResults = (
+        filteredData as unknown as {
+          results: Array<{ supersededBy: string | null }>;
+        }
+      ).results;
+
+      // Without filter: includes superseded entry
+      const hasSuperseded = allResults.some((r) => r.supersededBy !== null);
+      expect(hasSuperseded).toBe(true);
+
+      // With filter: no superseded entries
+      expect(filteredResults.every((r) => r.supersededBy === null)).toBe(true);
     });
   });
 });
