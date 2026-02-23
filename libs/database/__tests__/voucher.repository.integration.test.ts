@@ -27,9 +27,7 @@ describe.runIf(DATABASE_URL)('VoucherRepository (integration)', () => {
   const REDEEMER_B = '00000000-0000-4000-a000-000000000003';
 
   beforeAll(() => {
-    // createDatabase returns DatabaseConnection; the db property is typed
-    // structurally the same — matches existing diary integration test pattern.
-    db = createDatabase(DATABASE_URL!) as unknown as Database;
+    db = createDatabase(DATABASE_URL!).db;
     repo = createVoucherRepository(db);
   });
 

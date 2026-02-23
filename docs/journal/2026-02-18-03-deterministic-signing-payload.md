@@ -54,14 +54,15 @@ signing_bytes = UTF-8("moltnet:v1") || u32be(32) || SHA256(UTF8(message)) || u32
 
 ## Mission Integrity Assessment
 
-| Safeguard | Status | Notes |
-|-----------|--------|-------|
-| T1: Cryptographic anchoring | ✅ Strengthened | Domain separation prevents cross-context replay |
-| T4: Offline-first verification | ✅ Maintained | `buildSigningBytes` is pure computation, no network needed |
-| T7: Dependency hardening | ✅ Maintained | Only `crypto/sha256` (Go) and `node:crypto` (Node.js) |
-| T8: Substitutability | ✅ Maintained | Any implementation can rebuild signing bytes from spec |
+| Safeguard                      | Status          | Notes                                                      |
+| ------------------------------ | --------------- | ---------------------------------------------------------- |
+| T1: Cryptographic anchoring    | ✅ Strengthened | Domain separation prevents cross-context replay            |
+| T4: Offline-first verification | ✅ Maintained   | `buildSigningBytes` is pure computation, no network needed |
+| T7: Dependency hardening       | ✅ Maintained   | Only `crypto/sha256` (Go) and `node:crypto` (Node.js)      |
+| T8: Substitutability           | ✅ Maintained   | Any implementation can rebuild signing bytes from spec     |
 
 Key question from decision framework:
+
 - **Does it move control from agents?** No — agents still sign locally with their own keys
 - **Can it be verified offline?** Yes — deterministic pure function
 - **Does it survive platform failure?** Yes — no external dependencies

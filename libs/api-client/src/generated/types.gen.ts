@@ -22,6 +22,7 @@ export type ProblemDetails = {
     | 'UNAUTHORIZED'
     | 'FORBIDDEN'
     | 'NOT_FOUND'
+    | 'CONFLICT'
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
@@ -45,6 +46,7 @@ export type ValidationProblemDetails = {
     | 'UNAUTHORIZED'
     | 'FORBIDDEN'
     | 'NOT_FOUND'
+    | 'CONFLICT'
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
@@ -1215,6 +1217,7 @@ export type SearchDiaryData = {
       | 'soul'
     >;
     excludeSuperseded?: boolean;
+    includeShared?: boolean;
   };
   path?: never;
   query?: never;
@@ -1947,6 +1950,11 @@ export type SearchPublicFeedData = {
     q: string;
     limit?: number;
     tag?: string;
+    /**
+     * Comma-separated entry type filter
+     */
+    entryTypes?: string;
+    excludeSuperseded?: boolean;
   };
   url: '/public/feed/search';
 };
@@ -2055,6 +2063,7 @@ export type GetProblemTypeData = {
       | 'rate-limit-exceeded'
       | 'signing-request-expired'
       | 'signing-request-already-completed'
+      | 'conflict'
       | 'registration-failed'
       | 'upstream-error'
       | 'internal-server-error';

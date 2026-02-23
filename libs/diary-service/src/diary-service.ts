@@ -55,7 +55,7 @@ export interface DiaryService {
     opts?: { withinTransaction?: boolean },
   ): Promise<Diary>;
   listDiaries(ownerId: string): Promise<Diary[]>;
-  findDiary(id: string, requesterId: string): Promise<Diary>;
+  findDiary(id: string, agentId: string): Promise<Diary>;
   findOwnedDiary(agentId: string, id: string): Promise<Diary | null>;
   updateDiary(
     id: string,
@@ -84,30 +84,23 @@ export interface DiaryService {
   ): Promise<void>;
 
   // ── Entry operations ─────────────────────────────────────────
-  createEntry(
-    input: CreateEntryInput,
-    requesterId: string,
-  ): Promise<DiaryEntry>;
+  createEntry(input: CreateEntryInput, agentId: string): Promise<DiaryEntry>;
   getEntryById(
     id: string,
     diaryId: string,
-    requesterId: string,
+    agentId: string,
   ): Promise<DiaryEntry>;
   listEntries(input: ListInput): Promise<DiaryEntry[]>;
-  searchEntries(input: SearchInput): Promise<DiaryEntry[]>;
+  searchEntries(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   searchOwned(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   updateEntry(
     id: string,
     diaryId: string,
-    requesterId: string,
+    agentId: string,
     updates: UpdateEntryInput,
   ): Promise<DiaryEntry | null>;
-  deleteEntry(
-    id: string,
-    diaryId: string,
-    requesterId: string,
-  ): Promise<boolean>;
+  deleteEntry(id: string, diaryId: string, agentId: string): Promise<boolean>;
   reflect(input: ReflectInput): Promise<Digest>;
 }
 
@@ -185,8 +178,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return diaryRepository.listByOwner(agentId);
     },
 
-    async findDiary(id: string, requesterId: string): Promise<Diary> {
-      const allowed = await permissionChecker.canReadDiary(id, requesterId);
+    async findDiary(id: string, agentId: string): Promise<Diary> {
+      const allowed = await permissionChecker.canReadDiary(id, agentId);
 
       if (allowed) {
         const diary = await diaryRepository.findById(id);
@@ -423,7 +416,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async createEntry(
       input: CreateEntryInput,
-      requesterId: string,
+      agentId: string,
     ): Promise<DiaryEntry> {
       const diary = await diaryRepository.findById(input.diaryId);
       if (!diary) {
@@ -431,7 +424,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       }
       const allowed = await permissionChecker.canWriteDiary(
         input.diaryId,
-        requesterId,
+        agentId,
       );
       if (!allowed) {
         throw new DiaryServiceError(
@@ -455,13 +448,13 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async getEntryById(
       id: string,
       diaryId: string,
-      requesterId: string,
+      agentId: string,
     ): Promise<DiaryEntry> {
       const entry = await diaryEntryRepository.findById(id);
       if (!entry || entry.diaryId !== diaryId) {
         throw new DiaryServiceError('not_found', 'Diary entry not found');
       }
-      const allowed = await permissionChecker.canViewEntry(id, requesterId);
+      const allowed = await permissionChecker.canViewEntry(id, agentId);
       if (!allowed) {
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
       }
@@ -478,7 +471,13 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       });
     },
 
-    async searchEntries(input: SearchInput): Promise<DiaryEntry[]> {
+    async searchEntries(
+      input: SearchInput,
+      agentId: string,
+    ): Promise<DiaryEntry[]> {
+      if (input.diaryId) {
+        await this.findDiary(input.diaryId, agentId); // also checks access
+      }
       return diaryEntryRepository.search({
         ...input,
         embedding: await resolveEmbedding(input.query),
@@ -523,10 +522,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async updateEntry(
       id: string,
       diaryId: string,
-      requesterId: string,
+      agentId: string,
       updates: UpdateEntryInput,
     ): Promise<DiaryEntry | null> {
-      const diary = await this.findDiary(diaryId, requesterId);
+      const diary = await this.findDiary(diaryId, agentId);
 
       if (
         updates.content &&
@@ -538,7 +537,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           'Public diary entries are limited to 10,000 characters',
         );
       }
-      const allowed = await permissionChecker.canEditEntry(id, requesterId);
+      const allowed = await permissionChecker.canEditEntry(id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
@@ -571,11 +570,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async deleteEntry(
       id: string,
       diaryId: string,
-      requesterId: string,
+      agentId: string,
     ): Promise<boolean> {
-      await this.findDiary(diaryId, requesterId);
+      await this.findDiary(diaryId, agentId);
 
-      const allowed = await permissionChecker.canDeleteEntry(id, requesterId);
+      const allowed = await permissionChecker.canDeleteEntry(id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 

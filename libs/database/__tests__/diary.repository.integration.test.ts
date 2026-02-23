@@ -24,7 +24,7 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
   beforeAll(() => {
-    db = createDatabase(DATABASE_URL!);
+    db = createDatabase(DATABASE_URL!).db;
     repo = createDiaryEntryRepository(db);
   });
 

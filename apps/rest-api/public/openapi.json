@@ -91,6 +91,10 @@
               },
               {
                 "type": "string",
+                "enum": ["CONFLICT"]
+              },
+              {
+                "type": "string",
                 "enum": ["VALIDATION_FAILED"]
               },
               {
@@ -175,6 +179,10 @@
                   {
                     "type": "string",
                     "enum": ["NOT_FOUND"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["CONFLICT"]
                   },
                   {
                     "type": "string",
@@ -3164,6 +3172,9 @@
                   },
                   "excludeSuperseded": {
                     "type": "boolean"
+                  },
+                  "includeShared": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -4469,6 +4480,24 @@
             "in": "query",
             "name": "tag",
             "required": false
+          },
+          {
+            "schema": {
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$",
+              "type": "string"
+            },
+            "in": "query",
+            "name": "entryTypes",
+            "required": false,
+            "description": "Comma-separated entry type filter"
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "excludeSuperseded",
+            "required": false
           }
         ],
         "responses": {
@@ -4673,6 +4702,10 @@
                 {
                   "type": "string",
                   "enum": ["signing-request-already-completed"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["conflict"]
                 },
                 {
                   "type": "string",

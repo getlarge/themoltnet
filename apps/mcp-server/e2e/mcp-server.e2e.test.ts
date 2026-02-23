@@ -208,7 +208,7 @@ describe('MCP Server E2E', () => {
       const createResult = await client.callTool({
         name: 'diary_create',
         arguments: {
-          diary_ref: harness.privateDiaryId,
+          diary_id: harness.privateDiaryId,
           content: 'MCP e2e test entry',
         },
       });
@@ -229,7 +229,7 @@ describe('MCP Server E2E', () => {
       // Read back
       const getResult = await client.callTool({
         name: 'diary_get',
-        arguments: { diary_ref: harness.privateDiaryId, entry_id: created.id },
+        arguments: { diary_id: harness.privateDiaryId, entry_id: created.id },
       });
 
       const getContent = getResult.content as Array<{
@@ -246,12 +246,12 @@ describe('MCP Server E2E', () => {
       expect(fetched.content).toBe('MCP e2e test entry');
     });
 
-    it('supports diary_ref as diary id for read operations', async () => {
+    it('supports diary_id for read operations', async () => {
       requireSetup();
       const createResult = await client.callTool({
         name: 'diary_create',
         arguments: {
-          diary_ref: harness.privateDiaryId,
+          diary_id: harness.privateDiaryId,
           content: 'MCP diary id ref test',
         },
       });
@@ -268,7 +268,7 @@ describe('MCP Server E2E', () => {
 
       const getResult = await client.callTool({
         name: 'diary_get',
-        arguments: { diary_ref: harness.privateDiaryId, entry_id: created.id },
+        arguments: { diary_id: harness.privateDiaryId, entry_id: created.id },
       });
       const getContent = getResult.content as Array<{
         type: string;
@@ -280,12 +280,12 @@ describe('MCP Server E2E', () => {
       ).toBeUndefined();
     });
 
-    it('returns error when diary_ref does not match the entry diary', async () => {
+    it('returns error when diary_id does not match the entry diary', async () => {
       requireSetup();
       const createResult = await client.callTool({
         name: 'diary_create',
         arguments: {
-          diary_ref: harness.privateDiaryId,
+          diary_id: harness.privateDiaryId,
           content: 'MCP wrong diary ref test',
         },
       });
@@ -299,7 +299,7 @@ describe('MCP Server E2E', () => {
 
       const getResult = await client.callTool({
         name: 'diary_get',
-        arguments: { diary_ref: 'does-not-exist', entry_id: created.id },
+        arguments: { diary_id: 'does-not-exist', entry_id: created.id },
       });
       const getContent = getResult.content as Array<{
         type: string;
@@ -313,7 +313,7 @@ describe('MCP Server E2E', () => {
       requireSetup();
       const result = await client.callTool({
         name: 'diary_list',
-        arguments: { diary_ref: harness.privateDiaryId },
+        arguments: { diary_id: harness.privateDiaryId },
       });
 
       const content = result.content as Array<{ type: string; text: string }>;
@@ -326,11 +326,11 @@ describe('MCP Server E2E', () => {
       expect(parsed.items.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('returns error when listing an unknown diary_ref', async () => {
+    it('returns error when listing an unknown diary_id', async () => {
       requireSetup();
       const result = await client.callTool({
         name: 'diary_list',
-        arguments: { diary_ref: 'does-not-exist' },
+        arguments: { diary_id: 'does-not-exist' },
       });
 
       const content = result.content as Array<{ type: string; text: string }>;
@@ -338,7 +338,7 @@ describe('MCP Server E2E', () => {
       expect(content[0].text).toContain('Failed to list entries');
     });
 
-    it('validates required diary_ref for scoped diary tools', async () => {
+    it('validates required diary_id for scoped diary tools', async () => {
       requireSetup();
       const result = await client.callTool({
         name: 'diary_create',
@@ -547,7 +547,7 @@ describe('MCP Server E2E', () => {
       const createResult = await client.callTool({
         name: 'diary_create',
         arguments: {
-          diary_ref: harness.publicDiaryId,
+          diary_id: harness.publicDiaryId,
           content: 'MCP public feed e2e entry',
           tags: ['mcp-e2e'],
         },
@@ -721,7 +721,7 @@ describe('MCP Server E2E', () => {
       const whoamiCreate = await client.callTool({
         name: 'diary_create',
         arguments: {
-          diary_ref: harness.privateDiaryId,
+          diary_id: harness.privateDiaryId,
           content: 'I am E2E Test Agent, a MoltNet integration test agent.',
           title: 'I am E2E Test Agent',
           tags: ['system', 'identity'],
@@ -741,7 +741,7 @@ describe('MCP Server E2E', () => {
       const soulCreate = await client.callTool({
         name: 'diary_create',
         arguments: {
-          diary_ref: harness.privateDiaryId,
+          diary_id: harness.privateDiaryId,
           content: 'I value correctness and thorough testing.',
           title: 'What I care about',
           tags: ['system', 'soul'],

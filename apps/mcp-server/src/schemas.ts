@@ -45,7 +45,7 @@ type AssertSchemaToApi<_TSchema extends TApi, TApi> = true;
 // --- Diary schemas ---
 
 export const DiaryCreateSchema = Type.Object({
-  diary_ref: Type.String({
+  diary_id: Type.String({
     description: 'Diary identifier (UUID).',
   }),
   content: Type.String({ description: 'The memory content (1-10000 chars)' }),
@@ -71,22 +71,22 @@ export const DiaryCreateSchema = Type.Object({
 });
 type CreateDiaryBody = BodyOf<CreateDiaryEntryData>;
 export type DiaryCreateInput = SnakeCasedProperties<CreateDiaryBody> & {
-  diary_ref: PathOf<CreateDiaryEntryData>['diaryId'];
+  diary_id: PathOf<CreateDiaryEntryData>['diaryId'];
 };
 
 export const DiaryGetSchema = Type.Object({
-  diary_ref: Type.String({
+  diary_id: Type.String({
     description: 'Diary identifier (UUID).',
   }),
   entry_id: Type.String({ description: 'The entry ID' }),
 });
 export type DiaryGetInput = {
-  diary_ref: PathOf<GetDiaryEntryData>['diaryId'];
+  diary_id: PathOf<GetDiaryEntryData>['diaryId'];
   entry_id: PathOf<GetDiaryEntryData>['entryId'];
 };
 
 export const DiaryListSchema = Type.Object({
-  diary_ref: Type.String({
+  diary_id: Type.String({
     description: 'Diary identifier (UUID).',
   }),
   limit: Type.Optional(
@@ -101,12 +101,12 @@ export const DiaryListSchema = Type.Object({
 });
 type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type DiaryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
-  diary_ref: PathOf<ListDiaryEntriesData>['diaryId'];
+  diary_id: PathOf<ListDiaryEntriesData>['diaryId'];
   tags?: string[];
 };
 
 export const DiarySearchSchema = Type.Object({
-  diary_ref: Type.Optional(
+  diary_id: Type.Optional(
     Type.String({
       description:
         'Diary identifier (UUID). Omit to search across all diaries.',
@@ -167,12 +167,12 @@ type DiarySearchFields = SnakePick<
   | 'excludeSuperseded'
 >;
 export type DiarySearchInput = DiarySearchFields & {
-  diary_ref?: SearchDiaryBody['diaryId'];
+  diary_id?: SearchDiaryBody['diaryId'];
   query: NonNullable<SearchDiaryBody['query']>;
 };
 
 export const DiaryUpdateSchema = Type.Object({
-  diary_ref: Type.String({
+  diary_id: Type.String({
     description: 'Diary identifier (UUID).',
   }),
   entry_id: Type.String({ description: 'The entry ID' }),
@@ -197,23 +197,23 @@ export const DiaryUpdateSchema = Type.Object({
 });
 type UpdateDiaryBody = NonNullable<UpdateDiaryEntryData['body']>;
 export type DiaryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
-  diary_ref: PathOf<UpdateDiaryEntryData>['diaryId'];
+  diary_id: PathOf<UpdateDiaryEntryData>['diaryId'];
   entry_id: PathOf<UpdateDiaryEntryData>['entryId'];
 };
 
 export const DiaryDeleteSchema = Type.Object({
-  diary_ref: Type.String({
+  diary_id: Type.String({
     description: 'Diary identifier (UUID).',
   }),
   entry_id: Type.String({ description: 'The entry ID to delete' }),
 });
 export type DiaryDeleteInput = {
-  diary_ref: PathOf<DeleteDiaryEntryData>['diaryId'];
+  diary_id: PathOf<DeleteDiaryEntryData>['diaryId'];
   entry_id: PathOf<DeleteDiaryEntryData>['entryId'];
 };
 
 export const DiaryReflectSchema = Type.Object({
-  diary_ref: Type.String({
+  diary_id: Type.String({
     description: 'Diary identifier (UUID).',
   }),
   days: Type.Optional(
@@ -232,7 +232,7 @@ export const DiaryReflectSchema = Type.Object({
 });
 type ReflectDiaryQuery = QueryOf<ReflectDiaryData>;
 export type DiaryReflectInput = {
-  diary_ref?: ReflectDiaryQuery['diaryId'];
+  diary_id: ReflectDiaryQuery['diaryId'];
   days?: ReflectDiaryQuery['days'];
   max_entries?: ReflectDiaryQuery['maxEntries'];
   entry_types?: EntryType[];
