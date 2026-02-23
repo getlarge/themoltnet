@@ -205,6 +205,79 @@ describe('MCP Server E2E', () => {
       ).toBe(201);
     });
 
+    // ── Diaries catalog tools ──
+
+    it('diaries_list returns the agent diaries including the harness diaries', async () => {
+      requireSetup();
+      const result = await client.callTool({
+        name: 'diaries_list',
+        arguments: {},
+      });
+
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(
+        result.isError,
+        `diaries_list error: ${content[0].text}`,
+      ).toBeUndefined();
+      const parsed = JSON.parse(content[0].text);
+      expect(parsed.items).toBeDefined();
+      const ids = parsed.items.map((d: { id: string }) => d.id);
+      expect(ids).toContain(harness.privateDiaryId);
+      expect(ids).toContain(harness.publicDiaryId);
+    });
+
+    it('diaries_create creates a new diary and diaries_get retrieves it', async () => {
+      requireSetup();
+      const createResult = await client.callTool({
+        name: 'diaries_create',
+        arguments: { name: 'e2e-test-diary' },
+      });
+
+      const createContent = createResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        createResult.isError,
+        `diaries_create error: ${createContent[0].text}`,
+      ).toBeUndefined();
+      const createParsed = JSON.parse(createContent[0].text);
+      expect(createParsed.diary).toBeDefined();
+      const created = createParsed.diary;
+      expect(created.name).toBe('e2e-test-diary');
+      expect(created.id).toBeDefined();
+
+      // Read it back
+      const getResult = await client.callTool({
+        name: 'diaries_get',
+        arguments: { diary_id: created.id },
+      });
+
+      const getContent = getResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        getResult.isError,
+        `diaries_get error: ${getContent[0].text}`,
+      ).toBeUndefined();
+      const getParsed = JSON.parse(getContent[0].text);
+      expect(getParsed.diary.id).toBe(created.id);
+      expect(getParsed.diary.name).toBe('e2e-test-diary');
+    });
+
+    it('diaries_get returns error for unknown diary id', async () => {
+      requireSetup();
+      const result = await client.callTool({
+        name: 'diaries_get',
+        arguments: { diary_id: '00000000-0000-0000-0000-000000000000' },
+      });
+
+      const content = result.content as Array<{ type: string; text: string }>;
+      expect(result.isError).toBe(true);
+      expect(content[0].text).toMatch(/not found|Failed/i);
+    });
+
     // ── Diary CRUD via MCP tools ──
 
     it('creates and reads back a diary entry', async () => {
