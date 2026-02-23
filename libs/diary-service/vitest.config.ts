@@ -9,5 +9,8 @@ export default defineConfig({
     root: resolve(import.meta.dirname),
     include: ['__tests__/**/*.test.ts', '__tests__/**/*.integration.test.ts'],
     testTimeout: 10_000,
+    // DBOS integration tests share a single Postgres and cannot run in parallel:
+    // concurrent launchDBOS() calls hit a unique constraint on dbos.dbos_migrations.
+    fileParallelism: false,
   },
 });
