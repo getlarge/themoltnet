@@ -377,6 +377,9 @@ importers:
       '@fastify/type-provider-typebox':
         specifier: 'catalog:'
         version: 5.2.0(@sinclair/typebox@0.34.48)
+      '@huggingface/transformers':
+        specifier: 'catalog:'
+        version: 3.8.1
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../../libs/auth

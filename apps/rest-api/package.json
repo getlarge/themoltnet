@@ -31,6 +31,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/discovery": "workspace:*",
+    "@huggingface/transformers": "catalog:",
     "@moltnet/diary-service": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
     "@moltnet/models": "workspace:*",
