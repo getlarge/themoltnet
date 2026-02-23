@@ -9,22 +9,37 @@ import helmet from '@fastify/helmet';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
+// Strict CSP for all API routes
+const API_CSP_DIRECTIVES = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'"],
+  styleSrc: ["'self'", "'unsafe-inline'"],
+  imgSrc: ["'self'", 'data:', 'https:'],
+  fontSrc: ["'self'"],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'none'"],
+  formAction: ["'self'"],
+  upgradeInsecureRequests: [] as string[],
+};
+
+// Relaxed CSP for /docs — Scalar loads scripts and styles from CDN
+const DOCS_CSP_DIRECTIVES = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'", "'unsafe-inline'", 'https:'],
+  styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+  imgSrc: ["'self'", 'data:', 'https:'],
+  fontSrc: ["'self'", 'https:'],
+  objectSrc: ["'none'"],
+  frameAncestors: ["'none'"],
+  connectSrc: ["'self'", 'https:'],
+  workerSrc: ['blob:'],
+};
+
 async function securityHeaders(fastify: FastifyInstance) {
-  // Register helmet with secure defaults
   await fastify.register(helmet, {
-    // Content Security Policy
     contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        fontSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        frameAncestors: ["'none'"],
-        formAction: ["'self'"],
-        upgradeInsecureRequests: [],
-      },
+      useDefaults: false,
+      directives: API_CSP_DIRECTIVES,
     },
     // HTTP Strict Transport Security
     hsts: {
@@ -45,8 +60,26 @@ async function securityHeaders(fastify: FastifyInstance) {
     // Cross-Origin policies
     crossOriginEmbedderPolicy: false, // May need to be false for some API use cases
     crossOriginOpenerPolicy: { policy: 'same-origin' },
-    crossOriginResourcePolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
+
+  // Override CSP for /docs routes — Scalar API reference loads scripts/styles from CDN
+  fastify.addHook(
+    'onSend',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      if (request.url.startsWith('/docs')) {
+        const directives = Object.entries(DOCS_CSP_DIRECTIVES)
+          .map(([key, values]) => {
+            const kebab = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+            return `${kebab} ${values.join(' ')}`;
+          })
+          .join('; ');
+        reply.header('Content-Security-Policy', directives);
+        // Allow cross-origin resource loading for Scalar CDN assets
+        reply.removeHeader('Cross-Origin-Resource-Policy');
+      }
+    },
+  );
 
   // Add Cache-Control headers for authenticated and sensitive responses
   fastify.addHook(

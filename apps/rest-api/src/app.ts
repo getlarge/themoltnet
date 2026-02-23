@@ -145,8 +145,12 @@ export async function registerApiRoutes(
 
   // Register Scalar API reference UI at /docs
   // Spec is sourced automatically from @fastify/swagger (no configuration.spec needed)
+  // hideClientButton disables the Scalar agent feature which phones home to registry.scalar.com
   await app.register(scalarApiReference, {
     routePrefix: '/docs',
+    configuration: {
+      hideClientButton: true,
+    },
   });
 
   // Register shared schemas for $ref resolution
