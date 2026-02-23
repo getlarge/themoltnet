@@ -139,8 +139,6 @@ export interface MockServices {
     search: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
-    share: ReturnType<typeof vi.fn>;
-    getSharedWithMe: ReturnType<typeof vi.fn>;
     getRecentForDigest: ReturnType<typeof vi.fn>;
     listPublic: ReturnType<typeof vi.fn>;
     listPublicSince: ReturnType<typeof vi.fn>;
@@ -182,8 +180,6 @@ export function createMockServices(): MockServices {
       search: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      share: vi.fn(),
-      getSharedWithMe: vi.fn(),
       getRecentForDigest: vi.fn(),
       listPublic: vi.fn(),
       listPublicSince: vi.fn(),
