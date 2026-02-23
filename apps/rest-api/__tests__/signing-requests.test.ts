@@ -156,7 +156,7 @@ function createApp(
       canDeleteEntry: vi.fn(),
     } as unknown as PermissionChecker,
     relationshipWriter: {
-      grantOwnership: vi.fn(),
+      grantEntryParent: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
     } as unknown as RelationshipWriter,

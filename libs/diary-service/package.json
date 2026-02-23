@@ -29,6 +29,7 @@
     "@moltnet/auth": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
+    "drizzle-orm": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

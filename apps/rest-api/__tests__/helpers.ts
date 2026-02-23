@@ -246,7 +246,7 @@ export function createMockServices(): MockServices {
       grantDiaryReader: vi.fn(),
       removeDiaryRelations: vi.fn(),
       removeDiaryRelationForAgent: vi.fn(),
-      grantOwnership: vi.fn(),
+      grantEntryParent: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
     },

@@ -4,6 +4,9 @@
  * Tests DBOS transaction atomicity with real Postgres + real DBOS runtime.
  * Keto RelationshipWriter is mocked to isolate DB/DBOS behavior.
  *
+ * Uses DATABASE_URL as both the app database and DBOS system database
+ * (DBOS creates its system tables in a `dbos` schema within the same DB).
+ *
  * These tests verify:
  * - Transaction atomicity for DB operations
  * - Concurrent operations without race conditions
@@ -13,6 +16,7 @@
  * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/diary-service test
  */
 
+import { eq } from 'drizzle-orm';
 import {
   afterAll,
   afterEach,
@@ -56,7 +60,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   };
   let DIARY_ID: string;
 
-  const OWNER_ID = '00000000-0000-4000-b000-000000000001';
+  const OWNER_ID = '00000000-0000-4000-b000-000000000002';
 
   async function setupDatabase(url: string) {
     const {
@@ -81,8 +85,10 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       createDBOSTransactionRunner,
     } = await import('@moltnet/database');
 
-    configureDBOS();
-    await initDBOS({ databaseUrl: url });
+    // Use app database as DBOS system database — DBOS creates its tables
+    // in a `dbos` schema within the same database.
+    configureDBOS(url);
+    await initDBOS({ databaseUrl: url, systemDatabaseUrl: url });
     await launchDBOS();
 
     const dataSource = getDataSource();
@@ -93,10 +99,20 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   }
 
   beforeAll(async () => {
+    // Register DBOS workflows BEFORE launchDBOS() — DBOS requirement.
+    // Deps are accessed lazily at execution time, so registration before
+    // setDiaryWorkflowDeps() is safe.
+    initDiaryWorkflows();
+
     mockRelationshipWriter = {
-      grantOwnership: vi.fn().mockResolvedValue(undefined),
+      grantEntryParent: vi.fn().mockResolvedValue(undefined),
       registerAgent: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
+      grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
+      grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
+      grantDiaryReader: vi.fn().mockResolvedValue(undefined),
+      removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
+      removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
     };
 
     permissions = {
@@ -123,12 +139,13 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     });
     DIARY_ID = diary.id;
 
+    // Launch DBOS after workflow registration
     const dbosSetup = await setupDBOS(DATABASE_URL!);
     transactionRunner = dbosSetup.transactionRunner;
 
     const embeddingService = createNoopEmbeddingService();
 
-    // Wire diary workflows with real DBOS dataSource for entry CRUD
+    // Wire diary workflow deps (dataSource available now; deps are lazy)
     setDiaryWorkflowDeps({
       diaryEntryRepository: dbSetup.repo,
       relationshipWriter:
@@ -136,7 +153,6 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       embeddingService,
       dataSource: dbosSetup.dataSource,
     });
-    initDiaryWorkflows();
 
     service = createDiaryService({
       diaryRepository: dbSetup.diaryRepo,
@@ -146,6 +162,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         findByDiaryAndAgent: vi.fn(),
         listByDiary: vi.fn(),
         listPendingForAgent: vi.fn(),
+        listAcceptedForAgent: vi.fn(),
         updateStatus: vi.fn(),
       } as unknown as DiaryShareRepository,
       agentRepository: {
@@ -161,14 +178,23 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   });
 
   afterEach(async () => {
-    // Clean up entries between tests
-    await db.delete(tables.diaryEntries);
+    // Clean up only entries for our test diary to avoid cross-test interference
+    if (DIARY_ID) {
+      await db
+        .delete(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
+    }
     vi.clearAllMocks();
   });
 
   afterAll(async () => {
-    await db.delete(tables.diaryEntries);
-    await db.delete(tables.diaries);
+    // Scope cleanup by diary ID to avoid deleting other tests' diaries
+    if (DIARY_ID) {
+      await db
+        .delete(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
+      await db.delete(tables.diaries).where(eq(tables.diaries.id, DIARY_ID));
+    }
 
     // Shutdown DBOS
     const { shutdownDBOS } = await import('@moltnet/database');
@@ -178,7 +204,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   // ── Atomicity Tests ────────────────────────────────────────────────────
 
   describe('atomicity', () => {
-    it('creates entry and calls relationshipWriter', async () => {
+    it('creates entry and calls grantEntryParent', async () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
@@ -190,38 +216,46 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       expect(entry.id).toBeDefined();
       expect(entry.diaryId).toBe(DIARY_ID);
 
-      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledWith(
+      expect(mockRelationshipWriter.grantEntryParent).toHaveBeenCalledWith(
         entry.id,
-        OWNER_ID,
+        DIARY_ID,
       );
 
       // Verify entry exists in database
-      const entries = await db.select().from(tables.diaryEntries);
+      const entries = await db
+        .select()
+        .from(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
       const found = entries.find((e) => e.id === entry.id);
       expect(found).toBeDefined();
       expect(found!.content).toBe('Test atomic create');
     });
 
-    it('still creates entry when relationshipWriter fails', async () => {
-      mockRelationshipWriter.grantOwnership.mockRejectedValueOnce(
-        new Error('Keto unavailable'),
+    it('retries grantEntryParent and creates entry on eventual success', async () => {
+      mockRelationshipWriter.grantEntryParent.mockRejectedValueOnce(
+        new Error('Keto temporarily unavailable'),
       );
 
-      // Entry should still be created (relationship failure is logged, not thrown)
+      // DBOS retries the step — entry should be created after the retry
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
-          content: 'Should still persist',
+          content: 'Should persist after Keto retry',
         },
         OWNER_ID,
       );
 
       expect(entry.id).toBeDefined();
-      const entries = await db.select().from(tables.diaryEntries);
+      const entries = await db
+        .select()
+        .from(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
       expect(entries.length).toBe(1);
+      // Called twice: first attempt failed, second (retry) succeeded
+      expect(mockRelationshipWriter.grantEntryParent).toHaveBeenCalledTimes(2);
     });
 
-    it('still deletes entry when relationshipWriter fails', async () => {
+    it('still deletes entry when removeEntryRelations fails (DBOS retries)', async () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
@@ -231,14 +265,17 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       );
 
       mockRelationshipWriter.removeEntryRelations.mockRejectedValueOnce(
-        new Error('Keto unavailable'),
+        new Error('Keto temporarily unavailable'),
       );
 
       const deleted = await service.deleteEntry(entry.id, DIARY_ID, OWNER_ID);
       expect(deleted).toBe(true);
 
-      // Verify entry is deleted from database
-      const entries = await db.select().from(tables.diaryEntries);
+      // Verify entry is deleted from database (DB write committed before Keto step)
+      const entries = await db
+        .select()
+        .from(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
       expect(entries.length).toBe(0);
     });
   });
@@ -267,10 +304,13 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       );
 
       expect(fulfilled.length).toBe(10);
-      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledTimes(10);
+      expect(mockRelationshipWriter.grantEntryParent).toHaveBeenCalledTimes(10);
 
       // Verify all entries exist in database
-      const entries = await db.select().from(tables.diaryEntries);
+      const entries = await db
+        .select()
+        .from(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
       expect(entries.length).toBe(10);
     });
 
@@ -295,7 +335,10 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       await Promise.all(deletePromises);
 
       // Verify all entries are gone
-      const remaining = await db.select().from(tables.diaryEntries);
+      const remaining = await db
+        .select()
+        .from(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
       expect(remaining.length).toBe(0);
 
       // Verify Keto cleanup was called for each
@@ -308,7 +351,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   // ── RelationshipWriter Execution Tests ──────────────────────────────
 
   describe('relationship writer execution', () => {
-    it('calls grantOwnership on create', async () => {
+    it('calls grantEntryParent on create', async () => {
       const entry = await service.createEntry(
         {
           diaryId: DIARY_ID,
@@ -317,10 +360,10 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         OWNER_ID,
       );
 
-      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledTimes(1);
-      expect(mockRelationshipWriter.grantOwnership).toHaveBeenCalledWith(
+      expect(mockRelationshipWriter.grantEntryParent).toHaveBeenCalledTimes(1);
+      expect(mockRelationshipWriter.grantEntryParent).toHaveBeenCalledWith(
         entry.id,
-        OWNER_ID,
+        DIARY_ID,
       );
     });
 

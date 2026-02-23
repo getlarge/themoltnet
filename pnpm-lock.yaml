@@ -624,6 +624,9 @@ importers:
       '@moltnet/embedding-service':
         specifier: workspace:*
         version: link:../embedding-service
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

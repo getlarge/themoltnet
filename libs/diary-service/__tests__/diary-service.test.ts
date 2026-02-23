@@ -86,7 +86,7 @@ function createMockRelationshipWriter(): {
   [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
 } {
   return {
-    grantOwnership: vi.fn().mockResolvedValue(undefined),
+    grantEntryParent: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
     grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
