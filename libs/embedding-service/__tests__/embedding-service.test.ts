@@ -2,12 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EmbeddingLogger } from '../src/types.js';
 
-// Mock @huggingface/transformers before any imports that use it
-const mockExtractor = vi.fn();
-const mockEnv = {
-  allowLocalModels: false,
-  cacheDir: '',
-};
+const { mockExtractor, mockEnv } = vi.hoisted(() => ({
+  mockExtractor: vi.fn(),
+  mockEnv: { allowLocalModels: false, cacheDir: '' },
+}));
 
 vi.mock('@huggingface/transformers', () => ({
   pipeline: vi.fn().mockResolvedValue(mockExtractor),
