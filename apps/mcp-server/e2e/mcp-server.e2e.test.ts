@@ -142,6 +142,7 @@ describe('MCP Server E2E', () => {
 
       const promptNames = prompts.map((p) => p.name);
       expect(promptNames).toContain('identity_bootstrap');
+      expect(promptNames).toContain('write_identity');
       expect(promptNames).toContain('sign_message');
     });
 
