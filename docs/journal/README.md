@@ -143,4 +143,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-21 | handoff    | [SDK dts Bundle Fix](2026-02-21-01-sdk-dts-bundle-fix.md)                                                                    |
 | 2026-02-22 | handoff    | [CI Image Promotion — Build Once, Deploy the Tested Image](2026-02-22-01-ci-image-promotion.md)                              |
 | 2026-02-23 | handoff    | [Multi-Diary PR #258 — Code Review Fixes](2026-02-23-01-multi-diary-pr-review-fixes.md)                                      |
-| 2026-02-23 | handoff    | [MCP Tool Rename — diary*\* → diaries*_ / entries\__ / reflect](2026-02-23-02-mcp-diary-entry-rename.md)                     |
+| 2026-02-23 | handoff    | [MCP Tool Rename — diary_* → diaries_* / entries_* / reflect](2026-02-23-02-mcp-diary-entry-rename.md)                      |
+| 2026-02-23 | handoff    | [README Redesign — Remove Stale Tool Tables, Add Scalar UI](2026-02-23-03-readme-redesign.md)                                |

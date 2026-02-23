@@ -84,6 +84,9 @@ catalogs:
     '@ory/client-fetch':
       specifier: ^1.22.0
       version: 1.22.23
+    '@scalar/fastify-api-reference':
+      specifier: ^1.0.0
+      version: 1.44.25
     '@sinclair/typebox':
       specifier: ^0.34.0
       version: 0.34.48
@@ -434,6 +437,9 @@ importers:
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.23
+      '@scalar/fastify-api-reference':
+        specifier: 'catalog:'
+        version: 1.44.25
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -3220,6 +3226,62 @@ packages:
         integrity: sha512-mid/JIZSJafwy3x9e4v0wVLuAqSSYYErEHV0HXPALYLSBN13YNkR5caOk0hf97lSRKrxhtvQjGaDKSEelR3sMg==,
       }
 
+  '@scalar/core@0.3.41':
+    resolution:
+      {
+        integrity: sha512-IPgiHOSGBDfBcJELbev0lo+ZHc8Q/vA82neX0Ax1iHNGtf/munH+qN5I+p9rGRS60IRQAwABlUo31Y3Gw1c0EA==,
+      }
+    engines: { node: '>=20' }
+
+  '@scalar/fastify-api-reference@1.44.25':
+    resolution:
+      {
+        integrity: sha512-/vsnO/LT0daHwwNfrHR73ICpUSIOEhOi2rEk4swN0/aTlsDx/L2SmXgZwOEMTyfD1tmLngCCaLkvmeUMOk9ZlA==,
+      }
+    engines: { node: '>=20' }
+
+  '@scalar/helpers@0.2.15':
+    resolution:
+      {
+        integrity: sha512-hMHXejGFVOS4HwCo7C2qddChuvMJs3sEOALo7gNOvwLS4dGLrW8flbSglDki4ttyremlKQstP5WJuPxmHQU3sA==,
+      }
+    engines: { node: '>=20' }
+
+  '@scalar/json-magic@0.11.4':
+    resolution:
+      {
+        integrity: sha512-F40E18vp6GIcJU5kV9UOKGhIrzN2IYdEMCcG3vw3INvvkXqJGqVPnCjcnSWFk27MByaD5Dzjlc3TvkgTiqNGYw==,
+      }
+    engines: { node: '>=20' }
+
+  '@scalar/openapi-parser@0.24.13':
+    resolution:
+      {
+        integrity: sha512-PMrvJRZeosQ35LX8wbbmIU07fxjnWuIe2Yk9suzH+dGbeV/IrGKJZiZZ4Cj9EK1olwBuNZ9YHBl+P0ZlvcHc8A==,
+      }
+    engines: { node: '>=20' }
+
+  '@scalar/openapi-types@0.5.3':
+    resolution:
+      {
+        integrity: sha512-m4n/Su3K01d15dmdWO1LlqecdSPKuNjuokrJLdiQ485kW/hRHbXW1QP6tJL75myhw/XhX5YhYAR+jrwnGjXiMw==,
+      }
+    engines: { node: '>=20' }
+
+  '@scalar/openapi-upgrader@0.1.8':
+    resolution:
+      {
+        integrity: sha512-2xuYLLs0fBadLIk4I1ObjMiCnOyLPEMPf24A1HtHQvhKGDnGlvT63F2rU2Xw8lxCjgHnzveMPnOJEbwIy64RCg==,
+      }
+    engines: { node: '>=20' }
+
+  '@scalar/types@0.6.6':
+    resolution:
+      {
+        integrity: sha512-nr3m23p5MnGy4Wb4JFT7aA+jzvYSs/AS40NUEoQMBE1IwtuvG5gtLL0uu6kWpDq4UAfrWGntlAQNX7G8X9D4sg==,
+      }
+    engines: { node: '>=20' }
+
   '@sinclair/typebox@0.34.48':
     resolution:
       {
@@ -5083,6 +5145,12 @@ packages:
       }
     engines: { node: '>=0.10.0' }
 
+  fastify-plugin@4.5.1:
+    resolution:
+      {
+        integrity: sha512-stRHYGeuqpEZTL1Ef0Ovr2ltazUT9g844X5z/zEBFLG8RYlpDiOCIG+ATvYEp+/zmc7sN29mcIMp8gvYplYPIQ==,
+      }
+
   fastify-plugin@5.1.0:
     resolution:
       {
@@ -5334,6 +5402,12 @@ packages:
         integrity: sha512-L5bGsVkxJbJgdnwyuheIunkGatUF/zssUoxxjACCseZYAVbaqdh9Tsmmlkl8vYan09H7sbvKt4pS8GqKLBrEzA==,
       }
     hasBin: true
+
+  github-slugger@2.0.0:
+    resolution:
+      {
+        integrity: sha512-IaOQ9puYtjrkq7Y0Ygl9KDZnrf/aiUJYUpVf89y8kyaxbRG7Y1SrX/jaumrv81vc61+kiMempujsM3Yw7w5qcw==,
+      }
 
   glob-parent@5.1.2:
     resolution:
@@ -5926,6 +6000,13 @@ packages:
         integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==,
       }
 
+  jsonpointer@5.0.1:
+    resolution:
+      {
+        integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==,
+      }
+    engines: { node: '>=0.10.0' }
+
   jwk-to-pem@2.0.7:
     resolution:
       {
@@ -5991,6 +6072,13 @@ packages:
       {
         integrity: sha512-Xq9nH7KlWZmXAtodXDDRE7vs6DU1gTU8zYDHDiWLSip45Egwq3plLHzPn27NgvzL2r1LMPC1vdqh98sQxtqj4A==,
       }
+
+  leven@4.1.0:
+    resolution:
+      {
+        integrity: sha512-KZ9W9nWDT7rF7Dazg8xyLHGLrmpgq2nVNFUckhqdW3szVP6YhCpp/RAnpmVExA9JvrMynjwSLVrEj3AepHR6ew==,
+      }
+    engines: { node: ^12.20.0 || ^14.13.1 || >=16.0.0 }
 
   levn@0.4.1:
     resolution:
@@ -6368,6 +6456,14 @@ packages:
         integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==,
       }
     engines: { node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1 }
+    hasBin: true
+
+  nanoid@5.1.6:
+    resolution:
+      {
+        integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==,
+      }
+    engines: { node: ^18 || >=20 }
     hasBin: true
 
   natural-compare@1.4.0:
@@ -7649,6 +7745,13 @@ packages:
         integrity: sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==,
       }
 
+  tagged-tag@1.0.0:
+    resolution:
+      {
+        integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==,
+      }
+    engines: { node: '>=20' }
+
   tar@7.5.7:
     resolution:
       {
@@ -7834,6 +7937,13 @@ packages:
         integrity: sha512-Ne+eE4r0/iWnpAxD852z3A+N0Bt5RN//NjJwRd2VFHEmrywxf5vsZlh4R6lixl6B+wz/8d+maTSAkN1FIkI3LQ==,
       }
     engines: { node: '>=10' }
+
+  type-fest@5.4.4:
+    resolution:
+      {
+        integrity: sha512-JnTrzGu+zPV3aXIUhnyWJj4z/wigMsdYajGLIYakqyOW1nPllzXEJee0QQbHj+CTIQtXGlAjuK0UY+2xTyjVAw==,
+      }
+    engines: { node: '>=20' }
 
   type-is@2.0.1:
     resolution:
@@ -9652,6 +9762,54 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
+  '@scalar/core@0.3.41':
+    dependencies:
+      '@scalar/types': 0.6.6
+
+  '@scalar/fastify-api-reference@1.44.25':
+    dependencies:
+      '@scalar/core': 0.3.41
+      '@scalar/openapi-parser': 0.24.13
+      '@scalar/openapi-types': 0.5.3
+      fastify-plugin: 4.5.1
+      github-slugger: 2.0.0
+
+  '@scalar/helpers@0.2.15': {}
+
+  '@scalar/json-magic@0.11.4':
+    dependencies:
+      '@scalar/helpers': 0.2.15
+      pathe: 2.0.3
+      yaml: 2.8.2
+
+  '@scalar/openapi-parser@0.24.13':
+    dependencies:
+      '@scalar/helpers': 0.2.15
+      '@scalar/json-magic': 0.11.4
+      '@scalar/openapi-types': 0.5.3
+      '@scalar/openapi-upgrader': 0.1.8
+      ajv: 8.17.1
+      ajv-draft-04: 1.0.0(ajv@8.17.1)
+      ajv-formats: 3.0.1(ajv@8.17.1)
+      jsonpointer: 5.0.1
+      leven: 4.1.0
+      yaml: 2.8.2
+
+  '@scalar/openapi-types@0.5.3':
+    dependencies:
+      zod: 4.3.6
+
+  '@scalar/openapi-upgrader@0.1.8':
+    dependencies:
+      '@scalar/openapi-types': 0.5.3
+
+  '@scalar/types@0.6.6':
+    dependencies:
+      '@scalar/helpers': 0.2.15
+      nanoid: 5.1.6
+      type-fest: 5.4.4
+      zod: 4.3.6
+
   '@sinclair/typebox@0.34.48': {}
 
   '@so-ric/colorspace@1.1.6':
@@ -9980,6 +10138,10 @@ snapshots:
   ajv-draft-04@1.0.0(ajv@8.13.0):
     optionalDependencies:
       ajv: 8.13.0
+
+  ajv-draft-04@1.0.0(ajv@8.17.1):
+    optionalDependencies:
+      ajv: 8.17.1
 
   ajv-formats@3.0.1(ajv@8.13.0):
     optionalDependencies:
@@ -10837,6 +10999,8 @@ snapshots:
     dependencies:
       reusify: 1.1.0
 
+  fastify-plugin@4.5.1: {}
+
   fastify-plugin@5.1.0: {}
 
   fastify@5.7.4:
@@ -11002,6 +11166,8 @@ snapshots:
       node-fetch-native: 1.6.7
       nypm: 0.6.4
       pathe: 2.0.3
+
+  github-slugger@2.0.0: {}
 
   glob-parent@5.1.2:
     dependencies:
@@ -11320,6 +11486,8 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
+  jsonpointer@5.0.1: {}
+
   jwk-to-pem@2.0.7:
     dependencies:
       asn1.js: 5.4.1
@@ -11372,6 +11540,8 @@ snapshots:
   kolorist@1.8.0: {}
 
   kuler@2.0.0: {}
+
+  leven@4.1.0: {}
 
   levn@0.4.1:
     dependencies:
@@ -11582,6 +11752,8 @@ snapshots:
   muggle-string@0.4.1: {}
 
   nanoid@3.3.11: {}
+
+  nanoid@5.1.6: {}
 
   natural-compare@1.4.0: {}
 
@@ -12385,6 +12557,8 @@ snapshots:
 
   symbol-tree@3.2.4: {}
 
+  tagged-tag@1.0.0: {}
+
   tar@7.5.7:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
@@ -12471,6 +12645,10 @@ snapshots:
   type-fest@0.13.1: {}
 
   type-fest@0.20.2: {}
+
+  type-fest@5.4.4:
+    dependencies:
+      tagged-tag: 1.0.0
 
   type-is@2.0.1:
     dependencies:
