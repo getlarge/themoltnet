@@ -140,3 +140,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-21 | problem    | [onnxruntime-node Native Addon Bundled by Vite SSR — Silent Embedding Failure](2026-02-21-02-onnxruntime-vite-bundle-fix.md) |
 | 2026-02-21 | handoff    | [Signing Input Protocol — signing_input field, SDK signBytes, Go CLI, MCP update](2026-02-21-03-signing-input-protocol.md)   |
 | 2026-02-21 | handoff    | [Multi-Diary: Full Implementation + Keto E2E Tests](2026-02-20-01-keto-permission-e2e-tests.md)                              |
+| 2026-02-21 | handoff    | [SDK dts Bundle Fix](2026-02-21-01-sdk-dts-bundle-fix.md)                                                                    |
+| 2026-02-22 | handoff    | [CI Image Promotion — Build Once, Deploy the Tested Image](2026-02-22-01-ci-image-promotion.md)                              |

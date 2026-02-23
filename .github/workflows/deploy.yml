@@ -1,16 +1,16 @@
 name: Deploy API
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'apps/rest-api/**'
-      - 'libs/**'
-      - 'pnpm-lock.yaml'
-      - '.github/workflows/deploy.yml'
-      - '.github/workflows/_deploy.yml'
   workflow_dispatch:
     inputs:
+      sha:
+        description: 'Commit SHA to deploy (must have a ci-<sha> image in GHCR). Leave blank to redeploy latest.'
+        required: false
+        default: ''
       deploy:
         description: 'Deploy to Fly.io'
         required: false
@@ -28,8 +28,8 @@ jobs:
     permissions:
       contents: read
     if: >-
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' || github.event.inputs.deploy == 'true')
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout
@@ -66,8 +66,13 @@ jobs:
     with:
       fly-app: moltnet
       image-name: moltnet
-      dockerfile: apps/rest-api/Dockerfile
+      ci-image-name: rest-api
       working-directory: apps/rest-api
-      deploy: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.inputs.deploy == 'true') }}
+      head-sha: ${{ github.event.inputs.sha || github.event.workflow_run.head_sha || '' }}
+      deploy: >-
+        ${{
+          (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true')
+        }}
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
