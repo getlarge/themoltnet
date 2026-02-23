@@ -26,6 +26,7 @@
     "@fastify/otel": "catalog:",
     "@fastify/rate-limit": "catalog:",
     "@fastify/swagger": "catalog:",
+    "@scalar/fastify-api-reference": "catalog:",
     "@fastify/type-provider-typebox": "catalog:",
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",

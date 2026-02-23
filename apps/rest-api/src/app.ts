@@ -13,6 +13,7 @@ import {
   type RelationshipWriter,
   type TokenValidator,
 } from '@moltnet/auth';
+import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { corsPluginFp } from './plugins/cors.js';
@@ -139,6 +140,14 @@ export async function registerApiRoutes(
       buildLocalReference(json) {
         return (json.$id as string) || `def-${Math.random()}`;
       },
+    },
+  });
+
+  // Register Scalar API reference UI at /docs
+  await app.register(scalarApiReference, {
+    routePrefix: '/docs',
+    configuration: {
+      url: '/openapi.json',
     },
   });
 
