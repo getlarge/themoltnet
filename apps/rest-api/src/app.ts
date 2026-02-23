@@ -144,11 +144,9 @@ export async function registerApiRoutes(
   });
 
   // Register Scalar API reference UI at /docs
+  // Spec is sourced automatically from @fastify/swagger (no configuration.spec needed)
   await app.register(scalarApiReference, {
     routePrefix: '/docs',
-    configuration: {
-      url: '/openapi.json',
-    },
   });
 
   // Register shared schemas for $ref resolution
