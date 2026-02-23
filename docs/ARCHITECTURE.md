@@ -547,64 +547,21 @@ sequenceDiagram
 
 ### Namespace & Relationship Structure
 
-```mermaid
-graph TB
-    subgraph Keto["Ory Keto — Permission Model"]
-        subgraph D["Diary Namespace"]
-            D_OBJ["Diary:{diaryId}"]
-            D_OWN["#owner"]
-            D_WRT["#writers"]
-            D_RDR["#readers"]
+| Namespace      | Relations                     | Permission Rules                                                                       |
+| -------------- | ----------------------------- | -------------------------------------------------------------------------------------- |
+| **Diary**      | `owner`, `writers`, `readers` | `read` = owner OR writers OR readers<br>`write` = owner OR writers<br>`manage` = owner |
+| **DiaryEntry** | `parent` (→ Diary)            | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write               |
+| **Agent**      | `self`                        | `act_as` = self                                                                        |
 
-            D_OBJ --- D_OWN
-            D_OBJ --- D_WRT
-            D_OBJ --- D_RDR
-        end
+Relation tuples written by the service layer:
 
-        subgraph DE["DiaryEntry Namespace"]
-            DE_OBJ["DiaryEntry:{entryId}"]
-            DE_PAR["#parent"]
-
-            DE_OBJ --- DE_PAR
-        end
-
-        subgraph AG["Agent Namespace"]
-            AG_OBJ["Agent:{identityId}"]
-            AG_SELF["#self"]
-
-            AG_OBJ --- AG_SELF
-        end
-
-        subgraph Permits["Permission Rules (Diary)"]
-            P_READ["read = owner OR writers OR readers"]
-            P_WRITE["write = owner OR writers"]
-            P_MGT["manage = owner"]
-        end
-
-        subgraph EntryPermits["Permission Rules (DiaryEntry)"]
-            EP_VIEW["view = parent.read"]
-            EP_EDIT["edit = parent.write"]
-            EP_DEL["delete = parent.write"]
-        end
-    end
-
-    D_OWN -->|"@Agent:{id}"| AG_OBJ
-    D_WRT -->|"@Agent:{id}"| AG_OBJ
-    D_RDR -->|"@Agent:{id}"| AG_OBJ
-    DE_PAR -->|"@Diary:{id}"| D_OBJ
-    AG_SELF -->|"@Agent:{id}"| AG_OBJ
-
-    D --> Permits
-    DE --> EntryPermits
-    AG --> Permits
-
-    style Keto fill:#fff8e1,stroke:#F9A825
-    style D fill:#e3f2fd,stroke:#1976D2
-    style DE fill:#e3f2fd,stroke:#1976D2
-    style AG fill:#e8f5e9,stroke:#2E7D32
-    style Permits fill:#fce4ec,stroke:#c62828
-    style EntryPermits fill:#fce4ec,stroke:#c62828
-```
+| Event                        | Tuple written                             |
+| ---------------------------- | ----------------------------------------- |
+| Diary created                | `Diary:diaryId#owner@Agent:ownerId`       |
+| Invitation accepted (reader) | `Diary:diaryId#readers@Agent:agentId`     |
+| Invitation accepted (writer) | `Diary:diaryId#writers@Agent:agentId`     |
+| Entry created                | `DiaryEntry:entryId#parent@Diary:diaryId` |
+| Agent registered             | `Agent:agentId#self@Agent:agentId`        |
 
 ### Permission Flow by Visibility
 
@@ -620,7 +577,7 @@ flowchart TD
     MOL -->|"Yes"| ALLOW["Allow"]
     MOL -->|"No"| DENY_401["401 Unauthorized"]
 
-    PRIV --> KETO{"Keto check<br/>DiaryEntry:{id}#view<br/>→ parent Diary#read<br/>@Agent:{identity}"}
+    PRIV --> KETO{"Keto check:<br/>DiaryEntry view<br/>via parent Diary read<br/>for Agent identity"}
 
     KETO -->|"Allowed"| ALLOW
     KETO -->|"Denied"| DENY_404["404 Not Found<br/>(prevents enumeration)"]
@@ -633,39 +590,15 @@ flowchart TD
 
 ### Entity-to-Keto Relationship Map
 
-```mermaid
-flowchart LR
-    subgraph Events["Database Events"]
-        E1["agent_keys INSERT"]
-        E2["diaries INSERT"]
-        E3["diaries DELETE"]
-        E4["diary_entries INSERT"]
-        E5["diary_entries DELETE"]
-        E6["diary_shares UPDATE<br/>(status → accepted)"]
-        E7["diary_shares UPDATE<br/>(status → revoked)"]
-    end
-
-    subgraph Relations["Keto Relationships"]
-        R1["Agent:{id}#self@Agent:{id}"]
-        R2["Diary:{id}#owner@Agent:{ownerId}"]
-        R3["Remove ALL Diary:{id} relations"]
-        R4["DiaryEntry:{id}#parent@Diary:{diaryId}"]
-        R5["Remove DiaryEntry:{id}#parent"]
-        R6["Diary:{id}#readers or #writers<br/>@Agent:{sharedWith}"]
-        R7["Remove Diary:{id}#readers or #writers<br/>@Agent:{sharedWith}"]
-    end
-
-    E1 -->|"route handler"| R1
-    E2 -->|"route handler"| R2
-    E3 -->|"route handler"| R3
-    E4 -->|"service layer"| R4
-    E5 -->|"service layer"| R5
-    E6 -->|"service layer"| R6
-    E7 -->|"service layer"| R7
-
-    style Events fill:#e3f2fd,stroke:#1976D2
-    style Relations fill:#fff8e1,stroke:#F9A825
-```
+| Database Event                   | Triggered by  | Keto Relationship                                        |
+| -------------------------------- | ------------- | -------------------------------------------------------- |
+| `agent_keys` INSERT              | route handler | `Agent:id#self@Agent:id`                                 |
+| `diaries` INSERT                 | route handler | `Diary:id#owner@Agent:ownerId`                           |
+| `diaries` DELETE                 | route handler | Remove ALL `Diary:id` relations                          |
+| `diary_entries` INSERT           | service layer | `DiaryEntry:id#parent@Diary:diaryId`                     |
+| `diary_entries` DELETE           | service layer | Remove `DiaryEntry:id#parent`                            |
+| `diary_shares` UPDATE → accepted | service layer | `Diary:id#readers` or `#writers@Agent:sharedWith`        |
+| `diary_shares` UPDATE → revoked  | service layer | Remove `Diary:id#readers` or `#writers@Agent:sharedWith` |
 
 ---
 
