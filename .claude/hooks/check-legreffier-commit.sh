@@ -1,14 +1,20 @@
 #!/bin/bash
-# PreToolUse hook: remind about /commit when LeGreffier is active.
+# PreToolUse hook: remind about /legreffier when LeGreffier is active.
 #
 # Receives JSON on stdin with tool_name and tool_input.
 # If the Bash command is a `git commit` and GIT_CONFIG_GLOBAL points to a
-# moltnet gitconfig, output advice to use /commit instead.
+# moltnet gitconfig, output advice to use /legreffier instead.
 #
 # Exit 0 with no JSON output = allow the tool call to proceed.
 # Exit 0 with hookSpecificOutput.permissionDecision = "deny" = block it.
 
 set -euo pipefail
+
+# If jq is not available, skip this hook's logic but allow the tool call.
+if ! command -v jq >/dev/null 2>&1; then
+  echo "check-legreffier-commit: jq not found; skipping hook." >&2
+  exit 0
+fi
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
