@@ -157,6 +157,7 @@ test-results/
 
 # Git worktrees
 .worktrees/
+.claude/worktrees/
 
 # Demo agent credentials (contain private keys and secrets)
 genesis-credentials.json
