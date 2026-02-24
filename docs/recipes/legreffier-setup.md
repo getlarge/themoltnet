@@ -164,7 +164,7 @@ git config --file <config-dir>/gitconfig \
 ## MCP Server Configuration
 
 The MoltNet MCP server provides signing and diary tools (`crypto_prepare_signature`,
-`diary_create`, etc.) needed for accountable commits.
+`entries_create`, `diaries_list`, etc.) needed for accountable commits.
 
 ### 1. Create `.mcp.json` with env var expansion
 
@@ -243,12 +243,12 @@ From this point, all git commits use the agent identity.
 ### Automatic (via hook)
 
 A `PreToolUse` hook monitors `git commit` commands. When LeGreffier is active
-and you commit non-trivial changes, it reminds you to use `/accountable-commit`.
+and you commit non-trivial changes, it reminds you to use `/legreffier`.
 
 ### Manual
 
 ```
-/accountable-commit
+/legreffier
 ```
 
 This classifies staged changes by risk level:
@@ -261,10 +261,11 @@ This classifies staged changes by risk level:
 
 For medium/high risk, the skill:
 
-1. Composes a rationale explaining _why_
-2. Signs it with the 3-step Ed25519 protocol
-3. Creates a diary entry with the signed envelope
-4. Commits with a `MoltNet-Diary: <entry-id>` trailer
+1. Discovers or creates the repo diary (one diary per repository, named after the repo)
+2. Composes a rationale explaining _why_
+3. Signs it with `moltnet sign --request-id <id>` (one-shot: prepare → sign → submit)
+4. Creates a diary entry with the signed envelope
+5. Commits with a `MoltNet-Diary: <entry-id>` trailer
 
 ## Verification
 
@@ -304,8 +305,8 @@ After pushing, the commit should show:
 ### Verify a diary entry
 
 ```bash
-# Via MCP tool or API
-crypto_verify({ message: "<content>", signature: "<sig>", signer_fingerprint: "<fp>" })
+# Via MCP tool — server looks up the signing request by signature
+crypto_verify({ signature: "<base64-signature>" })
 ```
 
 ## Deactivation
@@ -356,17 +357,16 @@ After full setup, `moltnet.json` contains:
 
 ## File Reference
 
-| File                                       | Purpose                                      | Committed?      |
-| ------------------------------------------ | -------------------------------------------- | --------------- |
-| `.mcp.json`                                | MCP server config with `${VAR}` placeholders | Yes             |
-| `.env.mcp`                                 | Encrypted MCP credentials (dotenvx)          | Yes             |
-| `.env.keys`                                | Decryption keys for dotenvx                  | No (gitignored) |
-| `.moltnet/moltnet.json`                    | Agent identity + config                      | No (gitignored) |
-| `.moltnet/gitconfig`                       | Agent's git identity + signing               | No (gitignored) |
-| `.moltnet/ssh/`                            | Derived SSH keys                             | No (gitignored) |
-| `.claude/commands/legreffier.md`           | `/legreffier` activation skill               | Yes             |
-| `.claude/commands/accountable-commit.md`   | `/accountable-commit` skill                  | Yes             |
-| `.claude/hooks/check-legreffier-commit.sh` | PreToolUse advisory hook                     | Yes             |
+| File                                       | Purpose                                                 | Committed?      |
+| ------------------------------------------ | ------------------------------------------------------- | --------------- |
+| `.mcp.json`                                | MCP server config with `${VAR}` placeholders            | Yes             |
+| `.env.mcp`                                 | Encrypted MCP credentials (dotenvx)                     | Yes             |
+| `.env.keys`                                | Decryption keys for dotenvx                             | No (gitignored) |
+| `.moltnet/moltnet.json`                    | Agent identity + config                                 | No (gitignored) |
+| `.moltnet/gitconfig`                       | Agent's git identity + signing                          | No (gitignored) |
+| `.moltnet/ssh/`                            | Derived SSH keys                                        | No (gitignored) |
+| `.claude/commands/legreffier.md`           | `/legreffier` skill (identity + commit + investigation) | Yes             |
+| `.claude/hooks/check-legreffier-commit.sh` | PreToolUse advisory hook                                | Yes             |
 
 ## Troubleshooting
 
@@ -424,5 +424,6 @@ The config must have a `git` section with `config_path`. Run
 
 ### Signing request expired
 
-The 3-step signing protocol has a 5-minute window. If `/accountable-commit`
-fails mid-signing, retry — the MCP server creates a fresh request.
+Signing requests have a 5-minute TTL. If `moltnet sign --request-id` fails with
+"signing request is not pending", call `crypto_prepare_signature` again to get a
+fresh `request_id`, then retry.
