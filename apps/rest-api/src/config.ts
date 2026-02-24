@@ -8,8 +8,16 @@
  */
 
 import type { Static, TObject } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import { FormatRegistry, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
+
+// Register formats required by TypeBox Value validation (not needed for Fastify schema
+// compilation, but required when using Value.Check / Value.Errors directly).
+if (!FormatRegistry.Has('uuid')) {
+  FormatRegistry.Set('uuid', (v) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
+  );
+}
 
 // ============================================================================
 // Schemas
