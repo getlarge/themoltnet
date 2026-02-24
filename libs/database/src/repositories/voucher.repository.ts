@@ -61,6 +61,31 @@ export function createVoucherRepository(db: Database) {
     },
 
     /**
+     * Issue a voucher code without checking the active voucher cap.
+     * ONLY use this for privileged issuers (e.g. the sponsor agent) where
+     * the HTTP-layer rate limit is the sole protection against abuse.
+     *
+     * Unlike `issue()`, this never returns null — it always inserts.
+     */
+    async issueUnlimited(issuerId: string): Promise<AgentVoucher> {
+      // eslint-disable-next-line @typescript-eslint/return-await
+      return await db.transaction(
+        async (tx) => {
+          const code = randomBytes(32).toString('hex');
+          const expiresAt = new Date(Date.now() + VOUCHER_TTL_MS);
+
+          const [voucher] = await tx
+            .insert(agentVouchers)
+            .values({ code, issuerId, expiresAt })
+            .returning();
+
+          return voucher;
+        },
+        { isolationLevel: 'serializable' },
+      );
+    },
+
+    /**
      * Validate and redeem a voucher code.
      * Returns the voucher if valid, null if invalid/expired/already-used.
      *

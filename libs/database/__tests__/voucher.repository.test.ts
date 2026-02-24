@@ -159,3 +159,37 @@ describe('createVoucherRepository', () => {
     });
   });
 });
+
+describe('voucherRepository.issueUnlimited', () => {
+  it('issues a voucher without checking the active voucher cap', async () => {
+    const insertReturning = vi.fn().mockResolvedValue([
+      {
+        id: 'v1',
+        code: 'abc123',
+        issuerId: 'sponsor-id',
+        expiresAt: new Date(Date.now() + 86400000),
+        redeemedAt: null,
+        redeemedBy: null,
+      },
+    ]);
+    const txSelect = vi.fn();
+    const db = {
+      transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          select: txSelect,
+          insert: () => ({ values: () => ({ returning: insertReturning }) }),
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = createVoucherRepository(db as never);
+    const result = await repo.issueUnlimited('sponsor-id');
+
+    // Must insert successfully
+    expect(result).not.toBeNull();
+    expect(result.code).toBe('abc123');
+    // Must NOT have queried for the active voucher count (no cap check)
+    expect(txSelect).not.toHaveBeenCalled();
+  });
+});
