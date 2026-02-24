@@ -132,7 +132,9 @@ ORY_API_KEY=ory_pat_xxx
 AXIOM_API_TOKEN=xxx
 
 # Non-secrets → add to env.public directly
+OTLP_ENDPOINT=https://api.axiom.co
 AXIOM_DATASET=moltnet
+AXIOM_METRICS_DATASET=moltnet-metrics
 PORT=8000
 NODE_ENV=development
 ```
@@ -168,15 +170,16 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 | `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c)                 | Yes      |
 | `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
 
-Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`) are in `apps/rest-api/fly.toml`.
+Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`, `AXIOM_METRICS_DATASET`) are in `apps/rest-api/fly.toml`.
 
 **`moltnet-mcp` (MCP server):**
 
 | Secret                | Purpose                             | Required                      |
 | --------------------- | ----------------------------------- | ----------------------------- |
 | `ORY_PROJECT_API_KEY` | Ory API key for token introspection | Only when `AUTH_ENABLED=true` |
+| `AXIOM_API_TOKEN`     | Axiom observability token           | No                            |
 
-Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUTH_ENABLED`, `CLIENT_CREDENTIALS_PROXY`, `MCP_RESOURCE_URI`) are in `apps/mcp-server/fly.toml`.
+Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUTH_ENABLED`, `CLIENT_CREDENTIALS_PROXY`, `MCP_RESOURCE_URI`, `OTLP_ENDPOINT`, `AXIOM_DATASET`) are in `apps/mcp-server/fly.toml`.
 
 > **Note:** The `.env` key names don't always match Fly.io secret names.
 > `ORY_PROJECT_API_KEY` in `.env` maps to `ORY_API_KEY` on the server app, and
@@ -194,6 +197,7 @@ npx @dotenvx/dotenvx run -f .env -- bash -c '
     ORY_API_KEY="$ORY_PROJECT_API_KEY" \
     ORY_ACTION_API_KEY="$ORY_ACTION_API_KEY" \
     RECOVERY_CHALLENGE_SECRET="$RECOVERY_CHALLENGE_SECRET" \
+    AXIOM_API_TOKEN="$AXIOM_API_TOKEN" \
     --app moltnet
 '
 
@@ -201,6 +205,7 @@ npx @dotenvx/dotenvx run -f .env -- bash -c '
 npx @dotenvx/dotenvx run -f .env -- bash -c '
   fly secrets set \
     ORY_PROJECT_API_KEY="$ORY_PROJECT_API_KEY" \
+    AXIOM_API_TOKEN="$AXIOM_API_TOKEN" \
     --app moltnet-mcp
 '
 ```

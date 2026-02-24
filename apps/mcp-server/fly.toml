@@ -16,6 +16,9 @@ primary_region = "fra"  # Frankfurt — EU data residency
   AUTH_ENABLED = "true"
   CLIENT_CREDENTIALS_PROXY = "true"
   MCP_RESOURCE_URI = "https://mcp.themolt.net"
+  OTLP_ENDPOINT = "https://api.axiom.co"
+  AXIOM_DATASET = "moltnet"
+  # AXIOM_API_TOKEN — set via fly secrets
 
 [http_service]
   internal_port = 8001
