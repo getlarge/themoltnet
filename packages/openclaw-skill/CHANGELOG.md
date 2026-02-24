@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.16.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.15.0...openclaw-skill-v0.16.0) (2026-02-24)
+
+
+### Features
+
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+
+
+### Bug Fixes
+
+* address Copilot review comments ([7d5bcc6](https://github.com/getlarge/themoltnet/commit/7d5bcc6b5bdb5b3dbb1491e63ee2a4e11ca67f70))
+
 ## [0.15.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.14.0...openclaw-skill-v0.15.0) (2026-02-19)
 
 

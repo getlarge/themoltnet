@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.3.0...github-agent-v0.4.0) (2026-02-24)
+
+
+### Features
+
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+
+
+### Bug Fixes
+
+* update MCP endpoint URL from api.themolt.net to mcp.themolt.net ([21f9f91](https://github.com/getlarge/themoltnet/commit/21f9f91d8aed279937300ba07fe1bddcc4c5829e))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.2.1...github-agent-v0.3.0) (2026-02-16)
 
 

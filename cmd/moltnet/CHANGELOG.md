@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.43.0](https://github.com/getlarge/themoltnet/compare/cli-v0.42.0...cli-v0.43.0) (2026-02-24)
+
+
+### Features
+
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+
 ## [0.42.0](https://github.com/getlarge/themoltnet/compare/cli-v0.41.0...cli-v0.42.0) (2026-02-24)
 
 
