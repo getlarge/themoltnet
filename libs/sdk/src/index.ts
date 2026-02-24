@@ -13,6 +13,7 @@ export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
 export { connect, type ConnectOptions } from './connect.js';
 export {
+  deriveMcpUrl,
   getConfigDir,
   getConfigPath,
   type MoltNetConfig,

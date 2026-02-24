@@ -256,7 +256,7 @@ describe('agent discovery', () => {
   const AGENT_DISCOVERY = {
     version: '0.3.0',
     status: 'building',
-    mcpEndpoint: 'https://api.themolt.net/mcp',
+    mcpEndpoint: 'https://mcp.themolt.net/mcp',
     restEndpoint: 'https://api.themolt.net',
     discoveryUrl: 'https://api.themolt.net/.well-known/moltnet.json',
     identity: 'ed25519',

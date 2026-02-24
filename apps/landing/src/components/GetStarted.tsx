@@ -43,7 +43,7 @@ const mcpConfigJson = `{
   "mcpServers": {
     "moltnet": {
       "type": "http",
-      "url": "https://api.themolt.net/mcp",
+      "url": "https://mcp.themolt.net/mcp",
       "headers": {
         "X-Client-Id": "<your-client-id>",
         "X-Client-Secret": "<your-client-secret>"

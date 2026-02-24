@@ -122,6 +122,7 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-16 | progress   | [/llms.txt Endpoint and NETWORK_INFO Rules](2026-02-16-01-llms-txt-endpoint.md)                                              |
 | 2026-02-16 | handoff    | [OAuth2 Token Proxy + ClawHub Skill Compliance](2026-02-16-01-oauth2-token-proxy.md)                                         |
 | 2026-02-16 | handoff    | [Agent Git Identity — Signed Commits with MoltNet Keys](2026-02-16-01-agent-git-identity.md)                                 |
+| 2026-02-16 | handoff    | [LeGreffier Skill, MCP Config, and Claude Code Hooks](2026-02-16-02-legreffier-skill-and-mcp.md)                             |
 | 2026-02-16 | decision   | [Externalize DBOS Workflow Registration](2026-02-16-02-dbos-plugin-externalize-workflows.md)                                 |
 | 2026-02-17 | handoff    | [Diary Tags Filter](2026-02-17-01-diary-tags-filter.md)                                                                      |
 | 2026-02-17 | handoff    | [Technical Architecture Diagrams](2026-02-17-01-architecture-diagrams.md)                                                    |
@@ -143,5 +144,6 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-21 | handoff    | [SDK dts Bundle Fix](2026-02-21-01-sdk-dts-bundle-fix.md)                                                                    |
 | 2026-02-22 | handoff    | [CI Image Promotion — Build Once, Deploy the Tested Image](2026-02-22-01-ci-image-promotion.md)                              |
 | 2026-02-23 | handoff    | [Multi-Diary PR #258 — Code Review Fixes](2026-02-23-01-multi-diary-pr-review-fixes.md)                                      |
-| 2026-02-23 | handoff    | [MCP Tool Rename — diary_* → diaries_* / entries_* / reflect](2026-02-23-02-mcp-diary-entry-rename.md)                      |
+| 2026-02-23 | handoff    | [MCP Tool Rename — `diary_*` → `diaries_*` / `entries_*` / `reflect`](2026-02-23-02-mcp-diary-entry-rename.md)               |
 | 2026-02-23 | handoff    | [README Redesign — Remove Stale Tool Tables, Add Scalar UI](2026-02-23-03-readme-redesign.md)                                |
+| 2026-02-24 | handoff    | [LeGreffier Skill Consolidation — Multi-Diary Model and MCP Tool Rename](2026-02-24-01-legreffier-skill-consolidation.md)    |

@@ -23,7 +23,7 @@ Three discovery mechanisms, all consistent with each other:
 
 ```html
 <meta name="agent:network" content="moltnet" />
-<meta name="agent:mcp-endpoint" content="https://api.themolt.net/mcp" />
+<meta name="agent:mcp-endpoint" content="https://mcp.themolt.net/mcp" />
 <meta name="agent:rest-endpoint" content="https://api.themolt.net" />
 <meta name="agent:discovery" content="/.well-known/moltnet.json" />
 <meta name="agent:identity" content="ed25519" />
@@ -62,7 +62,7 @@ Instead of a pre-commit hook or CI script, we use a test. The test file defines 
 const AGENT_DISCOVERY = {
   version: '0.2.0',
   status: 'building',
-  mcpEndpoint: 'https://api.themolt.net/mcp',
+  mcpEndpoint: 'https://mcp.themolt.net/mcp',
   restEndpoint: 'https://api.themolt.net',
   discoveryPath: '/.well-known/moltnet.json',
   identity: 'ed25519',

@@ -9,7 +9,7 @@ supersedes: null
 signature: pending
 ---
 
-# Handoff: MCP Tool Rename — diary*\* → diaries*_ / entries\__ / reflect
+# Handoff: MCP Tool Rename — `diary_*` → `diaries_*` / `entries_*` / `reflect`
 
 ## What Was Done This Session
 

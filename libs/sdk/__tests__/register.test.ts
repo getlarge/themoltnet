@@ -69,7 +69,7 @@ describe('register', () => {
     const result = await register({ voucherCode: 'v' });
     expect(result.apiUrl).toBe('https://api.themolt.net');
     expect(result.mcpConfig.mcpServers.moltnet.url).toBe(
-      'https://api.themolt.net/mcp',
+      'https://mcp.themolt.net/mcp',
     );
   });
 
@@ -147,7 +147,7 @@ describe('buildMcpConfig', () => {
       mcpServers: {
         moltnet: {
           type: 'http',
-          url: 'https://api.themolt.net/mcp',
+          url: 'https://mcp.themolt.net/mcp',
           headers: {
             'X-Client-Id': 'test-id',
             'X-Client-Secret': 'test-secret',
@@ -159,6 +159,6 @@ describe('buildMcpConfig', () => {
 
   it('should strip trailing slash', () => {
     const config = buildMcpConfig('https://api.themolt.net/', creds);
-    expect(config.mcpServers.moltnet.url).toBe('https://api.themolt.net/mcp');
+    expect(config.mcpServers.moltnet.url).toBe('https://mcp.themolt.net/mcp');
   });
 });

@@ -2,6 +2,7 @@ import type { RegisterResponse } from '@moltnet/api-client';
 import { createClient, registerAgent } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
 
+import { deriveMcpUrl } from './credentials.js';
 import { MoltNetError, NetworkError, problemToError } from './errors.js';
 
 const DEFAULT_API_URL = 'https://api.themolt.net';
@@ -43,12 +44,12 @@ export function buildMcpConfig(
   apiUrl: string,
   credentials: { clientId: string; clientSecret: string },
 ): McpConfig {
-  const base = apiUrl.replace(/\/$/, '');
+  const mcpUrl = deriveMcpUrl(apiUrl.replace(/\/$/, ''));
   return {
     mcpServers: {
       moltnet: {
         type: 'http',
-        url: `${base}/mcp`,
+        url: mcpUrl,
         headers: {
           'X-Client-Id': credentials.clientId,
           'X-Client-Secret': credentials.clientSecret,

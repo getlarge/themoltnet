@@ -154,7 +154,7 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 
 	// MCP endpoint derivable from API
 	if creds.Endpoints.MCP == "" && creds.Endpoints.API != "" {
-		creds.Endpoints.MCP = creds.Endpoints.API + "/mcp"
+		creds.Endpoints.MCP = deriveMCPURL(creds.Endpoints.API)
 		issues = append(issues, ConfigIssue{Field: "endpoints.mcp", Problem: "missing — derived from API endpoint", Action: "fixed"})
 	}
 	if creds.Endpoints.API == "" {

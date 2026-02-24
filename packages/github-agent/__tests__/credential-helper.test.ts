@@ -40,7 +40,7 @@ describe('credentialHelper', () => {
       },
       endpoints: {
         api: 'https://api.themolt.net',
-        mcp: 'https://api.themolt.net/mcp',
+        mcp: 'https://mcp.themolt.net/mcp',
       },
     };
     await writeFile(

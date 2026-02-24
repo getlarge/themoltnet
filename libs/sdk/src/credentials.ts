@@ -2,6 +2,14 @@ import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+/**
+ * Derive the MCP URL from an API URL.
+ * e.g. "https://api.themolt.net" → "https://mcp.themolt.net/mcp"
+ */
+export function deriveMcpUrl(apiUrl: string): string {
+  return apiUrl.replace('://api.', '://mcp.') + '/mcp';
+}
+
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
