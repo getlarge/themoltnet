@@ -1,4 +1,4 @@
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   BatchSpanProcessor,
   type SpanExporter,
@@ -53,7 +53,7 @@ export function createTraceProvider(
     resourceAttributes['deployment.environment'] = environment;
   }
 
-  const resource = new Resource(resourceAttributes);
+  const resource = resourceFromAttributes(resourceAttributes);
 
   const spanProcessors: SpanProcessor[] = [];
   if (processor) {
