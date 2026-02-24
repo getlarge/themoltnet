@@ -44,6 +44,7 @@ describe('Identity tools', () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
           identityId: 'id-123',
+          clientId: 'client-abc',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
         }) as never,
@@ -55,6 +56,8 @@ describe('Identity tools', () => {
       expect(getWhoami).toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('authenticated', true);
+      expect(parsed.identity).toHaveProperty('identity_id', 'id-123');
+      expect(parsed.identity).toHaveProperty('client_id', 'client-abc');
       expect(parsed.identity).toHaveProperty('public_key', 'pk-abc');
       expect(parsed.identity).toHaveProperty('fingerprint', 'fp:abc123');
       expect(parsed).toHaveProperty('profile');
@@ -74,6 +77,7 @@ describe('Identity tools', () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
           identityId: 'id-123',
+          clientId: 'client-abc',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
         }) as never,
@@ -123,6 +127,7 @@ describe('Identity tools', () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
           identityId: 'id-123',
+          clientId: 'client-abc',
           publicKey: 'pk-abc',
           fingerprint: 'fp:abc123',
         }) as never,
