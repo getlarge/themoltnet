@@ -1,6 +1,9 @@
 import type { IncomingMessage } from 'node:http';
 
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import {
+  type Instrumentation,
+  registerInstrumentations,
+} from '@opentelemetry/instrumentation';
 import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { NetInstrumentation } from '@opentelemetry/instrumentation-net';
@@ -67,7 +70,7 @@ export function initInstrumentation(config: InstrumentationConfig): void {
     httpIgnoreIncomingPaths = [],
   } = config;
 
-  const instrumentations = [];
+  const instrumentations: Instrumentation[] = [];
 
   if (http) {
     instrumentations.push(

@@ -165,6 +165,16 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     );
   }
 
+  if (otelEnabled && !logRecordProcessorOptions) {
+    // Without logRecordProcessorOptions the transport runs but exports nothing.
+    // This is intentional when the caller wants trace-id injection only (no log export).
+    // Log a warning so misconfiguration is visible at startup.
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[observability] otelEnabled=true but logRecordProcessorOptions not provided — logs will not be exported via OTLP',
+    );
+  }
+
   if (otelEnabled) {
     return pino({
       level,

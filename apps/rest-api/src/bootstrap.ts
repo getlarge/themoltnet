@@ -74,14 +74,18 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     AXIOM_METRICS_DATASET,
   } = config.observability;
 
-  if (AXIOM_API_TOKEN && OTLP_ENDPOINT) {
+  if (OTLP_ENDPOINT) {
     const traceAndLogHeaders: Record<string, string> = {
-      Authorization: `Bearer ${AXIOM_API_TOKEN}`,
+      ...(AXIOM_API_TOKEN
+        ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
+        : {}),
       ...(AXIOM_DATASET ? { 'X-Axiom-Dataset': AXIOM_DATASET } : {}),
     };
     const metricsDataset = AXIOM_METRICS_DATASET ?? AXIOM_DATASET;
     const metricsHeaders: Record<string, string> = {
-      Authorization: `Bearer ${AXIOM_API_TOKEN}`,
+      ...(AXIOM_API_TOKEN
+        ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
+        : {}),
       ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
     };
 
