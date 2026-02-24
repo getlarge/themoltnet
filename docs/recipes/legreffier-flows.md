@@ -12,8 +12,8 @@ flowchart TD
     B1([Start]) --> B2["moltnet_whoami"]
     B2 -->|missing| B3["read moltnet://self/whoami
 read moltnet://self/soul"]
-    B3 -->|still missing| B4["run identity_bootstrap prompt
-create whoami + soul entries"]
+    B3 -->|still missing| B4["run identity_bootstrap
+create whoami + soul"]
     B4 --> B5
     B2 -->|found| B5["cache: name · fingerprint · pubkey · soul"]
     B5 --> B6["git config check
