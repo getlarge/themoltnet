@@ -51,7 +51,9 @@ import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import {
+  initLegreffierOnboardingWorkflow,
   initRegistrationWorkflow,
+  setLegreffierOnboardingDeps,
   setRegistrationDeps,
 } from './workflows/index.js';
 
@@ -169,6 +171,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
       () => initRegistrationWorkflow(),
+      () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
     ],
     afterLaunch: [
@@ -187,6 +190,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           voucherRepository,
           relationshipWriter,
           dataSource,
+        });
+      },
+      () => {
+        setLegreffierOnboardingDeps({
+          voucherRepository,
+          identityApi: oryClients.identity,
         });
       },
       (dataSource) => {
