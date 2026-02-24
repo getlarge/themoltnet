@@ -1,8 +1,8 @@
 export {
-  COMPLETE_ACK_EVENT,
   GITHUB_CODE_EVENT,
   GITHUB_CODE_READY_EVENT,
   initLegreffierOnboardingWorkflow,
+  INSTALLATION_ID_EVENT,
   type LegreffierOnboardingDeps,
   legreffierOnboardingWorkflow,
   type OnboardingResult,

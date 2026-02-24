@@ -196,6 +196,44 @@ export const InvitationIdParamsSchema = Type.Object({
 });
 
 // ============================================================================
+// LeGreffier Onboarding Schemas
+// ============================================================================
+
+export const StartOnboardingBodySchema = Type.Object({
+  publicKey: Type.String({ minLength: 1 }),
+  fingerprint: Type.String({ minLength: 1 }),
+});
+
+export const StartOnboardingResponseSchema = Type.Object({
+  workflowId: Type.String(),
+  manifestFormUrl: Type.String(),
+});
+
+export const OnboardingStatusResponseSchema = Type.Object({
+  status: Type.Union([
+    Type.Literal('awaiting_github'),
+    Type.Literal('github_code_ready'),
+    Type.Literal('awaiting_installation'),
+    Type.Literal('completed'),
+    Type.Literal('failed'),
+  ]),
+  githubCode: Type.Optional(Type.String()),
+});
+
+export const InstalledCallbackQuerySchema = Type.Object({
+  wf: Type.String({
+    minLength: 1,
+    description: 'Workflow ID baked into setup_url',
+  }),
+  installation_id: Type.String({ minLength: 1 }),
+  setup_action: Type.Optional(Type.String()),
+});
+
+export const CompleteOnboardingBodySchema = Type.Object({
+  workflowId: Type.String({ minLength: 1 }),
+});
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 

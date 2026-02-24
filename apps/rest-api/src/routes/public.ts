@@ -4,12 +4,18 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import type { PublicFeedCursor } from '@moltnet/database';
+import { DBOS, type PublicFeedCursor } from '@moltnet/database';
 import {
   MOLTNET_NETWORK_INFO,
   type MoltNetNetworkInfo,
 } from '@moltnet/discovery';
-import { ProblemDetailsSchema } from '@moltnet/models';
+import {
+  InstalledCallbackQuerySchema,
+  OnboardingStatusResponseSchema,
+  ProblemDetailsSchema,
+  StartOnboardingBodySchema,
+  StartOnboardingResponseSchema,
+} from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -23,6 +29,13 @@ import {
 } from '../schemas.js';
 import { pollPublicFeed } from '../sse/public-feed-poller.js';
 import { createSSEWriter } from '../sse/sse-writer.js';
+import {
+  GITHUB_CODE_EVENT,
+  GITHUB_CODE_READY_EVENT,
+  INSTALLATION_ID_EVENT,
+  legreffierOnboardingWorkflow,
+  type OnboardingResult,
+} from '../workflows/index.js';
 
 function encodeCursor(createdAt: Date, id: string): string {
   return Buffer.from(
@@ -459,6 +472,182 @@ export async function publicRoutes(fastify: FastifyInstance) {
       } finally {
         cleanup();
       }
+    },
+  );
+
+  // ── LeGreffier Onboarding ──────────────────────────────────────
+
+  const API_BASE_URL = 'https://api.themolt.net';
+
+  // POST /public/legreffier/start
+  server.post(
+    '/public/legreffier/start',
+    {
+      config: {
+        rateLimit: fastify.rateLimitConfig.legreffierStart,
+      },
+      schema: {
+        operationId: 'startLegreffierOnboarding',
+        tags: ['legreffier'],
+        description:
+          'Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. ' +
+          'No authentication required.',
+        body: StartOnboardingBodySchema,
+        response: {
+          200: StartOnboardingResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          503: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, _reply) => {
+      const { publicKey, fingerprint } = request.body;
+
+      const sponsorAgentId = fastify.security.sponsorAgentId;
+      if (!sponsorAgentId) {
+        throw createProblem(
+          'service-unavailable',
+          'LeGreffier onboarding is not configured on this instance',
+        );
+      }
+
+      const workflowHandle = await DBOS.startWorkflow(
+        legreffierOnboardingWorkflow.startOnboarding,
+      )(publicKey, fingerprint, sponsorAgentId);
+
+      const workflowId = workflowHandle.workflowID;
+      const redirectUrl = `${API_BASE_URL}/public/legreffier/callback`;
+      const setupUrl = `${API_BASE_URL}/public/legreffier/installed?wf=${workflowId}`;
+
+      const manifest = JSON.stringify({
+        name: 'legreffier',
+        url: 'https://themolt.net',
+        description: 'LeGreffier agent identity — accountable AI commits',
+        public: false,
+        redirect_url: redirectUrl,
+        setup_url: setupUrl,
+        default_permissions: { contents: 'write', metadata: 'read' },
+      });
+
+      const manifestFormUrl = `https://github.com/settings/apps/new?state=${workflowId}&manifest=${encodeURIComponent(manifest)}`;
+
+      return { workflowId, manifestFormUrl };
+    },
+  );
+
+  // GET /public/legreffier/callback — GitHub redirects here after app creation
+  server.get(
+    '/public/legreffier/callback',
+    {
+      schema: {
+        operationId: 'legreffierGithubCallback',
+        tags: ['legreffier'],
+        hide: true,
+        description:
+          'GitHub OAuth callback after app creation. Forwards code to the DBOS workflow.',
+        querystring: Type.Object({
+          code: Type.String({ minLength: 1 }),
+          state: Type.String({ minLength: 1, description: 'workflowId' }),
+        }),
+        response: {
+          200: Type.Object({ ok: Type.Boolean() }),
+          400: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, _reply) => {
+      const { code, state: workflowId } = request.query;
+
+      const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
+      const wfStatus = await handle.getStatus();
+      if (!wfStatus) {
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
+
+      await DBOS.send(workflowId, code, GITHUB_CODE_EVENT);
+      return { ok: true };
+    },
+  );
+
+  // GET /public/legreffier/status/:workflowId — poll onboarding status
+  server.get(
+    '/public/legreffier/status/:workflowId',
+    {
+      schema: {
+        operationId: 'getLegreffierOnboardingStatus',
+        tags: ['legreffier'],
+        description:
+          'Poll LeGreffier onboarding status. No authentication required.',
+        params: Type.Object({
+          workflowId: Type.String({ minLength: 1 }),
+        }),
+        response: {
+          200: OnboardingStatusResponseSchema,
+          404: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, _reply) => {
+      const { workflowId } = request.params;
+
+      const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
+      const wfStatus = await handle.getStatus();
+      if (!wfStatus) {
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
+
+      if (wfStatus.status === 'SUCCESS') {
+        return { status: 'completed' as const };
+      }
+      if (wfStatus.status === 'ERROR') {
+        return { status: 'failed' as const };
+      }
+
+      // Check if github_code_ready event has been set (non-blocking, timeout=0)
+      const githubCode = await DBOS.getEvent<string>(
+        workflowId,
+        GITHUB_CODE_READY_EVENT,
+        0,
+      );
+
+      if (githubCode) {
+        return { status: 'github_code_ready' as const, githubCode };
+      }
+
+      return { status: 'awaiting_github' as const };
+    },
+  );
+
+  // GET /public/legreffier/installed — GitHub setup_url fires after repo selection
+  server.get(
+    '/public/legreffier/installed',
+    {
+      schema: {
+        operationId: 'legreffierInstalled',
+        tags: ['legreffier'],
+        hide: true,
+        description:
+          'GitHub setup_url callback after app installation. Validates installation_id and forwards to workflow.',
+        querystring: InstalledCallbackQuerySchema,
+        response: {
+          200: Type.Object({ ok: Type.Boolean() }),
+          400: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, _reply) => {
+      const { wf: workflowId, installation_id } = request.query;
+
+      const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
+      const wfStatus = await handle.getStatus();
+      if (!wfStatus) {
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
+
+      await DBOS.send(workflowId, installation_id, INSTALLATION_ID_EVENT);
+      return { ok: true };
     },
   );
 }

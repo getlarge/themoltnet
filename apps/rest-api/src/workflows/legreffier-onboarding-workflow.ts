@@ -6,11 +6,12 @@
  * Steps:
  * 1. Issue sponsor voucher
  * 2. Register agent (reuses registrationWorkflow.registerAgent)
- * 3. Wait for GitHub OAuth callback (recv github_code)
+ * 3. Wait for GitHub OAuth callback (recv github_code)  — 10 min
  * 4. If timeout: compensate (delete Kratos identity)
  * 5. Signal github_code_ready (for status polling)
- * 6. Wait for complete ack from agent
- * 7. Return result
+ * 6. Wait for GitHub installation callback (recv installation_id) — 1 hour
+ * 7. If timeout: compensate (delete Kratos identity)
+ * 8. Return result
  *
  * ## Initialization Order
  *
@@ -30,9 +31,9 @@ import {
 
 export const GITHUB_CODE_EVENT = 'github_code';
 export const GITHUB_CODE_READY_EVENT = 'github_code_ready';
-export const COMPLETE_ACK_EVENT = 'complete_ack';
+export const INSTALLATION_ID_EVENT = 'installation_id';
 const GITHUB_CALLBACK_TIMEOUT_S = 600; // 10 minutes
-const COMPLETE_ACK_TIMEOUT_S = 3600; // 1 hour
+const INSTALLATION_TIMEOUT_S = 3600; // 1 hour
 
 // ── Error Classes ──────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ export interface LegreffierOnboardingDeps {
 
 export interface OnboardingResult extends RegistrationResult {
   workflowId: string;
+  installationId: string;
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -196,10 +198,33 @@ export function initLegreffierOnboardingWorkflow(): void {
       // Step 4: Signal github_code_ready for status polling
       await DBOS.setEvent(GITHUB_CODE_READY_EVENT, githubCode);
 
-      // Step 5: Wait for agent to acknowledge completion
-      await DBOS.recv<boolean>(COMPLETE_ACK_EVENT, COMPLETE_ACK_TIMEOUT_S);
+      // Step 5: Wait for GitHub installation callback (setup_url fires after repo selection)
+      const installationId = await DBOS.recv<string>(
+        INSTALLATION_ID_EVENT,
+        INSTALLATION_TIMEOUT_S,
+      );
 
-      return { ...registration, workflowId };
+      if (!installationId) {
+        // Compensation: delete Kratos identity on installation timeout
+        DBOS.logger.error(
+          `LeGreffier onboarding timed out waiting for GitHub installation ` +
+            `(workflowId=${workflowId}, identityId=${registration.identityId}). ` +
+            `Compensating.`,
+        );
+        try {
+          await deleteKratosIdentityStep(registration.identityId);
+        } catch (err) {
+          DBOS.logger.error(
+            `Compensation failed: could not delete Kratos identity ` +
+              `(identityId=${registration.identityId}): ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+        throw new OnboardingTimeoutError(
+          'Timed out waiting for GitHub App installation',
+        );
+      }
+
+      return { ...registration, workflowId, installationId };
     },
     { name: 'legreffier.startOnboarding' },
   );
