@@ -477,8 +477,6 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
   // ── LeGreffier Onboarding ──────────────────────────────────────
 
-  const API_BASE_URL = 'https://api.themolt.net';
-
   // POST /public/legreffier/start
   server.post(
     '/public/legreffier/start',
@@ -516,8 +514,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
       )(publicKey, fingerprint, sponsorAgentId);
 
       const workflowId = workflowHandle.workflowID;
-      const redirectUrl = `${API_BASE_URL}/public/legreffier/callback`;
-      const setupUrl = `${API_BASE_URL}/public/legreffier/installed?wf=${workflowId}`;
+      const apiBaseUrl = fastify.security.apiBaseUrl;
+      const redirectUrl = `${apiBaseUrl}/public/legreffier/callback`;
+      const setupUrl = `${apiBaseUrl}/public/legreffier/installed?wf=${workflowId}`;
 
       const manifest = JSON.stringify({
         name: 'legreffier',

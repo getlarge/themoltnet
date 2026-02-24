@@ -117,24 +117,6 @@ export function initLegreffierOnboardingWorkflow(): void {
     },
   );
 
-  const registerAgentStep = DBOS.registerStep(
-    async (
-      publicKey: string,
-      fingerprint: string,
-      voucherCode: string,
-    ): Promise<RegistrationResult> => {
-      return registrationWorkflow.registerAgent(
-        publicKey,
-        fingerprint,
-        voucherCode,
-      );
-    },
-    {
-      name: 'legreffier.step.registerAgent',
-      retriesAllowed: false,
-    },
-  );
-
   const deleteKratosIdentityStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
       const { identityApi } = getDeps();
@@ -163,11 +145,13 @@ export function initLegreffierOnboardingWorkflow(): void {
       const voucherCode = await issueVoucherStep(sponsorAgentId);
 
       // Step 2: Register agent (Kratos + Keto + OAuth2 client)
-      const registration = await registerAgentStep(
-        publicKey,
-        fingerprint,
-        voucherCode,
-      );
+      // startWorkflow + getResult is the correct DBOS pattern for calling a
+      // child workflow from a parent workflow. DBOS records the child handle
+      // and resumes from there on replay.
+      const registrationHandle = await DBOS.startWorkflow(
+        registrationWorkflow.registerAgent,
+      )(publicKey, fingerprint, voucherCode);
+      const registration = await registrationHandle.getResult();
 
       // Step 3: Wait for GitHub OAuth callback
       const githubCode = await DBOS.recv<string>(

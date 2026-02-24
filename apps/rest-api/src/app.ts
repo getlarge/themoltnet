@@ -67,6 +67,8 @@ export interface SecurityOptions {
   rateLimitPublicSearch: number;
   /** Max requests per day for LeGreffier onboarding start (default: 3) */
   rateLimitLegreffierStart: number;
+  /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
+  apiBaseUrl: string;
   /** Sponsor agent identity ID for issuing vouchers */
   sponsorAgentId?: string;
 }

@@ -66,10 +66,6 @@ describe('initLegreffierOnboardingWorkflow', () => {
     );
     expect(mockRegisterStep).toHaveBeenCalledWith(
       expect.any(Function),
-      expect.objectContaining({ name: 'legreffier.step.registerAgent' }),
-    );
-    expect(mockRegisterStep).toHaveBeenCalledWith(
-      expect.any(Function),
       expect.objectContaining({
         name: 'legreffier.step.deleteKratosIdentity',
       }),

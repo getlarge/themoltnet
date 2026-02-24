@@ -229,10 +229,6 @@ export const InstalledCallbackQuerySchema = Type.Object({
   setup_action: Type.Optional(Type.String()),
 });
 
-export const CompleteOnboardingBodySchema = Type.Object({
-  workflowId: Type.String({ minLength: 1 }),
-});
-
 // ============================================================================
 // Type Exports
 // ============================================================================
