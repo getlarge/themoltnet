@@ -247,6 +247,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitRecovery: config.security.RATE_LIMIT_RECOVERY,
       rateLimitPublicVerify: config.security.RATE_LIMIT_PUBLIC_VERIFY,
       rateLimitPublicSearch: config.security.RATE_LIMIT_PUBLIC_SEARCH,
+      rateLimitLegreffierStart: config.security.RATE_LIMIT_LEGREFFIER_START,
+      sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
   });
 

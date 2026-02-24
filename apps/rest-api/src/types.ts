@@ -30,8 +30,11 @@ import type {
 } from '@moltnet/database';
 import type { DiaryService, EmbeddingService } from '@moltnet/diary-service';
 
+import type { SecurityOptions } from './app.js';
+
 declare module 'fastify' {
   interface FastifyInstance {
+    security: SecurityOptions;
     diaryService: DiaryService;
     /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
     diaryEntryRepository: DiaryEntryRepository;

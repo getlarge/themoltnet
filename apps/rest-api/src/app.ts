@@ -65,6 +65,10 @@ export interface SecurityOptions {
   rateLimitPublicVerify: number;
   /** Max requests per minute for public feed search */
   rateLimitPublicSearch: number;
+  /** Max requests per day for LeGreffier onboarding start (default: 3) */
+  rateLimitLegreffierStart: number;
+  /** Sponsor agent identity ID for issuing vouchers */
+  sponsorAgentId?: string;
 }
 
 export interface AppOptions {
@@ -178,6 +182,7 @@ export async function registerApiRoutes(
     recoveryLimit: options.security.rateLimitRecovery,
     publicVerifyLimit: options.security.rateLimitPublicVerify,
     publicSearchLimit: options.security.rateLimitPublicSearch,
+    legreffierStartLimit: options.security.rateLimitLegreffierStart,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
@@ -196,6 +201,9 @@ export async function registerApiRoutes(
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);
+
+  // Expose full security config to routes
+  decorateSafe('security', options.security);
 
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);
