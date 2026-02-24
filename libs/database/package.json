@@ -33,6 +33,7 @@
   "devDependencies": {
     "@types/pg": "catalog:",
     "drizzle-kit": "catalog:",
+    "@testcontainers/postgresql": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

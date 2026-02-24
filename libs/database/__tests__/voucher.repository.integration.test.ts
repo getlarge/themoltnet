@@ -1,42 +1,45 @@
 /**
  * VoucherRepository Integration Tests
  *
- * Runs against a real PostgreSQL database.
- * Requires DATABASE_URL environment variable pointing to a test database
- * with the schema from infra/supabase/init.sql applied.
- *
- * Start the test database: docker compose --env-file .env.local up -d app-db
- * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/database test
+ * Spins up an ephemeral pgvector/pgvector:pg16 container via testcontainers,
+ * applies all Drizzle migrations, then runs repository tests against it.
  */
 
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
+import type { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
+import { runMigrations } from '../src/migrate.js';
 import { createVoucherRepository } from '../src/repositories/voucher.repository.js';
 import { type AgentVoucher, agentVouchers } from '../src/schema.js';
 
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-  throw new Error(
-    'DATABASE_URL is required for integration tests.\n' +
-      'Start the DB: docker compose --env-file .env.local up -d app-db\n' +
-      'Then run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/database test',
-  );
-}
-
 describe('VoucherRepository (integration)', () => {
   let db: Database;
+  let pool: Pool;
   let repo: ReturnType<typeof createVoucherRepository>;
+  let stopContainer: () => Promise<void>;
 
   const ISSUER_ID = '00000000-0000-4000-a000-000000000001';
   const REDEEMER_A = '00000000-0000-4000-a000-000000000002';
   const REDEEMER_B = '00000000-0000-4000-a000-000000000003';
 
-  beforeAll(() => {
-    db = createDatabase(DATABASE_URL).db;
+  beforeAll(async () => {
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+      .withDatabase('moltnet')
+      .withUsername('moltnet')
+      .withPassword('moltnet_secret')
+      .start();
+
+    const databaseUrl = container.getConnectionUri();
+    stopContainer = () => container.stop().then(() => undefined);
+
+    await runMigrations(databaseUrl);
+
+    ({ db, pool } = createDatabase(databaseUrl));
     repo = createVoucherRepository(db);
-  });
+  }, 60_000);
 
   afterEach(async () => {
     await db.delete(agentVouchers);
@@ -44,6 +47,8 @@ describe('VoucherRepository (integration)', () => {
 
   afterAll(async () => {
     await db.delete(agentVouchers);
+    await pool.end();
+    await stopContainer();
   });
 
   // ── Issue ──────────────────────────────────────────────────────────

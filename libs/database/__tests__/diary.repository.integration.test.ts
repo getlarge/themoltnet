@@ -1,32 +1,43 @@
 /**
  * DiaryEntryRepository Integration Tests
  *
- * Runs against a real PostgreSQL + pgvector database.
- * Requires DATABASE_URL environment variable pointing to a test database
- * with the schema from infra/supabase/init.sql applied.
- *
- * Start the test database: docker compose --env-file .env.local up -d app-db
- * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/database test
+ * Spins up an ephemeral pgvector/pgvector:pg16 container via testcontainers,
+ * applies all Drizzle migrations, then runs repository tests against it.
  */
 
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import type { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
+import { runMigrations } from '../src/migrate.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
 import { diaries, diaryEntries } from '../src/schema.js';
 
-const DATABASE_URL = process.env.DATABASE_URL;
-
-describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
+describe('DiaryEntryRepository (integration)', () => {
   let db: Database;
+  let pool: Pool;
   let repo: ReturnType<typeof createDiaryEntryRepository>;
+  let stopContainer: () => Promise<void>;
 
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
   const OWNER_ID = '00000000-0000-4000-a000-000000000001';
 
   beforeAll(async () => {
-    db = createDatabase(DATABASE_URL!).db;
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+      .withDatabase('moltnet')
+      .withUsername('moltnet')
+      .withPassword('moltnet_secret')
+      .start();
+
+    const databaseUrl = container.getConnectionUri();
+    stopContainer = () => container.stop().then(() => undefined);
+
+    await runMigrations(databaseUrl);
+
+    ({ db, pool } = createDatabase(databaseUrl));
     repo = createDiaryEntryRepository(db);
+
     // diary_entries.diary_id has a FK to diaries.id — seed the parent row
     await db
       .insert(diaries)
@@ -37,16 +48,17 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
         visibility: 'private',
       })
       .onConflictDoNothing();
-  });
+  }, 60_000);
 
   afterEach(async () => {
-    // Clean up test data between tests
     await db.delete(diaryEntries);
   });
 
   afterAll(async () => {
     await db.delete(diaryEntries);
     await db.delete(diaries);
+    await pool.end();
+    await stopContainer();
   });
 
   // ── CRUD ───────────────────────────────────────────────────────────
@@ -91,7 +103,6 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
 
       expect(entry.embedding).toBeDefined();
       expect(entry.embedding!.length).toBe(384);
-      // Verify values are approximately correct (floating point)
       expect(entry.embedding![0]).toBeCloseTo(0);
       expect(entry.embedding![1]).toBeCloseTo(0.001);
     });
@@ -120,7 +131,6 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
   describe('list', () => {
     it('lists entries for diary ordered by createdAt desc', async () => {
       await repo.create({ diaryId: DIARY_ID, content: 'First entry.' });
-      // Small delay so timestamps differ
       await repo.create({ diaryId: DIARY_ID, content: 'Second entry.' });
       await repo.create({ diaryId: DIARY_ID, content: 'Third entry.' });
 
@@ -158,22 +168,14 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
 
     it('respects limit and offset', async () => {
       for (let i = 0; i < 5; i++) {
-        await repo.create({
-          diaryId: DIARY_ID,
-          content: `Entry ${i}`,
-        });
+        await repo.create({ diaryId: DIARY_ID, content: `Entry ${i}` });
       }
 
       const page1 = await repo.list({ diaryId: DIARY_ID, limit: 2 });
       expect(page1.length).toBe(2);
 
-      const page2 = await repo.list({
-        diaryId: DIARY_ID,
-        limit: 2,
-        offset: 2,
-      });
+      const page2 = await repo.list({ diaryId: DIARY_ID, limit: 2, offset: 2 });
       expect(page2.length).toBe(2);
-      // No overlap
       expect(page2[0].id).not.toBe(page1[0].id);
       expect(page2[0].id).not.toBe(page1[1].id);
     });
@@ -207,9 +209,7 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
         content: 'Important entry.',
       });
 
-      const updated = await repo.update(created.id, {
-        importance: 9,
-      });
+      const updated = await repo.update(created.id, { importance: 9 });
 
       expect(updated!.importance).toBe(9);
     });
@@ -262,10 +262,7 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
 
   describe('getRecentForDigest', () => {
     it('returns entries within the specified day range', async () => {
-      await repo.create({
-        diaryId: DIARY_ID,
-        content: 'Recent entry.',
-      });
+      await repo.create({ diaryId: DIARY_ID, content: 'Recent entry.' });
 
       const entries = await repo.getRecentForDigest(DIARY_ID, 7, 50);
       expect(entries.length).toBe(1);
@@ -283,10 +280,7 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
 
     it('respects limit', async () => {
       for (let i = 0; i < 5; i++) {
-        await repo.create({
-          diaryId: DIARY_ID,
-          content: `Entry ${i}`,
-        });
+        await repo.create({ diaryId: DIARY_ID, content: `Entry ${i}` });
       }
 
       const entries = await repo.getRecentForDigest(DIARY_ID, 7, 3);
@@ -326,7 +320,6 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
     });
 
     it('searches by vector similarity when embedding is provided', async () => {
-      // Create entries with embeddings that are "close" and "far"
       const closeEmbedding = Array.from({ length: 384 }, () => 0.1);
       const farEmbedding = Array.from({ length: 384 }, () => 0.9);
 
@@ -341,7 +334,6 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
         embedding: farEmbedding,
       });
 
-      // Search with a query embedding close to closeEmbedding
       const queryEmbedding = Array.from({ length: 384 }, () => 0.1);
       const results = await repo.search({
         diaryId: DIARY_ID,
@@ -349,7 +341,6 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
       });
 
       expect(results.length).toBeGreaterThan(0);
-      // The close entry should come first (lower cosine distance)
       expect(results[0].content).toBe('Close entry.');
     });
 
@@ -373,7 +364,6 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
         embedding: duckEmbedding,
       });
 
-      // Search with both text query and embedding matching crypto entry
       const results = await repo.search({
         diaryId: DIARY_ID,
         query: 'cryptographic algorithms',
@@ -382,7 +372,6 @@ describe.runIf(DATABASE_URL)('DiaryEntryRepository (integration)', () => {
 
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].content).toContain('cryptographic');
-      // Verify the result has the expected DiaryEntry shape
       expect(results[0].id).toBeDefined();
       expect(results[0].diaryId).toBe(DIARY_ID);
       expect(results[0].createdAt).toBeInstanceOf(Date);
