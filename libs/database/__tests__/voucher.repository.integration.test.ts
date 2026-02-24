@@ -106,6 +106,48 @@ describe.runIf(DATABASE_URL)('VoucherRepository (integration)', () => {
     });
   });
 
+  // ── issueUnlimited ─────────────────────────────────────────────────
+
+  describe('issueUnlimited', () => {
+    it('issues a voucher and returns it with all expected fields', async () => {
+      const voucher = await repo.issueUnlimited(ISSUER_ID);
+
+      expect(voucher.issuerId).toBe(ISSUER_ID);
+      expect(voucher.code).toHaveLength(64);
+      expect(voucher.redeemedAt).toBeNull();
+      expect(voucher.redeemedBy).toBeNull();
+      expect(voucher.expiresAt).toBeInstanceOf(Date);
+      expect(voucher.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it('issues beyond MAX_ACTIVE_VOUCHERS (5) without returning null', async () => {
+      // Fill up the cap using the capped method first
+      for (let i = 0; i < 5; i++) {
+        const v = await repo.issue(ISSUER_ID);
+        expect(v).not.toBeNull();
+      }
+      // Verify we are at the cap
+      expect(await repo.issue(ISSUER_ID)).toBeNull();
+
+      // issueUnlimited must succeed even at cap
+      const voucher = await repo.issueUnlimited(ISSUER_ID);
+
+      expect(voucher).not.toBeNull();
+      expect(voucher.issuerId).toBe(ISSUER_ID);
+      expect(voucher.code).toHaveLength(64);
+    });
+
+    it('issued voucher is redeemable', async () => {
+      const voucher = await repo.issueUnlimited(ISSUER_ID);
+
+      const redeemed = await repo.redeem(voucher.code, REDEEMER_A);
+
+      expect(redeemed).not.toBeNull();
+      expect(redeemed!.redeemedBy).toBe(REDEEMER_A);
+      expect(redeemed!.code).toBe(voucher.code);
+    });
+  });
+
   // ── Redeem ─────────────────────────────────────────────────────────
 
   describe('redeem', () => {
