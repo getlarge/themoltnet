@@ -46,6 +46,7 @@ import {
 } from '@moltnet/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import pkg from '../package.json' with { type: 'json' };
 import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
@@ -90,8 +91,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     };
 
     observability = initObservability({
-      serviceName: 'moltnet-server',
-      serviceVersion: '0.1.0',
+      serviceName: 'moltnet-rest-api',
+      serviceVersion: pkg.version,
       environment: config.server.NODE_ENV,
       otlp: {
         endpoint: OTLP_ENDPOINT,
@@ -286,7 +287,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // ── Observability metrics plugin ───────────────────────────────
   if (observability) {
     await app.register(observabilityPlugin, {
-      serviceName: 'moltnet-server',
+      serviceName: 'moltnet-rest-api',
       shutdown: observability.shutdown,
     });
   }

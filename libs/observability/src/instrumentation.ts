@@ -35,6 +35,12 @@ export interface InstrumentationConfig {
    * e.g. ['/health', '/healthz']
    */
   httpIgnoreIncomingPaths?: string[];
+  /**
+   * Hostnames whose outgoing HTTP spans should be labelled with an
+   * `ory.*` prefix so they are easy to identify in traces.
+   * e.g. ['project.ory.network', 'localhost'] (for local Ory stack)
+   */
+  oryHostnames?: string[];
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   type ObservabilityContext,
 } from '@moltnet/observability';
 
+import pkg from '../package.json' with { type: 'json' };
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import type { McpDeps } from './types.js';
@@ -26,8 +27,8 @@ async function main(): Promise<void> {
         : {}),
     };
     observability = initObservability({
-      serviceName: 'moltnet-mcp',
-      serviceVersion: '0.1.0',
+      serviceName: 'moltnet-mcp-server',
+      serviceVersion: pkg.version,
       environment: config.NODE_ENV,
       otlp: {
         endpoint: config.OTLP_ENDPOINT,
@@ -47,7 +48,7 @@ async function main(): Promise<void> {
   // buildApp replaces deps.logger with app.log after Fastify is instantiated.
   const deps: McpDeps = {
     client,
-    logger: createLogger({ serviceName: 'mcp-server' }),
+    logger: createLogger({ serviceName: 'moltnet-mcp-server' }),
   };
 
   const app = await buildApp({
