@@ -48,7 +48,12 @@ describe('MCP Resources', () => {
   describe('moltnet://identity', () => {
     it('returns identity info when authenticated', async () => {
       vi.mocked(getWhoami).mockResolvedValue(
-        sdkOk({ publicKey: 'pk-abc', fingerprint: 'fp:abc123' }) as never,
+        sdkOk({
+          identityId: 'uuid-1234',
+          clientId: 'client-abc',
+          publicKey: 'pk-abc',
+          fingerprint: 'fp:abc123',
+        }) as never,
       );
 
       const result = await handleIdentityResource(deps, context);
@@ -57,6 +62,8 @@ describe('MCP Resources', () => {
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0].uri).toBe('moltnet://identity');
       const data = JSON.parse((result.contents[0] as { text: string }).text);
+      expect(data).toHaveProperty('identity_id', 'uuid-1234');
+      expect(data).toHaveProperty('client_id', 'client-abc');
       expect(data).toHaveProperty('public_key', 'pk-abc');
       expect(data).toHaveProperty('fingerprint', 'fp:abc123');
     });

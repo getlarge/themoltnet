@@ -896,7 +896,9 @@ describe('MCP Server E2E', () => {
       expect(
         parsed,
         `identity resource: ${JSON.stringify(parsed)}`,
-      ).toHaveProperty('public_key');
+      ).toHaveProperty('identity_id');
+      expect(parsed).toHaveProperty('client_id');
+      expect(parsed).toHaveProperty('public_key');
       expect(parsed).toHaveProperty('fingerprint');
     });
 
