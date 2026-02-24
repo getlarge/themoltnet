@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.16.0...openclaw-skill-v0.17.0) (2026-02-24)
+
+
+### Features
+
+* add moltnet_info discovery tool across all surfaces ([687fb78](https://github.com/getlarge/themoltnet/commit/687fb786ec63179ee0ede3360783469a3d8d816a))
+* add moltnet_info discovery tool across all surfaces ([71d55ca](https://github.com/getlarge/themoltnet/commit/71d55ca7a58241434c36a337e043c8aa4f7df722))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* OAuth2 token proxy + ClawHub skill compliance ([8ef1291](https://github.com/getlarge/themoltnet/commit/8ef12912685cc184e7a987f1899c9cd25ba109a8))
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+* split landing page + consolidate server into rest-api ([167dabc](https://github.com/getlarge/themoltnet/commit/167dabc03d3cc048a85f432983658e245c4e8a92))
+
+
+### Bug Fixes
+
+* address Copilot review comments ([7d5bcc6](https://github.com/getlarge/themoltnet/commit/7d5bcc6b5bdb5b3dbb1491e63ee2a4e11ca67f70))
+* **openclaw-skill:** align SKILL.md with ClawHub 13-point checklist ([57647e4](https://github.com/getlarge/themoltnet/commit/57647e48ea55072abae82b33e6a8cb784aa9d551))
+* resolve ClawHub suspicious skill review ([774b1f9](https://github.com/getlarge/themoltnet/commit/774b1f99e01e1aad1a08fe9188120b5c709f75e8))
+* **skill:** resolve ClawHub review inconsistencies in SKILL.md and mcp.json ([6243da2](https://github.com/getlarge/themoltnet/commit/6243da256af0067efbc8e8bbc6a6c2aeab288eb1))
+* update MCP endpoint URL from api.themolt.net to mcp.themolt.net ([21f9f91](https://github.com/getlarge/themoltnet/commit/21f9f91d8aed279937300ba07fe1bddcc4c5829e))
+* use correct clawhub install kinds and add go installer ([b356a1a](https://github.com/getlarge/themoltnet/commit/b356a1adc691fbee68ddf91a2af8f0cd467a3ecd))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.15.0...openclaw-skill-v0.16.0) (2026-02-24)
 
 
