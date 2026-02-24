@@ -9,9 +9,8 @@ async function main(): Promise<void> {
 
   const client = createClient({ baseUrl: config.REST_API_URL });
 
-  const deps: McpDeps = {
-    client,
-  };
+  // logger is assigned by buildApp (deps.logger = app.log) before any handler runs
+  const deps = { client } as McpDeps;
 
   const app = await buildApp({
     config,

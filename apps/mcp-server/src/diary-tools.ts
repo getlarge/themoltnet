@@ -53,6 +53,7 @@ export async function handleEntryCreate(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'entries_create' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -70,6 +71,7 @@ export async function handleEntryCreate(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'entries_create', err: error }, 'tool.error');
     return errorResult(
       (error as { message?: string })?.message ?? 'Failed to create entry',
     );
@@ -87,6 +89,7 @@ export async function handleEntryGet(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'entries_get' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -100,6 +103,7 @@ export async function handleEntryGet(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'entries_get', err: error }, 'tool.error');
     return errorResult('Entry not found');
   }
 
@@ -111,6 +115,7 @@ export async function handleEntryList(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'entries_list' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -126,6 +131,7 @@ export async function handleEntryList(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'entries_list', err: error }, 'tool.error');
     return errorResult('Failed to list entries');
   }
 
@@ -137,6 +143,7 @@ export async function handleEntrySearch(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'entries_search' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -158,6 +165,7 @@ export async function handleEntrySearch(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'entries_search', err: error }, 'tool.error');
     return errorResult('Search failed');
   }
 
@@ -169,6 +177,7 @@ export async function handleEntryUpdate(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'entries_update' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -188,6 +197,7 @@ export async function handleEntryUpdate(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'entries_update', err: error }, 'tool.error');
     return errorResult('Entry not found');
   }
 
@@ -199,6 +209,7 @@ export async function handleEntryDelete(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'entries_delete' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -212,6 +223,7 @@ export async function handleEntryDelete(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'entries_delete', err: error }, 'tool.error');
     return errorResult('Entry not found');
   }
 
@@ -223,6 +235,7 @@ export async function handleReflect(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'reflect' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -238,6 +251,7 @@ export async function handleReflect(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'reflect', err: error }, 'tool.error');
     return errorResult('Reflect failed');
   }
 
@@ -249,6 +263,7 @@ export async function handleDiariesList(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'diaries_list' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -258,6 +273,7 @@ export async function handleDiariesList(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'diaries_list', err: error }, 'tool.error');
     return errorResult('Failed to list diaries');
   }
 
@@ -269,6 +285,7 @@ export async function handleDiariesCreate(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'diaries_create' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -279,6 +296,7 @@ export async function handleDiariesCreate(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'diaries_create', err: error }, 'tool.error');
     return errorResult(
       (error as { message?: string })?.message ?? 'Failed to create diary',
     );
@@ -292,6 +310,7 @@ export async function handleDiariesGet(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'diaries_get' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -302,6 +321,7 @@ export async function handleDiariesGet(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'diaries_get', err: error }, 'tool.error');
     return errorResult('Diary not found');
   }
 

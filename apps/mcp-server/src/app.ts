@@ -97,6 +97,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const { config, deps, logger = true } = options;
 
   const app = Fastify({ logger });
+  deps.logger = app.log;
 
   // Health check (excluded from auth)
   app.get('/healthz', () => {

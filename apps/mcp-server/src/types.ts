@@ -16,6 +16,7 @@ import type {
   ToolHandler,
 } from '@getlarge/fastify-mcp';
 import type { Client } from '@moltnet/api-client';
+import type { FastifyBaseLogger } from 'fastify';
 
 // HandlerContext is not re-exported from the package index but is available
 // via the Fastify module augmentation (mcpAddTool handler signature).
@@ -35,10 +36,13 @@ export type { CallToolResult, GetPromptResult, ReadResourceResult };
  * Dependencies injected into MCP tool/resource handlers.
  *
  * - `client`: Generated API client for REST API calls (stateless, shared)
+ * - `logger`: Fastify base logger for structured tool logging
  *
  * Auth tokens come from HandlerContext (per-request), not from deps.
  */
 export interface McpDeps {
   /** Generated API client instance (from @moltnet/api-client) */
   client: Client;
+  /** Fastify base logger (assigned from app.log in buildApp) */
+  logger: FastifyBaseLogger;
 }
