@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.12.0...moltnet-api-client-v0.13.0) (2026-02-24)
+
+
+### Features
+
+* **rest-api:** LeGreffier onboarding workflow — DBOS + 4 public endpoints ([#287](https://github.com/getlarge/themoltnet/issues/287) Phase 2) ([f8edb0a](https://github.com/getlarge/themoltnet/commit/f8edb0a4c509450bb6782e05bdcf5998f5ff0896))
+
+
+### Bug Fixes
+
+* **rest-api:** address Copilot PR [#305](https://github.com/getlarge/themoltnet/issues/305) review comments ([ff615a5](https://github.com/getlarge/themoltnet/commit/ff615a585c7ece56e1e840882640b811b1af6145))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.11.0...moltnet-api-client-v0.12.0) (2026-02-24)
 
 
