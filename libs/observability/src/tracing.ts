@@ -55,13 +55,12 @@ export function createTraceProvider(
 
   const resource = new Resource(resourceAttributes);
 
-  const provider = new NodeTracerProvider({ resource });
-
+  const spanProcessors: SpanProcessor[] = [];
   if (processor) {
-    provider.addSpanProcessor(processor);
+    spanProcessors.push(processor);
   } else if (exporter) {
-    provider.addSpanProcessor(new BatchSpanProcessor(exporter));
+    spanProcessors.push(new BatchSpanProcessor(exporter));
   }
 
-  return provider;
+  return new NodeTracerProvider({ resource, spanProcessors });
 }

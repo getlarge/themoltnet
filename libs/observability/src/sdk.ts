@@ -4,7 +4,6 @@ import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import type { MeterProvider } from '@opentelemetry/sdk-metrics';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
 import type { LogRecordProcessorOptions } from './logger.js';
@@ -72,15 +71,13 @@ export function initObservability(
       serviceName,
       serviceVersion,
       environment,
+      exporter: otlp
+        ? new OTLPTraceExporter({
+            url: `${otlp.endpoint}/v1/traces`,
+            headers: otlp.headers,
+          })
+        : undefined,
     });
-
-    if (otlp) {
-      const exporter = new OTLPTraceExporter({
-        url: `${otlp.endpoint}/v1/traces`,
-        headers: otlp.headers,
-      });
-      tracerProvider.addSpanProcessor(new BatchSpanProcessor(exporter));
-    }
 
     tracerProvider.register();
 

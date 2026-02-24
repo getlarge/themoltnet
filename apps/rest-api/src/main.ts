@@ -4,6 +4,7 @@
  * Boots the REST API server and handles graceful shutdown.
  */
 
+import './instrumentation.js'; // ← MUST be first: patches pg/http/net/dns/pino
 import './implicit-dependencies.js';
 
 import { bootstrap } from './bootstrap.js';

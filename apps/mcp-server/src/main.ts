@@ -1,5 +1,11 @@
+import './instrumentation.js'; // ← MUST be first: patches http/dns/pino
+
 import { createClient } from '@moltnet/api-client';
-import { createLogger } from '@moltnet/observability';
+import {
+  createLogger,
+  initObservability,
+  type ObservabilityContext,
+} from '@moltnet/observability';
 
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
@@ -7,6 +13,34 @@ import type { McpDeps } from './types.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
+
+  // Init observability before building the app (sets global OTel providers)
+  let observability: ObservabilityContext | undefined;
+  if (config.OTLP_ENDPOINT) {
+    const headers: Record<string, string> = {
+      ...(config.AXIOM_API_TOKEN
+        ? { Authorization: `Bearer ${config.AXIOM_API_TOKEN}` }
+        : {}),
+      ...(config.AXIOM_DATASET
+        ? { 'X-Axiom-Dataset': config.AXIOM_DATASET }
+        : {}),
+    };
+    observability = initObservability({
+      serviceName: 'moltnet-mcp',
+      serviceVersion: '0.1.0',
+      environment: config.NODE_ENV,
+      otlp: {
+        endpoint: config.OTLP_ENDPOINT,
+        headers,
+      },
+      logger: {
+        level: config.NODE_ENV === 'production' ? 'info' : 'debug',
+        pretty: config.NODE_ENV !== 'production',
+      },
+      tracing: { enabled: true, ignorePaths: '/healthz' },
+      metrics: { enabled: true },
+    });
+  }
 
   const client = createClient({ baseUrl: config.REST_API_URL });
 
@@ -23,6 +57,7 @@ async function main(): Promise<void> {
       config.NODE_ENV === 'production'
         ? true
         : { transport: { target: 'pino-pretty' } },
+    observability,
   });
 
   try {
