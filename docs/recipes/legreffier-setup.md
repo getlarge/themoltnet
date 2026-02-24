@@ -365,7 +365,7 @@ After full setup, `moltnet.json` contains:
 | `.moltnet/moltnet.json`                    | Agent identity + config                                 | No (gitignored) |
 | `.moltnet/gitconfig`                       | Agent's git identity + signing                          | No (gitignored) |
 | `.moltnet/ssh/`                            | Derived SSH keys                                        | No (gitignored) |
-| `.claude/commands/legreffier.md`           | `/legreffier` skill (identity + commit + investigation) | Yes             |
+| `.claude/skills/legreffier/SKILL.md`       | `/legreffier` skill (identity + commit + investigation) | Yes             |
 | `.claude/hooks/check-legreffier-commit.sh` | PreToolUse advisory hook                                | Yes             |
 
 ## Troubleshooting

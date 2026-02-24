@@ -109,5 +109,5 @@ Investigation) with a flow summary table and key rules.
 - `settings.local.json` may still have old `enabledMcpjsonServers` names —
   update once MCP connection is verified in a fresh session.
 - The `fair-dice` SKILL.md at `/Users/edouard/Dev/getlarge/fair-dice/.agents/skills/legreffier/SKILL.md`
-  is the authoritative source; `themoltnet/.claude/commands/legreffier.md` is a copy.
+  is the authoritative source; `themoltnet/.claude/skills/legreffier/SKILL.md` is a copy.
   Keep them in sync when updating.
