@@ -28,6 +28,10 @@
     "@moltnet/mcp-auth-proxy": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@getlarge/fastify-mcp": "catalog:",
+    "@opentelemetry/instrumentation": "catalog:",
+    "@opentelemetry/instrumentation-dns": "catalog:",
+    "@opentelemetry/instrumentation-http": "catalog:",
+    "@opentelemetry/instrumentation-pino": "catalog:",
     "@sinclair/typebox": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:"

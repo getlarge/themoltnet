@@ -346,6 +346,18 @@ importers:
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
+      '@opentelemetry/instrumentation':
+        specifier: 'catalog:'
+        version: 0.212.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-dns':
+        specifier: 'catalog:'
+        version: 0.55.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-http':
+        specifier: 'catalog:'
+        version: 0.212.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-pino':
+        specifier: 'catalog:'
+        version: 0.58.0(@opentelemetry/api@1.9.0)
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
@@ -443,6 +455,24 @@ importers:
       '@opentelemetry/exporter-trace-otlp-proto':
         specifier: 'catalog:'
         version: 0.212.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation':
+        specifier: 'catalog:'
+        version: 0.212.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-dns':
+        specifier: 'catalog:'
+        version: 0.55.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-http':
+        specifier: 'catalog:'
+        version: 0.212.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-net':
+        specifier: 'catalog:'
+        version: 0.56.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-pg':
+        specifier: 'catalog:'
+        version: 0.64.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-pino':
+        specifier: 'catalog:'
+        version: 0.58.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources':
         specifier: 'catalog:'
         version: 2.5.1(@opentelemetry/api@1.9.0)

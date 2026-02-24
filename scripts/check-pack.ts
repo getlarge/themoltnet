@@ -66,14 +66,20 @@ function checkPackage(pkgDir: string): boolean {
 
   const paths = packEntries.map((e) => e.path);
 
-  if (!paths.includes('dist/index.js')) {
-    console.error('  FAIL: dist/index.js missing from tarball');
-    return false;
-  }
+  // Binary-only packages (bin field, no src/) don't produce dist/ — skip dist checks.
+  const isBinaryOnly =
+    typeof pkg.bin !== 'undefined' && !paths.some((p) => p.startsWith('src/'));
 
-  if (!paths.includes('dist/index.d.ts')) {
-    console.error('  FAIL: dist/index.d.ts missing from tarball');
-    return false;
+  if (!isBinaryOnly) {
+    if (!paths.includes('dist/index.js')) {
+      console.error('  FAIL: dist/index.js missing from tarball');
+      return false;
+    }
+
+    if (!paths.includes('dist/index.d.ts')) {
+      console.error('  FAIL: dist/index.d.ts missing from tarball');
+      return false;
+    }
   }
 
   const leaked = paths.filter((p) => p.startsWith('src/'));
