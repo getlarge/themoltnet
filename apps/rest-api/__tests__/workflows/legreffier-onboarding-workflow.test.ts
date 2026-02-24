@@ -92,7 +92,7 @@ describe('setLegreffierOnboardingDeps', () => {
     const deps = createMockDeps();
     expect(() =>
       setLegreffierOnboardingDeps(
-        deps as Parameters<typeof setLegreffierOnboardingDeps>[0],
+        deps as unknown as Parameters<typeof setLegreffierOnboardingDeps>[0],
       ),
     ).not.toThrow();
   });
