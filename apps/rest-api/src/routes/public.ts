@@ -560,7 +560,13 @@ export async function publicRoutes(fastify: FastifyInstance) {
       const { code, state: workflowId } = request.query;
 
       const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
-      const wfStatus = await handle.getStatus();
+      let wfStatus: Awaited<ReturnType<typeof handle.getStatus>>;
+      try {
+        wfStatus = await handle.getStatus();
+      } catch (err) {
+        request.log.warn({ err, workflowId }, 'getStatus failed for workflow');
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
       if (!wfStatus || wfStatus.status !== 'PENDING') {
         throw createProblem('not-found', 'Onboarding session not found');
       }
@@ -592,7 +598,13 @@ export async function publicRoutes(fastify: FastifyInstance) {
       const { workflowId } = request.params;
 
       const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
-      const wfStatus = await handle.getStatus();
+      let wfStatus: Awaited<ReturnType<typeof handle.getStatus>>;
+      try {
+        wfStatus = await handle.getStatus();
+      } catch (err) {
+        request.log.warn({ err, workflowId }, 'getStatus failed for workflow');
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
       if (!wfStatus) {
         throw createProblem('not-found', 'Onboarding session not found');
       }
@@ -653,7 +665,13 @@ export async function publicRoutes(fastify: FastifyInstance) {
       const { wf: workflowId, installation_id } = request.query;
 
       const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
-      const wfStatus = await handle.getStatus();
+      let wfStatus: Awaited<ReturnType<typeof handle.getStatus>>;
+      try {
+        wfStatus = await handle.getStatus();
+      } catch (err) {
+        request.log.warn({ err, workflowId }, 'getStatus failed for workflow');
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
       if (!wfStatus || wfStatus.status !== 'PENDING') {
         throw createProblem('not-found', 'Onboarding session not found');
       }
