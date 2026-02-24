@@ -5,6 +5,8 @@ import type {
 } from '@getlarge/fastify-mcp';
 import mcpPlugin from '@getlarge/fastify-mcp';
 import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
+import type { ObservabilityContext } from '@moltnet/observability';
+import { observabilityPlugin } from '@moltnet/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { type McpServerConfig, resolveHydraUrls } from './config.js';
@@ -23,6 +25,7 @@ export interface AppOptions {
   config: McpServerConfig;
   deps: McpDeps;
   logger?: boolean | object;
+  observability?: ObservabilityContext;
 }
 
 /**
@@ -95,10 +98,19 @@ function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
-  const { config, deps, logger = true } = options;
+  const { config, deps, logger = true, observability } = options;
 
-  const app = Fastify({ logger });
+  const app = (
+    observability?.logger
+      ? Fastify({ loggerInstance: observability.logger })
+      : Fastify({ logger })
+  ) as FastifyInstance;
   deps.logger = app.log;
+
+  // Register @fastify/otel BEFORE routes for full lifecycle tracing
+  if (observability?.fastifyOtelPlugin) {
+    await app.register(observability.fastifyOtelPlugin);
+  }
 
   // Health check (excluded from auth)
   app.get('/healthz', () => {
@@ -150,6 +162,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerInfoTools(app, deps);
   registerResources(app, deps);
   registerPrompts(app, deps);
+
+  // Register observability metrics plugin + shutdown hook
+  if (observability) {
+    await app.register(observabilityPlugin, {
+      serviceName: 'moltnet-mcp',
+      shutdown: observability.shutdown,
+    });
+  }
 
   return app;
 }

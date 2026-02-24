@@ -3,10 +3,21 @@ import type { FastifyPluginCallback } from 'fastify';
 import type { Logger } from 'pino';
 
 export interface OtlpConfig {
-  /** OTLP endpoint URL (e.g. http://localhost:4318 for collector, or direct Axiom) */
+  /**
+   * OTLP HTTP base endpoint URL.
+   * Traces are sent to `${endpoint}/v1/traces`, metrics to `${endpoint}/v1/metrics`.
+   * For Axiom: 'https://api.axiom.co'
+   * For local Collector: 'http://localhost:4318'
+   */
   endpoint: string;
-  /** Additional headers for OTLP export (e.g. Authorization for Axiom) */
+  /** Headers for trace and log exporters (e.g. Authorization + X-Axiom-Dataset) */
   headers?: Record<string, string>;
+  /**
+   * Headers override for the metrics exporter.
+   * When set, the metrics exporter uses these headers instead of `headers`.
+   * Use when traces and metrics go to different Axiom datasets.
+   */
+  metricsHeaders?: Record<string, string>;
 }
 
 export interface LoggerConfig {

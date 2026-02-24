@@ -30,7 +30,13 @@
     "@opentelemetry/semantic-conventions": "catalog:",
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "@opentelemetry/exporter-metrics-otlp-proto": "catalog:",
-    "@fastify/otel": "catalog:"
+    "@fastify/otel": "catalog:",
+    "@opentelemetry/instrumentation": "catalog:",
+    "@opentelemetry/instrumentation-http": "catalog:",
+    "@opentelemetry/instrumentation-net": "catalog:",
+    "@opentelemetry/instrumentation-dns": "catalog:",
+    "@opentelemetry/instrumentation-pg": "catalog:",
+    "@opentelemetry/instrumentation-pino": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

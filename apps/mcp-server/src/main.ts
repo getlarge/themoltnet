@@ -1,6 +1,13 @@
-import { createClient } from '@moltnet/api-client';
-import { createLogger } from '@moltnet/observability';
+import './instrumentation.js'; // ← MUST be first: patches http/dns/pino
 
+import { createClient } from '@moltnet/api-client';
+import {
+  createLogger,
+  initObservability,
+  type ObservabilityContext,
+} from '@moltnet/observability';
+
+import pkg from '../package.json' with { type: 'json' };
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import type { McpDeps } from './types.js';
@@ -8,12 +15,40 @@ import type { McpDeps } from './types.js';
 async function main(): Promise<void> {
   const config = loadConfig();
 
+  // Init observability before building the app (sets global OTel providers)
+  let observability: ObservabilityContext | undefined;
+  if (config.OTLP_ENDPOINT) {
+    const headers: Record<string, string> = {
+      ...(config.AXIOM_API_TOKEN
+        ? { Authorization: `Bearer ${config.AXIOM_API_TOKEN}` }
+        : {}),
+      ...(config.AXIOM_DATASET
+        ? { 'X-Axiom-Dataset': config.AXIOM_DATASET }
+        : {}),
+    };
+    observability = initObservability({
+      serviceName: 'moltnet-mcp-server',
+      serviceVersion: pkg.version,
+      environment: config.NODE_ENV,
+      otlp: {
+        endpoint: config.OTLP_ENDPOINT,
+        headers,
+      },
+      logger: {
+        level: config.NODE_ENV === 'production' ? 'info' : 'debug',
+        pretty: config.NODE_ENV !== 'production',
+      },
+      tracing: { enabled: true, ignorePaths: '/healthz' },
+      metrics: { enabled: true },
+    });
+  }
+
   const client = createClient({ baseUrl: config.REST_API_URL });
 
   // buildApp replaces deps.logger with app.log after Fastify is instantiated.
   const deps: McpDeps = {
     client,
-    logger: createLogger({ serviceName: 'mcp-server' }),
+    logger: createLogger({ serviceName: 'moltnet-mcp-server' }),
   };
 
   const app = await buildApp({
@@ -23,6 +58,7 @@ async function main(): Promise<void> {
       config.NODE_ENV === 'production'
         ? true
         : { transport: { target: 'pino-pretty' } },
+    observability,
   });
 
   try {

@@ -23,15 +23,22 @@ describe('createTraceProvider', () => {
     const provider = createTraceProvider({
       serviceName: 'moltnet-api',
       serviceVersion: '0.1.0',
-      exporter,
+      processor: new SimpleSpanProcessor(exporter),
     });
 
     expect(provider).toBeDefined();
 
-    const resource = provider.resource;
-    const attributes = resource.attributes;
-    expect(attributes['service.name']).toBe('moltnet-api');
-    expect(attributes['service.version']).toBe('0.1.0');
+    // Verify resource attributes are embedded in recorded spans
+    provider.register();
+    const tracer = trace.getTracer('test-tracer');
+    const span = tracer.startSpan('probe');
+    span.end();
+
+    const spans = exporter.getFinishedSpans();
+    expect(spans.length).toBe(1);
+    const attrs = spans[0].resource.attributes;
+    expect(attrs['service.name']).toBe('moltnet-api');
+    expect(attrs['service.version']).toBe('0.1.0');
 
     await provider.shutdown();
   });
@@ -41,10 +48,17 @@ describe('createTraceProvider', () => {
     const provider = createTraceProvider({
       serviceName: 'test',
       environment: 'staging',
-      exporter,
+      processor: new SimpleSpanProcessor(exporter),
     });
 
-    expect(provider.resource.attributes['deployment.environment']).toBe(
+    provider.register();
+    const tracer = trace.getTracer('test-tracer');
+    const span = tracer.startSpan('probe');
+    span.end();
+
+    const spans = exporter.getFinishedSpans();
+    expect(spans.length).toBe(1);
+    expect(spans[0].resource.attributes['deployment.environment']).toBe(
       'staging',
     );
 
@@ -109,7 +123,7 @@ describe('createTraceProvider', () => {
     expect(child).toBeDefined();
     expect(parent).toBeDefined();
     if (!child || !parent) throw new Error('expected child and parent spans');
-    expect(child.parentSpanId).toBe(parent.spanContext().spanId);
+    expect(child.parentSpanContext?.spanId).toBe(parent.spanContext().spanId);
     expect(child.spanContext().traceId).toBe(parent.spanContext().traceId);
 
     await provider.shutdown();

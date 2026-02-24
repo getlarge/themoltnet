@@ -1,5 +1,8 @@
 import { metrics as metricsApi } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
+import {
+  type Resource,
+  resourceFromAttributes,
+} from '@opentelemetry/resources';
 import { MeterProvider, type MetricReader } from '@opentelemetry/sdk-metrics';
 import {
   ATTR_SERVICE_NAME,
@@ -45,7 +48,7 @@ export function createMeterProvider(
     resourceAttributes['deployment.environment'] = environment;
   }
 
-  const resource = new Resource(resourceAttributes);
+  const resource = resourceFromAttributes(resourceAttributes);
 
   const providerOptions: { resource: Resource; readers?: MetricReader[] } = {
     resource,

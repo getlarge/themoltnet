@@ -46,6 +46,7 @@ import {
 } from '@moltnet/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import pkg from '../package.json' with { type: 'json' };
 import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
@@ -67,18 +68,36 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // ── Observability ──────────────────────────────────────────────
   let observability: ObservabilityContext | null = null;
 
-  if (config.observability.AXIOM_API_TOKEN) {
+  const {
+    AXIOM_API_TOKEN,
+    OTLP_ENDPOINT,
+    AXIOM_DATASET,
+    AXIOM_METRICS_DATASET,
+  } = config.observability;
+
+  if (OTLP_ENDPOINT) {
+    const traceAndLogHeaders: Record<string, string> = {
+      ...(AXIOM_API_TOKEN
+        ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
+        : {}),
+      ...(AXIOM_DATASET ? { 'X-Axiom-Dataset': AXIOM_DATASET } : {}),
+    };
+    const metricsDataset = AXIOM_METRICS_DATASET ?? AXIOM_DATASET;
+    const metricsHeaders: Record<string, string> = {
+      ...(AXIOM_API_TOKEN
+        ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
+        : {}),
+      ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
+    };
+
     observability = initObservability({
-      serviceName: 'moltnet-server',
-      serviceVersion: '0.1.0',
+      serviceName: 'moltnet-rest-api',
+      serviceVersion: pkg.version,
       environment: config.server.NODE_ENV,
       otlp: {
-        endpoint: 'https://api.axiom.co',
-        headers: {
-          Authorization: `Bearer ${config.observability.AXIOM_API_TOKEN}`,
-          'X-Axiom-Dataset':
-            config.observability.AXIOM_TRACES_DATASET ?? 'moltnet-traces',
-        },
+        endpoint: OTLP_ENDPOINT,
+        headers: traceAndLogHeaders,
+        metricsHeaders,
       },
       logger: {
         level: config.server.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -268,7 +287,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // ── Observability metrics plugin ───────────────────────────────
   if (observability) {
     await app.register(observabilityPlugin, {
-      serviceName: 'moltnet-server',
+      serviceName: 'moltnet-rest-api',
       shutdown: observability.shutdown,
     });
   }

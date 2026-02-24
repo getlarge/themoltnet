@@ -3,6 +3,30 @@ import pino from 'pino';
 
 import { getRequestContextFields } from './request-context.js';
 
+/**
+ * Options for a single pino-opentelemetry-transport log record processor.
+ * Maps to otlp-logger's LogRecordProcessorOptions.
+ */
+export interface LogRecordProcessorOptions {
+  recordProcessorType: 'batch' | 'simple';
+  exporterOptions?: {
+    protocol: 'http' | 'http/protobuf' | 'grpc' | 'console';
+    /** Used when protocol is 'http' or 'http/protobuf' */
+    protobufExporterOptions?: {
+      url?: string;
+      headers?: Record<string, string>;
+      [key: string]: unknown;
+    };
+    httpExporterOptions?: {
+      url?: string;
+      headers?: Record<string, string>;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 export interface CreateLoggerOptions {
   /** Service name included in every log record */
   serviceName: string;
@@ -16,6 +40,13 @@ export interface CreateLoggerOptions {
   pretty?: boolean;
   /** Enable OTel log transport - sends logs through OpenTelemetry pipeline */
   otelEnabled?: boolean;
+  /**
+   * OTLP log record processor options for pino-opentelemetry-transport.
+   * Configures how logs are exported (endpoint, headers, protocol).
+   * When omitted with otelEnabled=true, logs are emitted into the transport
+   * but not exported anywhere.
+   */
+  logRecordProcessorOptions?: LogRecordProcessorOptions[];
   /** Custom destination stream (useful for testing) */
   destination?: DestinationStream;
   /** Disable redaction (useful for testing) */
@@ -86,12 +117,18 @@ function buildRedactConfig(
 /**
  * Create a configured Pino logger instance.
  *
- * When `otelEnabled` is true and no custom destination is provided,
- * logs are sent through `pino-opentelemetry-transport` which bridges
- * them into the OpenTelemetry Logs SDK pipeline.
+ * When `otelEnabled` is true and no custom destination is provided, logs are
+ * sent to two parallel worker-thread transports:
+ *   1. stdout — pino-pretty (dev) or pino/file raw NDJSON (production)
+ *   2. pino-opentelemetry-transport — bridges logs into the OTel Logs SDK and
+ *      ships them via OTLP to the configured endpoint (e.g. Axiom).
  *
- * The logger always includes `service`, `version`, and `environment`
- * in the base bindings for consistent structured logging.
+ * `logRecordProcessorOptions` must be provided when otelEnabled is true,
+ * otherwise the transport emits logs into a no-op pipeline.
+ *
+ * The logger always includes `service`, `version`, and `environment` in the
+ * base bindings for consistent structured logging. Trace/span IDs are injected
+ * automatically when PinoInstrumentation is registered via initInstrumentation.
  */
 export function createLogger(options: CreateLoggerOptions): pino.Logger {
   const {
@@ -101,6 +138,7 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     level = 'info',
     pretty = false,
     otelEnabled = false,
+    logRecordProcessorOptions,
     destination,
     disableRedaction = false,
   } = options;
@@ -127,7 +165,16 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     );
   }
 
-  // Build transport targets
+  if (otelEnabled && !logRecordProcessorOptions) {
+    // Without logRecordProcessorOptions the transport runs but exports nothing.
+    // This is intentional when the caller wants trace-id injection only (no log export).
+    // Log a warning so misconfiguration is visible at startup.
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[observability] otelEnabled=true but logRecordProcessorOptions not provided — logs will not be exported via OTLP',
+    );
+  }
+
   if (otelEnabled) {
     return pino({
       level,
@@ -150,11 +197,16 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
           {
             target: 'pino-opentelemetry-transport',
             options: {
+              loggerName: serviceName,
+              serviceVersion: serviceVersion ?? '',
               resourceAttributes: {
                 'service.name': serviceName,
                 'service.version': serviceVersion ?? '',
                 'deployment.environment': environment ?? '',
               },
+              ...(logRecordProcessorOptions
+                ? { logRecordProcessorOptions }
+                : {}),
             },
             level,
           },

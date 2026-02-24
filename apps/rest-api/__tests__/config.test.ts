@@ -21,8 +21,8 @@ const validEnv = {
   ORY_PROJECT_URL: 'https://ory.example.com',
   ORY_API_KEY: 'ory_pat_xxx',
   AXIOM_API_TOKEN: 'xaat-xxx',
-  AXIOM_LOGS_DATASET: 'moltnet-logs',
-  AXIOM_TRACES_DATASET: 'moltnet-traces',
+  OTLP_ENDPOINT: 'https://api.axiom.co',
+  AXIOM_DATASET: 'moltnet',
   AXIOM_METRICS_DATASET: 'moltnet-metrics',
   RECOVERY_CHALLENGE_SECRET: 'test-recovery-secret-at-least-16',
 };
@@ -149,12 +149,13 @@ describe('loadObservabilityConfig', () => {
   it('parses valid config', () => {
     const config = loadObservabilityConfig({
       AXIOM_API_TOKEN: 'xaat-xxx',
-      AXIOM_LOGS_DATASET: 'logs',
-      AXIOM_TRACES_DATASET: 'traces',
+      OTLP_ENDPOINT: 'https://api.axiom.co',
+      AXIOM_DATASET: 'logs',
       AXIOM_METRICS_DATASET: 'metrics',
     });
     expect(config.AXIOM_API_TOKEN).toBe('xaat-xxx');
-    expect(config.AXIOM_LOGS_DATASET).toBe('logs');
+    expect(config.AXIOM_DATASET).toBe('logs');
+    expect(config.OTLP_ENDPOINT).toBe('https://api.axiom.co');
   });
 
   it('allows all fields to be optional', () => {
