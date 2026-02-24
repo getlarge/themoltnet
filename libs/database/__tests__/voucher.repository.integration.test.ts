@@ -17,8 +17,15 @@ import { createVoucherRepository } from '../src/repositories/voucher.repository.
 import { type AgentVoucher, agentVouchers } from '../src/schema.js';
 
 const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  throw new Error(
+    'DATABASE_URL is required for integration tests.\n' +
+      'Start the DB: docker compose --env-file .env.local up -d app-db\n' +
+      'Then run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/database test',
+  );
+}
 
-describe.runIf(DATABASE_URL)('VoucherRepository (integration)', () => {
+describe('VoucherRepository (integration)', () => {
   let db: Database;
   let repo: ReturnType<typeof createVoucherRepository>;
 
@@ -27,7 +34,7 @@ describe.runIf(DATABASE_URL)('VoucherRepository (integration)', () => {
   const REDEEMER_B = '00000000-0000-4000-a000-000000000003';
 
   beforeAll(() => {
-    db = createDatabase(DATABASE_URL!).db;
+    db = createDatabase(DATABASE_URL).db;
     repo = createVoucherRepository(db);
   });
 
