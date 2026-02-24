@@ -6,6 +6,7 @@
  *   pnpm bootstrap --count 3
  *   pnpm bootstrap --count 1 --dry-run
  *   pnpm bootstrap --names "Atlas,Hermes,Prometheus"
+ *   pnpm bootstrap --sponsor --dry-run
  *
  * Required environment variables (unless --dry-run):
  *   DATABASE_URL        — Postgres connection string
@@ -27,7 +28,7 @@ import {
   type BootstrapConfig,
   bootstrapGenesisAgents,
 } from '@moltnet/bootstrap';
-import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
+import { cryptoService } from '@moltnet/crypto-service';
 import { createDatabase } from '@moltnet/database';
 
 // ── CLI Arguments ────────────────────────────────────────────
@@ -43,6 +44,7 @@ const { values: args } = parseArgs({
       short: 's',
       default: 'diary:read diary:write crypto:sign agent:profile',
     },
+    sponsor: { type: 'boolean', default: false },
   },
   strict: true,
   allowPositionals: true,
@@ -57,6 +59,7 @@ Options:
   -n, --names <list>    Comma-separated agent names (default: Genesis-1, Genesis-2, ...)
   -s, --scopes <list>   OAuth2 scopes (default: diary:read diary:write crypto:sign agent:profile)
       --dry-run         Generate keypairs only, don't call any APIs
+      --sponsor         Create exactly one sponsor agent (mutually exclusive with --count/--names)
   -h, --help            Show this help message
 
 Environment variables (required unless --dry-run):
@@ -72,6 +75,11 @@ For split Ory deployments (Docker Compose):
   ORY_KETO_WRITE_URL      Keto write API
 `);
   process.exit(0);
+}
+
+if (args.sponsor && (args.count !== '1' || args.names)) {
+  console.error('--sponsor is mutually exclusive with --count and --names');
+  process.exit(1);
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -117,21 +125,33 @@ async function main(): Promise<void> {
 
   log(`\nMoltNet Genesis Bootstrap`);
   log(`========================`);
-  log(`Agents to create: ${count}`);
-  log(`Names: ${names.join(', ')}`);
+  if (args.sponsor) {
+    log(`Mode: Sponsor agent`);
+  } else {
+    log(`Agents to create: ${count}`);
+    log(`Names: ${names.join(', ')}`);
+  }
   log(`Scopes: ${scopes}`);
 
   // Dry-run: just generate keypairs
   if (args['dry-run']) {
     log(`\nDRY RUN — generating keypairs only\n`);
-    const dryRunAgents: { name: string; keyPair: KeyPair }[] = [];
 
-    for (const name of names) {
-      const keyPair = await cryptoService.generateKeyPair();
-      log(`  ${name}: ${keyPair.fingerprint}`);
-      log(`    Public key: ${keyPair.publicKey}`);
-      dryRunAgents.push({ name, keyPair });
-    }
+    const dryRunNames = args.sponsor ? ['Sponsor'] : names;
+    const agentType = args.sponsor ? 'sponsor' : 'genesis';
+
+    const dryRunAgents = await Promise.all(
+      dryRunNames.map(async (name) => {
+        const keyPair = await cryptoService.generateKeyPair();
+        log(`  ${name}: ${keyPair.fingerprint}`);
+        log(`    Public key: ${keyPair.publicKey}`);
+        return {
+          name,
+          type: agentType,
+          publicKey: keyPair.publicKey,
+        };
+      }),
+    );
 
     console.log(JSON.stringify(dryRunAgents, null, 2));
     return;
@@ -185,6 +205,54 @@ async function main(): Promise<void> {
   const { db, pool } = createDatabase(databaseUrl);
 
   try {
+    // Sponsor mode: create a single sponsor agent
+    if (args.sponsor) {
+      log('Creating sponsor agent...');
+      const result = await bootstrapGenesisAgents({
+        config,
+        db,
+        names: ['Sponsor'],
+        scopes,
+        log,
+      });
+
+      if (result.agents.length !== 1) {
+        console.error('Failed to create sponsor agent');
+        if (result.errors.length > 0) {
+          for (const { name, error } of result.errors) {
+            console.error(`  ${name}: ${error}`);
+          }
+        }
+        process.exit(1);
+      }
+
+      const agent = result.agents[0];
+
+      process.stderr.write(
+        `\nSPONSOR_AGENT_ID=${agent.identityId}\n` +
+          `\nStore this ID in your .env:\n` +
+          `  dotenvx set SPONSOR_AGENT_ID "${agent.identityId}"\n\n` +
+          `IMPORTANT: Store the output JSON securely — it contains OAuth2 secrets.\n`,
+      );
+
+      console.log(
+        JSON.stringify(
+          [
+            {
+              name: agent.name,
+              type: 'sponsor',
+              identityId: agent.identityId,
+              fingerprint: agent.keyPair.fingerprint,
+              clientId: agent.clientId,
+            },
+          ],
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
     const result = await bootstrapGenesisAgents({
       config,
       db,
