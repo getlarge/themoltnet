@@ -66,6 +66,12 @@ function createMockDeps() {
       runTransaction: vi.fn((fn: Function) => fn()),
       client: {},
     },
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
+    },
   };
 }
 
@@ -462,12 +468,10 @@ describe('registration workflow', () => {
         ),
       ).rejects.toThrow('DB error');
 
-      // Compensation failure logged
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Compensation failed'),
-      );
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Kratos delete also failed'),
+      // Compensation failure logged via injected logger (not DBOS.logger)
+      expect(mocks.logger.error).toHaveBeenCalledWith(
+        expect.objectContaining({ identityId: IDENTITY_ID }),
+        'registration.compensation_failed',
       );
     });
   });

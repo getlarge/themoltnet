@@ -187,6 +187,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           voucherRepository,
           relationshipWriter,
           dataSource,
+          logger: app.log,
         });
       },
       (dataSource) => {
