@@ -25,6 +25,9 @@
     },
     {
       "path": "../../libs/models"
+    },
+    {
+      "path": "../../libs/observability"
     }
   ]
 }
