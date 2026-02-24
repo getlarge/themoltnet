@@ -10,8 +10,10 @@ import type {
   DiaryShareRepository,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
+import type { FastifyBaseLogger } from 'fastify';
 
 export interface DiaryServiceDeps {
+  logger: FastifyBaseLogger;
   diaryRepository: DiaryRepository;
   diaryEntryRepository: DiaryEntryRepository;
   diaryShareRepository: DiaryShareRepository;

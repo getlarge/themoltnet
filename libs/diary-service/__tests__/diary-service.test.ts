@@ -1,4 +1,12 @@
+import type { FastifyBaseLogger } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const logger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  error: vi.fn(),
+} as unknown as FastifyBaseLogger;
 
 // Mock diary workflows before service import so the service uses the mock
 vi.mock('../src/workflows/diary-workflows.js', () => ({
@@ -178,6 +186,7 @@ describe('DiaryService', () => {
     };
 
     service = createDiaryService({
+      logger,
       diaryRepository: diaryRepo as unknown as DiaryRepository,
       diaryShareRepository:
         createMockDiaryShareRepository() as unknown as DiaryShareRepository,
@@ -305,10 +314,14 @@ describe('DiaryService', () => {
       embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
       repo.search.mockResolvedValue(entries);
 
-      const result = await service.searchEntries({
-        diaryId: DIARY_ID,
-        query: 'find relevant entries',
-      });
+      permissions.canReadDiary.mockResolvedValue(true);
+      const result = await service.searchEntries(
+        {
+          diaryId: DIARY_ID,
+          query: 'find relevant entries',
+        },
+        OWNER_ID,
+      );
 
       expect(result).toEqual(entries);
       expect(embeddings.embedQuery).toHaveBeenCalledWith(
@@ -326,7 +339,8 @@ describe('DiaryService', () => {
     it('searches without embedding if no query provided', async () => {
       repo.search.mockResolvedValue([]);
 
-      await service.searchEntries({ diaryId: DIARY_ID });
+      permissions.canReadDiary.mockResolvedValue(true);
+      await service.searchEntries({ diaryId: DIARY_ID }, OWNER_ID);
 
       expect(embeddings.embedQuery).not.toHaveBeenCalled();
       expect(repo.search).toHaveBeenCalledWith(
@@ -338,15 +352,19 @@ describe('DiaryService', () => {
       embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
       repo.search.mockResolvedValue([]);
 
-      await service.searchEntries({
-        diaryId: DIARY_ID,
-        query: 'important memories',
-        wRelevance: 1.0,
-        wRecency: 0.3,
-        wImportance: 0.2,
-        entryTypes: ['identity', 'reflection'],
-        excludeSuperseded: true,
-      });
+      permissions.canReadDiary.mockResolvedValue(true);
+      await service.searchEntries(
+        {
+          diaryId: DIARY_ID,
+          query: 'important memories',
+          wRelevance: 1.0,
+          wRecency: 0.3,
+          wImportance: 0.2,
+          entryTypes: ['identity', 'reflection'],
+          excludeSuperseded: true,
+        },
+        OWNER_ID,
+      );
 
       expect(repo.search).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -363,10 +381,14 @@ describe('DiaryService', () => {
       embeddings.embedQuery.mockRejectedValue(new Error('Embed failed'));
       repo.search.mockResolvedValue([]);
 
-      await service.searchEntries({
-        diaryId: DIARY_ID,
-        query: 'test query',
-      });
+      permissions.canReadDiary.mockResolvedValue(true);
+      await service.searchEntries(
+        {
+          diaryId: DIARY_ID,
+          query: 'test query',
+        },
+        OWNER_ID,
+      );
 
       expect(repo.search).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -653,6 +675,7 @@ describe('DiaryService — tags filter', () => {
     };
 
     service = createDiaryService({
+      logger,
       diaryRepository: diaryRepo as unknown as DiaryRepository,
       diaryShareRepository:
         createMockDiaryShareRepository() as unknown as DiaryShareRepository,

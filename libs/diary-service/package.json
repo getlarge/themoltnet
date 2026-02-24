@@ -30,6 +30,7 @@
     "@moltnet/database": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
     "drizzle-orm": "catalog:",
+    "fastify": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -125,6 +125,7 @@ export function buildEmbeddingText(
 
 export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
   const {
+    logger,
     diaryRepository,
     diaryEntryRepository,
     diaryShareRepository,
@@ -142,7 +143,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     try {
       const result = await embeddingService.embedQuery(query);
       return result.length > 0 ? result : undefined;
-    } catch {
+    } catch (err) {
+      logger.warn({ err }, 'diary.embedding_failed');
       return undefined;
     }
   };
@@ -162,6 +164,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           visibility: input.visibility ?? 'private',
         });
         await relationshipWriter.grantDiaryOwner(diary.id, input.ownerId);
+        logger.info(
+          { diaryId: diary.id, agentId: input.ownerId },
+          'diary.created',
+        );
         return diary;
       };
 
@@ -227,6 +233,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         { name: 'diary.delete-diary' },
       );
 
+      logger.info({ diaryId: id }, 'diary.deleted');
       return true;
     },
 
@@ -302,6 +309,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         );
       }
 
+      logger.info(
+        { diaryId: diary.id, targetAgentId: targetAgent.identityId },
+        'diary.shared',
+      );
       return share;
     },
 
@@ -442,7 +453,12 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         );
       }
 
-      return diaryWorkflows.createEntry(input);
+      const entry = await diaryWorkflows.createEntry(input);
+      logger.info(
+        { entryId: entry.id, diaryId: input.diaryId, type: input.entryType },
+        'entry.created',
+      );
+      return entry;
     },
 
     async getEntryById(
@@ -478,10 +494,19 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (input.diaryId) {
         await this.findDiary(input.diaryId, agentId); // also checks access
       }
-      return diaryEntryRepository.search({
+      const results = await diaryEntryRepository.search({
         ...input,
         embedding: await resolveEmbedding(input.query),
       });
+      logger.debug(
+        {
+          diaryId: input.diaryId,
+          query: input.query,
+          resultCount: results.length,
+        },
+        'entry.searched',
+      );
+      return results;
     },
 
     async searchOwned(
@@ -558,13 +583,17 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         ? await diaryEntryRepository.findById(id)
         : null;
 
-      return diaryWorkflows.updateEntry(
+      const updated = await diaryWorkflows.updateEntry(
         id,
         updates,
         existing?.content,
         existing?.title,
         existing?.tags,
       );
+      if (updated) {
+        logger.info({ entryId: id, diaryId }, 'entry.updated');
+      }
+      return updated;
     },
 
     async deleteEntry(
@@ -587,7 +616,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       //   throw createProblem('not-found', 'Entry not found');
       // }
 
-      return diaryWorkflows.deleteEntry(id);
+      const deleted = await diaryWorkflows.deleteEntry(id);
+      if (deleted) {
+        logger.info({ entryId: id, diaryId }, 'entry.deleted');
+      }
+      return deleted;
     },
 
     async reflect(input: ReflectInput): Promise<Digest> {
