@@ -491,6 +491,7 @@ describe('Public feed routes', () => {
           payload: {
             publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
             fingerprint: 'C212-DAFA-27C5-6C57',
+            agentName: 'my-bot',
           },
         });
 
@@ -503,7 +504,7 @@ describe('Public feed routes', () => {
         const response = await app.inject({
           method: 'POST',
           url: '/public/legreffier/start',
-          payload: { fingerprint: 'C212-DAFA-27C5-6C57' },
+          payload: { fingerprint: 'C212-DAFA-27C5-6C57', agentName: 'my-bot' },
         });
 
         expect(response.statusCode).toBe(400);
@@ -515,6 +516,20 @@ describe('Public feed routes', () => {
           url: '/public/legreffier/start',
           payload: {
             publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+            agentName: 'my-bot',
+          },
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+
+      it('returns 400 on missing agentName', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/public/legreffier/start',
+          payload: {
+            publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+            fingerprint: 'C212-DAFA-27C5-6C57',
           },
         });
 

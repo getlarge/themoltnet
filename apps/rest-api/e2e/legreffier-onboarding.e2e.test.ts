@@ -32,7 +32,10 @@ describe('LeGreffier onboarding', () => {
       const res = await fetch(`${baseUrl}/public/legreffier/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fingerprint: VALID_FINGERPRINT }),
+        body: JSON.stringify({
+          fingerprint: VALID_FINGERPRINT,
+          agentName: 'my-bot',
+        }),
       });
 
       expect(res.status).toBe(400);
@@ -42,7 +45,23 @@ describe('LeGreffier onboarding', () => {
       const res = await fetch(`${baseUrl}/public/legreffier/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publicKey: VALID_PUBLIC_KEY }),
+        body: JSON.stringify({
+          publicKey: VALID_PUBLIC_KEY,
+          agentName: 'my-bot',
+        }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 on missing agentName', async () => {
+      const res = await fetch(`${baseUrl}/public/legreffier/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          publicKey: VALID_PUBLIC_KEY,
+          fingerprint: VALID_FINGERPRINT,
+        }),
       });
 
       expect(res.status).toBe(400);
@@ -55,6 +74,7 @@ describe('LeGreffier onboarding', () => {
         body: JSON.stringify({
           publicKey: VALID_PUBLIC_KEY,
           fingerprint: VALID_FINGERPRINT,
+          agentName: 'my-bot',
         }),
       });
 

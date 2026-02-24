@@ -2028,8 +2028,15 @@ export type GetPublicEntryResponse =
 
 export type StartLegreffierOnboardingData = {
   body: {
+    /**
+     * Ed25519 public key with prefix
+     */
     publicKey: string;
+    /**
+     * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+     */
     fingerprint: string;
+    agentName: string;
   };
   path?: never;
   query?: never;

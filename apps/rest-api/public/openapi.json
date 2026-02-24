@@ -4622,14 +4622,21 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["publicKey", "fingerprint"],
+                "required": ["publicKey", "fingerprint", "agentName"],
                 "properties": {
                   "publicKey": {
-                    "minLength": 1,
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "description": "Ed25519 public key with prefix",
                     "type": "string"
                   },
                   "fingerprint": {
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "type": "string"
+                  },
+                  "agentName": {
                     "minLength": 1,
+                    "maxLength": 34,
                     "type": "string"
                   }
                 }

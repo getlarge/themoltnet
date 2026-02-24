@@ -30,6 +30,7 @@ import {
 import { pollPublicFeed } from '../sse/public-feed-poller.js';
 import { createSSEWriter } from '../sse/sse-writer.js';
 import {
+  AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
   GITHUB_CODE_READY_EVENT,
   INSTALLATION_ID_EVENT,
@@ -499,7 +500,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, _reply) => {
-      const { publicKey, fingerprint } = request.body;
+      const { publicKey, fingerprint, agentName } = request.body;
 
       const sponsorAgentId = fastify.security.sponsorAgentId;
       if (!sponsorAgentId) {
@@ -511,7 +512,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       const workflowHandle = await DBOS.startWorkflow(
         legreffierOnboardingWorkflow.startOnboarding,
-      )(publicKey, fingerprint, sponsorAgentId);
+      )(publicKey, fingerprint, sponsorAgentId, agentName);
 
       const workflowId = workflowHandle.workflowID;
       const apiBaseUrl = fastify.security.apiBaseUrl;
@@ -519,9 +520,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
       const setupUrl = `${apiBaseUrl}/public/legreffier/installed?wf=${workflowId}`;
 
       const manifest = JSON.stringify({
-        name: 'legreffier',
+        name: agentName,
         url: 'https://themolt.net',
-        description: 'LeGreffier agent identity — accountable AI commits',
+        description: `${agentName} — LeGreffier agent identity for accountable AI commits`,
         public: false,
         redirect_url: redirectUrl,
         setup_url: setupUrl,
@@ -560,7 +561,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
       const wfStatus = await handle.getStatus();
-      if (!wfStatus) {
+      if (!wfStatus || wfStatus.status !== 'PENDING') {
         throw createProblem('not-found', 'Onboarding session not found');
       }
 
@@ -603,13 +604,25 @@ export async function publicRoutes(fastify: FastifyInstance) {
         return { status: 'failed' as const };
       }
 
+      // Check if we're past the GitHub code phase (non-blocking, timeout=0).
+      // AWAITING_INSTALLATION_EVENT is set by the workflow immediately after
+      // GITHUB_CODE_READY_EVENT, so its presence means the code was received
+      // and the workflow is now waiting for the GitHub installation callback.
+      const awaitingInstallation = await DBOS.getEvent<boolean>(
+        workflowId,
+        AWAITING_INSTALLATION_EVENT,
+        0,
+      );
+      if (awaitingInstallation) {
+        return { status: 'awaiting_installation' as const };
+      }
+
       // Check if github_code_ready event has been set (non-blocking, timeout=0)
       const githubCode = await DBOS.getEvent<string>(
         workflowId,
         GITHUB_CODE_READY_EVENT,
         0,
       );
-
       if (githubCode) {
         return { status: 'github_code_ready' as const, githubCode };
       }
@@ -641,7 +654,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
       const wfStatus = await handle.getStatus();
-      if (!wfStatus) {
+      if (!wfStatus || wfStatus.status !== 'PENDING') {
         throw createProblem('not-found', 'Onboarding session not found');
       }
 

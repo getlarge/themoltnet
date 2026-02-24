@@ -2895,11 +2895,34 @@ func (s *StartLegreffierOnboardingReq) Validate() error {
 		if err := (validate.String{
 			MinLength:     1,
 			MinLengthSet:  true,
+			MaxLength:     34,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.AgentName)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "agentName",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     0,
+			MinLengthSet:  false,
 			MaxLength:     0,
 			MaxLengthSet:  false,
 			Email:         false,
 			Hostname:      false,
-			Regex:         nil,
+			Regex:         regexMap["^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"],
 			MinNumeric:    0,
 			MinNumericSet: false,
 			MaxNumeric:    0,
@@ -2916,13 +2939,13 @@ func (s *StartLegreffierOnboardingReq) Validate() error {
 	}
 	if err := func() error {
 		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
+			MinLength:     0,
+			MinLengthSet:  false,
 			MaxLength:     0,
 			MaxLengthSet:  false,
 			Email:         false,
 			Hostname:      false,
-			Regex:         nil,
+			Regex:         regexMap["^ed25519:[A-Za-z0-9+/=]+$"],
 			MinNumeric:    0,
 			MinNumericSet: false,
 			MaxNumeric:    0,

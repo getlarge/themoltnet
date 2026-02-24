@@ -200,8 +200,9 @@ export const InvitationIdParamsSchema = Type.Object({
 // ============================================================================
 
 export const StartOnboardingBodySchema = Type.Object({
-  publicKey: Type.String({ minLength: 1 }),
-  fingerprint: Type.String({ minLength: 1 }),
+  publicKey: PublicKeySchema,
+  fingerprint: FingerprintSchema,
+  agentName: Type.String({ minLength: 1, maxLength: 34 }),
 });
 
 export const StartOnboardingResponseSchema = Type.Object({

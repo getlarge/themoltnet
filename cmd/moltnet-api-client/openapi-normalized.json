@@ -4073,16 +4073,23 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "fingerprint": {
+                  "agentName": {
+                    "maxLength": 34,
                     "minLength": 1,
                     "type": "string"
                   },
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
                   "publicKey": {
-                    "minLength": 1,
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
                     "type": "string"
                   }
                 },
-                "required": ["publicKey", "fingerprint"],
+                "required": ["publicKey", "fingerprint", "agentName"],
                 "type": "object"
               }
             }

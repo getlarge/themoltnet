@@ -31,6 +31,7 @@ import {
 
 export const GITHUB_CODE_EVENT = 'github_code';
 export const GITHUB_CODE_READY_EVENT = 'github_code_ready';
+export const AWAITING_INSTALLATION_EVENT = 'awaiting_installation';
 export const INSTALLATION_ID_EVENT = 'installation_id';
 const GITHUB_CALLBACK_TIMEOUT_S = 600; // 10 minutes
 const INSTALLATION_TIMEOUT_S = 3600; // 1 hour
@@ -87,6 +88,7 @@ type StartOnboardingFn = (
   publicKey: string,
   fingerprint: string,
   sponsorAgentId: string,
+  agentName: string, // durably recorded for CLI git config integration
 ) => Promise<OnboardingResult>;
 
 let _workflow: StartOnboardingFn | null = null;
@@ -138,6 +140,10 @@ export function initLegreffierOnboardingWorkflow(): void {
       publicKey: string,
       fingerprint: string,
       sponsorAgentId: string,
+      // agentName is durably recorded by DBOS as a workflow argument so it
+      // survives restarts; the CLI integration will use it for git config.
+
+      _agentName: string,
     ): Promise<OnboardingResult> => {
       const workflowId = DBOS.workflowID ?? 'unknown';
 
@@ -175,14 +181,18 @@ export function initLegreffierOnboardingWorkflow(): void {
           );
         }
         throw new OnboardingTimeoutError(
-          'Timed out waiting for GitHub App installation callback',
+          'Timed out waiting for GitHub App creation callback',
         );
       }
 
       // Step 4: Signal github_code_ready for status polling
       await DBOS.setEvent(GITHUB_CODE_READY_EVENT, githubCode);
 
-      // Step 5: Wait for GitHub installation callback (setup_url fires after repo selection)
+      // Step 5: Signal awaiting_installation so the status endpoint can
+      // distinguish "waiting for code" from "waiting for installation"
+      await DBOS.setEvent(AWAITING_INSTALLATION_EVENT, true);
+
+      // Step 6: Wait for GitHub installation callback (setup_url fires after repo selection)
       const installationId = await DBOS.recv<string>(
         INSTALLATION_ID_EVENT,
         INSTALLATION_TIMEOUT_S,

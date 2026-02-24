@@ -1,4 +1,5 @@
 export {
+  AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
   GITHUB_CODE_READY_EVENT,
   initLegreffierOnboardingWorkflow,

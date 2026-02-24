@@ -5439,8 +5439,16 @@ func (s *StartLegreffierOnboardingOK) SetWorkflowId(val string) {
 func (*StartLegreffierOnboardingOK) startLegreffierOnboardingRes() {}
 
 type StartLegreffierOnboardingReq struct {
+	AgentName string `json:"agentName"`
+	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
 	Fingerprint string `json:"fingerprint"`
-	PublicKey   string `json:"publicKey"`
+	// Ed25519 public key with prefix.
+	PublicKey string `json:"publicKey"`
+}
+
+// GetAgentName returns the value of AgentName.
+func (s *StartLegreffierOnboardingReq) GetAgentName() string {
+	return s.AgentName
 }
 
 // GetFingerprint returns the value of Fingerprint.
@@ -5451,6 +5459,11 @@ func (s *StartLegreffierOnboardingReq) GetFingerprint() string {
 // GetPublicKey returns the value of PublicKey.
 func (s *StartLegreffierOnboardingReq) GetPublicKey() string {
 	return s.PublicKey
+}
+
+// SetAgentName sets the value of AgentName.
+func (s *StartLegreffierOnboardingReq) SetAgentName(val string) {
+	s.AgentName = val
 }
 
 // SetFingerprint sets the value of Fingerprint.
