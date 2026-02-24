@@ -1,7 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 import { trace } from '@opentelemetry/api';
-import type { Logger } from 'pino';
 
 export interface RequestContext {
   requestId?: string;
@@ -18,8 +17,8 @@ const contextStore = new AsyncLocalStorage<ContextStore>();
 
 /**
  * Run `fn` within a new request context initialised with `initial`.
- * The context is available via `getContextLogger` and `setRequestContextField`
- * throughout the async call chain, without passing a logger argument.
+ * The context is available via `getRequestContextFields` and
+ * `setRequestContextField` throughout the async call chain.
  */
 export function runWithRequestContext<T>(
   initial: RequestContext,
@@ -49,12 +48,13 @@ export function setRequestContextField<K extends keyof RequestContext>(
 }
 
 /**
- * Return a Pino child logger enriched with the current request context
- * and OTel trace context (traceId, spanId).
+ * Return the current request context fields merged with OTel trace context
+ * (traceId, spanId). Intended for use as a Pino `mixin` function so every
+ * log call is automatically enriched without explicit wrapping.
  *
- * Safe to call outside a request context — returns child with only OTel fields.
+ * Safe to call outside a request context — returns only OTel fields (or {}).
  */
-export function getContextLogger(baseLogger: Logger): Logger {
+export function getRequestContextFields(): Record<string, unknown> {
   const ctx: Record<string, unknown> = {};
 
   const store = contextStore.getStore();
@@ -71,5 +71,5 @@ export function getContextLogger(baseLogger: Logger): Logger {
     ctx['spanId'] = spanCtx.spanId;
   }
 
-  return baseLogger.child(ctx);
+  return ctx;
 }

@@ -9,9 +9,8 @@
 
 import '@moltnet/auth'; // pulls in FastifyRequest.authContext module augmentation
 
-import { getContextLogger } from '@moltnet/observability';
+import { getRequestContextFields } from '@moltnet/observability';
 import Fastify from 'fastify';
-import pino from 'pino';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { requestContextPlugin } from '../../src/plugins/request-context.js';
@@ -31,21 +30,17 @@ function buildApp(
 
   app.register(requestContextPlugin);
 
-  // Route that reads ALS context via getContextLogger and returns it
+  // Route that reads ALS context fields directly and returns them
   app.get('/test', async (request) => {
-    const baseLogger = pino({ level: 'silent' });
-    const log = getContextLogger(baseLogger);
-    // Bindings hold the merged context fields
-    const bindings = log.bindings();
-    return { bindings, requestId: request.id };
+    const fields = getRequestContextFields();
+    return { fields, requestId: request.id };
   });
 
-  // Optional route that sets authContext before preHandler runs
+  // Optional hook that sets authContext before preHandler runs
   if (authContext !== undefined) {
     app.addHook('onRequest', async (request) => {
       // Simulate auth middleware populating authContext after token validation
-      request.authContext =
-        authContext as unknown as typeof request.authContext;
+      request.authContext = authContext as typeof request.authContext;
     });
   }
 
@@ -69,11 +64,11 @@ describe('requestContextPlugin', () => {
 
       // Assert
       const body = JSON.parse(response.body) as {
-        bindings: Record<string, unknown>;
+        fields: Record<string, unknown>;
         requestId: string;
       };
       expect(response.statusCode).toBe(200);
-      expect(body.bindings.requestId).toBe(body.requestId);
+      expect(body.fields.requestId).toBe(body.requestId);
     });
   });
 
@@ -90,10 +85,10 @@ describe('requestContextPlugin', () => {
 
       // Assert
       const body = JSON.parse(response.body) as {
-        bindings: Record<string, unknown>;
+        fields: Record<string, unknown>;
       };
-      expect(body.bindings.identityId).toBe('identity-123');
-      expect(body.bindings.clientId).toBe('client-456');
+      expect(body.fields.identityId).toBe('identity-123');
+      expect(body.fields.clientId).toBe('client-456');
     });
 
     it('does not set identityId/clientId when authContext is null', async () => {
@@ -105,11 +100,11 @@ describe('requestContextPlugin', () => {
 
       // Assert
       const body = JSON.parse(response.body) as {
-        bindings: Record<string, unknown>;
+        fields: Record<string, unknown>;
       };
       expect(response.statusCode).toBe(200);
-      expect(body.bindings.identityId).toBeUndefined();
-      expect(body.bindings.clientId).toBeUndefined();
+      expect(body.fields.identityId).toBeUndefined();
+      expect(body.fields.clientId).toBeUndefined();
     });
   });
 });

@@ -8,46 +8,39 @@ vi.mock('@opentelemetry/api', () => ({
 }));
 
 import { trace } from '@opentelemetry/api';
-import type { Logger } from 'pino';
 
 import {
-  getContextLogger,
+  getRequestContextFields,
   runWithRequestContext,
   setRequestContextField,
 } from '../src/request-context.js';
-
-const mockChild = vi.fn().mockReturnValue({ level: 'info' });
-const mockLogger = { child: mockChild } as unknown as Logger;
 
 describe('runWithRequestContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('makes requestId available to getContextLogger within the callback', () => {
+  it('makes requestId available to getRequestContextFields within the callback', () => {
     // Arrange
     const requestId = 'req-123';
+    let fields: Record<string, unknown> = {};
 
     // Act
     runWithRequestContext({ requestId }, () => {
-      getContextLogger(mockLogger);
+      fields = getRequestContextFields();
     });
 
     // Assert
-    expect(mockChild).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId }),
-    );
+    expect(fields).toMatchObject({ requestId });
   });
 
   it('does not leak context outside the callback', () => {
     // Arrange + Act
     runWithRequestContext({ requestId: 'req-leak' }, () => {});
-    getContextLogger(mockLogger);
+    const fields = getRequestContextFields();
 
     // Assert
-    expect(mockChild).toHaveBeenCalledWith(
-      expect.not.objectContaining({ requestId: 'req-leak' }),
-    );
+    expect(fields).not.toMatchObject({ requestId: 'req-leak' });
   });
 });
 
@@ -60,17 +53,16 @@ describe('setRequestContextField', () => {
     // Arrange
     const requestId = 'req-456';
     const identityId = 'agent-abc';
+    let fields: Record<string, unknown> = {};
 
     // Act
     runWithRequestContext({ requestId }, () => {
       setRequestContextField('identityId', identityId);
-      getContextLogger(mockLogger);
+      fields = getRequestContextFields();
     });
 
     // Assert
-    expect(mockChild).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId, identityId }),
-    );
+    expect(fields).toMatchObject({ requestId, identityId });
   });
 
   it('is a no-op when called outside a context', () => {
@@ -79,7 +71,7 @@ describe('setRequestContextField', () => {
   });
 });
 
-describe('getContextLogger', () => {
+describe('getRequestContextFields', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -94,30 +86,28 @@ describe('getContextLogger', () => {
         isRemote: false,
       }),
     } as ReturnType<typeof trace.getActiveSpan>);
+    let fields: Record<string, unknown> = {};
 
     // Act
     runWithRequestContext({ requestId: 'req-otel' }, () => {
-      getContextLogger(mockLogger);
+      fields = getRequestContextFields();
     });
 
     // Assert
-    expect(mockChild).toHaveBeenCalledWith(
-      expect.objectContaining({ traceId: 'trace-111', spanId: 'span-222' }),
-    );
+    expect(fields).toMatchObject({ traceId: 'trace-111', spanId: 'span-222' });
   });
 
   it('omits traceId when no active span', () => {
     // Arrange
     vi.mocked(trace.getActiveSpan).mockReturnValue(undefined);
+    let fields: Record<string, unknown> = {};
 
     // Act
     runWithRequestContext({ requestId: 'req-notrace' }, () => {
-      getContextLogger(mockLogger);
+      fields = getRequestContextFields();
     });
 
     // Assert
-    expect(mockChild).toHaveBeenCalledWith(
-      expect.not.objectContaining({ traceId: expect.anything() }),
-    );
+    expect(fields).not.toHaveProperty('traceId');
   });
 });

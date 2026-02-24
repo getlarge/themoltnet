@@ -6,7 +6,7 @@ export type { CreateMeterProviderOptions } from './metrics.js';
 export { createMeterProvider, createRequestMetrics } from './metrics.js';
 export type { RequestContext } from './request-context.js';
 export {
-  getContextLogger,
+  getRequestContextFields,
   runWithRequestContext,
   setRequestContextField,
 } from './request-context.js';
