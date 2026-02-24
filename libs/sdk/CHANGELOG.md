@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.40.0...sdk-v0.41.0) (2026-02-24)
+
+
+### Features
+
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+
 ## [0.40.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.39.0...sdk-v0.40.0) (2026-02-24)
 
 
