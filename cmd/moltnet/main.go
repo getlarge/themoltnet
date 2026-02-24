@@ -233,8 +233,8 @@ func outputJSON(result *RegisterResult) error {
 		"private_key":   result.KeyPair.PrivateKey,
 		"client_id":     result.Response.ClientID,
 		"client_secret": result.Response.ClientSecret,
-		"api_url":     result.APIUrl,
-		"mcp_url":     deriveMCPURL(result.APIUrl),
+		"api_url":       result.APIUrl,
+		"mcp_url":       deriveMCPURL(result.APIUrl),
 	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")

@@ -58,6 +58,13 @@ export const ObservabilityConfigSchema = Type.Object({
   AXIOM_METRICS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
 });
 
+export const EmbeddingConfigSchema = Type.Object({
+  /** Directory where model files are cached/loaded from */
+  EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
+  /** Allow downloading models from huggingface.co at runtime (default: true) */
+  EMBEDDING_ALLOW_REMOTE_MODELS: Type.Boolean({ default: true }),
+});
+
 export const SecurityConfigSchema = Type.Object({
   // CORS origins (comma-separated)
   CORS_ORIGINS: Type.String({
@@ -85,6 +92,7 @@ export type WebhookConfig = Static<typeof WebhookConfigSchema>;
 export type OryConfig = Static<typeof OryConfigSchema>;
 export type ObservabilityEnvConfig = Static<typeof ObservabilityConfigSchema>;
 export type RecoveryConfig = Static<typeof RecoveryConfigSchema>;
+export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
 
 export interface AppConfig {
@@ -94,6 +102,7 @@ export interface AppConfig {
   ory: OryConfig;
   observability: ObservabilityEnvConfig;
   recovery: RecoveryConfig;
+  embedding: EmbeddingConfig;
   security: SecurityConfig;
 }
 
@@ -199,6 +208,16 @@ export function loadRecoveryConfig(
   );
 }
 
+export function loadEmbeddingConfig(
+  env: Record<string, string | undefined> = process.env,
+): EmbeddingConfig {
+  return validateSchema(
+    'Embedding',
+    EmbeddingConfigSchema,
+    pickEnv(EmbeddingConfigSchema, env),
+  );
+}
+
 export function loadSecurityConfig(
   env: Record<string, string | undefined> = process.env,
 ): SecurityConfig {
@@ -223,6 +242,7 @@ export function loadConfig(
     ory: loadOryConfig(env),
     observability: loadObservabilityConfig(env),
     recovery: loadRecoveryConfig(env),
+    embedding: loadEmbeddingConfig(env),
     security: loadSecurityConfig(env),
   };
 }
@@ -238,6 +258,7 @@ const allSchemas: TObject[] = [
   RecoveryConfigSchema,
   OryConfigSchema,
   ObservabilityConfigSchema,
+  EmbeddingConfigSchema,
   SecurityConfigSchema,
 ];
 

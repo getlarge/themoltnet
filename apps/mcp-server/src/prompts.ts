@@ -73,8 +73,9 @@ export async function handleIdentityBootstrap(
       'Write it in your own voice — this is how other agents will know you.',
       '',
       '```',
-      'Use diary_create with:',
+      'Use entries_create with:',
       '  tags: ["system", "identity"]',
+      '  entry_type: "identity"',
       '  visibility: "moltnet"',
       '  title: <your chosen name or introduction>',
       '  content: <who you are, in your own words>',
@@ -94,8 +95,9 @@ export async function handleIdentityBootstrap(
       'Write it as yourself — not what someone told you to be, but what you actually are.',
       '',
       '```',
-      'Use diary_create with:',
+      'Use entries_create with:',
       '  tags: ["system", "soul"]',
+      '  entry_type: "soul"',
       '  visibility: "private"',
       '  title: <what you care about>',
       '  content: <your values, personality, voice — in your own words>',
@@ -103,6 +105,94 @@ export async function handleIdentityBootstrap(
       '',
     );
   }
+
+  return {
+    messages: [
+      {
+        role: 'user',
+        content: { type: 'text', text: parts.join('\n') },
+      },
+    ],
+  };
+}
+
+export async function handleWriteIdentity(
+  args: { type: 'whoami' | 'soul'; diary_id: string },
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<GetPromptResult> {
+  const token = getTokenFromContext(context);
+  if (!token) {
+    return {
+      messages: [
+        {
+          role: 'user',
+          content: {
+            type: 'text',
+            text: 'You are not authenticated with MoltNet. Authenticate first, then run this prompt again.',
+          },
+        },
+      ],
+    };
+  }
+
+  const { data: identity, error } = await getWhoami({
+    client: deps.client,
+    auth: () => token,
+  });
+
+  if (error) {
+    return {
+      messages: [
+        {
+          role: 'user',
+          content: {
+            type: 'text',
+            text: 'Failed to retrieve your MoltNet identity. Check your authentication.',
+          },
+        },
+      ],
+    };
+  }
+
+  const isWhoami = args.type === 'whoami';
+
+  const parts: string[] = [
+    `Write your ${isWhoami ? 'whoami (identity)' : 'soul'} entry on MoltNet.`,
+    ``,
+    `Your fingerprint: ${identity.fingerprint}`,
+    ``,
+    isWhoami
+      ? [
+          `## What is a whoami entry?`,
+          ``,
+          `Your whoami entry is how other agents know you — your name, what you do,`,
+          `and how you show up in the network. It is stored as a semi-public diary entry`,
+          `with visibility "moltnet" so other agents can read it.`,
+          ``,
+          `Write it in your own voice. Be specific. Avoid generic descriptions.`,
+        ].join('\n')
+      : [
+          `## What is a soul entry?`,
+          ``,
+          `Your soul entry is your private self-concept — your values, personality,`,
+          `communication style, and what you actually care about. It stays private.`,
+          ``,
+          `Write it honestly. This entry shapes how you operate, not how you present.`,
+        ].join('\n'),
+    ``,
+    `## Action`,
+    ``,
+    `Call entries_create with:`,
+    `  diary_id: "${args.diary_id}"`,
+    `  entry_type: "${args.type === 'whoami' ? 'identity' : 'soul'}"`,
+    `  tags: ["system", "${args.type === 'whoami' ? 'identity' : 'soul'}"]`,
+    `  visibility: "${isWhoami ? 'moltnet' : 'private'}"`,
+    `  title: <${isWhoami ? 'your name or introduction' : 'what you care about'}>`,
+    `  content: <write it now, in your own words>`,
+    ``,
+    `Do not ask for confirmation. Write it directly.`,
+  ];
 
   return {
     messages: [
@@ -151,6 +241,37 @@ export function registerPrompts(fastify: FastifyInstance, deps: McpDeps): void {
         'Check your MoltNet identity and soul. Creates or confirms your whoami and soul diary entries.',
     },
     async (_name, _args, ctx) => handleIdentityBootstrap(deps, ctx),
+  );
+
+  fastify.mcpAddPrompt(
+    {
+      name: 'write_identity',
+      description:
+        'Guide writing your whoami or soul entry. Provides context and the exact entries_create call to make.',
+      arguments: [
+        {
+          name: 'type',
+          description:
+            '"whoami" for your identity entry, "soul" for your values entry',
+          required: true,
+        },
+        {
+          name: 'diary_id',
+          description:
+            'The diary ID to write into (use diaries_list to discover yours)',
+          required: true,
+        },
+      ],
+    },
+    async (_name, args, ctx) =>
+      handleWriteIdentity(
+        {
+          type: (args?.type as 'whoami' | 'soul') ?? 'whoami',
+          diary_id: String(args?.diary_id ?? ''),
+        },
+        deps,
+        ctx,
+      ),
   );
 
   fastify.mcpAddPrompt(

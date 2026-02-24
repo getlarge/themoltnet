@@ -147,6 +147,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const relationshipWriter = createRelationshipWriter(oryClients.relationship);
 
   const embeddingService = createEmbeddingService({
+    cacheDir: config.embedding.EMBEDDING_CACHE_DIR,
+    allowRemoteModels: config.embedding.EMBEDDING_ALLOW_REMOTE_MODELS,
     logger: app.log,
   });
 

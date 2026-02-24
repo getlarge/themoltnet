@@ -13,6 +13,7 @@ import {
   type RelationshipWriter,
   type TokenValidator,
 } from '@moltnet/auth';
+import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { corsPluginFp } from './plugins/cors.js';
@@ -139,6 +140,16 @@ export async function registerApiRoutes(
       buildLocalReference(json) {
         return (json.$id as string) || `def-${Math.random()}`;
       },
+    },
+  });
+
+  // Register Scalar API reference UI at /docs
+  // Spec is sourced automatically from @fastify/swagger (no configuration.spec needed)
+  // hideClientButton disables the Scalar agent feature which phones home to registry.scalar.com
+  await app.register(scalarApiReference, {
+    routePrefix: '/docs',
+    configuration: {
+      hideClientButton: true,
     },
   });
 
