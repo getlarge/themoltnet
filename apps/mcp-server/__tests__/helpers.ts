@@ -6,7 +6,8 @@
  */
 
 import type { Client } from '@moltnet/api-client';
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify';
+import { vi } from 'vitest';
 
 import type { HandlerContext, McpDeps } from '../src/types.js';
 
@@ -15,13 +16,19 @@ export const DIARY_ID = '550e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 /**
- * Create McpDeps with a mock client.
+ * Create McpDeps with a mock client and logger.
  * The client is a stub — actual HTTP calls are mocked at the SDK function
  * level via vi.mock('@moltnet/api-client') in each test file.
  */
 export function createMockDeps(): McpDeps {
   return {
     client: {} as Client,
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
+    } as unknown as FastifyBaseLogger,
   };
 }
 

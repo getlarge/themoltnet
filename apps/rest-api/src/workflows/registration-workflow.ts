@@ -48,6 +48,12 @@ export class RegistrationWorkflowError extends Error {
 
 // ── Types ──────────────────────────────────────────────────────
 
+interface Logger {
+  info(obj: object, msg: string): void;
+  warn(obj: object, msg: string): void;
+  error(obj: object, msg: string): void;
+}
+
 export interface RegistrationDeps {
   identityApi: IdentityApi;
   oauth2Api: OAuth2Api;
@@ -55,6 +61,7 @@ export interface RegistrationDeps {
   agentRepository: AgentRepository;
   relationshipWriter: RelationshipWriter;
   dataSource: DataSource;
+  logger: Logger;
 }
 
 export interface RegistrationResult {
@@ -282,24 +289,19 @@ export function initRegistrationWorkflow(): void {
         };
       } catch (error: unknown) {
         // Compensation: delete the Kratos identity
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        DBOS.logger.error(
-          `Registration failed after Kratos identity creation ` +
-            `(identityId=${identityId}): ${errorMsg}. ` +
-            `Compensating by deleting identity.`,
+        const { logger } = getDeps();
+        logger.error(
+          { err: error, identityId },
+          'registration.compensation_started',
         );
 
         try {
           const { identityApi } = getDeps();
           await identityApi.deleteIdentity({ id: identityId });
         } catch (compensationError: unknown) {
-          const compMsg =
-            compensationError instanceof Error
-              ? compensationError.message
-              : String(compensationError);
-          DBOS.logger.error(
-            `Compensation failed: could not delete Kratos ` +
-              `identity (identityId=${identityId}): ${compMsg}`,
+          logger.error(
+            { err: compensationError, identityId },
+            'registration.compensation_failed',
           );
         }
 

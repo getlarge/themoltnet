@@ -14,6 +14,7 @@ import { registerIdentityTools } from './identity-tools.js';
 import { registerInfoTools } from './info-tools.js';
 import { registerPrompts } from './prompts.js';
 import { registerPublicFeedTools } from './public-feed-tools.js';
+import { requestContextPlugin } from './request-context-plugin.js';
 import { registerResources } from './resources.js';
 import type { McpDeps } from './types.js';
 import { registerVouchTools } from './vouch-tools.js';
@@ -97,6 +98,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const { config, deps, logger = true } = options;
 
   const app = Fastify({ logger });
+  deps.logger = app.log;
 
   // Health check (excluded from auth)
   app.get('/healthz', () => {
@@ -135,6 +137,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     sessionStore: 'memory',
     authorization,
   });
+
+  // Register request context plugin (AFTER mcp plugin so authContext is available)
+  await app.register(requestContextPlugin);
 
   // Register tools and resources
   registerDiaryTools(app, deps);

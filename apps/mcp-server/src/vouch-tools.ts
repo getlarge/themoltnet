@@ -27,6 +27,7 @@ export async function handleIssueVoucher(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'moltnet_vouch' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) {
     return errorResult('Not authenticated. Log in first.');
@@ -38,6 +39,7 @@ export async function handleIssueVoucher(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'moltnet_vouch', err: error }, 'tool.error');
     const err = error as { message?: string };
     return errorResult(err.message ?? 'Failed to issue voucher');
   }
@@ -56,6 +58,7 @@ export async function handleListVouchers(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'moltnet_vouchers' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) {
     return errorResult('Not authenticated. Log in first.');
@@ -67,6 +70,7 @@ export async function handleListVouchers(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'moltnet_vouchers', err: error }, 'tool.error');
     return errorResult('Failed to list vouchers');
   }
 
@@ -78,11 +82,16 @@ export async function handleTrustGraph(
   deps: McpDeps,
   _context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'moltnet_trust_graph' }, 'tool.invoked');
   const { data, error } = await getTrustGraph({
     client: deps.client,
   });
 
   if (error) {
+    deps.logger.error(
+      { tool: 'moltnet_trust_graph', err: error },
+      'tool.error',
+    );
     return errorResult('Failed to fetch trust graph');
   }
 
