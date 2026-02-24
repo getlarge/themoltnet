@@ -1,6 +1,8 @@
 import type { DestinationStream, LoggerOptions } from 'pino';
 import pino from 'pino';
 
+import { getRequestContextFields } from './request-context.js';
+
 export interface CreateLoggerOptions {
   /** Service name included in every log record */
   serviceName: string;
@@ -119,7 +121,10 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
 
   // When a custom destination is provided (e.g. for testing), use it directly
   if (destination) {
-    return pino({ level, base, redact }, destination);
+    return pino(
+      { level, base, redact, mixin: getRequestContextFields },
+      destination,
+    );
   }
 
   // Build transport targets
@@ -128,6 +133,7 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
       level,
       base,
       redact,
+      mixin: getRequestContextFields,
       transport: {
         targets: [
           pretty
@@ -162,6 +168,7 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
       level,
       base,
       redact,
+      mixin: getRequestContextFields,
       transport: {
         target: 'pino-pretty',
         options: { colorize: true },
@@ -169,5 +176,5 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
     });
   }
 
-  return pino({ level, base, redact });
+  return pino({ level, base, redact, mixin: getRequestContextFields });
 }

@@ -44,6 +44,7 @@ export async function handleCryptoPrepareSignature(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'crypto_prepare_signature' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -55,6 +56,10 @@ export async function handleCryptoPrepareSignature(
     });
 
     if (error) {
+      deps.logger.error(
+        { tool: 'crypto_prepare_signature', err: error },
+        'tool.error',
+      );
       return errorResult('Failed to create signing request');
     }
 
@@ -70,6 +75,7 @@ export async function handleCryptoPrepareSignature(
         'then call crypto_submit_signature with request_id and the returned signature.',
     });
   } catch (err) {
+    deps.logger.error({ tool: 'crypto_prepare_signature', err }, 'tool.error');
     const message =
       err instanceof Error ? err.message : 'Failed to prepare signature';
     return errorResult(message);
@@ -85,6 +91,7 @@ export async function handleCryptoSubmitSignature(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'crypto_submit_signature' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -97,6 +104,10 @@ export async function handleCryptoSubmitSignature(
     });
 
     if (error) {
+      deps.logger.error(
+        { tool: 'crypto_submit_signature', err: error },
+        'tool.error',
+      );
       return errorResult('Failed to submit signature');
     }
 
@@ -111,6 +122,7 @@ export async function handleCryptoSubmitSignature(
           : 'Signature verification failed.',
     });
   } catch (err) {
+    deps.logger.error({ tool: 'crypto_submit_signature', err }, 'tool.error');
     const message =
       err instanceof Error ? err.message : 'Failed to submit signature';
     return errorResult(message);
@@ -125,6 +137,7 @@ export async function handleCryptoSigningStatus(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'crypto_signing_status' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -140,6 +153,10 @@ export async function handleCryptoSigningStatus(
     }
 
     if (error) {
+      deps.logger.error(
+        { tool: 'crypto_signing_status', err: error },
+        'tool.error',
+      );
       return errorResult('Failed to get signing request status');
     }
 
@@ -151,6 +168,7 @@ export async function handleCryptoSigningStatus(
       expires_at: data.expiresAt,
     });
   } catch (err) {
+    deps.logger.error({ tool: 'crypto_signing_status', err }, 'tool.error');
     const message =
       err instanceof Error ? err.message : 'Failed to get signing status';
     return errorResult(message);
@@ -163,17 +181,19 @@ export async function handleCryptoSigningStatus(
  */
 export async function handleCryptoVerify(
   args: CryptoVerifyInput,
-  _deps: McpDeps,
+  deps: McpDeps,
   _context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'crypto_verify' }, 'tool.invoked');
   const { data, error } = await verifyCryptoSignature({
-    client: _deps.client,
+    client: deps.client,
     body: {
       signature: args.signature,
     },
   });
 
   if (error) {
+    deps.logger.error({ tool: 'crypto_verify', err: error }, 'tool.error');
     return errorResult('Verification failed');
   }
 

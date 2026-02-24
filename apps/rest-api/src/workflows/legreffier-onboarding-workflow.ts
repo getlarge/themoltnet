@@ -22,6 +22,16 @@
 import { DBOS, type VoucherRepository } from '@moltnet/database';
 import type { IdentityApi } from '@ory/client-fetch';
 
+// ── Logger Interface ───────────────────────────────────────────
+// Matches the Pino BaseLogger subset; keeps the workflow dep-free
+// from Fastify types while still supporting structured log objects.
+
+interface Logger {
+  info(obj: object, msg: string): void;
+  warn(obj: object, msg: string): void;
+  error(obj: object, msg: string): void;
+}
+
 import {
   type RegistrationResult,
   registrationWorkflow,
@@ -57,6 +67,7 @@ export class OnboardingWorkflowError extends Error {
 export interface LegreffierOnboardingDeps {
   voucherRepository: VoucherRepository;
   identityApi: IdentityApi;
+  logger: Logger;
 }
 
 export interface OnboardingResult extends RegistrationResult {
@@ -167,17 +178,17 @@ export function initLegreffierOnboardingWorkflow(): void {
 
       if (!githubCode) {
         // Compensation: delete Kratos identity on timeout
-        DBOS.logger.error(
-          `LeGreffier onboarding timed out waiting for GitHub callback ` +
-            `(workflowId=${workflowId}, identityId=${registration.identityId}). ` +
-            `Compensating.`,
+        const { logger } = getDeps();
+        logger.error(
+          { workflowId, identityId: registration.identityId },
+          'legreffier.github_callback_timeout',
         );
         try {
           await deleteKratosIdentityStep(registration.identityId);
         } catch (err) {
-          DBOS.logger.error(
-            `Compensation failed: could not delete Kratos identity ` +
-              `(identityId=${registration.identityId}): ${err instanceof Error ? err.message : String(err)}`,
+          logger.error(
+            { err, identityId: registration.identityId },
+            'legreffier.compensation_failed',
           );
         }
         throw new OnboardingTimeoutError(
@@ -200,17 +211,17 @@ export function initLegreffierOnboardingWorkflow(): void {
 
       if (!installationId) {
         // Compensation: delete Kratos identity on installation timeout
-        DBOS.logger.error(
-          `LeGreffier onboarding timed out waiting for GitHub installation ` +
-            `(workflowId=${workflowId}, identityId=${registration.identityId}). ` +
-            `Compensating.`,
+        const { logger } = getDeps();
+        logger.error(
+          { workflowId, identityId: registration.identityId },
+          'legreffier.installation_timeout',
         );
         try {
           await deleteKratosIdentityStep(registration.identityId);
         } catch (err) {
-          DBOS.logger.error(
-            `Compensation failed: could not delete Kratos identity ` +
-              `(identityId=${registration.identityId}): ${err instanceof Error ? err.message : String(err)}`,
+          logger.error(
+            { err, identityId: registration.identityId },
+            'legreffier.compensation_failed',
           );
         }
         throw new OnboardingTimeoutError(

@@ -174,6 +174,12 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         mockRelationshipWriter as unknown as RelationshipWriter,
       embeddingService,
       transactionRunner,
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+        error: vi.fn(),
+      } as never,
     });
   });
 

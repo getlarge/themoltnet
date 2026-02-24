@@ -172,6 +172,12 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
       embeddingService,
       transactionRunner: dbosSetup.transactionRunner,
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+        error: vi.fn(),
+      } as never,
     });
 
     // Create test diary containers so diary_entries FK constraint is satisfied

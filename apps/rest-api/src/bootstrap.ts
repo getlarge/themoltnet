@@ -190,12 +190,14 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           voucherRepository,
           relationshipWriter,
           dataSource,
+          logger: app.log,
         });
       },
       () => {
         setLegreffierOnboardingDeps({
           voucherRepository,
           identityApi: oryClients.identity,
+          logger: app.log,
         });
       },
       (dataSource) => {
@@ -213,6 +215,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const transactionRunner = createDBOSTransactionRunner(dataSource);
 
   const diaryService = createDiaryService({
+    logger: app.log,
     diaryRepository,
     diaryEntryRepository,
     diaryShareRepository,

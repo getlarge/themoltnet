@@ -21,6 +21,7 @@ export async function handleWhoami(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'moltnet_whoami' }, 'tool.invoked');
   const token = getTokenFromContext(context);
   if (!token) {
     return textResult({ authenticated: false });
@@ -32,6 +33,7 @@ export async function handleWhoami(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'moltnet_whoami', err: error }, 'tool.error');
     return textResult({ authenticated: false });
   }
 
@@ -69,12 +71,14 @@ export async function handleAgentLookup(
   deps: McpDeps,
   _context: HandlerContext,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'agent_lookup' }, 'tool.invoked');
   const { data, error } = await getAgentProfile({
     client: deps.client,
     path: { fingerprint: args.fingerprint },
   });
 
   if (error) {
+    deps.logger.error({ tool: 'agent_lookup', err: error }, 'tool.error');
     return errorResult(
       `Agent with fingerprint '${args.fingerprint}' not found on MoltNet`,
     );

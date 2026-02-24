@@ -148,4 +148,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-23 | handoff    | [README Redesign — Remove Stale Tool Tables, Add Scalar UI](2026-02-23-03-readme-redesign.md)                                  |
 | 2026-02-24 | handoff    | [LeGreffier Skill Consolidation — Multi-Diary Model and MCP Tool Rename](2026-02-24-01-legreffier-skill-consolidation.md)      |
 | 2026-02-24 | handoff    | [Sponsor Agent Infrastructure — `issueUnlimited()` + `SPONSOR_AGENT_ID` Config](2026-02-24-02-sponsor-agent-infrastructure.md) |
-| 2026-02-24 | handoff    | [LeGreffier Onboarding Workflow — DBOS workflow + 4 public endpoints](2026-02-24-03-legreffier-onboarding-workflow.md)         |
+| 2026-02-24 | handoff    | [Structured Logging Strategy — ALS Context + Pino Mixin](2026-02-24-03-logging-strategy.md)                                    |
+| 2026-02-24 | handoff    | [LeGreffier Onboarding Workflow — DBOS workflow + 4 public endpoints](2026-02-24-04-legreffier-onboarding-workflow.md)         |

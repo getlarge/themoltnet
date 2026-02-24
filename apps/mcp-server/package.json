@@ -25,6 +25,7 @@
     "@moltnet/models": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/mcp-auth-proxy": "workspace:*",
+    "@moltnet/observability": "workspace:*",
     "@getlarge/fastify-mcp": "catalog:",
     "@sinclair/typebox": "catalog:",
     "fastify": "catalog:",

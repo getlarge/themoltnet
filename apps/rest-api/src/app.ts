@@ -19,6 +19,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { rateLimitPlugin } from './plugins/rate-limit.js';
+import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
@@ -173,6 +174,9 @@ export async function registerApiRoutes(
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
   });
+
+  // Register request context plugin (AFTER auth so identityId/clientId are available)
+  await app.register(requestContextPlugin);
 
   // 3. Rate limiting (AFTER auth so authContext is available)
   await app.register(rateLimitPlugin, {

@@ -106,6 +106,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         workflowId: workflowHandle.workflowID,
       });
 
+      request.log.info(
+        { signingId: created.id, agentId },
+        'crypto.signature_prepared',
+      );
       return reply.status(201).send(toSigningResponse(created));
     },
   );
@@ -276,6 +280,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         });
       }
 
+      request.log.info(
+        { signingId: id, valid: updated.valid },
+        'crypto.signature_submitted',
+      );
       return toSigningResponse(updated);
     },
   );
