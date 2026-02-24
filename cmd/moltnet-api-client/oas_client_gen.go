@@ -101,6 +101,12 @@ type Invoker interface {
 	//
 	// GET /health
 	GetHealth(ctx context.Context) (*Health, error)
+	// GetLegreffierOnboardingStatus invokes getLegreffierOnboardingStatus operation.
+	//
+	// Poll LeGreffier onboarding status. No authentication required.
+	//
+	// GET /public/legreffier/status/{workflowId}
+	GetLegreffierOnboardingStatus(ctx context.Context, params GetLegreffierOnboardingStatusParams) (GetLegreffierOnboardingStatusRes, error)
 	// GetLlmsTxt invokes getLlmsTxt operation.
 	//
 	// LLM-readable network summary (llmstxt.org format). Returns the same information as /.
@@ -259,6 +265,13 @@ type Invoker interface {
 	//
 	// POST /diaries/{diaryId}/share
 	ShareDiary(ctx context.Context, request *ShareDiaryReq, params ShareDiaryParams) (ShareDiaryRes, error)
+	// StartLegreffierOnboarding invokes startLegreffierOnboarding operation.
+	//
+	// Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No
+	// authentication required.
+	//
+	// POST /public/legreffier/start
+	StartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq) (StartLegreffierOnboardingRes, error)
 	// SubmitSignature invokes submitSignature operation.
 	//
 	// Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the
@@ -1733,6 +1746,97 @@ func (c *Client) sendGetHealth(ctx context.Context) (res *Health, err error) {
 
 	stage = "DecodeResponse"
 	result, err := decodeGetHealthResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetLegreffierOnboardingStatus invokes getLegreffierOnboardingStatus operation.
+//
+// Poll LeGreffier onboarding status. No authentication required.
+//
+// GET /public/legreffier/status/{workflowId}
+func (c *Client) GetLegreffierOnboardingStatus(ctx context.Context, params GetLegreffierOnboardingStatusParams) (GetLegreffierOnboardingStatusRes, error) {
+	res, err := c.sendGetLegreffierOnboardingStatus(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetLegreffierOnboardingStatus(ctx context.Context, params GetLegreffierOnboardingStatusParams) (res GetLegreffierOnboardingStatusRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getLegreffierOnboardingStatus"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/public/legreffier/status/{workflowId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetLegreffierOnboardingStatusOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/public/legreffier/status/"
+	{
+		// Encode "workflowId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "workflowId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.StringToString(params.WorkflowId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetLegreffierOnboardingStatusResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -4564,6 +4668,83 @@ func (c *Client) sendShareDiary(ctx context.Context, request *ShareDiaryReq, par
 
 	stage = "DecodeResponse"
 	result, err := decodeShareDiaryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// StartLegreffierOnboarding invokes startLegreffierOnboarding operation.
+//
+// Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No
+// authentication required.
+//
+// POST /public/legreffier/start
+func (c *Client) StartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq) (StartLegreffierOnboardingRes, error) {
+	res, err := c.sendStartLegreffierOnboarding(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendStartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq) (res StartLegreffierOnboardingRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("startLegreffierOnboarding"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/public/legreffier/start"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, StartLegreffierOnboardingOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/public/legreffier/start"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeStartLegreffierOnboardingRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeStartLegreffierOnboardingResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

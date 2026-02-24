@@ -480,4 +480,113 @@ describe('Public feed routes', () => {
       expect(response.headers['cache-control']).toBe('public, max-age=3600');
     });
   });
+
+  describe('LeGreffier onboarding', () => {
+    describe('POST /public/legreffier/start', () => {
+      it('returns 503 when sponsorAgentId is not configured', async () => {
+        // Default test app has no sponsorAgentId
+        const response = await app.inject({
+          method: 'POST',
+          url: '/public/legreffier/start',
+          payload: {
+            publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+            fingerprint: 'C212-DAFA-27C5-6C57',
+            agentName: 'my-bot',
+          },
+        });
+
+        expect(response.statusCode).toBe(503);
+        const body = response.json();
+        expect(body.code).toBe('SERVICE_UNAVAILABLE');
+      });
+
+      it('returns 400 on missing publicKey', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/public/legreffier/start',
+          payload: { fingerprint: 'C212-DAFA-27C5-6C57', agentName: 'my-bot' },
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+
+      it('returns 400 on missing fingerprint', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/public/legreffier/start',
+          payload: {
+            publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+            agentName: 'my-bot',
+          },
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+
+      it('returns 400 on missing agentName', async () => {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/public/legreffier/start',
+          payload: {
+            publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+            fingerprint: 'C212-DAFA-27C5-6C57',
+          },
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+    });
+
+    describe('GET /public/legreffier/callback', () => {
+      it('returns 400 on missing code param', async () => {
+        const response = await app.inject({
+          method: 'GET',
+          url: '/public/legreffier/callback?state=some-workflow-id',
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+
+      it('returns 400 on missing state param', async () => {
+        const response = await app.inject({
+          method: 'GET',
+          url: '/public/legreffier/callback?code=github-code',
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+    });
+
+    describe('GET /public/legreffier/installed', () => {
+      it('returns 400 on missing wf param', async () => {
+        const response = await app.inject({
+          method: 'GET',
+          url: '/public/legreffier/installed?installation_id=12345',
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+
+      it('returns 400 on missing installation_id param', async () => {
+        const response = await app.inject({
+          method: 'GET',
+          url: '/public/legreffier/installed?wf=some-workflow-id',
+        });
+
+        expect(response.statusCode).toBe(400);
+      });
+    });
+
+    describe('GET /public/legreffier/status/:workflowId', () => {
+      it('route exists (returns 500 without DBOS, not 404)', async () => {
+        const response = await app.inject({
+          method: 'GET',
+          url: '/public/legreffier/status/some-workflow-id',
+        });
+
+        // Route exists — 500 from DBOS not initialized, not 404 from missing route
+        expect(response.statusCode).not.toBe(404);
+      });
+    });
+  });
 });

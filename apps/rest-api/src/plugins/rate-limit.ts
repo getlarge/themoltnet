@@ -28,6 +28,8 @@ export interface RateLimitPluginOptions {
   publicVerifyLimit: number;
   /** Max requests per minute for public feed search (default: 15) */
   publicSearchLimit: number;
+  /** Max requests per day for LeGreffier onboarding start (default: 3) */
+  legreffierStartLimit: number;
 }
 
 /**
@@ -58,6 +60,7 @@ async function rateLimitPluginImpl(
     recoveryLimit,
     publicVerifyLimit,
     publicSearchLimit,
+    legreffierStartLimit,
   } = options;
 
   // Register global rate limiter
@@ -135,6 +138,10 @@ async function rateLimitPluginImpl(
       max: publicSearchLimit,
       timeWindow: '1 minute',
     },
+    legreffierStart: {
+      max: legreffierStartLimit,
+      timeWindow: '1 day',
+    },
   });
 }
 
@@ -152,6 +159,7 @@ declare module 'fastify' {
       recovery: { max: number; timeWindow: string };
       publicVerify: { max: number; timeWindow: string };
       publicSearch: { max: number; timeWindow: string };
+      legreffierStart: { max: number; timeWindow: string };
     };
   }
 }

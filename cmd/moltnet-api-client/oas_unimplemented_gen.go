@@ -122,6 +122,15 @@ func (UnimplementedHandler) GetHealth(ctx context.Context) (r *Health, _ error) 
 	return r, ht.ErrNotImplemented
 }
 
+// GetLegreffierOnboardingStatus implements getLegreffierOnboardingStatus operation.
+//
+// Poll LeGreffier onboarding status. No authentication required.
+//
+// GET /public/legreffier/status/{workflowId}
+func (UnimplementedHandler) GetLegreffierOnboardingStatus(ctx context.Context, params GetLegreffierOnboardingStatusParams) (r GetLegreffierOnboardingStatusRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetLlmsTxt implements getLlmsTxt operation.
 //
 // LLM-readable network summary (llmstxt.org format). Returns the same information as /.
@@ -353,6 +362,16 @@ func (UnimplementedHandler) SearchPublicFeed(ctx context.Context, params SearchP
 //
 // POST /diaries/{diaryId}/share
 func (UnimplementedHandler) ShareDiary(ctx context.Context, req *ShareDiaryReq, params ShareDiaryParams) (r ShareDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// StartLegreffierOnboarding implements startLegreffierOnboarding operation.
+//
+// Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No
+// authentication required.
+//
+// POST /public/legreffier/start
+func (UnimplementedHandler) StartLegreffierOnboarding(ctx context.Context, req *StartLegreffierOnboardingReq) (r StartLegreffierOnboardingRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

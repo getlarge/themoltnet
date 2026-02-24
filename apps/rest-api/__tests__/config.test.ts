@@ -6,6 +6,7 @@ import {
   loadObservabilityConfig,
   loadOryConfig,
   loadRecoveryConfig,
+  loadSecurityConfig,
   loadServerConfig,
   loadWebhookConfig,
   resolveOryUrls,
@@ -186,6 +187,43 @@ describe('loadRecoveryConfig', () => {
 });
 
 // ============================================================================
+// SecurityConfig
+// ============================================================================
+
+describe('loadSecurityConfig', () => {
+  it('defaults RATE_LIMIT_LEGREFFIER_START to 3', () => {
+    const config = loadSecurityConfig({});
+    expect(config.RATE_LIMIT_LEGREFFIER_START).toBe(3);
+  });
+
+  it('defaults API_BASE_URL to production URL', () => {
+    const config = loadSecurityConfig({});
+    expect(config.API_BASE_URL).toBe('https://api.themolt.net');
+  });
+
+  it('accepts custom API_BASE_URL', () => {
+    const config = loadSecurityConfig({
+      API_BASE_URL: 'http://localhost:8000',
+    });
+    expect(config.API_BASE_URL).toBe('http://localhost:8000');
+  });
+
+  it('accepts SPONSOR_AGENT_ID as UUID string', () => {
+    const config = loadSecurityConfig({
+      SPONSOR_AGENT_ID: '00000000-0000-0000-0000-000000000001',
+    });
+    expect(config.SPONSOR_AGENT_ID).toBe(
+      '00000000-0000-0000-0000-000000000001',
+    );
+  });
+
+  it('leaves SPONSOR_AGENT_ID undefined when not set', () => {
+    const config = loadSecurityConfig({});
+    expect(config.SPONSOR_AGENT_ID).toBeUndefined();
+  });
+});
+
+// ============================================================================
 // loadConfig (combined)
 // ============================================================================
 
@@ -294,7 +332,7 @@ describe('resolveOryUrls', () => {
 });
 
 // ============================================================================
-// SPONSOR_AGENT_ID
+// SPONSOR_AGENT_ID via loadConfig
 // ============================================================================
 
 describe('loadConfig — SPONSOR_AGENT_ID', () => {
@@ -337,6 +375,7 @@ describe('loadConfig — SPONSOR_AGENT_ID', () => {
     });
     expect(config.security.SPONSOR_AGENT_ID).toBeUndefined();
   });
+
   it('throws when env var is not a valid UUID', () => {
     expect(() =>
       loadConfig({

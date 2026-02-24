@@ -40,6 +40,8 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitRecovery: 1000,
   rateLimitPublicVerify: 1000,
   rateLimitPublicSearch: 1000,
+  rateLimitLegreffierStart: 1000,
+  apiBaseUrl: 'http://localhost:8000',
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -155,6 +157,8 @@ export function createMockServices(): MockServices {
       getEntryById: vi.fn(),
       listEntries: vi.fn(),
       searchEntries: vi.fn(),
+      searchOwned: vi.fn(),
+      searchAccessible: vi.fn(),
       updateEntry: vi.fn(),
       deleteEntry: vi.fn(),
       reflect: vi.fn(),
@@ -211,6 +215,7 @@ export function createMockServices(): MockServices {
     },
     voucherRepository: {
       issue: vi.fn(),
+      issueUnlimited: vi.fn(),
       redeem: vi.fn(),
       findByCode: vi.fn(),
       listActiveByIssuer: vi.fn(),
@@ -267,6 +272,7 @@ export function createMockServices(): MockServices {
 export async function createTestApp(
   mocks: MockServices,
   authContext: AuthContext | null = null,
+  securityOverrides?: Partial<typeof TEST_SECURITY_OPTIONS>,
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
     introspect: vi.fn().mockResolvedValue({ active: false }),
@@ -311,7 +317,7 @@ export async function createTestApp(
     webhookApiKey: TEST_WEBHOOK_API_KEY,
     recoverySecret: TEST_RECOVERY_SECRET,
     oryClients: mockOryClients,
-    security: TEST_SECURITY_OPTIONS,
+    security: { ...TEST_SECURITY_OPTIONS, ...securityOverrides },
   });
 
   return app;

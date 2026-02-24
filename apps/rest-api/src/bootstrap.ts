@@ -51,7 +51,9 @@ import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import {
+  initLegreffierOnboardingWorkflow,
   initRegistrationWorkflow,
+  setLegreffierOnboardingDeps,
   setRegistrationDeps,
 } from './workflows/index.js';
 
@@ -169,6 +171,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
       () => initRegistrationWorkflow(),
+      () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
     ],
     afterLaunch: [
@@ -187,6 +190,13 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           voucherRepository,
           relationshipWriter,
           dataSource,
+          logger: app.log,
+        });
+      },
+      () => {
+        setLegreffierOnboardingDeps({
+          voucherRepository,
+          identityApi: oryClients.identity,
           logger: app.log,
         });
       },
@@ -249,6 +259,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitRecovery: config.security.RATE_LIMIT_RECOVERY,
       rateLimitPublicVerify: config.security.RATE_LIMIT_PUBLIC_VERIFY,
       rateLimitPublicSearch: config.security.RATE_LIMIT_PUBLIC_SEARCH,
+      rateLimitLegreffierStart: config.security.RATE_LIMIT_LEGREFFIER_START,
+      apiBaseUrl: config.security.API_BASE_URL,
+      sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
   });
 

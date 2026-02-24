@@ -175,6 +175,17 @@ export const problemTypes: Record<string, ProblemType> = {
       'Upstream service returned an unexpected error',
     ],
   },
+  'service-unavailable': {
+    slug: 'service-unavailable',
+    code: 'SERVICE_UNAVAILABLE',
+    status: 503,
+    title: 'Service Unavailable',
+    description: 'The requested service is not available or not configured.',
+    commonCauses: [
+      'Required server configuration is missing',
+      'Feature not enabled on this instance',
+    ],
+  },
   'internal-server-error': {
     slug: 'internal-server-error',
     code: 'INTERNAL_SERVER_ERROR',

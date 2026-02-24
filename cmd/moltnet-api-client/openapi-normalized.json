@@ -894,6 +894,7 @@
               "SIGNING_REQUEST_ALREADY_COMPLETED",
               "REGISTRATION_FAILED",
               "UPSTREAM_ERROR",
+              "SERVICE_UNAVAILABLE",
               "INTERNAL_SERVER_ERROR"
             ],
             "type": "string"
@@ -1231,6 +1232,7 @@
                   "SIGNING_REQUEST_ALREADY_COMPLETED",
                   "REGISTRATION_FAILED",
                   "UPSTREAM_ERROR",
+                  "SERVICE_UNAVAILABLE",
                   "INTERNAL_SERVER_ERROR"
                 ],
                 "type": "string"
@@ -3819,6 +3821,7 @@
                 "conflict",
                 "registration-failed",
                 "upstream-error",
+                "service-unavailable",
                 "internal-server-error"
               ],
               "type": "string"
@@ -4059,6 +4062,138 @@
           }
         },
         "tags": ["public"]
+      }
+    },
+    "/public/legreffier/start": {
+      "post": {
+        "description": "Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.",
+        "operationId": "startLegreffierOnboarding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentName": {
+                    "maxLength": 34,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": ["publicKey", "fingerprint", "agentName"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "manifestFormUrl": {
+                      "type": "string"
+                    },
+                    "workflowId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["workflowId", "manifestFormUrl"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": ["legreffier"]
+      }
+    },
+    "/public/legreffier/status/{workflowId}": {
+      "get": {
+        "description": "Poll LeGreffier onboarding status. No authentication required.",
+        "operationId": "getLegreffierOnboardingStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflowId",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "githubCode": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "awaiting_github",
+                        "github_code_ready",
+                        "awaiting_installation",
+                        "completed",
+                        "failed"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["status"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": ["legreffier"]
       }
     },
     "/recovery/challenge": {

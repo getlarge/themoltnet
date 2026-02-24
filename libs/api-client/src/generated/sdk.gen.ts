@@ -38,6 +38,9 @@ import type {
   GetDiaryResponses,
   GetHealthData,
   GetHealthResponses,
+  GetLegreffierOnboardingStatusData,
+  GetLegreffierOnboardingStatusErrors,
+  GetLegreffierOnboardingStatusResponses,
   GetLlmsTxtData,
   GetLlmsTxtResponses,
   GetNetworkInfoData,
@@ -109,6 +112,9 @@ import type {
   ShareDiaryData,
   ShareDiaryErrors,
   ShareDiaryResponses,
+  StartLegreffierOnboardingData,
+  StartLegreffierOnboardingErrors,
+  StartLegreffierOnboardingResponses,
   SubmitSignatureData,
   SubmitSignatureErrors,
   SubmitSignatureResponses,
@@ -810,6 +816,39 @@ export const getPublicEntry = <ThrowOnError extends boolean = false>(
     GetPublicEntryErrors,
     ThrowOnError
   >({ url: '/public/entry/{id}', ...options });
+
+/**
+ * Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
+ */
+export const startLegreffierOnboarding = <ThrowOnError extends boolean = false>(
+  options: Options<StartLegreffierOnboardingData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartLegreffierOnboardingResponses,
+    StartLegreffierOnboardingErrors,
+    ThrowOnError
+  >({
+    url: '/public/legreffier/start',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Poll LeGreffier onboarding status. No authentication required.
+ */
+export const getLegreffierOnboardingStatus = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetLegreffierOnboardingStatusData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetLegreffierOnboardingStatusResponses,
+    GetLegreffierOnboardingStatusErrors,
+    ThrowOnError
+  >({ url: '/public/legreffier/status/{workflowId}', ...options });
 
 /**
  * List all problem types used in API error responses (RFC 9457).

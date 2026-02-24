@@ -33,6 +33,7 @@ export type ProblemDetails = {
     | 'SIGNING_REQUEST_ALREADY_COMPLETED'
     | 'REGISTRATION_FAILED'
     | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
   instance?: string;
@@ -57,6 +58,7 @@ export type ValidationProblemDetails = {
     | 'SIGNING_REQUEST_ALREADY_COMPLETED'
     | 'REGISTRATION_FAILED'
     | 'UPSTREAM_ERROR'
+    | 'SERVICE_UNAVAILABLE'
     | 'INTERNAL_SERVER_ERROR';
   detail?: string;
   instance?: string;
@@ -2024,6 +2026,87 @@ export type GetPublicEntryResponses = {
 export type GetPublicEntryResponse =
   GetPublicEntryResponses[keyof GetPublicEntryResponses];
 
+export type StartLegreffierOnboardingData = {
+  body: {
+    /**
+     * Ed25519 public key with prefix
+     */
+    publicKey: string;
+    /**
+     * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+     */
+    fingerprint: string;
+    agentName: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/public/legreffier/start';
+};
+
+export type StartLegreffierOnboardingErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type StartLegreffierOnboardingError =
+  StartLegreffierOnboardingErrors[keyof StartLegreffierOnboardingErrors];
+
+export type StartLegreffierOnboardingResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    workflowId: string;
+    manifestFormUrl: string;
+  };
+};
+
+export type StartLegreffierOnboardingResponse =
+  StartLegreffierOnboardingResponses[keyof StartLegreffierOnboardingResponses];
+
+export type GetLegreffierOnboardingStatusData = {
+  body?: never;
+  path: {
+    workflowId: string;
+  };
+  query?: never;
+  url: '/public/legreffier/status/{workflowId}';
+};
+
+export type GetLegreffierOnboardingStatusErrors = {
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetLegreffierOnboardingStatusError =
+  GetLegreffierOnboardingStatusErrors[keyof GetLegreffierOnboardingStatusErrors];
+
+export type GetLegreffierOnboardingStatusResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    status:
+      | 'awaiting_github'
+      | 'github_code_ready'
+      | 'awaiting_installation'
+      | 'completed'
+      | 'failed';
+    githubCode?: string;
+  };
+};
+
+export type GetLegreffierOnboardingStatusResponse =
+  GetLegreffierOnboardingStatusResponses[keyof GetLegreffierOnboardingStatusResponses];
+
 export type ListProblemTypesData = {
   body?: never;
   path?: never;
@@ -2066,6 +2149,7 @@ export type GetProblemTypeData = {
       | 'conflict'
       | 'registration-failed'
       | 'upstream-error'
+      | 'service-unavailable'
       | 'internal-server-error';
   };
   query?: never;

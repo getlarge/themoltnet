@@ -135,6 +135,10 @@
               },
               {
                 "type": "string",
+                "enum": ["SERVICE_UNAVAILABLE"]
+              },
+              {
+                "type": "string",
                 "enum": ["INTERNAL_SERVER_ERROR"]
               }
             ]
@@ -223,6 +227,10 @@
                   {
                     "type": "string",
                     "enum": ["UPSTREAM_ERROR"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["SERVICE_UNAVAILABLE"]
                   },
                   {
                     "type": "string",
@@ -4604,6 +4612,152 @@
         }
       }
     },
+    "/public/legreffier/start": {
+      "post": {
+        "operationId": "startLegreffierOnboarding",
+        "tags": ["legreffier"],
+        "description": "Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["publicKey", "fingerprint", "agentName"],
+                "properties": {
+                  "publicKey": {
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "description": "Ed25519 public key with prefix",
+                    "type": "string"
+                  },
+                  "fingerprint": {
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "type": "string"
+                  },
+                  "agentName": {
+                    "minLength": 1,
+                    "maxLength": 34,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["workflowId", "manifestFormUrl"],
+                  "properties": {
+                    "workflowId": {
+                      "type": "string"
+                    },
+                    "manifestFormUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/legreffier/status/{workflowId}": {
+      "get": {
+        "operationId": "getLegreffierOnboardingStatus",
+        "tags": ["legreffier"],
+        "description": "Poll LeGreffier onboarding status. No authentication required.",
+        "parameters": [
+          {
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "in": "path",
+            "name": "workflowId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status"],
+                  "properties": {
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["awaiting_github"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["github_code_ready"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["awaiting_installation"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["completed"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["failed"]
+                        }
+                      ]
+                    },
+                    "githubCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/problems": {
       "get": {
         "operationId": "listProblemTypes",
@@ -4714,6 +4868,10 @@
                 {
                   "type": "string",
                   "enum": ["upstream-error"]
+                },
+                {
+                  "type": "string",
+                  "enum": ["service-unavailable"]
                 },
                 {
                   "type": "string",
