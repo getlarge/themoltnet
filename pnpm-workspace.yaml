@@ -72,3 +72,4 @@ catalog:
   winston-transport: 4.7.0
   wouter: ^3.7.0
   zod: ^3.25.0
+  '@testcontainers/postgresql': ^11.0.0
