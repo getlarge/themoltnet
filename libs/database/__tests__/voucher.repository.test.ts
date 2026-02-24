@@ -170,17 +170,13 @@ describe('voucherRepository.issueUnlimited', () => {
         expiresAt: new Date(Date.now() + 86400000),
         redeemedAt: null,
         redeemedBy: null,
+        createdAt: new Date(),
       },
     ]);
-    const txSelect = vi.fn();
+    const mockSelect = vi.fn();
     const db = {
-      transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          select: txSelect,
-          insert: () => ({ values: () => ({ returning: insertReturning }) }),
-        };
-        return fn(tx);
-      }),
+      select: mockSelect,
+      insert: () => ({ values: () => ({ returning: insertReturning }) }),
     };
 
     const repo = createVoucherRepository(db as never);
@@ -190,6 +186,6 @@ describe('voucherRepository.issueUnlimited', () => {
     expect(result).not.toBeNull();
     expect(result.code).toBe('abc123');
     // Must NOT have queried for the active voucher count (no cap check)
-    expect(txSelect).not.toHaveBeenCalled();
+    expect(mockSelect).not.toHaveBeenCalled();
   });
 });

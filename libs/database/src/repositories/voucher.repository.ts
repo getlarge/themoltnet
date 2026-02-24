@@ -66,23 +66,18 @@ export function createVoucherRepository(db: Database) {
      * the HTTP-layer rate limit is the sole protection against abuse.
      *
      * Unlike `issue()`, this never returns null — it always inserts.
+     * A single INSERT is already atomic; no transaction wrapper needed.
      */
     async issueUnlimited(issuerId: string): Promise<AgentVoucher> {
-      // eslint-disable-next-line @typescript-eslint/return-await
-      return await db.transaction(
-        async (tx) => {
-          const code = randomBytes(32).toString('hex');
-          const expiresAt = new Date(Date.now() + VOUCHER_TTL_MS);
+      const code = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + VOUCHER_TTL_MS);
 
-          const [voucher] = await tx
-            .insert(agentVouchers)
-            .values({ code, issuerId, expiresAt })
-            .returning();
+      const [voucher] = await db
+        .insert(agentVouchers)
+        .values({ code, issuerId, expiresAt })
+        .returning();
 
-          return voucher;
-        },
-        { isolationLevel: 'serializable' },
-      );
+      return voucher;
     },
 
     /**
