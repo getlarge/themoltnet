@@ -1,6 +1,11 @@
 export type { ObservabilityPluginOptions } from './fastify-plugin.js';
 export { observabilityPlugin } from './fastify-plugin.js';
-export type { CreateLoggerOptions } from './logger.js';
+export type { InstrumentationConfig } from './instrumentation.js';
+export { initInstrumentation } from './instrumentation.js';
+export type {
+  CreateLoggerOptions,
+  LogRecordProcessorOptions,
+} from './logger.js';
 export { createLogger, DEFAULT_REDACT_PATHS } from './logger.js';
 export type { CreateMeterProviderOptions } from './metrics.js';
 export { createMeterProvider, createRequestMetrics } from './metrics.js';

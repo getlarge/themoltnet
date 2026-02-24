@@ -7,6 +7,7 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
+import type { LogRecordProcessorOptions } from './logger.js';
 import { createLogger } from './logger.js';
 import { createMeterProvider } from './metrics.js';
 import { createTraceProvider } from './tracing.js';
@@ -16,7 +17,8 @@ import type { ObservabilityConfig, ObservabilityContext } from './types.js';
  * Initialize the full observability stack.
  *
  * Sets up:
- * 1. Pino logger with structured base bindings
+ * 1. Pino logger with structured base bindings + pino-opentelemetry-transport
+ *    (two worker threads: stdout and OTLP log export)
  * 2. OpenTelemetry tracing with @fastify/otel for lifecycle-hook instrumentation
  * 3. OpenTelemetry metrics with OTLP export
  * 4. Graceful shutdown
@@ -27,7 +29,7 @@ import type { ObservabilityConfig, ObservabilityContext } from './types.js';
  *   serviceName: 'moltnet-api',
  *   serviceVersion: '0.1.0',
  *   environment: 'production',
- *   otlp: { endpoint: 'http://localhost:4318' },
+ *   otlp: { endpoint: 'https://api.axiom.co', headers: { Authorization: 'Bearer ...' } },
  *   tracing: { enabled: true },
  *   metrics: { enabled: true },
  * });
@@ -95,7 +97,8 @@ export function initObservability(
       ? new PeriodicExportingMetricReader({
           exporter: new OTLPMetricExporter({
             url: `${otlp.endpoint}/v1/metrics`,
-            headers: otlp.headers,
+            // Use metricsHeaders when provided (separate Axiom dataset for metrics)
+            headers: otlp.metricsHeaders ?? otlp.headers,
           }),
           exportIntervalMillis: metricsConfig.exportIntervalMs ?? 60_000,
         })
@@ -111,9 +114,27 @@ export function initObservability(
     metricsApi.setGlobalMeterProvider(meterProvider);
   }
 
-  // Create the logger (always, even without OTel)
+  // Build logRecordProcessorOptions for pino-opentelemetry-transport.
+  // The transport runs in a worker thread and manages its own OTLP log exporter.
+  // Without this, logs are emitted into the transport but never exported.
   const otelEnabled =
     Boolean(tracingConfig?.enabled || metricsConfig?.enabled) && Boolean(otlp);
+
+  let logRecordProcessorOptions: LogRecordProcessorOptions[] | undefined;
+  if (otelEnabled && otlp) {
+    logRecordProcessorOptions = [
+      {
+        recordProcessorType: 'batch',
+        exporterOptions: {
+          protocol: 'http/protobuf',
+          protobufExporterOptions: {
+            url: `${otlp.endpoint}/v1/logs`,
+            headers: otlp.headers ?? {},
+          },
+        },
+      },
+    ];
+  }
 
   const logger = createLogger({
     serviceName,
@@ -122,6 +143,7 @@ export function initObservability(
     level: loggerConfig?.level,
     pretty: loggerConfig?.pretty,
     otelEnabled,
+    logRecordProcessorOptions,
   });
 
   const shutdown = async (): Promise<void> => {
