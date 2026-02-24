@@ -670,6 +670,91 @@ func decodeGetDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// GetLegreffierOnboardingStatusParams is parameters of getLegreffierOnboardingStatus operation.
+type GetLegreffierOnboardingStatusParams struct {
+	WorkflowId string
+}
+
+func unpackGetLegreffierOnboardingStatusParams(packed middleware.Parameters) (params GetLegreffierOnboardingStatusParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "workflowId",
+			In:   "path",
+		}
+		params.WorkflowId = packed[key].(string)
+	}
+	return params
+}
+
+func decodeGetLegreffierOnboardingStatusParams(args [1]string, argsEscaped bool, r *http.Request) (params GetLegreffierOnboardingStatusParams, _ error) {
+	// Decode path: workflowId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "workflowId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.WorkflowId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.WorkflowId)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "workflowId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetProblemTypeParams is parameters of getProblemType operation.
 type GetProblemTypeParams struct {
 	Type GetProblemTypeType

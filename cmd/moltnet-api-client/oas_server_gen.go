@@ -81,6 +81,12 @@ type Handler interface {
 	//
 	// GET /health
 	GetHealth(ctx context.Context) (*Health, error)
+	// GetLegreffierOnboardingStatus implements getLegreffierOnboardingStatus operation.
+	//
+	// Poll LeGreffier onboarding status. No authentication required.
+	//
+	// GET /public/legreffier/status/{workflowId}
+	GetLegreffierOnboardingStatus(ctx context.Context, params GetLegreffierOnboardingStatusParams) (GetLegreffierOnboardingStatusRes, error)
 	// GetLlmsTxt implements getLlmsTxt operation.
 	//
 	// LLM-readable network summary (llmstxt.org format). Returns the same information as /.
@@ -239,6 +245,13 @@ type Handler interface {
 	//
 	// POST /diaries/{diaryId}/share
 	ShareDiary(ctx context.Context, req *ShareDiaryReq, params ShareDiaryParams) (ShareDiaryRes, error)
+	// StartLegreffierOnboarding implements startLegreffierOnboarding operation.
+	//
+	// Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No
+	// authentication required.
+	//
+	// POST /public/legreffier/start
+	StartLegreffierOnboarding(ctx context.Context, req *StartLegreffierOnboardingReq) (StartLegreffierOnboardingRes, error)
 	// SubmitSignature implements submitSignature operation.
 	//
 	// Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the

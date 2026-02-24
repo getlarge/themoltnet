@@ -1330,6 +1330,95 @@ type GetDiaryUnauthorized ProblemDetails
 
 func (*GetDiaryUnauthorized) getDiaryRes() {}
 
+type GetLegreffierOnboardingStatusOK struct {
+	GithubCode OptString                             `json:"githubCode"`
+	Status     GetLegreffierOnboardingStatusOKStatus `json:"status"`
+}
+
+// GetGithubCode returns the value of GithubCode.
+func (s *GetLegreffierOnboardingStatusOK) GetGithubCode() OptString {
+	return s.GithubCode
+}
+
+// GetStatus returns the value of Status.
+func (s *GetLegreffierOnboardingStatusOK) GetStatus() GetLegreffierOnboardingStatusOKStatus {
+	return s.Status
+}
+
+// SetGithubCode sets the value of GithubCode.
+func (s *GetLegreffierOnboardingStatusOK) SetGithubCode(val OptString) {
+	s.GithubCode = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GetLegreffierOnboardingStatusOK) SetStatus(val GetLegreffierOnboardingStatusOKStatus) {
+	s.Status = val
+}
+
+func (*GetLegreffierOnboardingStatusOK) getLegreffierOnboardingStatusRes() {}
+
+type GetLegreffierOnboardingStatusOKStatus string
+
+const (
+	GetLegreffierOnboardingStatusOKStatusAwaitingGithub       GetLegreffierOnboardingStatusOKStatus = "awaiting_github"
+	GetLegreffierOnboardingStatusOKStatusGithubCodeReady      GetLegreffierOnboardingStatusOKStatus = "github_code_ready"
+	GetLegreffierOnboardingStatusOKStatusAwaitingInstallation GetLegreffierOnboardingStatusOKStatus = "awaiting_installation"
+	GetLegreffierOnboardingStatusOKStatusCompleted            GetLegreffierOnboardingStatusOKStatus = "completed"
+	GetLegreffierOnboardingStatusOKStatusFailed               GetLegreffierOnboardingStatusOKStatus = "failed"
+)
+
+// AllValues returns all GetLegreffierOnboardingStatusOKStatus values.
+func (GetLegreffierOnboardingStatusOKStatus) AllValues() []GetLegreffierOnboardingStatusOKStatus {
+	return []GetLegreffierOnboardingStatusOKStatus{
+		GetLegreffierOnboardingStatusOKStatusAwaitingGithub,
+		GetLegreffierOnboardingStatusOKStatusGithubCodeReady,
+		GetLegreffierOnboardingStatusOKStatusAwaitingInstallation,
+		GetLegreffierOnboardingStatusOKStatusCompleted,
+		GetLegreffierOnboardingStatusOKStatusFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetLegreffierOnboardingStatusOKStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case GetLegreffierOnboardingStatusOKStatusAwaitingGithub:
+		return []byte(s), nil
+	case GetLegreffierOnboardingStatusOKStatusGithubCodeReady:
+		return []byte(s), nil
+	case GetLegreffierOnboardingStatusOKStatusAwaitingInstallation:
+		return []byte(s), nil
+	case GetLegreffierOnboardingStatusOKStatusCompleted:
+		return []byte(s), nil
+	case GetLegreffierOnboardingStatusOKStatusFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetLegreffierOnboardingStatusOKStatus) UnmarshalText(data []byte) error {
+	switch GetLegreffierOnboardingStatusOKStatus(data) {
+	case GetLegreffierOnboardingStatusOKStatusAwaitingGithub:
+		*s = GetLegreffierOnboardingStatusOKStatusAwaitingGithub
+		return nil
+	case GetLegreffierOnboardingStatusOKStatusGithubCodeReady:
+		*s = GetLegreffierOnboardingStatusOKStatusGithubCodeReady
+		return nil
+	case GetLegreffierOnboardingStatusOKStatusAwaitingInstallation:
+		*s = GetLegreffierOnboardingStatusOKStatusAwaitingInstallation
+		return nil
+	case GetLegreffierOnboardingStatusOKStatusCompleted:
+		*s = GetLegreffierOnboardingStatusOKStatusCompleted
+		return nil
+	case GetLegreffierOnboardingStatusOKStatusFailed:
+		*s = GetLegreffierOnboardingStatusOKStatusFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Network info as llms.txt markdown.
 type GetLlmsTxtOK struct {
 	Data io.Reader
@@ -1578,6 +1667,7 @@ const (
 	GetProblemTypeTypeConflict                       GetProblemTypeType = "conflict"
 	GetProblemTypeTypeRegistrationFailed             GetProblemTypeType = "registration-failed"
 	GetProblemTypeTypeUpstreamError                  GetProblemTypeType = "upstream-error"
+	GetProblemTypeTypeServiceUnavailable             GetProblemTypeType = "service-unavailable"
 	GetProblemTypeTypeInternalServerError            GetProblemTypeType = "internal-server-error"
 )
 
@@ -1598,6 +1688,7 @@ func (GetProblemTypeType) AllValues() []GetProblemTypeType {
 		GetProblemTypeTypeConflict,
 		GetProblemTypeTypeRegistrationFailed,
 		GetProblemTypeTypeUpstreamError,
+		GetProblemTypeTypeServiceUnavailable,
 		GetProblemTypeTypeInternalServerError,
 	}
 }
@@ -1632,6 +1723,8 @@ func (s GetProblemTypeType) MarshalText() ([]byte, error) {
 	case GetProblemTypeTypeRegistrationFailed:
 		return []byte(s), nil
 	case GetProblemTypeTypeUpstreamError:
+		return []byte(s), nil
+	case GetProblemTypeTypeServiceUnavailable:
 		return []byte(s), nil
 	case GetProblemTypeTypeInternalServerError:
 		return []byte(s), nil
@@ -1684,6 +1777,9 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 		return nil
 	case GetProblemTypeTypeUpstreamError:
 		*s = GetProblemTypeTypeUpstreamError
+		return nil
+	case GetProblemTypeTypeServiceUnavailable:
+		*s = GetProblemTypeTypeServiceUnavailable
 		return nil
 	case GetProblemTypeTypeInternalServerError:
 		*s = GetProblemTypeTypeInternalServerError
@@ -4224,8 +4320,9 @@ func (s *ProblemDetails) SetType(val url.URL) {
 	s.Type = val
 }
 
-func (*ProblemDetails) getTrustGraphRes()         {}
-func (*ProblemDetails) verifyCryptoSignatureRes() {}
+func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
+func (*ProblemDetails) getTrustGraphRes()                 {}
+func (*ProblemDetails) verifyCryptoSignatureRes()         {}
 
 type ProblemDetailsCode string
 
@@ -4244,6 +4341,7 @@ const (
 	ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED ProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
 	ProblemDetailsCodeREGISTRATIONFAILED             ProblemDetailsCode = "REGISTRATION_FAILED"
 	ProblemDetailsCodeUPSTREAMERROR                  ProblemDetailsCode = "UPSTREAM_ERROR"
+	ProblemDetailsCodeSERVICEUNAVAILABLE             ProblemDetailsCode = "SERVICE_UNAVAILABLE"
 	ProblemDetailsCodeINTERNALSERVERERROR            ProblemDetailsCode = "INTERNAL_SERVER_ERROR"
 )
 
@@ -4264,6 +4362,7 @@ func (ProblemDetailsCode) AllValues() []ProblemDetailsCode {
 		ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
 		ProblemDetailsCodeREGISTRATIONFAILED,
 		ProblemDetailsCodeUPSTREAMERROR,
+		ProblemDetailsCodeSERVICEUNAVAILABLE,
 		ProblemDetailsCodeINTERNALSERVERERROR,
 	}
 }
@@ -4298,6 +4397,8 @@ func (s ProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsCodeREGISTRATIONFAILED:
 		return []byte(s), nil
 	case ProblemDetailsCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case ProblemDetailsCodeSERVICEUNAVAILABLE:
 		return []byte(s), nil
 	case ProblemDetailsCodeINTERNALSERVERERROR:
 		return []byte(s), nil
@@ -4350,6 +4451,9 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsCodeUPSTREAMERROR:
 		*s = ProblemDetailsCodeUPSTREAMERROR
+		return nil
+	case ProblemDetailsCodeSERVICEUNAVAILABLE:
+		*s = ProblemDetailsCodeSERVICEUNAVAILABLE
 		return nil
 	case ProblemDetailsCodeINTERNALSERVERERROR:
 		*s = ProblemDetailsCodeINTERNALSERVERERROR
@@ -5302,6 +5406,66 @@ func (s *SigningRequestStatus) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type StartLegreffierOnboardingBadRequest ProblemDetails
+
+func (*StartLegreffierOnboardingBadRequest) startLegreffierOnboardingRes() {}
+
+type StartLegreffierOnboardingOK struct {
+	ManifestFormUrl string `json:"manifestFormUrl"`
+	WorkflowId      string `json:"workflowId"`
+}
+
+// GetManifestFormUrl returns the value of ManifestFormUrl.
+func (s *StartLegreffierOnboardingOK) GetManifestFormUrl() string {
+	return s.ManifestFormUrl
+}
+
+// GetWorkflowId returns the value of WorkflowId.
+func (s *StartLegreffierOnboardingOK) GetWorkflowId() string {
+	return s.WorkflowId
+}
+
+// SetManifestFormUrl sets the value of ManifestFormUrl.
+func (s *StartLegreffierOnboardingOK) SetManifestFormUrl(val string) {
+	s.ManifestFormUrl = val
+}
+
+// SetWorkflowId sets the value of WorkflowId.
+func (s *StartLegreffierOnboardingOK) SetWorkflowId(val string) {
+	s.WorkflowId = val
+}
+
+func (*StartLegreffierOnboardingOK) startLegreffierOnboardingRes() {}
+
+type StartLegreffierOnboardingReq struct {
+	Fingerprint string `json:"fingerprint"`
+	PublicKey   string `json:"publicKey"`
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *StartLegreffierOnboardingReq) GetFingerprint() string {
+	return s.Fingerprint
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *StartLegreffierOnboardingReq) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *StartLegreffierOnboardingReq) SetFingerprint(val string) {
+	s.Fingerprint = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *StartLegreffierOnboardingReq) SetPublicKey(val string) {
+	s.PublicKey = val
+}
+
+type StartLegreffierOnboardingServiceUnavailable ProblemDetails
+
+func (*StartLegreffierOnboardingServiceUnavailable) startLegreffierOnboardingRes() {}
 
 type SubmitSignatureConflict ProblemDetails
 

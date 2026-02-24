@@ -45,6 +45,10 @@ type GetDiaryRes interface {
 	getDiaryRes()
 }
 
+type GetLegreffierOnboardingStatusRes interface {
+	getLegreffierOnboardingStatusRes()
+}
+
 type GetOAuth2TokenRes interface {
 	getOAuth2TokenRes()
 }
@@ -127,6 +131,10 @@ type SearchPublicFeedRes interface {
 
 type ShareDiaryRes interface {
 	shareDiaryRes()
+}
+
+type StartLegreffierOnboardingRes interface {
+	startLegreffierOnboardingRes()
 }
 
 type SubmitSignatureRes interface {

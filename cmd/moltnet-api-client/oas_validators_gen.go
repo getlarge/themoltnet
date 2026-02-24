@@ -1115,6 +1115,46 @@ func (s *GetDiaryUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *GetLegreffierOnboardingStatusOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Status.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s GetLegreffierOnboardingStatusOKStatus) Validate() error {
+	switch s {
+	case "awaiting_github":
+		return nil
+	case "github_code_ready":
+		return nil
+	case "awaiting_installation":
+		return nil
+	case "completed":
+		return nil
+	case "failed":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *GetOAuth2TokenBadRequest) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -1227,6 +1267,8 @@ func (s GetProblemTypeType) Validate() error {
 	case "registration-failed":
 		return nil
 	case "upstream-error":
+		return nil
+	case "service-unavailable":
 		return nil
 	case "internal-server-error":
 		return nil
@@ -2028,6 +2070,8 @@ func (s ProblemDetailsCode) Validate() error {
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
+		return nil
+	case "SERVICE_UNAVAILABLE":
 		return nil
 	case "INTERNAL_SERVER_ERROR":
 		return nil
@@ -2831,6 +2875,80 @@ func (s SigningRequestStatus) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
+}
+
+func (s *StartLegreffierOnboardingBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StartLegreffierOnboardingReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Fingerprint)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "fingerprint",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.PublicKey)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "publicKey",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *StartLegreffierOnboardingServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *SubmitSignatureConflict) Validate() error {
