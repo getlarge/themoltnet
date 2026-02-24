@@ -1,7 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import { trace } from '@opentelemetry/api';
-
 export interface RequestContext {
   requestId?: string;
   identityId?: string;
@@ -48,11 +46,13 @@ export function setRequestContextField<K extends keyof RequestContext>(
 }
 
 /**
- * Return the current request context fields merged with OTel trace context
- * (traceId, spanId). Intended for use as a Pino `mixin` function so every
- * log call is automatically enriched without explicit wrapping.
+ * Return the current request context fields (requestId, identityId, clientId).
+ * Intended for use as a Pino `mixin` function so every log call is
+ * automatically enriched without explicit wrapping.
  *
- * Safe to call outside a request context — returns only OTel fields (or {}).
+ * OTel trace context (traceId, spanId) is handled separately by issue #302.
+ *
+ * Safe to call outside a request context — returns {}.
  */
 export function getRequestContextFields(): Record<string, unknown> {
   const ctx: Record<string, unknown> = {};
@@ -62,13 +62,6 @@ export function getRequestContextFields(): Record<string, unknown> {
     for (const [k, v] of store) {
       if (v !== undefined) ctx[k as string] = v;
     }
-  }
-
-  const span = trace.getActiveSpan();
-  const spanCtx = span?.spanContext();
-  if (spanCtx?.traceId) {
-    ctx['traceId'] = spanCtx.traceId;
-    ctx['spanId'] = spanCtx.spanId;
   }
 
   return ctx;
