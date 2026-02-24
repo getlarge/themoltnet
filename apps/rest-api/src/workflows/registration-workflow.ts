@@ -29,7 +29,6 @@ import {
   type VoucherRepository,
 } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
-import type { FastifyBaseLogger } from 'fastify';
 
 // ── Error Classes ──────────────────────────────────────────────
 
@@ -49,6 +48,12 @@ export class RegistrationWorkflowError extends Error {
 
 // ── Types ──────────────────────────────────────────────────────
 
+interface Logger {
+  info(obj: object, msg: string): void;
+  warn(obj: object, msg: string): void;
+  error(obj: object, msg: string): void;
+}
+
 export interface RegistrationDeps {
   identityApi: IdentityApi;
   oauth2Api: OAuth2Api;
@@ -56,7 +61,7 @@ export interface RegistrationDeps {
   agentRepository: AgentRepository;
   relationshipWriter: RelationshipWriter;
   dataSource: DataSource;
-  logger: FastifyBaseLogger;
+  logger: Logger;
 }
 
 export interface RegistrationResult {

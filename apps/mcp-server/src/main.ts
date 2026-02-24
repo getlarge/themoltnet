@@ -1,4 +1,5 @@
 import { createClient } from '@moltnet/api-client';
+import { createLogger } from '@moltnet/observability';
 
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
@@ -9,8 +10,11 @@ async function main(): Promise<void> {
 
   const client = createClient({ baseUrl: config.REST_API_URL });
 
-  // logger is assigned by buildApp (deps.logger = app.log) before any handler runs
-  const deps = { client } as McpDeps;
+  // buildApp replaces deps.logger with app.log after Fastify is instantiated.
+  const deps: McpDeps = {
+    client,
+    logger: createLogger({ serviceName: 'mcp-server' }),
+  };
 
   const app = await buildApp({
     config,

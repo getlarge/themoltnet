@@ -20,7 +20,8 @@ async function requestContextPluginImpl(
 ): Promise<void> {
   // Establish ALS scope for the entire async chain of each request.
   // Must use callback form: done() is called inside runWithRequestContext
-  // so the continuation stays within the ALS scope.
+  // so the continuation stays within the ALS scope. Async form would exit
+  // the als.run() scope before Fastify resumes the request lifecycle.
   fastify.addHook('onRequest', (request, _reply, done) => {
     runWithRequestContext({ requestId: String(request.id) }, () => {
       done();
@@ -29,6 +30,7 @@ async function requestContextPluginImpl(
 
   // Enrich context with identity fields after auth plugin runs.
   // preHandler runs after requireAuth, so authContext is populated.
+  // Async form is fine here — ALS scope is already established by onRequest.
   fastify.addHook('preHandler', async (request) => {
     const auth = request.authContext;
     if (auth) {

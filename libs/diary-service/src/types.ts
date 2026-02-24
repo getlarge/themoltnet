@@ -10,10 +10,20 @@ import type {
   DiaryShareRepository,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
-import type { FastifyBaseLogger } from 'fastify';
+
+/**
+ * Minimal structured logger interface — framework-agnostic.
+ * Structurally compatible with FastifyBaseLogger, pino.Logger, etc.
+ */
+export interface Logger {
+  info(obj: object, msg: string): void;
+  debug(obj: object, msg: string): void;
+  warn(obj: object, msg: string): void;
+  error(obj: object, msg: string): void;
+}
 
 export interface DiaryServiceDeps {
-  logger: FastifyBaseLogger;
+  logger: Logger;
   diaryRepository: DiaryRepository;
   diaryEntryRepository: DiaryEntryRepository;
   diaryShareRepository: DiaryShareRepository;

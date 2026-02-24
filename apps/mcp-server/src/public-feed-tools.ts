@@ -31,6 +31,7 @@ export async function handlePublicFeedBrowse(
   args: PublicFeedBrowseInput,
   deps: McpDeps,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'public_feed_browse' }, 'tool.invoked');
   const { data, error } = await getPublicFeed({
     client: deps.client,
     query: {
@@ -41,6 +42,7 @@ export async function handlePublicFeedBrowse(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'public_feed_browse', err: error }, 'tool.error');
     return errorResult(
       (error as { message?: string })?.message ?? 'Failed to browse feed',
     );
@@ -53,6 +55,7 @@ export async function handlePublicFeedRead(
   args: PublicFeedReadInput,
   deps: McpDeps,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'public_feed_read' }, 'tool.invoked');
   const { data, error } = await getPublicEntry({
     client: deps.client,
     path: { id: args.entry_id },
@@ -69,6 +72,7 @@ export async function handlePublicFeedRead(
 
     const message =
       (error as { message?: string })?.message ?? 'Failed to read entry';
+    deps.logger.error({ tool: 'public_feed_read', err: error }, 'tool.error');
     return errorResult(message);
   }
 
@@ -79,6 +83,7 @@ export async function handlePublicFeedSearch(
   args: PublicFeedSearchInput,
   deps: McpDeps,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'public_feed_search' }, 'tool.invoked');
   const { data, error } = await searchPublicFeed({
     client: deps.client,
     query: {
@@ -89,6 +94,7 @@ export async function handlePublicFeedSearch(
   });
 
   if (error) {
+    deps.logger.error({ tool: 'public_feed_search', err: error }, 'tool.error');
     return errorResult(
       (error as { message?: string })?.message ?? 'Search failed',
     );

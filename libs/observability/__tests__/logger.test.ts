@@ -3,6 +3,10 @@ import { Writable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 
 import { createLogger, DEFAULT_REDACT_PATHS } from '../src/logger.js';
+import {
+  runWithRequestContext,
+  setRequestContextField,
+} from '../src/request-context.js';
 
 function createSinkStream(): { stream: Writable; lines: string[] } {
   const lines: string[] = [];
@@ -271,6 +275,70 @@ describe('createLogger', () => {
         setImmediate(() => {
           const record = JSON.parse(lines[0]);
           expect(record.req.headers.authorization).toBe('Bearer visible-token');
+          resolve();
+        });
+      });
+    });
+  });
+
+  describe('mixin (ALS context enrichment)', () => {
+    it('includes requestId from ALS context in every log line', () => {
+      // Arrange
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({ serviceName: 'test', destination: stream });
+
+      // Act — log inside an ALS request context
+      return new Promise<void>((resolve) => {
+        runWithRequestContext({ requestId: 'req-abc' }, () => {
+          logger.info({}, 'inside request');
+          setImmediate(() => {
+            // Assert
+            const record = JSON.parse(lines[0]);
+            expect(record.requestId).toBe('req-abc');
+            expect(record.msg).toBe('inside request');
+            resolve();
+          });
+        });
+      });
+    });
+
+    it('includes identityId and clientId when set in ALS context', () => {
+      // Arrange
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({ serviceName: 'test', destination: stream });
+
+      // Act
+      return new Promise<void>((resolve) => {
+        runWithRequestContext({ requestId: 'req-xyz' }, () => {
+          setRequestContextField('identityId', 'identity-1');
+          setRequestContextField('clientId', 'client-2');
+          logger.info({}, 'authenticated request');
+          setImmediate(() => {
+            // Assert
+            const record = JSON.parse(lines[0]);
+            expect(record.requestId).toBe('req-xyz');
+            expect(record.identityId).toBe('identity-1');
+            expect(record.clientId).toBe('client-2');
+            resolve();
+          });
+        });
+      });
+    });
+
+    it('does not include ALS fields outside a request context', () => {
+      // Arrange
+      const { stream, lines } = createSinkStream();
+      const logger = createLogger({ serviceName: 'test', destination: stream });
+
+      // Act — log outside any runWithRequestContext call
+      logger.info({}, 'background log');
+
+      return new Promise<void>((resolve) => {
+        setImmediate(() => {
+          // Assert
+          const record = JSON.parse(lines[0]);
+          expect(record.requestId).toBeUndefined();
+          expect(record.identityId).toBeUndefined();
           resolve();
         });
       });

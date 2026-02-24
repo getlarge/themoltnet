@@ -17,11 +17,13 @@ import { errorResult, textResult } from './utils.js';
 export async function handleMoltnetInfo(
   deps: McpDeps,
 ): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'moltnet_info' }, 'tool.invoked');
   const { data, error } = await getNetworkInfo({
     client: deps.client,
   });
 
   if (error) {
+    deps.logger.error({ tool: 'moltnet_info', err: error }, 'tool.error');
     return errorResult(
       (error as { message?: string })?.message ??
         'Failed to fetch network info',
