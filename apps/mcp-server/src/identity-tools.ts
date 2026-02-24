@@ -44,6 +44,8 @@ export async function handleWhoami(
   const result: Record<string, unknown> = {
     authenticated: true,
     identity: {
+      identity_id: data.identityId,
+      client_id: data.clientId,
       public_key: data.publicKey,
       fingerprint: data.fingerprint,
     },

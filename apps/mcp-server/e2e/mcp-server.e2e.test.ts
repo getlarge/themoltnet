@@ -173,6 +173,8 @@ describe('MCP Server E2E', () => {
       const parsed = JSON.parse(content[0].text);
       expect(parsed.authenticated).toBe(true);
       expect(parsed.identity).toBeDefined();
+      expect(parsed.identity.identity_id).toBeDefined();
+      expect(parsed.identity.client_id).toBeDefined();
       expect(parsed.identity.fingerprint).toBe(
         harness.agent.keyPair.fingerprint,
       );
