@@ -80,6 +80,10 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_RECOVERY: Type.Number({ default: 5 }),
   RATE_LIMIT_PUBLIC_VERIFY: Type.Number({ default: 10 }),
   RATE_LIMIT_PUBLIC_SEARCH: Type.Number({ default: 15 }),
+  // Sponsor agent identity ID — used by LeGreffier onboarding workflow to
+  // issue vouchers without the MAX_ACTIVE_VOUCHERS cap. Optional: server
+  // starts without it, but /public/legreffier/start rejects requests if unset.
+  SPONSOR_AGENT_ID: Type.Optional(Type.String({ format: 'uuid' })),
 });
 
 // ============================================================================
