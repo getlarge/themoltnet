@@ -1,9 +1,9 @@
 #!/bin/bash
-# PreToolUse hook: remind about /accountable-commit when LeGreffier is active.
+# PreToolUse hook: remind about /commit when LeGreffier is active.
 #
 # Receives JSON on stdin with tool_name and tool_input.
 # If the Bash command is a `git commit` and GIT_CONFIG_GLOBAL points to a
-# moltnet gitconfig, output advice to use /accountable-commit instead.
+# moltnet gitconfig, output advice to use /commit instead.
 #
 # Exit 0 with no JSON output = allow the tool call to proceed.
 # Exit 0 with hookSpecificOutput.permissionDecision = "deny" = block it.
@@ -29,10 +29,10 @@ if ! grep -q "gpg.format" "$GIT_CONFIG_GLOBAL" 2>/dev/null; then
 fi
 
 # LeGreffier is active and this is a git commit — provide context
-# We don't block, just add context so the agent knows to consider /accountable-commit
+# We don't block, just add context so the agent knows to consider /legreffier
 jq -n '{
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
-    additionalContext: "LeGreffier is active. Consider using /accountable-commit for medium/high-risk changes (schema, auth, crypto, CI, deps). For low-risk changes (tests, docs, formatting), a normal commit is fine."
+    additionalContext: "LeGreffier is active. Consider using /legreffier for medium/high-risk changes (schema, auth, crypto, CI, deps). For low-risk changes (tests, docs, formatting), a normal commit is fine."
   }
 }'
