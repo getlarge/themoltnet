@@ -8,8 +8,16 @@
  */
 
 import type { Static, TObject } from '@sinclair/typebox';
-import { Type } from '@sinclair/typebox';
+import { FormatRegistry, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
+
+// Register formats required by TypeBox Value validation (not needed for Fastify schema
+// compilation, but required when using Value.Check / Value.Errors directly).
+if (!FormatRegistry.Has('uuid')) {
+  FormatRegistry.Set('uuid', (v) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
+  );
+}
 
 // ============================================================================
 // Schemas
@@ -80,6 +88,10 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_RECOVERY: Type.Number({ default: 5 }),
   RATE_LIMIT_PUBLIC_VERIFY: Type.Number({ default: 10 }),
   RATE_LIMIT_PUBLIC_SEARCH: Type.Number({ default: 15 }),
+  // Sponsor agent identity ID — used by LeGreffier onboarding workflow to
+  // issue vouchers without the MAX_ACTIVE_VOUCHERS cap. Optional: server
+  // starts without it, but /public/legreffier/start rejects requests if unset.
+  SPONSOR_AGENT_ID: Type.Optional(Type.String({ format: 'uuid' })),
 });
 
 // ============================================================================
