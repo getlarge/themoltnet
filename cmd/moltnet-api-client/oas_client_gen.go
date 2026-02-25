@@ -17,7 +17,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.39.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -466,7 +466,8 @@ func (c *Client) sendAcceptDiaryInvitation(ctx context.Context, params AcceptDia
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeAcceptDiaryInvitationResponse(resp)
@@ -575,7 +576,8 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq) (
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateDiaryResponse(resp)
@@ -703,7 +705,8 @@ func (c *Client) sendCreateDiaryEntry(ctx context.Context, request *CreateDiaryE
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateDiaryEntryResponse(resp)
@@ -813,7 +816,8 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateSigningRequestResponse(resp)
@@ -938,7 +942,8 @@ func (c *Client) sendDeclineDiaryInvitation(ctx context.Context, params DeclineD
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeDeclineDiaryInvitationResponse(resp)
@@ -1062,7 +1067,8 @@ func (c *Client) sendDeleteDiary(ctx context.Context, params DeleteDiaryParams) 
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeDeleteDiaryResponse(resp)
@@ -1205,7 +1211,8 @@ func (c *Client) sendDeleteDiaryEntry(ctx context.Context, params DeleteDiaryEnt
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeDeleteDiaryEntryResponse(resp)
@@ -1296,7 +1303,8 @@ func (c *Client) sendGetAgentProfile(ctx context.Context, params GetAgentProfile
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetAgentProfileResponse(resp)
@@ -1402,7 +1410,8 @@ func (c *Client) sendGetCryptoIdentity(ctx context.Context) (res GetCryptoIdenti
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetCryptoIdentityResponse(resp)
@@ -1526,7 +1535,8 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetDiaryResponse(resp)
@@ -1669,7 +1679,8 @@ func (c *Client) sendGetDiaryEntry(ctx context.Context, params GetDiaryEntryPara
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetDiaryEntryResponse(resp)
@@ -1742,7 +1753,8 @@ func (c *Client) sendGetHealth(ctx context.Context) (res *Health, err error) {
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetHealthResponse(resp)
@@ -1833,7 +1845,8 @@ func (c *Client) sendGetLegreffierOnboardingStatus(ctx context.Context, params G
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetLegreffierOnboardingStatusResponse(resp)
@@ -1907,7 +1920,8 @@ func (c *Client) sendGetLlmsTxt(ctx context.Context) (res GetLlmsTxtOK, err erro
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetLlmsTxtResponse(resp)
@@ -1981,7 +1995,8 @@ func (c *Client) sendGetNetworkInfo(ctx context.Context) (res *NetworkInfo, err 
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetNetworkInfoResponse(resp)
@@ -2055,7 +2070,8 @@ func (c *Client) sendGetOAuth2Token(ctx context.Context) (res GetOAuth2TokenRes,
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetOAuth2TokenResponse(resp)
@@ -2146,7 +2162,8 @@ func (c *Client) sendGetProblemType(ctx context.Context, params GetProblemTypePa
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetProblemTypeResponse(resp)
@@ -2237,7 +2254,8 @@ func (c *Client) sendGetPublicEntry(ctx context.Context, params GetPublicEntryPa
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetPublicEntryResponse(resp)
@@ -2365,7 +2383,8 @@ func (c *Client) sendGetPublicFeed(ctx context.Context, params GetPublicFeedPara
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetPublicFeedResponse(resp)
@@ -2489,7 +2508,8 @@ func (c *Client) sendGetSigningRequest(ctx context.Context, params GetSigningReq
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetSigningRequestResponse(resp)
@@ -2601,7 +2621,8 @@ func (c *Client) sendGetTrustGraph(ctx context.Context, params GetTrustGraphPara
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetTrustGraphResponse(resp)
@@ -2707,7 +2728,8 @@ func (c *Client) sendGetWhoami(ctx context.Context) (res GetWhoamiRes, err error
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeGetWhoamiResponse(resp)
@@ -2815,7 +2837,8 @@ func (c *Client) sendIssueVoucher(ctx context.Context) (res IssueVoucherRes, err
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeIssueVoucherResponse(resp)
@@ -2921,7 +2944,8 @@ func (c *Client) sendListActiveVouchers(ctx context.Context) (res ListActiveVouc
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListActiveVouchersResponse(resp)
@@ -3027,7 +3051,8 @@ func (c *Client) sendListDiaries(ctx context.Context) (res ListDiariesRes, err e
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListDiariesResponse(resp)
@@ -3224,7 +3249,8 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListDiaryEntriesResponse(resp)
@@ -3330,7 +3356,8 @@ func (c *Client) sendListDiaryInvitations(ctx context.Context) (res ListDiaryInv
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListDiaryInvitationsResponse(resp)
@@ -3455,7 +3482,8 @@ func (c *Client) sendListDiaryShares(ctx context.Context, params ListDiaryShares
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListDiarySharesResponse(resp)
@@ -3528,7 +3556,8 @@ func (c *Client) sendListProblemTypes(ctx context.Context) (res []ListProblemTyp
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListProblemTypesResponse(resp)
@@ -3689,7 +3718,8 @@ func (c *Client) sendListSigningRequests(ctx context.Context, params ListSigning
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeListSigningRequestsResponse(resp)
@@ -3864,7 +3894,8 @@ func (c *Client) sendReflectDiary(ctx context.Context, params ReflectDiaryParams
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeReflectDiaryResponse(resp)
@@ -3942,7 +3973,8 @@ func (c *Client) sendRegisterAgent(ctx context.Context, request *RegisterAgentRe
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeRegisterAgentResponse(resp)
@@ -4018,7 +4050,8 @@ func (c *Client) sendRequestRecoveryChallenge(ctx context.Context, request *Requ
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeRequestRecoveryChallengeResponse(resp)
@@ -4161,7 +4194,8 @@ func (c *Client) sendRevokeDiaryShare(ctx context.Context, params RevokeDiarySha
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeRevokeDiaryShareResponse(resp)
@@ -4268,7 +4302,8 @@ func (c *Client) sendRotateClientSecret(ctx context.Context) (res RotateClientSe
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeRotateClientSecretResponse(resp)
@@ -4377,7 +4412,8 @@ func (c *Client) sendSearchDiary(ctx context.Context, request OptSearchDiaryReq)
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeSearchDiaryResponse(resp)
@@ -4536,7 +4572,8 @@ func (c *Client) sendSearchPublicFeed(ctx context.Context, params SearchPublicFe
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeSearchPublicFeedResponse(resp)
@@ -4664,7 +4701,8 @@ func (c *Client) sendShareDiary(ctx context.Context, request *ShareDiaryReq, par
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeShareDiaryResponse(resp)
@@ -4741,7 +4779,8 @@ func (c *Client) sendStartLegreffierOnboarding(ctx context.Context, request *Sta
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeStartLegreffierOnboardingResponse(resp)
@@ -4870,7 +4909,8 @@ func (c *Client) sendSubmitSignature(ctx context.Context, request *SubmitSignatu
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeSubmitSignatureResponse(resp)
@@ -4997,7 +5037,8 @@ func (c *Client) sendUpdateDiary(ctx context.Context, request OptUpdateDiaryReq,
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeUpdateDiaryResponse(resp)
@@ -5143,7 +5184,8 @@ func (c *Client) sendUpdateDiaryEntry(ctx context.Context, request OptUpdateDiar
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeUpdateDiaryEntryResponse(resp)
@@ -5238,7 +5280,8 @@ func (c *Client) sendVerifyAgentSignature(ctx context.Context, request *VerifyAg
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeVerifyAgentSignatureResponse(resp)
@@ -5314,7 +5357,8 @@ func (c *Client) sendVerifyCryptoSignature(ctx context.Context, request *VerifyC
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeVerifyCryptoSignatureResponse(resp)
@@ -5390,7 +5434,8 @@ func (c *Client) sendVerifyRecoveryChallenge(ctx context.Context, request *Verif
 	if err != nil {
 		return res, errors.Wrap(err, "do request")
 	}
-	defer resp.Body.Close()
+	body := resp.Body
+	defer body.Close()
 
 	stage = "DecodeResponse"
 	result, err := decodeVerifyRecoveryChallengeResponse(resp)
