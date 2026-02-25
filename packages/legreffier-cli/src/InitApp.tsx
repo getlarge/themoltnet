@@ -3,11 +3,14 @@ import { join } from 'node:path';
 
 import { cryptoService } from '@moltnet/crypto-service';
 import {
+  CliDisclaimer,
   CliDivider,
-  CliLogo,
+  CliHero,
   CliSpinner,
   CliStatusLine,
   CliStepHeader,
+  CliSummaryBox,
+  cliTheme,
 } from '@moltnet/design-system/cli';
 import {
   exportSSHKey,
@@ -18,7 +21,7 @@ import {
 } from '@themoltnet/sdk';
 import { Box, Text, useApp } from 'ink';
 import open from 'open';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
 import {
   checkWorkflowLive,
@@ -57,6 +60,7 @@ type StepKey =
 type StepStatus = 'pending' | 'running' | 'done' | 'skipped' | 'error';
 
 type UIPhase =
+  | 'disclaimer'
   | 'identity'
   | 'github_app'
   | 'git_setup'
@@ -64,6 +68,14 @@ type UIPhase =
   | 'agent_setup'
   | 'done'
   | 'error';
+
+interface UISummary {
+  agentName: string;
+  fingerprint: string;
+  appSlug: string;
+  apiUrl: string;
+  mcpUrl: string;
+}
 
 interface UIState {
   phase: UIPhase;
@@ -73,6 +85,7 @@ interface UIState {
   serverStatus?: OnboardingStatus;
   manifestFormUrl?: string;
   installationUrl?: string;
+  summary?: UISummary;
   errorMessage?: string;
   steps: Record<StepKey, StepStatus>;
 }
@@ -85,6 +98,7 @@ type UIAction =
   | { type: 'serverStatus'; status: OnboardingStatus }
   | { type: 'manifestFormUrl'; url: string }
   | { type: 'installationUrl'; url: string }
+  | { type: 'summary'; summary: UISummary }
   | { type: 'error'; message: string };
 
 function uiReducer(state: UIState, action: UIAction): UIState {
@@ -106,6 +120,8 @@ function uiReducer(state: UIState, action: UIAction): UIState {
       return { ...state, manifestFormUrl: action.url };
     case 'installationUrl':
       return { ...state, installationUrl: action.url };
+    case 'summary':
+      return { ...state, summary: action.summary };
     case 'error':
       return { ...state, phase: 'error', errorMessage: action.message };
     default:
@@ -581,16 +597,53 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
   const { exit } = useApp();
 
   const [state, dispatch] = useReducer(uiReducer, {
-    phase: 'identity',
+    phase: 'disclaimer',
     agentName: name,
     steps: initialSteps,
   });
 
+  // Disclaimer accepted flag — triggers the main flow
+  const [accepted, setAccepted] = useState(false);
+
+  // Delayed fallback URL visibility (2s after URL is set)
+  const [showManifestFallback, setShowManifestFallback] = useState(false);
+  const [showInstallFallback, setShowInstallFallback] = useState(false);
+  const manifestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const installTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Watch for manifestFormUrl to be set, then show fallback after 2s
   useEffect(() => {
+    if (state.manifestFormUrl) {
+      manifestTimerRef.current = setTimeout(
+        () => setShowManifestFallback(true),
+        2000,
+      );
+      return () => {
+        if (manifestTimerRef.current) clearTimeout(manifestTimerRef.current);
+      };
+    }
+  }, [state.manifestFormUrl]);
+
+  useEffect(() => {
+    if (state.installationUrl) {
+      installTimerRef.current = setTimeout(
+        () => setShowInstallFallback(true),
+        2000,
+      );
+      return () => {
+        if (installTimerRef.current) clearTimeout(installTimerRef.current);
+      };
+    }
+  }, [state.installationUrl]);
+
+  useEffect(() => {
+    if (!accepted) return;
+    dispatch({ type: 'phase', phase: 'identity' });
+
     void (async () => {
       try {
         const configDir = join(dir, '.moltnet', name);
-        const projectSlug = await deriveProjectSlug(dir);
+        const projectSlug = deriveProjectSlug(dir);
 
         const identity = await runIdentityPhase({
           apiUrl,
@@ -647,13 +700,24 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
           dispatch,
         });
 
+        const mcpUrl = apiUrl.replace('://api.', '://mcp.') + '/mcp';
+        dispatch({
+          type: 'summary',
+          summary: {
+            agentName: name,
+            fingerprint: identity.fingerprint,
+            appSlug: githubApp.appSlug,
+            apiUrl,
+            mcpUrl,
+          },
+        });
         dispatch({ type: 'phase', phase: 'done' });
-        setTimeout(() => exit(), 800);
+        setTimeout(() => exit(), 3000);
       } catch (err) {
         dispatch({ type: 'error', message: toErrorMessage(err) });
       }
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accepted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     phase,
@@ -663,33 +727,77 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
     serverStatus,
     manifestFormUrl,
     installationUrl,
+    summary,
     errorMessage,
     steps,
   } = state;
 
-  if (phase === 'error') {
+  // ── Disclaimer ────────────────────────────────────────────────────────────
+  if (phase === 'disclaimer') {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <CliLogo />
-        <Text color="red">
-          {'Setup failed: ' + (errorMessage ?? 'unknown error')}
-        </Text>
-        <Text dimColor>Run again to resume from where you left off.</Text>
+        <CliHero animated={true} />
+        <CliDisclaimer
+          onAccept={() => setAccepted(true)}
+          onReject={() => {
+            exit();
+          }}
+        />
       </Box>
     );
   }
 
-  if (phase === 'done') {
+  // ── Error ─────────────────────────────────────────────────────────────────
+  if (phase === 'error') {
     return (
       <Box flexDirection="column" paddingY={1}>
-        <CliLogo />
-        <Text color="green">LeGreffier setup complete!</Text>
-        <Text dimColor>
-          {'Agent "' + agentName + '" is ready for accountable commits.'}
+        <CliHero />
+        <Box
+          borderStyle="round"
+          borderColor={cliTheme.color.error}
+          paddingX={2}
+          paddingY={1}
+          marginBottom={1}
+        >
+          <Text color={cliTheme.color.error} bold>
+            {'✗  Setup failed: ' + (errorMessage ?? 'unknown error')}
+          </Text>
+        </Box>
+        <Text color={cliTheme.color.muted}>
+          {'  '}Run again to resume from where you left off.
         </Text>
       </Box>
     );
   }
+
+  // ── Done ──────────────────────────────────────────────────────────────────
+  if (phase === 'done') {
+    return (
+      <Box flexDirection="column" paddingY={1}>
+        <CliHero />
+        {summary && (
+          <CliSummaryBox
+            agentName={summary.agentName}
+            fingerprint={summary.fingerprint}
+            appSlug={summary.appSlug}
+            apiUrl={summary.apiUrl}
+            mcpUrl={summary.mcpUrl}
+          />
+        )}
+      </Box>
+    );
+  }
+
+  // ── Determine which phases are active/future for dimming ──────────────────
+  const PHASE_ORDER: UIPhase[] = [
+    'identity',
+    'github_app',
+    'git_setup',
+    'installation',
+    'agent_setup',
+  ];
+  const currentPhaseIndex = PHASE_ORDER.indexOf(phase);
+  const isFuture = (p: UIPhase) => PHASE_ORDER.indexOf(p) > currentPhaseIndex;
 
   const githubAppSpinnerLabel =
     serverStatus === 'awaiting_installation'
@@ -703,62 +811,80 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
 
   return (
     <Box flexDirection="column" paddingY={1}>
-      <CliLogo />
-      <Text dimColor>{'API: ' + apiUrl}</Text>
+      <CliHero />
+      <Text color={cliTheme.color.muted}>{'  API: ' + apiUrl}</Text>
 
       <CliStepHeader n={1} total={4} label="Identity" />
-      <CliStatusLine
-        label="Generate Ed25519 keypair"
-        status={steps.keypair}
-        detail={steps.keypair === 'done' ? fingerprint : undefined}
-      />
-      <CliStatusLine label="Register on MoltNet" status={steps.register} />
+      <Box flexDirection="column">
+        <CliStatusLine
+          label="Generate Ed25519 keypair"
+          status={isFuture('identity') ? 'pending' : steps.keypair}
+          detail={
+            steps.keypair === 'done' || steps.keypair === 'skipped'
+              ? fingerprint
+              : undefined
+          }
+        />
+        <CliStatusLine
+          label="Register on MoltNet"
+          status={isFuture('identity') ? 'pending' : steps.register}
+        />
+      </Box>
 
       <CliStepHeader n={2} total={4} label="GitHub App" />
-      {steps.githubApp === 'running' ? (
-        <Box flexDirection="column">
-          <CliSpinner label={githubAppSpinnerLabel} />
-          {manifestFormUrl ? (
-            <Text dimColor>
-              {'  If browser did not open: ' + manifestFormUrl}
-            </Text>
-          ) : null}
-        </Box>
-      ) : (
-        <CliStatusLine
-          label="Create GitHub App"
-          status={steps.githubApp}
-          detail={appSlug ?? undefined}
-        />
-      )}
+      <Box flexDirection="column">
+        {steps.githubApp === 'running' ? (
+          <Box flexDirection="column">
+            <CliSpinner label={githubAppSpinnerLabel} />
+            {showManifestFallback && manifestFormUrl ? (
+              <Text color={cliTheme.color.muted}>
+                {'  → '}
+                <Text color={cliTheme.color.accent}>{manifestFormUrl}</Text>
+              </Text>
+            ) : null}
+          </Box>
+        ) : (
+          <CliStatusLine
+            label="Create GitHub App"
+            status={isFuture('github_app') ? 'pending' : steps.githubApp}
+            detail={appSlug ?? undefined}
+          />
+        )}
+      </Box>
 
       <CliStepHeader n={3} total={4} label="Git identity" />
       <CliStatusLine
         label="Export SSH keys + configure git"
-        status={steps.gitSetup}
+        status={isFuture('git_setup') ? 'pending' : steps.gitSetup}
       />
 
       <CliStepHeader n={4} total={4} label="Finalise" />
-      {steps.installation === 'running' ? (
-        <Box flexDirection="column">
-          <CliSpinner label={installationSpinnerLabel} />
-          {installationUrl ? (
-            <Text dimColor>
-              {'  If browser did not open: ' + installationUrl}
-            </Text>
-          ) : null}
-        </Box>
-      ) : (
+      <Box flexDirection="column">
+        {steps.installation === 'running' ? (
+          <Box flexDirection="column">
+            <CliSpinner label={installationSpinnerLabel} />
+            {showInstallFallback && installationUrl ? (
+              <Text color={cliTheme.color.muted}>
+                {'  → '}
+                <Text color={cliTheme.color.accent}>{installationUrl}</Text>
+              </Text>
+            ) : null}
+          </Box>
+        ) : (
+          <CliStatusLine
+            label="GitHub App installation"
+            status={isFuture('installation') ? 'pending' : steps.installation}
+          />
+        )}
         <CliStatusLine
-          label="GitHub App installation"
-          status={steps.installation}
+          label="Download skills"
+          status={isFuture('installation') ? 'pending' : steps.skills}
         />
-      )}
-      <CliStatusLine label="Download skills" status={steps.skills} />
-      <CliStatusLine
-        label="Write settings.local.json"
-        status={steps.settings}
-      />
+        <CliStatusLine
+          label="Write settings.local.json"
+          status={isFuture('installation') ? 'pending' : steps.settings}
+        />
+      </Box>
 
       <CliDivider />
     </Box>
