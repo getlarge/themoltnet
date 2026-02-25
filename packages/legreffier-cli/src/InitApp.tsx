@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 import { cryptoService } from '@moltnet/crypto-service';
 import {
   CliDivider,
@@ -7,31 +9,32 @@ import {
   CliStepHeader,
 } from '@moltnet/design-system/cli';
 import {
-  buildMcpConfig,
   exportSSHKey,
-  getConfigDir,
+  type McpConfig,
   readConfig,
   writeConfig,
   writeMcpConfig,
 } from '@themoltnet/sdk';
 import { Box, Text, useApp } from 'ink';
 import open from 'open';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useReducer } from 'react';
 
-import { pollUntil, startOnboarding } from './api.js';
+import { type OnboardingStatus, pollUntil, startOnboarding } from './api.js';
 import {
   exchangeManifestCode,
   lookupBotUser,
   writeGitConfig,
   writePem,
 } from './github.js';
-import { downloadSkills, writeSettingsLocal } from './setup.js';
+import { downloadSkills, toEnvPrefix, writeSettingsLocal } from './setup.js';
 import {
   clearState,
   deriveProjectSlug,
   readState,
   writeState,
 } from './state.js';
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 type StepKey =
   | 'keypair'
@@ -44,21 +47,395 @@ type StepKey =
 
 type StepStatus = 'pending' | 'running' | 'done' | 'skipped' | 'error';
 
-interface AppState {
-  phase:
-    | 'identity'
-    | 'github_app'
-    | 'git_setup'
-    | 'installation'
-    | 'agent_setup'
-    | 'done'
-    | 'error';
+type UIPhase =
+  | 'identity'
+  | 'github_app'
+  | 'git_setup'
+  | 'installation'
+  | 'agent_setup'
+  | 'done'
+  | 'error';
+
+interface UIState {
+  phase: UIPhase;
   agentName: string;
   fingerprint?: string;
   appSlug?: string;
+  serverStatus?: OnboardingStatus;
   errorMessage?: string;
   steps: Record<StepKey, StepStatus>;
 }
+
+type UIAction =
+  | { type: 'step'; key: StepKey; status: StepStatus }
+  | { type: 'phase'; phase: UIPhase }
+  | { type: 'fingerprint'; fingerprint: string }
+  | { type: 'appSlug'; appSlug: string }
+  | { type: 'serverStatus'; status: OnboardingStatus }
+  | { type: 'error'; message: string };
+
+function uiReducer(state: UIState, action: UIAction): UIState {
+  switch (action.type) {
+    case 'step':
+      return {
+        ...state,
+        steps: { ...state.steps, [action.key]: action.status },
+      };
+    case 'phase':
+      return { ...state, phase: action.phase };
+    case 'fingerprint':
+      return { ...state, fingerprint: action.fingerprint };
+    case 'appSlug':
+      return { ...state, appSlug: action.appSlug };
+    case 'serverStatus':
+      return { ...state, serverStatus: action.status };
+    case 'error':
+      return { ...state, phase: 'error', errorMessage: action.message };
+  }
+}
+
+const initialSteps: Record<StepKey, StepStatus> = {
+  keypair: 'pending',
+  register: 'pending',
+  githubApp: 'pending',
+  gitSetup: 'pending',
+  installation: 'pending',
+  skills: 'pending',
+  settings: 'pending',
+};
+
+// ── Phase result types ───────────────────────────────────────────────────────
+
+interface IdentityResult {
+  publicKey: string;
+  fingerprint: string;
+  workflowId: string;
+  manifestFormUrl: string;
+  clientId: string;
+  clientSecret: string;
+  skipped: boolean;
+}
+
+interface GithubAppResult {
+  appSlug: string;
+  pemPath: string;
+  installationId: string;
+  skipped: boolean;
+}
+
+interface InstallationResult {
+  installationId: string;
+  clientId: string;
+  clientSecret: string;
+}
+
+// ── Phase functions ──────────────────────────────────────────────────────────
+
+async function runIdentityPhase(opts: {
+  apiUrl: string;
+  agentName: string;
+  configDir: string;
+  projectSlug: string;
+  dispatch: (a: UIAction) => void;
+}): Promise<IdentityResult> {
+  const { apiUrl, agentName, configDir, projectSlug, dispatch } = opts;
+  const existingConfig = await readConfig(configDir);
+  const existingState = await readState(projectSlug);
+
+  if (existingConfig?.keys?.public_key && existingConfig?.oauth2?.client_id) {
+    dispatch({ type: 'step', key: 'keypair', status: 'skipped' });
+    dispatch({ type: 'step', key: 'register', status: 'skipped' });
+    dispatch({
+      type: 'fingerprint',
+      fingerprint: existingConfig.keys.fingerprint,
+    });
+    const workflowId =
+      existingState?.workflowId && !existingConfig.github?.app_id
+        ? existingState.workflowId
+        : '';
+    return {
+      publicKey: existingConfig.keys.public_key,
+      fingerprint: existingConfig.keys.fingerprint,
+      workflowId,
+      manifestFormUrl: '',
+      clientId: existingConfig.oauth2.client_id,
+      clientSecret: existingConfig.oauth2.client_secret,
+      skipped: true,
+    };
+  }
+
+  dispatch({ type: 'step', key: 'keypair', status: 'running' });
+  const kp = await cryptoService.generateKeyPair();
+  dispatch({ type: 'fingerprint', fingerprint: kp.fingerprint });
+  dispatch({ type: 'step', key: 'keypair', status: 'done' });
+
+  dispatch({ type: 'step', key: 'register', status: 'running' });
+  const started = await startOnboarding(apiUrl, {
+    publicKey: kp.publicKey,
+    fingerprint: kp.fingerprint,
+    agentName,
+  });
+  await writeState(
+    {
+      workflowId: started.workflowId,
+      publicKey: kp.publicKey,
+      fingerprint: kp.fingerprint,
+      agentName,
+      phase: 'awaiting_github',
+    },
+    projectSlug,
+  );
+  dispatch({ type: 'step', key: 'register', status: 'done' });
+
+  return {
+    publicKey: kp.publicKey,
+    fingerprint: kp.fingerprint,
+    workflowId: started.workflowId,
+    manifestFormUrl: started.manifestFormUrl,
+    clientId: '',
+    clientSecret: '',
+    skipped: false,
+  };
+}
+
+async function runGithubAppPhase(opts: {
+  apiUrl: string;
+  agentName: string;
+  configDir: string;
+  projectSlug: string;
+  publicKey: string;
+  fingerprint: string;
+  workflowId: string;
+  manifestFormUrl: string;
+  dispatch: (a: UIAction) => void;
+}): Promise<GithubAppResult> {
+  const {
+    apiUrl,
+    agentName,
+    configDir,
+    projectSlug,
+    publicKey,
+    fingerprint,
+    workflowId,
+    manifestFormUrl,
+    dispatch,
+  } = opts;
+
+  const existingConfig = await readConfig(configDir);
+
+  if (existingConfig?.github?.app_id) {
+    dispatch({ type: 'step', key: 'githubApp', status: 'skipped' });
+    dispatch({
+      type: 'appSlug',
+      appSlug: existingConfig.github.app_slug ?? '',
+    });
+    return {
+      appSlug: existingConfig.github.app_slug ?? '',
+      pemPath: existingConfig.github.private_key_path,
+      installationId: existingConfig.github.installation_id,
+      skipped: true,
+    };
+  }
+
+  dispatch({ type: 'phase', phase: 'github_app' });
+  dispatch({ type: 'step', key: 'githubApp', status: 'running' });
+  await open(manifestFormUrl);
+
+  const codeResult = await pollUntil(
+    apiUrl,
+    workflowId,
+    ['github_code_ready', 'awaiting_installation', 'completed'],
+    (status) => dispatch({ type: 'serverStatus', status }),
+  );
+
+  if (!codeResult.githubCode) {
+    throw new Error('GitHub code not available in onboarding status');
+  }
+
+  const ghCreds = await exchangeManifestCode(codeResult.githubCode);
+  dispatch({ type: 'appSlug', appSlug: ghCreds.appSlug });
+
+  const pemPath = await writePem(ghCreds.pem, ghCreds.appSlug, projectSlug);
+  await writeState(
+    {
+      workflowId,
+      publicKey,
+      fingerprint,
+      agentName,
+      phase: 'awaiting_installation',
+      appId: ghCreds.appId,
+      appSlug: ghCreds.appSlug,
+    },
+    projectSlug,
+  );
+
+  dispatch({ type: 'step', key: 'githubApp', status: 'done' });
+  return {
+    appSlug: ghCreds.appSlug,
+    pemPath,
+    installationId: '',
+    skipped: false,
+  };
+}
+
+async function runGitSetupPhase(opts: {
+  configDir: string;
+  repoDir: string;
+  agentName: string;
+  appSlug: string;
+  dispatch: (a: UIAction) => void;
+}): Promise<void> {
+  const { configDir, repoDir, agentName, appSlug, dispatch } = opts;
+  const existingConfig = await readConfig(configDir);
+
+  if (existingConfig?.git?.config_path) {
+    dispatch({ type: 'step', key: 'gitSetup', status: 'skipped' });
+    return;
+  }
+
+  dispatch({ type: 'phase', phase: 'git_setup' });
+  dispatch({ type: 'step', key: 'gitSetup', status: 'running' });
+  await exportSSHKey({ configDir });
+  const botUser = await lookupBotUser(appSlug);
+  writeGitConfig({ cwd: repoDir, name: agentName, email: botUser.email });
+  dispatch({ type: 'step', key: 'gitSetup', status: 'done' });
+}
+
+async function runInstallationPhase(opts: {
+  apiUrl: string;
+  configDir: string;
+  workflowId: string;
+  appSlug: string;
+  dispatch: (a: UIAction) => void;
+}): Promise<InstallationResult> {
+  const { apiUrl, configDir, workflowId, appSlug, dispatch } = opts;
+  const existingConfig = await readConfig(configDir);
+
+  if (
+    existingConfig?.github?.installation_id &&
+    existingConfig?.oauth2?.client_id
+  ) {
+    dispatch({ type: 'step', key: 'installation', status: 'skipped' });
+    return {
+      installationId: existingConfig.github.installation_id,
+      clientId: existingConfig.oauth2.client_id,
+      clientSecret: existingConfig.oauth2.client_secret,
+    };
+  }
+
+  dispatch({ type: 'phase', phase: 'installation' });
+  dispatch({ type: 'step', key: 'installation', status: 'running' });
+  await open(`https://github.com/apps/${appSlug}/installations/new`);
+
+  const result = await pollUntil(apiUrl, workflowId, ['completed'], (status) =>
+    dispatch({ type: 'serverStatus', status }),
+  );
+
+  dispatch({ type: 'step', key: 'installation', status: 'done' });
+  return {
+    installationId: '',
+    clientId: result.clientId ?? '',
+    clientSecret: result.clientSecret ?? '',
+  };
+}
+
+async function runAgentSetupPhase(opts: {
+  apiUrl: string;
+  repoDir: string;
+  configDir: string;
+  agentName: string;
+  publicKey: string;
+  fingerprint: string;
+  appSlug: string;
+  pemPath: string;
+  installationId: string;
+  clientId: string;
+  clientSecret: string;
+  projectSlug: string;
+  dispatch: (a: UIAction) => void;
+}): Promise<void> {
+  const {
+    apiUrl,
+    repoDir,
+    configDir,
+    agentName,
+    publicKey,
+    fingerprint,
+    appSlug,
+    pemPath,
+    installationId,
+    clientId,
+    clientSecret,
+    projectSlug,
+    dispatch,
+  } = opts;
+
+  dispatch({ type: 'phase', phase: 'agent_setup' });
+  const existingConfig = await readConfig(configDir);
+
+  if (!existingConfig?.oauth2?.client_id && clientId) {
+    await writeConfig(
+      {
+        identity_id: '',
+        registered_at: new Date().toISOString(),
+        oauth2: { client_id: clientId, client_secret: clientSecret },
+        keys: { public_key: publicKey, private_key: '', fingerprint },
+        endpoints: {
+          api: apiUrl,
+          mcp: apiUrl.replace('://api.', '://mcp.') + '/mcp',
+        },
+        github: {
+          app_id: appSlug,
+          app_slug: appSlug,
+          installation_id: installationId,
+          private_key_path: pemPath,
+        },
+      },
+      configDir,
+    );
+  }
+
+  // Write .mcp.json with env-var references — real creds go in settings.local.json
+  if (clientId) {
+    const prefix = toEnvPrefix(agentName);
+    const mcpUrl = apiUrl.replace('://api.', '://mcp.') + '/mcp';
+    await writeMcpConfig(
+      {
+        mcpServers: {
+          [agentName]: {
+            type: 'http',
+            url: mcpUrl,
+            headers: {
+              'X-Client-Id': `\${${prefix}_CLIENT_ID}`,
+              'X-Client-Secret': `\${${prefix}_CLIENT_SECRET}`,
+            },
+          },
+        },
+      } as McpConfig,
+      repoDir,
+    );
+  }
+
+  dispatch({ type: 'step', key: 'skills', status: 'running' });
+  await downloadSkills(repoDir);
+  dispatch({ type: 'step', key: 'skills', status: 'done' });
+
+  dispatch({ type: 'step', key: 'settings', status: 'running' });
+  await writeSettingsLocal({
+    repoDir,
+    agentName,
+    appSlug,
+    pemPath,
+    installationId,
+    clientId,
+    clientSecret,
+  });
+  dispatch({ type: 'step', key: 'settings', status: 'done' });
+
+  await clearState(projectSlug);
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export interface InitAppProps {
   name: string;
@@ -69,258 +446,91 @@ export interface InitAppProps {
 export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
   const { exit } = useApp();
 
-  const [state, setState] = useState<AppState>({
+  const [state, dispatch] = useReducer(uiReducer, {
     phase: 'identity',
     agentName: name,
-    steps: {
-      keypair: 'pending',
-      register: 'pending',
-      githubApp: 'pending',
-      gitSetup: 'pending',
-      installation: 'pending',
-      skills: 'pending',
-      settings: 'pending',
-    },
+    steps: initialSteps,
   });
-
-  const setStep = useCallback((key: StepKey, status: StepStatus) => {
-    setState((s) => ({ ...s, steps: { ...s.steps, [key]: status } }));
-  }, []);
 
   useEffect(() => {
     void (async () => {
       try {
-        const configDir = getConfigDir();
+        const configDir = join(dir, '.moltnet', name);
         const projectSlug = await deriveProjectSlug(dir);
-        const existingConfig = await readConfig(configDir);
-        const existingState = await readState(projectSlug);
 
-        let publicKey: string;
-        let fingerprint: string;
-        let workflowId: string;
-        let clientId: string;
-        let clientSecret: string;
-
-        // ── Phase 1: Identity ────────────────────────────────────────────────
-        if (
-          existingConfig?.keys?.public_key &&
-          existingConfig?.oauth2?.client_id
-        ) {
-          setStep('keypair', 'skipped');
-          setStep('register', 'skipped');
-          publicKey = existingConfig.keys.public_key;
-          fingerprint = existingConfig.keys.fingerprint;
-          clientId = existingConfig.oauth2.client_id;
-          clientSecret = existingConfig.oauth2.client_secret;
-          setState((s) => ({ ...s, fingerprint }));
-
-          if (existingState?.workflowId && !existingConfig.github?.app_id) {
-            workflowId = existingState.workflowId;
-          } else {
-            workflowId = '';
-          }
-        } else {
-          setStep('keypair', 'running');
-          const kp = await cryptoService.generateKeyPair();
-          publicKey = kp.publicKey;
-          fingerprint = kp.fingerprint;
-          setState((s) => ({ ...s, fingerprint }));
-          setStep('keypair', 'done');
-
-          setStep('register', 'running');
-          const started = await startOnboarding(apiUrl, {
-            publicKey,
-            fingerprint,
-            agentName: name,
-          });
-          workflowId = started.workflowId;
-          await writeState(
-            {
-              workflowId,
-              publicKey,
-              fingerprint,
-              agentName: name,
-              phase: 'awaiting_github',
-            },
-            projectSlug,
-          );
-          setStep('register', 'done');
-
-          setState((s) => ({ ...s, phase: 'github_app' }));
-          setStep('githubApp', 'running');
-          await open(started.manifestFormUrl);
-
-          // Placeholders — filled from poll result below
-          clientId = '';
-          clientSecret = '';
-        }
-
-        // ── Phase 2: GitHub App ──────────────────────────────────────────────
-        let appSlug: string;
-        let pemPath: string;
-        let installationId: string;
-
-        if (existingConfig?.github?.app_id) {
-          setStep('githubApp', 'skipped');
-          appSlug = existingConfig.github.app_slug ?? '';
-          pemPath = existingConfig.github.private_key_path;
-          installationId = existingConfig.github.installation_id;
-          setState((s) => ({ ...s, appSlug }));
-        } else {
-          setState((s) => ({ ...s, phase: 'github_app' }));
-          setStep('githubApp', 'running');
-
-          // Poll until github_code_ready (user has completed manifest form)
-          const codeResult = await pollUntil(
-            apiUrl,
-            workflowId,
-            ['github_code_ready', 'awaiting_installation', 'completed'],
-            (status) => {
-              if (status === 'github_code_ready') {
-                setState((s) => ({ ...s, phase: 'github_app' }));
-              }
-            },
-          );
-
-          if (!codeResult.githubCode) {
-            throw new Error('GitHub code not available in onboarding status');
-          }
-
-          const ghCreds = await exchangeManifestCode(codeResult.githubCode);
-          appSlug = ghCreds.appSlug;
-          setState((s) => ({ ...s, appSlug }));
-
-          pemPath = await writePem(ghCreds.pem, ghCreds.appSlug, projectSlug);
-          await writeState(
-            {
-              workflowId,
-              publicKey,
-              fingerprint,
-              agentName: name,
-              phase: 'awaiting_installation',
-              appId: ghCreds.appId,
-              appSlug: ghCreds.appSlug,
-            },
-            projectSlug,
-          );
-
-          // Store partial config so we can resume after crash
-          installationId = '';
-          setStep('githubApp', 'done');
-          setState((s) => ({ ...s, phase: 'git_setup' }));
-        }
-
-        // ── Phase 3: Git identity ────────────────────────────────────────────
-        setState((s) => ({ ...s, phase: 'git_setup' }));
-
-        if (existingConfig?.git?.config_path) {
-          setStep('gitSetup', 'skipped');
-        } else {
-          setStep('gitSetup', 'running');
-          const { privatePath } = await exportSSHKey({ configDir });
-          const botUser = await lookupBotUser(appSlug);
-          writeGitConfig({ cwd: dir, name, email: botUser.email });
-          setStep('gitSetup', 'done');
-          void privatePath; // used via SDK config update
-        }
-
-        // ── Phase 4: Installation polling ────────────────────────────────────
-        setState((s) => ({ ...s, phase: 'installation' }));
-
-        if (existingConfig?.github?.installation_id) {
-          setStep('installation', 'skipped');
-          installationId = existingConfig.github.installation_id;
-        } else {
-          setStep('installation', 'running');
-          // Open GitHub App installation page (if we have appSlug)
-          if (appSlug) {
-            await open(`https://github.com/apps/${appSlug}/installations/new`);
-          }
-          // Poll until completed — may take minutes
-          const completedResult = await pollUntil(
-            apiUrl,
-            workflowId,
-            ['completed'],
-            undefined,
-          );
-
-          // After completion, server exposes clientId/clientSecret
-          if (completedResult.clientId) {
-            clientId = completedResult.clientId;
-            clientSecret = completedResult.clientSecret ?? '';
-          }
-          installationId = '';
-          setStep('installation', 'done');
-        }
-
-        // ── Phase 5: Agent setup ─────────────────────────────────────────────
-        setState((s) => ({ ...s, phase: 'agent_setup' }));
-
-        // Write moltnet.json config if not already registered
-        if (!existingConfig?.oauth2?.client_id && clientId) {
-          const kp = await cryptoService.generateKeyPair(); // placeholder if needed
-          void kp;
-          await writeConfig(
-            {
-              identity_id: '',
-              registered_at: new Date().toISOString(),
-              oauth2: { client_id: clientId, client_secret: clientSecret },
-              keys: { public_key: publicKey, private_key: '', fingerprint },
-              endpoints: {
-                api: apiUrl,
-                mcp: apiUrl.replace('://api.', '://mcp.') + '/mcp',
-              },
-              github: {
-                app_id: existingState?.appId ?? '',
-                app_slug: appSlug,
-                installation_id: installationId,
-                private_key_path: pemPath,
-              },
-            },
-            configDir,
-          );
-        }
-
-        // Write .mcp.json
-        if (clientId) {
-          const mcpConfig = buildMcpConfig(apiUrl, { clientId, clientSecret });
-          mcpConfig.mcpServers = {
-            [name]: mcpConfig.mcpServers.moltnet,
-          } as typeof mcpConfig.mcpServers;
-          await writeMcpConfig(mcpConfig, dir);
-        }
-
-        // Download skills
-        setStep('skills', 'running');
-        await downloadSkills(dir);
-        setStep('skills', 'done');
-
-        // Write .claude/settings.local.json
-        setStep('settings', 'running');
-        await writeSettingsLocal({
-          repoDir: dir,
-          appSlug,
-          pemPath,
-          installationId,
+        const identity = await runIdentityPhase({
+          apiUrl,
+          agentName: name,
+          configDir,
+          projectSlug,
+          dispatch,
         });
-        setStep('settings', 'done');
 
-        // Clear resumption state
-        await clearState(projectSlug);
+        const githubApp = await runGithubAppPhase({
+          apiUrl,
+          agentName: name,
+          configDir,
+          projectSlug,
+          publicKey: identity.publicKey,
+          fingerprint: identity.fingerprint,
+          workflowId: identity.workflowId,
+          manifestFormUrl: identity.manifestFormUrl,
+          dispatch,
+        });
 
-        setState((s) => ({ ...s, phase: 'done' }));
+        await runGitSetupPhase({
+          configDir,
+          repoDir: dir,
+          agentName: name,
+          appSlug: githubApp.appSlug,
+          dispatch,
+        });
+
+        const installation = await runInstallationPhase({
+          apiUrl,
+          configDir,
+          workflowId: identity.workflowId,
+          appSlug: githubApp.appSlug,
+          dispatch,
+        });
+
+        await runAgentSetupPhase({
+          apiUrl,
+          repoDir: dir,
+          configDir,
+          agentName: name,
+          publicKey: identity.publicKey,
+          fingerprint: identity.fingerprint,
+          appSlug: githubApp.appSlug,
+          pemPath: githubApp.pemPath,
+          installationId:
+            installation.installationId || githubApp.installationId,
+          clientId: installation.clientId || identity.clientId,
+          clientSecret: installation.clientSecret || identity.clientSecret,
+          projectSlug,
+          dispatch,
+        });
+
+        dispatch({ type: 'phase', phase: 'done' });
         setTimeout(() => exit(), 800);
       } catch (err) {
-        setState((s) => ({
-          ...s,
-          phase: 'error',
-          errorMessage: err instanceof Error ? err.message : String(err),
-        }));
+        dispatch({
+          type: 'error',
+          message: err instanceof Error ? err.message : String(err),
+        });
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { phase, agentName, fingerprint, appSlug, errorMessage, steps } = state;
+  const {
+    phase,
+    agentName,
+    fingerprint,
+    appSlug,
+    serverStatus,
+    errorMessage,
+    steps,
+  } = state;
 
   if (phase === 'error') {
     return (
@@ -346,6 +556,16 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
     );
   }
 
+  const githubAppSpinnerLabel =
+    serverStatus === 'awaiting_installation'
+      ? 'GitHub App created, waiting for installation…'
+      : 'Waiting for GitHub App creation (browser opened)…';
+
+  const installationSpinnerLabel =
+    serverStatus === 'completed'
+      ? 'Installation confirmed, finalising…'
+      : 'Waiting for GitHub App installation…';
+
   return (
     <Box flexDirection="column" paddingY={1}>
       <CliLogo />
@@ -360,7 +580,7 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
 
       <CliStepHeader n={2} total={4} label="GitHub App" />
       {steps.githubApp === 'running' ? (
-        <CliSpinner label="Waiting for GitHub App creation (browser opened)..." />
+        <CliSpinner label={githubAppSpinnerLabel} />
       ) : (
         <CliStatusLine
           label="Create GitHub App"
@@ -377,7 +597,7 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
 
       <CliStepHeader n={4} total={4} label="Finalise" />
       {steps.installation === 'running' ? (
-        <CliSpinner label="Waiting for GitHub App installation..." />
+        <CliSpinner label={installationSpinnerLabel} />
       ) : (
         <CliStatusLine
           label="GitHub App installation"

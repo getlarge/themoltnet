@@ -24,25 +24,39 @@ export async function downloadSkills(repoDir: string): Promise<void> {
 
 export interface SettingsLocalOptions {
   repoDir: string;
+  agentName: string;
   appSlug: string;
   pemPath: string;
   installationId: string;
+  clientId: string;
+  clientSecret: string;
 }
 
-/** Write .claude/settings.local.json with LeGreffier bot identity. */
+/** Convert an agent name to an uppercase env-var prefix, e.g. "my-agent" → "MY_AGENT". */
+export function toEnvPrefix(agentName: string): string {
+  return agentName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+}
+
+/** Write .claude/settings.local.json with LeGreffier bot identity and MoltNet credentials. */
 export async function writeSettingsLocal({
   repoDir,
+  agentName,
   appSlug,
   pemPath,
   installationId,
+  clientId,
+  clientSecret,
 }: SettingsLocalOptions): Promise<void> {
   const dir = join(repoDir, '.claude');
   await mkdir(dir, { recursive: true });
+  const prefix = toEnvPrefix(agentName);
   const settings = {
     env: {
-      GITHUB_APP_ID: appSlug,
-      GITHUB_APP_PRIVATE_KEY_PATH: pemPath,
-      GITHUB_APP_INSTALLATION_ID: installationId,
+      [`${prefix}_GITHUB_APP_ID`]: appSlug,
+      [`${prefix}_GITHUB_APP_PRIVATE_KEY_PATH`]: pemPath,
+      [`${prefix}_GITHUB_APP_INSTALLATION_ID`]: installationId,
+      [`${prefix}_CLIENT_ID`]: clientId,
+      [`${prefix}_CLIENT_SECRET`]: clientSecret,
     },
   };
   await writeFile(

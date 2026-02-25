@@ -2,6 +2,8 @@ import { mkdir, readFile, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { afterEach, describe, expect, it } from 'vitest';
+
 import { exchangeManifestCode, lookupBotUser, writePem } from './github.js';
 
 const TEST_SLUG = 'test-github-' + Math.random().toString(36).slice(2);

@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { pollStatus, pollUntil, startOnboarding } from './api.js';
 
 const BASE_URL = 'http://localhost:8000';
