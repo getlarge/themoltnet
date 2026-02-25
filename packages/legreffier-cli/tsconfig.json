@@ -7,17 +7,11 @@
     "jsx": "react-jsx",
     "lib": ["ES2022"]
   },
-  "include": ["src"],
-  "exclude": ["dist", "node_modules"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "dist", "node_modules"],
   "references": [
-    {
-      "path": "../../libs/api-client"
-    },
-    {
-      "path": "../../libs/design-system"
-    },
-    {
-      "path": "../../libs/sdk"
-    }
+    { "path": "../../libs/api-client" },
+    { "path": "../../libs/design-system" },
+    { "path": "../../libs/sdk" }
   ]
 }

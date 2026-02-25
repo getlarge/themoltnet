@@ -1,2 +1,3 @@
 pnpm exec dotenvx ext precommit
+pnpm exec update-ts-references --check
 pnpm exec lint-staged
