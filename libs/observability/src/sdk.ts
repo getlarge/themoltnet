@@ -1,5 +1,10 @@
 import { FastifyOtelInstrumentation } from '@fastify/otel';
-import { metrics as metricsApi } from '@opentelemetry/api';
+import {
+  diag,
+  DiagConsoleLogger,
+  DiagLogLevel,
+  metrics as metricsApi,
+} from '@opentelemetry/api';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import type { MeterProvider } from '@opentelemetry/sdk-metrics';
@@ -50,6 +55,9 @@ import type { ObservabilityConfig, ObservabilityContext } from './types.js';
 export function initObservability(
   config: ObservabilityConfig,
 ): ObservabilityContext {
+  // Enable OTel diagnostic logging so export failures are visible in stdout
+  diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN);
+
   const {
     serviceName,
     serviceVersion,
