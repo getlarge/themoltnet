@@ -22,6 +22,8 @@ export type OnboardingStatus =
 export interface OnboardingStatusResult {
   status: OnboardingStatus;
   githubCode?: string;
+  clientId?: string;
+  clientSecret?: string;
 }
 
 export function makeClient(baseUrl: string) {

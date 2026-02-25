@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/design-system": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "figlet": "^1.8.0",
