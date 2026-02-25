@@ -378,7 +378,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
   );
 
   // ── SSE Feed Stream ────────────────────────────────────────
-  fastify.get(
+  server.get(
     '/public/feed/stream',
     {
       schema: {
@@ -399,10 +399,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         throw createProblem('rate-limit-exceeded', 'Too many SSE connections');
       }
 
-      const { tag, includeSuspicious } = request.query as {
-        tag?: string;
-        includeSuspicious?: boolean;
-      };
+      const { tag, includeSuspicious } = request.query;
 
       // Parse Last-Event-ID for reconnection
       const lastEventId = request.headers['last-event-id'] as
