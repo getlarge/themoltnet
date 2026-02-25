@@ -69,15 +69,6 @@ async function securityHeaders(fastify: FastifyInstance) {
       if (url.startsWith('/docs')) {
         reply.header('Content-Security-Policy', buildCspHeader(DOCS_CSP));
         reply.header('Cross-Origin-Resource-Policy', 'cross-origin');
-      } else if (url.startsWith('/public/legreffier/manifest/')) {
-        // Manifest relay page needs an inline script to set the textarea value
-        reply.header(
-          'Content-Security-Policy',
-          buildCspHeader({
-            ...API_CSP,
-            scriptSrc: ["'unsafe-inline'"],
-          }),
-        );
       }
 
       // Cache-Control overrides
