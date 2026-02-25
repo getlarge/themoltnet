@@ -15,7 +15,7 @@ export interface ObservabilityPluginOptions {
 
 declare module 'fastify' {
   interface FastifyRequest {
-    startTime: bigint;
+    startTime: bigint | undefined;
   }
 }
 
@@ -52,8 +52,10 @@ const plugin: FastifyPluginAsync<ObservabilityPluginOptions> = async (
   app.addHook('onResponse', (request, reply, done) => {
     requestMetrics.active.add(-1);
 
-    const durationMs =
-      Number(process.hrtime.bigint() - request.startTime) / 1_000_000;
+    const { startTime } = request;
+    const durationMs = startTime
+      ? Number(process.hrtime.bigint() - startTime) / 1_000_000
+      : 0;
 
     const attributes = {
       'http.method': request.method,
