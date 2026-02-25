@@ -32,12 +32,6 @@ describe('downloadSkills', () => {
       'utf-8',
     );
     expect(legreffier).toContain('Skill content');
-
-    const accountable = await readFile(
-      join(tmpRepo, '.claude', 'skills', 'accountable-commit', 'SKILL.md'),
-      'utf-8',
-    );
-    expect(accountable).toContain('Skill content');
   });
 
   it('throws if fetch fails', async () => {

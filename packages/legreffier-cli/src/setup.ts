@@ -6,10 +6,6 @@ const SKILLS: Array<{ name: string; url: string }> = [
     name: 'legreffier',
     url: 'https://raw.githubusercontent.com/getlarge/themoltnet/main/.claude/skills/legreffier/SKILL.md',
   },
-  {
-    name: 'accountable-commit',
-    url: 'https://raw.githubusercontent.com/getlarge/themoltnet/main/.claude/skills/accountable-commit/SKILL.md',
-  },
 ];
 
 /** Download MoltNet skills into <repoDir>/.claude/skills/<name>/SKILL.md */
