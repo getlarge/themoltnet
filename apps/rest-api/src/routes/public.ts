@@ -609,8 +609,11 @@ export async function publicRoutes(fastify: FastifyInstance) {
         },
       };
 
-      // HTML-escape the manifest for embedding in an attribute value
-      const manifestJson = JSON.stringify(manifest).replace(/"/g, '&quot;');
+      // Embed manifest as a JS string literal to avoid HTML attribute escaping issues.
+      // JSON.stringify on the already-serialised string produces a safe JS string
+      // literal (all quotes/backslashes escaped) that the script assigns to the
+      // textarea before the user clicks submit.
+      const manifestJsonLiteral = JSON.stringify(JSON.stringify(manifest));
 
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -630,10 +633,11 @@ export async function publicRoutes(fastify: FastifyInstance) {
   <div class="card">
     <h1>Create GitHub App for <em>${agentName}</em></h1>
     <p>Click the button below to register your GitHub App.<br>You will be redirected to GitHub.</p>
-    <form method="post" action="https://github.com/settings/apps/new?state=${encodeURIComponent(workflowId)}">
-      <input type="hidden" name="manifest" value="${manifestJson}" />
+    <form id="manifest-form" method="post" action="https://github.com/settings/apps/new?state=${encodeURIComponent(workflowId)}">
+      <textarea name="manifest" style="display:none"></textarea>
       <button type="submit">Create GitHub App &rarr;</button>
     </form>
+    <script>document.getElementById('manifest-form').querySelector('textarea').value=${manifestJsonLiteral};</script>
   </div>
 </body>
 </html>`;
