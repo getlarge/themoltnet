@@ -4740,6 +4740,9 @@
                     "githubCode": {
                       "type": "string"
                     },
+                    "identityId": {
+                      "type": "string"
+                    },
                     "clientId": {
                       "type": "string"
                     },

@@ -583,7 +583,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         name: string;
         url: string;
         description?: string;
-        hook_attributes: { active: boolean };
+        hook_attributes: { url: string; active: boolean };
         redirect_url: string;
         setup_url: string;
         callback_urls?: string[];
@@ -598,7 +598,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         name: agentName,
         url: 'https://themolt.net',
         description: 'LeGreffier — accountable AI commit signing bot',
-        hook_attributes: { active: false },
+        hook_attributes: { url: '', active: false },
         redirect_url: `${apiBaseUrl}/public/legreffier/callback`,
         setup_url: `${apiBaseUrl}/public/legreffier/installed?wf=${workflowId}`,
         public: false,
@@ -689,6 +689,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
   server.get(
     '/public/legreffier/status/:workflowId',
     {
+      config: {
+        rateLimit: fastify.rateLimitConfig.legreffierStatus,
+      },
       schema: {
         operationId: 'getLegreffierOnboardingStatus',
         tags: ['legreffier'],
@@ -723,6 +726,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
           const result = await handle.getResult();
           return {
             status: 'completed' as const,
+            identityId: result.identityId,
             clientId: result.clientId,
             clientSecret: result.clientSecret,
           };
@@ -748,7 +752,15 @@ export async function publicRoutes(fastify: FastifyInstance) {
         0,
       );
       if (awaitingInstallation) {
-        return { status: 'awaiting_installation' as const };
+        const githubCode = await DBOS.getEvent<string>(
+          workflowId,
+          GITHUB_CODE_READY_EVENT,
+          0,
+        );
+        return {
+          status: 'awaiting_installation' as const,
+          githubCode: githubCode ?? undefined,
+        };
       }
 
       // Check if github_code_ready event has been set (non-blocking, timeout=0)
