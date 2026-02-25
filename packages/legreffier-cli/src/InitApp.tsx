@@ -67,6 +67,7 @@ interface UIState {
   fingerprint?: string;
   appSlug?: string;
   serverStatus?: OnboardingStatus;
+  manifestFormUrl?: string;
   errorMessage?: string;
   steps: Record<StepKey, StepStatus>;
 }
@@ -77,6 +78,7 @@ type UIAction =
   | { type: 'fingerprint'; fingerprint: string }
   | { type: 'appSlug'; appSlug: string }
   | { type: 'serverStatus'; status: OnboardingStatus }
+  | { type: 'manifestFormUrl'; url: string }
   | { type: 'error'; message: string };
 
 function uiReducer(state: UIState, action: UIAction): UIState {
@@ -94,8 +96,12 @@ function uiReducer(state: UIState, action: UIAction): UIState {
       return { ...state, appSlug: action.appSlug };
     case 'serverStatus':
       return { ...state, serverStatus: action.status };
+    case 'manifestFormUrl':
+      return { ...state, manifestFormUrl: action.url };
     case 'error':
       return { ...state, phase: 'error', errorMessage: action.message };
+    default:
+      return state;
   }
 }
 
@@ -244,6 +250,7 @@ async function runGithubAppPhase(opts: {
 
   dispatch({ type: 'phase', phase: 'github_app' });
   dispatch({ type: 'step', key: 'githubApp', status: 'running' });
+  dispatch({ type: 'manifestFormUrl', url: manifestFormUrl });
   await open(manifestFormUrl);
 
   const codeResult = await pollUntil(
@@ -530,6 +537,7 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
     fingerprint,
     appSlug,
     serverStatus,
+    manifestFormUrl,
     errorMessage,
     steps,
   } = state;
@@ -571,6 +579,7 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
   return (
     <Box flexDirection="column" paddingY={1}>
       <CliLogo />
+      <Text dimColor>{'API: ' + apiUrl}</Text>
 
       <CliStepHeader n={1} total={4} label="Identity" />
       <CliStatusLine
@@ -582,7 +591,14 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
 
       <CliStepHeader n={2} total={4} label="GitHub App" />
       {steps.githubApp === 'running' ? (
-        <CliSpinner label={githubAppSpinnerLabel} />
+        <Box flexDirection="column">
+          <CliSpinner label={githubAppSpinnerLabel} />
+          {manifestFormUrl ? (
+            <Text dimColor>
+              {'  If browser did not open: ' + manifestFormUrl}
+            </Text>
+          ) : null}
+        </Box>
       ) : (
         <CliStatusLine
           label="Create GitHub App"
