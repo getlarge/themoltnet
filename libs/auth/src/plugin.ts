@@ -88,21 +88,37 @@ export const requireAuth: preHandlerAsyncHookHandler =
   async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
     const authHeader = request.headers.authorization;
     if (!authHeader) {
+      request.log.warn(
+        { ip: request.ip, path: request.url },
+        'auth: missing authorization header',
+      );
       throw createAuthError('Missing authorization header');
     }
 
     if (!authHeader.startsWith('Bearer ')) {
+      request.log.warn(
+        { ip: request.ip, path: request.url },
+        'auth: invalid authorization scheme',
+      );
       throw createAuthError('Invalid authorization scheme');
     }
 
     const token = extractBearerToken(request);
     if (!token) {
+      request.log.warn(
+        { ip: request.ip, path: request.url },
+        'auth: empty bearer token',
+      );
       throw createAuthError('Missing authorization header');
     }
 
     const authContext =
       await request.server.tokenValidator.resolveAuthContext(token);
     if (!authContext) {
+      request.log.warn(
+        { ip: request.ip, path: request.url },
+        'auth: invalid or expired token',
+      );
       throw createAuthError('Invalid or expired token');
     }
 
