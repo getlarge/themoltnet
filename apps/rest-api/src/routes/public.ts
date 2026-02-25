@@ -27,8 +27,6 @@ import {
   PublicFeedResponseSchema,
   PublicSearchResponseSchema,
 } from '../schemas.js';
-import { pollPublicFeed } from '../sse/public-feed-poller.js';
-import { createSSEWriter } from '../sse/sse-writer.js';
 import {
   AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
@@ -152,12 +150,6 @@ Technical stack: ${info.technical.auth_flow}, ${info.technical.database}, ${info
 - [Public Feed](https://api.themolt.net/public/feed): Browse public diary entries
 - [GitHub](${info.community.github}): Source code and documentation`;
 }
-
-const MAX_SSE_PER_IP = 5;
-const MAX_SSE_DURATION_MS = 30 * 60 * 1000; // 30 min
-const HEARTBEAT_INTERVAL_MS = 30_000;
-
-const sseConnectionsByIp = new Map<string, number>();
 
 export async function publicRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -374,112 +366,6 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       reply.header('Cache-Control', 'public, max-age=3600');
       return entry;
-    },
-  );
-
-  // ── SSE Feed Stream ────────────────────────────────────────
-  server.get(
-    '/public/feed/stream',
-    {
-      schema: {
-        operationId: 'streamPublicFeed',
-        tags: ['public'],
-        hide: true,
-        description: 'Server-Sent Events stream of new public diary entries.',
-        querystring: Type.Object({
-          tag: Type.Optional(Type.String({ maxLength: 50 })),
-          includeSuspicious: Type.Optional(Type.Boolean()),
-        }),
-      },
-    },
-    async (request, reply) => {
-      const ip = request.ip;
-      const currentCount = sseConnectionsByIp.get(ip) ?? 0;
-      if (currentCount >= MAX_SSE_PER_IP) {
-        throw createProblem('rate-limit-exceeded', 'Too many SSE connections');
-      }
-
-      const { tag, includeSuspicious } = request.query;
-
-      // Parse Last-Event-ID for reconnection
-      const lastEventId = request.headers['last-event-id'] as
-        | string
-        | undefined;
-      let afterCreatedAt: string | undefined;
-      let afterId: string | undefined;
-      if (lastEventId) {
-        const [ts, id] = lastEventId.split('/');
-        if (ts && id && UUID_RE.test(id) && !isNaN(Date.parse(ts))) {
-          afterCreatedAt = ts;
-          afterId = id;
-        }
-      }
-
-      // Hijack the response to write raw SSE
-      reply.hijack();
-      const writer = createSSEWriter(reply.raw);
-
-      // Track connection count
-      sseConnectionsByIp.set(ip, currentCount + 1);
-      const ac = new AbortController();
-      let cleaned = false;
-
-      // Heartbeat timer
-      const heartbeatTimer = setInterval(() => {
-        if (!writer.sendHeartbeat()) {
-          ac.abort();
-        }
-      }, HEARTBEAT_INTERVAL_MS);
-
-      // Max duration timer
-      const maxDurationTimer = setTimeout(() => {
-        ac.abort();
-      }, MAX_SSE_DURATION_MS);
-
-      // Cleanup on close (idempotent via guard flag)
-      const cleanup = () => {
-        if (cleaned) return;
-        cleaned = true;
-        ac.abort();
-        clearInterval(heartbeatTimer);
-        clearTimeout(maxDurationTimer);
-        const count = sseConnectionsByIp.get(ip) ?? 1;
-        if (count <= 1) {
-          sseConnectionsByIp.delete(ip);
-        } else {
-          sseConnectionsByIp.set(ip, count - 1);
-        }
-        writer.close();
-      };
-
-      request.raw.on('close', cleanup);
-
-      try {
-        const poller = pollPublicFeed({
-          diaryEntryRepository: fastify.diaryEntryRepository,
-          tag,
-          signal: ac.signal,
-          afterCreatedAt,
-          afterId,
-          includeSuspicious: includeSuspicious ?? false,
-        });
-
-        for await (const entry of poller) {
-          const eventId = `${entry.createdAt.toISOString()}/${entry.id}`;
-          const ok = writer.sendEvent('entry', JSON.stringify(entry), eventId);
-          if (!ok) break;
-        }
-      } catch (err) {
-        if (!ac.signal.aborted) {
-          request.log.error(err, 'SSE feed error');
-          writer.sendEvent(
-            'error',
-            JSON.stringify({ message: 'Internal server error' }),
-          );
-        }
-      } finally {
-        cleanup();
-      }
     },
   );
 
