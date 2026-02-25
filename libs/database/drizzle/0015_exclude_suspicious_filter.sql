@@ -1,5 +1,7 @@
--- Migration: rename_exclude_suspicious
--- Renames p_exclude_risky to p_exclude_suspicious in diary_search()
+-- Migration: add_exclude_suspicious
+-- Adds p_exclude_suspicious parameter to diary_search()
+--> statement-breakpoint
+DROP FUNCTION IF EXISTS diary_search(TEXT, vector(384), INT, UUID[], TEXT[], INT, FLOAT, FLOAT, FLOAT, entry_type[], BOOLEAN);
 --> statement-breakpoint
 DROP FUNCTION IF EXISTS diary_search(TEXT, vector(384), INT, UUID[], TEXT[], INT, FLOAT, FLOAT, FLOAT, entry_type[], BOOLEAN, BOOLEAN);
 --> statement-breakpoint

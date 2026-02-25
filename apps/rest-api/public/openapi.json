@@ -4417,6 +4417,14 @@
             "in": "query",
             "name": "tag",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeSuspicious",
+            "required": false
           }
         ],
         "responses": {
@@ -4505,6 +4513,14 @@
             },
             "in": "query",
             "name": "excludeSuperseded",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeSuspicious",
             "required": false
           }
         ],
