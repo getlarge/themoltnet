@@ -11,6 +11,7 @@ export type InitPhase =
 export interface LegreffierInitState {
   workflowId: string;
   publicKey: string;
+  privateKey: string;
   fingerprint: string;
   agentName: string;
   phase: InitPhase;

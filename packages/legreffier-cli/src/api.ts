@@ -6,7 +6,7 @@ import {
 } from '@moltnet/api-client';
 import { problemToError } from '@themoltnet/sdk';
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 5000;
 
 function isProblemDetails(err: unknown): err is ProblemDetails {
   return (
@@ -50,6 +50,7 @@ export type OnboardingStatus =
 export interface OnboardingStatusResult {
   status: OnboardingStatus;
   githubCode?: string;
+  identityId?: string;
   clientId?: string;
   clientSecret?: string;
 }
@@ -69,6 +70,22 @@ export async function startOnboarding(
     throwOnError: true,
   });
   return res.data as OnboardingStart;
+}
+
+/**
+ * Returns true if the workflow exists and is not in a terminal failed state.
+ * Returns false if the workflow is unknown (404) or the request errors out.
+ */
+export async function checkWorkflowLive(
+  baseUrl: string,
+  workflowId: string,
+): Promise<boolean> {
+  try {
+    const result = await pollStatus(baseUrl, workflowId);
+    return result.status !== 'failed';
+  } catch {
+    return false;
+  }
 }
 
 export async function pollStatus(

@@ -51,24 +51,68 @@ export async function exchangeManifestCode(
 }
 
 /** Look up GitHub bot user ID and derive noreply email. */
-export async function lookupBotUser(appSlug: string): Promise<BotUser> {
+const GITHUB_HEADERS = {
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28',
+};
+
+async function githubUserExists(username: string): Promise<boolean> {
   const res = await fetch(
-    `https://api.github.com/users/${encodeURIComponent(appSlug + '[bot]')}`,
-    {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-    },
+    `https://api.github.com/users/${encodeURIComponent(username)}`,
+    { headers: GITHUB_HEADERS },
   );
-  if (!res.ok) {
-    throw new Error(`GitHub user lookup failed (${res.status})`);
+  return res.status === 200;
+}
+
+/**
+ * Returns true if the GitHub App name is available.
+ * GitHub reserves app names that match existing usernames (plain or [bot] suffix).
+ */
+export async function checkAppNameAvailable(appName: string): Promise<boolean> {
+  const [userTaken, botTaken] = await Promise.all([
+    githubUserExists(appName),
+    githubUserExists(appName + '[bot]'),
+  ]);
+  return !userTaken && !botTaken;
+}
+
+/** Returns a list of available alternative names for a taken GitHub App name. */
+export async function suggestAppNames(appName: string): Promise<string[]> {
+  const candidates = [
+    `${appName}-bot`,
+    `${appName}-app`,
+    `${appName}-moltnet`,
+    `my-${appName}`,
+  ];
+  const results = await Promise.all(
+    candidates.map(async (name) => ({
+      name,
+      available: await checkAppNameAvailable(name),
+    })),
+  );
+  return results.filter((r) => r.available).map((r) => r.name);
+}
+
+/**
+ * Look up GitHub bot user and derive noreply email.
+ * Tries <appSlug>[bot] first (exists post-installation), then falls back to
+ * plain <appSlug> (exists right after app creation, pre-installation).
+ */
+export async function lookupBotUser(appSlug: string): Promise<BotUser> {
+  for (const username of [`${appSlug}[bot]`, appSlug]) {
+    const res = await fetch(
+      `https://api.github.com/users/${encodeURIComponent(username)}`,
+      { headers: GITHUB_HEADERS },
+    );
+    if (res.ok) {
+      const data = (await res.json()) as { id: number; login: string };
+      return {
+        id: data.id,
+        email: `${data.id}+${data.login}@users.noreply.github.com`,
+      };
+    }
   }
-  const data = (await res.json()) as { id: number; login: string };
-  return {
-    id: data.id,
-    email: `${data.id}+${data.login}@users.noreply.github.com`,
-  };
+  throw new Error(`GitHub user lookup failed for app "${appSlug}"`);
 }
 
 /** Write GitHub App PEM to ~/.config/moltnet/<slug>/<appSlug>.pem (mode 0o600). */
