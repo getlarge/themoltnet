@@ -2370,6 +2370,23 @@ func (c *Client) sendGetPublicFeed(ctx context.Context, params GetPublicFeedPara
 			return res, errors.Wrap(err, "encode query")
 		}
 	}
+	{
+		// Encode "includeSuspicious" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "includeSuspicious",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.IncludeSuspicious.Get(); ok {
+				return e.EncodeValue(conv.BoolToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
 	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"
@@ -4552,6 +4569,23 @@ func (c *Client) sendSearchPublicFeed(ctx context.Context, params SearchPublicFe
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.ExcludeSuperseded.Get(); ok {
+				return e.EncodeValue(conv.BoolToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "includeSuspicious" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "includeSuspicious",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.IncludeSuspicious.Get(); ok {
 				return e.EncodeValue(conv.BoolToString(val))
 			}
 			return nil

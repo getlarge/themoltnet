@@ -3928,6 +3928,14 @@
               "maxLength": 50,
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "includeSuspicious",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -4013,6 +4021,14 @@
           {
             "in": "query",
             "name": "excludeSuperseded",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeSuspicious",
             "required": false,
             "schema": {
               "type": "boolean"
