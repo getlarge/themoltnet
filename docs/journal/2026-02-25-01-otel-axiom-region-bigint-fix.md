@@ -59,10 +59,13 @@ with the `mismatched region` message.
 
 **Fix:**
 
-- Updated `OTLP_ENDPOINT` to `https://api.eu.axiom.co` in both `apps/mcp-server/fly.toml` and
-  `apps/rest-api/fly.toml`
+- Updated `OTLP_ENDPOINT` to `https://eu-central-1.aws.edge.axiom.co` in both `apps/mcp-server/fly.toml`
+  and `apps/rest-api/fly.toml`. The org uses `app.axiom.co` with EU Central 1 (AWS) edge deployment —
+  this requires the regional edge endpoint, not `api.axiom.co` (US) or `api.eu.axiom.co` (wrong subdomain).
 - Kept `DiagConsoleLogger` at `WARN` level (not DEBUG) so export failures remain visible in
   production logs without the verbose span dumps
+- Verified locally: HTTP 422 "payload in body is required" from the edge endpoint confirms auth
+  passes and the endpoint is correct
 
 ### Bonus: .env key rename
 
@@ -80,19 +83,21 @@ remains at its default value.
 ## Current State
 
 - Branch: `fix/otel-bigint-starttime`
-- Commits: 4 on top of main
+- Commits: 5 on top of main
   - `fix(observability): guard against undefined startTime in onResponse hook`
   - `fix(observability): correct Axiom EU endpoint, add OTel diag logging`
   - `fix(observability): rename AXIOM_API_KEY to AXIOM_API_TOKEN in .env`
   - `docs(infrastructure): remove stale AXIOM_API_KEY mapping note`
-- Tests: not re-run this session (BigInt fix regression test added in first commit)
+  - `fix(observability): use Axiom edge endpoint for EU data residency`
+- Verified locally: no export errors, traces flowing to Axiom
 
 ## Where to Start Next
 
-1. Merge this branch.
+1. Merge this PR.
 2. Deploy both apps — the `fly.toml` changes take effect on next deploy.
-3. Verify traces, logs, and metrics appear in the Axiom EU dashboard.
-4. If `AXIOM_API_TOKEN` is not yet set as a Fly secret on `moltnet-mcp`, set it:
+3. Rename the `motlnet-metrics` dataset in Axiom to `moltnet-metrics` (typo in original dataset name).
+4. Verify traces, logs, and metrics appear in the Axiom dashboard after deploy.
+5. If `AXIOM_API_TOKEN` is not yet set as a Fly secret on `moltnet-mcp`, set it:
    ```bash
    npx @dotenvx/dotenvx run -f .env -- bash -c 'fly secrets set AXIOM_API_TOKEN="$AXIOM_API_TOKEN" --app moltnet-mcp'
    ```
