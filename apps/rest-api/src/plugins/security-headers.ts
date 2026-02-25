@@ -9,8 +9,10 @@ import helmet from '@fastify/helmet';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
+type CspDirectives = Record<string, string[]>;
+
 // Strict CSP for all API routes
-const API_CSP_DIRECTIVES = {
+const API_CSP: CspDirectives = {
   defaultSrc: ["'self'"],
   scriptSrc: ["'self'"],
   styleSrc: ["'self'", "'unsafe-inline'"],
@@ -18,12 +20,12 @@ const API_CSP_DIRECTIVES = {
   fontSrc: ["'self'"],
   objectSrc: ["'none'"],
   frameAncestors: ["'none'"],
-  formAction: ["'self'"],
-  upgradeInsecureRequests: [] as string[],
+  formAction: ["'self'", 'https://github.com'],
+  upgradeInsecureRequests: [],
 };
 
 // Relaxed CSP for /docs — Scalar loads scripts and styles from CDN
-const DOCS_CSP_DIRECTIVES = {
+const DOCS_CSP: CspDirectives = {
   defaultSrc: ["'self'"],
   scriptSrc: ["'self'", "'unsafe-inline'", 'https:'],
   styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
@@ -35,73 +37,56 @@ const DOCS_CSP_DIRECTIVES = {
   workerSrc: ['blob:'],
 };
 
+function buildCspHeader(directives: CspDirectives): string {
+  return Object.entries(directives)
+    .map(([key, values]) => {
+      const kebab = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+      return values.length ? `${kebab} ${values.join(' ')}` : kebab;
+    })
+    .join('; ');
+}
+
 async function securityHeaders(fastify: FastifyInstance) {
   await fastify.register(helmet, {
-    contentSecurityPolicy: {
-      useDefaults: false,
-      directives: API_CSP_DIRECTIVES,
-    },
-    // HTTP Strict Transport Security
-    hsts: {
-      maxAge: 31536000, // 1 year
-      includeSubDomains: true,
-      preload: true,
-    },
-    // Prevent MIME type sniffing
+    contentSecurityPolicy: { useDefaults: false, directives: API_CSP },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
     noSniff: true,
-    // Prevent clickjacking
     frameguard: { action: 'deny' },
-    // Hide X-Powered-By
     hidePoweredBy: true,
-    // XSS protection (legacy, but good to have)
     xssFilter: true,
-    // Referrer policy
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    // Cross-Origin policies
-    crossOriginEmbedderPolicy: false, // May need to be false for some API use cases
+    crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: 'same-origin' },
     crossOriginResourcePolicy: { policy: 'same-origin' },
   });
 
-  // Override CSP for /docs routes — Scalar API reference loads scripts/styles from CDN
   fastify.addHook(
     'onSend',
     async (request: FastifyRequest, reply: FastifyReply) => {
-      if (request.url.startsWith('/docs')) {
-        const directives = Object.entries(DOCS_CSP_DIRECTIVES)
-          .map(([key, values]) => {
-            const kebab = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-            return `${kebab} ${values.join(' ')}`;
-          })
-          .join('; ');
-        reply.header('Content-Security-Policy', directives);
+      const { url } = request;
+
+      // Route-specific CSP overrides
+      if (url.startsWith('/docs')) {
+        reply.header('Content-Security-Policy', buildCspHeader(DOCS_CSP));
         reply.header('Cross-Origin-Resource-Policy', 'cross-origin');
       }
-    },
-  );
 
-  // Add Cache-Control headers for authenticated and sensitive responses
-  fastify.addHook(
-    'onSend',
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      // Recovery endpoints get extra strict caching headers (check first, takes precedence)
-      if (request.url.startsWith('/recovery')) {
+      // Cache-Control overrides
+      if (url.startsWith('/recovery')) {
         reply.header(
           'Cache-Control',
           'no-store, no-cache, must-revalidate, private',
         );
         reply.header('Pragma', 'no-cache');
         reply.header('Expires', '0');
-        return; // Don't continue, recovery headers are the strictest
+        return;
       }
 
-      // Check if this is an authenticated request
       const authContext = (
         request as unknown as { authContext?: { identityId?: string } }
       ).authContext;
 
       if (authContext?.identityId) {
-        // Authenticated responses should not be cached
         reply.header('Cache-Control', 'no-store, no-cache, must-revalidate');
         reply.header('Pragma', 'no-cache');
       }

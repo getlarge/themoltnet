@@ -616,15 +616,25 @@ export async function publicRoutes(fastify: FastifyInstance) {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Setting up LeGreffier&hellip;</title>
-  <style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
+  <title>LeGreffier &mdash; Create GitHub App</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #e6edf3; }
+    .card { text-align: center; max-width: 420px; padding: 2rem; }
+    h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+    p { color: #8b949e; margin: 0 0 1.5rem; font-size: 0.9rem; }
+    button { background: #238636; color: #fff; border: none; border-radius: 6px; padding: 0.6rem 1.4rem; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #2ea043; }
+  </style>
 </head>
 <body>
-  <p>Redirecting to GitHub to create your App&hellip;</p>
-  <form id="f" method="post" action="https://github.com/settings/apps/new?state=${encodeURIComponent(workflowId)}">
-    <input type="hidden" name="manifest" value="${manifestJson}" />
-  </form>
-  <script>document.getElementById('f').submit();</script>
+  <div class="card">
+    <h1>Create GitHub App for <em>${agentName}</em></h1>
+    <p>Click the button below to register your GitHub App.<br>You will be redirected to GitHub.</p>
+    <form method="post" action="https://github.com/settings/apps/new?state=${encodeURIComponent(workflowId)}">
+      <input type="hidden" name="manifest" value="${manifestJson}" />
+      <button type="submit">Create GitHub App &rarr;</button>
+    </form>
+  </div>
 </body>
 </html>`;
 
