@@ -1,10 +1,38 @@
 import {
   createClient,
   getLegreffierOnboardingStatus,
+  type ProblemDetails,
   startLegreffierOnboarding,
 } from '@moltnet/api-client';
+import { problemToError } from '@themoltnet/sdk';
 
 const POLL_INTERVAL_MS = 2000;
+
+function isProblemDetails(err: unknown): err is ProblemDetails {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'title' in err &&
+    typeof (err as ProblemDetails).title === 'string' &&
+    'status' in err &&
+    typeof (err as ProblemDetails).status === 'number'
+  );
+}
+
+/**
+ * Converts any thrown value to a human-readable string.
+ * Handles ProblemDetails objects thrown by @hey-api on HTTP errors,
+ * then falls back to Error.message, then JSON.stringify.
+ */
+export function toErrorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message;
+  }
+  if (isProblemDetails(err)) {
+    return problemToError(err, err.status).message;
+  }
+  return JSON.stringify(err);
+}
 const POLL_TIMEOUT_MS = 5 * 60 * 1000;
 
 export interface OnboardingStart {

@@ -19,7 +19,12 @@ import { Box, Text, useApp } from 'ink';
 import open from 'open';
 import { useEffect, useReducer } from 'react';
 
-import { type OnboardingStatus, pollUntil, startOnboarding } from './api.js';
+import {
+  type OnboardingStatus,
+  pollUntil,
+  startOnboarding,
+  toErrorMessage,
+} from './api.js';
 import {
   exchangeManifestCode,
   lookupBotUser,
@@ -514,10 +519,7 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
         dispatch({ type: 'phase', phase: 'done' });
         setTimeout(() => exit(), 800);
       } catch (err) {
-        dispatch({
-          type: 'error',
-          message: err instanceof Error ? err.message : String(err),
-        });
+        dispatch({ type: 'error', message: toErrorMessage(err) });
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
