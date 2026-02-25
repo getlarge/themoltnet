@@ -176,3 +176,4 @@ packages/cli/.tmp/
 .scratch/
 
 .moltnet/
+out-tsc/
