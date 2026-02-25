@@ -225,6 +225,19 @@ describe('observabilityPlugin', () => {
     await provider.shutdown();
   });
 
+  it('should not throw when startTime is undefined (onRequest skipped)', async () => {
+    const app = Fastify();
+    await app.register(observabilityPlugin, {
+      serviceName: 'test',
+    });
+
+    // Simulate a request where onRequest didn't fire by injecting a 404
+    const res = await app.inject({ method: 'GET', url: '/not-found' });
+    expect(res.statusCode).toBe(404);
+
+    await app.close();
+  });
+
   it('should work without explicit shutdown function', async () => {
     const app = Fastify();
     await app.register(observabilityPlugin, {
