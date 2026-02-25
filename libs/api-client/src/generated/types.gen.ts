@@ -1918,6 +1918,7 @@ export type GetPublicFeedData = {
     limit?: number;
     cursor?: string;
     tag?: string;
+    includeSuspicious?: boolean;
   };
   url: '/public/feed';
 };
@@ -1957,6 +1958,7 @@ export type SearchPublicFeedData = {
      */
     entryTypes?: string;
     excludeSuperseded?: boolean;
+    includeSuspicious?: boolean;
   };
   url: '/public/feed/search';
 };
