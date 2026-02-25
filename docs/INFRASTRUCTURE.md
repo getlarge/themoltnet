@@ -183,7 +183,6 @@ Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUT
 
 > **Note:** The `.env` key names don't always match Fly.io secret names.
 > `ORY_PROJECT_API_KEY` in `.env` maps to `ORY_API_KEY` on the server app, and
-> `AXIOM_API_KEY` maps to `AXIOM_API_TOKEN`.
 
 ### Setting secrets
 
