@@ -9,10 +9,6 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
-    },
-    "./cli": {
-      "import": "./src/cli/index.ts",
-      "types": "./src/cli/index.ts"
     }
   },
   "scripts": {
@@ -24,25 +20,12 @@
     "lint": "eslint ."
   },
   "peerDependencies": {
-    "figlet": ">=1.0.0",
-    "ink": ">=5.0.0",
     "react": "^18.0.0 || ^19.0.0"
   },
-  "peerDependenciesMeta": {
-    "figlet": {
-      "optional": true
-    },
-    "ink": {
-      "optional": true
-    }
-  },
   "devDependencies": {
-    "@types/figlet": "^1.7.0",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
-    "figlet": "^1.10.0",
-    "ink": "^6.8.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "typescript": "catalog:",
