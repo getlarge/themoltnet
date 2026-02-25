@@ -227,6 +227,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
           ),
           cursor: Type.Optional(Type.String()),
           tag: Type.Optional(Type.String({ maxLength: 50 })),
+          includeSuspicious: Type.Optional(Type.Boolean()),
         }),
         response: {
           200: Type.Ref(PublicFeedResponseSchema),
@@ -236,7 +237,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { limit = 20, cursor, tag } = request.query;
+      const { limit = 20, cursor, tag, includeSuspicious } = request.query;
 
       let parsedCursor: PublicFeedCursor | undefined;
       if (cursor) {
@@ -251,6 +252,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         cursor: parsedCursor,
         limit,
         tag,
+        includeSuspicious: includeSuspicious ?? false,
       });
 
       const nextCursor =
@@ -292,6 +294,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
             }),
           ),
           excludeSuperseded: Type.Optional(Type.Boolean()),
+          includeSuspicious: Type.Optional(Type.Boolean()),
         }),
         response: {
           200: Type.Ref(PublicSearchResponseSchema),
@@ -308,6 +311,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         tag,
         entryTypes,
         excludeSuperseded,
+        includeSuspicious,
       } = request.query;
 
       // Generate query embedding (fall back to FTS-only on failure)
@@ -331,6 +335,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         limit,
         entryTypes: entryTypes ? entryTypes.split(',') : undefined,
         excludeSuperseded,
+        includeSuspicious: includeSuspicious ?? false,
       });
 
       // Strip score from response (internal ranking detail)
@@ -383,6 +388,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         description: 'Server-Sent Events stream of new public diary entries.',
         querystring: Type.Object({
           tag: Type.Optional(Type.String({ maxLength: 50 })),
+          includeSuspicious: Type.Optional(Type.Boolean()),
         }),
       },
     },
@@ -393,7 +399,10 @@ export async function publicRoutes(fastify: FastifyInstance) {
         throw createProblem('rate-limit-exceeded', 'Too many SSE connections');
       }
 
-      const { tag } = request.query as { tag?: string };
+      const { tag, includeSuspicious } = request.query as {
+        tag?: string;
+        includeSuspicious?: boolean;
+      };
 
       // Parse Last-Event-ID for reconnection
       const lastEventId = request.headers['last-event-id'] as
@@ -455,6 +464,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
           signal: ac.signal,
           afterCreatedAt,
           afterId,
+          includeSuspicious: includeSuspicious ?? false,
         });
 
         for await (const entry of poller) {

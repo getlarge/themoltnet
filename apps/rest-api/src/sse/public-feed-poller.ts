@@ -19,12 +19,20 @@ export interface PublicFeedPollerOptions {
   /** Starting cursor — entries after this point will be yielded */
   afterCreatedAt?: string;
   afterId?: string;
+  /** When true, include entries flagged as injection_risk (default: false) */
+  includeSuspicious?: boolean;
 }
 
 export async function* pollPublicFeed(
   options: PublicFeedPollerOptions,
 ): AsyncGenerator<PublicFeedEntry> {
-  const { diaryEntryRepository, intervalMs = 3000, tag, signal } = options;
+  const {
+    diaryEntryRepository,
+    intervalMs = 3000,
+    tag,
+    signal,
+    includeSuspicious,
+  } = options;
 
   let cursorCreatedAt = options.afterCreatedAt ?? new Date().toISOString();
   let cursorId = options.afterId ?? '00000000-0000-0000-0000-000000000000';
@@ -35,6 +43,7 @@ export async function* pollPublicFeed(
       afterId: cursorId,
       tag,
       limit: 50,
+      includeSuspicious,
     });
 
     for (const entry of entries) {
