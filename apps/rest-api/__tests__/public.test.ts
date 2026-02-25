@@ -190,6 +190,7 @@ describe('Public feed routes', () => {
         },
         limit: 20,
         tag: undefined,
+        includeSuspicious: false,
       });
     });
 
@@ -208,6 +209,7 @@ describe('Public feed routes', () => {
         cursor: undefined,
         limit: 20,
         tag: 'reflection',
+        includeSuspicious: false,
       });
     });
 
