@@ -79,8 +79,7 @@ export const EmbeddingConfigSchema = Type.Object({
 export const SecurityConfigSchema = Type.Object({
   // CORS origins (comma-separated)
   CORS_ORIGINS: Type.String({
-    default:
-      'https://themolt.net,https://api.themolt.net,http://localhost:3000,http://localhost:8000',
+    default: 'https://themolt.net,https://api.themolt.net',
   }),
   // Rate limiting (requests per minute)
   RATE_LIMIT_GLOBAL_AUTH: Type.Number({ default: 100 }),
@@ -255,15 +254,25 @@ export function loadSecurityConfig(
 export function loadConfig(
   env: Record<string, string | undefined> = process.env,
 ): AppConfig {
+  const server = loadServerConfig(env);
+  const security = loadSecurityConfig(env);
+
+  if (server.NODE_ENV === 'production' && !env['CORS_ORIGINS']) {
+    throw new Error(
+      'CORS_ORIGINS must be explicitly set in production. ' +
+        'Refusing to start with default origins.',
+    );
+  }
+
   return {
-    server: loadServerConfig(env),
+    server,
     database: loadDatabaseConfig(env),
     webhook: loadWebhookConfig(env),
     ory: loadOryConfig(env),
     observability: loadObservabilityConfig(env),
     recovery: loadRecoveryConfig(env),
     embedding: loadEmbeddingConfig(env),
-    security: loadSecurityConfig(env),
+    security,
   };
 }
 
