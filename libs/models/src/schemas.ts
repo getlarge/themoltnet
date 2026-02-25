@@ -219,6 +219,8 @@ export const OnboardingStatusResponseSchema = Type.Object({
     Type.Literal('failed'),
   ]),
   githubCode: Type.Optional(Type.String()),
+  clientId: Type.Optional(Type.String()),
+  clientSecret: Type.Optional(Type.String()),
 });
 
 export const InstalledCallbackQuerySchema = Type.Object({

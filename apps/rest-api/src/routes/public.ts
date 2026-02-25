@@ -610,7 +610,20 @@ export async function publicRoutes(fastify: FastifyInstance) {
       }
 
       if (wfStatus.status === 'SUCCESS') {
-        return { status: 'completed' as const };
+        try {
+          const result = await handle.getResult();
+          return {
+            status: 'completed' as const,
+            clientId: result.clientId,
+            clientSecret: result.clientSecret,
+          };
+        } catch (err) {
+          request.log.warn(
+            { err, workflowId },
+            'Failed to retrieve workflow result for creds',
+          );
+          return { status: 'completed' as const };
+        }
       }
       if (wfStatus.status === 'ERROR') {
         return { status: 'failed' as const };

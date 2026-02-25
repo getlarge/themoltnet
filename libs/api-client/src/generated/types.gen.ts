@@ -2101,6 +2101,8 @@ export type GetLegreffierOnboardingStatusResponses = {
       | 'completed'
       | 'failed';
     githubCode?: string;
+    clientId?: string;
+    clientSecret?: string;
   };
 };
 
