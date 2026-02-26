@@ -377,12 +377,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull pre-built images
-        run: |
-          docker pull ${{ env.REST_API_IMAGE }}
-          docker pull ${{ env.MCP_SERVER_IMAGE }}
-          docker pull ${{ env.DB_MIGRATE_IMAGE }}
+
+      # - name: Pull pre-built images
+      #   run: |
+      #     docker pull ${{ env.REST_API_IMAGE }}
+      #     docker pull ${{ env.MCP_SERVER_IMAGE }}
+      #     docker pull ${{ env.DB_MIGRATE_IMAGE }}
+
       - name: Start Docker Compose stack
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
       - name: Run REST API E2E tests
         run: pnpm --filter @moltnet/rest-api run test:e2e

@@ -47,6 +47,8 @@
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v",
     "docker:logs": "docker compose logs -f",
+    "e2e:up": "COMPOSE_DISABLE_ENV_FILE=1 docker compose -f docker-compose.e2e.yaml up -d --build",
+    "e2e:down": "COMPOSE_DISABLE_ENV_FILE=1 docker compose -f docker-compose.e2e.yaml down -v",
     "test:e2e": "pnpm -r --if-present run test:e2e",
     "bootstrap": "pnpm --filter @moltnet/tools bootstrap",
     "publish:skill": "packages/openclaw-skill/scripts/publish-clawhub.sh",
