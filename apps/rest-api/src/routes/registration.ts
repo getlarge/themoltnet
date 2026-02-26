@@ -44,6 +44,9 @@ export async function registrationRoutes(fastify: FastifyInstance) {
   server.post(
     '/auth/register',
     {
+      config: {
+        rateLimit: fastify.rateLimitConfig?.registration,
+      },
       schema: {
         operationId: 'registerAgent',
         tags: ['auth'],

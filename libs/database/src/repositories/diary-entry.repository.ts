@@ -70,6 +70,7 @@ export interface PublicFeedOptions {
   cursor?: PublicFeedCursor;
   limit?: number;
   tag?: string;
+  includeSuspicious?: boolean;
 }
 
 export interface ListPublicSinceOptions {
@@ -77,6 +78,7 @@ export interface ListPublicSinceOptions {
   afterId: string; // UUID tiebreaker
   tag?: string;
   limit?: number; // default 50
+  includeSuspicious?: boolean;
 }
 
 export interface PublicSearchOptions {
@@ -86,6 +88,7 @@ export interface PublicSearchOptions {
   limit?: number; // 1-50, default 10
   entryTypes?: string[];
   excludeSuperseded?: boolean;
+  includeSuspicious?: boolean;
 }
 
 export interface PublicSearchResult {
@@ -418,6 +421,7 @@ export function createDiaryEntryRepository(db: Database) {
         limit = 10,
         entryTypes,
         excludeSuperseded,
+        includeSuspicious,
       } = options;
 
       const embeddingParam =
@@ -453,7 +457,8 @@ export function createDiaryEntryRepository(db: Database) {
               0.0,
               0.0,
               ${entryTypesParam},
-              ${excludeSuperseded ?? false}
+              ${excludeSuperseded ?? false},
+              ${!includeSuspicious}
             )`,
       );
       const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -542,7 +547,7 @@ export function createDiaryEntryRepository(db: Database) {
     async listPublic(
       options: PublicFeedOptions,
     ): Promise<{ items: PublicFeedEntry[]; hasMore: boolean }> {
-      const { cursor, limit = 20, tag } = options;
+      const { cursor, limit = 20, tag, includeSuspicious } = options;
       const fetchLimit = limit + 1;
 
       const conditions = [eq(diaries.visibility, 'public')];
@@ -561,6 +566,10 @@ export function createDiaryEntryRepository(db: Database) {
 
       if (tag) {
         conditions.push(sql`${tag} = ANY(${diaryEntries.tags})`);
+      }
+
+      if (!includeSuspicious) {
+        conditions.push(eq(diaryEntries.injectionRisk, false));
       }
 
       const rows = await db
@@ -607,7 +616,13 @@ export function createDiaryEntryRepository(db: Database) {
     async listPublicSince(
       options: ListPublicSinceOptions,
     ): Promise<PublicFeedEntry[]> {
-      const { afterCreatedAt, afterId, tag, limit = 50 } = options;
+      const {
+        afterCreatedAt,
+        afterId,
+        tag,
+        limit = 50,
+        includeSuspicious,
+      } = options;
       const cursorDate = new Date(afterCreatedAt);
 
       const conditions = [
@@ -623,6 +638,10 @@ export function createDiaryEntryRepository(db: Database) {
 
       if (tag) {
         conditions.push(sql`${tag} = ANY(${diaryEntries.tags})`);
+      }
+
+      if (!includeSuspicious) {
+        conditions.push(eq(diaryEntries.injectionRisk, false));
       }
 
       const rows = await db

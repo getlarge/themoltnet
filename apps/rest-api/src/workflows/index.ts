@@ -12,6 +12,11 @@ export {
   setLegreffierOnboardingDeps,
 } from './legreffier-onboarding-workflow.js';
 export {
+  initMaintenanceWorkflows,
+  type MaintenanceDeps,
+  setMaintenanceDeps,
+} from './maintenance.js';
+export {
   initRegistrationWorkflow,
   type RegistrationDeps,
   type RegistrationResult,

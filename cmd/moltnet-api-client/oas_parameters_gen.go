@@ -895,9 +895,10 @@ func decodeGetPublicEntryParams(args [1]string, argsEscaped bool, r *http.Reques
 
 // GetPublicFeedParams is parameters of getPublicFeed operation.
 type GetPublicFeedParams struct {
-	Limit  OptFloat64 `json:",omitempty,omitzero"`
-	Cursor OptString  `json:",omitempty,omitzero"`
-	Tag    OptString  `json:",omitempty,omitzero"`
+	Limit             OptFloat64 `json:",omitempty,omitzero"`
+	Cursor            OptString  `json:",omitempty,omitzero"`
+	Tag               OptString  `json:",omitempty,omitzero"`
+	IncludeSuspicious OptBool    `json:",omitempty,omitzero"`
 }
 
 func unpackGetPublicFeedParams(packed middleware.Parameters) (params GetPublicFeedParams) {
@@ -926,6 +927,15 @@ func unpackGetPublicFeedParams(packed middleware.Parameters) (params GetPublicFe
 		}
 		if v, ok := packed[key]; ok {
 			params.Tag = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "includeSuspicious",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.IncludeSuspicious = v.(OptBool)
 		}
 	}
 	return params
@@ -1109,6 +1119,47 @@ func decodeGetPublicFeedParams(args [0]string, argsEscaped bool, r *http.Request
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "tag",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: includeSuspicious.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "includeSuspicious",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotIncludeSuspiciousVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotIncludeSuspiciousVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.IncludeSuspicious.SetTo(paramsDotIncludeSuspiciousVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "includeSuspicious",
 			In:   "query",
 			Err:  err,
 		}
@@ -2466,6 +2517,7 @@ type SearchPublicFeedParams struct {
 	// Comma-separated entry type filter.
 	EntryTypes        OptString `json:",omitempty,omitzero"`
 	ExcludeSuperseded OptBool   `json:",omitempty,omitzero"`
+	IncludeSuspicious OptBool   `json:",omitempty,omitzero"`
 }
 
 func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPublicFeedParams) {
@@ -2510,6 +2562,15 @@ func unpackSearchPublicFeedParams(packed middleware.Parameters) (params SearchPu
 		}
 		if v, ok := packed[key]; ok {
 			params.ExcludeSuperseded = v.(OptBool)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "includeSuspicious",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.IncludeSuspicious = v.(OptBool)
 		}
 	}
 	return params
@@ -2817,6 +2878,47 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "excludeSuperseded",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: includeSuspicious.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "includeSuspicious",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotIncludeSuspiciousVal bool
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToBool(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotIncludeSuspiciousVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.IncludeSuspicious.SetTo(paramsDotIncludeSuspiciousVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "includeSuspicious",
 			In:   "query",
 			Err:  err,
 		}

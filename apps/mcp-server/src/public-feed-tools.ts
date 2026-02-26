@@ -38,6 +38,7 @@ export async function handlePublicFeedBrowse(
       limit: args.limit ?? 20,
       cursor: args.cursor,
       tag: args.tag,
+      includeSuspicious: args.include_suspicious,
     },
   });
 
@@ -90,6 +91,7 @@ export async function handlePublicFeedSearch(
       q: args.query,
       tag: args.tag,
       limit: args.limit ?? 10,
+      includeSuspicious: args.include_suspicious,
     },
   });
 

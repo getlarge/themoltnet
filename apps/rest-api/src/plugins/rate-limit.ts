@@ -30,6 +30,8 @@ export interface RateLimitPluginOptions {
   publicSearchLimit: number;
   /** Max requests per day for LeGreffier onboarding start (default: 3) */
   legreffierStartLimit: number;
+  /** Max requests per minute for registration endpoint (default: 5) */
+  registrationLimit: number;
 }
 
 /**
@@ -40,6 +42,7 @@ function buildRateLimitResponse(request: FastifyRequest, retryAfter: number) {
     type: getTypeUri('rate-limit-exceeded'),
     title: 'Rate Limit Exceeded',
     status: 429,
+    statusCode: 429,
     code: 'RATE_LIMIT_EXCEEDED',
     detail: `Too many requests. Please retry after ${retryAfter} seconds.`,
     instance: request.url,
@@ -61,6 +64,7 @@ async function rateLimitPluginImpl(
     publicVerifyLimit,
     publicSearchLimit,
     legreffierStartLimit,
+    registrationLimit,
   } = options;
 
   // Register global rate limiter
@@ -142,6 +146,10 @@ async function rateLimitPluginImpl(
       max: legreffierStartLimit,
       timeWindow: '1 day',
     },
+    registration: {
+      max: registrationLimit,
+      timeWindow: '1 minute',
+    },
   });
 }
 
@@ -160,6 +168,7 @@ declare module 'fastify' {
       publicVerify: { max: number; timeWindow: string };
       publicSearch: { max: number; timeWindow: string };
       legreffierStart: { max: number; timeWindow: string };
+      registration: { max: number; timeWindow: string };
     };
   }
 }

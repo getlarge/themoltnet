@@ -15,6 +15,7 @@ import {
 const validEnv = {
   PORT: '8000',
   NODE_ENV: 'production',
+  CORS_ORIGINS: 'https://themolt.net',
   DATABASE_URL: 'postgresql://localhost/moltnet',
   DBOS_SYSTEM_DATABASE_URL: 'postgresql://localhost/moltnet_dbos',
   ORY_ACTION_API_KEY: 'test-webhook-key',

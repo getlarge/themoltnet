@@ -30,7 +30,6 @@ export interface UseFeedState {
   mode: FeedMode;
   searchQuery: string;
   activeTag: string | null;
-  sseConnected: boolean;
   rateLimitError: RateLimitError | null;
 }
 
@@ -41,7 +40,6 @@ export interface UseFeedActions {
   setActiveTag: (tag: string | null) => void;
   addPendingEntries: (entries: FeedEntry[]) => void;
   flushPending: () => void;
-  setSseConnected: (connected: boolean) => void;
 }
 
 const PAGE_SIZE = 20;
@@ -54,7 +52,6 @@ export function useFeed(): UseFeedState & UseFeedActions {
   const [mode, setMode] = useState<FeedMode>('feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTag, setActiveTagState] = useState<string | null>(null);
-  const [sseConnected, setSseConnected] = useState(false);
   const [rateLimitError, setRateLimitError] = useState<RateLimitError | null>(
     null,
   );
@@ -201,7 +198,6 @@ export function useFeed(): UseFeedState & UseFeedActions {
     mode,
     searchQuery,
     activeTag,
-    sseConnected,
     rateLimitError,
     loadMore,
     submitSearch,
@@ -209,6 +205,5 @@ export function useFeed(): UseFeedState & UseFeedActions {
     setActiveTag,
     addPendingEntries,
     flushPending,
-    setSseConnected,
   };
 }
