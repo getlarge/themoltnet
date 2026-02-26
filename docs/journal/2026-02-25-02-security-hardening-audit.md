@@ -49,17 +49,17 @@ Callers can opt-in with `?includeSuspicious=true`.
   false; `listPublicSince()` same; `searchPublic()` passes flag as 12th positional arg.
 - Routes `GET /public/feed` and `GET /public/feed/search` expose `includeSuspicious` query param.
 
-**MED-1 — CORS production guard** (already done, verified)
+**MED-1 — CORS production guard** (done this session)
 
-`loadConfig()` in `config.ts` already throws if `NODE_ENV === 'production'` and `CORS_ORIGINS`
-is not set. Default value is `https://themolt.net,https://api.themolt.net` (no localhost).
-No changes needed.
+`loadConfig()` in `config.ts` now throws if `NODE_ENV === 'production'` and `CORS_ORIGINS`
+is not explicitly set. Default value changed to `https://themolt.net,https://api.themolt.net`
+(removed localhost). Both changes made in this session.
 
-**MED-2 — DBOS scheduled nonce cleanup** (already done, verified)
+**MED-2 — DBOS scheduled nonce cleanup** (done this session)
 
-`apps/rest-api/src/workflows/maintenance.ts` already exists with `DBOS.registerScheduled()`
-running `nonceRepository.cleanup()` daily at midnight. Wired in `bootstrap.ts` via
-`initMaintenanceWorkflows()` + `setMaintenanceDeps()`. No changes needed.
+Created `apps/rest-api/src/workflows/maintenance.ts` with `DBOS.registerScheduled()` running
+`nonceRepository.cleanup()` daily at midnight. Wired in `bootstrap.ts` via
+`initMaintenanceWorkflows()` + `setMaintenanceDeps()`.
 
 **MED-3 — Drop SSE endpoint** (commit `fa266bd`)
 
