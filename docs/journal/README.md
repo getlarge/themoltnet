@@ -152,4 +152,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-24 | handoff    | [LeGreffier Onboarding Workflow — DBOS workflow + 4 public endpoints](2026-02-24-04-legreffier-onboarding-workflow.md)                             |
 | 2026-02-24 | handoff    | [OTel Direct-to-Axiom + Auto-Instrumentation — initInstrumentation, MCP server observability, SDK 2.x upgrade](2026-02-24-03-otel-direct-axiom.md) |
 | 2026-02-25 | handoff    | [OTel Axiom Region Fix + BigInt Crash Fix — EU endpoint, undefined startTime guard](2026-02-25-01-otel-axiom-region-bigint-fix.md)                 |
+| 2026-02-25 | handoff    | [Security Hardening — Audit #202 Findings](2026-02-25-02-security-hardening-audit.md)                                                              |
 | 2026-02-26 | handoff    | [LeGreffier Init CLI — Full Happy Path + Polished UX](2026-02-26-01-legreffier-init-cli.md)                                                        |

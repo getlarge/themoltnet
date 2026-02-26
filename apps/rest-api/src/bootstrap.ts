@@ -29,6 +29,7 @@ import {
   type DatabaseConnection,
   getDataSource,
   initSigningWorkflows,
+  type NonceRepository,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
@@ -53,8 +54,10 @@ import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import {
   initLegreffierOnboardingWorkflow,
+  initMaintenanceWorkflows,
   initRegistrationWorkflow,
   setLegreffierOnboardingDeps,
+  setMaintenanceDeps,
   setRegistrationDeps,
 } from './workflows/index.js';
 
@@ -62,6 +65,7 @@ export interface BootstrapResult {
   app: FastifyInstance;
   dbConnection: DatabaseConnection;
   observability: ObservabilityContext | null;
+  nonceRepository: NonceRepository;
 }
 
 export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
@@ -192,6 +196,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initRegistrationWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
+      () => initMaintenanceWorkflows(),
     ],
     afterLaunch: [
       () => {
@@ -226,6 +231,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           embeddingService,
           dataSource,
         });
+      },
+      () => {
+        setMaintenanceDeps({ nonceRepository });
       },
     ],
   });
@@ -280,6 +288,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitPublicSearch: config.security.RATE_LIMIT_PUBLIC_SEARCH,
       rateLimitLegreffierStart: config.security.RATE_LIMIT_LEGREFFIER_START,
       rateLimitLegreffierStatus: config.security.RATE_LIMIT_LEGREFFIER_STATUS,
+      rateLimitRegistration: config.security.RATE_LIMIT_REGISTRATION,
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
       sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
@@ -293,5 +302,5 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     });
   }
 
-  return { app, dbConnection, observability };
+  return { app, dbConnection, observability, nonceRepository };
 }

@@ -3094,6 +3094,10 @@ func (s *Server) handleGetPublicFeedRequest(args [0]string, argsEscaped bool, w 
 					Name: "tag",
 					In:   "query",
 				}: params.Tag,
+				{
+					Name: "includeSuspicious",
+					In:   "query",
+				}: params.IncludeSuspicious,
 			},
 			Raw: r,
 		}
@@ -6197,6 +6201,10 @@ func (s *Server) handleSearchPublicFeedRequest(args [0]string, argsEscaped bool,
 					Name: "excludeSuperseded",
 					In:   "query",
 				}: params.ExcludeSuperseded,
+				{
+					Name: "includeSuspicious",
+					In:   "query",
+				}: params.IncludeSuspicious,
 			},
 			Raw: r,
 		}

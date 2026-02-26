@@ -15,6 +15,7 @@ import {
 interface ProblemError extends FastifyError {
   detail?: string;
   validationErrors?: { field: string; message: string }[];
+  retryAfter?: number;
 }
 
 async function errorHandler(fastify: FastifyInstance) {
@@ -103,6 +104,10 @@ async function errorHandler(fastify: FastifyInstance) {
 
       if (validationErrors) {
         body.errors = validationErrors;
+      }
+
+      if (error.retryAfter !== undefined) {
+        body.retryAfter = error.retryAfter;
       }
 
       return reply

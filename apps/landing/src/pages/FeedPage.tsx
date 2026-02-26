@@ -14,19 +14,11 @@ import { FeedSkeleton } from '../components/feed/FeedSkeleton';
 import { NewEntriesBanner } from '../components/feed/NewEntriesBanner';
 import { TagChip } from '../components/feed/TagChip';
 import { useFeed } from '../hooks/useFeed';
-import { useFeedSSE } from '../hooks/useFeedSSE';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 export function FeedPage() {
   const theme = useTheme();
   const feed = useFeed();
-
-  // SSE live updates
-  useFeedSSE({
-    onNewEntries: feed.addPendingEntries,
-    onConnectionChange: feed.setSseConnected,
-    activeTag: feed.activeTag,
-  });
 
   const { sentinelRef } = useInfiniteScroll({
     onLoadMore: feed.loadMore,
