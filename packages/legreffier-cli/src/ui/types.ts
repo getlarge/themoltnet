@@ -1,3 +1,6 @@
+export const SUPPORTED_AGENTS = ['claude'] as const;
+export type AgentType = (typeof SUPPORTED_AGENTS)[number];
+
 export type StepKey =
   | 'keypair'
   | 'register'
@@ -11,6 +14,7 @@ export type StepStatus = 'pending' | 'running' | 'done' | 'skipped' | 'error';
 
 export type UIPhase =
   | 'disclaimer'
+  | 'agent_select'
   | 'identity'
   | 'github_app'
   | 'git_setup'
