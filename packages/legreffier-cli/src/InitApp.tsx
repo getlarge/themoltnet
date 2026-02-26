@@ -16,6 +16,7 @@ import {
   exportSSHKey,
   type McpConfig,
   readConfig,
+  updateConfigSection,
   writeConfig,
   writeMcpConfig,
 } from '@themoltnet/sdk';
@@ -420,12 +421,11 @@ async function runGithubAppPhase(opts: {
 
 async function runGitSetupPhase(opts: {
   configDir: string;
-  repoDir: string;
   agentName: string;
   appSlug: string;
   dispatch: (a: UIAction) => void;
 }): Promise<void> {
-  const { configDir, repoDir, agentName, appSlug, dispatch } = opts;
+  const { configDir, agentName, appSlug, dispatch } = opts;
   const existingConfig = await readConfig(configDir);
 
   if (existingConfig?.git?.config_path) {
@@ -435,9 +435,24 @@ async function runGitSetupPhase(opts: {
 
   dispatch({ type: 'phase', phase: 'git_setup' });
   dispatch({ type: 'step', key: 'gitSetup', status: 'running' });
-  await exportSSHKey({ configDir });
+  const { privatePath } = await exportSSHKey({ configDir });
   const botUser = await lookupBotUser(appSlug);
-  writeGitConfig({ cwd: repoDir, name: agentName, email: botUser.email });
+  const gitConfigPath = await writeGitConfig({
+    configDir,
+    name: agentName,
+    email: botUser.email,
+    sshKeyPath: privatePath,
+  });
+  await updateConfigSection(
+    'git',
+    {
+      name: agentName,
+      email: botUser.email,
+      signing: true,
+      config_path: gitConfigPath,
+    },
+    configDir,
+  );
   dispatch({ type: 'step', key: 'gitSetup', status: 'done' });
 }
 
@@ -668,7 +683,6 @@ export function InitApp({ name, apiUrl, dir = process.cwd() }: InitAppProps) {
 
         await runGitSetupPhase({
           configDir,
-          repoDir: dir,
           agentName: name,
           appSlug: githubApp.appSlug,
           dispatch,

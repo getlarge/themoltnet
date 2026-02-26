@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -130,13 +129,37 @@ export async function writePem(
 }
 
 export interface GitConfigOptions {
-  cwd: string;
+  configDir: string;
   name: string;
   email: string;
+  sshKeyPath: string;
 }
 
-/** Set git user.name and user.email in the repo at cwd. */
-export function writeGitConfig({ cwd, name, email }: GitConfigOptions): void {
-  execSync(`git config user.name "${name}"`, { cwd, stdio: 'inherit' });
-  execSync(`git config user.email "${email}"`, { cwd, stdio: 'inherit' });
+/**
+ * Write a standalone gitconfig file to <configDir>/gitconfig and return
+ * its path. The config sets user.name/email and enables SSH commit signing
+ * using the agent's SSH key.
+ */
+export async function writeGitConfig({
+  configDir,
+  name,
+  email,
+  sshKeyPath,
+}: GitConfigOptions): Promise<string> {
+  const content = [
+    '[user]',
+    `\tname = ${name}`,
+    `\temail = ${email}`,
+    '[gpg]',
+    '\tformat = ssh',
+    '[gpg "ssh"]',
+    `\tsigningKey = ${sshKeyPath}`,
+    '[commit]',
+    '\tgpgsign = true',
+    '',
+  ].join('\n');
+
+  const filePath = join(configDir, 'gitconfig');
+  await writeFile(filePath, content, { mode: 0o600 });
+  return filePath;
 }
