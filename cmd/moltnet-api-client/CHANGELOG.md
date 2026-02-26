@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.13.1...moltnet-api-client-v0.13.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* **go-api-client:** regenerate from updated OpenAPI spec (includeSuspicious param) ([3c7fe1a](https://github.com/getlarge/themoltnet/commit/3c7fe1a4bc0f1a57d5fdadb43cd2f70800daaffd))
+
 ## [0.13.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.13.0...moltnet-api-client-v0.13.1) (2026-02-25)
 
 
