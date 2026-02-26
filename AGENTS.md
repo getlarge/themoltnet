@@ -317,3 +317,15 @@ pnpm store prune && pnpm install --force
 ```
 
 This has happened multiple times. `skipLibCheck` won't help — it only skips checking existing `.d.ts` files, not missing ones.
+
+### Stale `.tsbuildinfo` causing missing `.d.ts` outputs (TS6305 errors)
+
+If `pnpm run typecheck` shows TS6305 errors like "Output file '...dist/index.d.ts' has not been built from source file '...src/index.ts'", the `.tsbuildinfo` incremental cache is stale — it thinks outputs are up-to-date but the `.d.ts` files are missing.
+
+**Fix:**
+
+```bash
+pnpm run typecheck:clean   # cleans all .tsbuildinfo + dist/, then typechecks
+```
+
+This happens when `dist/` is cleaned (e.g. switching branches, manual cleanup) but `.tsbuildinfo` at the package root is not. The `tsBuildInfoFile` option in each workspace `tsconfig.json` co-locates the cache with outputs to prevent this.

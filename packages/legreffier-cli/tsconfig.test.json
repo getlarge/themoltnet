@@ -2,6 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "composite": true,
+    "tsBuildInfoFile": "./out-tsc/test/tsconfig.tsbuildinfo",
     "outDir": "./out-tsc/test",
     "jsx": "react-jsx",
     "lib": ["ES2022"],
