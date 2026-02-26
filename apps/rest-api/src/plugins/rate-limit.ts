@@ -42,6 +42,7 @@ function buildRateLimitResponse(request: FastifyRequest, retryAfter: number) {
     type: getTypeUri('rate-limit-exceeded'),
     title: 'Rate Limit Exceeded',
     status: 429,
+    statusCode: 429,
     code: 'RATE_LIMIT_EXCEEDED',
     detail: `Too many requests. Please retry after ${retryAfter} seconds.`,
     instance: request.url,
