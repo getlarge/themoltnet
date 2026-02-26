@@ -93,11 +93,6 @@ services:
       keto-migrate:
         condition: service_completed_successfully
 
-  otel-collector:
-    extends:
-      file: docker-compose.base.yaml
-      service: otel-collector
-
   mailslurper:
     extends:
       file: docker-compose.base.yaml
@@ -136,7 +131,7 @@ services:
       # Injected by e2e globalSetup after bootstrapping a sponsor genesis agent.
       # Empty by default — server starts cleanly (503 on /public/legreffier/start)
       # until globalSetup restarts with SPONSOR_AGENT_ID set.
-      SPONSOR_AGENT_ID: '${SPONSOR_AGENT_ID:-}'
+      SPONSOR_AGENT_ID: ${SPONSOR_AGENT_ID:-}
     depends_on:
       app-db:
         condition: service_healthy
