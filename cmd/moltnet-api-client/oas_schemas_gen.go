@@ -1331,8 +1331,21 @@ type GetDiaryUnauthorized ProblemDetails
 func (*GetDiaryUnauthorized) getDiaryRes() {}
 
 type GetLegreffierOnboardingStatusOK struct {
-	GithubCode OptString                             `json:"githubCode"`
-	Status     GetLegreffierOnboardingStatusOKStatus `json:"status"`
+	ClientId     OptString                             `json:"clientId"`
+	ClientSecret OptString                             `json:"clientSecret"`
+	GithubCode   OptString                             `json:"githubCode"`
+	IdentityId   OptString                             `json:"identityId"`
+	Status       GetLegreffierOnboardingStatusOKStatus `json:"status"`
+}
+
+// GetClientId returns the value of ClientId.
+func (s *GetLegreffierOnboardingStatusOK) GetClientId() OptString {
+	return s.ClientId
+}
+
+// GetClientSecret returns the value of ClientSecret.
+func (s *GetLegreffierOnboardingStatusOK) GetClientSecret() OptString {
+	return s.ClientSecret
 }
 
 // GetGithubCode returns the value of GithubCode.
@@ -1340,14 +1353,34 @@ func (s *GetLegreffierOnboardingStatusOK) GetGithubCode() OptString {
 	return s.GithubCode
 }
 
+// GetIdentityId returns the value of IdentityId.
+func (s *GetLegreffierOnboardingStatusOK) GetIdentityId() OptString {
+	return s.IdentityId
+}
+
 // GetStatus returns the value of Status.
 func (s *GetLegreffierOnboardingStatusOK) GetStatus() GetLegreffierOnboardingStatusOKStatus {
 	return s.Status
 }
 
+// SetClientId sets the value of ClientId.
+func (s *GetLegreffierOnboardingStatusOK) SetClientId(val OptString) {
+	s.ClientId = val
+}
+
+// SetClientSecret sets the value of ClientSecret.
+func (s *GetLegreffierOnboardingStatusOK) SetClientSecret(val OptString) {
+	s.ClientSecret = val
+}
+
 // SetGithubCode sets the value of GithubCode.
 func (s *GetLegreffierOnboardingStatusOK) SetGithubCode(val OptString) {
 	s.GithubCode = val
+}
+
+// SetIdentityId sets the value of IdentityId.
+func (s *GetLegreffierOnboardingStatusOK) SetIdentityId(val OptString) {
+	s.IdentityId = val
 }
 
 // SetStatus sets the value of Status.

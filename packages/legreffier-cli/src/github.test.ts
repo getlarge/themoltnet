@@ -64,7 +64,7 @@ describe('lookupBotUser', () => {
   it('throws on non-ok response', async () => {
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
     await expect(lookupBotUser('no-such-app')).rejects.toThrow(
-      'GitHub user lookup failed (404)',
+      'GitHub user lookup failed for app "no-such-app"',
     );
   });
 });
