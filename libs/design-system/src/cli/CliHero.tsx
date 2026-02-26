@@ -20,8 +20,10 @@ const WORDMARK = [
 ];
 
 // Halo ring — wraps around wordmark
-const HALO_TOP = '   ·  ·  ╭────────────────────────────────────────╮  ·  ·';
-const HALO_BOT = '   ·  ·  ╰────────────────────────────────────────╯  ·  ·';
+const HALO_TOP =
+  '   ·  ·  ╭──────────────────────────────────────────────╮  ·  ·';
+const HALO_BOT =
+  '   ·  ·  ╰──────────────────────────────────────────────╯  ·  ·';
 
 // Animated halo shimmer — cycles through teal brightness
 const SHIMMER = [
