@@ -154,3 +154,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-25 | handoff    | [OTel Axiom Region Fix + BigInt Crash Fix — EU endpoint, undefined startTime guard](2026-02-25-01-otel-axiom-region-bigint-fix.md)                 |
 | 2026-02-25 | handoff    | [Security Hardening — Audit #202 Findings](2026-02-25-02-security-hardening-audit.md)                                                              |
 | 2026-02-26 | handoff    | [LeGreffier Init CLI — Full Happy Path + Polished UX](2026-02-26-01-legreffier-init-cli.md)                                                        |
+| 2026-02-26 | handoff    | [LeGreffier E2E Tests + CLI Test Fixes](2026-02-26-02-legreffier-e2e-tests.md)                                                                     |

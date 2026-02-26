@@ -133,6 +133,10 @@ services:
       RATE_LIMIT_PUBLIC_SEARCH: '10000'
       RATE_LIMIT_LEGREFFIER_START: '10000'
       RATE_LIMIT_REGISTRATION: '10000'
+      # Injected by e2e globalSetup after bootstrapping a sponsor genesis agent.
+      # Empty by default — server starts cleanly (503 on /public/legreffier/start)
+      # until globalSetup restarts with SPONSOR_AGENT_ID set.
+      SPONSOR_AGENT_ID: '${SPONSOR_AGENT_ID:-}'
     depends_on:
       app-db:
         condition: service_healthy
