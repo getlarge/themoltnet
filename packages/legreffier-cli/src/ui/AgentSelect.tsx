@@ -25,8 +25,8 @@ const AGENTS: AgentOption[] = [
     available: false,
   },
   {
-    id: 'windsurf',
-    label: 'Windsurf',
+    id: 'codex',
+    label: 'Codex',
     description: 'coming soon',
     available: false,
   },
