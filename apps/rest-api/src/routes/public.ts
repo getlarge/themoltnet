@@ -409,22 +409,131 @@ export async function publicRoutes(fastify: FastifyInstance) {
 
       const workflowId = workflowHandle.workflowID;
       const apiBaseUrl = fastify.security.apiBaseUrl;
-      const redirectUrl = `${apiBaseUrl}/public/legreffier/callback`;
-      const setupUrl = `${apiBaseUrl}/public/legreffier/installed?wf=${workflowId}`;
 
-      const manifest = JSON.stringify({
-        name: agentName,
-        url: 'https://themolt.net',
-        description: `${agentName} — LeGreffier agent identity for accountable AI commits`,
-        public: false,
-        redirect_url: redirectUrl,
-        setup_url: setupUrl,
-        default_permissions: { contents: 'write', metadata: 'read' },
-      });
-
-      const manifestFormUrl = `https://github.com/settings/apps/new?state=${workflowId}&manifest=${encodeURIComponent(manifest)}`;
+      // manifestFormUrl points to our own relay page which POSTs the manifest
+      // to GitHub (the manifest flow requires a POST form, not a GET URL).
+      // agentName is passed as a query param so the relay can pre-fill it.
+      const manifestFormUrl = `${apiBaseUrl}/public/legreffier/manifest/${workflowId}?name=${encodeURIComponent(agentName)}`;
 
       return { workflowId, manifestFormUrl };
+    },
+  );
+
+  // GET /public/legreffier/manifest/:workflowId — HTML relay that POSTs manifest to GitHub
+  //
+  // GitHub App manifest flow: https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest
+  // The flow requires a POST form submission to https://github.com/settings/apps/new?state=<state>.
+  // A plain redirect URL does not work — the manifest must be in the POST body.
+  server.get(
+    '/public/legreffier/manifest/:workflowId',
+    {
+      schema: {
+        operationId: 'legreffierManifestRelay',
+        tags: ['legreffier'],
+        hide: true,
+        description:
+          'Returns an auto-submitting HTML form that POSTs the GitHub App manifest to GitHub. ' +
+          'See: https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest',
+        params: Type.Object({
+          workflowId: Type.String({ minLength: 1 }),
+        }),
+        querystring: Type.Object({
+          name: Type.Optional(Type.String({ maxLength: 34 })),
+        }),
+        response: {
+          200: { type: 'string' },
+          404: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { workflowId } = request.params;
+      const { name: agentName = 'legreffier-agent' } = request.query;
+
+      // Validate the workflow is still active before serving the relay page
+      const handle = DBOS.retrieveWorkflow<OnboardingResult>(workflowId);
+      let wfStatus: Awaited<ReturnType<typeof handle.getStatus>>;
+      try {
+        wfStatus = await handle.getStatus();
+      } catch (err) {
+        request.log.warn({ err, workflowId }, 'getStatus failed for workflow');
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
+      if (!wfStatus || wfStatus.status !== 'PENDING') {
+        throw createProblem(
+          'not-found',
+          'Onboarding session not found or already completed',
+        );
+      }
+
+      const apiBaseUrl = fastify.security.apiBaseUrl;
+
+      /**
+       * GitHub App manifest fields.
+       * Reference: https://docs.github.com/en/apps/sharing-github-apps/registering-a-github-app-from-a-manifest
+       */
+      interface GitHubAppManifest {
+        name: string;
+        url: string;
+        description?: string;
+        hook_attributes: { url: string; active: boolean };
+        redirect_url: string;
+        setup_url: string;
+        callback_urls?: string[];
+        public: boolean;
+        default_permissions: Record<string, string>;
+        default_events?: string[];
+        request_oauth_on_install?: boolean;
+        setup_on_update?: boolean;
+      }
+
+      const manifest: GitHubAppManifest = {
+        name: agentName,
+        url: 'https://themolt.net',
+        description: 'LeGreffier — accountable AI commit signing bot',
+        hook_attributes: { url: '', active: false },
+        redirect_url: `${apiBaseUrl}/public/legreffier/callback`,
+        setup_url: `${apiBaseUrl}/public/legreffier/installed?wf=${workflowId}`,
+        public: false,
+        default_permissions: {
+          contents: 'write',
+          metadata: 'read',
+          pull_requests: 'write',
+        },
+      };
+
+      // HTML-escape the manifest for embedding in an attribute value
+      const manifestJson = JSON.stringify(manifest).replace(/"/g, '&quot;');
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LeGreffier &mdash; Create GitHub App</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0d1117; color: #e6edf3; }
+    .card { text-align: center; max-width: 420px; padding: 2rem; }
+    h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+    p { color: #8b949e; margin: 0 0 1.5rem; font-size: 0.9rem; }
+    button { background: #238636; color: #fff; border: none; border-radius: 6px; padding: 0.6rem 1.4rem; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #2ea043; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Create GitHub App for <em>${agentName}</em></h1>
+    <p>Click the button below to register your GitHub App.<br>You will be redirected to GitHub.</p>
+    <form method="post" action="https://github.com/settings/apps/new?state=${encodeURIComponent(workflowId)}">
+      <input type="hidden" name="manifest" value="${manifestJson}" />
+      <button type="submit">Create GitHub App &rarr;</button>
+    </form>
+  </div>
+</body>
+</html>`;
+
+      reply.header('Content-Type', 'text/html; charset=utf-8');
+      reply.header('Cache-Control', 'no-store');
+      return reply.send(html);
     },
   );
 
@@ -473,6 +582,9 @@ export async function publicRoutes(fastify: FastifyInstance) {
   server.get(
     '/public/legreffier/status/:workflowId',
     {
+      config: {
+        rateLimit: fastify.rateLimitConfig.legreffierStatus,
+      },
       schema: {
         operationId: 'getLegreffierOnboardingStatus',
         tags: ['legreffier'],
@@ -503,7 +615,21 @@ export async function publicRoutes(fastify: FastifyInstance) {
       }
 
       if (wfStatus.status === 'SUCCESS') {
-        return { status: 'completed' as const };
+        try {
+          const result = await handle.getResult();
+          return {
+            status: 'completed' as const,
+            identityId: result.identityId,
+            clientId: result.clientId,
+            clientSecret: result.clientSecret,
+          };
+        } catch (err) {
+          request.log.warn(
+            { err, workflowId },
+            'Failed to retrieve workflow result for creds',
+          );
+          return { status: 'completed' as const };
+        }
       }
       if (wfStatus.status === 'ERROR') {
         return { status: 'failed' as const };
@@ -519,7 +645,15 @@ export async function publicRoutes(fastify: FastifyInstance) {
         0,
       );
       if (awaitingInstallation) {
-        return { status: 'awaiting_installation' as const };
+        const githubCode = await DBOS.getEvent<string>(
+          workflowId,
+          GITHUB_CODE_READY_EVENT,
+          0,
+        );
+        return {
+          status: 'awaiting_installation' as const,
+          githubCode: githubCode ?? undefined,
+        };
       }
 
       // Check if github_code_ready event has been set (non-blocking, timeout=0)

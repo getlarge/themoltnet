@@ -207,9 +207,15 @@ describe('content', () => {
 describe('links', () => {
   it('GitHub links open in new tab with noopener', () => {
     wrapWithRouter(<App />);
-    const ghLinks = screen
-      .getAllByRole('link')
-      .filter((a) => a.getAttribute('href')?.includes('github.com'));
+    const ghLinks = screen.getAllByRole('link').filter((a) => {
+      const href = a.getAttribute('href');
+      if (!href) return false;
+      try {
+        return new URL(href).hostname === 'github.com';
+      } catch {
+        return false;
+      }
+    });
     expect(ghLinks.length).toBeGreaterThan(0);
     for (const link of ghLinks) {
       expect(link).toHaveAttribute('target', '_blank');

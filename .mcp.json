@@ -31,6 +31,14 @@
         "X-Client-Id": "${LEGREFFIER_CLIENT_ID}",
         "X-Client-Secret": "${LEGREFFIER_CLIENT_SECRET}"
       }
+    },
+    "legreffier-test": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp",
+      "headers": {
+        "X-Client-Id": "${LEGREFFIER_TEST_CLIENT_ID}",
+        "X-Client-Secret": "${LEGREFFIER_TEST_CLIENT_SECRET}"
+      }
     }
   }
 }

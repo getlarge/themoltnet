@@ -68,6 +68,8 @@ export interface SecurityOptions {
   rateLimitPublicSearch: number;
   /** Max requests per day for LeGreffier onboarding start (default: 3) */
   rateLimitLegreffierStart: number;
+  /** Max requests per minute for LeGreffier status polling (default: 120) */
+  rateLimitLegreffierStatus: number;
   /** Max requests per minute for registration endpoint (default: 5) */
   rateLimitRegistration: number;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
@@ -191,6 +193,7 @@ export async function registerApiRoutes(
     publicVerifyLimit: options.security.rateLimitPublicVerify,
     publicSearchLimit: options.security.rateLimitPublicSearch,
     legreffierStartLimit: options.security.rateLimitLegreffierStart,
+    legreffierStatusLimit: options.security.rateLimitLegreffierStatus,
     registrationLimit: options.security.rateLimitRegistration,
   });
 

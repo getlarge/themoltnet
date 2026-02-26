@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./out-tsc/test/tsconfig.tsbuildinfo",
+    "outDir": "./out-tsc/test",
+    "jsx": "react-jsx",
+    "lib": ["ES2022"],
+    "moduleResolution": "node16",
+    "module": "node16",
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["dist", "node_modules"],
+  "references": [{ "path": "./tsconfig.json" }]
+}

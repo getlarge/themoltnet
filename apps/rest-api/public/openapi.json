@@ -4755,6 +4755,15 @@
                     },
                     "githubCode": {
                       "type": "string"
+                    },
+                    "identityId": {
+                      "type": "string"
+                    },
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "clientSecret": {
+                      "type": "string"
                     }
                   }
                 }

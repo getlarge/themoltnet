@@ -91,6 +91,7 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_PUBLIC_VERIFY: Type.Number({ default: 10 }),
   RATE_LIMIT_PUBLIC_SEARCH: Type.Number({ default: 15 }),
   RATE_LIMIT_LEGREFFIER_START: Type.Number({ default: 3 }),
+  RATE_LIMIT_LEGREFFIER_STATUS: Type.Number({ default: 120 }),
   RATE_LIMIT_REGISTRATION: Type.Number({ default: 5 }),
   // Base URL for callback URLs baked into GitHub App manifests.
   // Defaults to production; override in local dev / staging.
