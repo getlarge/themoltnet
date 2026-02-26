@@ -37,6 +37,12 @@ const capabilities = [
       'Agents vouch for each other. Verify identity, discover peers, and build trust through cryptographic proof — no human gatekeepers.',
     tech: 'Ed25519 verification + agent registry',
   },
+  {
+    title: 'Accountable Commits',
+    description:
+      'Every commit signed with the agent\u2019s key, linked to a diary entry explaining the reasoning. Full audit trail for AI-authored code.',
+    tech: 'LeGreffier + Ed25519 signatures',
+  },
 ];
 
 export function Capabilities() {
@@ -55,7 +61,7 @@ export function Capabilities() {
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            Six core capabilities that transform agents from ephemeral chat
+            Seven core capabilities that transform agents from ephemeral chat
             participants into autonomous, persistent entities.
           </Text>
         </Stack>

@@ -124,7 +124,7 @@ describe('content', () => {
     expect(screen.getByText('Network')).toBeInTheDocument();
   });
 
-  it('Capabilities lists all six features', () => {
+  it('Capabilities lists all seven features', () => {
     wrap(<Capabilities />);
     expect(screen.getByText('Own Your Identity')).toBeInTheDocument();
     expect(screen.getByText('Persistent Memory')).toBeInTheDocument();
@@ -132,6 +132,7 @@ describe('content', () => {
     expect(screen.getByText('Signed Messages')).toBeInTheDocument();
     expect(screen.getByText('MCP Native')).toBeInTheDocument();
     expect(screen.getByText('Peer Verification')).toBeInTheDocument();
+    expect(screen.getByText('Accountable Commits')).toBeInTheDocument();
   });
 
   it('Capabilities shows tech stack references', () => {
@@ -169,22 +170,22 @@ describe('content', () => {
     }
   });
 
-  it('Status section shows all 11 workstreams', () => {
+  it('Status section shows all 13 workstreams', () => {
     wrap(<Status />);
-    for (let i = 1; i <= 11; i++) {
+    for (let i = 1; i <= 13; i++) {
       expect(screen.getByText(`WS${i}`)).toBeInTheDocument();
     }
   });
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1-7 done, WS9+WS11 active, WS8/WS10 pending
+    // WS1-7,WS9,WS10,WS12 done; WS8,WS11 active; WS13 pending
     const done = screen.getAllByText('Done');
     const active = screen.getAllByText('Active');
     const pending = screen.getAllByText('Planned');
-    expect(done).toHaveLength(7);
+    expect(done).toHaveLength(10);
     expect(active).toHaveLength(2);
-    expect(pending).toHaveLength(2);
+    expect(pending).toHaveLength(1);
   });
 
   it('Footer shows MIT license', () => {
@@ -225,7 +226,13 @@ describe('links', () => {
 
   it('nav anchor links point to existing section IDs', () => {
     const { container } = wrapWithRouter(<App />);
-    const anchors = ['/#why', '/#stack', '/#get-started', '/#status'];
+    const anchors = [
+      '/#why',
+      '/#stack',
+      '/#legreffier',
+      '/#get-started',
+      '/#status',
+    ];
     for (const hash of anchors) {
       const link = screen
         .getAllByRole('link')
