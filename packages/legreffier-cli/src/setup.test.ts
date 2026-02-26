@@ -68,6 +68,7 @@ describe('writeSettingsLocal', () => {
     expect(parsed.env.MY_AGENT_GITHUB_APP_INSTALLATION_ID).toBe('99999');
     expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
     expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
+    expect(parsed.enableAllProjectMcpServers).toBe(true);
   });
 
   it('merges into existing settings.local.json', async () => {

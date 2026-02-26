@@ -61,6 +61,7 @@ export async function writeSettingsLocal({
   const prefix = toEnvPrefix(agentName);
   const settings = {
     ...existing,
+    enableAllProjectMcpServers: true,
     env: {
       ...existing.env,
       [`${prefix}_GITHUB_APP_ID`]: appSlug,
