@@ -16,7 +16,7 @@ export async function runIdentityPhase(opts: {
 }): Promise<IdentityResult> {
   const { apiUrl, agentName, configDir, projectSlug, dispatch } = opts;
   const existingConfig = await readConfig(configDir);
-  const existingState = await readState(projectSlug);
+  const existingState = await readState(projectSlug, agentName);
 
   if (existingConfig?.keys?.public_key && existingConfig?.oauth2?.client_id) {
     dispatch({ type: 'step', key: 'keypair', status: 'skipped' });
@@ -85,7 +85,7 @@ export async function runIdentityPhase(opts: {
       };
     }
     // Workflow expired — discard stale state and start fresh
-    await clearState(projectSlug);
+    await clearState(projectSlug, agentName);
   }
 
   const available = await checkAppNameAvailable(agentName);
@@ -119,6 +119,7 @@ export async function runIdentityPhase(opts: {
       phase: 'awaiting_github',
     },
     projectSlug,
+    agentName,
   );
 
   // Write keys to config early so exportSSHKey can find them in runGitSetupPhase

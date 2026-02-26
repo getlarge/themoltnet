@@ -12,6 +12,7 @@ import {
 } from './state.js';
 
 const TEST_SLUG = 'test-project-' + Math.random().toString(36).slice(2);
+const TEST_AGENT = 'test-agent';
 const stateDir = join(homedir(), '.config', 'moltnet', TEST_SLUG);
 
 describe('deriveProjectSlug', () => {
@@ -39,7 +40,7 @@ describe('state helpers', () => {
   });
 
   it('returns null when no state file exists', async () => {
-    expect(await readState(TEST_SLUG)).toBeNull();
+    expect(await readState(TEST_SLUG, TEST_AGENT)).toBeNull();
   });
 
   it('round-trips state', async () => {
@@ -51,8 +52,8 @@ describe('state helpers', () => {
       agentName: 'my-bot',
       phase: 'awaiting_github' as const,
     };
-    await writeState(state, TEST_SLUG);
-    expect(await readState(TEST_SLUG)).toEqual(state);
+    await writeState(state, TEST_SLUG, TEST_AGENT);
+    expect(await readState(TEST_SLUG, TEST_AGENT)).toEqual(state);
   });
 
   it('preserves optional fields', async () => {
@@ -67,8 +68,31 @@ describe('state helpers', () => {
       appSlug: 'my-app',
       installationId: '99999',
     };
-    await writeState(state, TEST_SLUG);
-    expect(await readState(TEST_SLUG)).toEqual(state);
+    await writeState(state, TEST_SLUG, TEST_AGENT);
+    expect(await readState(TEST_SLUG, TEST_AGENT)).toEqual(state);
+  });
+
+  it('isolates state per agent name', async () => {
+    const state1 = {
+      workflowId: 'wf-1',
+      publicKey: 'pk-1',
+      privateKey: 'sk-1',
+      fingerprint: 'fp-1',
+      agentName: 'agent-a',
+      phase: 'awaiting_github' as const,
+    };
+    const state2 = {
+      workflowId: 'wf-2',
+      publicKey: 'pk-2',
+      privateKey: 'sk-2',
+      fingerprint: 'fp-2',
+      agentName: 'agent-b',
+      phase: 'awaiting_installation' as const,
+    };
+    await writeState(state1, TEST_SLUG, 'agent-a');
+    await writeState(state2, TEST_SLUG, 'agent-b');
+    expect(await readState(TEST_SLUG, 'agent-a')).toEqual(state1);
+    expect(await readState(TEST_SLUG, 'agent-b')).toEqual(state2);
   });
 
   it('clearState removes the file', async () => {
@@ -82,13 +106,14 @@ describe('state helpers', () => {
         phase: 'awaiting_github',
       },
       TEST_SLUG,
+      TEST_AGENT,
     );
-    await clearState(TEST_SLUG);
-    expect(await readState(TEST_SLUG)).toBeNull();
+    await clearState(TEST_SLUG, TEST_AGENT);
+    expect(await readState(TEST_SLUG, TEST_AGENT)).toBeNull();
   });
 
   it('clearState is idempotent', async () => {
-    await expect(clearState(TEST_SLUG)).resolves.toBeUndefined();
+    await expect(clearState(TEST_SLUG, TEST_AGENT)).resolves.toBeUndefined();
   });
 
   it('writeState creates directory if missing', async () => {
@@ -103,8 +128,11 @@ describe('state helpers', () => {
         phase: 'awaiting_installation',
       },
       TEST_SLUG,
+      TEST_AGENT,
     );
-    const s = await stat(join(stateDir, 'legreffier-init.state.json'));
+    const s = await stat(
+      join(stateDir, `legreffier-init.${TEST_AGENT}.state.json`),
+    );
     expect(s.isFile()).toBe(true);
   });
 });

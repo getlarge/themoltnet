@@ -108,5 +108,5 @@ export async function runAgentSetupPhase(opts: {
   });
   dispatch({ type: 'step', key: 'settings', status: 'done' });
 
-  await clearState(projectSlug);
+  await clearState(projectSlug, agentName);
 }

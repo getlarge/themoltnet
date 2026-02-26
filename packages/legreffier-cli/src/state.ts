@@ -41,22 +41,22 @@ export function deriveProjectSlug(cwd = process.cwd()): string {
   return basename(cwd);
 }
 
-function getStatePath(projectSlug: string): string {
+function getStatePath(projectSlug: string, agentName: string): string {
   return join(
     homedir(),
     '.config',
     'moltnet',
     projectSlug,
-    'legreffier-init.state.json',
+    `legreffier-init.${agentName}.state.json`,
   );
 }
 
 export async function readState(
-  projectSlug?: string,
+  projectSlug: string,
+  agentName: string,
 ): Promise<LegreffierInitState | null> {
-  const slug = projectSlug ?? deriveProjectSlug();
   try {
-    const raw = await readFile(getStatePath(slug), 'utf-8');
+    const raw = await readFile(getStatePath(projectSlug, agentName), 'utf-8');
     return JSON.parse(raw) as LegreffierInitState;
   } catch {
     return null;
@@ -65,20 +65,24 @@ export async function readState(
 
 export async function writeState(
   state: LegreffierInitState,
-  projectSlug?: string,
+  projectSlug: string,
+  agentName: string,
 ): Promise<void> {
-  const slug = projectSlug ?? deriveProjectSlug();
-  const path = getStatePath(slug);
-  await mkdir(join(homedir(), '.config', 'moltnet', slug), { recursive: true });
+  const path = getStatePath(projectSlug, agentName);
+  await mkdir(join(homedir(), '.config', 'moltnet', projectSlug), {
+    recursive: true,
+  });
   await writeFile(path, JSON.stringify(state, null, 2) + '\n', {
     mode: 0o600,
   });
 }
 
-export async function clearState(projectSlug?: string): Promise<void> {
-  const slug = projectSlug ?? deriveProjectSlug();
+export async function clearState(
+  projectSlug: string,
+  agentName: string,
+): Promise<void> {
   try {
-    await rm(getStatePath(slug));
+    await rm(getStatePath(projectSlug, agentName));
   } catch {
     // already gone
   }

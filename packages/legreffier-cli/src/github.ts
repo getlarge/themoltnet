@@ -96,19 +96,33 @@ export async function suggestAppNames(appName: string): Promise<string[]> {
  * Look up GitHub bot user and derive noreply email.
  * Tries <appSlug>[bot] first (exists post-installation), then falls back to
  * plain <appSlug> (exists right after app creation, pre-installation).
+ *
+ * Retries with exponential backoff because GitHub's public /users API
+ * may not index a newly created app account immediately.
  */
-export async function lookupBotUser(appSlug: string): Promise<BotUser> {
-  for (const username of [`${appSlug}[bot]`, appSlug]) {
-    const res = await fetch(
-      `https://api.github.com/users/${encodeURIComponent(username)}`,
-      { headers: GITHUB_HEADERS },
-    );
-    if (res.ok) {
-      const data = (await res.json()) as { id: number; login: string };
-      return {
-        id: data.id,
-        email: `${data.id}+${data.login}@users.noreply.github.com`,
-      };
+export async function lookupBotUser(
+  appSlug: string,
+  { maxRetries = 5, baseDelayMs = 2_000 } = {},
+): Promise<BotUser> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    for (const username of [`${appSlug}[bot]`, appSlug]) {
+      const res = await fetch(
+        `https://api.github.com/users/${encodeURIComponent(username)}`,
+        { headers: GITHUB_HEADERS },
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { id: number; login: string };
+        return {
+          id: data.id,
+          email: `${data.id}+${data.login}@users.noreply.github.com`,
+        };
+      }
+    }
+    if (attempt < maxRetries) {
+      const delayMs = baseDelayMs * 2 ** attempt;
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delayMs);
+      });
     }
   }
   throw new Error(`GitHub user lookup failed for app "${appSlug}"`);

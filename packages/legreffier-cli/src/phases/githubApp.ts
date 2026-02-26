@@ -35,7 +35,7 @@ export async function runGithubAppPhase(opts: {
   } = opts;
 
   const existingConfig = await readConfig(configDir);
-  const existingState = await readState(projectSlug);
+  const existingState = await readState(projectSlug, agentName);
 
   if (existingConfig?.github?.app_id) {
     dispatch({ type: 'step', key: 'githubApp', status: 'skipped' });
@@ -104,6 +104,7 @@ export async function runGithubAppPhase(opts: {
       appSlug: ghCreds.appSlug,
     },
     projectSlug,
+    agentName,
   );
 
   dispatch({ type: 'step', key: 'githubApp', status: 'done' });
