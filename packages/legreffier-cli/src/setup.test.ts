@@ -70,6 +70,37 @@ describe('writeSettingsLocal', () => {
     expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
   });
 
+  it('merges into existing settings.local.json', async () => {
+    const filePath = join(tmpRepo, '.claude', 'settings.local.json');
+    await mkdir(join(tmpRepo, '.claude'), { recursive: true });
+    const existing = {
+      env: { EXISTING_VAR: 'keep-me', OTHER_CLIENT_ID: 'other' },
+      customKey: true,
+    };
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile(filePath, JSON.stringify(existing), 'utf-8');
+
+    await writeSettingsLocal({
+      repoDir: tmpRepo,
+      agentName: 'my-agent',
+      appSlug: 'my-app',
+      pemPath: '/tmp/my-app.pem',
+      installationId: '123',
+      clientId: 'cid',
+      clientSecret: 'csec',
+    });
+
+    const parsed = JSON.parse(await readFile(filePath, 'utf-8'));
+    // Existing env vars preserved
+    expect(parsed.env.EXISTING_VAR).toBe('keep-me');
+    expect(parsed.env.OTHER_CLIENT_ID).toBe('other');
+    // New agent vars added
+    expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
+    expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
+    // Non-env keys preserved
+    expect(parsed.customKey).toBe(true);
+  });
+
   it('creates .claude dir if missing', async () => {
     await writeSettingsLocal({
       repoDir: tmpRepo,

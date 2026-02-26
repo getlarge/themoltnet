@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const SKILLS: Array<{ name: string; url: string }> = [
@@ -37,7 +37,7 @@ export function toEnvPrefix(agentName: string): string {
   return agentName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
 }
 
-/** Write .claude/settings.local.json with LeGreffier bot identity and MoltNet credentials. */
+/** Merge agent env vars into .claude/settings.local.json, preserving existing entries. */
 export async function writeSettingsLocal({
   repoDir,
   agentName,
@@ -49,9 +49,20 @@ export async function writeSettingsLocal({
 }: SettingsLocalOptions): Promise<void> {
   const dir = join(repoDir, '.claude');
   await mkdir(dir, { recursive: true });
+  const filePath = join(dir, 'settings.local.json');
+
+  let existing: { env?: Record<string, string> } = {};
+  try {
+    existing = JSON.parse(await readFile(filePath, 'utf-8'));
+  } catch {
+    // file doesn't exist or isn't valid JSON — start fresh
+  }
+
   const prefix = toEnvPrefix(agentName);
   const settings = {
+    ...existing,
     env: {
+      ...existing.env,
       [`${prefix}_GITHUB_APP_ID`]: appSlug,
       [`${prefix}_GITHUB_APP_PRIVATE_KEY_PATH`]: pemPath,
       [`${prefix}_GITHUB_APP_INSTALLATION_ID`]: installationId,
@@ -59,9 +70,5 @@ export async function writeSettingsLocal({
       [`${prefix}_CLIENT_SECRET`]: clientSecret,
     },
   };
-  await writeFile(
-    join(dir, 'settings.local.json'),
-    JSON.stringify(settings, null, 2) + '\n',
-    'utf-8',
-  );
+  await writeFile(filePath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
 }
