@@ -46,6 +46,7 @@ describe('state helpers', () => {
     const state = {
       workflowId: 'wf-123',
       publicKey: 'ed25519:abc',
+      privateKey: 'priv:abc',
       fingerprint: 'A1B2-C3D4-E5F6-G7H8',
       agentName: 'my-bot',
       phase: 'awaiting_github' as const,
@@ -58,6 +59,7 @@ describe('state helpers', () => {
     const state = {
       workflowId: 'wf-456',
       publicKey: 'ed25519:xyz',
+      privateKey: 'priv:xyz',
       fingerprint: 'X1Y2-Z3A4-B5C6-D7E8',
       agentName: 'other-bot',
       phase: 'post_github' as const,
@@ -74,6 +76,7 @@ describe('state helpers', () => {
       {
         workflowId: 'x',
         publicKey: 'x',
+        privateKey: 'x',
         fingerprint: 'x',
         agentName: 'x',
         phase: 'awaiting_github',
@@ -94,6 +97,7 @@ describe('state helpers', () => {
       {
         workflowId: 'x',
         publicKey: 'x',
+        privateKey: 'x',
         fingerprint: 'x',
         agentName: 'x',
         phase: 'awaiting_installation',
