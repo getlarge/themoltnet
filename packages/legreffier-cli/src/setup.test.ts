@@ -4,7 +4,11 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { downloadSkills, writeSettingsLocal } from './setup.js';
+import {
+  buildPermissions,
+  downloadSkills,
+  writeSettingsLocal,
+} from './setup.js';
 
 const tmpRepo = join(
   tmpdir(),
@@ -44,6 +48,23 @@ describe('downloadSkills', () => {
   });
 });
 
+describe('buildPermissions', () => {
+  it('includes agent-specific MCP wildcard', () => {
+    const perms = buildPermissions('my-agent');
+    expect(perms).toContain('mcp__my-agent__*');
+  });
+
+  it('includes read-only git and signing commands', () => {
+    const perms = buildPermissions('x');
+    expect(perms).toContain('Bash(git config *)');
+    expect(perms).toContain('Bash(git diff *)');
+    expect(perms).toContain('Bash(git log *)');
+    expect(perms).toContain('Bash(git rev-parse *)');
+    expect(perms).toContain('Bash(moltnet sign *)');
+    expect(perms).toContain('Bash(ln -s *)');
+  });
+});
+
 describe('writeSettingsLocal', () => {
   it('writes settings.local.json with correct structure', async () => {
     await writeSettingsLocal({
@@ -69,6 +90,10 @@ describe('writeSettingsLocal', () => {
     expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
     expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
     expect(parsed.enabledMcpjsonServers).toEqual(['my-agent']);
+    // Permissions include agent-specific MCP wildcard
+    expect(parsed.permissions.allow).toContain('mcp__my-agent__*');
+    expect(parsed.permissions.allow).toContain('Bash(git config *)');
+    expect(parsed.permissions.allow).toContain('Bash(moltnet sign *)');
   });
 
   it('merges into existing settings.local.json', async () => {
@@ -77,6 +102,7 @@ describe('writeSettingsLocal', () => {
     const existing = {
       env: { EXISTING_VAR: 'keep-me', OTHER_CLIENT_ID: 'other' },
       enabledMcpjsonServers: ['other-agent'],
+      permissions: { allow: ['Bash(custom-cmd *)', 'Bash(git config *)'] },
       customKey: true,
     };
     const { writeFile } = await import('node:fs/promises');
@@ -103,6 +129,16 @@ describe('writeSettingsLocal', () => {
     expect(parsed.customKey).toBe(true);
     // Agent added to enabledMcpjsonServers without duplicating existing
     expect(parsed.enabledMcpjsonServers).toEqual(['other-agent', 'my-agent']);
+    // Existing permissions preserved, new ones appended, no duplicates
+    expect(parsed.permissions.allow[0]).toBe('Bash(custom-cmd *)');
+    expect(parsed.permissions.allow[1]).toBe('Bash(git config *)');
+    expect(parsed.permissions.allow).toContain('mcp__my-agent__*');
+    // 'Bash(git config *)' not duplicated
+    expect(
+      parsed.permissions.allow.filter(
+        (p: string) => p === 'Bash(git config *)',
+      ),
+    ).toHaveLength(1);
   });
 
   it('creates .claude dir if missing', async () => {

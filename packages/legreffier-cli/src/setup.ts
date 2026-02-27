@@ -32,6 +32,24 @@ export interface SettingsLocalOptions {
   clientSecret: string;
 }
 
+/** Build the permission allow-list for the legreffier skill. */
+export function buildPermissions(agentName: string): string[] {
+  return [
+    // Read-only git commands used by session activation & commit workflow
+    'Bash(git config *)',
+    'Bash(git diff *)',
+    'Bash(git log *)',
+    'Bash(git rev-parse *)',
+    'Bash(git worktree list)',
+    // Signing CLI
+    'Bash(moltnet sign *)',
+    // Worktree symlink creation
+    'Bash(ln -s *)',
+    // All MCP tools for this agent's server
+    `mcp__${agentName}__*`,
+  ];
+}
+
 /** Convert an agent name to an uppercase env-var prefix, e.g. "my-agent" → "MY_AGENT". */
 export function toEnvPrefix(agentName: string): string {
   return agentName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
@@ -54,6 +72,7 @@ export async function writeSettingsLocal({
   let existing: {
     env?: Record<string, string>;
     enabledMcpjsonServers?: string[];
+    permissions?: { allow?: string[]; deny?: string[] };
   } = {};
   try {
     existing = JSON.parse(await readFile(filePath, 'utf-8'));
@@ -71,9 +90,22 @@ export async function writeSettingsLocal({
     ? existingServers
     : [...existingServers, agentName];
 
+  const newPerms = buildPermissions(agentName);
+  const existingAllow: string[] = Array.isArray(existing.permissions?.allow)
+    ? existing.permissions.allow
+    : [];
+  const mergedAllow = [
+    ...existingAllow,
+    ...newPerms.filter((p) => !existingAllow.includes(p)),
+  ];
+
   const settings = {
     ...existing,
     enabledMcpjsonServers,
+    permissions: {
+      ...existing.permissions,
+      allow: mergedAllow,
+    },
     env: {
       ...existing.env,
       [`${prefix}_GITHUB_APP_ID`]: appSlug,
