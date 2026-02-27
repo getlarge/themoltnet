@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.16.0...moltnet-api-client-v0.17.0) (2026-02-27)
+
+
+### Features
+
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.15.0...moltnet-api-client-v0.16.0) (2026-02-27)
 
 
