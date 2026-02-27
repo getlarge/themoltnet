@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.47.0](https://github.com/getlarge/themoltnet/compare/cli-v0.46.0...cli-v0.47.0) (2026-02-27)
+
+
+### Features
+
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+
 ## [0.46.0](https://github.com/getlarge/themoltnet/compare/cli-v0.45.0...cli-v0.46.0) (2026-02-24)
 
 
