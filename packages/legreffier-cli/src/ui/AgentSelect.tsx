@@ -2,10 +2,10 @@ import { cliTheme } from '@moltnet/design-system/cli';
 import { Box, Text, useInput } from 'ink';
 import React, { useState } from 'react';
 
-import type { AgentType } from './types.js';
+import { type AgentType, SUPPORTED_AGENTS } from './types.js';
 
 interface AgentOption {
-  id: AgentType | string;
+  id: string;
   label: string;
   description: string;
   available: boolean;
@@ -46,7 +46,10 @@ export function AgentSelect({ onSelect }: AgentSelectProps) {
       setSelected((i) => (i < AGENTS.length - 1 ? i + 1 : i));
     } else if (key.return) {
       const agent = AGENTS[selected];
-      if (agent && agent.available) {
+      if (
+        agent?.available &&
+        SUPPORTED_AGENTS.includes(agent.id as AgentType)
+      ) {
         onSelect(agent.id as AgentType);
       }
     }

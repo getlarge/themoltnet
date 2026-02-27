@@ -4,30 +4,10 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  clearState,
-  deriveProjectSlug,
-  readState,
-  writeState,
-} from './state.js';
+import { clearState, readState, writeState } from './state.js';
 
 const TEST_ID = 'test-state-' + Math.random().toString(36).slice(2);
 const configDir = join(tmpdir(), TEST_ID);
-
-describe('deriveProjectSlug', () => {
-  it('returns a non-empty string', () => {
-    const slug = deriveProjectSlug();
-    expect(slug).toBeTruthy();
-    expect(typeof slug).toBe('string');
-  });
-
-  it('parses HTTPS remote URL', () => {
-    // We can test the regex logic by calling with a temp dir that has a known remote
-    // Just verify the function doesn't throw on various inputs
-    const slug = deriveProjectSlug(process.cwd());
-    expect(slug).toMatch(/^[a-zA-Z0-9_.-]+$/);
-  });
-});
 
 describe('state helpers', () => {
   beforeEach(async () => {

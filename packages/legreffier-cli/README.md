@@ -122,7 +122,7 @@ stateDiagram-v2
 Each phase checks for existing state before running. If interrupted, re-run the
 same command — completed phases are skipped automatically.
 
-State is persisted to `~/.config/moltnet/<project-slug>/legreffier-init.state.json`
+State is persisted to `.moltnet/<agent-name>/legreffier-init.state.json`
 during the flow and cleared on successful completion.
 
 ### Phases in detail
@@ -149,18 +149,18 @@ the LeGreffier skill, writes `settings.local.json`, and clears temporary state.
 ## Files Created
 
 ```
-~/.moltnet/<agent-name>/
-├── moltnet.json            # Identity, keys, OAuth2, endpoints, git, GitHub
-├── gitconfig               # Git identity + SSH commit signing
-└── ssh/
-    ├── id_ed25519          # SSH private key (mode 0600)
-    └── id_ed25519.pub      # SSH public key
-
 <repo>/
-├── .mcp.json               # MCP server config (env var placeholders)
+├── .moltnet/<agent-name>/
+│   ├── moltnet.json            # Identity, keys, OAuth2, endpoints, git, GitHub
+│   ├── gitconfig               # Git identity + SSH commit signing
+│   ├── <app-slug>.pem          # GitHub App private key (mode 0600)
+│   └── ssh/
+│       ├── id_ed25519          # SSH private key (mode 0600)
+│       └── id_ed25519.pub      # SSH public key
+├── .mcp.json                   # MCP server config (env var placeholders)
 └── .claude/
-    ├── settings.local.json # Credential values (⚠️ gitignore this!)
-    └── skills/legreffier/  # Downloaded LeGreffier skill
+    ├── settings.local.json     # Credential values (⚠️ gitignore this!)
+    └── skills/legreffier/      # Downloaded LeGreffier skill
 ```
 
 ### How credentials flow
@@ -242,7 +242,7 @@ SSH signature verification.
 ## Multi-Agent Support
 
 Currently `legreffier init` writes Claude Code configuration. Support for
-additional AI coding agents (Cursor, Windsurf, Cline) is planned — see
+additional AI coding agents (Cursor, Codex, Cline) is planned — see
 [#324](https://github.com/getlarge/themoltnet/issues/324).
 
 ## Advanced: Manual Setup
@@ -259,14 +259,14 @@ moltnet register --voucher <code>
 #    Disable webhooks. Note App ID and generate a private key PEM.
 
 # 3. Export SSH keys
-moltnet ssh-key --credentials ~/.config/moltnet/moltnet.json
+moltnet ssh-key --credentials .moltnet/<agent-name>/moltnet.json
 
 # 4. Look up bot user ID
 gh api /users/<app-slug>%5Bbot%5D --jq '.id'
 
 # 5. Configure git identity
 moltnet github setup \
-  --credentials ~/.config/moltnet/moltnet.json \
+  --credentials .moltnet/<agent-name>/moltnet.json \
   --app-slug <slug> \
   --name "<Agent Name>"
 ```
@@ -303,7 +303,7 @@ gh api /users/<app-slug>%5Bbot%5D --jq '.id'
 ### "error: Load key ... invalid format"
 
 SSH key file permissions are wrong:
-`chmod 600 ~/.moltnet/<name>/ssh/id_ed25519`
+`chmod 600 .moltnet/<name>/ssh/id_ed25519`
 
 ### Commits show as "Unverified"
 
@@ -333,8 +333,7 @@ skipped automatically.
 ### Start fresh
 
 ```bash
-rm -rf ~/.config/moltnet/<project-slug>/legreffier-init.state.json
-rm -rf ~/.moltnet/<agent-name>/
+rm -rf .moltnet/<agent-name>/
 legreffier --name <agent-name>
 ```
 
