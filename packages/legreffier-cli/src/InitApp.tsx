@@ -19,7 +19,6 @@ import { runGithubAppPhase } from './phases/githubApp.js';
 import { runGitSetupPhase } from './phases/gitSetup.js';
 import { runIdentityPhase } from './phases/identity.js';
 import { runInstallationPhase } from './phases/installation.js';
-import { deriveProjectSlug } from './state.js';
 import { AgentSelect } from './ui/AgentSelect.js';
 import { initialSteps, uiReducer } from './ui/reducer.js';
 import type { AgentType, UIPhase, UIState } from './ui/types.js';
@@ -292,13 +291,11 @@ export function InitApp({
     void (async () => {
       try {
         const configDir = join(dir, '.moltnet', name);
-        const projectSlug = deriveProjectSlug(dir);
 
         const identity = await runIdentityPhase({
           apiUrl,
           agentName: name,
           configDir,
-          projectSlug,
           dispatch,
         });
 
@@ -306,7 +303,6 @@ export function InitApp({
           apiUrl,
           agentName: name,
           configDir,
-          projectSlug,
           publicKey: identity.publicKey,
           privateKey: identity.privateKey,
           fingerprint: identity.fingerprint,
@@ -344,7 +340,6 @@ export function InitApp({
           identityId: installation.identityId,
           clientId: installation.clientId || identity.clientId,
           clientSecret: installation.clientSecret || identity.clientSecret,
-          projectSlug,
           dispatch,
         });
 

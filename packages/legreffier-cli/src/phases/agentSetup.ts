@@ -22,7 +22,6 @@ export async function runAgentSetupPhase(opts: {
   identityId: string;
   clientId: string;
   clientSecret: string;
-  projectSlug: string;
   dispatch: (a: UIAction) => void;
 }): Promise<void> {
   const {
@@ -38,7 +37,6 @@ export async function runAgentSetupPhase(opts: {
     identityId,
     clientId,
     clientSecret,
-    projectSlug,
     dispatch,
   } = opts;
 
@@ -108,5 +106,5 @@ export async function runAgentSetupPhase(opts: {
   });
   dispatch({ type: 'step', key: 'settings', status: 'done' });
 
-  await clearState(projectSlug, agentName);
+  await clearState(configDir);
 }

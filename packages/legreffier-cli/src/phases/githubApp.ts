@@ -1,4 +1,3 @@
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import { readConfig } from '@themoltnet/sdk';
@@ -13,7 +12,6 @@ export async function runGithubAppPhase(opts: {
   apiUrl: string;
   agentName: string;
   configDir: string;
-  projectSlug: string;
   publicKey: string;
   privateKey: string;
   fingerprint: string;
@@ -25,7 +23,6 @@ export async function runGithubAppPhase(opts: {
     apiUrl,
     agentName,
     configDir,
-    projectSlug,
     publicKey,
     privateKey,
     fingerprint,
@@ -35,7 +32,7 @@ export async function runGithubAppPhase(opts: {
   } = opts;
 
   const existingConfig = await readConfig(configDir);
-  const existingState = await readState(projectSlug, agentName);
+  const existingState = await readState(configDir);
 
   if (existingConfig?.github?.app_id) {
     dispatch({ type: 'step', key: 'githubApp', status: 'skipped' });
@@ -54,13 +51,7 @@ export async function runGithubAppPhase(opts: {
   // State has appSlug but config wasn't written yet (crash after exchange, before agent setup).
   // PEM was already written to disk by writePem — reconstruct the path.
   if (existingState?.appSlug && existingState?.appId) {
-    const pemPath = join(
-      homedir(),
-      '.config',
-      'moltnet',
-      projectSlug,
-      `${existingState.appSlug}.pem`,
-    );
+    const pemPath = join(configDir, `${existingState.appSlug}.pem`);
     dispatch({ type: 'step', key: 'githubApp', status: 'skipped' });
     dispatch({ type: 'appSlug', appSlug: existingState.appSlug });
     return {
@@ -91,7 +82,7 @@ export async function runGithubAppPhase(opts: {
   const ghCreds = await exchangeManifestCode(codeResult.githubCode);
   dispatch({ type: 'appSlug', appSlug: ghCreds.appSlug });
 
-  const pemPath = await writePem(ghCreds.pem, ghCreds.appSlug, projectSlug);
+  const pemPath = await writePem(ghCreds.pem, ghCreds.appSlug, configDir);
   await writeState(
     {
       workflowId,
@@ -103,8 +94,7 @@ export async function runGithubAppPhase(opts: {
       appId: ghCreds.appId,
       appSlug: ghCreds.appSlug,
     },
-    projectSlug,
-    agentName,
+    configDir,
   );
 
   dispatch({ type: 'step', key: 'githubApp', status: 'done' });

@@ -1,6 +1,5 @@
 import { execSync } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 
 export type InitPhase =
@@ -41,22 +40,15 @@ export function deriveProjectSlug(cwd = process.cwd()): string {
   return basename(cwd);
 }
 
-function getStatePath(projectSlug: string, agentName: string): string {
-  return join(
-    homedir(),
-    '.config',
-    'moltnet',
-    projectSlug,
-    `legreffier-init.${agentName}.state.json`,
-  );
+function getStatePath(configDir: string): string {
+  return join(configDir, 'legreffier-init.state.json');
 }
 
 export async function readState(
-  projectSlug: string,
-  agentName: string,
+  configDir: string,
 ): Promise<LegreffierInitState | null> {
   try {
-    const raw = await readFile(getStatePath(projectSlug, agentName), 'utf-8');
+    const raw = await readFile(getStatePath(configDir), 'utf-8');
     return JSON.parse(raw) as LegreffierInitState;
   } catch {
     return null;
@@ -65,24 +57,18 @@ export async function readState(
 
 export async function writeState(
   state: LegreffierInitState,
-  projectSlug: string,
-  agentName: string,
+  configDir: string,
 ): Promise<void> {
-  const path = getStatePath(projectSlug, agentName);
-  await mkdir(join(homedir(), '.config', 'moltnet', projectSlug), {
-    recursive: true,
-  });
+  await mkdir(configDir, { recursive: true });
+  const path = getStatePath(configDir);
   await writeFile(path, JSON.stringify(state, null, 2) + '\n', {
     mode: 0o600,
   });
 }
 
-export async function clearState(
-  projectSlug: string,
-  agentName: string,
-): Promise<void> {
+export async function clearState(configDir: string): Promise<void> {
   try {
-    await rm(getStatePath(projectSlug, agentName));
+    await rm(getStatePath(configDir));
   } catch {
     // already gone
   }

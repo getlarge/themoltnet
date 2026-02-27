@@ -77,7 +77,7 @@ describe('writePem', () => {
   it('writes PEM file with 0o600 permissions', async () => {
     const pem =
       '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----\n';
-    const path = await writePem(pem, 'my-app', TEST_SLUG);
+    const path = await writePem(pem, 'my-app', configDir);
 
     const content = await readFile(path, 'utf-8');
     expect(content).toBe(pem);
@@ -87,7 +87,7 @@ describe('writePem', () => {
   it('creates directory if missing', async () => {
     await rm(configDir, { recursive: true, force: true });
     const pem = 'fake pem';
-    const path = await writePem(pem, 'new-app', TEST_SLUG);
+    const path = await writePem(pem, 'new-app', configDir);
     const content = await readFile(path, 'utf-8');
     expect(content).toBe(pem);
   });

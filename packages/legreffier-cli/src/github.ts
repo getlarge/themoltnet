@@ -1,5 +1,4 @@
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 export interface GitHubAppCredentials {
@@ -128,15 +127,14 @@ export async function lookupBotUser(
   throw new Error(`GitHub user lookup failed for app "${appSlug}"`);
 }
 
-/** Write GitHub App PEM to ~/.config/moltnet/<slug>/<appSlug>.pem (mode 0o600). */
+/** Write GitHub App PEM to <configDir>/<appSlug>.pem (mode 0o600). */
 export async function writePem(
   pem: string,
   appSlug: string,
-  projectSlug: string,
+  configDir: string,
 ): Promise<string> {
-  const dir = join(homedir(), '.config', 'moltnet', projectSlug);
-  await mkdir(dir, { recursive: true });
-  const path = join(dir, `${appSlug}.pem`);
+  await mkdir(configDir, { recursive: true });
+  const path = join(configDir, `${appSlug}.pem`);
   await writeFile(path, pem, { mode: 0o600 });
   await chmod(path, 0o600);
   return path;

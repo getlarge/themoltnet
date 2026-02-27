@@ -1,5 +1,5 @@
 import { mkdir, rm, stat } from 'node:fs/promises';
-import { homedir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -11,9 +11,8 @@ import {
   writeState,
 } from './state.js';
 
-const TEST_SLUG = 'test-project-' + Math.random().toString(36).slice(2);
-const TEST_AGENT = 'test-agent';
-const stateDir = join(homedir(), '.config', 'moltnet', TEST_SLUG);
+const TEST_ID = 'test-state-' + Math.random().toString(36).slice(2);
+const configDir = join(tmpdir(), TEST_ID);
 
 describe('deriveProjectSlug', () => {
   it('returns a non-empty string', () => {
@@ -32,15 +31,15 @@ describe('deriveProjectSlug', () => {
 
 describe('state helpers', () => {
   beforeEach(async () => {
-    await mkdir(stateDir, { recursive: true });
+    await mkdir(configDir, { recursive: true });
   });
 
   afterEach(async () => {
-    await rm(stateDir, { recursive: true, force: true });
+    await rm(configDir, { recursive: true, force: true });
   });
 
   it('returns null when no state file exists', async () => {
-    expect(await readState(TEST_SLUG, TEST_AGENT)).toBeNull();
+    expect(await readState(configDir)).toBeNull();
   });
 
   it('round-trips state', async () => {
@@ -52,8 +51,8 @@ describe('state helpers', () => {
       agentName: 'my-bot',
       phase: 'awaiting_github' as const,
     };
-    await writeState(state, TEST_SLUG, TEST_AGENT);
-    expect(await readState(TEST_SLUG, TEST_AGENT)).toEqual(state);
+    await writeState(state, configDir);
+    expect(await readState(configDir)).toEqual(state);
   });
 
   it('preserves optional fields', async () => {
@@ -68,11 +67,15 @@ describe('state helpers', () => {
       appSlug: 'my-app',
       installationId: '99999',
     };
-    await writeState(state, TEST_SLUG, TEST_AGENT);
-    expect(await readState(TEST_SLUG, TEST_AGENT)).toEqual(state);
+    await writeState(state, configDir);
+    expect(await readState(configDir)).toEqual(state);
   });
 
-  it('isolates state per agent name', async () => {
+  it('isolates state per configDir', async () => {
+    const dirA = join(configDir, 'agent-a');
+    const dirB = join(configDir, 'agent-b');
+    await mkdir(dirA, { recursive: true });
+    await mkdir(dirB, { recursive: true });
     const state1 = {
       workflowId: 'wf-1',
       publicKey: 'pk-1',
@@ -89,10 +92,10 @@ describe('state helpers', () => {
       agentName: 'agent-b',
       phase: 'awaiting_installation' as const,
     };
-    await writeState(state1, TEST_SLUG, 'agent-a');
-    await writeState(state2, TEST_SLUG, 'agent-b');
-    expect(await readState(TEST_SLUG, 'agent-a')).toEqual(state1);
-    expect(await readState(TEST_SLUG, 'agent-b')).toEqual(state2);
+    await writeState(state1, dirA);
+    await writeState(state2, dirB);
+    expect(await readState(dirA)).toEqual(state1);
+    expect(await readState(dirB)).toEqual(state2);
   });
 
   it('clearState removes the file', async () => {
@@ -105,19 +108,18 @@ describe('state helpers', () => {
         agentName: 'x',
         phase: 'awaiting_github',
       },
-      TEST_SLUG,
-      TEST_AGENT,
+      configDir,
     );
-    await clearState(TEST_SLUG, TEST_AGENT);
-    expect(await readState(TEST_SLUG, TEST_AGENT)).toBeNull();
+    await clearState(configDir);
+    expect(await readState(configDir)).toBeNull();
   });
 
   it('clearState is idempotent', async () => {
-    await expect(clearState(TEST_SLUG, TEST_AGENT)).resolves.toBeUndefined();
+    await expect(clearState(configDir)).resolves.toBeUndefined();
   });
 
   it('writeState creates directory if missing', async () => {
-    await rm(stateDir, { recursive: true, force: true });
+    const freshDir = join(configDir, 'fresh');
     await writeState(
       {
         workflowId: 'x',
@@ -127,12 +129,9 @@ describe('state helpers', () => {
         agentName: 'x',
         phase: 'awaiting_installation',
       },
-      TEST_SLUG,
-      TEST_AGENT,
+      freshDir,
     );
-    const s = await stat(
-      join(stateDir, `legreffier-init.${TEST_AGENT}.state.json`),
-    );
+    const s = await stat(join(freshDir, 'legreffier-init.state.json'));
     expect(s.isFile()).toBe(true);
   });
 });
