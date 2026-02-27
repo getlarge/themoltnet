@@ -1,4 +1,4 @@
-export const SUPPORTED_AGENTS = ['claude'] as const;
+export const SUPPORTED_AGENTS = ['claude', 'codex'] as const;
 export type AgentType = (typeof SUPPORTED_AGENTS)[number];
 
 export type StepKey =

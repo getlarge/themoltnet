@@ -35,7 +35,8 @@
     "figlet": "^1.8.0",
     "ink": "^6.8.0",
     "open": "^10.1.2",
-    "react": "catalog:"
+    "react": "catalog:",
+    "smol-toml": "catalog:"
   },
   "devDependencies": {
     "@types/figlet": "^1.7.0",
