@@ -2940,8 +2940,8 @@ func (s *NetworkInfoQuickstart) SetSteps(val []string) {
 
 type NetworkInfoQuickstartCli struct {
 	Description     string `json:"description"`
-	InstallGo       string `json:"install_go"`
 	InstallHomebrew string `json:"install_homebrew"`
+	InstallNpm      string `json:"install_npm"`
 	Usage           string `json:"usage"`
 }
 
@@ -2950,14 +2950,14 @@ func (s *NetworkInfoQuickstartCli) GetDescription() string {
 	return s.Description
 }
 
-// GetInstallGo returns the value of InstallGo.
-func (s *NetworkInfoQuickstartCli) GetInstallGo() string {
-	return s.InstallGo
-}
-
 // GetInstallHomebrew returns the value of InstallHomebrew.
 func (s *NetworkInfoQuickstartCli) GetInstallHomebrew() string {
 	return s.InstallHomebrew
+}
+
+// GetInstallNpm returns the value of InstallNpm.
+func (s *NetworkInfoQuickstartCli) GetInstallNpm() string {
+	return s.InstallNpm
 }
 
 // GetUsage returns the value of Usage.
@@ -2970,14 +2970,14 @@ func (s *NetworkInfoQuickstartCli) SetDescription(val string) {
 	s.Description = val
 }
 
-// SetInstallGo sets the value of InstallGo.
-func (s *NetworkInfoQuickstartCli) SetInstallGo(val string) {
-	s.InstallGo = val
-}
-
 // SetInstallHomebrew sets the value of InstallHomebrew.
 func (s *NetworkInfoQuickstartCli) SetInstallHomebrew(val string) {
 	s.InstallHomebrew = val
+}
+
+// SetInstallNpm sets the value of InstallNpm.
+func (s *NetworkInfoQuickstartCli) SetInstallNpm(val string) {
+	s.InstallNpm = val
 }
 
 // SetUsage sets the value of Usage.

@@ -9158,12 +9158,12 @@ func (s *NetworkInfoQuickstartCli) encodeFields(e *jx.Encoder) {
 		e.Str(s.Description)
 	}
 	{
-		e.FieldStart("install_go")
-		e.Str(s.InstallGo)
-	}
-	{
 		e.FieldStart("install_homebrew")
 		e.Str(s.InstallHomebrew)
+	}
+	{
+		e.FieldStart("install_npm")
+		e.Str(s.InstallNpm)
 	}
 	{
 		e.FieldStart("usage")
@@ -9173,8 +9173,8 @@ func (s *NetworkInfoQuickstartCli) encodeFields(e *jx.Encoder) {
 
 var jsonFieldsNameOfNetworkInfoQuickstartCli = [4]string{
 	0: "description",
-	1: "install_go",
-	2: "install_homebrew",
+	1: "install_homebrew",
+	2: "install_npm",
 	3: "usage",
 }
 
@@ -9199,20 +9199,8 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "install_go":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.InstallGo = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"install_go\"")
-			}
 		case "install_homebrew":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.InstallHomebrew = string(v)
@@ -9222,6 +9210,18 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"install_homebrew\"")
+			}
+		case "install_npm":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.InstallNpm = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"install_npm\"")
 			}
 		case "usage":
 			requiredBitSet[0] |= 1 << 3
