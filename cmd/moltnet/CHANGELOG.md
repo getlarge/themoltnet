@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.48.0](https://github.com/getlarge/themoltnet/compare/cli-v0.47.0...cli-v0.48.0) (2026-02-27)
+
+
+### Features
+
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+
+
+### Bug Fixes
+
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+
 ## [0.47.0](https://github.com/getlarge/themoltnet/compare/cli-v0.46.0...cli-v0.47.0) (2026-02-27)
 
 
