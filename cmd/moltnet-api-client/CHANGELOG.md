@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.13.2...moltnet-api-client-v0.14.0) (2026-02-27)
+
+
+### Features
+
+* **legreffier-cli:** LeGreffier init CLI — full onboarding flow ([57caf23](https://github.com/getlarge/themoltnet/commit/57caf23273fe37bd2363746803da2f5157707631))
+
 ## [0.13.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.13.1...moltnet-api-client-v0.13.2) (2026-02-26)
 
 
