@@ -22,7 +22,7 @@
     "check:pack": "tsx ../../scripts/check-pack.ts --package ."
   },
   "files": [
-    "dist"
+    "dist/index.js"
   ],
   "engines": {
     "node": ">=22"
