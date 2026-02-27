@@ -331,6 +331,7 @@ export function InitApp({
           repoDir: dir,
           configDir,
           agentName: name,
+          agentTypes: selectedAgent ? [selectedAgent] : [],
           publicKey: identity.publicKey,
           fingerprint: identity.fingerprint,
           appSlug: githubApp.appSlug,

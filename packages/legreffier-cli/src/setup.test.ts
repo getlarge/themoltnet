@@ -25,26 +25,40 @@ afterEach(async () => {
 });
 
 describe('downloadSkills', () => {
-  it('writes SKILL.md for each skill', async () => {
+  it('writes SKILL.md to agent skill directory', async () => {
     vi.stubGlobal('fetch', async (url: string) => ({
       ok: true,
       text: async () => `# Skill content for ${url}`,
     }));
 
-    await downloadSkills(tmpRepo);
+    await downloadSkills(tmpRepo, ['claude']);
 
-    const legreffier = await readFile(
+    const content = await readFile(
       join(tmpRepo, '.claude', 'skills', 'legreffier', 'SKILL.md'),
       'utf-8',
     );
-    expect(legreffier).toContain('Skill content');
+    expect(content).toContain('Skill content');
   });
 
   it('throws if fetch fails', async () => {
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
-    await expect(downloadSkills(tmpRepo)).rejects.toThrow(
+    await expect(downloadSkills(tmpRepo, ['claude'])).rejects.toThrow(
       'Failed to download skill',
     );
+  });
+
+  it('skips when no agent types provided', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await downloadSkills(tmpRepo, []);
+
+    // fetch is still called (skill content is fetched once),
+    // but no files are written since there are no agent dirs
+    const { stat } = await import('node:fs/promises');
+    await expect(
+      stat(join(tmpRepo, '.claude', 'skills', 'legreffier', 'SKILL.md')),
+    ).rejects.toThrow();
   });
 });
 

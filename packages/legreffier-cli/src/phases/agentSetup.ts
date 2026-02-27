@@ -7,13 +7,14 @@ import {
 
 import { downloadSkills, toEnvPrefix, writeSettingsLocal } from '../setup.js';
 import { clearState } from '../state.js';
-import type { UIAction } from '../ui/types.js';
+import type { AgentType, UIAction } from '../ui/types.js';
 
 export async function runAgentSetupPhase(opts: {
   apiUrl: string;
   repoDir: string;
   configDir: string;
   agentName: string;
+  agentTypes: AgentType[];
   publicKey: string;
   fingerprint: string;
   appSlug: string;
@@ -29,6 +30,7 @@ export async function runAgentSetupPhase(opts: {
     repoDir,
     configDir,
     agentName,
+    agentTypes,
     publicKey,
     fingerprint,
     appSlug,
@@ -91,7 +93,7 @@ export async function runAgentSetupPhase(opts: {
   }
 
   dispatch({ type: 'step', key: 'skills', status: 'running' });
-  await downloadSkills(repoDir);
+  await downloadSkills(repoDir, agentTypes);
   dispatch({ type: 'step', key: 'skills', status: 'done' });
 
   dispatch({ type: 'step', key: 'settings', status: 'running' });

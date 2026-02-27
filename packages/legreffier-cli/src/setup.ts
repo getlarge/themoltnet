@@ -1,24 +1,50 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import type { AgentType } from './ui/types.js';
+
+/** Agent-specific directory where skills are installed. */
+const SKILL_DIRS: Record<AgentType, string> = {
+  claude: '.claude/skills',
+  // codex: '.agents/skills',
+};
+
+/** Pinned to the release tag — updated by release-please. */
+const SKILL_VERSION = 'legreffier-v0.1.0';
+
 const SKILLS: Array<{ name: string; url: string }> = [
   {
     name: 'legreffier',
-    url: 'https://raw.githubusercontent.com/getlarge/themoltnet/main/.claude/skills/legreffier/SKILL.md',
+    url: `https://raw.githubusercontent.com/getlarge/themoltnet/${SKILL_VERSION}/.claude/skills/legreffier/SKILL.md`,
   },
 ];
 
-/** Download MoltNet skills into <repoDir>/.claude/skills/<name>/SKILL.md */
-export async function downloadSkills(repoDir: string): Promise<void> {
+/**
+ * Install MoltNet skills for the given agent types.
+ * Fetches from GitHub pinned to the CLI release tag.
+ * Installs into each agent's skill directory (e.g. .claude/skills/, .agents/skills/).
+ */
+export async function downloadSkills(
+  repoDir: string,
+  agentTypes: AgentType[],
+): Promise<void> {
+  const dirs = agentTypes
+    .map((t) => SKILL_DIRS[t])
+    .filter((d): d is string => !!d);
+  if (dirs.length === 0) return;
+
   for (const skill of SKILLS) {
-    const dir = join(repoDir, '.claude', 'skills', skill.name);
-    await mkdir(dir, { recursive: true });
     const res = await fetch(skill.url);
     if (!res.ok) {
       throw new Error(`Failed to download skill ${skill.name} (${res.status})`);
     }
     const content = await res.text();
-    await writeFile(join(dir, 'SKILL.md'), content, 'utf-8');
+
+    for (const skillDir of dirs) {
+      const destDir = join(repoDir, skillDir, skill.name);
+      await mkdir(destDir, { recursive: true });
+      await writeFile(join(destDir, 'SKILL.md'), content, 'utf-8');
+    }
   }
 }
 

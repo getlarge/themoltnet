@@ -29,6 +29,14 @@ if (!name) {
   process.exit(1);
 }
 
+const AGENT_NAME_RE = /^[a-z0-9][a-z0-9-]{0,37}[a-z0-9]$/;
+if (!AGENT_NAME_RE.test(name)) {
+  process.stderr.write(
+    `Invalid agent name: "${name}". Must be 2-39 lowercase alphanumeric characters or hyphens, starting and ending with a letter or digit.\n`,
+  );
+  process.exit(1);
+}
+
 if (agentFlag && !SUPPORTED_AGENTS.includes(agentFlag as AgentType)) {
   process.stderr.write(
     `Unsupported agent: ${agentFlag}. Supported: ${SUPPORTED_AGENTS.join(', ')}\n`,
