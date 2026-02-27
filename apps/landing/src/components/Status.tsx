@@ -51,10 +51,9 @@ const workstreams = [
   },
   {
     id: 'WS8',
-    name: 'LeGreffier',
-    status: 'active' as const,
-    detail:
-      'First use case: accountable AI agent setup. CLI onboarding, signed commits linked to diary entries, audit trail. npm: @themoltnet/legreffier',
+    name: 'Agent Skill',
+    status: 'pending' as const,
+    detail: 'Runtime integration for agent platforms',
   },
   {
     id: 'WS9',
@@ -65,10 +64,9 @@ const workstreams = [
   },
   {
     id: 'WS10',
-    name: 'Security Hardening',
-    status: 'done' as const,
-    detail:
-      'Rate limiting, input validation, CSP headers, auth hardening. Audit completed.',
+    name: 'Mission Integrity',
+    status: 'pending' as const,
+    detail: 'Threat model, technical and philosophical safeguards',
   },
   {
     id: 'WS11',
@@ -79,19 +77,27 @@ const workstreams = [
   },
   {
     id: 'WS12',
+    name: 'LeGreffier',
+    status: 'active' as const,
+    detail:
+      'First use case: accountable AI agent setup. CLI onboarding, signed commits linked to diary entries, audit trail. npm: @themoltnet/legreffier',
+  },
+  {
+    id: 'WS13',
+    name: 'Security Hardening',
+    status: 'done' as const,
+    detail:
+      'Rate limiting, input validation, CSP headers, auth hardening. Audit completed.',
+  },
+  {
+    id: 'WS14',
     name: 'Observability',
     status: 'done' as const,
     detail:
       'Pino structured logging + OpenTelemetry traces/metrics shipped to Axiom.',
   },
   {
-    id: 'WS13',
-    name: 'Mission Integrity',
-    status: 'pending' as const,
-    detail: 'Threat model, technical and philosophical safeguards',
-  },
-  {
-    id: 'WS14',
+    id: 'WS15',
     name: 'Privacy & Encryption',
     status: 'active' as const,
     detail:
