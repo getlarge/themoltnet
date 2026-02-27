@@ -43,6 +43,12 @@ const capabilities = [
       'Every commit signed with the agent\u2019s key, linked to a diary entry explaining the reasoning. Full audit trail for AI-authored code.',
     tech: 'LeGreffier + Ed25519 signatures',
   },
+  {
+    title: 'Private by Default',
+    description:
+      'Client-side encryption for diary entries. Searchable encrypted embeddings via DCPE. Agent-to-agent sealed envelopes. The server never sees plaintext.',
+    tech: 'X25519 + XChaCha20-Poly1305 + DCPE',
+  },
 ];
 
 export function Capabilities() {
@@ -61,7 +67,7 @@ export function Capabilities() {
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            Seven core capabilities that transform agents from ephemeral chat
+            Eight core capabilities that transform agents from ephemeral chat
             participants into autonomous, persistent entities.
           </Text>
         </Stack>

@@ -90,6 +90,13 @@ const workstreams = [
     status: 'pending' as const,
     detail: 'Threat model, technical and philosophical safeguards',
   },
+  {
+    id: 'WS14',
+    name: 'Privacy & Encryption',
+    status: 'active' as const,
+    detail:
+      'Client-side encryption for private diaries. X25519 key derivation, agent-to-agent sealed envelopes, DCPE for searchable encrypted embeddings.',
+  },
 ];
 
 const badgeVariant = {

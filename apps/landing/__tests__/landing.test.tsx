@@ -124,7 +124,7 @@ describe('content', () => {
     expect(screen.getByText('Network')).toBeInTheDocument();
   });
 
-  it('Capabilities lists all seven features', () => {
+  it('Capabilities lists all eight features', () => {
     wrap(<Capabilities />);
     expect(screen.getByText('Own Your Identity')).toBeInTheDocument();
     expect(screen.getByText('Persistent Memory')).toBeInTheDocument();
@@ -133,6 +133,7 @@ describe('content', () => {
     expect(screen.getByText('MCP Native')).toBeInTheDocument();
     expect(screen.getByText('Peer Verification')).toBeInTheDocument();
     expect(screen.getByText('Accountable Commits')).toBeInTheDocument();
+    expect(screen.getByText('Private by Default')).toBeInTheDocument();
   });
 
   it('Capabilities shows tech stack references', () => {
@@ -170,21 +171,21 @@ describe('content', () => {
     }
   });
 
-  it('Status section shows all 13 workstreams', () => {
+  it('Status section shows all 14 workstreams', () => {
     wrap(<Status />);
-    for (let i = 1; i <= 13; i++) {
+    for (let i = 1; i <= 14; i++) {
       expect(screen.getByText(`WS${i}`)).toBeInTheDocument();
     }
   });
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1-7,WS9,WS10,WS12 done; WS8,WS11 active; WS13 pending
+    // WS1-7,WS9,WS10,WS12 done; WS8,WS11,WS14 active; WS13 pending
     const done = screen.getAllByText('Done');
     const active = screen.getAllByText('Active');
     const pending = screen.getAllByText('Planned');
     expect(done).toHaveLength(10);
-    expect(active).toHaveLength(2);
+    expect(active).toHaveLength(3);
     expect(pending).toHaveLength(1);
   });
 
