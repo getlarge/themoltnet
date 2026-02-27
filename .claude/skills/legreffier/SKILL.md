@@ -118,6 +118,11 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
    - Expected: name matching `AGENT_NAME`; email `...+<AGENT_NAME>[bot]@users.noreply.github.com`; signingkey `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`; `gpg.format` `ssh`.
    - If any missing: set `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig` and restart the session.
 
+7. Resolve **operator** and **tool** for trace metadata:
+   - `OPERATOR`: `$USER` environment variable (the human's OS username).
+   - `TOOL`: infer from environment — `claude` if `$CLAUDE=1` or running inside Claude Code, `codex` if `$CODEX=1`, otherwise ask the user once and cache for the session.
+   - Both are included in every diary entry's metadata block for auditability.
+
 ## Accountable commit workflow (always diary-linked)
 
 0. Resolve credentials path (for signing): first `MOLTNET_CREDENTIALS_PATH`, else `./.moltnet/<AGENT_NAME>/moltnet.json`.
@@ -135,6 +140,8 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
    - `branch=$(git rev-parse --abbrev-ref HEAD || echo detached)`
    - `scope` tags (pick 1–2; fallback `scope:misc`): `scope:cli`, `scope:web`, `scope:ci`, `scope:docs`, etc.
    - agent fingerprint from session activation (required).
+   - `operator` = the human user driving the session (from `$USER` or git config `user.name` of the host, not the agent).
+   - `tool` = the AI coding tool being used (`claude`, `codex`, `cursor`, `cline`, etc.). Infer from environment: Claude Code sets `CLAUDE=1`, Codex sets `CODEX=1`, otherwise ask the user once per session.
 5. Rationale: 3–6 sentences on intent + impact (what, why, risk/impact).
 6. Build signable payload:
 
@@ -144,6 +151,8 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
 </content>
 <metadata>
 signer: <fingerprint>
+operator: <user>
+tool: <claude|codex|cursor|cline|...>
 risk-level: <low|medium|high>
 files-changed: <n>
 timestamp: <ISO-UTC>
