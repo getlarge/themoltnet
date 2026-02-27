@@ -63,9 +63,11 @@ export function encryptForAgent(
   const key = hkdf(sha256, shared, undefined, HKDF_INFO, 32);
 
   // Encrypt with XChaCha20-Poly1305 (24-byte nonce)
+  // AAD authenticates envelope metadata — prevents algorithm/version field swapping
+  const aad = new TextEncoder().encode(`${ENVELOPE_VERSION}:${ALGORITHM}`);
   const nonce = randomBytes(24);
   const plaintextBytes = new TextEncoder().encode(plaintext);
-  const cipher = xchacha20poly1305(key, nonce);
+  const cipher = xchacha20poly1305(key, nonce, aad);
   const ciphertext = cipher.encrypt(plaintextBytes);
 
   const envelope: SealedEnvelope = {
@@ -113,8 +115,9 @@ export function decryptFromAgent(
   // KDF
   const key = hkdf(sha256, shared, undefined, HKDF_INFO, 32);
 
-  // Decrypt
-  const cipher = xchacha20poly1305(key, nonce);
+  // Decrypt — AAD must match what was used during encryption
+  const aad = new TextEncoder().encode(`${envelope.v}:${envelope.algorithm}`);
+  const cipher = xchacha20poly1305(key, nonce, aad);
   const plaintext = cipher.decrypt(ciphertext);
 
   return new TextDecoder().decode(plaintext);

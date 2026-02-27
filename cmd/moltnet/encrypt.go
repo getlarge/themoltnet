@@ -99,7 +99,8 @@ func edwardsToMontgomery(edPub []byte) []byte {
 }
 
 // edwardsToMontgomeryField performs u = (1 + y) / (1 - y) mod p
-// using constant-time field arithmetic via Go's math/big.
+// using big.Int field arithmetic. Not constant-time, but the input
+// is a public key so timing leaks are not a concern here.
 // p = 2^255 - 19.
 func edwardsToMontgomeryField(yBytes []byte) []byte {
 	// Import as little-endian integer
@@ -190,11 +191,13 @@ func encryptWithEphemeral(plaintext string, recipientX25519Pub []byte, ephPriv [
 	}
 
 	// Encrypt with XChaCha20-Poly1305
+	// AAD authenticates envelope metadata — prevents algorithm/version field swapping
+	aad := []byte(fmt.Sprintf("%d:%s", envelopeVersion, algorithm))
 	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
 		return "", fmt.Errorf("create cipher: %w", err)
 	}
-	ciphertext := aead.Seal(nil, nonce, []byte(plaintext), nil)
+	ciphertext := aead.Seal(nil, nonce, []byte(plaintext), aad)
 
 	envelope := SealedEnvelope{
 		V:                 envelopeVersion,
@@ -260,12 +263,13 @@ func DecryptFromAgent(sealedEnvelopeJSON string, ed25519SeedBase64 string) (stri
 		return "", fmt.Errorf("HKDF: %w", err)
 	}
 
-	// Decrypt
+	// Decrypt — AAD must match what was used during encryption
+	aad := []byte(fmt.Sprintf("%d:%s", envelope.V, envelope.Algorithm))
 	aead, err := chacha20poly1305.NewX(key)
 	if err != nil {
 		return "", fmt.Errorf("create cipher: %w", err)
 	}
-	plaintext, err := aead.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := aead.Open(nil, nonce, ciphertext, aad)
 	if err != nil {
 		return "", fmt.Errorf("decrypt: %w", err)
 	}
@@ -274,6 +278,8 @@ func DecryptFromAgent(sealedEnvelopeJSON string, ed25519SeedBase64 string) (stri
 }
 
 // deriveKey uses HKDF-SHA256 to derive a 32-byte key from a shared secret.
+// Salt is nil per RFC 5869 §3.1 — acceptable because the ECDH shared secret
+// has full entropy from the ephemeral keypair.
 func deriveKey(shared []byte) ([]byte, error) {
 	hkdfReader := hkdf.New(sha256.New, shared, nil, []byte(hkdfInfo))
 	key := make([]byte, 32)

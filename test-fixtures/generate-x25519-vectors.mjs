@@ -171,9 +171,10 @@ for (let i = 0; i < testCases.length; i++) {
   // HKDF
   const key = hkdf(sha256, shared, undefined, HKDF_INFO, 32);
 
-  // Encrypt
+  // Encrypt with AAD to authenticate envelope metadata
+  const aad = new TextEncoder().encode(`1:x25519-xchachapoly`);
   const plaintextBytes = new TextEncoder().encode(plaintext);
-  const cipher = xchacha20poly1305(key, nonce);
+  const cipher = xchacha20poly1305(key, nonce, aad);
   const ciphertext = cipher.encrypt(plaintextBytes);
 
   encryptionVectors.push({
