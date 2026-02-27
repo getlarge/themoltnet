@@ -29,6 +29,8 @@ jobs:
       skill-release-created: ${{ steps.release.outputs['packages/openclaw-skill--release_created'] }}
       skill-tag-name: ${{ steps.release.outputs['packages/openclaw-skill--tag_name'] }}
       skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
+      legreffier-release-created: ${{ steps.release.outputs['packages/legreffier-cli--release_created'] }}
+      legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -281,3 +283,47 @@ jobs:
         run: |
           packages/openclaw-skill/scripts/publish-clawhub.sh \
             --changelog "Release ${{ needs.release-please.outputs.skill-tag-name }}"
+
+  publish-legreffier:
+    name: Publish LeGreffier to npm
+    needs: [release-please, release-cli]
+    if: ${{ always() && needs.release-please.outputs.legreffier-release-created == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @moltnet/api-client build
+
+      - run: pnpm --filter @moltnet/crypto-service build
+
+      - run: pnpm --filter @themoltnet/sdk build
+
+      - run: pnpm --filter @moltnet/design-system build
+
+      - run: pnpm --filter @themoltnet/legreffier build
+
+      - run: pnpm --filter @themoltnet/legreffier test
+
+      - run: pnpm --filter @themoltnet/legreffier run check:pack
+
+      - run: npm install -g npm@latest
+
+      - run: pnpm --filter @themoltnet/legreffier publish --no-git-checks --access public --provenance
+
+      - name: Publish LeGreffier release
+        run: gh release edit "${{ needs.release-please.outputs.legreffier-tag-name }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
