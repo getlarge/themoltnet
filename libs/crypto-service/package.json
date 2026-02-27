@@ -19,6 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:"
   },
   "devDependencies": {

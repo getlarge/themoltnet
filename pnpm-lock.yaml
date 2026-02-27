@@ -51,9 +51,18 @@ catalogs:
     '@modelcontextprotocol/sdk':
       specifier: ^1.26.0
       version: 1.26.0
+    '@noble/ciphers':
+      specifier: ^1.2.0
+      version: 1.3.0
+    '@noble/curves':
+      specifier: ^2.0.0
+      version: 2.0.1
     '@noble/ed25519':
       specifier: ^2.0.0
       version: 2.3.0
+    '@noble/hashes':
+      specifier: ^1.7.0
+      version: 1.8.0
     '@opentelemetry/api':
       specifier: ^1.9.0
       version: 1.9.0
@@ -623,6 +632,9 @@ importers:
 
   libs/crypto-service:
     dependencies:
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
       '@noble/ed25519':
         specifier: 'catalog:'
         version: 2.3.0
@@ -840,9 +852,18 @@ importers:
 
   libs/sdk:
     dependencies:
+      '@noble/ciphers':
+        specifier: 'catalog:'
+        version: 1.3.0
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
       '@noble/ed25519':
         specifier: 'catalog:'
         version: 2.3.0
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 1.8.0
     devDependencies:
       '@moltnet/api-client':
         specifier: workspace:*
@@ -2589,6 +2610,13 @@ packages:
       }
     engines: { node: ^14.21.3 || >=16 }
 
+  '@noble/curves@2.0.1':
+    resolution:
+      {
+        integrity: sha512-vs1Az2OOTBiP4q0pwjW5aF0xp9n4MxVrmkFBxc6EKZc6ddYx5gaZiAsZoq0uRRXWbi3AT/sBqn05eRPtn1JCPw==,
+      }
+    engines: { node: '>= 20.19.0' }
+
   '@noble/ed25519@2.3.0':
     resolution:
       {
@@ -2601,6 +2629,13 @@ packages:
         integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==,
       }
     engines: { node: ^14.21.3 || >=16 }
+
+  '@noble/hashes@2.0.1':
+    resolution:
+      {
+        integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==,
+      }
+    engines: { node: '>= 20.19.0' }
 
   '@nodelib/fs.scandir@2.1.5':
     resolution:
@@ -10193,9 +10228,15 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
 
+  '@noble/curves@2.0.1':
+    dependencies:
+      '@noble/hashes': 2.0.1
+
   '@noble/ed25519@2.3.0': {}
 
   '@noble/hashes@1.8.0': {}
+
+  '@noble/hashes@2.0.1': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:

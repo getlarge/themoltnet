@@ -5,6 +5,7 @@
  * Uses @noble/ed25519 for pure TypeScript implementation
  */
 
+import { ed25519 as ed25519Curve } from '@noble/curves/ed25519.js';
 import * as ed from '@noble/ed25519';
 import { createHash, randomBytes } from 'crypto';
 
@@ -226,6 +227,26 @@ export const cryptoService = {
   getFingerprintFromPublicKey(publicKey: string): string {
     const publicKeyBytes = this.parsePublicKey(publicKey);
     return this.generateFingerprint(publicKeyBytes);
+  },
+
+  /**
+   * Derive an X25519 private key from an Ed25519 private key seed.
+   * Uses SHA-512 expansion + clamping per RFC 7748 / RFC 8032.
+   */
+  deriveX25519PrivateKey(ed25519PrivateKeyBase64: string): string {
+    const seed = new Uint8Array(Buffer.from(ed25519PrivateKeyBase64, 'base64'));
+    const x25519Priv = ed25519Curve.utils.toMontgomerySecret(seed);
+    return Buffer.from(x25519Priv).toString('base64');
+  },
+
+  /**
+   * Derive an X25519 public key from an Ed25519 public key.
+   * Uses the Edwards → Montgomery birational map.
+   */
+  deriveX25519PublicKey(ed25519PublicKey: string): string {
+    const edPubBytes = this.parsePublicKey(ed25519PublicKey);
+    const x25519Pub = ed25519Curve.utils.toMontgomery(edPubBytes);
+    return `x25519:${Buffer.from(x25519Pub).toString('base64')}`;
   },
 
   /**

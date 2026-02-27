@@ -55,10 +55,13 @@ func runSign(args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := signWithRequestID(client, *requestID, creds.Keys.PrivateKey); err != nil {
+		sig, err := signWithRequestID(client, *requestID, creds.Keys.PrivateKey)
+		if err != nil {
 			return err
 		}
 		fmt.Fprintf(os.Stderr, "Signature submitted for request %s\n", *requestID)
+		// Print the base64 signature to stdout so callers can capture it
+		fmt.Print(sig)
 		return nil
 	}
 
@@ -135,33 +138,34 @@ func signRawBytes(rawBytes []byte, privateKeyBase64 string) (string, error) {
 }
 
 // signWithRequestID fetches a signing request by ID, signs the payload, and submits the signature.
-func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) error {
+// Returns the base64-encoded signature on success.
+func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) (string, error) {
 	rid, err := uuid.Parse(requestID)
 	if err != nil {
-		return fmt.Errorf("invalid request ID %q: %w", requestID, err)
+		return "", fmt.Errorf("invalid request ID %q: %w", requestID, err)
 	}
 
 	// Fetch the signing request
 	res, err := client.GetSigningRequest(context.Background(), moltnetapi.GetSigningRequestParams{ID: rid})
 	if err != nil {
-		return fmt.Errorf("fetch signing request: %w", err)
+		return "", fmt.Errorf("fetch signing request: %w", err)
 	}
 	req, ok := res.(*moltnetapi.SigningRequest)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return "", fmt.Errorf("unexpected response type: %T", res)
 	}
 	if req.Status != moltnetapi.SigningRequestStatusPending {
-		return fmt.Errorf("signing request %s is not pending (status: %s)", requestID, req.Status)
+		return "", fmt.Errorf("signing request %s is not pending (status: %s)", requestID, req.Status)
 	}
 
 	// Decode server-provided signing_input and sign the raw bytes directly.
 	rawBytes, err := base64.StdEncoding.DecodeString(req.SigningInput)
 	if err != nil {
-		return fmt.Errorf("decode signing_input: %w", err)
+		return "", fmt.Errorf("decode signing_input: %w", err)
 	}
 	sig, err := signRawBytes(rawBytes, privateKey)
 	if err != nil {
-		return fmt.Errorf("sign: %w", err)
+		return "", fmt.Errorf("sign: %w", err)
 	}
 
 	// Submit
@@ -170,7 +174,7 @@ func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) 
 		moltnetapi.SubmitSignatureParams{ID: rid},
 	)
 	if err != nil {
-		return fmt.Errorf("submit signature: %w", err)
+		return "", fmt.Errorf("submit signature: %w", err)
 	}
-	return nil
+	return sig, nil
 }

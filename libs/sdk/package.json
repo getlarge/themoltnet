@@ -23,7 +23,10 @@
     "check:types-isolation": "tsx ../../scripts/check-sdk-types-isolation.ts"
   },
   "dependencies": {
-    "@noble/ed25519": "catalog:"
+    "@noble/ciphers": "catalog:",
+    "@noble/curves": "catalog:",
+    "@noble/ed25519": "catalog:",
+    "@noble/hashes": "catalog:"
   },
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
