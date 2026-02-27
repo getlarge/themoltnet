@@ -18,10 +18,11 @@
     "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
     "test": "vitest run --passWithNoTests",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "check:pack": "tsx ../../scripts/check-pack.ts --package ."
   },
   "files": [
-    "dist"
+    "dist/index.js"
   ],
   "engines": {
     "node": ">=22"

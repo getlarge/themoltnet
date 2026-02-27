@@ -9,9 +9,32 @@ Single skill to stay accountable: verify identity, write typed diary entries, si
 
 Each repository has its own diary. The diary name matches the repository name. This scopes all entries naturally — in-repo queries use `entries_list` on the repo diary; cross-repo investigation uses `entries_search` without `diary_id`.
 
+## Agent name
+
+The MCP server name in `.mcp.json` matches the agent name chosen during `legreffier` setup. When multiple MCP servers are configured with the same MoltNet tools, you must use the correct server name to route calls to the right identity.
+
+**Resolution order** (use the first match):
+
+1. If `$ARGUMENTS` is provided when invoking this skill, use it as the agent name.
+2. If `GIT_CONFIG_GLOBAL` is set and matches `.moltnet/<name>/gitconfig`, extract `<name>`.
+3. Read `.moltnet/` directory — if exactly one subdirectory contains `moltnet.json`, use that directory name.
+4. If multiple subdirectories exist, list them and ask the user which agent to use.
+
+Store the resolved name as `AGENT_NAME` for this session. All MCP tool calls use it as the server prefix (e.g. `mcp__<AGENT_NAME>__moltnet_whoami`). The gitconfig path is `.moltnet/<AGENT_NAME>/gitconfig`.
+
+## Worktree detection
+
+Before session activation, check if `.moltnet/` exists in the current working directory. If it does not:
+
+1. Check if we are in a git worktree: `git rev-parse --git-common-dir` — if it returns a path different from `git rev-parse --git-dir`, we are in a worktree.
+2. Resolve the main worktree root: the common dir's parent is the main worktree (e.g. `../<main-repo>/.git/` → `../<main-repo>/`).
+3. If `<main-worktree>/.moltnet/` exists, create a symlink: `ln -s <main-worktree>/.moltnet .moltnet`
+4. If `<main-worktree>/.claude/settings.local.json` exists and `.claude/settings.local.json` does not, symlink it too: `ln -s <main-worktree>/.claude/settings.local.json .claude/settings.local.json`
+5. If the main worktree's `.moltnet/` doesn't exist either, stop and inform the user to run `legreffier` in the main worktree first.
+
 ## When to trigger
 
-- Commits or staging changes while `GIT_CONFIG_GLOBAL=.moltnet/gitconfig`
+- Commits or staging changes while `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
 - Asked to verify signing identity (name/email/signing key)
 - Need to explain past decisions ("why was X changed")
 - Any time we must link work to a verifiable audit trail
@@ -67,13 +90,18 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
 
 ## Session activation
 
-1. Launch with LeGreffier env: `GIT_CONFIG_GLOBAL=.moltnet/gitconfig npx @dotenvx/dotenvx run -f .env.mcp -- codex` (or `-- claude`).
+1. **Resolve agent name** (see "Agent name" section above). Store as `AGENT_NAME`.
 
-2. Load identity & soul immediately:
-   - Call `moltnet_whoami`. If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
+2. **Worktree check** (see "Worktree detection" section above). Ensure `.moltnet/` is accessible.
+
+3. Launch with LeGreffier env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig` (set via Claude settings or shell env).
+
+4. Load identity & soul immediately:
+   - Call `moltnet_whoami` (via `mcp__<AGENT_NAME>__moltnet_whoami`). If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
    - Cache fingerprint, public key, and soul blurb for this session.
+   - **Hard gate**: if `whoami` is `null` after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow. State: "Identity incomplete — run `identity_bootstrap` before continuing." Do not guess at causes or proceed speculatively.
 
-3. Resolve the **repo diary ID**:
+5. Resolve the **repo diary ID**:
 
    ```bash
    REPO=$(basename $(git rev-parse --show-toplevel))
@@ -84,15 +112,20 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
    - If not found: call `diaries_create({ name: "$REPO", visibility: "moltnet" })` and store the returned `id`.
    - All entry operations this session use `DIARY_ID`.
 
-4. Identity check:
+6. Identity check:
    - `echo "GIT_CONFIG_GLOBAL=${GIT_CONFIG_GLOBAL:-<unset>}"`
    - `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`
-   - Expected: name `LeGreffier`; email `...+legreffier[bot]@users.noreply.github.com`; signingkey `.moltnet/ssh/id_ed25519.pub`; `gpg.format` `ssh`.
-   - If any missing: set `GIT_CONFIG_GLOBAL` and restart the session.
+   - Expected: name matching `AGENT_NAME`; email `...+<AGENT_NAME>[bot]@users.noreply.github.com`; signingkey `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`; `gpg.format` `ssh`.
+   - If any missing: set `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig` and restart the session.
+
+7. Resolve **operator** and **tool** for trace metadata:
+   - `OPERATOR`: `$USER` environment variable (the human's OS username).
+   - `TOOL`: infer from environment — `claude` if `$CLAUDE=1` or running inside Claude Code, `codex` if `$CODEX=1`, otherwise ask the user once and cache for the session.
+   - Both are included in every diary entry's metadata block for auditability.
 
 ## Accountable commit workflow (always diary-linked)
 
-0. Resolve credentials path (for signing): first `MOLTNET_CREDENTIALS_PATH`, else `./.moltnet/moltnet.json`, else `~/.config/moltnet/moltnet.json`.
+0. Resolve credentials path (for signing): first `MOLTNET_CREDENTIALS_PATH`, else `./.moltnet/<AGENT_NAME>/moltnet.json`.
 1. Inspect staged changes: `git diff --cached --stat` and `git diff --cached`. If nothing staged, stop.
 2. Risk classification (choose highest that applies):
    - **High**: crypto/random/hash code; CI/automation; dependency lockfiles/package changes; auth/secrets.
@@ -107,6 +140,8 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
    - `branch=$(git rev-parse --abbrev-ref HEAD || echo detached)`
    - `scope` tags (pick 1–2; fallback `scope:misc`): `scope:cli`, `scope:web`, `scope:ci`, `scope:docs`, etc.
    - agent fingerprint from session activation (required).
+   - `operator` = the human user driving the session (from `$USER` or git config `user.name` of the host, not the agent).
+   - `tool` = the AI coding tool being used (`claude`, `codex`, `cursor`, `cline`, etc.). Infer from environment: Claude Code sets `CLAUDE=1`, Codex sets `CODEX=1`, otherwise ask the user once per session.
 5. Rationale: 3–6 sentences on intent + impact (what, why, risk/impact).
 6. Build signable payload:
 
@@ -116,6 +151,8 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
 </content>
 <metadata>
 signer: <fingerprint>
+operator: <user>
+tool: <claude|codex|cursor|cline|...>
 risk-level: <low|medium|high>
 files-changed: <n>
 timestamp: <ISO-UTC>

@@ -1,5 +1,4 @@
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 export interface GitHubAppCredentials {
@@ -96,33 +95,46 @@ export async function suggestAppNames(appName: string): Promise<string[]> {
  * Look up GitHub bot user and derive noreply email.
  * Tries <appSlug>[bot] first (exists post-installation), then falls back to
  * plain <appSlug> (exists right after app creation, pre-installation).
+ *
+ * Retries with exponential backoff because GitHub's public /users API
+ * may not index a newly created app account immediately.
  */
-export async function lookupBotUser(appSlug: string): Promise<BotUser> {
-  for (const username of [`${appSlug}[bot]`, appSlug]) {
-    const res = await fetch(
-      `https://api.github.com/users/${encodeURIComponent(username)}`,
-      { headers: GITHUB_HEADERS },
-    );
-    if (res.ok) {
-      const data = (await res.json()) as { id: number; login: string };
-      return {
-        id: data.id,
-        email: `${data.id}+${data.login}@users.noreply.github.com`,
-      };
+export async function lookupBotUser(
+  appSlug: string,
+  { maxRetries = 5, baseDelayMs = 2_000 } = {},
+): Promise<BotUser> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    for (const username of [`${appSlug}[bot]`, appSlug]) {
+      const res = await fetch(
+        `https://api.github.com/users/${encodeURIComponent(username)}`,
+        { headers: GITHUB_HEADERS },
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { id: number; login: string };
+        return {
+          id: data.id,
+          email: `${data.id}+${data.login}@users.noreply.github.com`,
+        };
+      }
+    }
+    if (attempt < maxRetries) {
+      const delayMs = baseDelayMs * 2 ** attempt;
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delayMs);
+      });
     }
   }
   throw new Error(`GitHub user lookup failed for app "${appSlug}"`);
 }
 
-/** Write GitHub App PEM to ~/.config/moltnet/<slug>/<appSlug>.pem (mode 0o600). */
+/** Write GitHub App PEM to <configDir>/<appSlug>.pem (mode 0o600). */
 export async function writePem(
   pem: string,
   appSlug: string,
-  projectSlug: string,
+  configDir: string,
 ): Promise<string> {
-  const dir = join(homedir(), '.config', 'moltnet', projectSlug);
-  await mkdir(dir, { recursive: true });
-  const path = join(dir, `${appSlug}.pem`);
+  await mkdir(configDir, { recursive: true });
+  const path = join(configDir, `${appSlug}.pem`);
   await writeFile(path, pem, { mode: 0o600 });
   await chmod(path, 0o600);
   return path;

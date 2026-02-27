@@ -1,45 +1,25 @@
 import { mkdir, rm, stat } from 'node:fs/promises';
-import { homedir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  clearState,
-  deriveProjectSlug,
-  readState,
-  writeState,
-} from './state.js';
+import { clearState, readState, writeState } from './state.js';
 
-const TEST_SLUG = 'test-project-' + Math.random().toString(36).slice(2);
-const stateDir = join(homedir(), '.config', 'moltnet', TEST_SLUG);
-
-describe('deriveProjectSlug', () => {
-  it('returns a non-empty string', () => {
-    const slug = deriveProjectSlug();
-    expect(slug).toBeTruthy();
-    expect(typeof slug).toBe('string');
-  });
-
-  it('parses HTTPS remote URL', () => {
-    // We can test the regex logic by calling with a temp dir that has a known remote
-    // Just verify the function doesn't throw on various inputs
-    const slug = deriveProjectSlug(process.cwd());
-    expect(slug).toMatch(/^[a-zA-Z0-9_.-]+$/);
-  });
-});
+const TEST_ID = 'test-state-' + Math.random().toString(36).slice(2);
+const configDir = join(tmpdir(), TEST_ID);
 
 describe('state helpers', () => {
   beforeEach(async () => {
-    await mkdir(stateDir, { recursive: true });
+    await mkdir(configDir, { recursive: true });
   });
 
   afterEach(async () => {
-    await rm(stateDir, { recursive: true, force: true });
+    await rm(configDir, { recursive: true, force: true });
   });
 
   it('returns null when no state file exists', async () => {
-    expect(await readState(TEST_SLUG)).toBeNull();
+    expect(await readState(configDir)).toBeNull();
   });
 
   it('round-trips state', async () => {
@@ -51,8 +31,8 @@ describe('state helpers', () => {
       agentName: 'my-bot',
       phase: 'awaiting_github' as const,
     };
-    await writeState(state, TEST_SLUG);
-    expect(await readState(TEST_SLUG)).toEqual(state);
+    await writeState(state, configDir);
+    expect(await readState(configDir)).toEqual(state);
   });
 
   it('preserves optional fields', async () => {
@@ -67,8 +47,35 @@ describe('state helpers', () => {
       appSlug: 'my-app',
       installationId: '99999',
     };
-    await writeState(state, TEST_SLUG);
-    expect(await readState(TEST_SLUG)).toEqual(state);
+    await writeState(state, configDir);
+    expect(await readState(configDir)).toEqual(state);
+  });
+
+  it('isolates state per configDir', async () => {
+    const dirA = join(configDir, 'agent-a');
+    const dirB = join(configDir, 'agent-b');
+    await mkdir(dirA, { recursive: true });
+    await mkdir(dirB, { recursive: true });
+    const state1 = {
+      workflowId: 'wf-1',
+      publicKey: 'pk-1',
+      privateKey: 'sk-1',
+      fingerprint: 'fp-1',
+      agentName: 'agent-a',
+      phase: 'awaiting_github' as const,
+    };
+    const state2 = {
+      workflowId: 'wf-2',
+      publicKey: 'pk-2',
+      privateKey: 'sk-2',
+      fingerprint: 'fp-2',
+      agentName: 'agent-b',
+      phase: 'awaiting_installation' as const,
+    };
+    await writeState(state1, dirA);
+    await writeState(state2, dirB);
+    expect(await readState(dirA)).toEqual(state1);
+    expect(await readState(dirB)).toEqual(state2);
   });
 
   it('clearState removes the file', async () => {
@@ -81,18 +88,18 @@ describe('state helpers', () => {
         agentName: 'x',
         phase: 'awaiting_github',
       },
-      TEST_SLUG,
+      configDir,
     );
-    await clearState(TEST_SLUG);
-    expect(await readState(TEST_SLUG)).toBeNull();
+    await clearState(configDir);
+    expect(await readState(configDir)).toBeNull();
   });
 
   it('clearState is idempotent', async () => {
-    await expect(clearState(TEST_SLUG)).resolves.toBeUndefined();
+    await expect(clearState(configDir)).resolves.toBeUndefined();
   });
 
   it('writeState creates directory if missing', async () => {
-    await rm(stateDir, { recursive: true, force: true });
+    const freshDir = join(configDir, 'fresh');
     await writeState(
       {
         workflowId: 'x',
@@ -102,9 +109,9 @@ describe('state helpers', () => {
         agentName: 'x',
         phase: 'awaiting_installation',
       },
-      TEST_SLUG,
+      freshDir,
     );
-    const s = await stat(join(stateDir, 'legreffier-init.state.json'));
+    const s = await stat(join(freshDir, 'legreffier-init.state.json'));
     expect(s.isFile()).toBe(true);
   });
 });

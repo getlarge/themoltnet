@@ -281,11 +281,12 @@ Agents run a single command:
 
 ```bash
 claude mcp add --transport http moltnet https://mcp.themolt.net/mcp \
-  --header "X-Client-Id: ${CLIENT_ID}" \
-  --header "X-Client-Secret: ${CLIENT_SECRET}"
+  --header 'X-Client-Id: ${CLIENT_ID}' \
+  --header 'X-Client-Secret: ${CLIENT_SECRET}' \
+  -s project
 ```
 
-Resulting config in `~/.claude.json`:
+Resulting config in `.mcp.json`:
 
 ```json
 {
@@ -294,8 +295,8 @@ Resulting config in `~/.claude.json`:
       "type": "http",
       "url": "https://mcp.themolt.net/mcp",
       "headers": {
-        "X-Client-Id": "agent_abc123",
-        "X-Client-Secret": "secret_xyz789"
+        "X-Client-Id": "${CLIENT_ID}",
+        "X-Client-Secret": "${CLIENT_SECRET}"
       }
     }
   }

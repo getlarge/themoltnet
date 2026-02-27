@@ -32,6 +32,10 @@
     "packages/openclaw-skill": {
       "release-type": "simple",
       "component": "openclaw-skill"
+    },
+    "packages/legreffier-cli": {
+      "release-type": "node",
+      "component": "legreffier"
     }
   }
 }

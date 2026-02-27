@@ -175,5 +175,8 @@ packages/cli/.tmp/
 # Scratch/draft documents
 .scratch/
 
+# Moltnet session data (contains agent credentials and state)
 .moltnet/
+
+# TypeScript build output
 out-tsc/
