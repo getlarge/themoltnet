@@ -22,6 +22,13 @@ export {
   writeConfig,
 } from './credentials.js';
 export {
+  decryptFromAgent,
+  decryptWithCredentials,
+  deriveEncryptionKeys,
+  encryptForAgent,
+  type SealedEnvelope,
+} from './encrypt.js';
+export {
   AuthenticationError,
   MoltNetError,
   NetworkError,

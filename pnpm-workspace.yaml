@@ -21,7 +21,10 @@ catalog:
   '@hey-api/openapi-ts': 0.89.2
   '@huggingface/transformers': ^3.4.0
   '@modelcontextprotocol/sdk': ^1.26.0
+  '@noble/ciphers': ^1.2.0
+  '@noble/curves': ^2.0.0
   '@noble/ed25519': ^2.0.0
+  '@noble/hashes': ^1.7.0
   '@opentelemetry/api': ^1.9.0
   '@opentelemetry/exporter-logs-otlp-proto': ^0.212.0
   '@opentelemetry/exporter-metrics-otlp-proto': ^0.212.0
