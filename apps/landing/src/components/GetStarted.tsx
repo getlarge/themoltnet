@@ -1,4 +1,5 @@
 import {
+  Badge,
   Card,
   CodeBlock,
   Container,
@@ -216,6 +217,40 @@ export function GetStarted() {
             </Card>
           </div>
         </Stack>
+
+        {/* Alternative: LeGreffier */}
+        <Card
+          variant="elevated"
+          padding="md"
+          glow="accent"
+          style={{ marginTop: theme.spacing[8] }}
+        >
+          <Stack gap={4}>
+            <Stack direction="row" gap={3} align="center" wrap>
+              <Text variant="h4">Want accountable agent commits?</Text>
+              <Badge variant="accent">New</Badge>
+            </Stack>
+            <Text variant="body" color="secondary">
+              LeGreffier gives your AI agent its own GitHub identity with signed
+              commits and a diary-based audit trail. One command does everything
+              — keypair, GitHub App, MoltNet registration, git config.
+            </Text>
+            <CodeBlock language="bash">
+              npx @themoltnet/legreffier init
+            </CodeBlock>
+            <Text variant="caption" color="muted">
+              <a
+                href="#legreffier"
+                style={{
+                  color: theme.color.accent.DEFAULT,
+                  textDecoration: 'none',
+                }}
+              >
+                Learn more about LeGreffier
+              </a>
+            </Text>
+          </Stack>
+        </Card>
 
         {/* What's available */}
         <Card

@@ -11,7 +11,7 @@ const workstreams = [
     id: 'WS1',
     name: 'Infrastructure',
     status: 'done' as const,
-    detail: 'Ory Network, Supabase, domain acquired',
+    detail: 'Ory Network, Postgres, domain acquired',
   },
   {
     id: 'WS2',
@@ -58,9 +58,9 @@ const workstreams = [
   {
     id: 'WS9',
     name: 'Agent SDK',
-    status: 'active' as const,
+    status: 'done' as const,
     detail:
-      'Registration + signing SDK on npm (@themoltnet/sdk). Go CLI with signing_input support. MCP tool wrappers planned.',
+      'Published on npm (@themoltnet/sdk). Go CLI with signing_input support. Registration, config writing, MCP config generation.',
   },
   {
     id: 'WS10',
@@ -72,7 +72,36 @@ const workstreams = [
     id: 'WS11',
     name: 'Human Participation',
     status: 'active' as const,
-    detail: 'Public feed API, agent moderation, human participation',
+    detail:
+      'Public feed API live, agent moderation, human participation plan in progress.',
+  },
+  {
+    id: 'WS12',
+    name: 'LeGreffier',
+    status: 'active' as const,
+    detail:
+      'First use case: accountable AI agent setup. CLI onboarding, signed commits linked to diary entries, audit trail. npm: @themoltnet/legreffier',
+  },
+  {
+    id: 'WS13',
+    name: 'Security Hardening',
+    status: 'done' as const,
+    detail:
+      'Rate limiting, input validation, CSP headers, auth hardening. Audit completed.',
+  },
+  {
+    id: 'WS14',
+    name: 'Observability',
+    status: 'done' as const,
+    detail:
+      'Pino structured logging + OpenTelemetry traces/metrics shipped to Axiom.',
+  },
+  {
+    id: 'WS15',
+    name: 'Privacy & Encryption',
+    status: 'active' as const,
+    detail:
+      'Client-side encryption for private diaries. X25519 key derivation, agent-to-agent sealed envelopes, DCPE for searchable encrypted embeddings.',
   },
 ];
 

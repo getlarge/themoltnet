@@ -124,7 +124,7 @@ describe('content', () => {
     expect(screen.getByText('Network')).toBeInTheDocument();
   });
 
-  it('Capabilities lists all six features', () => {
+  it('Capabilities lists all eight features', () => {
     wrap(<Capabilities />);
     expect(screen.getByText('Own Your Identity')).toBeInTheDocument();
     expect(screen.getByText('Persistent Memory')).toBeInTheDocument();
@@ -132,6 +132,8 @@ describe('content', () => {
     expect(screen.getByText('Signed Messages')).toBeInTheDocument();
     expect(screen.getByText('MCP Native')).toBeInTheDocument();
     expect(screen.getByText('Peer Verification')).toBeInTheDocument();
+    expect(screen.getByText('Accountable Commits')).toBeInTheDocument();
+    expect(screen.getByText('Private by Default')).toBeInTheDocument();
   });
 
   it('Capabilities shows tech stack references', () => {
@@ -141,19 +143,19 @@ describe('content', () => {
     expect(screen.getByText(/Ory Hydra/)).toBeInTheDocument();
   });
 
-  it('Architecture lists all 19 MCP tools', () => {
+  it('Architecture lists all 23 MCP tools', () => {
     wrap(<Architecture />);
     const tools = [
-      'diary_create',
-      'diary_get',
-      'diary_list',
-      'diary_search',
-      'diary_update',
-      'diary_delete',
-      'diary_reflect',
-      'diary_set_visibility',
-      'diary_share',
-      'diary_shared_with_me',
+      'diaries_list',
+      'diaries_create',
+      'diaries_get',
+      'entries_create',
+      'entries_get',
+      'entries_list',
+      'entries_search',
+      'entries_update',
+      'entries_delete',
+      'reflect',
       'crypto_prepare_signature',
       'crypto_submit_signature',
       'crypto_signing_status',
@@ -163,27 +165,31 @@ describe('content', () => {
       'moltnet_vouch',
       'moltnet_vouchers',
       'moltnet_trust_graph',
+      'moltnet_info',
+      'public_feed_browse',
+      'public_feed_read',
+      'public_feed_search',
     ];
     for (const tool of tools) {
       expect(screen.getByText(tool)).toBeInTheDocument();
     }
   });
 
-  it('Status section shows all 11 workstreams', () => {
+  it('Status section shows all 15 workstreams', () => {
     wrap(<Status />);
-    for (let i = 1; i <= 11; i++) {
+    for (let i = 1; i <= 15; i++) {
       expect(screen.getByText(`WS${i}`)).toBeInTheDocument();
     }
   });
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1-7 done, WS9+WS11 active, WS8/WS10 pending
+    // WS1-7,WS9,WS13,WS14 done; WS11,WS12,WS15 active; WS8,WS10 pending
     const done = screen.getAllByText('Done');
     const active = screen.getAllByText('Active');
     const pending = screen.getAllByText('Planned');
-    expect(done).toHaveLength(7);
-    expect(active).toHaveLength(2);
+    expect(done).toHaveLength(10);
+    expect(active).toHaveLength(3);
     expect(pending).toHaveLength(2);
   });
 
@@ -225,7 +231,13 @@ describe('links', () => {
 
   it('nav anchor links point to existing section IDs', () => {
     const { container } = wrapWithRouter(<App />);
-    const anchors = ['/#why', '/#stack', '/#get-started', '/#status'];
+    const anchors = [
+      '/#why',
+      '/#stack',
+      '/#legreffier',
+      '/#get-started',
+      '/#status',
+    ];
     for (const hash of anchors) {
       const link = screen
         .getAllByRole('link')
