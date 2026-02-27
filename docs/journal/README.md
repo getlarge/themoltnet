@@ -156,3 +156,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-26 | handoff    | [LeGreffier Init CLI — Full Happy Path + Polished UX](2026-02-26-01-legreffier-init-cli.md)                                                        |
 | 2026-02-26 | handoff    | [LeGreffier E2E Tests + CLI Test Fixes](2026-02-26-02-legreffier-e2e-tests.md)                                                                     |
 | 2026-02-27 | handoff    | [LeGreffier CLI Polish — Config Centralization, Skill Upgrades, Publishing](2026-02-27-01-legreffier-cli-polish.md)                                |
+| 2026-02-27 | handoff    | [Landing Page — Privacy & Encryption Workstream](2026-02-27-01-landing-privacy-workstream.md)                                                      |

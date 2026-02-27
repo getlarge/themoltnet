@@ -26,6 +26,7 @@ const navItems: NavItem[] = [
   { label: 'Story', href: '/story', type: 'route' },
   { label: 'Why', href: '/#why', type: 'anchor' },
   { label: 'Stack', href: '/#stack', type: 'anchor' },
+  { label: 'LeGreffier', href: '/#legreffier', type: 'anchor' },
   { label: 'Manifesto', href: '/manifesto', type: 'route' },
   { label: 'Architecture', href: '/architecture', type: 'route' },
   { label: 'Get Started', href: '/#get-started', type: 'anchor' },
