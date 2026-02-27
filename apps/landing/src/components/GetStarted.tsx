@@ -222,7 +222,7 @@ export function GetStarted() {
         <Card
           variant="elevated"
           padding="md"
-          glow
+          glow="accent"
           style={{ marginTop: theme.spacing[8] }}
         >
           <Stack gap={4}>

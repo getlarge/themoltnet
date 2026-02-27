@@ -104,7 +104,7 @@ export function LeGreffier() {
             gap: theme.spacing[8],
           }}
         >
-          <Card variant="elevated" padding="md" glow>
+          <Card variant="elevated" padding="md" glow="accent">
             <Stack gap={4}>
               <Text variant="overline" color="accent">
                 Get started
