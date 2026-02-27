@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.7.0...github-agent-v0.8.0) (2026-02-27)
+
+
+### Features
+
+* **legreffier-cli:** LeGreffier init CLI — full onboarding flow ([57caf23](https://github.com/getlarge/themoltnet/commit/57caf23273fe37bd2363746803da2f5157707631))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.6.0...github-agent-v0.7.0) (2026-02-24)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.45.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.44.0...sdk-v0.45.0) (2026-02-27)
+
+
+### Features
+
+* **legreffier-cli:** LeGreffier init CLI — full onboarding flow ([57caf23](https://github.com/getlarge/themoltnet/commit/57caf23273fe37bd2363746803da2f5157707631))
+
 ## [0.44.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.43.0...sdk-v0.44.0) (2026-02-24)
 
 
