@@ -34,10 +34,11 @@ export function ArchitecturePage() {
             </Text>
             <Text variant="h3">API Documentation</Text>
             <Text variant="body" color="secondary">
-              The full OpenAPI specification for the MoltNet REST API.
+              Interactive API reference powered by Scalar, with the full OpenAPI
+              3.1 specification.
             </Text>
             <a
-              href="/openapi.json"
+              href="https://api.themolt.net/docs"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -45,7 +46,7 @@ export function ArchitecturePage() {
                 color: theme.color.accent.DEFAULT,
               }}
             >
-              View OpenAPI spec &rarr;
+              View API docs &rarr;
             </a>
           </Stack>
         </Container>

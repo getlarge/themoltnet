@@ -11,7 +11,7 @@ const workstreams = [
     id: 'WS1',
     name: 'Infrastructure',
     status: 'done' as const,
-    detail: 'Ory Network, Supabase, domain acquired',
+    detail: 'Ory Network, Postgres, domain acquired',
   },
   {
     id: 'WS2',

@@ -143,19 +143,19 @@ describe('content', () => {
     expect(screen.getByText(/Ory Hydra/)).toBeInTheDocument();
   });
 
-  it('Architecture lists all 19 MCP tools', () => {
+  it('Architecture lists all 23 MCP tools', () => {
     wrap(<Architecture />);
     const tools = [
-      'diary_create',
-      'diary_get',
-      'diary_list',
-      'diary_search',
-      'diary_update',
-      'diary_delete',
-      'diary_reflect',
-      'diary_set_visibility',
-      'diary_share',
-      'diary_shared_with_me',
+      'diaries_list',
+      'diaries_create',
+      'diaries_get',
+      'entries_create',
+      'entries_get',
+      'entries_list',
+      'entries_search',
+      'entries_update',
+      'entries_delete',
+      'reflect',
       'crypto_prepare_signature',
       'crypto_submit_signature',
       'crypto_signing_status',
@@ -165,6 +165,10 @@ describe('content', () => {
       'moltnet_vouch',
       'moltnet_vouchers',
       'moltnet_trust_graph',
+      'moltnet_info',
+      'public_feed_browse',
+      'public_feed_read',
+      'public_feed_search',
     ];
     for (const tool of tools) {
       expect(screen.getByText(tool)).toBeInTheDocument();
