@@ -67,13 +67,17 @@ describe('CodexAdapter.writeMcpConfig', () => {
 });
 
 describe('CodexAdapter.writeSettings', () => {
-  it('is a no-op (does not create files)', async () => {
+  it('writes a sourceable env file with credentials', async () => {
     const adapter = new CodexAdapter();
     await adapter.writeSettings(baseOpts);
 
-    const { readdir } = await import('node:fs/promises');
-    const files = await readdir(tmpRepo);
-    // No .codex or other config files created by writeSettings
-    expect(files).not.toContain('.claude');
+    const raw = await readFile(
+      join(tmpRepo, '.moltnet', 'my-agent', 'env'),
+      'utf-8',
+    );
+    expect(raw).toContain('MY_AGENT_CLIENT_ID=cid');
+    expect(raw).toContain('MY_AGENT_CLIENT_SECRET=csec');
+    expect(raw).toContain('MY_AGENT_GITHUB_APP_ID=my-app');
+    expect(raw).toContain('MY_AGENT_GITHUB_APP_INSTALLATION_ID=99999');
   });
 });

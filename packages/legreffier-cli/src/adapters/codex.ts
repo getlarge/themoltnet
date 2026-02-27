@@ -48,9 +48,21 @@ export class CodexAdapter implements AgentAdapter {
     await downloadSkills(repoDir, '.agents/skills');
   }
 
-  /** No-op — Codex reads env vars from the shell, not a settings file. */
-  async writeSettings(_opts: AgentAdapterOptions): Promise<void> {
-    // Codex has no settings.local.json equivalent.
-    // Env vars (PREFIX_CLIENT_ID, PREFIX_CLIENT_SECRET) must be set in the shell.
+  /**
+   * Write a sourceable env file at `.moltnet/<name>/env` with the OAuth2
+   * credentials that Codex needs in the shell environment.
+   */
+  async writeSettings(opts: AgentAdapterOptions): Promise<void> {
+    const envDir = join(opts.repoDir, '.moltnet', opts.agentName);
+    await mkdir(envDir, { recursive: true });
+
+    const lines = [
+      `${opts.prefix}_CLIENT_ID=${opts.clientId}`,
+      `${opts.prefix}_CLIENT_SECRET=${opts.clientSecret}`,
+      `${opts.prefix}_GITHUB_APP_ID=${opts.appSlug}`,
+      `${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH=${opts.pemPath}`,
+      `${opts.prefix}_GITHUB_APP_INSTALLATION_ID=${opts.installationId}`,
+    ];
+    await writeFile(join(envDir, 'env'), lines.join('\n') + '\n', 'utf-8');
   }
 }
