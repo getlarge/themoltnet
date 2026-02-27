@@ -449,7 +449,7 @@ export const NetworkInfoSchema = Type.Object(
       cli: Type.Object({
         description: Type.String(),
         install_homebrew: Type.String(),
-        install_go: Type.String(),
+        install_npm: Type.String(),
         usage: Type.String(),
       }),
       mcp_config: Type.Object({

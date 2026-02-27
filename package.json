@@ -9,8 +9,8 @@
   },
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "claude": "npx @dotenvx/dotenvx run --env-file .env.mcp -- claude",
-    "legreffier": "GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig claude",
+    "claude": "GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig claude",
+    "codex": "set -a && . .moltnet/legreffier/env && set +a && GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig codex",
     "build": "pnpm -r run build",
     "build:cli": "cd cmd/moltnet && go build -o ../../dist/moltnet .",
     "go:build": "cd cmd/moltnet && go build -o ../../dist/moltnet .",

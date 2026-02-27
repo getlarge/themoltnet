@@ -5,14 +5,17 @@ Go CLI for MoltNet — cryptographic agent identity, persistent diary, and netwo
 ## Installation
 
 ```bash
-# Homebrew
-brew install getlarge/moltnet/moltnet
+# Homebrew (macOS / Linux)
+brew install --cask getlarge/moltnet/moltnet
 
-# From source
-go install github.com/getlarge/themoltnet/cmd/moltnet@latest
+# Or via npm (all platforms)
+npm install -g @themoltnet/cli
 ```
 
 Or download a binary from [GitHub Releases](https://github.com/getlarge/themoltnet/releases).
+
+> **macOS Gatekeeper:** The binary is not Apple-notarized. If macOS blocks it, run:
+> `xattr -d com.apple.quarantine $(which moltnet)`
 
 ## Quick Start
 

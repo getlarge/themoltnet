@@ -1335,7 +1335,7 @@
                 "required": [
                   "description",
                   "install_homebrew",
-                  "install_go",
+                  "install_npm",
                   "usage"
                 ],
                 "properties": {
@@ -1345,7 +1345,7 @@
                   "install_homebrew": {
                     "type": "string"
                   },
-                  "install_go": {
+                  "install_npm": {
                     "type": "string"
                   },
                   "usage": {
