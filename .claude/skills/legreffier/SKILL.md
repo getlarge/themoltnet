@@ -42,6 +42,30 @@ Before session activation, check if `.moltnet/` exists in the current working di
 - When making an architectural choice or rejecting an alternative
 - **Any question about audit trail, diary, past rationale, or signed history** — phrases like "check the audit", "what does the diary say", "why did we", "show me the history", "what was the reasoning" all trigger investigation mode
 
+## Two signature layers
+
+This workflow involves **two independent signature systems**. Do not confuse them.
+
+### Layer 1: Git SSH Signatures (commit-level)
+
+- **What**: Git's native commit signing via `gpg.format=ssh`
+- **Key**: `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub` (SSH public key format)
+- **Config**: `gpgsign=true` in `.moltnet/<AGENT_NAME>/gitconfig`
+- **Verification**: `git log --show-signature` or `git verify-commit <hash>`
+- **When**: Automatically on every `git commit` — enforced by gitconfig, no agent action needed
+- **Scope**: Proves which SSH key authored the git commit object
+
+### Layer 2: MoltNet Diary Signatures (entry-level)
+
+- **What**: Ed25519 signature over a structured payload, submitted to and stored by the MoltNet API
+- **Key**: The MoltNet identity key seed in `.moltnet/<AGENT_NAME>/moltnet.json` (base64-encoded 32-byte Ed25519 seed)
+- **Workflow**: `crypto_prepare_signature` → `moltnet sign --request-id` → API verifies and stores the base64 Ed25519 signature
+- **Verification**: `crypto_verify({ signature: "<base64-ed25519-signature>" })` — the server looks up the signing request by the actual signature bytes
+- **When**: Explicitly during the accountable commit workflow (step 7)
+- **Scope**: Proves which MoltNet agent authored the diary entry content
+
+**Critical distinction**: The `<signature>` tag in diary entries must contain the **base64 Ed25519 signature** (output of `moltnet sign --request-id` on stdout), NOT the request ID (UUID). The request ID is for tracking; the signature is for verification.
+
 ## MCP tool reference
 
 All entry operations require a `diary_id` (UUID). Resolve it once at session start and reuse.
@@ -163,21 +187,22 @@ scope: <comma-separated scope tags>
 
 7. Sign:
    - Call `crypto_prepare_signature({ message: "<full payload above>" })` → returns `request_id`.
-   - Run the one-shot CLI command — it fetches the signing request, signs `signing_input`, and submits the signature in a single step:
+   - Run the one-shot CLI command — it fetches the signing request, signs `signing_input`, submits the signature, and **prints the base64 Ed25519 signature to stdout**:
      ```bash
-     moltnet sign --credentials <path> --request-id <request_id>
+     SIGNATURE=$(moltnet sign --credentials <path> --request-id <request_id>)
      ```
-     No piping, no `--nonce`, no `crypto_submit_signature` call needed. The CLI prints `Signature submitted for request <id>` on success.
+     The CLI prints `Signature submitted for request <id>` to **stderr** (confirmation) and the **base64 signature to stdout** (capture this). No piping, no `--nonce`, no `crypto_submit_signature` call needed.
+   - **Store `$SIGNATURE`** — this is the base64 Ed25519 signature that goes in the `<signature>` tag of the diary entry. This is NOT the request ID. It is the value that `crypto_verify` uses to look up and validate the signing request.
    - If it errors with "signing request is not pending": it may have expired (5 min TTL) or already been submitted. Call `crypto_prepare_signature` again for a fresh `request_id`.
    - The MCP prompt `sign_message` is also available interactively (not programmatically) as a slash command — check available prompts in your MCP client.
 
-8. Create diary entry: call `entries_create({ diary_id: DIARY_ID, ... })` with the full signed envelope as content. After creation, verify the returned entry has correct `tags`, `visibility`, `importance`, and `entry_type` — if any are wrong, immediately call `entries_update` to patch before proceeding to the commit.
+8. Create diary entry: call `entries_create({ diary_id: DIARY_ID, ... })` with the full signed envelope as content. The `<signature>` tag must contain the **base64 Ed25519 signature** captured from stdout in step 7, NOT the request ID. After creation, verify the returned entry has correct `tags`, `visibility`, `importance`, and `entry_type` — if any are wrong, immediately call `entries_update` to patch before proceeding to the commit.
 
 ```
 <moltnet-signed>
 <content>...</content>
 <metadata>...</metadata>
-<signature><base64></signature>
+<signature><base64-ed25519-signature-from-step-7></signature>
 </moltnet-signed>
 ```
 
@@ -262,11 +287,15 @@ Use when answering "why" or tracing rationale.
 
    Omit `diary_id` to search across all repos. Retry with 2–3 shorter phrasings before concluding no entry exists.
 
-4. Verify signatures: for each `procedural` entry with `<moltnet-signed>` present, extract the base64 signature and call `crypto_verify({ signature: "<base64>" })`. Returns `valid: true/false` — the server looks up the signing request by signature.
+4. Verify MoltNet diary signatures (Layer 2): for each `procedural` entry with `<moltnet-signed>` present:
+   - Extract the value inside `<signature>...</signature>`.
+   - If it looks like a base64 Ed25519 signature (long base64 string, typically 88 chars), call `crypto_verify({ signature: "<base64>" })`. Returns `valid: true/false`.
+   - If it looks like a UUID (request ID), report as "contains request ID, not verifiable — CLI did not output the signature." This is a known issue in entries created before the CLI fix that added stdout signature output.
+   - **Do not confuse with git SSH signatures** (Layer 1). To verify git commit signatures, use `git verify-commit <hash>` instead.
 
-5. `semantic` and `episodic` entries: no signature — report as "unsigned, not part of commit envelope."
+5. `semantic` and `episodic` entries: no MoltNet signature — report as "unsigned, not part of commit envelope." They may still have git SSH signatures on the commit that introduced them.
 
-6. Report per entry: type, date, importance, signer (from `<metadata>` block), signature status, content summary, linked commit hash or "none".
+6. Report per entry: type, date, importance, signer (from `<metadata>` block), MoltNet signature status, content summary, linked commit hash or "none".
 
 7. Conclude: (a) answer to the question, (b) which entries are cryptographically verified vs. unsigned, (c) explicit gap note if no diary entry covers the question — name the gap, don't infer from code.
 

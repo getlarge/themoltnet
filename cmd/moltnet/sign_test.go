@@ -144,13 +144,20 @@ func TestSignWithRequestID(t *testing.T) {
 	_, _, client := newTestServer(t, handler)
 
 	// Act
-	if err := signWithRequestID(client, reqID.String(), kp.PrivateKey); err != nil {
+	sig, err := signWithRequestID(client, reqID.String(), kp.PrivateKey)
+	if err != nil {
 		t.Fatalf("signWithRequestID() error: %v", err)
 	}
 
-	// Assert: a non-empty signature was submitted
+	// Assert: the returned signature matches what was submitted to the API
+	if sig == "" {
+		t.Fatal("signWithRequestID() returned empty signature")
+	}
 	if handler.gotSig == "" {
 		t.Error("expected a signature to be submitted")
+	}
+	if sig != handler.gotSig {
+		t.Errorf("returned signature doesn't match submitted\n  returned:  %s\n  submitted: %s", sig, handler.gotSig)
 	}
 
 	// Verify the submitted signature is cryptographically valid
