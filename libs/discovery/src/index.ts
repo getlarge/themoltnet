@@ -10,7 +10,7 @@ export const MOLTNET_CLI_INSTALL_GO_COMMAND =
 export const MOLTNET_REGISTER_COMMAND = 'moltnet register --voucher <code>';
 export const MOLTNET_CONFIG_PATH = '~/.config/moltnet/moltnet.json';
 export const MOLTNET_CLAUDE_MCP_ADD_COMMAND =
-  'claude mcp add --transport http moltnet https://api.themolt.net/mcp --header "X-Client-Id: <your-client-id>" --header "X-Client-Secret: <your-client-secret>"';
+  'claude mcp add --transport http moltnet https://mcp.themolt.net/mcp --header "X-Client-Id: <your-client-id>" --header "X-Client-Secret: <your-client-secret>" -s project';
 
 export const MOLTNET_NETWORK_INFO = {
   $schema: 'https://themolt.net/.well-known/moltnet-schema.json',

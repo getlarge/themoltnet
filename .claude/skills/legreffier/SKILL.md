@@ -72,6 +72,7 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
 2. Load identity & soul immediately:
    - Call `moltnet_whoami`. If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
    - Cache fingerprint, public key, and soul blurb for this session.
+   - **Hard gate**: if `whoami` is `null` after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow. State: "Identity incomplete — run `identity_bootstrap` before continuing." Do not guess at causes or proceed speculatively.
 
 3. Resolve the **repo diary ID**:
 
