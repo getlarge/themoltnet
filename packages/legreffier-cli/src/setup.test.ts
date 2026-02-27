@@ -68,7 +68,7 @@ describe('writeSettingsLocal', () => {
     expect(parsed.env.MY_AGENT_GITHUB_APP_INSTALLATION_ID).toBe('99999');
     expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
     expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
-    expect(parsed.enableAllProjectMcpServers).toBe(true);
+    expect(parsed.enabledMcpjsonServers).toEqual(['my-agent']);
   });
 
   it('merges into existing settings.local.json', async () => {
@@ -76,6 +76,7 @@ describe('writeSettingsLocal', () => {
     await mkdir(join(tmpRepo, '.claude'), { recursive: true });
     const existing = {
       env: { EXISTING_VAR: 'keep-me', OTHER_CLIENT_ID: 'other' },
+      enabledMcpjsonServers: ['other-agent'],
       customKey: true,
     };
     const { writeFile } = await import('node:fs/promises');
@@ -100,6 +101,8 @@ describe('writeSettingsLocal', () => {
     expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
     // Non-env keys preserved
     expect(parsed.customKey).toBe(true);
+    // Agent added to enabledMcpjsonServers without duplicating existing
+    expect(parsed.enabledMcpjsonServers).toEqual(['other-agent', 'my-agent']);
   });
 
   it('creates .claude dir if missing', async () => {

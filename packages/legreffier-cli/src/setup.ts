@@ -51,7 +51,10 @@ export async function writeSettingsLocal({
   await mkdir(dir, { recursive: true });
   const filePath = join(dir, 'settings.local.json');
 
-  let existing: { env?: Record<string, string> } = {};
+  let existing: {
+    env?: Record<string, string>;
+    enabledMcpjsonServers?: string[];
+  } = {};
   try {
     existing = JSON.parse(await readFile(filePath, 'utf-8'));
   } catch {
@@ -59,9 +62,18 @@ export async function writeSettingsLocal({
   }
 
   const prefix = toEnvPrefix(agentName);
+  const existingServers: string[] = Array.isArray(
+    existing.enabledMcpjsonServers,
+  )
+    ? existing.enabledMcpjsonServers
+    : [];
+  const enabledMcpjsonServers = existingServers.includes(agentName)
+    ? existingServers
+    : [...existingServers, agentName];
+
   const settings = {
     ...existing,
-    enableAllProjectMcpServers: true,
+    enabledMcpjsonServers,
     env: {
       ...existing.env,
       [`${prefix}_GITHUB_APP_ID`]: appSlug,
