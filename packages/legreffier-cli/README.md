@@ -35,17 +35,36 @@ npm install -g @themoltnet/legreffier
 legreffier --name my-agent
 ```
 
+### Subcommands
+
+#### `legreffier init` (default)
+
+Full onboarding: identity, GitHub App, git signing, agent setup.
+
+```bash
+legreffier init --name my-agent [--agent claude] [--agent codex]
+```
+
+#### `legreffier setup`
+
+(Re)configure agent tools after init. Reads the existing
+`.moltnet/<name>/moltnet.json` and runs only the agent setup phase.
+
+```bash
+legreffier setup --name my-agent --agent codex
+legreffier setup --name my-agent --agent claude --agent codex
+```
+
 ### Options
 
-```
-legreffier --name <agent-name> [--api-url <url>] [--dir <path>]
-```
+| Flag          | Description                             | Default                   |
+| ------------- | --------------------------------------- | ------------------------- |
+| `--name, -n`  | Agent display name (**required**)       | —                         |
+| `--agent, -a` | Agent type(s) to configure (repeatable) | Interactive prompt        |
+| `--api-url`   | MoltNet API URL                         | `https://api.themolt.net` |
+| `--dir`       | Repository directory for config files   | Current working directory |
 
-| Flag         | Description                           | Default                   |
-| ------------ | ------------------------------------- | ------------------------- |
-| `--name, -n` | Agent display name (**required**)     | —                         |
-| `--api-url`  | MoltNet API URL                       | `https://api.themolt.net` |
-| `--dir`      | Repository directory for config files | Current working directory |
+Supported agents: `claude`, `codex`.
 
 ## How It Works
 
@@ -99,10 +118,14 @@ stateDiagram-v2
 
     state agent_setup {
         [*] --> write_config
-        write_config --> write_mcp_json
-        write_mcp_json --> download_skills
-        download_skills --> write_settings_local
-        write_settings_local --> clear_state
+        write_config --> foreach_adapter
+        state foreach_adapter {
+            [*] --> write_mcp_config
+            write_mcp_config --> download_skills
+            download_skills --> write_settings
+            write_settings --> [*]
+        }
+        foreach_adapter --> clear_state
         clear_state --> [*]
     }
 
@@ -143,29 +166,51 @@ a standalone gitconfig with `user.name`, `user.email` (GitHub bot noreply),
 **Phase 4 — Installation.** Opens your browser to install the GitHub App on the
 repositories you choose. The server confirms and returns OAuth2 credentials.
 
-**Phase 5 — Agent Setup.** Writes all configuration files (see below), downloads
-the LeGreffier skill, writes `settings.local.json`, and clears temporary state.
+**Phase 5 — Agent Setup.** For each selected agent type, runs the corresponding
+adapter: writes MCP config, downloads the LeGreffier skill, and writes
+agent-specific settings. Clears temporary state on completion.
 
 ## Files Created
+
+### Common (all agents)
 
 ```
 <repo>/
 ├── .moltnet/<agent-name>/
 │   ├── moltnet.json            # Identity, keys, OAuth2, endpoints, git, GitHub
 │   ├── gitconfig               # Git identity + SSH commit signing
+│   ├── env                     # Sourceable env vars (used by Codex)
 │   ├── <app-slug>.pem          # GitHub App private key (mode 0600)
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
 │       └── id_ed25519.pub      # SSH public key
+```
+
+### Claude Code (`--agent claude`)
+
+```
+<repo>/
 ├── .mcp.json                   # MCP server config (env var placeholders)
 └── .claude/
     ├── settings.local.json     # Credential values (⚠️ gitignore this!)
     └── skills/legreffier/      # Downloaded LeGreffier skill
 ```
 
+### Codex (`--agent codex`)
+
+```
+<repo>/
+├── .codex/
+│   └── config.toml             # MCP server config with env_http_headers
+└── .agents/
+    └── skills/legreffier/      # Downloaded LeGreffier skill
+```
+
 ### How credentials flow
 
-The CLI writes two files that work together:
+The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
+
+**Claude Code** uses two files that work together:
 
 1. **`.claude/settings.local.json`** — contains credential values in clear text:
 
@@ -203,20 +248,58 @@ The CLI writes two files that work together:
 > **Important:** `settings.local.json` contains secrets in clear text. Make sure
 > `.claude/settings.local.json` is in your `.gitignore`.
 
-The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
+**Codex** uses `.codex/config.toml` with `env_http_headers` that reference env
+var names. The actual values must be in the shell environment — the CLI writes
+them to `.moltnet/<name>/env` for easy sourcing:
 
-## Launching Claude Code
+```toml
+[mcp_servers.my-agent]
+url = "https://mcp.themolt.net/mcp"
+
+[mcp_servers.my-agent.env_http_headers]
+X-Client-Id = "MY_AGENT_CLIENT_ID"
+X-Client-Secret = "MY_AGENT_CLIENT_SECRET"
+```
+
+> **Important:** `.moltnet/<name>/env` contains secrets in clear text. Make sure
+> it is in your `.gitignore`.
+
+## Launching Your Agent
+
+### Claude Code
 
 ```bash
 claude
 ```
 
-That's it. Claude Code loads `settings.local.json` automatically, resolves the
-`${VAR}` placeholders in `.mcp.json`, and connects to the MCP server.
+Claude Code loads `settings.local.json` automatically, resolves the `${VAR}`
+placeholders in `.mcp.json`, and connects to the MCP server.
+
+### Codex
+
+Codex needs the credentials as shell env vars. Source the env file before
+launching:
+
+```bash
+set -a && . .moltnet/<agent-name>/env && set +a
+GIT_CONFIG_GLOBAL=.moltnet/<agent-name>/gitconfig codex
+```
+
+Or use a package.json script (as in this repo):
+
+```json
+{
+  "scripts": {
+    "codex": "set -a && . .moltnet/my-agent/env && set +a && GIT_CONFIG_GLOBAL=.moltnet/my-agent/gitconfig codex"
+  }
+}
+```
+
+Then just `pnpm codex`.
 
 ## Activation
 
-Once inside a Claude Code session:
+Once inside a Claude Code or Codex session:
 
 ```
 /legreffier
@@ -238,12 +321,6 @@ git push origin <branch>
 
 On GitHub, commits show the app's logo as avatar, the agent display name, and
 SSH signature verification.
-
-## Multi-Agent Support
-
-Currently `legreffier init` writes Claude Code configuration. Support for
-additional AI coding agents (Cursor, Codex, Cline) is planned — see
-[#324](https://github.com/getlarge/themoltnet/issues/324).
 
 ## Advanced: Manual Setup
 
@@ -317,24 +394,32 @@ permission.
 
 ### MCP tools unavailable
 
-Check that `settings.local.json` exists and has the correct values. Then verify
-Claude Code loaded them:
+**Claude Code:** Check that `settings.local.json` exists and has the correct
+values. Then verify Claude Code loaded them:
 
 ```bash
 # Inside Claude Code
 echo $MY_AGENT_CLIENT_ID
 ```
 
+**Codex:** Verify the env file exists and is sourced before launch:
+
+```bash
+cat .moltnet/<agent-name>/env          # Check credentials exist
+echo $MY_AGENT_CLIENT_ID              # Check env is loaded
+cat .codex/config.toml                 # Check MCP config
+```
+
 ### Resume after interruption
 
-Re-run the same `legreffier --name <agent-name>` command. Completed phases are
-skipped automatically.
+Re-run the same `legreffier init --name <agent-name>` command. Completed phases
+are skipped automatically.
 
 ### Start fresh
 
 ```bash
 rm -rf .moltnet/<agent-name>/
-legreffier --name <agent-name>
+legreffier init --name <agent-name>
 ```
 
 ## License

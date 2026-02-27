@@ -25,13 +25,13 @@ afterEach(async () => {
 });
 
 describe('downloadSkills', () => {
-  it('writes SKILL.md to agent skill directory', async () => {
+  it('writes SKILL.md to the given skill directory', async () => {
     vi.stubGlobal('fetch', async (url: string) => ({
       ok: true,
       text: async () => `# Skill content for ${url}`,
     }));
 
-    await downloadSkills(tmpRepo, ['claude']);
+    await downloadSkills(tmpRepo, '.claude/skills');
 
     const content = await readFile(
       join(tmpRepo, '.claude', 'skills', 'legreffier', 'SKILL.md'),
@@ -40,21 +40,30 @@ describe('downloadSkills', () => {
     expect(content).toContain('Skill content');
   });
 
-  it('throws if fetch fails', async () => {
-    vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
-    await expect(downloadSkills(tmpRepo, ['claude'])).rejects.toThrow(
-      'Failed to download skill',
+  it('writes SKILL.md to codex skill directory', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      text: async () => `# Skill content for ${url}`,
+    }));
+
+    await downloadSkills(tmpRepo, '.agents/skills');
+
+    const content = await readFile(
+      join(tmpRepo, '.agents', 'skills', 'legreffier', 'SKILL.md'),
+      'utf-8',
     );
+    expect(content).toContain('Skill content');
   });
 
-  it('skips when no agent types provided', async () => {
-    const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+  it('warns and skips if fetch returns non-200', async () => {
+    vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
 
-    await downloadSkills(tmpRepo, []);
+    await downloadSkills(tmpRepo, '.claude/skills');
 
-    // fetch is still called (skill content is fetched once),
-    // but no files are written since there are no agent dirs
+    expect(stderrSpy).toHaveBeenCalledWith(
+      expect.stringContaining('could not download skill'),
+    );
     const { stat } = await import('node:fs/promises');
     await expect(
       stat(join(tmpRepo, '.claude', 'skills', 'legreffier', 'SKILL.md')),

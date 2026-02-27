@@ -352,7 +352,7 @@ export type NetworkInfo = {
     cli: {
       description: string;
       install_homebrew: string;
-      install_go: string;
+      install_npm: string;
       usage: string;
     };
     mcp_config: {

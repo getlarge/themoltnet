@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/legreffier",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "LeGreffier — one-command accountable AI agent setup",
   "license": "MIT",
   "type": "module",
@@ -35,7 +35,8 @@
     "figlet": "^1.8.0",
     "ink": "^6.8.0",
     "open": "^10.1.2",
-    "react": "catalog:"
+    "react": "catalog:",
+    "smol-toml": "catalog:"
   },
   "devDependencies": {
     "@types/figlet": "^1.7.0",

@@ -1,50 +1,62 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { AgentType } from './ui/types.js';
-
-/** Agent-specific directory where skills are installed. */
-const SKILL_DIRS: Record<AgentType, string> = {
-  claude: '.claude/skills',
-  // codex: '.agents/skills',
-};
-
 /** Pinned to the release tag — updated by release-please. */
 const SKILL_VERSION = 'legreffier-v0.1.0';
+const SKILL_FALLBACK = 'main';
 
-const SKILLS: Array<{ name: string; url: string }> = [
+const SKILL_PATH = '.claude/skills/legreffier/SKILL.md';
+
+function skillUrl(ref: string): string {
+  return `https://raw.githubusercontent.com/getlarge/themoltnet/${ref}/${SKILL_PATH}`;
+}
+
+const SKILLS: Array<{ name: string; urls: string[] }> = [
   {
     name: 'legreffier',
-    url: `https://raw.githubusercontent.com/getlarge/themoltnet/${SKILL_VERSION}/.claude/skills/legreffier/SKILL.md`,
+    urls: [skillUrl(SKILL_VERSION), skillUrl(SKILL_FALLBACK)],
   },
 ];
 
 /**
- * Install MoltNet skills for the given agent types.
+ * Install MoltNet skills into the given skill directory.
  * Fetches from GitHub pinned to the CLI release tag.
- * Installs into each agent's skill directory (e.g. .claude/skills/, .agents/skills/).
+ *
+ * @param repoDir - Root of the target repository
+ * @param skillDir - Relative path for skill files (e.g. '.claude/skills', '.agents/skills')
  */
 export async function downloadSkills(
   repoDir: string,
-  agentTypes: AgentType[],
+  skillDir: string,
 ): Promise<void> {
-  const dirs = agentTypes
-    .map((t) => SKILL_DIRS[t])
-    .filter((d): d is string => !!d);
-  if (dirs.length === 0) return;
-
   for (const skill of SKILLS) {
-    const res = await fetch(skill.url);
-    if (!res.ok) {
-      throw new Error(`Failed to download skill ${skill.name} (${res.status})`);
-    }
-    const content = await res.text();
+    let content: string | null = null;
 
-    for (const skillDir of dirs) {
-      const destDir = join(repoDir, skillDir, skill.name);
-      await mkdir(destDir, { recursive: true });
-      await writeFile(join(destDir, 'SKILL.md'), content, 'utf-8');
+    for (const url of skill.urls) {
+      let res: Response;
+      try {
+        res = await fetch(url);
+      } catch {
+        // Network error — try next URL
+        continue;
+      }
+      if (res.ok) {
+        content = await res.text();
+        break;
+      }
+      // Non-200 — try next URL (e.g. pinned tag missing, fall back to main)
     }
+
+    if (!content) {
+      process.stderr.write(
+        `Warning: could not download skill "${skill.name}", skipping.\n`,
+      );
+      continue;
+    }
+
+    const destDir = join(repoDir, skillDir, skill.name);
+    await mkdir(destDir, { recursive: true });
+    await writeFile(join(destDir, 'SKILL.md'), content, 'utf-8');
   }
 }
 

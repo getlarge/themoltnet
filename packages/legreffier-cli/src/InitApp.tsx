@@ -25,7 +25,7 @@ import type { AgentType, UIPhase, UIState } from './ui/types.js';
 
 export interface InitAppProps {
   name: string;
-  agent?: AgentType;
+  agents?: AgentType[];
   apiUrl: string;
   dir?: string;
 }
@@ -45,12 +45,12 @@ function isFuturePhase(current: UIPhase, target: UIPhase): boolean {
 }
 
 function DisclaimerPhase({
-  selectedAgent,
+  hasAgents,
   onAccept,
   onSelectAgent,
   onReject,
 }: {
-  selectedAgent: AgentType | null;
+  hasAgents: boolean;
   onAccept: () => void;
   onSelectAgent: () => void;
   onReject: () => void;
@@ -59,7 +59,7 @@ function DisclaimerPhase({
     <Box flexDirection="column" paddingY={1}>
       <CliHero animated={true} />
       <CliDisclaimer
-        onAccept={selectedAgent ? onAccept : onSelectAgent}
+        onAccept={hasAgents ? onAccept : onSelectAgent}
         onReject={onReject}
       />
     </Box>
@@ -69,7 +69,7 @@ function DisclaimerPhase({
 function AgentSelectPhase({
   onSelect,
 }: {
-  onSelect: (agent: AgentType) => void;
+  onSelect: (agents: AgentType[]) => void;
 }) {
   return (
     <Box flexDirection="column" paddingY={1}>
@@ -237,7 +237,7 @@ function ProgressPhase({
 
 export function InitApp({
   name,
-  agent: agentProp,
+  agents: agentsProp,
   apiUrl,
   dir = process.cwd(),
 }: InitAppProps) {
@@ -250,8 +250,8 @@ export function InitApp({
   });
 
   const [accepted, setAccepted] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<AgentType | null>(
-    agentProp ?? null,
+  const [selectedAgents, setSelectedAgents] = useState<AgentType[]>(
+    agentsProp ?? [],
   );
 
   // Delayed fallback URL visibility (2s after URL is set)
@@ -331,7 +331,7 @@ export function InitApp({
           repoDir: dir,
           configDir,
           agentName: name,
-          agentTypes: selectedAgent ? [selectedAgent] : [],
+          agentTypes: selectedAgents,
           publicKey: identity.publicKey,
           fingerprint: identity.fingerprint,
           appSlug: githubApp.appSlug,
@@ -368,7 +368,7 @@ export function InitApp({
   const renderPhase: Partial<Record<UIPhase, () => React.ReactElement>> = {
     disclaimer: () => (
       <DisclaimerPhase
-        selectedAgent={selectedAgent}
+        hasAgents={selectedAgents.length > 0}
         onAccept={() => setAccepted(true)}
         onSelectAgent={() => dispatch({ type: 'phase', phase: 'agent_select' })}
         onReject={() => exit()}
@@ -376,8 +376,8 @@ export function InitApp({
     ),
     agent_select: () => (
       <AgentSelectPhase
-        onSelect={(agent) => {
-          setSelectedAgent(agent);
+        onSelect={(selected) => {
+          setSelectedAgents(selected);
           setAccepted(true);
         }}
       />

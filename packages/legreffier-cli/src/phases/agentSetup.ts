@@ -1,11 +1,8 @@
-import {
-  type McpConfig,
-  readConfig,
-  writeConfig,
-  writeMcpConfig,
-} from '@themoltnet/sdk';
+import { readConfig, writeConfig } from '@themoltnet/sdk';
 
-import { downloadSkills, toEnvPrefix, writeSettingsLocal } from '../setup.js';
+import { adapters } from '../adapters/index.js';
+import type { AgentAdapterOptions } from '../adapters/types.js';
+import { toEnvPrefix } from '../setup.js';
 import { clearState } from '../state.js';
 import type { AgentType, UIAction } from '../ui/types.js';
 
@@ -71,41 +68,33 @@ export async function runAgentSetupPhase(opts: {
     );
   }
 
-  // Write .mcp.json with env-var references — real creds go in settings.local.json
-  if (clientId) {
-    const prefix = toEnvPrefix(agentName);
-    const mcpUrl = apiUrl.replace('://api.', '://mcp.') + '/mcp';
-    await writeMcpConfig(
-      {
-        mcpServers: {
-          [agentName]: {
-            type: 'http',
-            url: mcpUrl,
-            headers: {
-              'X-Client-Id': `\${${prefix}_CLIENT_ID}`,
-              'X-Client-Secret': `\${${prefix}_CLIENT_SECRET}`,
-            },
-          },
-        },
-      } as McpConfig,
-      repoDir,
-    );
-  }
-
-  dispatch({ type: 'step', key: 'skills', status: 'running' });
-  await downloadSkills(repoDir, agentTypes);
-  dispatch({ type: 'step', key: 'skills', status: 'done' });
-
-  dispatch({ type: 'step', key: 'settings', status: 'running' });
-  await writeSettingsLocal({
+  const prefix = toEnvPrefix(agentName);
+  const mcpUrl = apiUrl.replace('://api.', '://mcp.') + '/mcp';
+  const adapterOpts: AgentAdapterOptions = {
     repoDir,
     agentName,
+    prefix,
+    mcpUrl,
+    clientId,
+    clientSecret,
     appSlug,
     pemPath,
     installationId,
-    clientId,
-    clientSecret,
-  });
+  };
+
+  dispatch({ type: 'step', key: 'skills', status: 'running' });
+  for (const agentType of agentTypes) {
+    const adapter = adapters[agentType];
+    await adapter.writeMcpConfig(adapterOpts);
+    await adapter.writeSkills(repoDir);
+  }
+  dispatch({ type: 'step', key: 'skills', status: 'done' });
+
+  dispatch({ type: 'step', key: 'settings', status: 'running' });
+  for (const agentType of agentTypes) {
+    const adapter = adapters[agentType];
+    await adapter.writeSettings(adapterOpts);
+  }
   dispatch({ type: 'step', key: 'settings', status: 'done' });
 
   await clearState(configDir);

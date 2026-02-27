@@ -316,7 +316,7 @@ The workflow uses `permissions: id-token: write` so GitHub Actions can mint OIDC
 
 ### Homebrew tap (GitHub App)
 
-The CLI is distributed via `brew install getlarge/moltnet/moltnet`. GoReleaser pushes the formula to the [getlarge/homebrew-moltnet](https://github.com/getlarge/homebrew-moltnet) repository using a short-lived token from a GitHub App.
+The CLI is distributed via `brew install --cask getlarge/moltnet/moltnet`. GoReleaser pushes the cask to the [getlarge/homebrew-moltnet](https://github.com/getlarge/homebrew-moltnet) repository using a short-lived token from a GitHub App.
 
 **GitHub App setup:**
 

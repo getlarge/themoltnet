@@ -19,39 +19,51 @@ const AGENTS: AgentOption[] = [
     available: true,
   },
   {
-    id: 'cursor',
-    label: 'Cursor',
-    description: 'coming soon',
-    available: false,
-  },
-  {
     id: 'codex',
     label: 'Codex',
+    description: '.codex/config.toml + .agents/skills/ + /legreffier skill',
+    available: true,
+  },
+  {
+    id: 'cursor',
+    label: 'Cursor',
     description: 'coming soon',
     available: false,
   },
 ];
 
 interface AgentSelectProps {
-  onSelect: (agent: AgentType) => void;
+  onSelect: (agents: AgentType[]) => void;
 }
 
 export function AgentSelect({ onSelect }: AgentSelectProps) {
-  const [selected, setSelected] = useState(0);
+  const [cursor, setCursor] = useState(0);
+  const [selected, setSelected] = useState<Set<AgentType>>(new Set());
 
-  useInput((_input, key) => {
+  useInput((input, key) => {
     if (key.upArrow) {
-      setSelected((i) => (i > 0 ? i - 1 : i));
+      setCursor((i) => (i > 0 ? i - 1 : i));
     } else if (key.downArrow) {
-      setSelected((i) => (i < AGENTS.length - 1 ? i + 1 : i));
-    } else if (key.return) {
-      const agent = AGENTS[selected];
+      setCursor((i) => (i < AGENTS.length - 1 ? i + 1 : i));
+    } else if (input === ' ') {
+      const agent = AGENTS[cursor];
       if (
         agent?.available &&
         SUPPORTED_AGENTS.includes(agent.id as AgentType)
       ) {
-        onSelect(agent.id as AgentType);
+        setSelected((prev) => {
+          const next = new Set(prev);
+          const id = agent.id as AgentType;
+          if (next.has(id)) {
+            next.delete(id);
+          } else {
+            next.add(id);
+          }
+          return next;
+        });
       }
+    } else if (key.return && selected.size > 0) {
+      onSelect(Array.from(selected));
     }
   });
 
@@ -65,12 +77,18 @@ export function AgentSelect({ onSelect }: AgentSelectProps) {
         paddingY={1}
       >
         <Text color={cliTheme.color.primary} bold>
-          Select your AI coding agent
+          Select your AI coding agent(s)
         </Text>
         <Text> </Text>
         {AGENTS.map((agent, i) => {
-          const isCurrent = i === selected;
-          const prefix = isCurrent ? '▸ ' : '  ';
+          const isCurrent = i === cursor;
+          const isSelected = selected.has(agent.id as AgentType);
+          const checkbox = agent.available
+            ? isSelected
+              ? '[*] '
+              : '[ ] '
+            : '    ';
+          const prefix = isCurrent ? '> ' : '  ';
           return (
             <Box key={agent.id}>
               <Text
@@ -83,7 +101,7 @@ export function AgentSelect({ onSelect }: AgentSelectProps) {
                 }
                 bold={isCurrent && agent.available}
               >
-                {prefix + agent.label}
+                {prefix + checkbox + agent.label}
               </Text>
               <Text color={cliTheme.color.muted}>
                 {'  ' + agent.description}
@@ -93,7 +111,7 @@ export function AgentSelect({ onSelect }: AgentSelectProps) {
         })}
         <Text> </Text>
         <Text color={cliTheme.color.muted}>
-          {'  ↑↓ to navigate, Enter to select'}
+          {'  \u2191\u2193 navigate, Space toggle, Enter confirm'}
         </Text>
       </Box>
     </Box>
