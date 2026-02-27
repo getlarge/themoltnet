@@ -14,8 +14,7 @@ import { adapters } from './adapters/index.js';
 import type { AgentAdapterOptions } from './adapters/types.js';
 import { toEnvPrefix } from './setup.js';
 import { AgentSelect } from './ui/AgentSelect.js';
-import type { UISummary } from './ui/types.js';
-import type { AgentType } from './ui/types.js';
+import type { AgentType, UISummary } from './ui/types.js';
 
 export interface SetupAppProps {
   name: string;
@@ -95,6 +94,7 @@ export function SetupApp({
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
         setPhase('error');
+        setTimeout(() => exit(new Error('Setup failed')), 3000);
       }
     })();
   }, [phase, agents]); // eslint-disable-line react-hooks/exhaustive-deps

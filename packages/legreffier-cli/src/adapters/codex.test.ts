@@ -75,9 +75,9 @@ describe('CodexAdapter.writeSettings', () => {
       join(tmpRepo, '.moltnet', 'my-agent', 'env'),
       'utf-8',
     );
-    expect(raw).toContain('MY_AGENT_CLIENT_ID=cid');
-    expect(raw).toContain('MY_AGENT_CLIENT_SECRET=csec');
-    expect(raw).toContain('MY_AGENT_GITHUB_APP_ID=my-app');
-    expect(raw).toContain('MY_AGENT_GITHUB_APP_INSTALLATION_ID=99999');
+    expect(raw).toContain("MY_AGENT_CLIENT_ID='cid'");
+    expect(raw).toContain("MY_AGENT_CLIENT_SECRET='csec'");
+    expect(raw).toContain("MY_AGENT_GITHUB_APP_ID='my-app'");
+    expect(raw).toContain("MY_AGENT_GITHUB_APP_INSTALLATION_ID='99999'");
   });
 });

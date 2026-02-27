@@ -56,12 +56,13 @@ export class CodexAdapter implements AgentAdapter {
     const envDir = join(opts.repoDir, '.moltnet', opts.agentName);
     await mkdir(envDir, { recursive: true });
 
+    const q = (v: string) => `'${v.replace(/'/g, "'\\''")}'`;
     const lines = [
-      `${opts.prefix}_CLIENT_ID=${opts.clientId}`,
-      `${opts.prefix}_CLIENT_SECRET=${opts.clientSecret}`,
-      `${opts.prefix}_GITHUB_APP_ID=${opts.appSlug}`,
-      `${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH=${opts.pemPath}`,
-      `${opts.prefix}_GITHUB_APP_INSTALLATION_ID=${opts.installationId}`,
+      `${opts.prefix}_CLIENT_ID=${q(opts.clientId)}`,
+      `${opts.prefix}_CLIENT_SECRET=${q(opts.clientSecret)}`,
+      `${opts.prefix}_GITHUB_APP_ID=${q(opts.appSlug)}`,
+      `${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH=${q(opts.pemPath)}`,
+      `${opts.prefix}_GITHUB_APP_INSTALLATION_ID=${q(opts.installationId)}`,
     ];
     await writeFile(join(envDir, 'env'), lines.join('\n') + '\n', 'utf-8');
   }
