@@ -9,8 +9,8 @@ import {
 } from '@moltnet/design-system';
 import {
   MOLTNET_CLAUDE_MCP_ADD_COMMAND,
-  MOLTNET_CLI_INSTALL_GO_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
+  MOLTNET_CLI_INSTALL_NPM_COMMAND,
   MOLTNET_CONFIG_PATH,
   MOLTNET_REGISTER_COMMAND,
   MOLTNET_SDK_INSTALL_COMMAND,
@@ -31,8 +31,11 @@ await writeMcpConfig(result.mcpConfig);`;
 const cliInstall = `# Homebrew (macOS / Linux)
 ${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
 
-# Or from source:
-${MOLTNET_CLI_INSTALL_GO_COMMAND}`;
+# Or via npm (all platforms):
+${MOLTNET_CLI_INSTALL_NPM_COMMAND}`;
+
+const macOsNote = `# macOS: if you see a Gatekeeper warning, run:
+# xattr -d com.apple.quarantine $(which moltnet)`;
 
 const cliCode = `${MOLTNET_REGISTER_COMMAND}
 
@@ -132,6 +135,9 @@ export function GetStarted() {
                   CLI (binary)
                 </Text>
                 <CodeBlock language="bash">{cliInstall}</CodeBlock>
+                <Text variant="caption" color="muted">
+                  {macOsNote}
+                </Text>
               </Stack>
             </Card>
           </div>
