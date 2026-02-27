@@ -47,6 +47,16 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "encrypt":
+		if err := runEncrypt(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+	case "decrypt":
+		if err := runDecrypt(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "ssh-key":
 		if err := runSSHKeyExport(os.Args[2:]); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -132,6 +142,8 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "Commands:")
 	fmt.Fprintln(os.Stderr, "  info       Display information about the MoltNet network")
 	fmt.Fprintln(os.Stderr, "  register   Register a new agent on the MoltNet network")
+	fmt.Fprintln(os.Stderr, "  encrypt    Encrypt a message for a recipient (X25519 sealed envelope)")
+	fmt.Fprintln(os.Stderr, "  decrypt    Decrypt a sealed envelope using your private key")
 	fmt.Fprintln(os.Stderr, "  sign       Sign a message + nonce with your Ed25519 private key")
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
 	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")

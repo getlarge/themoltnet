@@ -1,0 +1,112 @@
+{
+  "description": "Cross-language X25519 key derivation and sealed envelope encryption vectors",
+  "x25519_derivation": {
+    "description": "Ed25519 seed/pubkey → X25519 private/public key derivation via Edwards→Montgomery birational map",
+    "vectors": [
+      {
+        "comment": "Vector 1 from crypto-vectors.json",
+        "ed25519_seed_base64": "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
+        "ed25519_public_key": "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+        "x25519_private_key_base64": "MHyDhk8oM8tCei7xwAoBPP3/J2jZgMCjpSDwBpBN6U8=",
+        "x25519_public_key_base64": "2F4H7CKwrYgVN8L0TWYtGhQ8+DDFespDBdhcepD2ti4="
+      },
+      {
+        "comment": "Vector 2 from crypto-vectors.json",
+        "ed25519_seed_base64": "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=",
+        "ed25519_public_key": "ed25519:PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=",
+        "x25519_private_key_base64": "aL2e11iC1SgVqXWFyvR5Cn9sazt/ghxeJZoksC5QLlE=",
+        "x25519_public_key_base64": "JccExZS4ivwAp2tp0e0rmE1+IlUPPtCALQT7zQfTjUc="
+      }
+    ]
+  },
+  "encryption": {
+    "description": "Sealed envelope encryption: ephemeral X25519 ECDH + HKDF-SHA256 + XChaCha20-Poly1305. Uses deterministic ephemeral keys and nonces for reproducibility.",
+    "hkdf_info": "moltnet:seal:v1",
+    "vectors": [
+      {
+        "comment": "Simple ASCII message",
+        "plaintext": "hello bob",
+        "recipient_ed25519_public_key": "ed25519:PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=",
+        "recipient_x25519_public_key_base64": "JccExZS4ivwAp2tp0e0rmE1+IlUPPtCALQT7zQfTjUc=",
+        "ephemeral_seed_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ephemeral_public_key_base64": "FMqeTTh7zPNXRuBAfaqsxrKKT4RF71pRWIlNuYPiQHA=",
+        "nonce_base64": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB",
+        "shared_secret_hex": "c29cd923c439b4d3fbabe1d75aff21a63ca8655f13c5b28efc29343d499f1464",
+        "derived_key_hex": "f0d4aedfcf3677c09f5cfda445d2c50cc73191212f37333bc86ae08dc8674e70",
+        "ciphertext_base64": "iT8bY45Lpqq/0PFf1MkrZ+6j/Bgb0RLrUQ==",
+        "sealed_envelope": {
+          "v": 1,
+          "ephemeral_public_key": "FMqeTTh7zPNXRuBAfaqsxrKKT4RF71pRWIlNuYPiQHA=",
+          "nonce": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB",
+          "ciphertext": "iT8bY45Lpqq/0PFf1MkrZ+6j/Bgb0RLrUQ==",
+          "algorithm": "x25519-xchachapoly"
+        },
+        "decryptor_ed25519_seed_base64": "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=",
+        "decryptor_x25519_private_key_base64": "aL2e11iC1SgVqXWFyvR5Cn9sazt/ghxeJZoksC5QLlE="
+      },
+      {
+        "comment": "Empty string",
+        "plaintext": "",
+        "recipient_ed25519_public_key": "ed25519:PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=",
+        "recipient_x25519_public_key_base64": "JccExZS4ivwAp2tp0e0rmE1+IlUPPtCALQT7zQfTjUc=",
+        "ephemeral_seed_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "ephemeral_public_key_base64": "awthbXGOU2kSNtO+PObUT50og2Qm2BMF0TH0iCBvjSs=",
+        "nonce_base64": "AgICAgICAgICAgICAgICAgICAgICAgIC",
+        "shared_secret_hex": "e98f7383361b7141f3b4a8a6bc171797d7acea9b3940045a1e76e4d6075d3d18",
+        "derived_key_hex": "c73595972a531f7deb1ba527eb857b3652bc7c7dd1b5f510707626a1e715e293",
+        "ciphertext_base64": "ReimnGzFqAWu/G9fIAwrjg==",
+        "sealed_envelope": {
+          "v": 1,
+          "ephemeral_public_key": "awthbXGOU2kSNtO+PObUT50og2Qm2BMF0TH0iCBvjSs=",
+          "nonce": "AgICAgICAgICAgICAgICAgICAgICAgIC",
+          "ciphertext": "ReimnGzFqAWu/G9fIAwrjg==",
+          "algorithm": "x25519-xchachapoly"
+        },
+        "decryptor_ed25519_seed_base64": "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=",
+        "decryptor_x25519_private_key_base64": "aL2e11iC1SgVqXWFyvR5Cn9sazt/ghxeJZoksC5QLlE="
+      },
+      {
+        "comment": "Unicode: emoji and CJK",
+        "plaintext": "こんにちは 🔑",
+        "recipient_ed25519_public_key": "ed25519:PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=",
+        "recipient_x25519_public_key_base64": "JccExZS4ivwAp2tp0e0rmE1+IlUPPtCALQT7zQfTjUc=",
+        "ephemeral_seed_hex": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "ephemeral_public_key_base64": "6JgMTqXr+PtsKBCYt1zdMoYpIqY4d4JRl5ttMi7X4C4=",
+        "nonce_base64": "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD",
+        "shared_secret_hex": "53c6476f0887ae8a73ea914e14a25f60eaae857355175be1a20b6a16754a5333",
+        "derived_key_hex": "80e57ecb1cd5d2f0343eb37095f75c3026cb47930f11ac04af6aac7c5784616f",
+        "ciphertext_base64": "b1tYqL/vjlbQ6+FHSYL2HB55v2tXXLxt+H7nG8CJ6o+O5B8z",
+        "sealed_envelope": {
+          "v": 1,
+          "ephemeral_public_key": "6JgMTqXr+PtsKBCYt1zdMoYpIqY4d4JRl5ttMi7X4C4=",
+          "nonce": "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD",
+          "ciphertext": "b1tYqL/vjlbQ6+FHSYL2HB55v2tXXLxt+H7nG8CJ6o+O5B8z",
+          "algorithm": "x25519-xchachapoly"
+        },
+        "decryptor_ed25519_seed_base64": "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=",
+        "decryptor_x25519_private_key_base64": "aL2e11iC1SgVqXWFyvR5Cn9sazt/ghxeJZoksC5QLlE="
+      },
+      {
+        "comment": "Multiline with null byte",
+        "plaintext": "line1\nline2\u0000line3",
+        "recipient_ed25519_public_key": "ed25519:PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=",
+        "recipient_x25519_public_key_base64": "JccExZS4ivwAp2tp0e0rmE1+IlUPPtCALQT7zQfTjUc=",
+        "ephemeral_seed_hex": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "ephemeral_public_key_base64": "slmehgu+Uy5JVcyk29INO39oBdgbtQXdvmknahcMTXQ=",
+        "nonce_base64": "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+        "shared_secret_hex": "801fa043252133e827463ad94bb7754e56c4cb392e2715dbefdc9805056e287e",
+        "derived_key_hex": "9bba5d1b17d844de03ab40d3892cdb0a610b1c40d5063e9b2ab30b8f82d529b3",
+        "ciphertext_base64": "yxhXzzXW+7v+UXKXtsx6XeI4qNPZXdvwvpjb992yd5zn",
+        "sealed_envelope": {
+          "v": 1,
+          "ephemeral_public_key": "slmehgu+Uy5JVcyk29INO39oBdgbtQXdvmknahcMTXQ=",
+          "nonce": "BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+          "ciphertext": "yxhXzzXW+7v+UXKXtsx6XeI4qNPZXdvwvpjb992yd5zn",
+          "algorithm": "x25519-xchachapoly"
+        },
+        "decryptor_ed25519_seed_base64": "TM0Imyj/ltqdtsNG7BFOD1uKMZ81q6Yk2oz27U+4pvs=",
+        "decryptor_x25519_private_key_base64": "aL2e11iC1SgVqXWFyvR5Cn9sazt/ghxeJZoksC5QLlE="
+      }
+    ]
+  }
+}
