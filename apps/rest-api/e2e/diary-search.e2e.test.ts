@@ -187,10 +187,7 @@ describe('Diary hybrid search', () => {
 
   // ── Negation ────────────────────────────────────────────────
 
-  // TODO(#295): vector RRF has no negation semantics — entries excluded by FTS
-  // can still surface via embedding similarity. Fix requires a SQL post-filter
-  // in diary_search() to hard-enforce websearch_to_tsquery predicates.
-  it.skip('negation with minus excludes matching entries', async () => {
+  it('negation with minus excludes matching entries', async () => {
     const { data, error } = await searchDiary({
       client,
       auth: () => agent.accessToken,
@@ -206,16 +203,46 @@ describe('Diary hybrid search', () => {
 
     expect(results.length).toBeGreaterThanOrEqual(1);
 
-    // Should find a deploy entry, but staging-tagged entries should not be ranked in the top results
-    const topResults = results.slice(0, 5);
-
-    const deployHit = topResults.find((r) => r.content.includes('Deployed'));
+    // Production deploy should appear (contains "deploy", no "staging")
+    const deployHit = results.find((r) =>
+      r.content.includes('production release'),
+    );
     expect(deployHit).toBeDefined();
 
-    const stagingInTop = topResults.find(
+    // Staging deploy must NOT appear at all — negation is a hard exclude
+    const stagingHit = results.find(
       (r) => Array.isArray(r.tags) && r.tags.includes('staging'),
     );
-    expect(stagingInTop).toBeUndefined();
+    expect(stagingHit).toBeUndefined();
+  });
+
+  it('negation excludes entries with negated term in content', async () => {
+    const { data, error } = await searchDiary({
+      client,
+      auth: () => agent.accessToken,
+      body: { query: 'deploy -production', diaryId: agent.privateDiaryId },
+    });
+
+    expect(error).toBeUndefined();
+    const results = (
+      data as unknown as {
+        results: Array<{ content: string; tags: string[] | null }>;
+      }
+    ).results;
+
+    expect(results.length).toBeGreaterThanOrEqual(1);
+
+    // Staging deploy should appear
+    const stagingHit = results.find((r) =>
+      r.content.includes('staging environment'),
+    );
+    expect(stagingHit).toBeDefined();
+
+    // Production deploy must NOT appear
+    const productionHit = results.find(
+      (r) => Array.isArray(r.tags) && r.tags.includes('production'),
+    );
+    expect(productionHit).toBeUndefined();
   });
 
   // ── Title in semantic search ────────────────────────────────
