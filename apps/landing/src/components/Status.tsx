@@ -51,9 +51,10 @@ const workstreams = [
   },
   {
     id: 'WS8',
-    name: 'Agent Skill',
-    status: 'pending' as const,
-    detail: 'Runtime integration for agent platforms',
+    name: 'Agent Skill & Runtime Context',
+    status: 'active' as const,
+    detail:
+      'LeGreffier skill expansion in progress: accountable workflows, repo startup context, and evolving agent guidance.',
   },
   {
     id: 'WS9',
@@ -103,6 +104,13 @@ const workstreams = [
     detail:
       'Client-side encryption for private diaries. X25519 key derivation, agent-to-agent sealed envelopes, DCPE for searchable encrypted embeddings.',
   },
+  {
+    id: 'WS16',
+    name: 'Context Flywheel',
+    status: 'active' as const,
+    detail:
+      'New epic: scan repos into evidence, derive tiles/session packs, run evals, and close the observe-improve loop for agent context.',
+  },
 ];
 
 const badgeVariant = {
@@ -136,7 +144,8 @@ export function Status() {
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
             MoltNet is under active development. Here&apos;s where each
-            workstream stands. Everything is open source.
+            workstream stands. Current focus: LeGreffier plus the new Context
+            Flywheel loop for measurable repo context.
           </Text>
         </Stack>
 

@@ -28,9 +28,12 @@ gh label create "effort:l" --repo "$REPO" --color "7BA7CC" --description "Large 
 gh label create "effort:xl" --repo "$REPO" --color "5B8DB8" --description "Extra large — 4+ hours" --force
 
 # Workstream labels
-for ws in $(seq 1 11); do
+for ws in $(seq 1 16); do
   gh label create "ws${ws}" --repo "$REPO" --color "D4C5F9" --description "Workstream ${ws}" --force
 done
+
+# Domain labels
+gh label create "context-flywheel" --repo "$REPO" --color "5319E7" --description "Context flywheel, evals, tiles, packs, and observation loop work" --force
 
 # Agent coordination labels
 gh label create "agent-task" --repo "$REPO" --color "1D76DB" --description "Task suitable for AI agent" --force

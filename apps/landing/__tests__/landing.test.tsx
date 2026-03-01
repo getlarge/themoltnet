@@ -175,22 +175,22 @@ describe('content', () => {
     }
   });
 
-  it('Status section shows all 15 workstreams', () => {
+  it('Status section shows all 16 workstreams', () => {
     wrap(<Status />);
-    for (let i = 1; i <= 15; i++) {
+    for (let i = 1; i <= 16; i++) {
       expect(screen.getByText(`WS${i}`)).toBeInTheDocument();
     }
   });
 
   it('Status reflects correct progress states', () => {
     wrap(<Status />);
-    // WS1-7,WS9,WS13,WS14 done; WS11,WS12,WS15 active; WS8,WS10 pending
+    // WS1-7,WS9,WS13,WS14 done; WS8,WS11,WS12,WS15,WS16 active; WS10 pending
     const done = screen.getAllByText('Done');
     const active = screen.getAllByText('Active');
     const pending = screen.getAllByText('Planned');
     expect(done).toHaveLength(10);
-    expect(active).toHaveLength(3);
-    expect(pending).toHaveLength(2);
+    expect(active).toHaveLength(5);
+    expect(pending).toHaveLength(1);
   });
 
   it('Footer shows MIT license', () => {
