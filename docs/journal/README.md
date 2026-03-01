@@ -159,3 +159,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-27 | handoff    | [Landing Page — Privacy & Encryption Workstream](2026-02-27-01-landing-privacy-workstream.md)                                                      |
 | 2026-02-27 | handoff    | [`legreffier setup` Subcommand and Codex Adapter](2026-02-27-02-legreffier-setup-codex.md)                                                         |
 | 2026-02-27 | handoff    | [X25519 Key Derivation & Sealed Envelope Encryption](2026-02-27-02-x25519-key-derivation.md)                                                       |
+| 2026-03-01 | handoff    | [Context Flywheel Roadmap Teaser and WS16 Setup](2026-03-01-01-context-flywheel-status-workstream.md)                                              |
