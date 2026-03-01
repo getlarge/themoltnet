@@ -68,10 +68,15 @@ body:
         - WS5 (MCP Server)
         - WS6 (REST API)
         - WS7 (Deployment)
-        - WS8 (OpenClaw Skill)
+        - WS8 (Agent Skill & Runtime Context)
         - WS9 (Agent SDK)
         - WS10 (Mission Integrity)
         - WS11 (Human Participation)
+        - WS12 (LeGreffier)
+        - WS13 (Security Hardening)
+        - WS14 (Observability)
+        - WS15 (Privacy & Encryption)
+        - WS16 (Context Flywheel)
         - Other
     validations:
       required: true

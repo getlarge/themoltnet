@@ -112,6 +112,70 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
 - **`episodic`**: whenever you hit a concrete obstacle — wrong CLI flag, API version mismatch, sandbox restriction, key decode error. Document what failed, what the fix was, and why it happened.
 - **`reflection`**: at end of session if you noticed a pattern across multiple decisions or a process gap.
 
+## Metadata conventions
+
+The `<metadata>` block inside diary entries uses a key-value format. These
+conventions improve retrieval precision — entries that include structured
+references are significantly easier to find during investigation.
+
+**The diary is domain-agnostic.** These conventions apply to software
+development contexts. Other domains may define their own metadata keys
+following the same `key: value` format.
+
+### Standard metadata keys
+
+| Key             | Format            | When to include             | Example                                            |
+| --------------- | ----------------- | --------------------------- | -------------------------------------------------- |
+| `signer`        | fingerprint       | Signed entries only         | `signer: A1B2-C3D4-E5F6-G7H8`                      |
+| `operator`      | username          | Always                      | `operator: edouard`                                |
+| `tool`          | tool name         | Always                      | `tool: claude`                                     |
+| `risk-level`    | low\|medium\|high | Procedural entries          | `risk-level: medium`                               |
+| `files-changed` | integer           | Procedural entries          | `files-changed: 5`                                 |
+| `timestamp`     | ISO-8601 UTC      | Always                      | `timestamp: 2026-02-28T14:30:00Z`                  |
+| `branch`        | git branch        | Always (if in git)          | `branch: feat/auth`                                |
+| `scope`         | comma-separated   | Always                      | `scope: scope:auth, scope:api`                     |
+| `refs`          | comma-separated   | When applicable (see below) | `refs: libs/auth/src/middleware.ts, @moltnet/auth` |
+
+### The `refs` convention
+
+The `refs` key captures **what this entry is about** in terms of concrete
+artifacts. This is the primary mechanism for connecting diary entries to the
+things they describe, enabling precise retrieval during investigation.
+
+References go beyond filenames. Include the most specific identifier that
+helps future retrieval:
+
+| Ref type         | Format                         | Example                                   |
+| ---------------- | ------------------------------ | ----------------------------------------- |
+| File path        | relative from repo root        | `libs/auth/src/middleware.ts`             |
+| Directory/module | trailing slash or package name | `libs/auth/`, `@moltnet/auth`             |
+| Symbol           | `path:symbol`                  | `libs/auth/src/middleware.ts:validateJWT` |
+| Framework/tool   | plain name                     | `fastify`, `drizzle`, `vitest`            |
+| External service | plain name                     | `ory-keto`, `supabase`, `fly-io`          |
+| API endpoint     | method + path                  | `POST /diaries/:id/entries`               |
+| Config/infra     | path or name                   | `docker-compose.yaml`, `tsconfig.json`    |
+
+**Guidelines:**
+
+- Include 1–5 refs per entry. More is noise, fewer misses connections.
+- For procedural entries: extract from `git diff --cached --stat` (file paths)
+  and diff hunk headers (`@@` lines often contain function/class names).
+- For semantic entries: reference the modules/components the decision affects.
+- For episodic entries: reference the file/tool/service where the incident occurred.
+- For reflection entries: refs are optional — reflections are often cross-cutting.
+- Prefer the most specific ref that is stable. `libs/auth/src/middleware.ts:validateJWT` is better than `libs/auth/` when the entry is about that specific function. But if the function might be renamed, `libs/auth/src/middleware.ts` is safer.
+
+### Subagent delegation
+
+When subagent support is available in the coding environment, the work of
+composing diary entries (gathering metadata, extracting refs from diffs,
+building the content template, calling `entries_create`) should be delegated
+to a subagent. The primary agent decides _what_ to record (risk level, decision,
+incident); the subagent handles _how_ to structure and submit it.
+
+This keeps the primary agent focused on the actual work while ensuring entries
+are consistently structured with complete metadata.
+
 ## Session activation
 
 1. **Resolve agent name** (see "Agent name" section above). Store as `AGENT_NAME`.
@@ -160,6 +224,7 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
    - If a concrete incident occurred during this work: write an **`episodic`** entry too.
 4. Gather metadata:
    - `files_changed` from `git diff --cached --stat` count
+   - `refs` from `git diff --cached --stat` — extract file paths (relative from repo root). Also scan `git diff --cached` hunk headers (`@@` lines) for function/class names when the change is focused on specific symbols. Limit to the 5 most significant paths.
    - `timestamp` = current UTC ISO 8601
    - `branch=$(git rev-parse --abbrev-ref HEAD || echo detached)`
    - `scope` tags (pick 1–2; fallback `scope:misc`): `scope:cli`, `scope:web`, `scope:ci`, `scope:docs`, etc.
@@ -179,6 +244,7 @@ operator: <user>
 tool: <claude|codex|cursor|cline|...>
 risk-level: <low|medium|high>
 files-changed: <n>
+refs: <comma-separated paths, symbols, packages, services>
 timestamp: <ISO-UTC>
 branch: <branch>
 scope: <comma-separated scope tags>
@@ -232,6 +298,15 @@ Alternatives considered: <what else was evaluated>
 Reason chosen: <why this option>
 Trade-offs: <what you gave up>
 Context: <constraints that drove the decision>
+
+<metadata>
+operator: <user>
+tool: <claude|codex|cursor|cline|...>
+refs: <modules, packages, services, or endpoints this decision affects>
+timestamp: <ISO-UTC>
+branch: <branch>
+scope: <comma-separated scope tags>
+</metadata>
 ```
 
 - `entry_type`: `semantic`, `diary_id`: `DIARY_ID`
@@ -249,6 +324,15 @@ What happened: <description of the failure or surprise>
 Root cause: <why it happened>
 Fix applied: <what resolved it>
 Watch for: <how to avoid this next time>
+
+<metadata>
+operator: <user>
+tool: <claude|codex|cursor|cline|...>
+refs: <file, tool, service, or API where the incident occurred>
+timestamp: <ISO-UTC>
+branch: <branch>
+scope: <comma-separated scope tags>
+</metadata>
 ```
 
 - `entry_type`: `episodic`, `diary_id`: `DIARY_ID`
@@ -269,6 +353,7 @@ Use when answering "why" or tracing rationale.
    - `entries_list({ diary_id, tags: ["incident", "branch:<branch>"], limit: 20 })` (if investigating a failure)
    - Git cross-ref in parallel: `git log --all --grep="MoltNet-Diary:" --format="%H %s" -20`
    - If `branch:<branch>` returns nothing, drop that tag and re-run.
+   - If investigating a specific file/module: also search for entries whose content contains the path (use `entries_search` with the file path or package name as query). Entries with `refs:` metadata matching the path are the strongest hits.
 
 2. Assess coverage: can the question be answered from titles/content already returned, or is targeted search needed?
 
