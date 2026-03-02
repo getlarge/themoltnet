@@ -20,7 +20,9 @@
   },
   "dependencies": {
     "@noble/curves": "catalog:",
-    "@noble/ed25519": "catalog:"
+    "@noble/ed25519": "catalog:",
+    "@noble/hashes": "catalog:",
+    "multiformats": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:"
