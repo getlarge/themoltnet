@@ -162,4 +162,6 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-28 | handoff    | [Diary Search Negation Fix & E5-base-v2 Analysis](2026-02-28-01-diary-search-negation-fix.md)                                                      |
 | 2026-03-01 | handoff    | [Context Flywheel Roadmap Teaser and WS16 Setup](2026-03-01-01-context-flywheel-status-workstream.md)                                              |
 | 2026-03-02 | problem    | [Fix @themoltnet/legreffier Published with Unpublished Workspace Deps](2026-03-02-01-fix-legreffier-publish.md)                                    |
+| 2026-03-02 | decision   | [LeGreffier Scan Skill — Codebase Evidence Generation](2026-03-02-01-legreffier-scan-skill.md)                                                     |
+| 2026-03-02 | progress   | [Content-Signed Immutable Diary Entries](2026-03-02-02-content-signed-immutable-entries.md)                                                        |
 | 2026-03-03 | handoff    | [Fix Release Workflow Resilient to Draft Release Failures](2026-03-03-01-fix-release-workflow-draft-resilience.md)                                  |
