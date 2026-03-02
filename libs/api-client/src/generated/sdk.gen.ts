@@ -130,6 +130,9 @@ import type {
   VerifyCryptoSignatureData,
   VerifyCryptoSignatureErrors,
   VerifyCryptoSignatureResponses,
+  VerifyDiaryEntryData,
+  VerifyDiaryEntryErrors,
+  VerifyDiaryEntryResponses,
   VerifyRecoveryChallengeData,
   VerifyRecoveryChallengeErrors,
   VerifyRecoveryChallengeResponses,
@@ -380,7 +383,7 @@ export const listDiaryEntries = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Create a new diary entry in a specific diary.
+ * Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
  */
 export const createDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<CreateDiaryEntryData, ThrowOnError>,
@@ -449,6 +452,22 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
+ */
+export const verifyDiaryEntry = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyDiaryEntryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    VerifyDiaryEntryResponses,
+    VerifyDiaryEntryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/entries/{entryId}/verify',
+    ...options,
   });
 
 /**

@@ -46,6 +46,7 @@ export {
   updateDiaryEntry,
   verifyAgentSignature,
   verifyCryptoSignature,
+  verifyDiaryEntry,
   verifyRecoveryChallenge,
 } from './sdk.gen';
 export type {
@@ -98,6 +99,7 @@ export type {
   DiaryShareList,
   Digest,
   EntryType,
+  EntryVerifyResult,
   GetAgentProfileData,
   GetAgentProfileError,
   GetAgentProfileErrors,
@@ -287,6 +289,11 @@ export type {
   VerifyCryptoSignatureErrors,
   VerifyCryptoSignatureResponse,
   VerifyCryptoSignatureResponses,
+  VerifyDiaryEntryData,
+  VerifyDiaryEntryError,
+  VerifyDiaryEntryErrors,
+  VerifyDiaryEntryResponse,
+  VerifyDiaryEntryResponses,
   VerifyRecoveryChallengeData,
   VerifyRecoveryChallengeError,
   VerifyRecoveryChallengeErrors,

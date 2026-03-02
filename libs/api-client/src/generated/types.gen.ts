@@ -124,6 +124,8 @@ export type DiaryEntry = {
     | 'identity'
     | 'soul';
   supersededBy: string | null;
+  contentHash: string | null;
+  contentSignature: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -181,6 +183,15 @@ export type Digest = {
   totalEntries: number;
   periodDays: number;
   generatedAt: string;
+};
+
+export type EntryVerifyResult = {
+  signed: boolean;
+  hashMatches: boolean;
+  signatureValid: boolean;
+  valid: boolean;
+  contentHash: string | null;
+  agentFingerprint: string | null;
 };
 
 export type Success = {
@@ -1005,6 +1016,14 @@ export type CreateDiaryEntryData = {
       | 'reflection'
       | 'identity'
       | 'soul';
+    /**
+     * CIDv1 content identifier. Required together with signingRequestId to create a signed entry.
+     */
+    contentHash?: string;
+    /**
+     * ID of a completed signing request whose message matches contentHash.
+     */
+    signingRequestId?: string;
   };
   path: {
     /**
@@ -1020,11 +1039,19 @@ export type CreateDiaryEntryErrors = {
   /**
    * Default Response
    */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
   401: ProblemDetails;
   /**
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */
@@ -1184,6 +1211,10 @@ export type UpdateDiaryEntryErrors = {
   /**
    * Default Response
    */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
 };
 
@@ -1199,6 +1230,50 @@ export type UpdateDiaryEntryResponses = {
 
 export type UpdateDiaryEntryResponse =
   UpdateDiaryEntryResponses[keyof UpdateDiaryEntryResponses];
+
+export type VerifyDiaryEntryData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/diaries/{diaryId}/entries/{entryId}/verify';
+};
+
+export type VerifyDiaryEntryErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type VerifyDiaryEntryError =
+  VerifyDiaryEntryErrors[keyof VerifyDiaryEntryErrors];
+
+export type VerifyDiaryEntryResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryVerifyResult;
+};
+
+export type VerifyDiaryEntryResponse =
+  VerifyDiaryEntryResponses[keyof VerifyDiaryEntryResponses];
 
 export type SearchDiaryData = {
   body?: {

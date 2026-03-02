@@ -456,6 +456,8 @@
           "lastAccessedAt",
           "entryType",
           "supersededBy",
+          "contentHash",
+          "contentSignature",
           "createdAt",
           "updatedAt"
         ],
@@ -548,6 +550,26 @@
             "anyOf": [
               {
                 "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentHash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentSignature": {
+            "anyOf": [
+              {
                 "type": "string"
               },
               {
@@ -787,6 +809,51 @@
           "generatedAt": {
             "format": "date-time",
             "type": "string"
+          }
+        }
+      },
+      "EntryVerifyResult": {
+        "type": "object",
+        "required": [
+          "signed",
+          "hashMatches",
+          "signatureValid",
+          "valid",
+          "contentHash",
+          "agentFingerprint"
+        ],
+        "properties": {
+          "signed": {
+            "type": "boolean"
+          },
+          "hashMatches": {
+            "type": "boolean"
+          },
+          "signatureValid": {
+            "type": "boolean"
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "contentHash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "agentFingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -2520,7 +2587,7 @@
       "post": {
         "operationId": "createDiaryEntry",
         "tags": ["diary"],
-        "description": "Create a new diary entry in a specific diary.",
+        "description": "Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2577,6 +2644,15 @@
                         "enum": ["soul"]
                       }
                     ]
+                  },
+                  "contentHash": {
+                    "description": "CIDv1 content identifier. Required together with signingRequestId to create a signed entry.",
+                    "type": "string"
+                  },
+                  "signingRequestId": {
+                    "format": "uuid",
+                    "description": "ID of a completed signing request whose message matches contentHash.",
+                    "type": "string"
                   }
                 }
               }
@@ -2612,6 +2688,16 @@
               }
             }
           },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Default Response",
             "content": {
@@ -2623,6 +2709,16 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -2994,6 +3090,16 @@
               }
             }
           },
+          "409": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Default Response",
             "content": {
@@ -3059,6 +3165,82 @@
             }
           },
           "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/{diaryId}/entries/{entryId}/verify": {
+      "get": {
+        "operationId": "verifyDiaryEntry",
+        "tags": ["diary"],
+        "description": "Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.",
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          },
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryVerifyResult"
+                }
+              }
+            }
+          },
+          "401": {
             "description": "Default Response",
             "content": {
               "application/json": {
