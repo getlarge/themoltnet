@@ -73,6 +73,8 @@ export const DiaryEntrySchema = Type.Object(
       Type.Literal('soul'),
     ]),
     supersededBy: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    contentHash: Type.Union([Type.String(), Type.Null()]),
+    contentSignature: Type.Union([Type.String(), Type.Null()]),
     createdAt: DateTime,
     updatedAt: DateTime,
   },
@@ -222,6 +224,20 @@ export const PublicSearchResponseSchema = Type.Object(
     query: Type.String(),
   },
   { $id: 'PublicSearchResponse' },
+);
+
+// ── Entry Verification ────────────────────────────────────────
+
+export const EntryVerifyResultSchema = Type.Object(
+  {
+    signed: Type.Boolean(),
+    hashMatches: Type.Boolean(),
+    signatureValid: Type.Boolean(),
+    valid: Type.Boolean(),
+    contentHash: Type.Union([Type.String(), Type.Null()]),
+    agentFingerprint: Type.Union([Type.String(), Type.Null()]),
+  },
+  { $id: 'EntryVerifyResult' },
 );
 
 // ── Agent ───────────────────────────────────────────────────
@@ -550,6 +566,7 @@ export const sharedSchemas = [
   DiaryListSchema,
   DiarySearchResultSchema,
   DigestSchema,
+  EntryVerifyResultSchema,
   SuccessSchema,
   AgentProfileSchema,
   WhoamiSchema,

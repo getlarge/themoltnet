@@ -4,6 +4,7 @@
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
+import { computeContentCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   DiaryEntryParamsSchema,
@@ -27,6 +28,7 @@ import {
   DiaryShareListSchema,
   DiaryShareSchema,
   DigestSchema,
+  EntryVerifyResultSchema,
   SuccessSchema,
 } from '../schemas.js';
 
@@ -41,6 +43,7 @@ function translateServiceError(err: DiaryServiceError): never {
     case 'wrong_status':
       throw createProblem('validation-failed', err.message);
     case 'already_shared':
+    case 'immutable':
       throw createProblem('conflict', err.message);
     default:
       throw createProblem('internal', err.message);
@@ -460,7 +463,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'createDiaryEntry',
         tags: ['diary'],
-        description: 'Create a new diary entry in a specific diary.',
+        description:
+          'Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.',
         security: [{ bearerAuth: [] }],
         params: NestedDiaryParamsSchema,
         body: Type.Object({
@@ -480,19 +484,107 @@ export async function diaryRoutes(fastify: FastifyInstance) {
               Type.Literal('soul'),
             ]),
           ),
+          contentHash: Type.Optional(
+            Type.String({
+              description:
+                'CIDv1 content identifier. Required together with signingRequestId to create a signed entry.',
+            }),
+          ),
+          signingRequestId: Type.Optional(
+            Type.String({
+              format: 'uuid',
+              description:
+                'ID of a completed signing request whose message matches contentHash.',
+            }),
+          ),
         }),
         response: {
           201: Type.Ref(DiaryEntrySchema),
+          400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
     async (request, reply) => {
       const { diaryId } = request.params;
-      const { content, title, tags, importance, entryType } = request.body;
+      const {
+        content,
+        title,
+        tags,
+        importance,
+        entryType,
+        contentHash,
+        signingRequestId,
+      } = request.body;
+      const agentId = request.authContext!.identityId;
+
       try {
+        // Validate signing fields: both or neither
+        if (
+          (contentHash && !signingRequestId) ||
+          (!contentHash && signingRequestId)
+        ) {
+          throw createProblem(
+            'validation-failed',
+            'Both contentHash and signingRequestId are required together for signed entries.',
+          );
+        }
+
+        let contentSignature: string | undefined;
+
+        if (contentHash && signingRequestId) {
+          // 1. Recompute CID from entry fields and verify match
+          const recomputedCid = computeContentCid(
+            entryType ?? 'semantic',
+            title ?? null,
+            content,
+            tags ?? null,
+          );
+          if (recomputedCid !== contentHash) {
+            throw createProblem(
+              'validation-failed',
+              `Content hash mismatch: provided ${contentHash}, computed ${recomputedCid}`,
+            );
+          }
+
+          // 2. Look up signing request and verify it
+          const signingRequest =
+            await fastify.signingRequestRepository.findById(signingRequestId);
+
+          if (!signingRequest) {
+            throw createProblem('not-found', 'Signing request not found');
+          }
+          if (signingRequest.agentId !== agentId) {
+            throw createProblem(
+              'forbidden',
+              'Signing request belongs to a different agent',
+            );
+          }
+          if (signingRequest.status !== 'completed') {
+            throw createProblem(
+              'validation-failed',
+              `Signing request is ${signingRequest.status}, expected completed`,
+            );
+          }
+          if (!signingRequest.valid) {
+            throw createProblem(
+              'validation-failed',
+              'Signing request signature was not verified as valid',
+            );
+          }
+          if (signingRequest.message !== contentHash) {
+            throw createProblem(
+              'validation-failed',
+              'Signing request message does not match content hash',
+            );
+          }
+
+          contentSignature = signingRequest.signature!;
+        }
+
         const entry = await fastify.diaryService.createEntry(
           {
             diaryId,
@@ -501,8 +593,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
             tags,
             importance,
             entryType,
+            contentHash,
+            contentSignature,
           },
-          request.authContext!.identityId,
+          agentId,
         );
         return await reply.status(201).send(entry);
       } catch (err) {
@@ -625,6 +719,100 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
   );
 
+  // ── Verify Entry ──────────────────────────────────────────
+  server.get(
+    '/diaries/:diaryId/entries/:entryId/verify',
+    {
+      schema: {
+        operationId: 'verifyDiaryEntry',
+        tags: ['diary'],
+        description:
+          'Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryEntryParamsSchema,
+        response: {
+          200: Type.Ref(EntryVerifyResultSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { diaryId, entryId } = request.params;
+
+      try {
+        // Fetch entry (also checks access)
+        const entry = await fastify.diaryService.getEntryById(
+          entryId,
+          diaryId,
+          request.authContext!.identityId,
+        );
+
+        if (!entry.contentSignature || !entry.contentHash) {
+          return {
+            signed: false,
+            hashMatches: false,
+            signatureValid: false,
+            valid: false,
+            contentHash: null,
+            agentFingerprint: null,
+          };
+        }
+
+        // Recompute CID from stored fields
+        const recomputedCid = computeContentCid(
+          entry.entryType,
+          entry.title,
+          entry.content,
+          entry.tags,
+        );
+        const hashMatches = recomputedCid === entry.contentHash;
+
+        // Get diary owner's public key
+        const diary = await fastify.diaryService.findDiary(
+          diaryId,
+          request.authContext!.identityId,
+        );
+        const agentKey = await fastify.agentRepository.findByIdentityId(
+          diary.ownerId,
+        );
+
+        let signatureValid = false;
+        let agentFingerprint: string | null = null;
+
+        if (agentKey) {
+          agentFingerprint = agentKey.fingerprint;
+          // Look up the signing request by signature to get the nonce
+          const signingRequest =
+            await fastify.signingRequestRepository.findBySignature(
+              entry.contentSignature,
+            );
+          if (signingRequest) {
+            signatureValid = await fastify.cryptoService.verifyWithNonce(
+              entry.contentHash,
+              signingRequest.nonce,
+              entry.contentSignature,
+              agentKey.publicKey,
+            );
+          }
+        }
+
+        return {
+          signed: true,
+          hashMatches,
+          signatureValid,
+          valid: hashMatches && signatureValid,
+          contentHash: entry.contentHash,
+          agentFingerprint,
+        };
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
+    },
+  );
+
   // ── Update Entry ───────────────────────────────────────────
   server.patch(
     '/diaries/:diaryId/entries/:entryId',
@@ -661,6 +849,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
       },
