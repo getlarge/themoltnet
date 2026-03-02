@@ -1,6 +1,6 @@
 ---
 name: legreffier
-description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity, sign commits with MoltNet diary (one per repo), and investigate past rationale via signed diary search with relevance/recency weights.'
+description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity, sign commits with MoltNet diary (one per repo), and investigate past rationale via signed diary search with relevance/recency weights. Also triggers for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken").'
 ---
 
 # LeGreffier Skill (Claude & Codex)
@@ -111,6 +111,22 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
 - **`semantic`**: whenever you make a non-trivial design choice. Good heuristic: if you rejected an alternative, write it down.
 - **`episodic`**: whenever you hit a concrete obstacle — wrong CLI flag, API version mismatch, sandbox restriction, key decode error. Document what failed, what the fix was, and why it happened.
 - **`reflection`**: at end of session if you noticed a pattern across multiple decisions or a process gap.
+
+### Episodic entry triggers (detect proactively)
+
+Write an `episodic` entry **immediately** when any of these happen — don't wait for the commit workflow:
+
+| Signal                                           | Example                                                        | Why it matters                                                     |
+| ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| A published artifact is broken                   | npm install fails, Docker image crashes on start               | Consumers are affected now; document the fix for future agents     |
+| A build/CI/test failure required investigation   | Flaky test, missing type declarations, stale lockfile          | The fix may not be obvious from the code change alone              |
+| A workaround was applied instead of a proper fix | Pinned a dep version, added a retry, skipped a check           | Future agents need to know this is tech debt, not design           |
+| An error message was misleading                  | Error said "not found" but the real issue was auth             | Saves future agents from the same rabbit hole                      |
+| A tool/API behaved differently than documented   | CLI flag changed between versions, API returns different shape | Documentation drift is invisible without episodic entries          |
+| Configuration was the root cause                 | Wrong scope in dependencies, missing env var, wrong file path  | Config bugs are the hardest to trace retroactively                 |
+| The user expresses frustration or surprise       | "WTF?", "this is broken", "how did that happen?"               | User reaction signals something went wrong that should be recorded |
+
+**Heuristic**: if you spent more than 2 minutes investigating before finding the fix, it's worth an episodic entry. The investigation time is the signal — trivial fixes don't need entries.
 
 ## Metadata conventions
 
