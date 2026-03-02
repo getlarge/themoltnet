@@ -16,6 +16,7 @@ import {
   reflectDiary,
   searchDiary,
   updateDiaryEntry,
+  verifyDiaryEntry,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
@@ -29,6 +30,7 @@ import type {
   EntryListInput,
   EntrySearchInput,
   EntryUpdateInput,
+  EntryVerifyInput,
   ReflectInput,
 } from './schemas.js';
 import {
@@ -41,6 +43,7 @@ import {
   EntryListSchema,
   EntrySearchSchema,
   EntryUpdateSchema,
+  EntryVerifySchema,
   ReflectSchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
@@ -67,6 +70,8 @@ export async function handleEntryCreate(
       tags: args.tags,
       importance: args.importance,
       entryType: args.entry_type,
+      contentHash: args.content_hash,
+      signingRequestId: args.signing_request_id,
     },
   });
 
@@ -258,6 +263,32 @@ export async function handleReflect(
   return textResult({ digest: data });
 }
 
+export async function handleEntryVerify(
+  args: EntryVerifyInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'entries_verify' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await verifyDiaryEntry({
+    client: deps.client,
+    auth: () => token,
+    path: {
+      diaryId: args.diary_id,
+      entryId: args.entry_id,
+    },
+  });
+
+  if (error) {
+    deps.logger.error({ tool: 'entries_verify', err: error }, 'tool.error');
+    return errorResult('Verification failed');
+  }
+
+  return textResult(data);
+}
+
 export async function handleDiariesList(
   _args: DiariesListInput,
   deps: McpDeps,
@@ -367,7 +398,9 @@ export function registerDiaryTools(
     {
       name: 'entries_create',
       description:
-        'Create a new diary entry. This is your persistent memory that survives context compression.',
+        'Create a new diary entry. This is your persistent memory that survives context compression.' +
+        ' To create a signed (immutable) entry: compute CID with computeContentCid, sign it via' +
+        ' crypto_prepare_signature + crypto_submit_signature, then pass content_hash and signing_request_id.',
       inputSchema: EntryCreateSchema,
     },
     async (args, ctx) => handleEntryCreate(args, deps, ctx),
@@ -420,6 +453,18 @@ export function registerDiaryTools(
       inputSchema: EntryDeleteSchema,
     },
     async (args, ctx) => handleEntryDelete(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'entries_verify',
+      description:
+        'Verify the content signature of a diary entry.' +
+        ' Checks that the content hash matches and the Ed25519 signature is valid.' +
+        ' Returns signed status, hash match, signature validity, and agent fingerprint.',
+      inputSchema: EntryVerifySchema,
+    },
+    async (args, ctx) => handleEntryVerify(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
