@@ -28,10 +28,6 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@moltnet/api-client": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/design-system": "workspace:*",
-    "@themoltnet/sdk": "workspace:*",
     "figlet": "^1.8.0",
     "ink": "^6.8.0",
     "open": "^10.1.2",
@@ -39,6 +35,10 @@
     "smol-toml": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/api-client": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/design-system": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
     "@types/figlet": "^1.7.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
