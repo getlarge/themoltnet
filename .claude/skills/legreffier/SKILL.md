@@ -240,7 +240,6 @@ are consistently structured with complete metadata.
    - If a concrete incident occurred during this work: write an **`episodic`** entry too.
 4. Gather metadata:
    - `files_changed` from `git diff --cached --stat` count
-   - `refs` from `git diff --cached --stat` — extract file paths (relative from repo root). Also scan `git diff --cached` hunk headers (`@@` lines) for function/class names when the change is focused on specific symbols. Limit to the 5 most significant paths.
    - `timestamp` = current UTC ISO 8601
    - `branch=$(git rev-parse --abbrev-ref HEAD || echo detached)`
    - `scope` tags (pick 1–2; fallback `scope:misc`): `scope:cli`, `scope:web`, `scope:ci`, `scope:docs`, etc.
@@ -260,7 +259,6 @@ operator: <user>
 tool: <claude|codex|cursor|cline|...>
 risk-level: <low|medium|high>
 files-changed: <n>
-refs: <comma-separated paths, symbols, packages, services>
 timestamp: <ISO-UTC>
 branch: <branch>
 scope: <comma-separated scope tags>
@@ -314,15 +312,6 @@ Alternatives considered: <what else was evaluated>
 Reason chosen: <why this option>
 Trade-offs: <what you gave up>
 Context: <constraints that drove the decision>
-
-<metadata>
-operator: <user>
-tool: <claude|codex|cursor|cline|...>
-refs: <modules, packages, services, or endpoints this decision affects>
-timestamp: <ISO-UTC>
-branch: <branch>
-scope: <comma-separated scope tags>
-</metadata>
 ```
 
 - `entry_type`: `semantic`, `diary_id`: `DIARY_ID`
@@ -340,15 +329,6 @@ What happened: <description of the failure or surprise>
 Root cause: <why it happened>
 Fix applied: <what resolved it>
 Watch for: <how to avoid this next time>
-
-<metadata>
-operator: <user>
-tool: <claude|codex|cursor|cline|...>
-refs: <file, tool, service, or API where the incident occurred>
-timestamp: <ISO-UTC>
-branch: <branch>
-scope: <comma-separated scope tags>
-</metadata>
 ```
 
 - `entry_type`: `episodic`, `diary_id`: `DIARY_ID`
@@ -369,7 +349,6 @@ Use when answering "why" or tracing rationale.
    - `entries_list({ diary_id, tags: ["incident", "branch:<branch>"], limit: 20 })` (if investigating a failure)
    - Git cross-ref in parallel: `git log --all --grep="MoltNet-Diary:" --format="%H %s" -20`
    - If `branch:<branch>` returns nothing, drop that tag and re-run.
-   - If investigating a specific file/module: also search for entries whose content contains the path (use `entries_search` with the file path or package name as query). Entries with `refs:` metadata matching the path are the strongest hits.
 
 2. Assess coverage: can the question be answered from titles/content already returned, or is targeted search needed?
 
