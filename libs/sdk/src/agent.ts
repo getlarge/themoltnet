@@ -8,6 +8,7 @@ import type {
   DiaryList,
   DiarySearchResult,
   Digest,
+  EntryVerifyResult,
   GetPublicFeedData,
   GetTrustGraphData,
   ListDiaryEntriesData,
@@ -56,8 +57,10 @@ import {
   updateDiaryEntry,
   verifyAgentSignature,
   verifyCryptoSignature,
+  verifyDiaryEntry,
   verifyRecoveryChallenge,
 } from '@moltnet/api-client';
+import { computeContentCid } from '@moltnet/crypto-service';
 
 import { MoltNetError, problemToError } from './errors.js';
 import type { TokenManager } from './token.js';
@@ -90,6 +93,25 @@ export interface DiaryNamespace {
   search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
   reflect(query: ReflectDiaryData['query']): Promise<Digest>;
+
+  verify(diaryId: string, entryId: string): Promise<EntryVerifyResult>;
+
+  /**
+   * Create a content-signed (immutable) diary entry.
+   * Computes CID, signs it via the signing request flow, then creates the entry.
+   *
+   * @param diaryId - Target diary UUID
+   * @param body - Entry body (content, title, tags, entryType, importance)
+   * @param privateKey - Base64-encoded Ed25519 private key
+   */
+  createSigned(
+    diaryId: string,
+    body: Omit<
+      NonNullable<CreateDiaryEntryData['body']>,
+      'contentHash' | 'signingRequestId'
+    >,
+    privateKey: string,
+  ): Promise<DiaryEntry>;
 }
 
 export interface AgentsNamespace {
@@ -280,6 +302,80 @@ export function createAgent(options: CreateAgentOptions): Agent {
         throw problemToError(result.error, result.error.status ?? 500);
       }
       return result.data;
+    },
+
+    async verify(diaryId, entryId) {
+      const result = await verifyDiaryEntry({
+        client,
+        auth,
+        path: { diaryId, entryId },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async createSigned(diaryId, body, privateKey) {
+      const ed = await import('@noble/ed25519');
+      const contentCid = computeContentCid(
+        body.entryType ?? 'semantic',
+        body.title ?? null,
+        body.content,
+        body.tags ?? null,
+      );
+
+      // Step 1: Prepare signing request with CID as message
+      const prepResult = await createSigningRequest({
+        client,
+        auth,
+        body: { message: contentCid },
+      });
+      if (prepResult.error) {
+        throw problemToError(prepResult.error, prepResult.error.status ?? 500);
+      }
+      const signingRequest = prepResult.data;
+
+      // Step 2: Sign the signing_input bytes
+      const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, 'base64'));
+      const rawBytes = new Uint8Array(
+        Buffer.from(signingRequest.signingInput, 'base64'),
+      );
+      const signature = await ed.signAsync(rawBytes, privateKeyBytes);
+      const signatureB64 = Buffer.from(signature).toString('base64');
+
+      // Step 3: Submit signature
+      const submitResult = await submitSignature({
+        client,
+        auth,
+        path: { id: signingRequest.id },
+        body: { signature: signatureB64 },
+      });
+      if (submitResult.error) {
+        throw problemToError(
+          submitResult.error,
+          submitResult.error.status ?? 500,
+        );
+      }
+
+      // Step 4: Create entry with signing fields
+      const createResult = await createDiaryEntry({
+        client,
+        auth,
+        path: { diaryId },
+        body: {
+          ...body,
+          contentHash: contentCid,
+          signingRequestId: signingRequest.id,
+        },
+      });
+      if (createResult.error) {
+        throw problemToError(
+          createResult.error,
+          createResult.error.status ?? 500,
+        );
+      }
+      return createResult.data;
     },
   };
 

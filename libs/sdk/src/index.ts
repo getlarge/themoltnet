@@ -47,6 +47,10 @@ export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
+export {
+  computeCanonicalHash,
+  computeContentCid,
+} from '@moltnet/crypto-service';
 
 import { connect } from './connect.js';
 import { info } from './info.js';
