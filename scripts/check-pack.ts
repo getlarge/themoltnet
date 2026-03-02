@@ -7,6 +7,7 @@
  *   1. dist/index.js is included
  *   2. dist/index.d.ts is included
  *   3. no source files (src/) leak into the tarball
+ *   4. no @moltnet/* workspace packages in published dependencies
  *
  * Usage:
  *   tsx scripts/check-pack.ts                       # scan libs/ and packages/
@@ -118,6 +119,23 @@ function checkPackage(pkgDir: string): boolean {
       );
       return false;
     }
+  }
+
+  // Check for private workspace packages in published dependencies.
+  // @moltnet/* packages are private workspace packages not published to npm;
+  // listing them in dependencies causes npm install to fail for consumers.
+  // If they're bundled at build time, they belong in devDependencies.
+  // Note: @themoltnet/* packages with workspace:* ARE published and are fine —
+  // pnpm rewrites workspace:* to concrete versions on publish.
+  const deps = (pkg.dependencies ?? {}) as Record<string, string>;
+  const privateWorkspaceDeps = Object.keys(deps).filter((d) =>
+    d.startsWith('@moltnet/'),
+  );
+  if (privateWorkspaceDeps.length > 0) {
+    console.error(
+      `  FAIL: private workspace packages in dependencies (move to devDependencies if bundled): ${privateWorkspaceDeps.join(', ')}`,
+    );
+    return false;
   }
 
   console.log(`  OK (${paths.length} files)`);
