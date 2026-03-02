@@ -910,18 +910,6 @@ importers:
 
   packages/legreffier-cli:
     dependencies:
-      '@moltnet/api-client':
-        specifier: workspace:*
-        version: link:../../libs/api-client
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../../libs/crypto-service
-      '@moltnet/design-system':
-        specifier: workspace:*
-        version: link:../../libs/design-system
-      '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../../libs/sdk
       figlet:
         specifier: ^1.8.0
         version: 1.10.0
@@ -938,6 +926,18 @@ importers:
         specifier: 'catalog:'
         version: 1.6.0
     devDependencies:
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../../libs/api-client
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/design-system':
+        specifier: workspace:*
+        version: link:../../libs/design-system
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
       '@types/figlet':
         specifier: ^1.7.0
         version: 1.7.0

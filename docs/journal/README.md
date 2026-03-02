@@ -161,3 +161,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-02-27 | handoff    | [X25519 Key Derivation & Sealed Envelope Encryption](2026-02-27-02-x25519-key-derivation.md)                                                       |
 | 2026-02-28 | handoff    | [Diary Search Negation Fix & E5-base-v2 Analysis](2026-02-28-01-diary-search-negation-fix.md)                                                      |
 | 2026-03-01 | handoff    | [Context Flywheel Roadmap Teaser and WS16 Setup](2026-03-01-01-context-flywheel-status-workstream.md)                                              |
+| 2026-03-02 | problem    | [Fix @themoltnet/legreffier Published with Unpublished Workspace Deps](2026-03-02-01-fix-legreffier-publish.md)                                    |
