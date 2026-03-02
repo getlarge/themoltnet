@@ -100,6 +100,8 @@ export interface DiaryEntry {
   lastAccessedAt: Date | null;
   entryType: EntryType;
   supersededBy: string | null;
+  contentHash: string | null;
+  contentSignature: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -133,6 +135,10 @@ export interface CreateEntryInput {
   tags?: string[];
   importance?: number;
   entryType?: EntryType;
+  /** CIDv1 content hash (provided by agent, verified by server) */
+  contentHash?: string;
+  /** Resolved Ed25519 signature from signing request (set by API layer) */
+  contentSignature?: string;
 }
 
 export interface UpdateEntryInput {
@@ -201,7 +207,8 @@ export class DiaryServiceError extends Error {
       | 'self_share'
       | 'already_shared'
       | 'wrong_status'
-      | 'validation_failed',
+      | 'validation_failed'
+      | 'immutable',
     message: string,
   ) {
     super(message);

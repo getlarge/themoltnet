@@ -191,6 +191,8 @@ export function initDiaryWorkflows(): void {
               entryType: input.entryType,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
+              contentHash: input.contentHash,
+              contentSignature: input.contentSignature,
             });
           },
           { name: 'diary.create.persist' },
