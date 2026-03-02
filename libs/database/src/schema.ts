@@ -145,6 +145,10 @@ export const diaryEntries = pgTable(
       (): AnyPgColumn => diaryEntries.id,
     ),
 
+    // Content signing (CIDv1 + Ed25519 signature)
+    contentHash: varchar('content_hash', { length: 100 }),
+    contentSignature: text('content_signature'),
+
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
