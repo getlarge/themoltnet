@@ -25,6 +25,14 @@ const apiUrl =
   values['api-url'] ?? process.env.MOLTNET_API_URL ?? 'https://api.themolt.net';
 const dir = values['dir'] ?? process.cwd();
 
+if (subcommand === 'github' && positionals[1] === 'token') {
+  const { resolveAgentName, printGitHubToken } =
+    await import('./github-token.js');
+  const agentName = resolveAgentName(name, process.env.GIT_CONFIG_GLOBAL);
+  printGitHubToken(agentName, dir);
+  process.exit(0);
+}
+
 if (!name) {
   const usage =
     subcommand === 'setup'
