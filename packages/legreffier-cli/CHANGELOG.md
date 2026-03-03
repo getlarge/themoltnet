@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.5.0...legreffier-v0.5.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* **legreffier:** move workspace deps to devDependencies ([b369bda](https://github.com/getlarge/themoltnet/commit/b369bda645a3875c4f7f78f9cc84bbfe5990e5a0))
+* **legreffier:** workspace deps leaked into published package ([ff45dc8](https://github.com/getlarge/themoltnet/commit/ff45dc85234a13fcb610b1f3ec7e8c9a00d2deed))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.4.0...legreffier-v0.5.0) (2026-02-27)
 
 
