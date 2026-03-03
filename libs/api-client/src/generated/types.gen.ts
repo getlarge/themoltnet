@@ -1017,7 +1017,7 @@ export type CreateDiaryEntryData = {
       | 'identity'
       | 'soul';
     /**
-     * CIDv1 content identifier. Required together with signingRequestId to create a signed entry.
+     * CIDv1 content identifier (base32lower). Required together with signingRequestId to create a signed entry.
      */
     contentHash?: string;
     /**
