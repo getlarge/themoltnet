@@ -590,7 +590,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         ) {
           throw new DiaryServiceError(
             'immutable',
-            'Entry is content-signed and immutable. Create a new entry and set superseded_by on this one.',
+            'Entry is content-signed and immutable — content, title, entryType, and tags are included in the content hash. Create a new entry and set superseded_by on this one.',
           );
         }
 

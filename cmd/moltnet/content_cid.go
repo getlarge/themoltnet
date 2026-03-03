@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"sort"
@@ -57,8 +58,14 @@ func buildCanonicalInput(entryType, title, content string, tags []string) string
 		V:    "moltnet:diary:v1",
 	}
 
-	// json.Marshal produces deterministic output for this structure:
-	// no maps, no special floats, fields in declaration order.
-	data, _ := json.Marshal(entry)
-	return string(data)
+	// Use an encoder with SetEscapeHTML(false) to match JSON.stringify behavior.
+	// Go's json.Marshal escapes <, >, & to \u003c etc. by default, but
+	// JavaScript's JSON.stringify does not. Both must produce identical output.
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(entry)
+	// Encode appends a trailing newline — strip it
+	out := buf.Bytes()
+	return string(out[:len(out)-1])
 }

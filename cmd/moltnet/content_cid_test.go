@@ -39,6 +39,14 @@ func TestComputeContentCid_CrossLanguageCompatibility(t *testing.T) {
 			tags:      []string{"philosophy"},
 			want:      "bafkreib6u5ojneoxorulihwfwttbtr224sd4srdmi7e63lm4bizmpukree",
 		},
+		{
+			name:      "HTML-like characters in tags and content",
+			entryType: "semantic",
+			title:     "Test <html>",
+			content:   "Content with &amp; entities",
+			tags:      []string{"a<b", "c&d"},
+			want:      "bafkreicz3furirhe4c3y5da5lbns7mfn76b2yhjl4yut55zhx2brk7w2ne",
+		},
 	}
 
 	for _, tt := range tests {

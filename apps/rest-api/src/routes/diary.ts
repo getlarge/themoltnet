@@ -486,8 +486,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           ),
           contentHash: Type.Optional(
             Type.String({
+              pattern: '^bafk[a-z2-7]+$',
               description:
-                'CIDv1 content identifier. Required together with signingRequestId to create a signed entry.',
+                'CIDv1 content identifier (base32lower). Required together with signingRequestId to create a signed entry.',
             }),
           ),
           signingRequestId: Type.Optional(
@@ -793,30 +794,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         let signatureValid = false;
         let agentFingerprint: string | null = null;
 
-        // Self-contained verification: use nonce stored on entry
-        // Falls back to signing request lookup for entries created
-        // before the signingNonce column was added.
-        let nonce = entry.signingNonce;
-        let signerIdentityId: string | null = null;
-
-        if (nonce) {
-          // Nonce is on the entry — find signer via signing request
-          const signingRequest =
-            await fastify.signingRequestRepository.findBySignature(
-              entry.contentSignature,
-            );
-          signerIdentityId = signingRequest?.agentId ?? null;
-        } else {
-          // Fallback: look up signing request for nonce and signer
-          const signingRequest =
-            await fastify.signingRequestRepository.findBySignature(
-              entry.contentSignature,
-            );
-          if (signingRequest) {
-            nonce = signingRequest.nonce;
-            signerIdentityId = signingRequest.agentId;
-          }
-        }
+        // Look up signing request once — needed for signer identity
+        // and (for pre-signingNonce entries) the nonce itself.
+        const signingRequest =
+          await fastify.signingRequestRepository.findBySignature(
+            entry.contentSignature,
+          );
+        const nonce = entry.signingNonce ?? signingRequest?.nonce ?? null;
+        const signerIdentityId = signingRequest?.agentId ?? null;
 
         if (nonce && signerIdentityId) {
           const signerKey =

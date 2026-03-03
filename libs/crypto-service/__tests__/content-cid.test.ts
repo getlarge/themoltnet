@@ -109,6 +109,21 @@ describe('computeContentCid', () => {
     expect(cid1).not.toBe(cid2);
   });
 
+  it('handles HTML-like characters in tags and content without escaping', () => {
+    // Cross-language test vector: must match Go implementation.
+    // Go's json.Marshal escapes <, >, & by default — both implementations
+    // must use non-escaped JSON to produce identical CIDs.
+    const cid = computeContentCid(
+      'semantic',
+      'Test <html>',
+      'Content with &amp; entities',
+      ['a<b', 'c&d'],
+    );
+    expect(cid).toBe(
+      'bafkreicz3furirhe4c3y5da5lbns7mfn76b2yhjl4yut55zhx2brk7w2ne',
+    );
+  });
+
   it('produces a valid CIDv1 that round-trips through parse', () => {
     const cidStr = computeContentCid('semantic', 'Title', 'Content', ['tag1']);
     const parsed = CID.parse(cidStr);
