@@ -1,0 +1,2 @@
+ALTER TABLE "diary_entries" ADD COLUMN "signing_nonce" uuid;--> statement-breakpoint
+CREATE UNIQUE INDEX "diary_entries_content_signature_unique_idx" ON "diary_entries" USING btree ("content_signature") WHERE content_signature IS NOT NULL;

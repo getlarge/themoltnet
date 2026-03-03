@@ -124,15 +124,22 @@
     {
       "idx": 17,
       "version": "7",
-      "when": 1772448133827,
+      "when": 1774560400000,
       "tag": "0017_sad_hellion",
       "breakpoints": true
     },
     {
       "idx": 18,
       "version": "7",
-      "when": 1772448164667,
+      "when": 1774560400001,
       "tag": "0018_content-signing-trigger",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1774560400002,
+      "tag": "0019_typical_king_cobra",
       "breakpoints": true
     }
   ]
