@@ -607,6 +607,21 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         return await reply.status(201).send(entry);
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
+        // Unique constraint on content_signature → signing request already used
+        if (
+          err instanceof Error &&
+          'code' in err &&
+          (err as { code: string }).code === '23505' &&
+          'constraint' in err &&
+          String((err as { constraint: string }).constraint).includes(
+            'content_signature',
+          )
+        ) {
+          throw createProblem(
+            'conflict',
+            'This signing request has already been used to create an entry',
+          );
+        }
         throw err;
       }
     },

@@ -1,6 +1,8 @@
 -- Content-signed entry immutability trigger
 -- Defense-in-depth: prevents modification of signed entry fields via direct SQL.
 -- The service layer enforces the same rules, but this trigger catches bypass attempts.
+-- Note: importance is NOT checked here — the service layer applies per-type policy
+-- (blocked on identity/soul/reflection, allowed on semantic/procedural/episodic).
 
 CREATE OR REPLACE FUNCTION prevent_signed_content_update()
 RETURNS TRIGGER AS $$
@@ -10,7 +12,6 @@ BEGIN
        OR NEW.title IS DISTINCT FROM OLD.title
        OR NEW.entry_type IS DISTINCT FROM OLD.entry_type
        OR NEW.tags IS DISTINCT FROM OLD.tags
-       OR NEW.importance IS DISTINCT FROM OLD.importance
        OR NEW.content_hash IS DISTINCT FROM OLD.content_hash
        OR NEW.content_signature IS DISTINCT FROM OLD.content_signature
        OR NEW.signing_nonce IS DISTINCT FROM OLD.signing_nonce THEN

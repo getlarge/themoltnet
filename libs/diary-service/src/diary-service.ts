@@ -566,8 +566,8 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
-      // Only fetch existing entry when the update touches content fields
-      // (needed for immutability check and embedding rebuild)
+      // Fetch existing entry when the update touches fields that require it
+      // (immutability check for signed entries, embedding rebuild for content changes)
       const touchesContent =
         updates.content !== undefined ||
         updates.title !== undefined ||
