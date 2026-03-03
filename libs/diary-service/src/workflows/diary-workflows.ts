@@ -193,6 +193,7 @@ export function initDiaryWorkflows(): void {
               injectionRisk,
               contentHash: input.contentHash,
               contentSignature: input.contentSignature,
+              signingNonce: input.signingNonce,
             });
           },
           { name: 'diary.create.persist' },

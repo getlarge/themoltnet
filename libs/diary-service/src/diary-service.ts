@@ -566,16 +566,27 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
-      // Fetch existing entry to check immutability and rebuild embedding text
-      const existing = await diaryEntryRepository.findById(id);
+      // Only fetch existing entry when the update touches content fields
+      // (needed for immutability check and embedding rebuild)
+      const touchesContent =
+        updates.content !== undefined ||
+        updates.title !== undefined ||
+        updates.entryType !== undefined ||
+        updates.tags !== undefined ||
+        updates.importance !== undefined;
+      const existing = touchesContent
+        ? await diaryEntryRepository.findById(id)
+        : null;
 
       // Enforce immutability for content-signed entries
       if (existing?.contentSignature) {
-        // Core content fields are always immutable on signed entries
+        // All fields included in the CID are immutable on signed entries:
+        // content, title, entryType, and tags.
         if (
           updates.content !== undefined ||
           updates.title !== undefined ||
-          updates.entryType !== undefined
+          updates.entryType !== undefined ||
+          updates.tags !== undefined
         ) {
           throw new DiaryServiceError(
             'immutable',
@@ -583,26 +594,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           );
         }
 
-        // identity/soul entries: also protect tags and importance
+        // importance is also immutable on identity/soul/reflection entries
         if (
           (existing.entryType === 'identity' ||
-            existing.entryType === 'soul') &&
-          (updates.tags !== undefined || updates.importance !== undefined)
-        ) {
-          throw new DiaryServiceError(
-            'immutable',
-            'Identity and soul entries are fully immutable when signed.',
-          );
-        }
-
-        // reflection entries: also protect importance
-        if (
-          existing.entryType === 'reflection' &&
+            existing.entryType === 'soul' ||
+            existing.entryType === 'reflection') &&
           updates.importance !== undefined
         ) {
           throw new DiaryServiceError(
             'immutable',
-            'Reflection entry importance is immutable when signed.',
+            'Importance is immutable on signed identity, soul, and reflection entries.',
           );
         }
       }

@@ -59,6 +59,7 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     supersededBy: null,
     contentHash: null,
     contentSignature: null,
+    signingNonce: null,
     createdAt: new Date('2026-01-30T10:00:00Z'),
     updatedAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,
@@ -518,6 +519,101 @@ describe('DiaryService', () => {
           importance: 10,
         }),
       ).rejects.toThrow(DiaryServiceError);
+    });
+
+    it('rejects title changes on signed entries', async () => {
+      const signed = createMockEntry({
+        contentHash: 'bafkreitest',
+        contentSignature: 'sig123',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(signed);
+
+      await expect(
+        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+          title: 'New title',
+        }),
+      ).rejects.toThrow(DiaryServiceError);
+    });
+
+    it('rejects entryType changes on signed entries', async () => {
+      const signed = createMockEntry({
+        contentHash: 'bafkreitest',
+        contentSignature: 'sig123',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(signed);
+
+      await expect(
+        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+          entryType: 'reflection',
+        }),
+      ).rejects.toThrow(DiaryServiceError);
+    });
+
+    it('rejects tags changes on signed semantic entries', async () => {
+      const signed = createMockEntry({
+        entryType: 'semantic',
+        contentHash: 'bafkreitest',
+        contentSignature: 'sig123',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(signed);
+
+      await expect(
+        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+          tags: ['new-tag'],
+        }),
+      ).rejects.toThrow(DiaryServiceError);
+    });
+
+    it('allows importance changes on signed semantic entries', async () => {
+      const signed = createMockEntry({
+        entryType: 'semantic',
+        contentHash: 'bafkreitest',
+        contentSignature: 'sig123',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(signed);
+      vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(
+        createMockEntry({ importance: 8 }),
+      );
+
+      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        importance: 8,
+      });
+
+      expect(diaryWorkflows.updateEntry).toHaveBeenCalled();
+    });
+
+    it('rejects importance changes on signed reflection entries', async () => {
+      const signed = createMockEntry({
+        entryType: 'reflection',
+        contentHash: 'bafkreitest',
+        contentSignature: 'sig123',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(signed);
+
+      await expect(
+        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+          importance: 10,
+        }),
+      ).rejects.toThrow(DiaryServiceError);
+    });
+
+    it('skips findById for supersededBy-only updates', async () => {
+      permissions.canEditEntry.mockResolvedValue(true);
+      vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(
+        createMockEntry({ supersededBy: 'new-entry-id' }),
+      );
+
+      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        supersededBy: 'new-entry-id',
+      });
+
+      expect(repo.findById).not.toHaveBeenCalled();
+      expect(diaryWorkflows.updateEntry).toHaveBeenCalled();
     });
   });
 

@@ -102,6 +102,7 @@ export interface DiaryEntry {
   supersededBy: string | null;
   contentHash: string | null;
   contentSignature: string | null;
+  signingNonce: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -139,6 +140,8 @@ export interface CreateEntryInput {
   contentHash?: string;
   /** Resolved Ed25519 signature from signing request (set by API layer) */
   contentSignature?: string;
+  /** Nonce from signing request (stored for self-contained verification) */
+  signingNonce?: string;
 }
 
 export interface UpdateEntryInput {

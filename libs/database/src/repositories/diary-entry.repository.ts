@@ -133,6 +133,7 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
     supersededBy: (row.superseded_by as string) ?? null,
     contentHash: (row.content_hash as string) ?? null,
     contentSignature: (row.content_signature as string) ?? null,
+    signingNonce: (row.signing_nonce as string) ?? null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };
