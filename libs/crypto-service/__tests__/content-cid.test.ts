@@ -1,3 +1,4 @@
+import { CID } from 'multiformats/cid';
 import { describe, expect, it } from 'vitest';
 
 import { computeCanonicalHash, computeContentCid } from '../src/content-cid.js';
@@ -98,7 +99,23 @@ describe('computeContentCid', () => {
   it('handles empty tags array same as null', () => {
     const cid1 = computeContentCid('semantic', null, 'Content', []);
     const cid2 = computeContentCid('semantic', null, 'Content', null);
-    // Empty array produces "" sorted tags, null also produces "" — should match
     expect(cid1).toBe(cid2);
+  });
+
+  it('distinguishes content with newlines from field boundaries', () => {
+    // These must produce different CIDs — field delimiter collision test
+    const cid1 = computeContentCid('semantic', 'a\nb', 'c', null);
+    const cid2 = computeContentCid('semantic', 'a', 'b\nc', null);
+    expect(cid1).not.toBe(cid2);
+  });
+
+  it('produces a valid CIDv1 that round-trips through parse', () => {
+    const cidStr = computeContentCid('semantic', 'Title', 'Content', ['tag1']);
+    const parsed = CID.parse(cidStr);
+    expect(parsed.version).toBe(1);
+    expect(parsed.code).toBe(0x55); // raw codec
+    expect(parsed.multihash.code).toBe(0x12); // sha2-256
+    expect(parsed.multihash.digest.length).toBe(32);
+    expect(parsed.toString()).toBe(cidStr);
   });
 });

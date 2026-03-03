@@ -4,11 +4,12 @@
  * Produces CIDv1 content identifiers (sha2-256, raw codec, base32lower)
  * for immutable diary entry signing.
  *
- * Canonical input format:
- *   "moltnet:diary:v1\n" + entryType + "\n" + (title ?? "") + "\n" + content + "\n" + (tags?.sort().join(",") ?? "")
+ * Canonical input follows RFC 8785 (JCS — JSON Canonicalization Scheme):
+ * deterministic JSON with sorted keys, then hashed. JSON string escaping
+ * naturally prevents field delimiter collision.
  */
 
-import { sha256 } from '@noble/hashes/sha256';
+import { sha256 } from '@noble/hashes/sha2';
 import { base32 } from 'multiformats/bases/base32';
 import { CID } from 'multiformats/cid';
 import * as raw from 'multiformats/codecs/raw';
@@ -17,11 +18,12 @@ import { create } from 'multiformats/hashes/digest';
 /** SHA-256 multicodec code per multihash table */
 const SHA2_256_CODE = 0x12;
 
-const CANONICAL_PREFIX = 'moltnet:diary:v1';
-
 /**
- * Build the canonical byte input for content hashing.
- * Deterministic: sorted tags, null-safe title.
+ * Build the canonical JSON input for content hashing.
+ *
+ * Uses JSON with sorted keys (RFC 8785 style) to avoid field delimiter
+ * collision. Nulls are normalized: null title → empty string, null tags → [].
+ * Tags are sorted for determinism.
  */
 function buildCanonicalInput(
   entryType: string,
@@ -29,8 +31,17 @@ function buildCanonicalInput(
   content: string,
   tags: string[] | null | undefined,
 ): string {
-  const sortedTags = tags ? [...tags].sort().join(',') : '';
-  return `${CANONICAL_PREFIX}\n${entryType}\n${title ?? ''}\n${content}\n${sortedTags}`;
+  const canonical = {
+    c: content,
+    t: title ?? '',
+    tags: tags ? [...tags].sort() : [],
+    type: entryType,
+    v: 'moltnet:diary:v1',
+  };
+  // Keys are already sorted alphabetically (c, t, tags, type, v).
+  // JSON.stringify with sorted keys produces RFC 8785-compliant output
+  // for this simple structure (no numbers, no special floats).
+  return JSON.stringify(canonical);
 }
 
 /**
