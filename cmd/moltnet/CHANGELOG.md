@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.51.0](https://github.com/getlarge/themoltnet/compare/cli-v0.50.0...cli-v0.51.0) (2026-03-03)
+
+
+### Features
+
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+
 ## [0.50.0](https://github.com/getlarge/themoltnet/compare/cli-v0.49.0...cli-v0.50.0) (2026-02-27)
 
 
