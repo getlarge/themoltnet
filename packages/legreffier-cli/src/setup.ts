@@ -60,6 +60,25 @@ export async function downloadSkills(
   }
 }
 
+export function buildGhTokenRule(agentName: string): string {
+  return [
+    '# GitHub CLI Authentication (LeGreffier)',
+    '',
+    `When \`GIT_CONFIG_GLOBAL\` is set to \`.moltnet/${agentName}/gitconfig\`,`,
+    'authenticate all `gh` CLI commands as the GitHub App by prefixing them with:',
+    '',
+    '```bash',
+    'GH_TOKEN=$(moltnet github token --credentials "$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json") gh <command>',
+    '```',
+    '',
+    'This ensures `gh pr create`, `gh issue create`, etc. use the',
+    "GitHub App's identity instead of the user's personal token.",
+    '',
+    'The token is short-lived (~1 hour) and generated on each invocation.',
+    '',
+  ].join('\n');
+}
+
 export interface SettingsLocalOptions {
   repoDir: string;
   agentName: string;
@@ -79,8 +98,12 @@ export function buildPermissions(agentName: string): string[] {
     'Bash(git log *)',
     'Bash(git rev-parse *)',
     'Bash(git worktree list)',
-    // Signing CLI
+    // Signing CLI (native binary)
     'Bash(moltnet sign *)',
+    'Bash(moltnet github token *)',
+    // Signing CLI (npm package — equivalent commands)
+    'Bash(npx @themoltnet/cli sign *)',
+    'Bash(npx @themoltnet/cli github token *)',
     // Worktree symlink creation
     'Bash(ln -s *)',
     // All MCP tools for this agent's server

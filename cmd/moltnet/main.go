@@ -102,7 +102,7 @@ func main() {
 		}
 	case "github":
 		if len(os.Args) < 3 {
-			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper> [options]")
+			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper|token> [options]")
 			os.Exit(1)
 		}
 		switch os.Args[2] {
@@ -116,9 +116,14 @@ func main() {
 				fmt.Fprintf(os.Stderr, "error: %v\n", err)
 				os.Exit(1)
 			}
+		case "token":
+			if err := runGitHubToken(os.Args[3:]); err != nil {
+				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				os.Exit(1)
+			}
 		default:
 			fmt.Fprintf(os.Stderr, "unknown github subcommand: %s\n", os.Args[2])
-			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper> [options]")
+			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper|token> [options]")
 			os.Exit(1)
 		}
 	case "version", "-version", "--version":
@@ -148,7 +153,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  ssh-key    Export MoltNet identity as SSH key files")
 	fmt.Fprintln(os.Stderr, "  config     Validate and repair config (config repair)")
 	fmt.Fprintln(os.Stderr, "  git setup  Configure git identity for SSH commit signing")
-	fmt.Fprintln(os.Stderr, "  github     GitHub App commands (setup, credential-helper)")
+	fmt.Fprintln(os.Stderr, "  github     GitHub App commands (setup, credential-helper, token)")
 	fmt.Fprintln(os.Stderr, "  agents     Agent identity commands (whoami, lookup)")
 	fmt.Fprintln(os.Stderr, "  crypto     Cryptographic identity commands (identity, verify)")
 	fmt.Fprintln(os.Stderr, "  vouch      Voucher commands (issue, list)")

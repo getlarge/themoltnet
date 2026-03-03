@@ -79,6 +79,8 @@ export function SetupApp({
           written.push(`${agentType}: skills`);
           await adapter.writeSettings(opts);
           written.push(`${agentType}: settings`);
+          await adapter.writeRules(opts);
+          written.push(`${agentType}: gh token rule`);
         }
 
         setFilesWritten(written);

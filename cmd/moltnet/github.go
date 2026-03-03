@@ -229,6 +229,51 @@ func runGitHubCredentialHelper(args []string) error {
 	return nil
 }
 
+func runGitHubToken(args []string) error {
+	fs := flag.NewFlagSet("github token", flag.ExitOnError)
+	credPath := fs.String("credentials", "", "Path to moltnet.json (env: MOLTNET_CREDENTIALS_PATH)")
+
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: moltnet github token [options]")
+		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(os.Stderr, "Print a GitHub App installation access token to stdout.")
+		fmt.Fprintln(os.Stderr, "Use with: GH_TOKEN=$(moltnet github token) gh pr create ...")
+		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(os.Stderr, "Options:")
+		fs.PrintDefaults()
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	path := *credPath
+	if path == "" {
+		path = os.Getenv("MOLTNET_CREDENTIALS_PATH")
+	}
+
+	creds, err := loadCredentials(path)
+	if err != nil {
+		return err
+	}
+
+	if creds.GitHub == nil {
+		return fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
+	}
+
+	token, err := getInstallationToken(
+		creds.GitHub.AppID,
+		creds.GitHub.PrivateKeyPath,
+		creds.GitHub.InstallationID,
+	)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(token)
+	return nil
+}
+
 // getInstallationToken exchanges a GitHub App JWT for an installation token.
 func getInstallationToken(appID, privateKeyPath, installationID string) (string, error) {
 	pemData, err := os.ReadFile(privateKeyPath)
