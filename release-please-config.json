@@ -5,6 +5,7 @@
   "tag-separator": "-",
   "separate-pull-requests": false,
   "draft": true,
+  "force-tag-creation": true,
   "packages": {
     "libs/sdk": {
       "release-type": "node",
