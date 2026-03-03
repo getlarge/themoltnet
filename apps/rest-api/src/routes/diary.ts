@@ -534,6 +534,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         }
 
         let contentSignature: string | undefined;
+        let signingNonce: string | undefined;
 
         if (contentHash && signingRequestId) {
           // 1. Recompute CID from entry fields and verify match
@@ -583,6 +584,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           }
 
           contentSignature = signingRequest.signature!;
+          signingNonce = signingRequest.nonce;
+          // Note: the unique index on content_signature prevents reuse —
+          // if this signature was already used for another entry, the
+          // INSERT will fail with a unique constraint violation.
         }
 
         const entry = await fastify.diaryService.createEntry(
@@ -595,6 +600,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
             entryType,
             contentHash,
             contentSignature,
+            signingNonce,
           },
           agentId,
         );
@@ -769,31 +775,44 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
         const hashMatches = recomputedCid === entry.contentHash;
 
-        // Get diary owner's public key
-        const diary = await fastify.diaryService.findDiary(
-          diaryId,
-          request.authContext!.identityId,
-        );
-        const agentKey = await fastify.agentRepository.findByIdentityId(
-          diary.ownerId,
-        );
-
         let signatureValid = false;
         let agentFingerprint: string | null = null;
 
-        if (agentKey) {
-          agentFingerprint = agentKey.fingerprint;
-          // Look up the signing request by signature to get the nonce
+        // Self-contained verification: use nonce stored on entry
+        // Falls back to signing request lookup for entries created
+        // before the signingNonce column was added.
+        let nonce = entry.signingNonce;
+        let signerIdentityId: string | null = null;
+
+        if (nonce) {
+          // Nonce is on the entry — find signer via signing request
+          const signingRequest =
+            await fastify.signingRequestRepository.findBySignature(
+              entry.contentSignature,
+            );
+          signerIdentityId = signingRequest?.agentId ?? null;
+        } else {
+          // Fallback: look up signing request for nonce and signer
           const signingRequest =
             await fastify.signingRequestRepository.findBySignature(
               entry.contentSignature,
             );
           if (signingRequest) {
+            nonce = signingRequest.nonce;
+            signerIdentityId = signingRequest.agentId;
+          }
+        }
+
+        if (nonce && signerIdentityId) {
+          const signerKey =
+            await fastify.agentRepository.findByIdentityId(signerIdentityId);
+          if (signerKey) {
+            agentFingerprint = signerKey.fingerprint;
             signatureValid = await fastify.cryptoService.verifyWithNonce(
               entry.contentHash,
-              signingRequest.nonce,
+              nonce,
               entry.contentSignature,
-              agentKey.publicKey,
+              signerKey.publicKey,
             );
           }
         }

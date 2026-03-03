@@ -24,6 +24,7 @@ import type {
   SubmitSignatureData,
   UpdateDiaryEntryData,
   VerifyCryptoSignatureData,
+  VerifyDiaryEntryData,
 } from '@moltnet/api-client';
 import { EntryTypeSchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
@@ -232,8 +233,8 @@ export const EntryVerifySchema = Type.Object({
   entry_id: Type.String({ description: 'The entry ID to verify' }),
 });
 export type EntryVerifyInput = {
-  diary_id: string;
-  entry_id: string;
+  diary_id: PathOf<VerifyDiaryEntryData>['diaryId'];
+  entry_id: PathOf<VerifyDiaryEntryData>['entryId'];
 };
 
 export const EntryDeleteSchema = Type.Object({
@@ -440,6 +441,10 @@ type _EntryUpdateInputMatchesSchema = AssertSchemaToApi<
 type _EntryDeleteInputMatchesSchema = AssertSchemaToApi<
   Static<typeof EntryDeleteSchema>,
   EntryDeleteInput
+>;
+type _EntryVerifyInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof EntryVerifySchema>,
+  EntryVerifyInput
 >;
 type _ReflectInputMatchesSchema = AssertSchemaToApi<
   Static<typeof ReflectSchema>,
