@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { parse, stringify } from 'smol-toml';
 
-import { downloadSkills } from '../setup.js';
+import { buildGhTokenRule, downloadSkills } from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
 
 interface CodexToml {
@@ -65,5 +65,15 @@ export class CodexAdapter implements AgentAdapter {
       `${opts.prefix}_GITHUB_APP_INSTALLATION_ID=${q(opts.installationId)}`,
     ];
     await writeFile(join(envDir, 'env'), lines.join('\n') + '\n', 'utf-8');
+  }
+
+  async writeRules(opts: AgentAdapterOptions): Promise<void> {
+    const dir = join(opts.repoDir, '.codex', 'rules');
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, 'legreffier-gh.md'),
+      buildGhTokenRule(opts.agentName),
+      'utf-8',
+    );
   }
 }

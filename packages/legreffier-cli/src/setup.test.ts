@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildGhTokenRule,
   buildPermissions,
   downloadSkills,
   writeSettingsLocal,
@@ -85,6 +86,15 @@ describe('buildPermissions', () => {
     expect(perms).toContain('Bash(git rev-parse *)');
     expect(perms).toContain('Bash(moltnet sign *)');
     expect(perms).toContain('Bash(ln -s *)');
+  });
+});
+
+describe('buildGhTokenRule', () => {
+  it('produces rule mentioning the agent credentials path', () => {
+    const rule = buildGhTokenRule('legreffier');
+    expect(rule).toContain('.moltnet/legreffier/moltnet.json');
+    expect(rule).toContain('GH_TOKEN');
+    expect(rule).toContain('moltnet github token');
   });
 });
 

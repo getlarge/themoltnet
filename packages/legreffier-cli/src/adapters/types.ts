@@ -17,4 +17,5 @@ export interface AgentAdapter {
   writeMcpConfig(opts: AgentAdapterOptions): Promise<void>;
   writeSkills(repoDir: string): Promise<void>;
   writeSettings(opts: AgentAdapterOptions): Promise<void>;
+  writeRules(opts: AgentAdapterOptions): Promise<void>;
 }
