@@ -41,7 +41,6 @@ Agent name resolution order:
 
 1. `--name` flag
 2. `GIT_CONFIG_GLOBAL` pattern (`.moltnet/<name>/gitconfig`)
-3. Single `.moltnet/` subdirectory containing `moltnet.json`
 
 Shells out to `npx @themoltnet/cli github token`.
 

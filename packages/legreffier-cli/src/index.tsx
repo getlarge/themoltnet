@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util';
 
 import { render } from 'ink';
 
+import { printGitHubToken, resolveAgentName } from './github-token.js';
 import { InitApp } from './InitApp.js';
 import { SetupApp } from './SetupApp.js';
 import { type AgentType, SUPPORTED_AGENTS } from './ui/types.js';
@@ -26,11 +27,16 @@ const apiUrl =
 const dir = values['dir'] ?? process.cwd();
 
 if (subcommand === 'github' && positionals[1] === 'token') {
-  const { resolveAgentName, printGitHubToken } =
-    await import('./github-token.js');
-  const agentName = resolveAgentName(name, process.env.GIT_CONFIG_GLOBAL);
-  printGitHubToken(agentName, dir);
-  process.exit(0);
+  try {
+    const agentName = resolveAgentName(name, process.env.GIT_CONFIG_GLOBAL);
+    printGitHubToken(agentName, dir);
+    process.exit(0);
+  } catch (err) {
+    process.stderr.write(
+      `Error: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exit(1);
+  }
 }
 
 if (!name) {

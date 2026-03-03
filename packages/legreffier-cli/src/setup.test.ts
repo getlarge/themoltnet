@@ -85,16 +85,20 @@ describe('buildPermissions', () => {
     expect(perms).toContain('Bash(git log *)');
     expect(perms).toContain('Bash(git rev-parse *)');
     expect(perms).toContain('Bash(moltnet sign *)');
+    expect(perms).toContain('Bash(moltnet github token *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli sign *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli github token *)');
     expect(perms).toContain('Bash(ln -s *)');
   });
 });
 
 describe('buildGhTokenRule', () => {
-  it('produces rule mentioning the agent credentials path', () => {
+  it('produces rule using dynamic credentials path from GIT_CONFIG_GLOBAL', () => {
     const rule = buildGhTokenRule('legreffier');
-    expect(rule).toContain('.moltnet/legreffier/moltnet.json');
+    expect(rule).toContain('$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json');
     expect(rule).toContain('GH_TOKEN');
     expect(rule).toContain('moltnet github token');
+    expect(rule).toContain('.moltnet/legreffier/gitconfig');
   });
 });
 
