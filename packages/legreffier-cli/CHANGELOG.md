@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.6.0...legreffier-v0.7.0) (2026-03-03)
+
+
+### Features
+
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* **legreffier:** add 'legreffier github token' subcommand ([6a3d5a3](https://github.com/getlarge/themoltnet/commit/6a3d5a3c844d082cd399fa55468d0d4afcd457b7)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **legreffier:** generate agent rules for gh CLI authentication ([207e639](https://github.com/getlarge/themoltnet/commit/207e639045e4529dea633af6e182b73995040cda)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+
+
+### Bug Fixes
+
+* **cli:** address copilot review feedback ([1ec9fe4](https://github.com/getlarge/themoltnet/commit/1ec9fe4890c338aa808b48c22216798a0cf98048))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.5.1...legreffier-v0.6.0) (2026-03-03)
 
 
