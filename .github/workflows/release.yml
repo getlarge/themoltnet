@@ -7,6 +7,14 @@ on:
       - 'docs/**'
       - '.claude/**'
       - '**.md'
+  workflow_dispatch:
+    inputs:
+      republish:
+        description: >
+          Comma-separated packages to re-publish from existing draft releases.
+          Valid values: sdk, github-agent, legreffier, cli, api-client, skill
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -15,6 +23,7 @@ permissions:
 jobs:
   release-please:
     name: Release Please
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
@@ -39,10 +48,119 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  # Unified resolution: merges release-please outputs with manual republish
+  # inputs so downstream jobs use a single set of outputs regardless of trigger.
+  resolve-publish:
+    name: Resolve packages to publish
+    needs: release-please
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    outputs:
+      sdk: ${{ steps.resolve.outputs.sdk }}
+      sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
+      github-agent: ${{ steps.resolve.outputs.github-agent }}
+      github-agent-tag: ${{ steps.resolve.outputs.github-agent-tag }}
+      cli: ${{ steps.resolve.outputs.cli }}
+      cli-tag: ${{ steps.resolve.outputs.cli-tag }}
+      api-client: ${{ steps.resolve.outputs.api-client }}
+      api-client-tag: ${{ steps.resolve.outputs.api-client-tag }}
+      api-client-version: ${{ steps.resolve.outputs.api-client-version }}
+      skill: ${{ steps.resolve.outputs.skill }}
+      skill-tag: ${{ steps.resolve.outputs.skill-tag }}
+      skill-version: ${{ steps.resolve.outputs.skill-version }}
+      legreffier: ${{ steps.resolve.outputs.legreffier }}
+      legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve publish targets
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RP_SDK_CREATED: ${{ needs.release-please.outputs.sdk-release-created }}
+          RP_SDK_TAG: ${{ needs.release-please.outputs.sdk-tag-name }}
+          RP_AGENT_CREATED: ${{ needs.release-please.outputs.github-agent-release-created }}
+          RP_AGENT_TAG: ${{ needs.release-please.outputs.github-agent-tag-name }}
+          RP_CLI_CREATED: ${{ needs.release-please.outputs.cli-release-created }}
+          RP_CLI_TAG: ${{ needs.release-please.outputs.cli-tag-name }}
+          RP_API_CREATED: ${{ needs.release-please.outputs.api-client-release-created }}
+          RP_API_TAG: ${{ needs.release-please.outputs.api-client-tag-name }}
+          RP_API_VERSION: ${{ needs.release-please.outputs.api-client-version }}
+          RP_SKILL_CREATED: ${{ needs.release-please.outputs.skill-release-created }}
+          RP_SKILL_TAG: ${{ needs.release-please.outputs.skill-tag-name }}
+          RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
+          RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
+          RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
+          REPUBLISH: ${{ github.event.inputs.republish || '' }}
+        run: |
+          find_draft_tag() {
+            local component="$1"
+            gh release list --repo "$GITHUB_REPOSITORY" --limit 20 --json tagName,isDraft \
+              --jq "[.[] | select(.isDraft == true and (.tagName | startswith(\"${component}-v\")))][0].tagName // empty"
+          }
+
+          version_from_tag() {
+            local tag="$1" component="$2"
+            echo "${tag}" | sed "s/^${component}-v//"
+          }
+
+          wants_republish() {
+            echo "$REPUBLISH" | tr ',' '\n' | tr -d ' ' | grep -qx "$1"
+          }
+
+          resolve() {
+            local name="$1" rp_created="$2" rp_tag="$3" component="$4"
+
+            if [ "$rp_created" = "true" ]; then
+              echo "${name}=true" >> "$GITHUB_OUTPUT"
+              echo "${name}-tag=${rp_tag}" >> "$GITHUB_OUTPUT"
+              echo "  ✓ ${name}: release-please → ${rp_tag}"
+              return
+            fi
+
+            if wants_republish "$name"; then
+              local tag
+              tag=$(find_draft_tag "$component")
+              if [ -n "$tag" ]; then
+                echo "${name}=true" >> "$GITHUB_OUTPUT"
+                echo "${name}-tag=${tag}" >> "$GITHUB_OUTPUT"
+                echo "  ✓ ${name}: republish draft → ${tag}"
+                return
+              fi
+              echo "  ✗ ${name}: requested but no draft release found for '${component}'"
+            fi
+
+            echo "${name}=false" >> "$GITHUB_OUTPUT"
+            echo "  - ${name}: skip"
+          }
+
+          echo "Resolving publish targets..."
+          resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
+          resolve "github-agent" "$RP_AGENT_CREATED"     "$RP_AGENT_TAG"     "github-agent"
+          resolve "cli"          "$RP_CLI_CREATED"       "$RP_CLI_TAG"       "cli"
+          resolve "api-client"   "$RP_API_CREATED"       "$RP_API_TAG"       "moltnet-api-client"
+          resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
+          resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
+
+          # Forward version outputs
+          if [ -n "$RP_API_VERSION" ]; then
+            echo "api-client-version=${RP_API_VERSION}" >> "$GITHUB_OUTPUT"
+          elif wants_republish "api-client"; then
+            tag=$(find_draft_tag "moltnet-api-client")
+            [ -n "$tag" ] && echo "api-client-version=$(version_from_tag "$tag" "moltnet-api-client")" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$RP_SKILL_VERSION" ]; then
+            echo "skill-version=${RP_SKILL_VERSION}" >> "$GITHUB_OUTPUT"
+          elif wants_republish "skill"; then
+            tag=$(find_draft_tag "openclaw-skill")
+            [ -n "$tag" ] && echo "skill-version=$(version_from_tag "$tag" "openclaw-skill")" >> "$GITHUB_OUTPUT"
+          fi
+
   publish-sdk:
     name: Publish SDK to npm
-    needs: [release-please, release-cli]
-    if: ${{ always() && needs.release-please.outputs.sdk-release-created == 'true' && !failure() && !cancelled() }}
+    needs: [resolve-publish, release-cli]
+    if: ${{ always() && needs.resolve-publish.outputs.sdk == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -78,14 +196,14 @@ jobs:
       - run: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
 
       - name: Publish SDK release
-        run: gh release edit "${{ needs.release-please.outputs.sdk-tag-name }}" --draft=false
+        run: gh release edit "${{ needs.resolve-publish.outputs.sdk-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-github-agent:
     name: Publish GitHub Agent to npm
-    needs: [release-please, release-cli]
-    if: ${{ always() && needs.release-please.outputs.github-agent-release-created == 'true' && !failure() && !cancelled() }}
+    needs: [resolve-publish, release-cli]
+    if: ${{ always() && needs.resolve-publish.outputs.github-agent == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -114,14 +232,14 @@ jobs:
       - run: pnpm --filter @themoltnet/github-agent publish --no-git-checks --access public --provenance
 
       - name: Publish GitHub Agent release
-        run: gh release edit "${{ needs.release-please.outputs.github-agent-tag-name }}" --draft=false
+        run: gh release edit "${{ needs.resolve-publish.outputs.github-agent-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-api-client:
     name: Tag Go module for moltnet-api-client
-    needs: release-please
-    if: ${{ needs.release-please.outputs.api-client-release-created == 'true' }}
+    needs: resolve-publish
+    if: ${{ needs.resolve-publish.outputs.api-client == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -136,21 +254,25 @@ jobs:
         # release-please creates the component tag "moltnet-api-client-vX.Y.Z"; we push the
         # additional tag that the Go toolchain needs.
         run: |
-          TAG="cmd/moltnet-api-client/v${{ needs.release-please.outputs.api-client-version }}"
-          git tag "$TAG"
-          git push origin "$TAG"
+          TAG="cmd/moltnet-api-client/v${{ needs.resolve-publish.outputs.api-client-version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish API client release
-        run: gh release edit "${{ needs.release-please.outputs.api-client-tag-name }}" --draft=false
+        run: gh release edit "${{ needs.resolve-publish.outputs.api-client-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-cli:
     name: Release CLI binaries
-    needs: [release-please, release-api-client]
-    if: ${{ always() && needs.release-please.outputs.cli-release-created == 'true' && !failure() && !cancelled() }}
+    needs: [resolve-publish, release-api-client]
+    if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -166,13 +288,13 @@ jobs:
       - name: Extract semver from tag
         id: tag
         run: |
-          TAG="${{ needs.release-please.outputs.cli-tag-name }}"
+          TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
-          # Resolve the api-client version: use the release-please output when
+          # Resolve the api-client version: use the resolved output when
           # the api-client is being released in the same run, otherwise fall
           # back to the version recorded in the manifest.
-          API_CLIENT_VER="${{ needs.release-please.outputs.api-client-version }}"
+          API_CLIENT_VER="${{ needs.resolve-publish.outputs.api-client-version }}"
           if [ -z "$API_CLIENT_VER" ]; then
             API_CLIENT_VER=$(jq -r '.["cmd/moltnet-api-client"]' .release-please-manifest.json)
           fi
@@ -199,7 +321,7 @@ jobs:
 
       - name: Upload binaries to GitHub Release
         run: |
-          gh release upload "${{ needs.release-please.outputs.cli-tag-name }}" \
+          gh release upload "${{ needs.resolve-publish.outputs.cli-tag }}" \
             cmd/moltnet/dist/*.tar.gz \
             cmd/moltnet/dist/*.zip \
             cmd/moltnet/dist/checksums.txt
@@ -207,14 +329,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish CLI release
-        run: gh release edit "${{ needs.release-please.outputs.cli-tag-name }}" --draft=false
+        run: gh release edit "${{ needs.resolve-publish.outputs.cli-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-cli-npm:
     name: Publish CLI to npm
-    needs: [release-please, release-cli]
-    if: ${{ needs.release-please.outputs.cli-release-created == 'true' }}
+    needs: [resolve-publish, release-cli]
+    if: ${{ needs.resolve-publish.outputs.cli == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -235,8 +357,8 @@ jobs:
 
   release-skill:
     name: Release OpenClaw Skill
-    needs: release-please
-    if: ${{ needs.release-please.outputs.skill-release-created == 'true' }}
+    needs: resolve-publish
+    if: ${{ needs.resolve-publish.outputs.skill == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -248,20 +370,20 @@ jobs:
 
       - name: Upload tarball to GitHub Release
         run: |
-          gh release upload "${{ needs.release-please.outputs.skill-tag-name }}" \
-            "/tmp/moltnet-skill-v${{ needs.release-please.outputs.skill-version }}.tar.gz"
+          gh release upload "${{ needs.resolve-publish.outputs.skill-tag }}" \
+            "/tmp/moltnet-skill-v${{ needs.resolve-publish.outputs.skill-version }}.tar.gz"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish release
-        run: gh release edit "${{ needs.release-please.outputs.skill-tag-name }}" --draft=false
+        run: gh release edit "${{ needs.resolve-publish.outputs.skill-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-skill-clawhub:
     name: Publish Skill to ClawHub
-    needs: [release-please, release-skill]
-    if: ${{ needs.release-please.outputs.skill-release-created == 'true' }}
+    needs: [resolve-publish, release-skill]
+    if: ${{ needs.resolve-publish.outputs.skill == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -282,12 +404,12 @@ jobs:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
           packages/openclaw-skill/scripts/publish-clawhub.sh \
-            --changelog "Release ${{ needs.release-please.outputs.skill-tag-name }}"
+            --changelog "Release ${{ needs.resolve-publish.outputs.skill-tag }}"
 
   publish-legreffier:
     name: Publish LeGreffier to npm
-    needs: [release-please, release-cli]
-    if: ${{ always() && needs.release-please.outputs.legreffier-release-created == 'true' && !failure() && !cancelled() }}
+    needs: [resolve-publish, release-cli]
+    if: ${{ always() && needs.resolve-publish.outputs.legreffier == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -324,6 +446,6 @@ jobs:
       - run: pnpm --filter @themoltnet/legreffier publish --no-git-checks --access public --provenance
 
       - name: Publish LeGreffier release
-        run: gh release edit "${{ needs.release-please.outputs.legreffier-tag-name }}" --draft=false
+        run: gh release edit "${{ needs.resolve-publish.outputs.legreffier-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
