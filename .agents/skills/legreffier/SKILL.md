@@ -1,6 +1,6 @@
 ---
 name: legreffier
-description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity, sign commits with MoltNet diary (one per repo), and investigate past rationale via signed diary search with relevance/recency weights.'
+description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity, sign commits with MoltNet diary (one per repo), and investigate past rationale via signed diary search with relevance/recency weights. Also triggers for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken").'
 ---
 
 # LeGreffier Skill (Claude & Codex)
@@ -41,6 +41,30 @@ Before session activation, check if `.moltnet/` exists in the current working di
 - When discovering something non-obvious about the codebase, tools, or ecosystem
 - When making an architectural choice or rejecting an alternative
 - **Any question about audit trail, diary, past rationale, or signed history** — phrases like "check the audit", "what does the diary say", "why did we", "show me the history", "what was the reasoning" all trigger investigation mode
+
+## Two signature layers
+
+This workflow involves **two independent signature systems**. Do not confuse them.
+
+### Layer 1: Git SSH Signatures (commit-level)
+
+- **What**: Git's native commit signing via `gpg.format=ssh`
+- **Key**: `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub` (SSH public key format)
+- **Config**: `gpgsign=true` in `.moltnet/<AGENT_NAME>/gitconfig`
+- **Verification**: `git log --show-signature` or `git verify-commit <hash>`
+- **When**: Automatically on every `git commit` — enforced by gitconfig, no agent action needed
+- **Scope**: Proves which SSH key authored the git commit object
+
+### Layer 2: MoltNet Diary Signatures (entry-level)
+
+- **What**: Ed25519 signature over a structured payload, submitted to and stored by the MoltNet API
+- **Key**: The MoltNet identity key seed in `.moltnet/<AGENT_NAME>/moltnet.json` (base64-encoded 32-byte Ed25519 seed)
+- **Workflow**: `crypto_prepare_signature` → `npx @themoltnet/cli sign --request-id` → API verifies and stores the base64 Ed25519 signature
+- **Verification**: `crypto_verify({ signature: "<base64-ed25519-signature>" })` — the server looks up the signing request by the actual signature bytes
+- **When**: Explicitly during the accountable commit workflow (step 7)
+- **Scope**: Proves which MoltNet agent authored the diary entry content
+
+**Critical distinction**: The `<signature>` tag in diary entries must contain the **base64 Ed25519 signature** (output of `npx @themoltnet/cli sign --request-id` on stdout), NOT the request ID (UUID). The request ID is for tracking; the signature is for verification.
 
 ## MCP tool reference
 
@@ -87,6 +111,86 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
 - **`semantic`**: whenever you make a non-trivial design choice. Good heuristic: if you rejected an alternative, write it down.
 - **`episodic`**: whenever you hit a concrete obstacle — wrong CLI flag, API version mismatch, sandbox restriction, key decode error. Document what failed, what the fix was, and why it happened.
 - **`reflection`**: at end of session if you noticed a pattern across multiple decisions or a process gap.
+
+### Episodic entry triggers (detect proactively)
+
+Write an `episodic` entry **immediately** when any of these happen — don't wait for the commit workflow:
+
+| Signal                                           | Example                                                        | Why it matters                                                     |
+| ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| A published artifact is broken                   | npm install fails, Docker image crashes on start               | Consumers are affected now; document the fix for future agents     |
+| A build/CI/test failure required investigation   | Flaky test, missing type declarations, stale lockfile          | The fix may not be obvious from the code change alone              |
+| A workaround was applied instead of a proper fix | Pinned a dep version, added a retry, skipped a check           | Future agents need to know this is tech debt, not design           |
+| An error message was misleading                  | Error said "not found" but the real issue was auth             | Saves future agents from the same rabbit hole                      |
+| A tool/API behaved differently than documented   | CLI flag changed between versions, API returns different shape | Documentation drift is invisible without episodic entries          |
+| Configuration was the root cause                 | Wrong scope in dependencies, missing env var, wrong file path  | Config bugs are the hardest to trace retroactively                 |
+| The user expresses frustration or surprise       | "WTF?", "this is broken", "how did that happen?"               | User reaction signals something went wrong that should be recorded |
+
+**Heuristic**: if you spent more than 2 minutes investigating before finding the fix, it's worth an episodic entry. The investigation time is the signal — trivial fixes don't need entries.
+
+## Metadata conventions
+
+The `<metadata>` block inside diary entries uses a key-value format. These
+conventions improve retrieval precision — entries that include structured
+references are significantly easier to find during investigation.
+
+**The diary is domain-agnostic.** These conventions apply to software
+development contexts. Other domains may define their own metadata keys
+following the same `key: value` format.
+
+### Standard metadata keys
+
+| Key             | Format            | When to include             | Example                                            |
+| --------------- | ----------------- | --------------------------- | -------------------------------------------------- |
+| `signer`        | fingerprint       | Signed entries only         | `signer: A1B2-C3D4-E5F6-G7H8`                      |
+| `operator`      | username          | Always                      | `operator: edouard`                                |
+| `tool`          | tool name         | Always                      | `tool: claude`                                     |
+| `risk-level`    | low\|medium\|high | Procedural entries          | `risk-level: medium`                               |
+| `files-changed` | integer           | Procedural entries          | `files-changed: 5`                                 |
+| `timestamp`     | ISO-8601 UTC      | Always                      | `timestamp: 2026-02-28T14:30:00Z`                  |
+| `branch`        | git branch        | Always (if in git)          | `branch: feat/auth`                                |
+| `scope`         | comma-separated   | Always                      | `scope: scope:auth, scope:api`                     |
+| `refs`          | comma-separated   | When applicable (see below) | `refs: libs/auth/src/middleware.ts, @moltnet/auth` |
+
+### The `refs` convention
+
+The `refs` key captures **what this entry is about** in terms of concrete
+artifacts. This is the primary mechanism for connecting diary entries to the
+things they describe, enabling precise retrieval during investigation.
+
+References go beyond filenames. Include the most specific identifier that
+helps future retrieval:
+
+| Ref type         | Format                         | Example                                   |
+| ---------------- | ------------------------------ | ----------------------------------------- |
+| File path        | relative from repo root        | `libs/auth/src/middleware.ts`             |
+| Directory/module | trailing slash or package name | `libs/auth/`, `@moltnet/auth`             |
+| Symbol           | `path:symbol`                  | `libs/auth/src/middleware.ts:validateJWT` |
+| Framework/tool   | plain name                     | `fastify`, `drizzle`, `vitest`            |
+| External service | plain name                     | `ory-keto`, `supabase`, `fly-io`          |
+| API endpoint     | method + path                  | `POST /diaries/:id/entries`               |
+| Config/infra     | path or name                   | `docker-compose.yaml`, `tsconfig.json`    |
+
+**Guidelines:**
+
+- Include 1–5 refs per entry. More is noise, fewer misses connections.
+- For procedural entries: extract from `git diff --cached --stat` (file paths)
+  and diff hunk headers (`@@` lines often contain function/class names).
+- For semantic entries: reference the modules/components the decision affects.
+- For episodic entries: reference the file/tool/service where the incident occurred.
+- For reflection entries: refs are optional — reflections are often cross-cutting.
+- Prefer the most specific ref that is stable. `libs/auth/src/middleware.ts:validateJWT` is better than `libs/auth/` when the entry is about that specific function. But if the function might be renamed, `libs/auth/src/middleware.ts` is safer.
+
+### Subagent delegation
+
+When subagent support is available in the coding environment, the work of
+composing diary entries (gathering metadata, extracting refs from diffs,
+building the content template, calling `entries_create`) should be delegated
+to a subagent. The primary agent decides _what_ to record (risk level, decision,
+incident); the subagent handles _how_ to structure and submit it.
+
+This keeps the primary agent focused on the actual work while ensuring entries
+are consistently structured with complete metadata.
 
 ## Session activation
 
@@ -136,6 +240,7 @@ Use the right `entry_type` for every diary entry. This is not cosmetic — it af
    - If a concrete incident occurred during this work: write an **`episodic`** entry too.
 4. Gather metadata:
    - `files_changed` from `git diff --cached --stat` count
+   - `refs` from `git diff --cached --stat` — extract file paths (relative from repo root). Also scan `git diff --cached` hunk headers (`@@` lines) for function/class names when the change is focused on specific symbols. Limit to the 5 most significant paths.
    - `timestamp` = current UTC ISO 8601
    - `branch=$(git rev-parse --abbrev-ref HEAD || echo detached)`
    - `scope` tags (pick 1–2; fallback `scope:misc`): `scope:cli`, `scope:web`, `scope:ci`, `scope:docs`, etc.
@@ -155,6 +260,7 @@ operator: <user>
 tool: <claude|codex|cursor|cline|...>
 risk-level: <low|medium|high>
 files-changed: <n>
+refs: <comma-separated paths, symbols, packages, services>
 timestamp: <ISO-UTC>
 branch: <branch>
 scope: <comma-separated scope tags>
@@ -163,21 +269,22 @@ scope: <comma-separated scope tags>
 
 7. Sign:
    - Call `crypto_prepare_signature({ message: "<full payload above>" })` → returns `request_id`.
-   - Run the one-shot CLI command — it fetches the signing request, signs `signing_input`, and submits the signature in a single step:
+   - Run the one-shot CLI command — it fetches the signing request, signs `signing_input`, submits the signature, and **prints the base64 Ed25519 signature to stdout**:
      ```bash
-     moltnet sign --credentials <path> --request-id <request_id>
+     SIGNATURE=$(npx @themoltnet/cli sign --credentials <path> --request-id <request_id>)
      ```
-     No piping, no `--nonce`, no `crypto_submit_signature` call needed. The CLI prints `Signature submitted for request <id>` on success.
+     The CLI prints `Signature submitted for request <id>` to **stderr** (confirmation) and the **base64 signature to stdout** (capture this). No piping, no `--nonce`, no `crypto_submit_signature` call needed.
+   - **Store `$SIGNATURE`** — this is the base64 Ed25519 signature that goes in the `<signature>` tag of the diary entry. This is NOT the request ID. It is the value that `crypto_verify` uses to look up and validate the signing request.
    - If it errors with "signing request is not pending": it may have expired (5 min TTL) or already been submitted. Call `crypto_prepare_signature` again for a fresh `request_id`.
    - The MCP prompt `sign_message` is also available interactively (not programmatically) as a slash command — check available prompts in your MCP client.
 
-8. Create diary entry: call `entries_create({ diary_id: DIARY_ID, ... })` with the full signed envelope as content. After creation, verify the returned entry has correct `tags`, `visibility`, `importance`, and `entry_type` — if any are wrong, immediately call `entries_update` to patch before proceeding to the commit.
+8. Create diary entry: call `entries_create({ diary_id: DIARY_ID, ... })` with the full signed envelope as content. The `<signature>` tag must contain the **base64 Ed25519 signature** captured from stdout in step 7, NOT the request ID. After creation, verify the returned entry has correct `tags`, `visibility`, `importance`, and `entry_type` — if any are wrong, immediately call `entries_update` to patch before proceeding to the commit.
 
 ```
 <moltnet-signed>
 <content>...</content>
 <metadata>...</metadata>
-<signature><base64></signature>
+<signature><base64-ed25519-signature-from-step-7></signature>
 </moltnet-signed>
 ```
 
@@ -207,6 +314,15 @@ Alternatives considered: <what else was evaluated>
 Reason chosen: <why this option>
 Trade-offs: <what you gave up>
 Context: <constraints that drove the decision>
+
+<metadata>
+operator: <user>
+tool: <claude|codex|cursor|cline|...>
+refs: <modules, packages, services, or endpoints this decision affects>
+timestamp: <ISO-UTC>
+branch: <branch>
+scope: <comma-separated scope tags>
+</metadata>
 ```
 
 - `entry_type`: `semantic`, `diary_id`: `DIARY_ID`
@@ -224,6 +340,15 @@ What happened: <description of the failure or surprise>
 Root cause: <why it happened>
 Fix applied: <what resolved it>
 Watch for: <how to avoid this next time>
+
+<metadata>
+operator: <user>
+tool: <claude|codex|cursor|cline|...>
+refs: <file, tool, service, or API where the incident occurred>
+timestamp: <ISO-UTC>
+branch: <branch>
+scope: <comma-separated scope tags>
+</metadata>
 ```
 
 - `entry_type`: `episodic`, `diary_id`: `DIARY_ID`
@@ -244,6 +369,7 @@ Use when answering "why" or tracing rationale.
    - `entries_list({ diary_id, tags: ["incident", "branch:<branch>"], limit: 20 })` (if investigating a failure)
    - Git cross-ref in parallel: `git log --all --grep="MoltNet-Diary:" --format="%H %s" -20`
    - If `branch:<branch>` returns nothing, drop that tag and re-run.
+   - If investigating a specific file/module: also search for entries whose content contains the path (use `entries_search` with the file path or package name as query). Entries with `refs:` metadata matching the path are the strongest hits.
 
 2. Assess coverage: can the question be answered from titles/content already returned, or is targeted search needed?
 
@@ -262,11 +388,15 @@ Use when answering "why" or tracing rationale.
 
    Omit `diary_id` to search across all repos. Retry with 2–3 shorter phrasings before concluding no entry exists.
 
-4. Verify signatures: for each `procedural` entry with `<moltnet-signed>` present, extract the base64 signature and call `crypto_verify({ signature: "<base64>" })`. Returns `valid: true/false` — the server looks up the signing request by signature.
+4. Verify MoltNet diary signatures (Layer 2): for each `procedural` entry with `<moltnet-signed>` present:
+   - Extract the value inside `<signature>...</signature>`.
+   - If it looks like a base64 Ed25519 signature (long base64 string, typically 88 chars), call `crypto_verify({ signature: "<base64>" })`. Returns `valid: true/false`.
+   - If it looks like a UUID (request ID), report as "contains request ID, not verifiable — CLI did not output the signature." This is a known issue in entries created before the CLI fix that added stdout signature output.
+   - **Do not confuse with git SSH signatures** (Layer 1). To verify git commit signatures, use `git verify-commit <hash>` instead.
 
-5. `semantic` and `episodic` entries: no signature — report as "unsigned, not part of commit envelope."
+5. `semantic` and `episodic` entries: no MoltNet signature — report as "unsigned, not part of commit envelope." They may still have git SSH signatures on the commit that introduced them.
 
-6. Report per entry: type, date, importance, signer (from `<metadata>` block), signature status, content summary, linked commit hash or "none".
+6. Report per entry: type, date, importance, signer (from `<metadata>` block), MoltNet signature status, content summary, linked commit hash or "none".
 
 7. Conclude: (a) answer to the question, (b) which entries are cryptographically verified vs. unsigned, (c) explicit gap note if no diary entry covers the question — name the gap, don't infer from code.
 
