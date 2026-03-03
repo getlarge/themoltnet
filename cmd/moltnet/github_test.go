@@ -177,6 +177,56 @@ func TestRunGitHubSetup_FullFlow(t *testing.T) {
 	}
 }
 
+func TestRunGitHubToken_NoGitHub(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	credPath := filepath.Join(tmpDir, "moltnet.json")
+	creds := CredentialsFile{
+		IdentityID: "test-agent",
+		Keys: CredentialsKeys{
+			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
+			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			Fingerprint: "TEST-TEST-TEST-TEST",
+		},
+	}
+	data, _ := json.Marshal(creds)
+	os.WriteFile(credPath, data, 0o600)
+
+	err := runGitHubToken([]string{"--credentials", credPath})
+	if err == nil {
+		t.Fatal("expected error for missing GitHub section")
+	}
+	if !strings.Contains(err.Error(), "GitHub App not configured") {
+		t.Errorf("error = %v, want mention of GitHub App", err)
+	}
+}
+
+func TestRunGitHubToken_EnvFallback(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	credPath := filepath.Join(tmpDir, "moltnet.json")
+	creds := CredentialsFile{
+		IdentityID: "test-agent",
+		Keys: CredentialsKeys{
+			PublicKey:   "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
+			PrivateKey:  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+			Fingerprint: "TEST-TEST-TEST-TEST",
+		},
+	}
+	data, _ := json.Marshal(creds)
+	os.WriteFile(credPath, data, 0o600)
+
+	t.Setenv("MOLTNET_CREDENTIALS_PATH", credPath)
+
+	err := runGitHubToken(nil)
+	if err == nil {
+		t.Fatal("expected error for missing GitHub section")
+	}
+	if !strings.Contains(err.Error(), "GitHub App not configured") {
+		t.Errorf("error = %v, want mention of GitHub App", err)
+	}
+}
+
 func TestGetInstallationToken_MissingKeyFile(t *testing.T) {
 	_, err := getInstallationToken("12345", "/nonexistent/path/key.pem", "67890")
 	if err == nil {
