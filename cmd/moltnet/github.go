@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -216,7 +217,7 @@ func runGitHubCredentialHelper(args []string) error {
 		return fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
 	}
 
-	token, err := getInstallationToken(
+	token, err := getCachedInstallationToken(
 		creds.GitHub.AppID,
 		creds.GitHub.PrivateKeyPath,
 		creds.GitHub.InstallationID,
@@ -261,7 +262,7 @@ func runGitHubToken(args []string) error {
 		return fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
 	}
 
-	token, err := getInstallationToken(
+	token, err := getCachedInstallationToken(
 		creds.GitHub.AppID,
 		creds.GitHub.PrivateKeyPath,
 		creds.GitHub.InstallationID,
@@ -274,16 +275,62 @@ func runGitHubToken(args []string) error {
 	return nil
 }
 
+// tokenCache is the on-disk cache format for GitHub installation tokens.
+type tokenCache struct {
+	Token     string `json:"token"`
+	ExpiresAt string `json:"expires_at"`
+}
+
+// tokenCachePath returns the cache file path next to the private key.
+func tokenCachePath(privateKeyPath string) string {
+	return filepath.Join(filepath.Dir(privateKeyPath), "gh-token-cache.json")
+}
+
+// timeNow is a seam for tests.
+var timeNow = time.Now
+
+// getCachedInstallationToken returns a cached token if valid (>5 min remaining),
+// otherwise fetches a new one from the GitHub API and writes the cache.
+func getCachedInstallationToken(appID, privateKeyPath, installationID string) (string, error) {
+	cachePath := tokenCachePath(privateKeyPath)
+
+	// Try reading cache
+	if data, err := os.ReadFile(cachePath); err == nil {
+		var cached tokenCache
+		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" {
+			expiresAt, err := time.Parse(time.RFC3339, cached.ExpiresAt)
+			if err == nil && timeNow().Add(5*time.Minute).Before(expiresAt) {
+				return cached.Token, nil
+			}
+		}
+	}
+
+	// Cache miss or expired — fetch fresh token
+	token, expiresAtStr, err := getInstallationToken(appID, privateKeyPath, installationID)
+	if err != nil {
+		return "", err
+	}
+
+	// Write cache (best-effort)
+	cache := tokenCache{Token: token, ExpiresAt: expiresAtStr}
+	if data, err := json.Marshal(cache); err == nil {
+		_ = os.WriteFile(cachePath, data, 0o600)
+	}
+
+	return token, nil
+}
+
 // getInstallationToken exchanges a GitHub App JWT for an installation token.
-func getInstallationToken(appID, privateKeyPath, installationID string) (string, error) {
+// Returns the token string, its expiry (RFC3339), and any error.
+func getInstallationToken(appID, privateKeyPath, installationID string) (string, string, error) {
 	pemData, err := os.ReadFile(privateKeyPath)
 	if err != nil {
-		return "", fmt.Errorf("read GitHub App private key: %w", err)
+		return "", "", fmt.Errorf("read GitHub App private key: %w", err)
 	}
 
 	block, _ := pem.Decode(pemData)
 	if block == nil {
-		return "", fmt.Errorf("failed to decode PEM block from %s", privateKeyPath)
+		return "", "", fmt.Errorf("failed to decode PEM block from %s", privateKeyPath)
 	}
 
 	privKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -291,24 +338,24 @@ func getInstallationToken(appID, privateKeyPath, installationID string) (string,
 		// Fall back to PKCS#8 format
 		pkcs8Key, errPKCS8 := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if errPKCS8 != nil {
-			return "", fmt.Errorf("parse private key: PKCS#1: %v, PKCS#8: %w", err, errPKCS8)
+			return "", "", fmt.Errorf("parse private key: PKCS#1: %v, PKCS#8: %w", err, errPKCS8)
 		}
 		var ok bool
 		privKey, ok = pkcs8Key.(*rsa.PrivateKey)
 		if !ok {
-			return "", fmt.Errorf("PKCS#8 key is not RSA")
+			return "", "", fmt.Errorf("PKCS#8 key is not RSA")
 		}
 	}
 
 	jwt, err := createAppJWT(appID, privKey)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	url := fmt.Sprintf("https://api.github.com/app/installations/%s/access_tokens", installationID)
 	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Accept", "application/vnd.github+json")
@@ -316,13 +363,13 @@ func getInstallationToken(appID, privateKeyPath, installationID string) (string,
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("GitHub API request: %w", err)
+		return "", "", fmt.Errorf("GitHub API request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("GitHub API error (%d): %s", resp.StatusCode, string(body))
+		return "", "", fmt.Errorf("GitHub API error (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var result struct {
@@ -330,10 +377,10 @@ func getInstallationToken(appID, privateKeyPath, installationID string) (string,
 		ExpiresAt string `json:"expires_at"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("parse GitHub response: %w", err)
+		return "", "", fmt.Errorf("parse GitHub response: %w", err)
 	}
 
-	return result.Token, nil
+	return result.Token, result.ExpiresAt, nil
 }
 
 // createAppJWT creates an RS256-signed JWT for GitHub App authentication.

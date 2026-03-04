@@ -66,6 +66,25 @@ describe('CodexAdapter.writeMcpConfig', () => {
   });
 });
 
+describe('CodexAdapter.writeRules', () => {
+  it('writes .codex/rules/legreffier.rules with Starlark prefix_rule entries', async () => {
+    const adapter = new CodexAdapter();
+    await adapter.writeRules(baseOpts);
+
+    const raw = await readFile(
+      join(tmpRepo, '.codex', 'rules', 'legreffier.rules'),
+      'utf-8',
+    );
+    expect(raw).toContain('prefix_rule(');
+    expect(raw).toContain('pattern = ["git", "config"]');
+    expect(raw).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
+    expect(raw).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "github", "token"]',
+    );
+    expect(raw).toContain('decision = "allow"');
+  });
+});
+
 describe('CodexAdapter.writeSettings', () => {
   it('writes a sourceable env file with credentials', async () => {
     const adapter = new CodexAdapter();

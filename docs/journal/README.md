@@ -164,3 +164,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-03-02 | problem    | [Fix @themoltnet/legreffier Published with Unpublished Workspace Deps](2026-03-02-01-fix-legreffier-publish.md)                                    |
 | 2026-03-02 | decision   | [LeGreffier Scan Skill — Codebase Evidence Generation](2026-03-02-01-legreffier-scan-skill.md)                                                     |
 | 2026-03-03 | handoff    | [Fix Release Workflow Resilient to Draft Release Failures](2026-03-03-01-fix-release-workflow-draft-resilience.md)                                 |
+| 2026-03-03 | handoff    | [GitHub Token Subcommand](2026-03-03-02-github-token-subcommand.md)                                                                                |
+| 2026-03-04 | progress   | [File-Based Token Caching & Scoped gh Commands](2026-03-04-01-token-caching-scoped-gh.md)                                                          |
