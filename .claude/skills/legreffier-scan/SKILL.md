@@ -147,215 +147,25 @@ column indicates the minimum mode where the category is actively sought.
 
 ### Path discovery and tech stack fingerprinting
 
-The scan must adapt to each repo's structure. Phase 1 discovery builds a
-**project graph** that Phase 2 uses to know what conventions to look for in
-each package. Discovery has three passes:
+The full path discovery algorithm, enry integration, framework/ORM/test
+detection tables, and per-package recording format are in
+`references/path-discovery.md`.
 
-#### Pass 1: Repo-level discovery
+**Summary:** Discovery runs in three passes:
 
-1. Read root `README.md` — it usually describes project structure
-2. List top-level directories: `ls -1`
-3. Check for common doc patterns:
-   - `docs/`, `doc/`, `documentation/`
-   - `adr/`, `decisions/`, `rfcs/`
-   - `plans/`, `research/`
-   - `journal/`, `changelog/`
-4. Check for existing agent context:
-   - `CLAUDE.md`, `AGENTS.md`, `CODEX.md`, `.cursorrules`
-   - `.claude/`, `.github/copilot-instructions.md`
+1. **Pass 1 — Repo-level**: Read root README, list top-level dirs, check for
+   doc patterns (`docs/`, `adr/`, `plans/`) and agent context (`CLAUDE.md`,
+   `.claude/`).
+2. **Pass 2 — Workspace detection**: Identify package manager, workspace tool,
+   and build system from signal files (`pnpm-workspace.yaml`, `Cargo.toml`,
+   `go.work`, etc.) and lock files.
+3. **Pass 3 — Per-package fingerprinting**: Detect language (enry preferred,
+   manifest fallback), framework, test framework, ORM, and build tool per
+   package. Record results in the structure entry.
 
-#### Pass 2: Workspace and package manager detection
-
-Identify the workspace tool, package manager, and build system at the repo
-root. These determine how packages are organized and how to read dependency
-graphs.
-
-| Signal file | What it tells you |
-|---|---|
-| `pnpm-workspace.yaml` | pnpm monorepo, `packages:` lists workspace globs |
-| `lerna.json` | Lerna monorepo (possibly with npm/yarn/pnpm) |
-| `turbo.json` | Turborepo build orchestration |
-| `nx.json` | Nx monorepo, `projects` or auto-detection |
-| `rush.json` | Rush monorepo |
-| `Cargo.toml` with `[workspace]` | Rust workspace, `members` lists crates |
-| `go.work` | Go workspace, `use` lists modules |
-| `pyproject.toml` with workspace config | Python monorepo (uv, pdm, poetry) |
-| `BUILD` / `BUILD.bazel` / `WORKSPACE` | Bazel build system |
-| `Makefile` at root | Make-based build (common in Go, C, mixed repos) |
-| `Justfile` | just command runner |
-| `Taskfile.yml` | Task runner |
-| `docker-compose*.yaml` | Docker-based local dev |
-| `flake.nix` / `shell.nix` | Nix-based dev environment |
-
-Also detect the package manager:
-- `pnpm-lock.yaml` → pnpm
-- `yarn.lock` → yarn
-- `package-lock.json` → npm
-- `bun.lockb` / `bun.lock` → bun
-- `Cargo.lock` → cargo
-- `go.sum` → go modules
-- `uv.lock` / `poetry.lock` / `pdm.lock` / `Pipfile.lock` → Python variant
-
-#### Pass 3: Per-package tech stack fingerprinting
-
-For each package/module in the workspace, detect the language, framework,
-and source layout. This tells Phase 2 subagents what patterns to look for.
-
-**Principle: deterministic first, LLM second.** Language detection is a solved
-problem — don't waste LLM tokens on it. Use external tools for what they do
-well, reserve the LLM for judgment calls (framework selection, pattern naming).
-
-##### Step 3a: Language detection with enry (deterministic)
-
-Use [enry](https://github.com/go-enry/enry) (the Go port of GitHub Linguist)
-as the primary language detection tool. Run it per package directory to get a
-file-to-language map.
-
-**Check availability:**
-
-```bash
-which enry
-```
-
-If `enry` is not installed, prompt the user:
-
-```
-enry is not installed. It provides fast, deterministic language detection.
-Install options:
-  - go install github.com/go-enry/enry@latest
-  - Download binary from https://github.com/go-enry/enry/releases
-
-Install now, or fall back to manifest-based detection?
-```
-
-If the user declines or `enry` is unavailable, fall back to manifest-based
-detection (Step 3b).
-
-**Run per package:**
-
-```bash
-enry --json <package-path>
-```
-
-Output is a JSON map of language → file list:
-
-```json
-{"TypeScript": ["src/index.ts", "src/routes/diary.ts"], "JSON": ["package.json"]}
-```
-
-Use `-prog` flag to filter to programming languages only (excludes data,
-markup, prose):
-
-```bash
-enry --json -prog <package-path>
-```
-
-**What to extract from enry output:**
-
-- Primary language: the language with the most files (or most LOC if close)
-- Secondary languages: any other programming languages present (e.g., SQL
-  migration files in a TypeScript package)
-- Language zones: at repo level, map which directories are which languages
-  (critical for polyglot repos)
-
-**Repo-level language map (run once at repo root):**
-
-```bash
-enry --json -prog .
-```
-
-This gives a global picture before per-package analysis. For monorepos, the
-repo-level map reveals language zones that inform which detection heuristics
-to apply per package (e.g., skip Python framework tables for a TypeScript
-package).
-
-##### Step 3b: Framework and tooling detection (manifest + config)
-
-After language is known (from enry or fallback), detect the framework, test
-framework, ORM, and build tool. This step reads package manifests and checks
-for framework-specific config files.
-
-**How to fingerprint:**
-
-Read the package manifest (`package.json`, `Cargo.toml`, `go.mod`,
-`pyproject.toml`) and check for framework dependencies. Then confirm by
-checking for framework-specific config files.
-
-| Framework | Detection signal (dependency) | Confirm (config/structure) | Source pattern to expect |
-|---|---|---|---|
-| **Fastify** | `fastify` in deps | `fastify` plugin pattern in entry | Route files as Fastify plugins |
-| **NestJS** | `@nestjs/core` | `nest-cli.json`, `*.module.ts` | Controllers, services, modules |
-| **Express** | `express` in deps | `app.use()` in entry | Route handlers, middleware |
-| **Hono** | `hono` in deps | — | Route handlers |
-| **Gin** | `github.com/gin-gonic/gin` | — | `router.Group()`, handlers |
-| **Echo** | `github.com/labstack/echo` | — | Route handlers |
-| **Chi** | `github.com/go-chi/chi` | — | `r.Route()`, handlers |
-| **FastAPI** | `fastapi` in deps | — | Route decorators `@app.get()` |
-| **Django** | `django` in deps | `settings.py`, `urls.py` | Views, models, serializers |
-| **Flask** / **Starlette** | `flask` / `starlette` | — | Route decorators |
-| **Actix-web** | `actix-web` in `Cargo.toml` | — | Handler functions, `web::` types |
-| **Axum** | `axum` in `Cargo.toml` | — | Router, handler functions |
-| **React** | `react` in deps | `vite.config.ts` with JSX | Components in `src/` |
-| **Next.js** | `next` in deps | `next.config.*` | `app/` or `pages/` routing |
-| **Vue** | `vue` in deps | `vite.config.ts` with Vue | `.vue` SFC files |
-| **Svelte** | `svelte` in deps | `svelte.config.js` | `.svelte` files |
-
-**Test framework detection:**
-
-| Framework | Detection signal | Config file |
-|---|---|---|
-| **Vitest** | `vitest` in devDeps | `vitest.config.ts` |
-| **Jest** | `jest` in devDeps | `jest.config.*` |
-| **Mocha** | `mocha` in devDeps | `.mocharc.*` |
-| **pytest** | `pytest` in deps | `pytest.ini`, `pyproject.toml [tool.pytest]` |
-| **Go test** | Go module | `*_test.go` files |
-| **Rust test** | Cargo crate | `#[cfg(test)]` in source |
-| **Playwright** | `@playwright/test` | `playwright.config.ts` |
-| **Cypress** | `cypress` in devDeps | `cypress.config.*` |
-
-**ORM / database detection:**
-
-| ORM | Detection signal | What it means for patterns |
-|---|---|---|
-| **Drizzle** | `drizzle-orm` | Schema in TS, migration SQL |
-| **Prisma** | `prisma` | `schema.prisma`, generated client |
-| **TypeORM** | `typeorm` | Entity decorators, repositories |
-| **Sequelize** | `sequelize` | Model definitions |
-| **GORM** | `gorm.io/gorm` | Struct tags, `db.Find()` |
-| **SQLAlchemy** | `sqlalchemy` | Models, sessions |
-| **Diesel** | `diesel` in Cargo.toml | Schema macros |
-
-**What to record per package in the structure entry:**
-
-```
-Package: <name>
-  path: <relative path>
-  type: <lib|app|tool|package>
-  language: <typescript|javascript|go|python|rust>  # from enry or manifest
-  secondary_languages: [<sql|json|...>]             # from enry (if any)
-  framework: <fastify|nestjs|express|react|none|...>
-  test_framework: <vitest|jest|pytest|go-test|none>
-  orm: <drizzle|prisma|none|...>
-  build: <tsc|vite|esbuild|go-build|cargo|none>
-  source_layout: <src/|lib/|pkg/|internal/|...>
-  entry_point: <src/index.ts|main.go|src/main.rs|...>
-  internal_deps: [<list of workspace deps>]
-```
-
-For polyglot repos, also record the repo-level language map:
-
-```
-Language zones:
-  - TypeScript: apps/, libs/, tools/
-  - Go: services/gateway/, services/worker/
-  - Python: ml/, scripts/
-  - SQL: libs/database/drizzle/, infra/supabase/
-```
-
-This fingerprint feeds directly into Phase 2: when a subagent scans
-`apps/rest-api`, it knows to look for Fastify plugin patterns (not NestJS
-controllers), Vitest tests (not Jest), and Drizzle repositories (not Prisma
-models).
+**Principle: deterministic first, LLM second.** Use enry for language
+detection; reserve the LLM for judgment calls (framework selection, pattern
+naming).
 
 ### Phase 2: Code-aware scan
 
@@ -436,44 +246,10 @@ For test files, populate:
 
 #### Phase 2 subagent prompt template
 
-```
-You are scanning package <package-path> for code-level conventions.
-Diary ID: <DIARY_ID>
-Scan session: <scan-session-id>
-Scan mode: <bootstrap|deep>
-Repo: <repo-name>
-
-Upstream context (conventions from dependencies):
-<brief summary of constraints/patterns from already-scanned deps>
-
-Your assignment:
-  Package: <package-path>
-  Package type: <lib|app|tool|package>
-  Files to read:
-    - entry point: <path>
-    - pattern file: <path>
-    - test file: <path> (if exists)
-
-Extract:
-1. File conventions (naming, location patterns)
-2. Canonical pattern (20-40 line code snippet showing the right way)
-3. Constraints (MUST/NEVER rules not already in docs)
-4. Anti-patterns (what would break this package's conventions)
-5. Test patterns (if test file read)
-
-Create one architecture entry via entries_create with tags:
-  ["source:scan", "scan-session:<id>", "scan-category:architecture",
-   "scan-phase:code", "scope:<package-name>"]
-
-Important:
-- Do NOT restate constraints already in the upstream context
-- Do NOT copy entire files — extract the pattern, not the implementation
-- If the package is thin (just re-exports), note that and skip
-- Apply the non-redundancy filter: if a convention is obvious from the
-  upstream deps, skip it
-
-Return: { id, title, category, confidence, constraint_count, patterns_found }
-```
+See `references/content-templates.md` § "Phase 2 package scan subagent" for
+the full prompt template. Key points: each subagent receives its assigned
+files, upstream convention digests, and returns
+`{ id, title, category, confidence, constraint_count, patterns_found }`.
 
 #### Skipping thin packages
 
@@ -593,404 +369,24 @@ New metadata keys specific to scan entries:
 
 ### Content structure per scan category
 
-Each category has a deterministic content template. This consistency is critical
-for consolidation — the consolidation step must be able to parse scan entries
-reliably.
+Category-specific content templates are in `references/content-templates.md`.
+Each batch subagent should receive only the templates for its assigned
+categories.
 
-**Rule-readiness principle.** Every template includes fields that feed
-downstream rule extraction. The scan produces evidence entries, but those
-entries must be shaped so a consolidation step can mechanically extract
-**rule nuggets** — small, triggered, bounded, grounded constraints that load
-at task time. The key fields for rule extraction are:
+Every template includes these rule-extraction fields:
+- `Constraints:` — MUST/NEVER/PREFER statements
+- `Anti-patterns:` — what NOT to do
+- `Applies to:` — file glob scope
+- `Verification:` — compliance check
+- `Trigger hints:` — task/path triggers for nugget selection
 
-- `Constraints:` — MUST/NEVER/PREFER statements extracted verbatim from docs
-- `Anti-patterns:` — what NOT to do and what happens if you do
-- `Applies to:` — file glob where this knowledge is relevant
-- `Verification:` — how to check compliance
-- `Trigger hints:` — simple task/path/workflow triggers for later nugget selection
+**Non-redundancy filter.** Only extract constraints not already inferable
+from code structure. "Use TypeScript" is noise. "NEVER use paths aliases in
+tsconfig.json" is a real constraint.
 
-These fields appear in every category. Category-specific fields add further
-rule-relevant structure (canonical patterns, exact commands, hard rules).
-
-**Non-redundancy filter.** Only extract constraints that are NOT already
-obvious from the code structure. "Use TypeScript" is noise (there's a
-`tsconfig.json`). "NEVER use paths aliases in tsconfig.json" is a real
-constraint. If a convention is inferable from config files, don't extract
-it as a constraint — it adds cognitive load without value (per Gloaguen et
-al. 2026).
-
-#### Project identity
-
-```
-Project: <name>
-Purpose: <1-2 sentences>
-Tech stack: <languages, frameworks, runtime>
-Maturity: <early/active/stable/maintenance>
-Repository type: <monorepo|single-package|multi-repo>
-Key dependencies: <3-5 most important external deps>
-Constraints:
-  - MUST: <repo-wide hard requirements — e.g., "use catalog: for deps">
-  - NEVER: <repo-wide prohibitions — e.g., "never use paths aliases">
-  - PREFER: <repo-wide soft conventions>
-Applies to: **
-Trigger hints:
-  - task-class:onboard-developer
-  - task-class:understand-codebase
-Helps with: onboard-developer, understand-codebase
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Project identity — <name>`
-- Tags: `source:scan`, `scan-category:identity`, `scope:misc`
-- Importance: 7 (high — frames everything else)
-- One entry per repo
-- Note: `Constraints:` here captures repo-wide rules that apply everywhere.
-  Extract from CLAUDE.md, CONTRIBUTING.md, root README. These become
-  always-loaded ("hot") rule nuggets.
-
-#### Architecture
-
-```
-Component: <name or subsystem>
-Purpose: <what it does>
-Boundaries: <what it owns, what it delegates>
-Key abstractions: <patterns, interfaces, data models>
-Dependencies: <what it depends on, what depends on it>
-File conventions: <where new files go, naming pattern for this subsystem>
-Data flow: <how data moves through this component>
-Constraints:
-  - MUST: <hard requirements for this subsystem>
-  - NEVER: <prohibitions specific to this subsystem>
-  - PREFER: <soft conventions>
-Anti-patterns:
-  - <what NOT to do in this subsystem + what breaks>
-Canonical pattern: |
-  <code snippet showing the right way to add/modify in this subsystem.
-   In Phase 1, use a snippet from docs if available. In Phase 2, targeted
-   source files may provide this snippet when docs do not. Extract only a
-   small representative pattern, not a whole implementation.>
-Applies to: <file glob, e.g., apps/rest-api/**, libs/database/**>
-Verification: <how to check compliance — e.g., "pnpm run typecheck">
-Trigger hints:
-  - task-class:<1-2 task classes>
-  - path:<major subsystem glob>
-Helps with: <1-3 task classes, e.g., add-feature, debug-issue, review-code>
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Architecture — <component>`
-- Tags: `source:scan`, `scan-category:architecture`, `scope:<area>`
-- Importance: 6-8
-- One entry per major component/subsystem (not one per file)
-- Note: `Canonical pattern:` may come from docs in Phase 1 or from one
-  targeted representative source file in Phase 2. Do not invent patterns
-  from broad code inspection, and do not paste whole implementations.
-
-#### Plan or decision (ADR)
-
-```
-Decision: <what was decided>
-Date: <when, from the document>
-Status: <active|superseded|proposed>
-Context: <why the decision was needed>
-Alternatives considered: <what else was evaluated>
-Reason chosen: <why this option>
-Trade-offs: <what was given up>
-Constraints:
-  - MUST: <hard rules that follow from this decision>
-  - NEVER: <approaches ruled out by this decision>
-Applies to: <file glob where this decision constrains work>
-Trigger hints:
-  - task-class:understand-decision
-  - task-class:review-architecture
-Helps with: <1-3 task classes, e.g., understand-decision, review-architecture>
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Decision — <short description>`
-- Tags: `source:scan`, `scan-category:plan`, `decision`, `scope:<area>`
-- Importance: 5-7
-- One entry per ADR/decision document
-- Note: Decisions are a rich source of NEVER constraints — they document
-  what was rejected and why. Extract these as negative rules.
-
-#### Developer workflow
-
-```
-Workflow: <name — build|test|deploy|review|release>
-Required commands:
-  - <exact copy-paste command with all flags>: <what it does>
-  - <exact copy-paste command>: <what it does>
-Prerequisites: <what must be true before running>
-Common mistakes:
-  - <what breaks if you skip a step + what the error looks like>
-  - <wrong command variant + why it fails>
-Constraints:
-  - MUST: <e.g., "run db:generate after schema changes">
-  - NEVER: <e.g., "never use git add -A">
-CI integration: <how this relates to CI pipeline>
-Applies to: <file glob, e.g., **/*.ts for lint, apps/rest-api/** for deploy>
-Verification: <how to check the workflow was followed>
-Trigger hints:
-  - workflow:<build|test|deploy|review|release>
-  - task-class:<matching task class>
-Helps with: <1-3 task classes, e.g., setup-local-dev, run-tests, deploy>
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Workflow — <name>`
-- Tags: `source:scan`, `scan-category:workflow`, `scope:<area>`
-- Importance: 5-6
-- One entry per distinct workflow (build, test, deploy, release)
-- Note: `Required commands:` must be exact, copy-paste-ready. These are
-  the most reliably followed instructions per Gloaguen et al. Include
-  all flags. `Common mistakes:` should include the error message when
-  possible — helps agents recognize known issues.
-
-#### Project structure (workspace/module layout)
-
-```
-Structure: <monorepo|single-package|...>
-Package manager: <pnpm|yarn|npm|bun|cargo|go|uv|...>
-Workspace tool: <pnpm-workspaces|nx|turbo|lerna|cargo-workspace|go-work|...>
-Build system: <tsc+vite|nx|turbo|bazel|make|cargo|go-build|...>
-
-Layout:
-  - <dir/>: <purpose> (<framework/pattern>)
-  - <dir/>: <purpose>
-
-Packages:
-  - <name>:
-      path: <relative path>
-      type: <lib|app|tool|package>
-      language: <typescript|go|python|rust|...>
-      framework: <fastify|nestjs|react|none|...>
-      test_framework: <vitest|jest|pytest|none|...>
-      orm: <drizzle|prisma|none|...>
-      build: <tsc|vite|esbuild|go-build|cargo|...>
-      source_layout: <src/|lib/|pkg/|...>
-      entry_point: <src/index.ts|main.go|...>
-      internal_deps: [<workspace dep names>]
-  - <name>: ...
-
-Module boundaries: <what can import what>
-Shared code: <where shared utilities/types live>
-Build order: <dependency/build topology if relevant>
-Constraints:
-  - MUST: <e.g., "new packages must extend root tsconfig with composite: true">
-  - NEVER: <e.g., "never use paths aliases — use pnpm workspace symlinks">
-Anti-patterns:
-  - <e.g., "don't create libs/ packages that depend on apps/ packages">
-Applies to: <file glob, e.g., libs/**, apps/**, packages/**>
-Verification: <how to check structure compliance>
-Trigger hints:
-  - task-class:add-module
-  - path:<workspace area glob>
-Helps with: onboard-developer, understand-codebase, add-module
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Project structure`
-- Tags: `source:scan`, `scan-category:architecture`, `scope:misc`
-- Importance: 7 (upgraded — this entry drives Phase 2 targeting)
-- One entry per repo (or one per workspace root in multi-repo)
-- Note: The `Packages:` section is the project graph that Phase 2 uses to
-  determine what patterns to look for per package. It must be accurate —
-  Phase 2 subagents receive this as their targeting input.
-
-#### Testing conventions
-
-```
-Framework: <test framework and version>
-Test types:
-  - unit: <location pattern, run command>
-  - integration: <location pattern, run command, prerequisites>
-  - e2e: <location pattern, run command, prerequisites>
-Patterns: <AAA, BDD, etc.>
-Required commands:
-  - <exact test command with all flags>
-  - <exact e2e command with prerequisites>
-Test example: |
-  <representative test structure. In Phase 1, use docs or CLAUDE.md if
-   available. In Phase 2, a targeted test file may provide this example.
-   Do not invent patterns, and do not paste full test suites.>
-Mock pattern: <how this repo handles test doubles — e.g., vi.mock, manual>
-Fixtures: <where fixtures live, how to create them>
-Constraints:
-  - MUST: <e.g., "e2e stack must be running before tests">
-  - NEVER: <e.g., "never use jest.fn() — use vi.fn()">
-Anti-patterns:
-  - <what goes wrong in tests + how to recognize it>
-Applies to: **/*.test.ts, **/test/e2e/**
-CI integration: <how tests run in CI>
-Verification: <how to check test compliance>
-Trigger hints:
-  - task-class:write-test
-  - task-class:write-e2e-test
-Helps with: write-test, write-e2e-test, debug-test-failure
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Testing conventions`
-- Tags: `source:scan`, `scan-category:testing`, `scope:test`
-- Importance: 5-6
-- One entry per repo (or per major test category if complex)
-- Note: Testing is the most reliably followed category (75% prevalence,
-  F1=0.94 per Chatlatanagulchai). Concrete commands and patterns here
-  have the highest chance of being acted on correctly.
-
-#### Infrastructure
-
-```
-Service: <name>
-Role: <what it does in the system>
-Provider: <where it runs — local Docker, cloud, managed>
-Configuration: <where config lives — not secret values>
-Dependencies: <what other services it needs>
-Required commands:
-  - <exact setup/start command>
-Constraints:
-  - MUST: <e.g., "reset volumes after migration changes">
-  - NEVER: <e.g., "never extract env var values from compose files">
-Applies to: <file glob, e.g., docker-compose*.yaml, infra/**>
-Verification: <how to validate infra setup or compliance>
-Trigger hints:
-  - workflow:setup-local-dev
-  - task-class:debug-infra
-Helps with: <1-3 task classes, e.g., setup-local-dev, debug-infra, deploy>
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Infrastructure — <service>`
-- Tags: `source:scan`, `scan-category:infrastructure`, `scope:infra`
-- Importance: 4-6
-- One entry per service/infrastructure component
-
-#### Security model
-
-```
-Auth model: <how authentication works>
-Authorization: <how permissions are enforced>
-Trust boundaries: <where trust transitions happen>
-Secret management: <how secrets are stored and accessed — patterns only>
-Key patterns: <signing, encryption, token lifecycle>
-Constraints:
-  - MUST: <non-negotiable security requirements — e.g., "all diary writes
-     require Keto permission check">
-  - NEVER: <security prohibitions — e.g., "private key NEVER leaves the
-     agent's machine", "never extract secret values from config files">
-  - PREFER: <security best practices>
-Anti-patterns:
-  - <security mistakes to avoid + consequences>
-Verification: <how to check security compliance — e.g., commands, audits>
-Applies to: <file glob, e.g., libs/auth/**, libs/crypto-service/**>
-Trigger hints:
-  - task-class:review-security
-  - trust-boundary:<boundary name>
-Helps with: review-security, add-auth, audit-permissions
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Security model`
-- Tags: `source:scan`, `scan-category:security`, `scope:auth`
-- Importance: 7
-- One entry per repo (or split if auth and crypto are separate concerns)
-- Note: Security rules appear in only 14.5% of context files
-  (Chatlatanagulchai) but are the highest-value rules. The scanner MUST
-  actively search ALL docs for security-related MUST/NEVER statements,
-  not just dedicated security docs. Extract from ARCHITECTURE.md,
-  MISSION_INTEGRITY.md, journal entries about auth changes, etc.
-
-#### Domain knowledge
-
-```
-Entity: <business concept or domain object>
-Definition: <what it represents>
-Invariants: <rules that must always hold — these are hard constraints>
-Naming: <how it's referred to in code vs docs vs UI>
-Relationships: <how it connects to other entities>
-Lifecycle: <states, transitions, ownership>
-Constraints:
-  - MUST: <domain invariants expressed as rules>
-  - NEVER: <domain violations — e.g., "never create diary without owner">
-Applies to: <file glob where this entity is handled>
-Helps with: <1-3 task classes, e.g., add-feature, understand-domain, review-code>
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Domain — <entity or concept>`
-- Tags: `source:scan`, `scan-category:domain`, `scope:<area>`
-- Importance: 5-6
-- One entry per major domain concept (not per database table)
-- Note: Domain `Invariants:` are the most valuable rule source here.
-  They map directly to hard constraints that prevent data corruption.
-
-#### Known issues and caveats
-
-```
-Issue: <what the problem is>
-Context: <when it manifests>
-Trigger: <what task or action causes this to surface>
-Workaround: <current mitigation — exact commands if applicable>
-Error signature: <what the error message looks like>
-Status: <open|mitigated|resolved>
-Impact: <what breaks if you hit this>
-Constraints:
-  - NEVER: <what to avoid to prevent this>
-  - MUST: <what to do when encountering this>
-Applies to: <file glob where this issue is relevant>
-Helps with: <1-3 task classes, e.g., debug-issue, avoid-pitfall, onboard-developer>
-Confidence: <high|medium|low>
-
-<metadata>
-...
-</metadata>
-```
-
-- Title: `Scan: Caveat — <short description>`
-- Tags: `source:scan`, `scan-category:incident`, `incident`, `scope:<area>`
-- Entry type: `episodic`
-- Importance: 4-6
-- One entry per distinct issue
-- Note: Caveats are high-value negative rules. The `Error signature:` field
-  helps agents recognize known issues. `Trigger:` maps directly to the
-  nugget trigger type.
+Available categories: project-identity, architecture, plan/decision, workflow,
+structure, testing, infrastructure, security, domain, caveats. Each has a
+deterministic template with title, tags, importance, and notes on usage.
 
 ## Scan execution workflow
 
@@ -1415,48 +811,9 @@ Subagent delegation keeps each batch within a manageable context budget.
 | 10-20 | Subagents, 2-3 batches | Enriched templates need fresh context per batch |
 | 20+ | Subagents, 4-5 batches | Deep scan on large repo, mandatory delegation |
 
-Subagent prompt template:
-
-```
-You are executing batch <N> of a LeGreffier scan.
-Diary ID: <DIARY_ID>
-Scan session: <scan-session-id>
-Scan mode: <bootstrap|deep>
-Repo: <repo-name>
-
-Your assignment:
-  Categories: <list>
-  Files to read: <list>
-
-For each file:
-1. Read the file
-2. Scan for MUST/NEVER/ALWAYS/PREFER statements FIRST — these populate
-   the Constraints: field and are the highest-value output
-3. Extract entries using the templates below
-4. Apply the non-redundancy filter: skip constraints already inferable
-   from code structure (e.g., "use TypeScript" when tsconfig.json exists)
-5. Apply the nugget acceptance gate to each constraint: is it triggerable,
-   specific, bounded, grounded, and actionable? If not, keep it as
-   descriptive text, not a constraint.
-6. Create each entry via entries_create — include tags:
-   ["source:scan", "scan-session:<scan-session-id>", "scan-category:<cat>",
-    "scan-batch:<batch-id>", "scope:<scope>"]
-7. Include metadata:
-   - scan-batch: <batch-id>
-   - scan-entry-key: <category>:<subject-slug>
-8. Return the list:
-   [{ id, title, category, confidence, constraint_count, scan_entry_key }]
-
-Entry templates:
-<paste only the relevant category templates for this batch>
-
-Extraction priorities:
-- Constraints (MUST/NEVER) > Anti-patterns > Canonical patterns > Description
-- If running low on context, prioritize constraints over descriptive fields
-- Write entries immediately after extraction — don't accumulate
-
-Do not create a summary entry — the primary agent handles that.
-```
+Batch subagent prompt template: see `references/content-templates.md`
+§ "Batch scan subagent". Each subagent receives its assigned categories,
+file list, and the relevant category templates from the same file.
 
 ### Context budget per batch
 
@@ -1629,121 +986,17 @@ scan level — don't create entries per file or per function.
 ## Consolidation: tiles and rule nuggets
 
 After a scan is complete, the consolidation step transforms raw evidence entries
-into two outputs: **context tiles** and **rule nuggets**. This is the second
-stage of the context flywheel (Generate → **Consolidate** → Load → Eval).
+into two outputs: **context tiles** (~200-400 tokens each) and **rule nuggets**
+(~120 tokens each). This is the second stage of the context flywheel
+(Generate → **Consolidate** → Load → Eval).
 
-See `docs/research/scan-consolidation-approach.md` for the full execution
-playbook. This section covers the tagging and evaluation protocol.
+For the full consolidation protocol — tile/nugget tagging, multi-model
+evaluation dimensions, scorecard format, and retrieval queries — see
+`references/consolidation-reference.md`.
 
-### Context tiles
+For the execution playbook, see `docs/research/scan-consolidation-approach.md`.
 
-A tile is a synthesized knowledge unit (~200-400 tokens) that merges related
-scan entries into a single, scoped, task-ready block. Tiles answer:
-
-> "What do I need to know about X to work on Y correctly?"
-
-Tile entries use these tags:
-
-```
-source:tile
-tile-session:<ISO-8601 timestamp — unique per consolidation run>
-tile-scope:<scope, e.g., libs/database, apps/rest-api, misc>
-tile-id:<scope>/<topic>
-model:<model-short-tag>
-```
-
-The `model:` tag identifies which model produced the tile. The `tile-session:`
-tag isolates runs — even re-runs with the same model get a new timestamp.
-
-### Rule nuggets
-
-A nugget is an atomic constraint (~120 tokens) with a trigger, scope, and
-verification method. Nuggets are the output that a runtime control plane
-can load selectively at task time.
-
-Nugget entries use these tags:
-
-```
-source:nugget
-nugget-session:<same timestamp as tile-session for this run>
-nugget-domain:<domain, e.g., testing, security, workflow, database>
-nugget-id:<domain>.<subsystem>.<constraint-slug>
-model:<model-short-tag>
-```
-
-### Multi-model evaluation protocol
-
-When comparing consolidation quality across models, all runs use the same
-scan entries as fixed input. Only the consolidation step varies.
-
-**Models under test** should be tagged with their canonical short names:
-
-| Example model | Short tag |
-|---|---|
-| Claude Sonnet 4.6 | `claude-sonnet-4.6` |
-| Claude Opus 4.6 | `claude-opus-4.6` |
-| GPT 5.2 | `gpt-5.2` |
-| GPT 5.3 | `gpt-5.3` |
-
-**Evaluation dimensions** per model run:
-
-| Dimension | What it measures |
-|---|---|
-| Constraint yield | `accepted_nuggets / total_candidates` |
-| Specificity | Are constraints concrete? (1-5 avg) |
-| Non-redundancy | Count of nuggets restating obvious code structure |
-| Trigger precision | False-positive rate (low/med/high) |
-| Merge quality | Phase 1 + Phase 2 synthesis quality (1-5 avg) |
-| Token efficiency | `total_constraints / total_tokens` |
-| Hallucination rate | Count of constraints not in source entries |
-| Coverage | `constraints_found / constraints_in_sources` |
-| Consistency | Jaccard similarity with other models' nugget sets |
-
-**Scorecard entry** — after each run, store a scorecard:
-
-```
-Tags: source:scorecard, tile-session:<run-timestamp>,
-      model:<model-short-tag>, scan-session:<original-scan-session>
-Entry type: reflection
-Importance: 7
-```
-
-Content: YAML block with all dimension scores + free-text observations.
-
-**Cross-model comparison** — after all runs, produce a comparison entry:
-
-```
-Tags: source:scorecard, scorecard-type:comparison,
-      scan-session:<original-scan-session>
-```
-
-Content: constraint overlap matrix, quality ranking, cost-quality tradeoff,
-failure modes per model.
-
-### Retrieval queries for evaluation
-
-```
-# All tiles from a specific model
-entries_search({
-  query: "tile",
-  tags: ["source:tile", "tile-session:<run-timestamp>", "model:<tag>"],
-  diary_id: "<DIARY_ID>"
-})
-
-# All nuggets from a specific model
-entries_search({
-  query: "nugget",
-  tags: ["source:nugget", "nugget-session:<run-timestamp>", "model:<tag>"],
-  diary_id: "<DIARY_ID>"
-})
-
-# All scorecards for cross-model comparison
-entries_search({
-  query: "scorecard",
-  tags: ["source:scorecard", "scan-session:<original-scan-session>"],
-  diary_id: "<DIARY_ID>"
-})
-```
+The `legreffier-consolidate` skill handles the actual consolidation execution.
 
 ## Permissions
 

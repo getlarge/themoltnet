@@ -73,10 +73,6 @@ flowchart TD
   assign scan-batch IDs
   assign scan-entry-key values"]
   B4 --> C
-  C["Build dry-run plan
-  assign scan-session
-  assign scan-batch IDs
-  assign scan-entry-key values"]
   C --> D{"User approves?"}
   D -->|no| E["Adjust plan or stop"]
   D -->|yes| F["Execute planned batches"]

@@ -1,16 +1,9 @@
-# Scan Consolidation Approach — themoltnet
+# Scan Consolidation Approach
 
-Date: 2026-03-03
-Scan session: `2026-03-03T19:45:00Z`
-Diary: `e8c6646b-d4bc-47e9-aa6f-52d7d70efade` (scan-experiment-001, private)
-Agent: `1671-B080-99BF-4270`
-
-## Related
-
-- **[scan-to-rules-experiment.md](scan-to-rules-experiment.md)** — research
-  findings (Gloaguen, Chatlatanagulchai, Codified Context) and design rationale
-  for enriched scan templates, nugget protocol, and acceptance gate. Read that
-  first for the "why"; this doc is the "how".
+Reference document for transforming scan evidence entries into context tiles
+and rule nuggets. This is the "how"; see
+**[scan-to-rules-experiment.md](scan-to-rules-experiment.md)** for the "why"
+(research findings and design rationale).
 
 ## Purpose
 
@@ -34,21 +27,21 @@ This document is the approach reference. It survives context compression.
 # All scan entries from this session
 entries_search({
   query: "scan",
-  tags: ["source:scan", "scan-session:2026-03-03T19:45:00Z"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
+  tags: ["source:scan", "scan-session:<SCAN_SESSION>"],
+  diary_id: "<DIARY_ID>",
   limit: 20
 })
 
 # Scan plan
 entries_get({
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
-  entry_id: "4f2e03b9-afdc-49db-93ed-a28f1bff04a2"
+  diary_id: "<DIARY_ID>",
+  entry_id: "<SCAN_PLAN_ENTRY_ID>"
 })
 
 # Scan summary
 entries_get({
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
-  entry_id: "b6b6bae5-df42-4b63-8c99-5926d41eadeb"
+  diary_id: "<DIARY_ID>",
+  entry_id: "<SCAN_SUMMARY_ENTRY_ID>"
 })
 ```
 
@@ -56,30 +49,30 @@ entries_get({
 
 | # | Entry Key | Entry ID | Category | Scope | Batch |
 |---|-----------|----------|----------|-------|-------|
-| 1 | identity:project-identity | `6ddb1d0e` | identity | misc | phase1-b1 |
-| 2 | architecture:project-structure | `5b89fb53` | architecture | misc | phase1-b1 |
-| 3 | architecture:rest-api | `34ccf479` | architecture | apps/rest-api | phase1-b2 |
-| 4 | architecture:mcp-server | `090ad8f2` | architecture | apps/mcp-server | phase1-b2 |
-| 5 | architecture:auth-flow | `d7a52a9b` | architecture | misc | phase1-b2 |
-| 6 | architecture:database | `381b68fe` | architecture | libs/database | phase1-b2 |
-| 7 | workflow:build-and-validate | `6b91a592` | workflow | misc | phase1-b3 |
-| 8 | workflow:docker-local-dev | `18727406` | workflow | misc | phase1-b3 |
-| 9 | testing:conventions | `06d0c518` | testing | misc | phase1-b3 |
-| 10 | security:auth-model | `cc2cb2f9` | security | misc | phase1-b4 |
-| 11 | caveat:sandbox-sigill | `812a0057` | caveat | misc | phase1-b4 |
-| 12 | architecture:libs-database | `7698f6f6` | architecture | libs/database | phase2-tier0 |
-| 13 | architecture:libs-crypto-service | `76319d37` | architecture | libs/crypto-service | phase2-tier0 |
-| 14 | architecture:libs-auth | `9f474ac0` | architecture | libs/auth | phase2-tier0 |
-| 15 | architecture:libs-diary-service | `091ef4f9` | architecture | libs/diary-service | phase2-tier1 |
-| 16 | architecture:apps-rest-api | `b51c7882` | architecture | apps/rest-api | phase2-tier2 |
-| 17 | architecture:apps-mcp-server | `7503187d` | architecture | apps/mcp-server | phase2-tier2 |
+| 1 | identity:project-identity | `<ID>` | identity | misc | phase1-b1 |
+| 2 | architecture:project-structure | `<ID>` | architecture | misc | phase1-b1 |
+| 3 | architecture:rest-api | `<ID>` | architecture | apps/rest-api | phase1-b2 |
+| 4 | architecture:mcp-server | `<ID>` | architecture | apps/mcp-server | phase1-b2 |
+| 5 | architecture:auth-flow | `<ID>` | architecture | misc | phase1-b2 |
+| 6 | architecture:database | `<ID>` | architecture | libs/database | phase1-b2 |
+| 7 | workflow:build-and-validate | `<ID>` | workflow | misc | phase1-b3 |
+| 8 | workflow:docker-local-dev | `<ID>` | workflow | misc | phase1-b3 |
+| 9 | testing:conventions | `<ID>` | testing | misc | phase1-b3 |
+| 10 | security:auth-model | `<ID>` | security | misc | phase1-b4 |
+| 11 | caveat:sandbox-sigill | `<ID>` | caveat | misc | phase1-b4 |
+| 12 | architecture:libs-database | `<ID>` | architecture | libs/database | phase2-tier0 |
+| 13 | architecture:libs-crypto-service | `<ID>` | architecture | libs/crypto-service | phase2-tier0 |
+| 14 | architecture:libs-auth | `<ID>` | architecture | libs/auth | phase2-tier0 |
+| 15 | architecture:libs-diary-service | `<ID>` | architecture | libs/diary-service | phase2-tier1 |
+| 16 | architecture:apps-rest-api | `<ID>` | architecture | apps/rest-api | phase2-tier2 |
+| 17 | architecture:apps-mcp-server | `<ID>` | architecture | apps/mcp-server | phase2-tier2 |
 
 ### Tags for retrieval
 
 | Tag pattern | What it matches |
 |---|---|
 | `source:scan` | All scan-derived entries (any session) |
-| `scan-session:2026-03-03T19:45:00Z` | This specific scan run |
+| `scan-session:<SCAN_SESSION>` | This specific scan run |
 | `scan-category:identity` | Identity entries |
 | `scan-category:architecture` | Architecture entries (Phase 1 + 2) |
 | `scan-category:workflow` | Workflow entries |
@@ -197,7 +190,7 @@ Process tiles in this order (matches dependency):
 
 Each tile is created as a new diary entry with tags:
 - `source:tile`
-- `tile-session:2026-03-03T19:45:00Z` (same scan session)
+- `tile-session:<SCAN_SESSION>` (same scan session)
 - `tile-scope:<scope>`
 - `tile-id:<scope>/<topic>`
 
@@ -286,7 +279,7 @@ Target: **15-23 nuggets** in first batch.
 
 Nuggets are stored as diary entries with tags:
 - `source:nugget`
-- `nugget-session:2026-03-03T19:45:00Z`
+- `nugget-session:<SCAN_SESSION>`
 - `nugget-domain:<domain>`
 - `nugget-id:<full-nugget-id>`
 
@@ -402,7 +395,7 @@ notes: <free text observations>
 ```
 
 Tags: `source:scorecard`, `model:<model-short-tag>`,
-`scan-session:2026-03-03T19:45:00Z`
+`scan-session:<SCAN_SESSION>`
 
 ### Cross-model comparison
 
@@ -512,29 +505,29 @@ Read docs/research/scan-consolidation-approach.md
 
 # Reload scan summary
 entries_get({
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
-  entry_id: "b6b6bae5-df42-4b63-8c99-5926d41eadeb"
+  diary_id: "<DIARY_ID>",
+  entry_id: "<SCAN_SUMMARY_ENTRY_ID>"
 })
 
 # Find completed tiles for current model run
 entries_search({
   query: "tile",
   tags: ["source:tile", "tile-session:<current-run-timestamp>", "model:<current-model-tag>"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
+  diary_id: "<DIARY_ID>"
 })
 
 # Find completed nuggets for current model run
 entries_search({
   query: "nugget",
   tags: ["source:nugget", "nugget-session:<current-run-timestamp>", "model:<current-model-tag>"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
+  diary_id: "<DIARY_ID>"
 })
 
 # Find scorecard for current model run
 entries_search({
   query: "scorecard",
   tags: ["source:scorecard", "tile-session:<current-run-timestamp>", "model:<current-model-tag>"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
+  diary_id: "<DIARY_ID>"
 })
 ```
 
