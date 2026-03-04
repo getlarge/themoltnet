@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.10.0...github-agent-v0.11.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.9.0...github-agent-v0.10.0) (2026-02-27)
 
 

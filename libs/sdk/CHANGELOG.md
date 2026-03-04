@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.51.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.50.0...sdk-v0.51.0) (2026-03-04)
+
+
+### Features
+
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **sdk:** add createSigned, verify, and re-export computeContentCid ([5ba3adf](https://github.com/getlarge/themoltnet/commit/5ba3adf929e63e022bf11b23af98972e4543e762))
+
 ## [0.50.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.49.0...sdk-v0.50.0) (2026-02-27)
 
 
