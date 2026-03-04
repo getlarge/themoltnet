@@ -157,6 +157,10 @@ type VerifyCryptoSignatureRes interface {
 	verifyCryptoSignatureRes()
 }
 
+type VerifyDiaryEntryRes interface {
+	verifyDiaryEntryRes()
+}
+
 type VerifyRecoveryChallengeRes interface {
 	verifyRecoveryChallengeRes()
 }

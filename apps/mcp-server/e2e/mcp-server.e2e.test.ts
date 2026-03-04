@@ -86,7 +86,7 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 23 registered tools', async () => {
+    it('lists all 24 registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
@@ -95,13 +95,14 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('diaries_list');
       expect(toolNames).toContain('diaries_create');
       expect(toolNames).toContain('diaries_get');
-      // Entries (6) + reflect (1)
+      // Entries (7) + reflect (1)
       expect(toolNames).toContain('entries_create');
       expect(toolNames).toContain('entries_get');
       expect(toolNames).toContain('entries_list');
       expect(toolNames).toContain('entries_search');
       expect(toolNames).toContain('entries_update');
       expect(toolNames).toContain('entries_delete');
+      expect(toolNames).toContain('entries_verify');
       expect(toolNames).toContain('reflect');
       // Crypto (4)
       expect(toolNames).toContain('crypto_prepare_signature');
@@ -122,7 +123,7 @@ describe('MCP Server E2E', () => {
       // Network Info (1)
       expect(toolNames).toContain('moltnet_info');
 
-      expect(tools).toHaveLength(23);
+      expect(tools).toHaveLength(24);
     });
 
     it('lists all registered resources', async () => {
@@ -428,6 +429,110 @@ describe('MCP Server E2E', () => {
       const content = result.content as Array<{ type: string; text: string }>;
       expect(result.isError).toBe(true);
       expect(content[0].text).toContain('Invalid tool arguments');
+    });
+
+    // ── Content signing via MCP tools ──
+
+    it('creates a signed entry and verifies it via MCP tools', async () => {
+      requireSetup();
+      const { computeContentCid, cryptoService } =
+        await import('@moltnet/crypto-service');
+
+      const content = 'MCP signed entry e2e test';
+      const title = 'MCP Signed';
+      const entryType = 'semantic';
+      const tags = ['mcp-e2e', 'signing'];
+
+      // 1. Compute CID locally
+      const contentCid = computeContentCid(entryType, title, content, tags);
+      expect(contentCid).toMatch(/^b/);
+
+      // 2. Prepare signing request
+      const prepareResult = await client.callTool({
+        name: 'crypto_prepare_signature',
+        arguments: { message: contentCid },
+      });
+      const prepareContent = prepareResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        prepareResult.isError,
+        `prepare error: ${prepareContent[0].text}`,
+      ).toBeUndefined();
+      const envelope = JSON.parse(prepareContent[0].text);
+
+      // 3. Sign locally
+      const signature = await cryptoService.signWithNonce(
+        contentCid,
+        envelope.nonce,
+        harness.agent.keyPair.privateKey,
+      );
+
+      // 4. Submit signature
+      const submitResult = await client.callTool({
+        name: 'crypto_submit_signature',
+        arguments: { request_id: envelope.request_id, signature },
+      });
+      const submitContent = submitResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        submitResult.isError,
+        `submit error: ${submitContent[0].text}`,
+      ).toBeUndefined();
+      const submitParsed = JSON.parse(submitContent[0].text);
+      expect(submitParsed.status).toBe('completed');
+      expect(submitParsed.valid).toBe(true);
+
+      // 5. Create signed entry via MCP
+      const createResult = await client.callTool({
+        name: 'entries_create',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          content,
+          title,
+          entry_type: entryType,
+          tags,
+          content_hash: contentCid,
+          signing_request_id: envelope.request_id,
+        },
+      });
+      const createContent = createResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        createResult.isError,
+        `entries_create error: ${createContent[0].text}`,
+      ).toBeUndefined();
+      const createParsed = JSON.parse(createContent[0].text);
+      const entry = createParsed.entry;
+      expect(entry.contentHash).toBe(contentCid);
+      expect(entry.contentSignature).toBe(signature);
+
+      // 6. Verify via entries_verify tool
+      const verifyResult = await client.callTool({
+        name: 'entries_verify',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          entry_id: entry.id,
+        },
+      });
+      const verifyContent = verifyResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        verifyResult.isError,
+        `entries_verify error: ${verifyContent[0].text}`,
+      ).toBeUndefined();
+      const verification = JSON.parse(verifyContent[0].text);
+      expect(verification.signed).toBe(true);
+      expect(verification.hashMatches).toBe(true);
+      expect(verification.signatureValid).toBe(true);
+      expect(verification.valid).toBe(true);
     });
 
     // ── Crypto tools ──

@@ -33,7 +33,7 @@ func (UnimplementedHandler) CreateDiary(ctx context.Context, req *CreateDiaryReq
 
 // CreateDiaryEntry implements createDiaryEntry operation.
 //
-// Create a new diary entry in a specific diary.
+// Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
 //
 // POST /diaries/{diaryId}/entries
 func (UnimplementedHandler) CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq, params CreateDiaryEntryParams) (r CreateDiaryEntryRes, _ error) {
@@ -418,6 +418,16 @@ func (UnimplementedHandler) VerifyAgentSignature(ctx context.Context, req *Verif
 //
 // POST /crypto/verify
 func (UnimplementedHandler) VerifyCryptoSignature(ctx context.Context, req *VerifyCryptoSignatureReq) (r VerifyCryptoSignatureRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// VerifyDiaryEntry implements verifyDiaryEntry operation.
+//
+// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
+// and signature is valid.
+//
+// GET /diaries/{diaryId}/entries/{entryId}/verify
+func (UnimplementedHandler) VerifyDiaryEntry(ctx context.Context, params VerifyDiaryEntryParams) (r VerifyDiaryEntryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

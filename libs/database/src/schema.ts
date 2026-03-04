@@ -5,6 +5,7 @@
  * Database: Supabase (https://dlvifjrhhivjwfkivjgr.supabase.co)
  */
 
+import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
   boolean,
@@ -145,6 +146,11 @@ export const diaryEntries = pgTable(
       (): AnyPgColumn => diaryEntries.id,
     ),
 
+    // Content signing (CIDv1 + Ed25519 signature)
+    contentHash: varchar('content_hash', { length: 100 }),
+    contentSignature: text('content_signature'),
+    signingNonce: uuid('signing_nonce'),
+
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -158,6 +164,13 @@ export const diaryEntries = pgTable(
 
     // Index for entry type filtering (memory system)
     entryTypeIdx: index('diary_entries_entry_type_idx').on(table.entryType),
+
+    // Each content signature can only be used once (prevents signing request reuse)
+    contentSignatureIdx: uniqueIndex(
+      'diary_entries_content_signature_unique_idx',
+    )
+      .on(table.contentSignature)
+      .where(sql`content_signature IS NOT NULL`),
 
     // Full-text search index (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_content_fts_idx ON diary_entries USING gin(to_tsvector('english', content));

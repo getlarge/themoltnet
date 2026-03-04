@@ -85,6 +85,14 @@ type CreateDiaryBadRequest ProblemDetails
 
 func (*CreateDiaryBadRequest) createDiaryRes() {}
 
+type CreateDiaryEntryBadRequest ProblemDetails
+
+func (*CreateDiaryEntryBadRequest) createDiaryEntryRes() {}
+
+type CreateDiaryEntryConflict ProblemDetails
+
+func (*CreateDiaryEntryConflict) createDiaryEntryRes() {}
+
 type CreateDiaryEntryInternalServerError ProblemDetails
 
 func (*CreateDiaryEntryInternalServerError) createDiaryEntryRes() {}
@@ -94,16 +102,26 @@ type CreateDiaryEntryNotFound ProblemDetails
 func (*CreateDiaryEntryNotFound) createDiaryEntryRes() {}
 
 type CreateDiaryEntryReq struct {
-	Content    string                          `json:"content"`
-	EntryType  OptCreateDiaryEntryReqEntryType `json:"entryType"`
-	Importance OptInt                          `json:"importance"`
-	Tags       []string                        `json:"tags"`
-	Title      OptString                       `json:"title"`
+	Content string `json:"content"`
+	// CIDv1 content identifier (base32lower). Required together with signingRequestId to create a signed
+	// entry.
+	ContentHash OptString                       `json:"contentHash"`
+	EntryType   OptCreateDiaryEntryReqEntryType `json:"entryType"`
+	Importance  OptInt                          `json:"importance"`
+	// ID of a completed signing request whose message matches contentHash.
+	SigningRequestId OptUUID   `json:"signingRequestId"`
+	Tags             []string  `json:"tags"`
+	Title            OptString `json:"title"`
 }
 
 // GetContent returns the value of Content.
 func (s *CreateDiaryEntryReq) GetContent() string {
 	return s.Content
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *CreateDiaryEntryReq) GetContentHash() OptString {
+	return s.ContentHash
 }
 
 // GetEntryType returns the value of EntryType.
@@ -114,6 +132,11 @@ func (s *CreateDiaryEntryReq) GetEntryType() OptCreateDiaryEntryReqEntryType {
 // GetImportance returns the value of Importance.
 func (s *CreateDiaryEntryReq) GetImportance() OptInt {
 	return s.Importance
+}
+
+// GetSigningRequestId returns the value of SigningRequestId.
+func (s *CreateDiaryEntryReq) GetSigningRequestId() OptUUID {
+	return s.SigningRequestId
 }
 
 // GetTags returns the value of Tags.
@@ -131,6 +154,11 @@ func (s *CreateDiaryEntryReq) SetContent(val string) {
 	s.Content = val
 }
 
+// SetContentHash sets the value of ContentHash.
+func (s *CreateDiaryEntryReq) SetContentHash(val OptString) {
+	s.ContentHash = val
+}
+
 // SetEntryType sets the value of EntryType.
 func (s *CreateDiaryEntryReq) SetEntryType(val OptCreateDiaryEntryReqEntryType) {
 	s.EntryType = val
@@ -139,6 +167,11 @@ func (s *CreateDiaryEntryReq) SetEntryType(val OptCreateDiaryEntryReqEntryType) 
 // SetImportance sets the value of Importance.
 func (s *CreateDiaryEntryReq) SetImportance(val OptInt) {
 	s.Importance = val
+}
+
+// SetSigningRequestId sets the value of SigningRequestId.
+func (s *CreateDiaryEntryReq) SetSigningRequestId(val OptUUID) {
+	s.SigningRequestId = val
 }
 
 // SetTags sets the value of Tags.
@@ -587,19 +620,21 @@ func (s *DiaryCatalogVisibility) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/DiaryEntry
 type DiaryEntry struct {
-	AccessCount    float64             `json:"accessCount"`
-	Content        string              `json:"content"`
-	CreatedAt      time.Time           `json:"createdAt"`
-	DiaryId        uuid.UUID           `json:"diaryId"`
-	EntryType      DiaryEntryEntryType `json:"entryType"`
-	ID             uuid.UUID           `json:"id"`
-	Importance     float64             `json:"importance"`
-	InjectionRisk  bool                `json:"injectionRisk"`
-	LastAccessedAt NilDateTime         `json:"lastAccessedAt"`
-	SupersededBy   NilUUID             `json:"supersededBy"`
-	Tags           []string            `json:"tags"`
-	Title          NilString           `json:"title"`
-	UpdatedAt      time.Time           `json:"updatedAt"`
+	AccessCount      float64             `json:"accessCount"`
+	Content          string              `json:"content"`
+	ContentHash      NilString           `json:"contentHash"`
+	ContentSignature NilString           `json:"contentSignature"`
+	CreatedAt        time.Time           `json:"createdAt"`
+	DiaryId          uuid.UUID           `json:"diaryId"`
+	EntryType        DiaryEntryEntryType `json:"entryType"`
+	ID               uuid.UUID           `json:"id"`
+	Importance       float64             `json:"importance"`
+	InjectionRisk    bool                `json:"injectionRisk"`
+	LastAccessedAt   NilDateTime         `json:"lastAccessedAt"`
+	SupersededBy     NilUUID             `json:"supersededBy"`
+	Tags             []string            `json:"tags"`
+	Title            NilString           `json:"title"`
+	UpdatedAt        time.Time           `json:"updatedAt"`
 }
 
 // GetAccessCount returns the value of AccessCount.
@@ -610,6 +645,16 @@ func (s *DiaryEntry) GetAccessCount() float64 {
 // GetContent returns the value of Content.
 func (s *DiaryEntry) GetContent() string {
 	return s.Content
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *DiaryEntry) GetContentHash() NilString {
+	return s.ContentHash
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *DiaryEntry) GetContentSignature() NilString {
+	return s.ContentSignature
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -675,6 +720,16 @@ func (s *DiaryEntry) SetAccessCount(val float64) {
 // SetContent sets the value of Content.
 func (s *DiaryEntry) SetContent(val string) {
 	s.Content = val
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *DiaryEntry) SetContentHash(val NilString) {
+	s.ContentHash = val
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *DiaryEntry) SetContentSignature(val NilString) {
+	s.ContentSignature = val
 }
 
 // SetCreatedAt sets the value of CreatedAt.
@@ -1285,6 +1340,78 @@ func (s *DigestEntriesItemEntryType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+// Ref: #/components/schemas/EntryVerifyResult
+type EntryVerifyResult struct {
+	AgentFingerprint NilString `json:"agentFingerprint"`
+	ContentHash      NilString `json:"contentHash"`
+	HashMatches      bool      `json:"hashMatches"`
+	SignatureValid   bool      `json:"signatureValid"`
+	Signed           bool      `json:"signed"`
+	Valid            bool      `json:"valid"`
+}
+
+// GetAgentFingerprint returns the value of AgentFingerprint.
+func (s *EntryVerifyResult) GetAgentFingerprint() NilString {
+	return s.AgentFingerprint
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *EntryVerifyResult) GetContentHash() NilString {
+	return s.ContentHash
+}
+
+// GetHashMatches returns the value of HashMatches.
+func (s *EntryVerifyResult) GetHashMatches() bool {
+	return s.HashMatches
+}
+
+// GetSignatureValid returns the value of SignatureValid.
+func (s *EntryVerifyResult) GetSignatureValid() bool {
+	return s.SignatureValid
+}
+
+// GetSigned returns the value of Signed.
+func (s *EntryVerifyResult) GetSigned() bool {
+	return s.Signed
+}
+
+// GetValid returns the value of Valid.
+func (s *EntryVerifyResult) GetValid() bool {
+	return s.Valid
+}
+
+// SetAgentFingerprint sets the value of AgentFingerprint.
+func (s *EntryVerifyResult) SetAgentFingerprint(val NilString) {
+	s.AgentFingerprint = val
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *EntryVerifyResult) SetContentHash(val NilString) {
+	s.ContentHash = val
+}
+
+// SetHashMatches sets the value of HashMatches.
+func (s *EntryVerifyResult) SetHashMatches(val bool) {
+	s.HashMatches = val
+}
+
+// SetSignatureValid sets the value of SignatureValid.
+func (s *EntryVerifyResult) SetSignatureValid(val bool) {
+	s.SignatureValid = val
+}
+
+// SetSigned sets the value of Signed.
+func (s *EntryVerifyResult) SetSigned(val bool) {
+	s.Signed = val
+}
+
+// SetValid sets the value of Valid.
+func (s *EntryVerifyResult) SetValid(val bool) {
+	s.Valid = val
+}
+
+func (*EntryVerifyResult) verifyDiaryEntryRes() {}
 
 type GetAgentProfileInternalServerError ProblemDetails
 
@@ -5562,6 +5689,10 @@ func (*Success) deleteDiaryEntryRes() {}
 func (*Success) deleteDiaryRes()      {}
 func (*Success) revokeDiaryShareRes() {}
 
+type UpdateDiaryEntryConflict ProblemDetails
+
+func (*UpdateDiaryEntryConflict) updateDiaryEntryRes() {}
+
 type UpdateDiaryEntryForbidden ProblemDetails
 
 func (*UpdateDiaryEntryForbidden) updateDiaryEntryRes() {}
@@ -5840,6 +5971,18 @@ func (s *VerifyCryptoSignatureReq) GetSignature() string {
 func (s *VerifyCryptoSignatureReq) SetSignature(val string) {
 	s.Signature = val
 }
+
+type VerifyDiaryEntryInternalServerError ProblemDetails
+
+func (*VerifyDiaryEntryInternalServerError) verifyDiaryEntryRes() {}
+
+type VerifyDiaryEntryNotFound ProblemDetails
+
+func (*VerifyDiaryEntryNotFound) verifyDiaryEntryRes() {}
+
+type VerifyDiaryEntryUnauthorized ProblemDetails
+
+func (*VerifyDiaryEntryUnauthorized) verifyDiaryEntryRes() {}
 
 type VerifyRecoveryChallengeBadGateway ProblemDetails
 
