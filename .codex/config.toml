@@ -5,3 +5,5 @@ url = "https://mcp.themolt.net/mcp"
 X-Client-Id = "LEGREFFIER_CLIENT_ID"
 X-Client-Secret = "LEGREFFIER_CLIENT_SECRET"
 
+[features]
+multi_agent = true
