@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.13.0...github-agent-v0.14.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** LeGreffier init CLI — full onboarding flow ([57caf23](https://github.com/getlarge/themoltnet/commit/57caf23273fe37bd2363746803da2f5157707631))
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.12.0...github-agent-v0.13.0) (2026-03-04)
 
 
