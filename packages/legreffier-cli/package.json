@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/legreffier",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "LeGreffier — one-command accountable AI agent setup",
   "license": "MIT",
   "type": "module",
