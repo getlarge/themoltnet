@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.17.0...moltnet-api-client-v0.18.0) (2026-03-04)
+
+
+### Features
+
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+
+
+### Bug Fixes
+
+* regenerate Go API client and fix CodeQL shell injection ([9a23e70](https://github.com/getlarge/themoltnet/commit/9a23e703c77f7a23d584165e8d62e4e3c3bf8c26))
+
 ## [0.17.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.16.0...moltnet-api-client-v0.17.0) (2026-02-27)
 
 

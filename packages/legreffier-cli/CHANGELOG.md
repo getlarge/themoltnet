@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.9.0...legreffier-v0.10.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* **legreffier:** Codex Starlark rules + GH auth in skill ([dc05d7d](https://github.com/getlarge/themoltnet/commit/dc05d7d1c8a0dbd2798ad4b91512f7e277524475))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.8.0...legreffier-v0.9.0) (2026-03-03)
 
 
