@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.53.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.52.0...sdk-v0.53.0) (2026-03-04)
+
+
+### Features
+
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** add X25519 key derivation and sealed envelope encryption ([2345452](https://github.com/getlarge/themoltnet/commit/23454527c4659c43cda9ee3590be27b10183349e)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** LeGreffier init CLI — full onboarding flow ([57caf23](https://github.com/getlarge/themoltnet/commit/57caf23273fe37bd2363746803da2f5157707631))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **sdk:** add createSigned, verify, and re-export computeContentCid ([5ba3adf](https://github.com/getlarge/themoltnet/commit/5ba3adf929e63e022bf11b23af98972e4543e762))
+* **sdk:** add signBytes(signingInput) for protocol-free signing ([a74cf66](https://github.com/getlarge/themoltnet/commit/a74cf66df007e79dd116cedd2c84b8967301cf94))
+
+
+### Bug Fixes
+
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **deps:** remove deprecated @hey-api/client-fetch ([9cdcf36](https://github.com/getlarge/themoltnet/commit/9cdcf36aa65c87c08113a8b9b622e109b4a5e41c))
+* **deps:** remove deprecated @hey-api/client-fetch ([6988650](https://github.com/getlarge/themoltnet/commit/6988650653ec8168dccab3d1bc0a3e9195c0f250))
+* **sdk,mcp-server,api-client:** update for multi-diary — no hardcoded refs ([8a5fca6](https://github.com/getlarge/themoltnet/commit/8a5fca6301be9dc58299fd62abae6c88d848d518))
+* **sdk:** bundle .d.ts declarations to eliminate @moltnet/* leaks ([cf1bfe4](https://github.com/getlarge/themoltnet/commit/cf1bfe4fae14ef091ae42558c1669f4bc1f60df0))
+* **sdk:** use vite-plugin-dts to bundle .d.ts declarations ([2e238b9](https://github.com/getlarge/themoltnet/commit/2e238b9b7943c0fd2f8ab3894fd708d8c22f6cfd))
+* update SDK diary namespace for multi-diary and remove stale tests ([a5957ca](https://github.com/getlarge/themoltnet/commit/a5957ca3e1b109f2adfad5c6cc4319c30b0b0872))
+
 ## [0.52.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.51.0...sdk-v0.52.0) (2026-03-04)
 
 
