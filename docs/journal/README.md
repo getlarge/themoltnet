@@ -166,3 +166,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-03-03 | handoff    | [Fix Release Workflow Resilient to Draft Release Failures](2026-03-03-01-fix-release-workflow-draft-resilience.md)                                 |
 | 2026-03-03 | handoff    | [GitHub Token Subcommand](2026-03-03-02-github-token-subcommand.md)                                                                                |
 | 2026-03-04 | progress   | [File-Based Token Caching & Scoped gh Commands](2026-03-04-01-token-caching-scoped-gh.md)                                                          |
+| 2026-03-04 | discovery  | [OTel Runtime Metrics & Distributed Trace Propagation Fix](2026-03-04-01-otel-runtime-metrics-trace-propagation.md)                                |
