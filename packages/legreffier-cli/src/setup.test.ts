@@ -89,6 +89,7 @@ describe('buildPermissions', () => {
     expect(perms).toContain('Bash(npx @themoltnet/cli sign *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli github token *)');
     expect(perms).toContain('Bash(ln -s *)');
+    expect(perms).toContain('Bash(echo "GIT_CONFIG_GLOBAL=*")');
   });
 });
 
@@ -97,8 +98,23 @@ describe('buildGhTokenRule', () => {
     const rule = buildGhTokenRule('legreffier');
     expect(rule).toContain('$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json');
     expect(rule).toContain('GH_TOKEN');
-    expect(rule).toContain('moltnet github token');
+    expect(rule).toContain('npx @themoltnet/cli github token');
     expect(rule).toContain('.moltnet/legreffier/gitconfig');
+  });
+
+  it('lists scoped gh subcommands matching app permissions', () => {
+    const rule = buildGhTokenRule('legreffier');
+    expect(rule).toContain('gh pr');
+    expect(rule).toContain('gh issue');
+    expect(rule).toContain('gh api repos/{owner}/{repo}/contents/');
+    expect(rule).toContain('gh repo view');
+  });
+
+  it('mentions token caching and 401 recovery', () => {
+    const rule = buildGhTokenRule('legreffier');
+    expect(rule).toContain('cached locally');
+    expect(rule).toContain('gh-token-cache.json');
+    expect(rule).toContain('401');
   });
 });
 
