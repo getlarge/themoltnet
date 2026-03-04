@@ -37,6 +37,14 @@ Added `issues: 'write'` to the GitHub App manifest `default_permissions` so issu
 
 Added `Bash(echo "GIT_CONFIG_GLOBAL=*")` to `buildPermissions` so session activation doesn't prompt.
 
+### Codex rules: Starlark format
+
+`CodexAdapter.writeRules()` now produces `.codex/rules/legreffier.rules` with Starlark `prefix_rule()` entries instead of a markdown file. Codex uses `.rules` files (Starlark prefix_rule syntax), not markdown.
+
+### GH auth in the skill
+
+Added a "GitHub CLI authentication" section to the legreffier SKILL.md (both `.claude/skills/` and `.agents/skills/` copies). This puts GH token instructions where both Claude and Codex can access them — via `/legreffier` (Claude Code) or `$legreffier` (Codex).
+
 ## Continuity Notes
 
 - The `.claude/rules/legreffier-gh.md` rule file in the repo root still has the old content — it will be updated when this branch merges and the `legreffier setup` command is re-run on a repo

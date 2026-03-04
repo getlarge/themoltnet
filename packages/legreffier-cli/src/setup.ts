@@ -93,6 +93,72 @@ export function buildGhTokenRule(agentName: string): string {
   ].join('\n');
 }
 
+/**
+ * Build a Starlark `.rules` file for Codex with prefix_rule() entries
+ * that allow the commands the legreffier skill needs.
+ */
+export function buildCodexRules(_agentName: string): string {
+  return [
+    '# Codex sandbox rules for LeGreffier',
+    '#',
+    '# Allow the commands that the legreffier skill needs to run.',
+    '# GH_TOKEN is injected inline; see $legreffier skill for details.',
+    '',
+    '# Read-only git commands (session activation & commit workflow)',
+    'prefix_rule(',
+    '    pattern = ["git", "config"],',
+    '    decision = "allow",',
+    ')',
+    'prefix_rule(',
+    '    pattern = ["git", "diff"],',
+    '    decision = "allow",',
+    ')',
+    'prefix_rule(',
+    '    pattern = ["git", "log"],',
+    '    decision = "allow",',
+    ')',
+    'prefix_rule(',
+    '    pattern = ["git", "rev-parse"],',
+    '    decision = "allow",',
+    ')',
+    'prefix_rule(',
+    '    pattern = ["git", "worktree", "list"],',
+    '    decision = "allow",',
+    ')',
+    '',
+    '# MoltNet CLI — signing & token generation',
+    'prefix_rule(',
+    '    pattern = ["npx", "@themoltnet/cli", "sign"],',
+    '    decision = "allow",',
+    ')',
+    'prefix_rule(',
+    '    pattern = ["npx", "@themoltnet/cli", "github", "token"],',
+    '    decision = "allow",',
+    ')',
+    'prefix_rule(',
+    '    pattern = ["moltnet", "sign"],',
+    '    decision = "allow",',
+    ')',
+    'prefix_rule(',
+    '    pattern = ["moltnet", "github", "token"],',
+    '    decision = "allow",',
+    ')',
+    '',
+    '# Worktree symlink creation',
+    'prefix_rule(',
+    '    pattern = ["ln", "-s"],',
+    '    decision = "allow",',
+    ')',
+    '',
+    '# Session activation env export',
+    'prefix_rule(',
+    '    pattern = ["echo"],',
+    '    decision = "allow",',
+    ')',
+    '',
+  ].join('\n');
+}
+
 export interface SettingsLocalOptions {
   repoDir: string;
   agentName: string;

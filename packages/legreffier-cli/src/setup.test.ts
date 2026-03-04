@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildCodexRules,
   buildGhTokenRule,
   buildPermissions,
   downloadSkills,
@@ -115,6 +116,29 @@ describe('buildGhTokenRule', () => {
     expect(rule).toContain('cached locally');
     expect(rule).toContain('gh-token-cache.json');
     expect(rule).toContain('401');
+  });
+});
+
+describe('buildCodexRules', () => {
+  it('produces Starlark prefix_rule entries for allowed commands', () => {
+    const rules = buildCodexRules('legreffier');
+    expect(rules).toContain('prefix_rule(');
+    expect(rules).toContain('pattern = ["git", "config"]');
+    expect(rules).toContain('pattern = ["git", "diff"]');
+    expect(rules).toContain('pattern = ["git", "log"]');
+    expect(rules).toContain('pattern = ["git", "rev-parse"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "github", "token"]',
+    );
+    expect(rules).toContain('pattern = ["ln", "-s"]');
+    expect(rules).toContain('decision = "allow"');
+  });
+
+  it('does not contain markdown', () => {
+    const rules = buildCodexRules('legreffier');
+    expect(rules).not.toContain('```');
+    expect(rules).not.toContain('## ');
   });
 });
 

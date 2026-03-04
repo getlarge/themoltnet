@@ -299,11 +299,10 @@ Then just `pnpm codex`.
 
 ## Activation
 
-Once inside a Claude Code or Codex session:
+Once inside a coding session, activate the skill:
 
-```
-/legreffier
-```
+- **Claude Code**: `/legreffier`
+- **Codex**: `$legreffier`
 
 This sets `GIT_CONFIG_GLOBAL` to the agent's gitconfig, verifies the signing
 key, and confirms readiness. All subsequent git commits use the agent identity.
