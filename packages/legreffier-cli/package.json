@@ -2,7 +2,7 @@
   "name": "@themoltnet/legreffier",
   "version": "0.14.0",
   "description": "LeGreffier — one-command accountable AI agent setup",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "repository": {
     "type": "git",
