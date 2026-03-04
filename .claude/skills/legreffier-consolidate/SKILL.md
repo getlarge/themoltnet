@@ -13,7 +13,7 @@ Synthesize raw scan entries into two outputs:
    scopes, and verification methods
 
 This is the **Consolidate** stage of the context flywheel (after scan, before
-load/eval).
+compile/load/eval).
 
 ## Prerequisites
 
@@ -30,9 +30,9 @@ load/eval).
 
 ### Internal references
 
-- `consolidation-approach.md` (in this skill folder) — full design rationale,
-  entry map, merge strategy, nugget acceptance gate, multi-model evaluation
-  protocol. Read this file for the "why" behind every design choice.
+- `consolidation-approach.md` (in this skill folder) — design rationale,
+  merge group identification algorithm, nugget acceptance gate, multi-model
+  evaluation methodology. Read this file for the "why" behind every design choice.
 
 ---
 
@@ -79,8 +79,8 @@ Principles:
 - Standalone entries (only one entry for that subsystem) become tiles directly
 - Target: fewer tiles than source entries
 
-See `consolidation-approach.md` § "Input merging strategy" for the full
-merge group table and rationale.
+See `consolidation-approach.md` § "How to identify merge groups" for the
+merge algorithm and rationale.
 
 ### Tile format
 
@@ -224,7 +224,7 @@ Separate nuggets with `---` dividers.
 entries_create({
   diary_id: "<DIARY_ID>",
   title: "Nuggets: <domain> domain — <short description>",
-  entry_type: "procedural",
+  entry_type: "semantic",
   importance: <7-9>,
   tags: <nugget tags above>,
   content: "Domain: <domain>\nModel: <MODEL_TAG>\nNugget count: <N>\n\n---\n\n<nugget YAML>\n\n---\n\n<nugget YAML>\n..."
@@ -232,6 +232,46 @@ entries_create({
 ```
 
 Record each nugget entry's ID.
+
+### Compile handoff contract
+
+The compile step should be able to consume consolidation outputs without
+guessing hidden conventions.
+
+For that reason, every consolidation run MUST leave behind compile-ready
+artifacts with these properties:
+
+1. **Tiles remain one entry per tile**
+   - tagged with:
+     - `source:tile`
+     - `tile-session:<TILE_SESSION>`
+     - `model:<MODEL_TAG>`
+     - `tile-id:<tile-id>`
+2. **Nuggets remain grouped by domain**
+   - tagged with:
+     - `source:nugget`
+     - `nugget-session:<TILE_SESSION>`
+     - `model:<MODEL_TAG>`
+     - `nugget-domain:<domain>`
+3. **Every nugget block inside a domain entry must be valid YAML**
+   - separated by `---`
+   - one block per nugget
+4. **Every nugget block must include compileable core fields**
+   - `nugget_id`
+   - `statement`
+   - `rule_kind`
+   - `trigger`
+   - `scope`
+   - `verification`
+   - `sources`
+   - `confidence`
+5. **Results file must include a compilation handoff section**
+   - enough information for another agent to find the tile entries, nugget
+     entries, scorecard entry, and current run identity
+
+The consolidate skill is not responsible for writing `.legreffier/context/`.
+Its responsibility is to leave behind outputs that the compile skill can read
+deterministically.
 
 ### Load budget constraint
 
@@ -388,10 +428,28 @@ Entry ID: `<short-id>`
 
 ---
 
-## Retrieval queries
+## Compilation handoff
 
-(use the queries from the "Retrieval queries" section below,
- filled in with actual values from this run)
+```yaml
+scan_session: "<SCAN_SESSION>"
+tile_session: "<TILE_SESSION>"
+model_tag: "<MODEL_TAG>"
+tile_entry_query:
+  tags:
+    - "source:tile"
+    - "tile-session:<TILE_SESSION>"
+    - "model:<MODEL_TAG>"
+nugget_entry_query:
+  tags:
+    - "source:nugget"
+    - "nugget-session:<TILE_SESSION>"
+    - "model:<MODEL_TAG>"
+scorecard_entry_id: "<short-id>"
+results_file: "docs/research/consolidation-results-<model-short-tag>.md"
+compile_ready:
+  tiles: true
+  nuggets: true
+  scorecard: true
 ```
 
 ---
@@ -399,7 +457,7 @@ Entry ID: `<short-id>`
 ## Retrieval queries
 
 ```
-# All tiles from a specific model run
+# All tiles from this run
 entries_search({
   query: "tile",
   tags: ["source:tile", "tile-session:<TILE_SESSION>", "model:<MODEL_TAG>"],
@@ -428,9 +486,9 @@ entries_search({
 If context is compressed mid-run:
 
 1. Read this skill file
-2. Read `consolidation-approach.md` in this skill folder for the entry map
+2. Read `consolidation-approach.md` in this skill folder for the methodology
 3. Run the retrieval queries above to find completed tiles/nuggets
-4. Compare against the merge group table to find where to resume
+4. Compare completed work against scan entries to find where to resume
 
 ---
 

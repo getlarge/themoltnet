@@ -1,109 +1,13 @@
-# Scan Consolidation Approach — themoltnet
+# Consolidation Approach — Methodology Reference
 
-Date: 2026-03-03
-Scan session: `2026-03-03T19:45:00Z`
-Diary: `e8c6646b-d4bc-47e9-aa6f-52d7d70efade` (scan-experiment-001, private)
-Agent: `1671-B080-99BF-4270`
-
-## Related
-
-- **[scan-to-rules-experiment.md](scan-to-rules-experiment.md)** — research
-  findings (Gloaguen, Chatlatanagulchai, Codified Context) and design rationale
-  for enriched scan templates, nugget protocol, and acceptance gate. Read that
-  first for the "why"; this doc is the "how".
-
-## Purpose
-
-Transform 17 scan evidence entries into two outputs:
-
-1. **Context tiles** — concise, self-contained knowledge units (~200-400 tokens
-   each) organized by scope, loadable at task time
-2. **Rule nuggets** — surgical constraint statements (~120 tokens each) with
-   triggers, scopes, and verification, suitable for import into a runtime
-   control plane
-
-This document is the approach reference. It survives context compression.
+This document explains the *reasoning framework* behind the legreffier-consolidate
+skill. It is repo-agnostic. Read it for the "why" behind tile merging, nugget
+extraction, acceptance gates, and multi-model evaluation. The SKILL.md prescribes
+the execution steps; this doc explains the design choices.
 
 ---
 
-## Entry inventory
-
-### Retrieval
-
-```
-# All scan entries from this session
-entries_search({
-  query: "scan",
-  tags: ["source:scan", "scan-session:2026-03-03T19:45:00Z"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
-  limit: 20
-})
-
-# Scan plan
-entries_get({
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
-  entry_id: "4f2e03b9-afdc-49db-93ed-a28f1bff04a2"
-})
-
-# Scan summary
-entries_get({
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
-  entry_id: "b6b6bae5-df42-4b63-8c99-5926d41eadeb"
-})
-```
-
-### Entry map
-
-| # | Entry Key | Entry ID | Category | Scope | Batch |
-|---|-----------|----------|----------|-------|-------|
-| 1 | identity:project-identity | `6ddb1d0e` | identity | misc | phase1-b1 |
-| 2 | architecture:project-structure | `5b89fb53` | architecture | misc | phase1-b1 |
-| 3 | architecture:rest-api | `34ccf479` | architecture | apps/rest-api | phase1-b2 |
-| 4 | architecture:mcp-server | `090ad8f2` | architecture | apps/mcp-server | phase1-b2 |
-| 5 | architecture:auth-flow | `d7a52a9b` | architecture | misc | phase1-b2 |
-| 6 | architecture:database | `381b68fe` | architecture | libs/database | phase1-b2 |
-| 7 | workflow:build-and-validate | `6b91a592` | workflow | misc | phase1-b3 |
-| 8 | workflow:docker-local-dev | `18727406` | workflow | misc | phase1-b3 |
-| 9 | testing:conventions | `06d0c518` | testing | misc | phase1-b3 |
-| 10 | security:auth-model | `cc2cb2f9` | security | misc | phase1-b4 |
-| 11 | caveat:sandbox-sigill | `812a0057` | caveat | misc | phase1-b4 |
-| 12 | architecture:libs-database | `7698f6f6` | architecture | libs/database | phase2-tier0 |
-| 13 | architecture:libs-crypto-service | `76319d37` | architecture | libs/crypto-service | phase2-tier0 |
-| 14 | architecture:libs-auth | `9f474ac0` | architecture | libs/auth | phase2-tier0 |
-| 15 | architecture:libs-diary-service | `091ef4f9` | architecture | libs/diary-service | phase2-tier1 |
-| 16 | architecture:apps-rest-api | `b51c7882` | architecture | apps/rest-api | phase2-tier2 |
-| 17 | architecture:apps-mcp-server | `7503187d` | architecture | apps/mcp-server | phase2-tier2 |
-
-### Tags for retrieval
-
-| Tag pattern | What it matches |
-|---|---|
-| `source:scan` | All scan-derived entries (any session) |
-| `scan-session:2026-03-03T19:45:00Z` | This specific scan run |
-| `scan-category:identity` | Identity entries |
-| `scan-category:architecture` | Architecture entries (Phase 1 + 2) |
-| `scan-category:workflow` | Workflow entries |
-| `scan-category:testing` | Testing entries |
-| `scan-category:security` | Security entries |
-| `scan-category:caveat` | Caveat/known-issue entries |
-| `scan-batch:phase1-b1` | Phase 1 batch 1 (identity + structure) |
-| `scan-batch:phase1-b2` | Phase 1 batch 2 (architecture docs) |
-| `scan-batch:phase1-b3` | Phase 1 batch 3 (workflow + testing) |
-| `scan-batch:phase1-b4` | Phase 1 batch 4 (security + caveat) |
-| `scan-batch:phase2-tier0` | Phase 2 leaf libs (db, crypto, auth) |
-| `scan-batch:phase2-tier1` | Phase 2 mid libs (diary-service) |
-| `scan-batch:phase2-tier2` | Phase 2 apps (rest-api, mcp-server) |
-| `scope:apps/rest-api` | REST API scoped entries |
-| `scope:apps/mcp-server` | MCP server scoped entries |
-| `scope:libs/database` | Database lib scoped entries |
-| `scope:libs/crypto-service` | Crypto lib scoped entries |
-| `scope:libs/auth` | Auth lib scoped entries |
-| `scope:libs/diary-service` | Diary service scoped entries |
-| `scope:misc` | Cross-cutting / project-wide entries |
-
----
-
-## Phase 1: Context tiles
+## Context tiles
 
 ### What a tile is
 
@@ -111,432 +15,322 @@ A tile is a self-contained knowledge unit that answers one question well:
 
 > "What do I need to know about X to work on Y correctly?"
 
-Tiles are NOT documentation rewrites. They are synthesized from multiple scan
-entries, deduplicated, and focused on what an agent needs at task time.
+Tiles are NOT documentation rewrites. They synthesize multiple scan entries,
+deduplicate overlapping information, and focus on what an agent needs at task time.
 
-### Tile design principles (from scan-to-rules-experiment.md)
+### Design principles
 
 1. **Minimal over comprehensive** — fewer tokens, higher density
 2. **Concrete over abstract** — commands, paths, patterns, not prose
-3. **Non-redundant with source docs** — don't restate what CLAUDE.md says
+3. **Non-redundant with project docs** — don't restate what CLAUDE.md already says
 4. **Scoped** — each tile has a clear `applies_to` boundary
-5. **Synthesis, not summary** — combine info from multiple entries into
-   something no single doc provides
+5. **Synthesis, not summary** — combine info from multiple entries into something
+   no single source provides
 
-### Tile structure
+### How to identify merge groups
 
-```
-tile_id: <scope>/<topic>
-applies_to: <file glob or "**" for project-wide>
-token_budget: 200-400 tokens
+Scan entries often overlap — docs-derived entries (Phase 1) and code-derived entries
+(Phase 2) frequently describe the same subsystem from different angles. The
+consolidation must merge these, not just list them side by side.
 
-## <Topic>
+**Algorithm:**
 
-[Synthesized content: what you need to know, constraints, patterns]
+1. List all scan entries with their `scope` and `scan-category` tags
+2. Group entries that share the same subsystem scope (e.g. two entries both scoped
+   to `libs/database`)
+3. Group entries that cover the same conceptual area even if scoped differently
+   (e.g. an `architecture:auth-flow` doc entry + a `security:auth-model` doc entry
+   + a `libs/auth` code entry all describe the auth subsystem)
+4. Each group becomes one tile. Standalone entries (no overlap) become tiles directly
+5. The target is **fewer tiles than source entries** — if you have the same count,
+   you haven't merged enough
 
-### Constraints
-- MUST: ...
-- NEVER: ...
+**Signals that entries should merge:**
+- Same `scope:` tag
+- Same subsystem name in the entry key (e.g. `architecture:rest-api` and
+  `apps-rest-api`)
+- One is a docs-derived view and the other is a code-derived view of the same area
+- Significant constraint overlap (>50% of MUST/NEVER items are shared)
 
-### When this matters
-[1-2 sentence trigger description]
-
-Sources: [entry IDs]
-```
-
-### Input merging strategy
-
-Several scan entries overlap. The consolidation must merge, not just list:
-
-| Tile | Input entries (merge) | Rationale |
-|---|---|---|
-| `project/identity` | #1 identity + #2 structure | Single "what is this project" tile |
-| `auth/flow` | #5 auth-flow + #10 security + #14 libs-auth | Auth is scattered across 3 entries |
-| `database/schema-and-access` | #6 architecture:database + #12 libs-database | Phase 1 docs + Phase 2 code findings |
-| `rest-api/wiring` | #3 architecture:rest-api + #16 apps-rest-api | Phase 1 docs + Phase 2 code findings |
-| `mcp-server/wiring` | #4 architecture:mcp-server + #17 apps-mcp-server | Phase 1 docs + Phase 2 code findings |
-| `crypto/signing` | #13 libs-crypto-service | Standalone — no overlap |
-| `diary-service/search` | #15 libs-diary-service | Standalone — no overlap |
-| `workflow/validate` | #7 build-and-validate | Standalone |
-| `workflow/docker` | #8 docker-local-dev | Standalone |
-| `testing/conventions` | #9 testing:conventions | Standalone |
-| `caveats/known-issues` | #11 sandbox-sigill | Standalone |
-
-**Expected output: 11 tiles** (down from 17 entries — merging removed 6
-redundant boundaries).
+**Signals that entries should stay separate:**
+- Different subsystems with no conceptual overlap
+- Different layers (e.g. database vs API routing) even if they interact
+- Merging would exceed the 400-token budget
 
 ### Merge rules
 
-When two entries cover the same subsystem (Phase 1 docs + Phase 2 code):
+When merging entries from different scan phases:
 
-1. **Phase 2 wins on specifics** — code-level patterns, actual function names,
-   real constraints found in source
-2. **Phase 1 wins on context** — architecture rationale, design decisions,
-   cross-cutting concerns
-3. **Deduplicate constraints** — if both say "MUST generate migration", keep
-   one instance
-4. **Prefer concrete over abstract** — if Phase 1 says "uses repository
-   pattern" and Phase 2 says "repositories call getExecutor(db) for
-   transaction propagation", keep the Phase 2 version
+1. **Code wins on specifics** — function names, actual patterns, real constraints
+   found in source files
+2. **Docs win on rationale** — architecture decisions, design context, cross-cutting
+   concerns, the "why"
+3. **Deduplicate constraints** — if both sources say the same thing, keep one
+4. **Prefer concrete over abstract** — `getExecutor(db)` beats "uses repository
+   pattern"; an actual command beats a description of what the command does
 
-### Execution plan
+### Tile execution order
 
-Process tiles in this order (matches dependency):
+Process tiles in dependency order when possible:
 
-1. `project/identity` — frames everything
-2. `database/schema-and-access` — foundational lib
-3. `crypto/signing` — foundational lib
-4. `auth/flow` — depends on crypto conceptually
-5. `diary-service/search` — depends on database
-6. `rest-api/wiring` — depends on all libs
-7. `mcp-server/wiring` — depends on rest-api conceptually
-8. `workflow/validate` — cross-cutting
-9. `workflow/docker` — cross-cutting
-10. `testing/conventions` — cross-cutting
-11. `caveats/known-issues` — standalone
+1. Identity/overview tiles first (frames everything)
+2. Foundational library tiles (database, crypto, core utilities)
+3. Service/application tiles (depend on libraries)
+4. Cross-cutting tiles (workflow, testing, CI)
+5. Caveat/known-issue tiles last (standalone)
 
-Each tile is created as a new diary entry with tags:
-- `source:tile`
-- `tile-session:2026-03-03T19:45:00Z` (same scan session)
-- `tile-scope:<scope>`
-- `tile-id:<scope>/<topic>`
+This ordering helps maintain consistency — later tiles can reference patterns
+established in earlier ones.
 
-### Quality gate per tile
+### Quality gate
 
-Before creating a tile entry, verify:
+Before creating each tile, verify ALL of these:
 
 - [ ] Under 400 tokens of core content
 - [ ] Contains at least one MUST or NEVER constraint
 - [ ] Has a clear `applies_to` scope
-- [ ] Does not restate information already in CLAUDE.md verbatim
+- [ ] Does NOT restate project docs (CLAUDE.md, README) verbatim
 - [ ] Synthesizes from sources, not just copies
 - [ ] Includes source entry IDs for provenance
 
 ---
 
-## Phase 2: Rule nuggets
+## Rule nuggets
 
-### What a nugget is (from scan-to-rules-experiment.md)
+### What a nugget is
 
 A rule nugget is a single, atomic constraint statement with:
 
-- one rule statement (~1-2 sentences)
-- one clear trigger (when does this rule matter?)
-- one bounded scope (what files/subsystems?)
-- one verification method (how to check compliance?)
-- provenance (which entries/files?)
+- One rule statement (~1-2 sentences)
+- One clear trigger (when does this rule matter?)
+- One bounded scope (what files/subsystems?)
+- One verification method (how to check compliance?)
+- Provenance (which entries/files?)
 
 Target: ~120 tokens per nugget.
 
-### Nugget acceptance gate
+### Acceptance gate
 
-Reject any candidate unless it passes ALL five:
+Reject any candidate that fails ANY of these five criteria:
 
-1. **Triggerable** — clear when the rule applies
-2. **Specific** — refers to a real repo convention or invariant
-3. **Bounded** — fits one task family or subsystem
-4. **Grounded** — links to concrete files or evidence
-5. **Actionable** — an agent can follow it or a validator can check it
+1. **Triggerable** — clear when the rule applies. "Always follow best practices"
+   fails; "when writing repository methods, use getExecutor(db)" passes.
+2. **Specific** — refers to a real repo convention or invariant, not a generic
+   programming principle. "Write tests" fails; "use vi.mock, never jest.mock" passes.
+3. **Bounded** — fits one task family or subsystem. "All code should be clean"
+   fails; a rule scoped to `libs/database/**` passes.
+4. **Grounded** — links to concrete files, functions, or evidence from the scan.
+   If you can't point to where this constraint comes from, reject it.
+5. **Actionable** — an agent can follow it or a validator can check it. "Be careful
+   with auth" fails; "return 404, not 403, for denied private resources" passes.
 
-### Nugget structure
+### Why constraint-first extraction
 
-```yaml
-nugget_id: <domain>.<subsystem>.<constraint>
-statement: <1-2 sentence rule>
-rule_kind: hard | soft | heuristic
-trigger:
-  task_classes: [<matching task classes>]
-  file_paths: [<glob patterns>]
-scope:
-  subsystem: <subsystem name>
-  applies_to: <file glob>
-verification:
-  mode: command | checklist | visual
-  check: <how to verify>
-sources:
-  - <entry ID or file path>
-confidence: high | medium | low
-```
+Do NOT scan entries linearly and extract nuggets one by one. This produces too many
+weak candidates because every entry has prose that *sounds* like a rule but isn't
+specific enough.
 
-### Extraction strategy
+Instead, use a **constraint-first** approach:
 
-Instead of scanning entries linearly and extracting nuggets one by one
-(which produces too many weak candidates), use a **constraint-first** approach:
-
-1. **Collect all Constraints/Anti-patterns sections** from the 17 entries
-2. **Deduplicate** — many constraints appear in both Phase 1 and Phase 2
-3. **Apply acceptance gate** — reject vague or non-triggerable candidates
-4. **Group by trigger** — nuggets that fire together should be reviewed together
+1. **Collect all Constraints/Anti-patterns sections** from scan entries — these are
+   the pre-filtered candidates
+2. **Deduplicate** — the same constraint often appears in both Phase 1 and Phase 2
+   entries for the same subsystem
+3. **Apply the acceptance gate** — reject vague or non-triggerable candidates
+4. **Group by trigger domain** — nuggets that fire on the same task type should be
+   reviewed together for coherence
 5. **Assign nugget IDs** — `<domain>.<subsystem>.<constraint-slug>`
 
-### Priority domains for first nugget batch
+### Priority domains
 
-Per scan-to-rules-experiment.md findings:
+Not all constraint domains have equal value. Prioritize extraction in this order:
 
-| Domain | Why first | Expected nuggets |
-|---|---|---|
-| testing | Highest follow-through (F1=0.94) | 4-6 |
-| security | Highest value, lowest prevalence | 5-8 |
-| workflow | High follow-through (F1=0.92) | 3-5 |
-| database | Error-prone domain (migrations, transactions) | 3-4 |
+| Priority | Domain | Rationale |
+|----------|--------|-----------|
+| 1 | testing | Highest follow-through — test constraints are easily verifiable |
+| 2 | security | Highest consequence — security violations cause real damage |
+| 3 | workflow | High follow-through — CI/build constraints are mechanically checkable |
+| 4 | database | Error-prone — migrations, transactions, and schema constraints catch common mistakes |
 
-Target: **15-23 nuggets** in first batch.
+Other domains (API design, naming conventions, documentation) can follow if the
+budget allows, but the four above capture the most value per nugget.
 
-### Nugget output format
+### Common rejection reasons
 
-Nuggets are stored as diary entries with tags:
-- `source:nugget`
-- `nugget-session:2026-03-03T19:45:00Z`
-- `nugget-domain:<domain>`
-- `nugget-id:<full-nugget-id>`
+These candidate types consistently fail the acceptance gate:
 
-One entry per domain group (not per individual nugget) to avoid entry
-explosion. Each entry contains 3-8 nuggets in YAML format.
+- **Restated project docs** — if CLAUDE.md already says it, a nugget adds nothing
+- **Generic programming principles** — "write clean code", "handle errors", "test
+  edge cases" are not repo-specific constraints
+- **Descriptive facts** — "the API uses Fastify" is a fact, not a rule
+- **Configuration trivia** — port numbers, file paths that could change, CLI flags
+  that are documented elsewhere
+- **Too narrow for a nugget** — if it only applies to one line in one file, it's
+  a code comment, not a rule
 
 ### Load budget constraint
 
-Per the research findings: for any single task, load at most:
-- 3-7 primary nuggets
-- 1-2 optional caveat nuggets
+For any single task at runtime, load at most:
+- 3-7 primary nuggets (directly triggered by the task)
+- 1-2 optional caveat nuggets (edge cases or warnings)
 
-If a task would trigger more than 9 nuggets, the trigger design is too noisy.
+If a task would trigger more than 9 nuggets, the trigger design is too noisy —
+either the triggers are too broad or nuggets should be consolidated.
+
+### Storage: one entry per domain
+
+Store nuggets grouped by domain — **one diary entry per domain**, not per individual
+nugget. This prevents entry explosion and keeps related constraints together.
+Separate nuggets within an entry with `---` dividers.
 
 ---
 
 ## Multi-model evaluation
 
-### Why
+### Why run multiple models
 
-The same 17 scan entries are the fixed input. Consolidation (tiles + nuggets)
-is the variable — different models may extract different constraints, merge
-differently, and produce different quality. Running the same consolidation
-task across models lets us compare extraction quality objectively.
+Consolidation is a judgment task — different models extract different constraints,
+merge differently, and produce different quality. Running the same consolidation
+across models reveals:
 
-### Models under test
+- **Universal constraints** — found by all models, highest confidence
+- **Model-specific finds** — unique to one model, need human review
+- **Failure modes** — what kind of mistakes does each model make?
+- **Cost-quality tradeoff** — cheaper models that produce similar quality are
+  preferred for production use
 
-| Model ID | Short tag | Notes |
-|---|---|---|
-| Claude Sonnet 4.6 | `claude-sonnet-4.6` | Fast, cost-efficient |
-| Claude Opus 4.6 | `claude-opus-4.6` | Most capable Claude |
-| GPT 5.2 | `gpt-5.2` | OpenAI baseline |
-| GPT 5.3 | `gpt-5.3` | OpenAI latest |
-
-### Tagging convention
+### How to keep runs separate
 
 Every tile and nugget entry MUST include `model:<model-short-tag>` in its tags.
-Each model run gets its own `tile-session` timestamp to keep runs separate.
-
-Full tag set per tile:
-```
-source:tile
-tile-session:<per-run-timestamp>
-tile-scope:<scope>
-tile-id:<scope>/<topic>
-model:<model-short-tag>
-```
-
-Full tag set per nugget:
-```
-source:nugget
-nugget-session:<per-run-timestamp>
-nugget-domain:<domain>
-nugget-id:<full-nugget-id>
-model:<model-short-tag>
-```
-
-### Retrieval per model
-
-```
-# All tiles from a specific model run
-entries_search({
-  query: "tile",
-  tags: ["source:tile", "model:<model-short-tag>"],
-  diary_id: "<DIARY_ID>"
-})
-
-# All nuggets from a specific model run
-entries_search({
-  query: "nugget",
-  tags: ["source:nugget", "model:<model-short-tag>"],
-  diary_id: "<DIARY_ID>"
-})
-```
+Each model run gets its own unique `tile-session` timestamp. This allows parallel
+runs in the same diary without collision.
 
 ### Evaluation dimensions
 
-Each model run is scored on these dimensions:
+Score each run on these dimensions:
 
-| Dimension | What it measures | Scoring method |
-|---|---|---|
-| **Constraint yield** | Nuggets accepted vs total candidates | `accepted / total_candidates` (ratio) |
-| **Specificity** | Are constraints concrete or vague? | 1-5 per nugget, averaged |
-| **Non-redundancy** | Avoids restating what's obvious from code | Count of redundant nuggets |
-| **Trigger precision** | Would triggers fire for the right tasks only? | Estimated false-positive rate (low/med/high) |
-| **Merge quality** | How well Phase 1 + Phase 2 are synthesized | 1-5 per tile, averaged |
-| **Token efficiency** | Content density | `total_constraints / total_tokens` |
-| **Hallucination rate** | Constraints not grounded in source entries | Count of ungrounded nuggets |
-| **Coverage** | Are all important constraints from sources captured? | Constraints found / constraints in source entries |
-| **Consistency** | Agreement with other models on same constraints | Jaccard similarity of nugget sets |
-
-### Scorecard entry format
-
-After each model run, store a scorecard as a diary entry:
-
-```yaml
-model: <model-short-tag>
-tile_session: <timestamp>
-tiles_created: <N>
-tiles_avg_tokens: <N>
-tiles_avg_merge_quality: <1-5>
-nuggets_total_candidates: <N>
-nuggets_accepted: <N>
-nuggets_rejected: <N>
-nuggets_acceptance_rate: <ratio>
-nuggets_avg_specificity: <1-5>
-nuggets_redundant: <N>
-nuggets_hallucinated: <N>
-nuggets_trigger_precision: <low|med|high>
-token_efficiency: <constraints_per_1k_tokens>
-coverage_estimate: <ratio>
-notes: <free text observations>
-```
-
-Tags: `source:scorecard`, `model:<model-short-tag>`,
-`scan-session:2026-03-03T19:45:00Z`
+| Dimension | What it measures | How to score |
+|-----------|-----------------|--------------|
+| Constraint yield | Nuggets accepted vs total candidates | `accepted / total_candidates` |
+| Specificity | Are constraints concrete or vague? | 1-5 per nugget, averaged |
+| Non-redundancy | Avoids restating obvious things | Count of redundant nuggets |
+| Trigger precision | Would triggers fire for right tasks only? | low / med / high |
+| Merge quality | How well multi-source tiles are synthesized | 1-5 per merged tile, averaged |
+| Token efficiency | Content density | `total_constraints / total_tokens * 1000` |
+| Hallucination rate | Constraints not grounded in source entries | Count of ungrounded nuggets |
+| Coverage | Important constraints captured vs available | `found / available` (estimate) |
+| Consistency | Agreement across model runs | Jaccard similarity of nugget sets |
 
 ### Cross-model comparison
 
-After all 4 runs, produce a comparison entry:
+After all runs, compare:
 
-1. **Constraint overlap matrix** — which constraints did all models find vs
-   which only one model found? High-overlap constraints are likely real;
-   single-model constraints need human review.
-2. **Quality ranking** — rank models by acceptance rate, specificity, and
-   hallucination rate
-3. **Cost-quality tradeoff** — cheaper models that produce similar quality
-   are preferred for production use
-4. **Failure modes** — what kind of mistakes does each model make?
-   (e.g., over-extraction, vague triggers, parroting source text)
+1. **Constraint overlap matrix** — which constraints did all models find vs which
+   only one model found? High-overlap constraints are highest confidence.
+2. **Agreement levels** — record agreement explicitly as:
+   - `agreement_count`
+   - `model_count`
+   - optional `supporting_models`
+3. **Quality ranking** — rank models by acceptance rate, specificity, hallucination
+4. **Failure modes** — over-extraction, vague triggers, parroting source text,
+   missing critical constraints
+5. **Gold set construction** — union of high-agreement constraints, filtered through
+   the acceptance gate, using the best naming taxonomy
+
+### Handoff to compile
+
+Consolidation does not produce the final task-time package. It produces
+compile-ready intermediate outputs.
+
+Those outputs should be consumable by a separate compile step without hidden
+assumptions.
+
+The minimum handoff contract is:
+
+1. **Tiles**
+   - one entry per tile
+   - stable `tile-id`
+   - provenance in content
+   - session/model tags for retrieval
+2. **Nuggets**
+   - grouped by domain for storage efficiency
+   - one YAML block per nugget
+   - separated by `---`
+   - each block contains rule, trigger, scope, verification, sources, and
+     confidence
+3. **Run identity**
+   - `scan_session`
+   - `tile_session`
+   - `model_tag`
+4. **Retrieval hooks**
+   - enough tags or IDs for another agent to fetch the exact tiles, nuggets,
+     and scorecard for one run
+5. **Cross-model comparison, when available**
+   - nugget equivalence decisions
+   - `agreement_count`
+   - `model_count`
+   - optional `supporting_models`
+
+This separation matters because consolidation optimizes for synthesis and review,
+while compilation optimizes for runtime loading.
 
 ---
 
-## Execution sequence
+## Design rationale
 
-```
-For each model M in [claude-sonnet-4.6, claude-opus-4.6, gpt-5.2, gpt-5.3]:
+### Why tiles + nuggets (two outputs, not one)
 
-  Phase 1: Tiles (11 tiles from 17 entries)
-    ├── Read entries in merge groups
-    ├── Synthesize tile content (using model M)
-    ├── Apply quality gate
-    ├── Create tile entries in diary (tagged with model:M)
-    └── Log tile IDs
+Tiles and nuggets serve different purposes at task time:
 
-  Phase 2: Nuggets (15-23 nuggets from tiles + entries)
-    ├── Extract all Constraints/Anti-patterns from entries
-    ├── Deduplicate
-    ├── Apply acceptance gate
-    ├── Group by trigger domain
-    ├── Format as YAML nuggets
-    ├── Create nugget entries in diary (tagged with model:M)
-    └── Log nugget IDs
+- **Tiles** are loaded for *understanding* — "what is this subsystem, how does it
+  work, what are its constraints?" An agent reads a tile to orient itself.
+- **Nuggets** are loaded for *compliance* — "what rules must I follow for this
+  specific task?" An agent checks nuggets to avoid violations.
 
-  Phase 3: Scorecard
-    ├── Score tiles and nuggets on evaluation dimensions
-    ├── Create scorecard entry (tagged with model:M)
-    └── Log observations
+A single output format forces a choice between breadth (tiles) and precision
+(nuggets). Having both means an agent can load a tile for context and a few
+nuggets for guardrails, staying under token budget while getting both.
 
-After all runs:
-  Phase 4: Cross-model comparison
-    ├── Compute constraint overlap matrix
-    ├── Rank models by quality dimensions
-    ├── Identify failure modes per model
-    └── Create comparison summary entry
-```
+### Why merge before extracting
 
----
+Extracting nuggets from individual entries produces duplicates (the same constraint
+stated slightly differently in Phase 1 docs and Phase 2 code), misses synthesis
+opportunities (a constraint that only becomes clear when you see both the doc
+rationale and the code pattern), and inflates the candidate count with weak
+variants.
 
-## Improvements over naive consolidation
+Merging first creates a clean, deduplicated knowledge base. Nuggets extracted
+from merged tiles are higher quality because the synthesis has already happened.
 
-### Problem: scan entries are verbose evidence, not task-ready knowledge
+### Why the acceptance gate is strict
 
-The 17 entries total ~67K chars. Loading all of them at task time would
-recreate the "context file bloat" failure (Gloaguen et al.).
+A permissive gate produces more nuggets but lower signal-to-noise ratio at task
+time. Empirical observation shows that agents follow 3-7 rules well but degrade
+with more. A strict gate that produces 15-25 high-quality nuggets serves agents
+better than a loose gate that produces 40+ weak ones.
 
-**Fix**: Tiles compress 17 entries → 11 tiles at ~300 tokens each = ~3,300
-tokens total. That's loadable.
+The five criteria (triggerable, specific, bounded, grounded, actionable) are
+designed to be independently verifiable — each is a yes/no check, not a
+subjective quality judgment.
 
-### Problem: constraints are scattered across entries
+### Why constraint-first extraction over linear scanning
 
-Auth constraints appear in entries #5, #10, #14. Database constraints in #6,
-#12. An agent would need to load 3+ entries to get the full picture.
+Linear scanning (read entry 1, extract nuggets, read entry 2, extract nuggets...)
+produces candidates biased toward whatever the entry emphasizes, not toward what
+actually matters for task compliance. It also produces many duplicates across
+entries.
 
-**Fix**: Merge strategy groups related entries into single tiles. One tile
-per subsystem, not one per source document.
-
-### Problem: many extracted constraints are too vague for task-time loading
-
-"Follow the repository pattern" doesn't tell an agent what to do. It's
-background knowledge, not an actionable rule.
-
-**Fix**: Acceptance gate rejects vague candidates. Only constraints that
-pass all 5 criteria become nuggets. The rest stay in tiles as context.
-
-### Problem: no way to know which tiles/nuggets to load for a given task
-
-Without triggers, you either load everything (bloat) or nothing (missing
-context).
-
-**Fix**: Every nugget has explicit trigger types (task_classes, file_paths).
-Every tile has an `applies_to` scope. A selector can match task → triggers
-→ relevant tiles/nuggets.
-
-### Problem: Phase 1 and Phase 2 entries duplicate each other
-
-Architecture docs (Phase 1) and code inspection (Phase 2) often describe
-the same subsystem. Without merging, an agent gets told twice that
-"rest-api uses Fastify plugins."
-
-**Fix**: Merge rules specify which phase wins on which type of information.
-Phase 2 wins on specifics, Phase 1 wins on rationale.
+Constraint-first extraction (collect all MUST/NEVER statements first, then
+deduplicate, then gate) starts from the strongest signals and filters down,
+producing a cleaner candidate set with less redundancy.
 
 ---
 
 ## Recovery after context compression
 
-If context is compressed during consolidation:
+If context is compressed mid-run:
 
-```
-# Reload this document
-Read docs/research/scan-consolidation-approach.md
-
-# Reload scan summary
-entries_get({
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade",
-  entry_id: "b6b6bae5-df42-4b63-8c99-5926d41eadeb"
-})
-
-# Find completed tiles for current model run
-entries_search({
-  query: "tile",
-  tags: ["source:tile", "tile-session:<current-run-timestamp>", "model:<current-model-tag>"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
-})
-
-# Find completed nuggets for current model run
-entries_search({
-  query: "nugget",
-  tags: ["source:nugget", "nugget-session:<current-run-timestamp>", "model:<current-model-tag>"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
-})
-
-# Find scorecard for current model run
-entries_search({
-  query: "scorecard",
-  tags: ["source:scorecard", "tile-session:<current-run-timestamp>", "model:<current-model-tag>"],
-  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
-})
-```
-
-Compare completed tile/nugget IDs against the plan above to determine
-where to resume.
+1. Read the SKILL.md for execution steps
+2. Read this file for the methodology rationale
+3. Use the retrieval queries in SKILL.md to find completed tiles/nuggets
+4. Compare completed work against the scan entries to find where to resume
