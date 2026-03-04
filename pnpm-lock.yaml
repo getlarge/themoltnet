@@ -93,6 +93,9 @@ catalogs:
     '@opentelemetry/instrumentation-pino':
       specifier: ^0.58.0
       version: 0.58.0
+    '@opentelemetry/instrumentation-runtime-node':
+      specifier: ^0.25.0
+      version: 0.25.0
     '@opentelemetry/resources':
       specifier: ^2.5.1
       version: 2.5.1
@@ -821,6 +824,9 @@ importers:
       '@opentelemetry/instrumentation-pino':
         specifier: 'catalog:'
         version: 0.58.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-runtime-node':
+        specifier: 'catalog:'
+        version: 0.25.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources':
         specifier: 'catalog:'
         version: 2.5.1(@opentelemetry/api@1.9.0)
@@ -2809,6 +2815,15 @@ packages:
     resolution:
       {
         integrity: sha512-rgy+tA7cDjuSq6dXAO40OiYP25azIDHMBtxG3RzSmCBVEYdjggl6btyuLVasX6VkOOhP2gf6PBuLMNxVwaIqAw==,
+      }
+    engines: { node: ^18.19.0 || >=20.6.0 }
+    peerDependencies:
+      '@opentelemetry/api': ^1.3.0
+
+  '@opentelemetry/instrumentation-runtime-node@0.25.0':
+    resolution:
+      {
+        integrity: sha512-XaCmwBSui5KeTn8M6OzaEn1rEsNWtUkjuc1ylg0tqQTLHibNQ0n7f8v4zdF6x/nBV1OnsiYlN8RLHauGemv/TA==,
       }
     engines: { node: ^18.19.0 || >=20.6.0 }
     peerDependencies:
@@ -10389,6 +10404,13 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.212.0
       '@opentelemetry/core': 2.5.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation': 0.212.0(@opentelemetry/api@1.9.0)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@opentelemetry/instrumentation-runtime-node@0.25.0(@opentelemetry/api@1.9.0)':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
       '@opentelemetry/instrumentation': 0.212.0(@opentelemetry/api@1.9.0)
     transitivePeerDependencies:
       - supports-color

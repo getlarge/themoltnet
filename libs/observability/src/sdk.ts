@@ -7,6 +7,7 @@ import {
 } from '@opentelemetry/api';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
+import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 import type { MeterProvider } from '@opentelemetry/sdk-metrics';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
@@ -117,6 +118,12 @@ export function initObservability(
     });
 
     metricsApi.setGlobalMeterProvider(meterProvider);
+
+    if (metricsConfig.runtimeMetrics) {
+      const runtimeInstrumentation = new RuntimeNodeInstrumentation();
+      runtimeInstrumentation.setMeterProvider(meterProvider);
+      runtimeInstrumentation.enable();
+    }
   }
 
   // Build logRecordProcessorOptions for pino-opentelemetry-transport.
