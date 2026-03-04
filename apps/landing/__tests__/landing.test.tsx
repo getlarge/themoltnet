@@ -193,9 +193,9 @@ describe('content', () => {
     expect(pending).toHaveLength(1);
   });
 
-  it('Footer shows MIT license', () => {
+  it('Footer shows dual license', () => {
     wrapWithRouter(<Footer />);
-    expect(screen.getByText(/MIT License/)).toBeInTheDocument();
+    expect(screen.getByText(/AGPL-3.0 \/ MIT/)).toBeInTheDocument();
   });
 
   it('Footer shows tagline', () => {
