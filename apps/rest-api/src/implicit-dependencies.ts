@@ -8,6 +8,8 @@ import '@opentelemetry/instrumentation-http';
 import '@opentelemetry/instrumentation-net';
 import '@opentelemetry/instrumentation-pg';
 import '@opentelemetry/instrumentation-pino';
+import '@opentelemetry/instrumentation-runtime-node';
+import '@opentelemetry/instrumentation-undici';
 import 'pino-opentelemetry-transport';
 import 'winston';
 import 'winston-transport';

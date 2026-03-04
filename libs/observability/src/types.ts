@@ -43,6 +43,11 @@ export interface MetricsConfig {
   enabled?: boolean;
   /** Export interval in milliseconds (default: 60000) */
   exportIntervalMs?: number;
+  /**
+   * Enable Node.js runtime metrics (event loop delay, GC duration, heap usage).
+   * Uses @opentelemetry/instrumentation-runtime-node with perf_hooks.
+   */
+  runtimeMetrics?: boolean;
 }
 
 export interface ObservabilityConfig {

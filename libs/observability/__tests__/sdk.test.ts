@@ -145,4 +145,28 @@ describe('initObservability', () => {
 
     expect(ctx.fastifyOtelPlugin).toBeUndefined();
   });
+
+  it('should initialize runtime metrics when enabled', async () => {
+    const ctx = initObservability({
+      serviceName: 'test',
+      metrics: { enabled: true, runtimeMetrics: true },
+    });
+
+    const meter = metricsApi.getMeter('test');
+    expect(meter).toBeDefined();
+
+    await ctx.shutdown();
+  });
+
+  it('should not fail when runtimeMetrics is true but metrics is disabled', () => {
+    const providerBefore = metricsApi.getMeterProvider();
+
+    initObservability({
+      serviceName: 'test',
+      metrics: { enabled: false, runtimeMetrics: true },
+    });
+
+    const providerAfter = metricsApi.getMeterProvider();
+    expect(providerAfter).toBe(providerBefore);
+  });
 });

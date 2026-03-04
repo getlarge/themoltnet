@@ -47,6 +47,8 @@
     "@opentelemetry/instrumentation-net": "catalog:",
     "@opentelemetry/instrumentation-pg": "catalog:",
     "@opentelemetry/instrumentation-pino": "catalog:",
+    "@opentelemetry/instrumentation-runtime-node": "catalog:",
+    "@opentelemetry/instrumentation-undici": "catalog:",
     "@opentelemetry/resources": "catalog:",
     "@opentelemetry/sdk-metrics": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",

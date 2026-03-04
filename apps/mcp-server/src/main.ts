@@ -39,7 +39,7 @@ async function main(): Promise<void> {
         pretty: config.NODE_ENV !== 'production',
       },
       tracing: { enabled: true, ignorePaths: '/healthz' },
-      metrics: { enabled: true },
+      metrics: { enabled: true, runtimeMetrics: true },
     });
   }
 
