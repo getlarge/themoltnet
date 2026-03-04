@@ -22,6 +22,11 @@ Visual source of truth:
 - LeGreffier must be initialized for this repo (`.moltnet/` directory exists)
 - Agent identity must be active (`moltnet_whoami` returns a valid identity)
 - A diary must exist for this repo (`diaries_list` returns a matching diary)
+- **CRITICAL: The diary MUST have `moltnet` visibility (not `private`).** Private
+  diaries do not index entries for vector search — consolidation and retrieval
+  will be severely degraded. Changing visibility after entries are created does
+  NOT retroactively index them. Create the diary with `moltnet` visibility
+  from the start.
 - `DIARY_ID` and `AGENT_NAME` must be resolved (use the `legreffier` skill
   activation steps if not already done)
 
