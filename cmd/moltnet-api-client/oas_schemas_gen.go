@@ -103,7 +103,8 @@ func (*CreateDiaryEntryNotFound) createDiaryEntryRes() {}
 
 type CreateDiaryEntryReq struct {
 	Content string `json:"content"`
-	// CIDv1 content identifier. Required together with signingRequestId to create a signed entry.
+	// CIDv1 content identifier (base32lower). Required together with signingRequestId to create a signed
+	// entry.
 	ContentHash OptString                       `json:"contentHash"`
 	EntryType   OptCreateDiaryEntryReqEntryType `json:"entryType"`
 	Importance  OptInt                          `json:"importance"`

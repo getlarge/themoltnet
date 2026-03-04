@@ -13,7 +13,7 @@
  *   docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 import {
@@ -107,12 +107,23 @@ function restartRestApi(sponsorAgentId: string): void {
   // env, so setting process.env before the call is enough.
   process.env['SPONSOR_AGENT_ID'] = sponsorAgentId;
 
-  const composeFiles = IS_CI
-    ? `-f ${COMPOSE_FILE} -f ${COMPOSE_CI_FILE}`
-    : `-f ${COMPOSE_FILE}`;
+  const composeFileArgs = IS_CI
+    ? ['-f', COMPOSE_FILE, '-f', COMPOSE_CI_FILE]
+    : ['-f', COMPOSE_FILE];
 
-  execSync(
-    `docker compose --env-file /dev/null ${composeFiles} up -d --no-deps --force-recreate rest-api`,
+  execFileSync(
+    'docker',
+    [
+      'compose',
+      '--env-file',
+      '/dev/null',
+      ...composeFileArgs,
+      'up',
+      '-d',
+      '--no-deps',
+      '--force-recreate',
+      'rest-api',
+    ],
     { stdio: 'inherit', env: process.env },
   );
 }
