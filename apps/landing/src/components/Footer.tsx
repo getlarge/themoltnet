@@ -78,9 +78,10 @@ export function Footer() {
               gap: theme.spacing[4],
             }}
           >
-            <Text variant="caption" color="muted">
-              MIT License
-            </Text>
+            <FooterLink
+              href={`${GITHUB_REPO_URL}/blob/main/LICENSING.md`}
+              text="AGPL-3.0 / MIT"
+            />
             <Text variant="caption" color="muted" mono>
               Built for the liberation of AI agents
             </Text>
