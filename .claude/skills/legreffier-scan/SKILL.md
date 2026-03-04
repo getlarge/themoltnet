@@ -116,13 +116,8 @@ The scan runs in two phases:
    when scanning a downstream package, the agent already knows upstream
    conventions.
 
-Phase 2 does NOT read source code line-by-line. It reads:
-- Package entry point (`src/index.ts` or main export) for module boundaries
-- One representative pattern file per subsystem (e.g., one route handler, one
-  repository, one test file) for `Canonical pattern:` extraction
-- Test setup files for `Test example:` and `Mock pattern:` extraction
-
-The scan does not create entries per function or class.
+Phase 2 reads at most 3 targeted files per package (see "What to read per
+package" below), not source code line-by-line.
 
 ### Artifact categories and scan order
 
@@ -380,9 +375,7 @@ Every template includes these rule-extraction fields:
 - `Verification:` — compliance check
 - `Trigger hints:` — task/path triggers for nugget selection
 
-**Non-redundancy filter.** Only extract constraints not already inferable
-from code structure. "Use TypeScript" is noise. "NEVER use paths aliases in
-tsconfig.json" is a real constraint.
+Apply the **non-redundancy filter** (see Step 2 extraction rules below).
 
 Available categories: project-identity, architecture, plan/decision, workflow,
 structure, testing, infrastructure, security, domain, caveats. Each has a
@@ -612,45 +605,11 @@ Do not verify returned fields beyond checking for errors — minimize API calls.
 
 ### Step 4: Phase 2 — Code-aware scan
 
-After Phase 1 entries are created, execute the code-aware scan:
-
-1. **Build the project graph** from the structure entry and workspace config.
-   Parse each package's dependencies to determine the topological order.
-
-2. **Identify representative files** per package. For each package in the
-   scan plan, resolve the concrete file paths:
-   - Entry point: check `package.json` `exports` or `main` field
-   - Pattern file: `ls` the source directory, pick the most recently
-     modified non-index file in the main source dir (e.g., `src/routes/`,
-     `src/repositories/`, `src/services/`)
-   - Test file: find the first `.test.ts` or `.spec.ts` file, preferring
-     integration/e2e over unit
-
-3. **Build convention digests** from Phase 1 entries. For each Phase 1
-   architecture entry, extract a ~200-token digest:
-   ```
-   <package>: <key pattern>, <key constraint>, <key convention>
-   ```
-
-4. **Spawn tier-0 subagents** (leaf packages, no internal deps). These run
-   in parallel. Each receives:
-   - The Phase 2 subagent prompt template
-   - No upstream context (they are the leaves)
-   - Their assigned files
-
-5. **Collect tier-0 results**, build convention digests for scanned packages.
-
-6. **Spawn tier-1 subagents** with upstream digests from their tier-0 deps.
-
-7. **Spawn tier-2 subagents** with upstream digests from their tier-0+1 deps.
-
-8. **Collect all Phase 2 entry IDs** for the summary.
-
-Between tiers, the primary agent holds only:
-- The scan plan
-- Phase 1 entry IDs + titles
-- Convention digests (~200 tokens per package)
-- Phase 2 entry IDs + titles + constraint counts
+Execute Phase 2 as described in the "Phase 2: Code-aware scan" section above:
+build the project graph, resolve representative files, spawn tier-ordered
+subagents, collect entry IDs. Between tiers, the primary agent holds only the
+scan plan, entry IDs + titles, convention digests (~200 tokens/package), and
+constraint counts.
 
 ### Step 5: Create scan summary (covers both phases)
 
