@@ -303,29 +303,155 @@ If a task would trigger more than 9 nuggets, the trigger design is too noisy.
 
 ---
 
+## Multi-model evaluation
+
+### Why
+
+The same 17 scan entries are the fixed input. Consolidation (tiles + nuggets)
+is the variable — different models may extract different constraints, merge
+differently, and produce different quality. Running the same consolidation
+task across models lets us compare extraction quality objectively.
+
+### Models under test
+
+| Model ID | Short tag | Notes |
+|---|---|---|
+| Claude Sonnet 4.6 | `claude-sonnet-4.6` | Fast, cost-efficient |
+| Claude Opus 4.6 | `claude-opus-4.6` | Most capable Claude |
+| GPT 5.2 | `gpt-5.2` | OpenAI baseline |
+| GPT 5.3 | `gpt-5.3` | OpenAI latest |
+
+### Tagging convention
+
+Every tile and nugget entry MUST include `model:<model-short-tag>` in its tags.
+Each model run gets its own `tile-session` timestamp to keep runs separate.
+
+Full tag set per tile:
+```
+source:tile
+tile-session:<per-run-timestamp>
+tile-scope:<scope>
+tile-id:<scope>/<topic>
+model:<model-short-tag>
+```
+
+Full tag set per nugget:
+```
+source:nugget
+nugget-session:<per-run-timestamp>
+nugget-domain:<domain>
+nugget-id:<full-nugget-id>
+model:<model-short-tag>
+```
+
+### Retrieval per model
+
+```
+# All tiles from a specific model run
+entries_search({
+  query: "tile",
+  tags: ["source:tile", "model:<model-short-tag>"],
+  diary_id: "<DIARY_ID>"
+})
+
+# All nuggets from a specific model run
+entries_search({
+  query: "nugget",
+  tags: ["source:nugget", "model:<model-short-tag>"],
+  diary_id: "<DIARY_ID>"
+})
+```
+
+### Evaluation dimensions
+
+Each model run is scored on these dimensions:
+
+| Dimension | What it measures | Scoring method |
+|---|---|---|
+| **Constraint yield** | Nuggets accepted vs total candidates | `accepted / total_candidates` (ratio) |
+| **Specificity** | Are constraints concrete or vague? | 1-5 per nugget, averaged |
+| **Non-redundancy** | Avoids restating what's obvious from code | Count of redundant nuggets |
+| **Trigger precision** | Would triggers fire for the right tasks only? | Estimated false-positive rate (low/med/high) |
+| **Merge quality** | How well Phase 1 + Phase 2 are synthesized | 1-5 per tile, averaged |
+| **Token efficiency** | Content density | `total_constraints / total_tokens` |
+| **Hallucination rate** | Constraints not grounded in source entries | Count of ungrounded nuggets |
+| **Coverage** | Are all important constraints from sources captured? | Constraints found / constraints in source entries |
+| **Consistency** | Agreement with other models on same constraints | Jaccard similarity of nugget sets |
+
+### Scorecard entry format
+
+After each model run, store a scorecard as a diary entry:
+
+```yaml
+model: <model-short-tag>
+tile_session: <timestamp>
+tiles_created: <N>
+tiles_avg_tokens: <N>
+tiles_avg_merge_quality: <1-5>
+nuggets_total_candidates: <N>
+nuggets_accepted: <N>
+nuggets_rejected: <N>
+nuggets_acceptance_rate: <ratio>
+nuggets_avg_specificity: <1-5>
+nuggets_redundant: <N>
+nuggets_hallucinated: <N>
+nuggets_trigger_precision: <low|med|high>
+token_efficiency: <constraints_per_1k_tokens>
+coverage_estimate: <ratio>
+notes: <free text observations>
+```
+
+Tags: `source:scorecard`, `model:<model-short-tag>`,
+`scan-session:2026-03-03T19:45:00Z`
+
+### Cross-model comparison
+
+After all 4 runs, produce a comparison entry:
+
+1. **Constraint overlap matrix** — which constraints did all models find vs
+   which only one model found? High-overlap constraints are likely real;
+   single-model constraints need human review.
+2. **Quality ranking** — rank models by acceptance rate, specificity, and
+   hallucination rate
+3. **Cost-quality tradeoff** — cheaper models that produce similar quality
+   are preferred for production use
+4. **Failure modes** — what kind of mistakes does each model make?
+   (e.g., over-extraction, vague triggers, parroting source text)
+
+---
+
 ## Execution sequence
 
 ```
-Phase 1: Tiles (11 tiles from 17 entries)
-  ├── Read entries in merge groups
-  ├── Synthesize tile content
-  ├── Apply quality gate
-  ├── Create tile entries in diary
-  └── Log tile IDs
+For each model M in [claude-sonnet-4.6, claude-opus-4.6, gpt-5.2, gpt-5.3]:
 
-Phase 2: Nuggets (15-23 nuggets from tiles + entries)
-  ├── Extract all Constraints/Anti-patterns from entries
-  ├── Deduplicate
-  ├── Apply acceptance gate
-  ├── Group by trigger domain
-  ├── Format as YAML nuggets
-  ├── Create nugget entries in diary
-  └── Log nugget IDs
+  Phase 1: Tiles (11 tiles from 17 entries)
+    ├── Read entries in merge groups
+    ├── Synthesize tile content (using model M)
+    ├── Apply quality gate
+    ├── Create tile entries in diary (tagged with model:M)
+    └── Log tile IDs
 
-Phase 3: Review summary
-  ├── Create consolidation summary entry
-  ├── Report: tiles created, nuggets accepted/rejected, coverage gaps
-  └── Flag entries that produced no nuggets (descriptive only)
+  Phase 2: Nuggets (15-23 nuggets from tiles + entries)
+    ├── Extract all Constraints/Anti-patterns from entries
+    ├── Deduplicate
+    ├── Apply acceptance gate
+    ├── Group by trigger domain
+    ├── Format as YAML nuggets
+    ├── Create nugget entries in diary (tagged with model:M)
+    └── Log nugget IDs
+
+  Phase 3: Scorecard
+    ├── Score tiles and nuggets on evaluation dimensions
+    ├── Create scorecard entry (tagged with model:M)
+    └── Log observations
+
+After all runs:
+  Phase 4: Cross-model comparison
+    ├── Compute constraint overlap matrix
+    ├── Rank models by quality dimensions
+    ├── Identify failure modes per model
+    └── Create comparison summary entry
 ```
 
 ---
@@ -390,17 +516,24 @@ entries_get({
   entry_id: "b6b6bae5-df42-4b63-8c99-5926d41eadeb"
 })
 
-# Find completed tiles
+# Find completed tiles for current model run
 entries_search({
   query: "tile",
-  tags: ["source:tile", "tile-session:2026-03-03T19:45:00Z"],
+  tags: ["source:tile", "tile-session:<current-run-timestamp>", "model:<current-model-tag>"],
   diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
 })
 
-# Find completed nuggets
+# Find completed nuggets for current model run
 entries_search({
   query: "nugget",
-  tags: ["source:nugget", "nugget-session:2026-03-03T19:45:00Z"],
+  tags: ["source:nugget", "nugget-session:<current-run-timestamp>", "model:<current-model-tag>"],
+  diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
+})
+
+# Find scorecard for current model run
+entries_search({
+  query: "scorecard",
+  tags: ["source:scorecard", "tile-session:<current-run-timestamp>", "model:<current-model-tag>"],
   diary_id: "e8c6646b-d4bc-47e9-aa6f-52d7d70efade"
 })
 ```
