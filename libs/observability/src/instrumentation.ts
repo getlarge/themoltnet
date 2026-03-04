@@ -9,6 +9,7 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { NetInstrumentation } from '@opentelemetry/instrumentation-net';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
+import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 
 export interface InstrumentationConfig {
   /** Enable HTTP client/server instrumentation (default: true) */
@@ -91,6 +92,10 @@ export function initInstrumentation(config: InstrumentationConfig): void {
               }
             : undefined,
       }),
+      // Patches globalThis.fetch / undici for outgoing trace context propagation.
+      // Node 22+ uses undici as the fetch implementation — without this,
+      // distributed traces break across service boundaries using fetch().
+      new UndiciInstrumentation(),
     );
   }
 
