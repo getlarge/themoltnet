@@ -113,6 +113,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       metrics: {
         enabled: true,
+        runtimeMetrics: true,
       },
     });
   }

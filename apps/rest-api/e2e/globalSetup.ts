@@ -13,7 +13,7 @@
  *   docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 import {
@@ -40,6 +40,8 @@ const KRATOS_ADMIN_URL =
 // Resolve repo root for docker compose -f path
 const REPO_ROOT = resolve(import.meta.dirname, '../../..');
 const COMPOSE_FILE = resolve(REPO_ROOT, 'docker-compose.e2e.yaml');
+const COMPOSE_CI_FILE = resolve(REPO_ROOT, 'docker-compose.e2e.ci.yaml');
+const IS_CI = !!process.env['CI'];
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -105,8 +107,23 @@ function restartRestApi(sponsorAgentId: string): void {
   // env, so setting process.env before the call is enough.
   process.env['SPONSOR_AGENT_ID'] = sponsorAgentId;
 
-  execSync(
-    `docker compose --env-file /dev/null -f ${COMPOSE_FILE} up -d --no-deps --force-recreate rest-api`,
+  const composeFileArgs = IS_CI
+    ? ['-f', COMPOSE_FILE, '-f', COMPOSE_CI_FILE]
+    : ['-f', COMPOSE_FILE];
+
+  execFileSync(
+    'docker',
+    [
+      'compose',
+      '--env-file',
+      '/dev/null',
+      ...composeFileArgs,
+      'up',
+      '-d',
+      '--no-deps',
+      '--force-recreate',
+      'rest-api',
+    ],
     { stdio: 'inherit', env: process.env },
   );
 }

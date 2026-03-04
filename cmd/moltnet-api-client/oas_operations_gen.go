@@ -50,5 +50,6 @@ const (
 	UpdateDiaryEntryOperation              OperationName = "UpdateDiaryEntry"
 	VerifyAgentSignatureOperation          OperationName = "VerifyAgentSignature"
 	VerifyCryptoSignatureOperation         OperationName = "VerifyCryptoSignature"
+	VerifyDiaryEntryOperation              OperationName = "VerifyDiaryEntry"
 	VerifyRecoveryChallengeOperation       OperationName = "VerifyRecoveryChallenge"
 )

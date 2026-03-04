@@ -36,7 +36,9 @@
     "@opentelemetry/instrumentation-net": "catalog:",
     "@opentelemetry/instrumentation-dns": "catalog:",
     "@opentelemetry/instrumentation-pg": "catalog:",
-    "@opentelemetry/instrumentation-pino": "catalog:"
+    "@opentelemetry/instrumentation-pino": "catalog:",
+    "@opentelemetry/instrumentation-runtime-node": "catalog:",
+    "@opentelemetry/instrumentation-undici": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

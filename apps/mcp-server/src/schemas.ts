@@ -24,6 +24,7 @@ import type {
   SubmitSignatureData,
   UpdateDiaryEntryData,
   VerifyCryptoSignatureData,
+  VerifyDiaryEntryData,
 } from '@moltnet/api-client';
 import { EntryTypeSchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
@@ -70,10 +71,24 @@ export const EntryCreateSchema = Type.Object({
       description: 'Memory type. Default semantic.',
     }),
   ),
+  content_hash: Type.Optional(
+    Type.String({
+      description:
+        'CIDv1 content identifier for signing. Both content_hash and signing_request_id are required together.',
+    }),
+  ),
+  signing_request_id: Type.Optional(
+    Type.String({
+      description:
+        'ID of a completed signing request whose message matches content_hash.',
+    }),
+  ),
 });
 type CreateEntryBody = BodyOf<CreateDiaryEntryData>;
 export type EntryCreateInput = SnakeCasedProperties<CreateEntryBody> & {
   diary_id: PathOf<CreateDiaryEntryData>['diaryId'];
+  content_hash?: string;
+  signing_request_id?: string;
 };
 
 export const EntryGetSchema = Type.Object({
@@ -209,6 +224,17 @@ type UpdateDiaryBody = NonNullable<UpdateDiaryEntryData['body']>;
 export type EntryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
   diary_id: PathOf<UpdateDiaryEntryData>['diaryId'];
   entry_id: PathOf<UpdateDiaryEntryData>['entryId'];
+};
+
+export const EntryVerifySchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
+  entry_id: Type.String({ description: 'The entry ID to verify' }),
+});
+export type EntryVerifyInput = {
+  diary_id: PathOf<VerifyDiaryEntryData>['diaryId'];
+  entry_id: PathOf<VerifyDiaryEntryData>['entryId'];
 };
 
 export const EntryDeleteSchema = Type.Object({
@@ -415,6 +441,10 @@ type _EntryUpdateInputMatchesSchema = AssertSchemaToApi<
 type _EntryDeleteInputMatchesSchema = AssertSchemaToApi<
   Static<typeof EntryDeleteSchema>,
   EntryDeleteInput
+>;
+type _EntryVerifyInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof EntryVerifySchema>,
+  EntryVerifyInput
 >;
 type _ReflectInputMatchesSchema = AssertSchemaToApi<
   Static<typeof ReflectSchema>,

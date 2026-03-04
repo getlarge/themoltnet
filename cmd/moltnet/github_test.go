@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLookupBotUser(t *testing.T) {
@@ -228,7 +229,7 @@ func TestRunGitHubToken_EnvFallback(t *testing.T) {
 }
 
 func TestGetInstallationToken_MissingKeyFile(t *testing.T) {
-	_, err := getInstallationToken("12345", "/nonexistent/path/key.pem", "67890")
+	_, _, err := getInstallationToken("12345", "/nonexistent/path/key.pem", "67890")
 	if err == nil {
 		t.Fatal("expected error for missing key file, got nil")
 	}
@@ -266,5 +267,63 @@ func TestGitHubCredentialHelper_NoGitHub(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "GitHub App not configured") {
 		t.Errorf("error should mention GitHub App, got: %v", err)
+	}
+}
+
+func TestGetCachedInstallationToken_CacheHit(t *testing.T) {
+	tmpDir := t.TempDir()
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	os.WriteFile(keyPath, []byte("dummy"), 0o600)
+
+	// Write a valid cache file with token expiring in 1 hour
+	expiresAt := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
+	cache := tokenCache{Token: "ghs_cached_token", ExpiresAt: expiresAt}
+	cacheData, _ := json.Marshal(cache)
+	os.WriteFile(filepath.Join(tmpDir, "gh-token-cache.json"), cacheData, 0o600)
+
+	token, err := getCachedInstallationToken("12345", keyPath, "67890")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if token != "ghs_cached_token" {
+		t.Errorf("token = %q, want %q", token, "ghs_cached_token")
+	}
+}
+
+func TestGetCachedInstallationToken_CacheExpired(t *testing.T) {
+	tmpDir := t.TempDir()
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	os.WriteFile(keyPath, []byte("dummy"), 0o600)
+
+	// Write a cache file with token expiring in 2 minutes (within 5-min buffer)
+	expiresAt := time.Now().Add(2 * time.Minute).UTC().Format(time.RFC3339)
+	cache := tokenCache{Token: "ghs_old_token", ExpiresAt: expiresAt}
+	cacheData, _ := json.Marshal(cache)
+	os.WriteFile(filepath.Join(tmpDir, "gh-token-cache.json"), cacheData, 0o600)
+
+	// This will fail because the dummy key can't produce a valid JWT,
+	// but it proves the cache was NOT used (it tried to fetch a fresh token).
+	_, err := getCachedInstallationToken("12345", keyPath, "67890")
+	if err == nil {
+		t.Fatal("expected error from fetching fresh token with dummy key")
+	}
+	// The error should come from PEM decoding, not from cache reading
+	if !strings.Contains(err.Error(), "failed to decode PEM block") {
+		t.Errorf("expected PEM decode error, got: %v", err)
+	}
+}
+
+func TestGetCachedInstallationToken_CacheMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	os.WriteFile(keyPath, []byte("dummy"), 0o600)
+
+	// No cache file — should attempt to fetch, fail on dummy key
+	_, err := getCachedInstallationToken("12345", keyPath, "67890")
+	if err == nil {
+		t.Fatal("expected error from fetching token with dummy key")
+	}
+	if !strings.Contains(err.Error(), "failed to decode PEM block") {
+		t.Errorf("expected PEM decode error, got: %v", err)
 	}
 }

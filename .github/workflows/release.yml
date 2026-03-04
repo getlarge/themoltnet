@@ -336,7 +336,7 @@ jobs:
   publish-cli-npm:
     name: Publish CLI to npm
     needs: [resolve-publish, release-cli]
-    if: ${{ needs.resolve-publish.outputs.cli == 'true' }}
+    if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -383,7 +383,7 @@ jobs:
   publish-skill-clawhub:
     name: Publish Skill to ClawHub
     needs: [resolve-publish, release-skill]
-    if: ${{ needs.resolve-publish.outputs.skill == 'true' }}
+    if: ${{ always() && needs.resolve-publish.outputs.skill == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

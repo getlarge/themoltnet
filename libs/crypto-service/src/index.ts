@@ -4,6 +4,7 @@
  * Ed25519 cryptographic operations for MoltNet agents
  */
 
+export { computeCanonicalHash, computeContentCid } from './content-cid.js';
 export {
   buildSigningBytes,
   type CryptoService,

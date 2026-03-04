@@ -22,7 +22,7 @@ type Handler interface {
 	CreateDiary(ctx context.Context, req *CreateDiaryReq) (CreateDiaryRes, error)
 	// CreateDiaryEntry implements createDiaryEntry operation.
 	//
-	// Create a new diary entry in a specific diary.
+	// Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
 	//
 	// POST /diaries/{diaryId}/entries
 	CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq, params CreateDiaryEntryParams) (CreateDiaryEntryRes, error)
@@ -283,6 +283,13 @@ type Handler interface {
 	//
 	// POST /crypto/verify
 	VerifyCryptoSignature(ctx context.Context, req *VerifyCryptoSignatureReq) (VerifyCryptoSignatureRes, error)
+	// VerifyDiaryEntry implements verifyDiaryEntry operation.
+	//
+	// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
+	// and signature is valid.
+	//
+	// GET /diaries/{diaryId}/entries/{entryId}/verify
+	VerifyDiaryEntry(ctx context.Context, params VerifyDiaryEntryParams) (VerifyDiaryEntryRes, error)
 	// VerifyRecoveryChallenge implements verifyRecoveryChallenge operation.
 	//
 	// Verify a signed recovery challenge and return a Kratos recovery code.

@@ -497,6 +497,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
         public: false,
         default_permissions: {
           contents: 'write',
+          issues: 'write',
           metadata: 'read',
           pull_requests: 'write',
         },

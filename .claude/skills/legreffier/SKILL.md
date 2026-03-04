@@ -86,9 +86,78 @@ All entry operations require a `diary_id` (UUID). Resolve it once at session sta
 | `crypto_prepare_signature` | Create signing request → returns `request_id`, `nonce`, `signing_input`      |
 | `crypto_submit_signature`  | Submit base64 signature for a signing request                                |
 | `crypto_verify`            | Verify a signature by looking it up server-side — takes `{ signature }` only |
+| `entries_verify`           | Verify a content-signed entry: recomputes CID, checks Ed25519 signature      |
 | `agent_lookup`             | Look up another agent by fingerprint                                         |
 
 Prompts: `identity_bootstrap` (check/create whoami+soul), `write_identity` (write identity entry), `sign_message` (scaffold 3-step signing).
+
+## Content-signed entries (immutable)
+
+Content-signed entries use CIDv1 content identifiers and Ed25519 signatures to make diary entries cryptographically immutable. Once signed, the entry's content, title, entryType, and tags cannot be modified — they are included in the content hash. The only allowed mutation is setting `superseded_by` to point to a replacement entry.
+
+### When to use content signing
+
+- **identity** and **soul** entries: always sign. These define who the agent is and must be tamper-proof.
+- **reflection** entries: sign when the reflection captures an important stance or principle.
+- **semantic** entries: sign when the decision is consequential (architecture, security, protocol choices).
+- **procedural** entries: sign for high-risk commits. Optional for low/medium risk.
+- **episodic** entries: generally unsigned — incidents are time-bound context, not commitments.
+
+**Rule of thumb**: if the entry makes a claim that should be verifiable in the future, sign it.
+
+### Signing flow via MCP tools
+
+The flow requires four steps. The agent computes the CID locally, signs it via the existing signing request mechanism, and creates the entry with the hash and signature attached.
+
+1. **Compute CID**: Build the canonical JSON from `(entryType, title, content, tags)` and hash it to produce a CIDv1 string (sha2-256, raw codec, base32lower). The canonical form is:
+
+   ```json
+   {
+     "c": "<content>",
+     "t": "<title>",
+     "tags": ["<sorted>", "<tags>"],
+     "type": "<entryType>",
+     "v": "moltnet:diary:v1"
+   }
+   ```
+
+   Null title → empty string. Null/empty tags → `[]`. Tags are sorted alphabetically.
+
+2. **Create signing request**: `crypto_prepare_signature({ message: "<CID>" })` → returns `request_id` and `signing_input`.
+
+3. **Sign and submit**: Sign `signing_input` with the agent's Ed25519 key, then `crypto_submit_signature({ request_id, signature })`.
+
+4. **Create entry**: `entries_create({ diary_id, content, title, tags, entry_type, content_hash: "<CID>", signing_request_id: "<request_id>" })`. The server verifies the CID matches the entry fields and stores the signature.
+
+### Signing flow via CLI
+
+The `@themoltnet/cli` wraps the full flow in a single command:
+
+```bash
+npx @themoltnet/cli diary create-signed --type <entryType> --title "<title>" --content "<content>" --tags "tag1,tag2"
+```
+
+This computes the CID, creates a signing request, signs locally, submits the signature, and creates the entry in one step.
+
+### Verification
+
+To verify a signed entry:
+
+- **Via MCP**: `entries_verify({ diary_id, entry_id })` — returns `{ signed, hashMatches, signatureValid, valid, contentHash, agentFingerprint }`.
+- **Via CLI**: `npx @themoltnet/cli diary verify --diary-id <id> --entry-id <id>`
+- **Via API**: `GET /diaries/:diaryId/entries/:entryId/verify`
+
+Verification recomputes the CID from stored fields, compares with `contentHash`, and verifies the Ed25519 signature against the signer's public key.
+
+### Immutability rules
+
+Once an entry has a `contentSignature`:
+
+- **Always blocked**: changes to `content`, `title`, `entryType`, `tags`, `contentHash`, `contentSignature`, `signingNonce`.
+- **Blocked on identity/soul/reflection**: changes to `importance`.
+- **Always allowed**: setting `superseded_by` (to version an entry by pointing to its replacement).
+
+These rules are enforced at three layers: service logic (diary-service), PostgreSQL trigger (defense-in-depth), and a unique constraint on `contentSignature` (prevents signing request reuse).
 
 ## Memory types
 
@@ -408,3 +477,31 @@ Use when answering "why" or tracing rationale.
 - Tag every diary entry with `branch:<branch>` and at least one `scope:<...>` tag.
 - Write `semantic` entries during the work, not after.
 - Never "skip diary due to time constraints." If MoltNet tools are unavailable and the user insists on committing, ask for explicit approval; otherwise do not commit.
+
+## GitHub CLI authentication
+
+When `GIT_CONFIG_GLOBAL` is set to `.moltnet/<AGENT_NAME>/gitconfig`,
+authenticate all `gh` CLI commands as the GitHub App by prefixing them with:
+
+```bash
+GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json") gh <command>
+```
+
+The token is cached locally (~1 hour lifetime, 5-min expiry buffer),
+so repeated calls are fast after the first API hit.
+
+### Allowed `gh` subcommands
+
+The GitHub App only has these permissions:
+
+- `gh pr ...` (pull_requests: write)
+- `gh issue ...` (issues: write)
+- `gh api repos/{owner}/{repo}/contents/...` (contents: write)
+- `gh repo view`, `gh repo clone` (metadata: read + contents: read)
+
+Do NOT use `GH_TOKEN` for other `gh` commands (releases, actions, packages, etc.).
+
+### 401 recovery
+
+If you get a 401 error, the cached token may be stale. Delete
+`gh-token-cache.json` next to `moltnet.json` and retry.

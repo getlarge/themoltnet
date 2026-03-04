@@ -317,6 +317,82 @@ func (s *CreateDiaryBadRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateDiaryEntryBadRequest as json.
+func (s *CreateDiaryEntryBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDiaryEntryBadRequest from json.
+func (s *CreateDiaryEntryBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDiaryEntryBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDiaryEntryBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDiaryEntryBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDiaryEntryBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateDiaryEntryConflict as json.
+func (s *CreateDiaryEntryConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateDiaryEntryConflict from json.
+func (s *CreateDiaryEntryConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateDiaryEntryConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateDiaryEntryConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateDiaryEntryConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateDiaryEntryConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateDiaryEntryInternalServerError as json.
 func (s *CreateDiaryEntryInternalServerError) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -407,6 +483,12 @@ func (s *CreateDiaryEntryReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.Content)
 	}
 	{
+		if s.ContentHash.Set {
+			e.FieldStart("contentHash")
+			s.ContentHash.Encode(e)
+		}
+	}
+	{
 		if s.EntryType.Set {
 			e.FieldStart("entryType")
 			s.EntryType.Encode(e)
@@ -416,6 +498,12 @@ func (s *CreateDiaryEntryReq) encodeFields(e *jx.Encoder) {
 		if s.Importance.Set {
 			e.FieldStart("importance")
 			s.Importance.Encode(e)
+		}
+	}
+	{
+		if s.SigningRequestId.Set {
+			e.FieldStart("signingRequestId")
+			s.SigningRequestId.Encode(e)
 		}
 	}
 	{
@@ -436,12 +524,14 @@ func (s *CreateDiaryEntryReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateDiaryEntryReq = [5]string{
+var jsonFieldsNameOfCreateDiaryEntryReq = [7]string{
 	0: "content",
-	1: "entryType",
-	2: "importance",
-	3: "tags",
-	4: "title",
+	1: "contentHash",
+	2: "entryType",
+	3: "importance",
+	4: "signingRequestId",
+	5: "tags",
+	6: "title",
 }
 
 // Decode decodes CreateDiaryEntryReq from json.
@@ -465,6 +555,16 @@ func (s *CreateDiaryEntryReq) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"content\"")
 			}
+		case "contentHash":
+			if err := func() error {
+				s.ContentHash.Reset()
+				if err := s.ContentHash.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentHash\"")
+			}
 		case "entryType":
 			if err := func() error {
 				s.EntryType.Reset()
@@ -484,6 +584,16 @@ func (s *CreateDiaryEntryReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"importance\"")
+			}
+		case "signingRequestId":
+			if err := func() error {
+				s.SigningRequestId.Reset()
+				if err := s.SigningRequestId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signingRequestId\"")
 			}
 		case "tags":
 			if err := func() error {
@@ -2141,6 +2251,14 @@ func (s *DiaryEntry) encodeFields(e *jx.Encoder) {
 		e.Str(s.Content)
 	}
 	{
+		e.FieldStart("contentHash")
+		s.ContentHash.Encode(e)
+	}
+	{
+		e.FieldStart("contentSignature")
+		s.ContentSignature.Encode(e)
+	}
+	{
 		e.FieldStart("createdAt")
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
@@ -2194,20 +2312,22 @@ func (s *DiaryEntry) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDiaryEntry = [13]string{
+var jsonFieldsNameOfDiaryEntry = [15]string{
 	0:  "accessCount",
 	1:  "content",
-	2:  "createdAt",
-	3:  "diaryId",
-	4:  "entryType",
-	5:  "id",
-	6:  "importance",
-	7:  "injectionRisk",
-	8:  "lastAccessedAt",
-	9:  "supersededBy",
-	10: "tags",
-	11: "title",
-	12: "updatedAt",
+	2:  "contentHash",
+	3:  "contentSignature",
+	4:  "createdAt",
+	5:  "diaryId",
+	6:  "entryType",
+	7:  "id",
+	8:  "importance",
+	9:  "injectionRisk",
+	10: "lastAccessedAt",
+	11: "supersededBy",
+	12: "tags",
+	13: "title",
+	14: "updatedAt",
 }
 
 // Decode decodes DiaryEntry from json.
@@ -2243,8 +2363,28 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"content\"")
 			}
-		case "createdAt":
+		case "contentHash":
 			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.ContentHash.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentHash\"")
+			}
+		case "contentSignature":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.ContentSignature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentSignature\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -2256,7 +2396,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
 		case "diaryId":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.DiaryId = v
@@ -2268,7 +2408,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"diaryId\"")
 			}
 		case "entryType":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.EntryType.Decode(d); err != nil {
 					return err
@@ -2278,7 +2418,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"entryType\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -2290,7 +2430,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "importance":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Float64()
 				s.Importance = float64(v)
@@ -2302,7 +2442,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"importance\"")
 			}
 		case "injectionRisk":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Bool()
 				s.InjectionRisk = bool(v)
@@ -2314,7 +2454,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"injectionRisk\"")
 			}
 		case "lastAccessedAt":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.LastAccessedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -2324,7 +2464,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"lastAccessedAt\"")
 			}
 		case "supersededBy":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.SupersededBy.Decode(d); err != nil {
 					return err
@@ -2334,7 +2474,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"supersededBy\"")
 			}
 		case "tags":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				switch tt := d.Next(); tt {
 				case jx.Null:
@@ -2361,7 +2501,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -2371,7 +2511,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -2393,7 +2533,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00011111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -3658,6 +3798,183 @@ func (s DigestEntriesItemEntryType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DigestEntriesItemEntryType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *EntryVerifyResult) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *EntryVerifyResult) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("agentFingerprint")
+		s.AgentFingerprint.Encode(e)
+	}
+	{
+		e.FieldStart("contentHash")
+		s.ContentHash.Encode(e)
+	}
+	{
+		e.FieldStart("hashMatches")
+		e.Bool(s.HashMatches)
+	}
+	{
+		e.FieldStart("signatureValid")
+		e.Bool(s.SignatureValid)
+	}
+	{
+		e.FieldStart("signed")
+		e.Bool(s.Signed)
+	}
+	{
+		e.FieldStart("valid")
+		e.Bool(s.Valid)
+	}
+}
+
+var jsonFieldsNameOfEntryVerifyResult = [6]string{
+	0: "agentFingerprint",
+	1: "contentHash",
+	2: "hashMatches",
+	3: "signatureValid",
+	4: "signed",
+	5: "valid",
+}
+
+// Decode decodes EntryVerifyResult from json.
+func (s *EntryVerifyResult) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EntryVerifyResult to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "agentFingerprint":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.AgentFingerprint.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentFingerprint\"")
+			}
+		case "contentHash":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.ContentHash.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentHash\"")
+			}
+		case "hashMatches":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.HashMatches = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hashMatches\"")
+			}
+		case "signatureValid":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Bool()
+				s.SignatureValid = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signatureValid\"")
+			}
+		case "signed":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Bool()
+				s.Signed = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"signed\"")
+			}
+		case "valid":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Bool()
+				s.Valid = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"valid\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode EntryVerifyResult")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfEntryVerifyResult) {
+					name = jsonFieldsNameOfEntryVerifyResult[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *EntryVerifyResult) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EntryVerifyResult) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -15404,6 +15721,44 @@ func (s *Success) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes UpdateDiaryEntryConflict as json.
+func (s *UpdateDiaryEntryConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes UpdateDiaryEntryConflict from json.
+func (s *UpdateDiaryEntryConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateDiaryEntryConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = UpdateDiaryEntryConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateDiaryEntryConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateDiaryEntryConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes UpdateDiaryEntryForbidden as json.
 func (s *UpdateDiaryEntryForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -16303,6 +16658,120 @@ func (s *VerifyCryptoSignatureReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *VerifyCryptoSignatureReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes VerifyDiaryEntryInternalServerError as json.
+func (s *VerifyDiaryEntryInternalServerError) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes VerifyDiaryEntryInternalServerError from json.
+func (s *VerifyDiaryEntryInternalServerError) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode VerifyDiaryEntryInternalServerError to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = VerifyDiaryEntryInternalServerError(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *VerifyDiaryEntryInternalServerError) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *VerifyDiaryEntryInternalServerError) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes VerifyDiaryEntryNotFound as json.
+func (s *VerifyDiaryEntryNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes VerifyDiaryEntryNotFound from json.
+func (s *VerifyDiaryEntryNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode VerifyDiaryEntryNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = VerifyDiaryEntryNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *VerifyDiaryEntryNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *VerifyDiaryEntryNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes VerifyDiaryEntryUnauthorized as json.
+func (s *VerifyDiaryEntryUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes VerifyDiaryEntryUnauthorized from json.
+func (s *VerifyDiaryEntryUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode VerifyDiaryEntryUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = VerifyDiaryEntryUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *VerifyDiaryEntryUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *VerifyDiaryEntryUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildCodexRules,
   buildGhTokenRule,
   buildPermissions,
   downloadSkills,
@@ -89,6 +90,7 @@ describe('buildPermissions', () => {
     expect(perms).toContain('Bash(npx @themoltnet/cli sign *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli github token *)');
     expect(perms).toContain('Bash(ln -s *)');
+    expect(perms).toContain('Bash(echo "GIT_CONFIG_GLOBAL=*")');
   });
 });
 
@@ -97,8 +99,46 @@ describe('buildGhTokenRule', () => {
     const rule = buildGhTokenRule('legreffier');
     expect(rule).toContain('$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json');
     expect(rule).toContain('GH_TOKEN');
-    expect(rule).toContain('moltnet github token');
+    expect(rule).toContain('npx @themoltnet/cli github token');
     expect(rule).toContain('.moltnet/legreffier/gitconfig');
+  });
+
+  it('lists scoped gh subcommands matching app permissions', () => {
+    const rule = buildGhTokenRule('legreffier');
+    expect(rule).toContain('gh pr');
+    expect(rule).toContain('gh issue');
+    expect(rule).toContain('gh api repos/{owner}/{repo}/contents/');
+    expect(rule).toContain('gh repo view');
+  });
+
+  it('mentions token caching and 401 recovery', () => {
+    const rule = buildGhTokenRule('legreffier');
+    expect(rule).toContain('cached locally');
+    expect(rule).toContain('gh-token-cache.json');
+    expect(rule).toContain('401');
+  });
+});
+
+describe('buildCodexRules', () => {
+  it('produces Starlark prefix_rule entries for allowed commands', () => {
+    const rules = buildCodexRules('legreffier');
+    expect(rules).toContain('prefix_rule(');
+    expect(rules).toContain('pattern = ["git", "config"]');
+    expect(rules).toContain('pattern = ["git", "diff"]');
+    expect(rules).toContain('pattern = ["git", "log"]');
+    expect(rules).toContain('pattern = ["git", "rev-parse"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "github", "token"]',
+    );
+    expect(rules).toContain('pattern = ["ln", "-s"]');
+    expect(rules).toContain('decision = "allow"');
+  });
+
+  it('does not contain markdown', () => {
+    const rules = buildCodexRules('legreffier');
+    expect(rules).not.toContain('```');
+    expect(rules).not.toContain('## ');
   });
 });
 

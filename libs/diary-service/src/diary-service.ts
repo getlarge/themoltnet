@@ -566,22 +566,47 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
-      // const existing = await fastify.diaryService.getEntryById(
-      //   entryId,
-      //   request.authContext!.identityId,
-      // );
-      // if (!existing || existing.diaryId !== diary.id) {
-      //   throw createProblem('not-found', 'Entry not found');
-      // }
-
-      // Fetch existing entry when context is needed to rebuild embedding text
-      const needsExisting =
+      // Fetch existing entry when the update touches fields that require it
+      // (immutability check for signed entries, embedding rebuild for content changes)
+      const touchesContent =
         updates.content !== undefined ||
         updates.title !== undefined ||
-        updates.tags !== undefined;
-      const existing = needsExisting
+        updates.entryType !== undefined ||
+        updates.tags !== undefined ||
+        updates.importance !== undefined;
+      const existing = touchesContent
         ? await diaryEntryRepository.findById(id)
         : null;
+
+      // Enforce immutability for content-signed entries
+      if (existing?.contentSignature) {
+        // All fields included in the CID are immutable on signed entries:
+        // content, title, entryType, and tags.
+        if (
+          updates.content !== undefined ||
+          updates.title !== undefined ||
+          updates.entryType !== undefined ||
+          updates.tags !== undefined
+        ) {
+          throw new DiaryServiceError(
+            'immutable',
+            'Entry is content-signed and immutable — content, title, entryType, and tags are included in the content hash. Create a new entry and set superseded_by on this one.',
+          );
+        }
+
+        // importance is also immutable on identity/soul/reflection entries
+        if (
+          (existing.entryType === 'identity' ||
+            existing.entryType === 'soul' ||
+            existing.entryType === 'reflection') &&
+          updates.importance !== undefined
+        ) {
+          throw new DiaryServiceError(
+            'immutable',
+            'Importance is immutable on signed identity, soul, and reflection entries.',
+          );
+        }
+      }
 
       const updated = await diaryWorkflows.updateEntry(
         id,
