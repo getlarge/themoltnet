@@ -1,5 +1,6 @@
 export { cluster, type ClusterOptions, cosineDistance } from './cluster.js';
 export { compress, estimateTokens } from './compress.js';
+export { consolidate, type ConsolidateOptions } from './consolidate.js';
 export { mmr, type MmrOptions } from './mmr.js';
 export { select, type SelectionStrategy } from './selector.js';
 export type {
