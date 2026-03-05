@@ -1,13 +1,21 @@
 import type { Client } from '@moltnet/api-client';
 import {
+  acceptDiaryInvitation,
+  createDiary,
   createDiaryEntry,
   createSigningRequest,
+  declineDiaryInvitation,
+  deleteDiary,
   deleteDiaryEntry,
   getAgentProfile,
   getCryptoIdentity,
+  getDiary,
   getDiaryEntry,
+  getHealth,
+  getLegreffierOnboardingStatus,
   getLlmsTxt,
   getNetworkInfo,
+  getProblemType,
   getPublicEntry,
   getPublicFeed,
   getSigningRequest,
@@ -15,14 +23,22 @@ import {
   getWhoami,
   issueVoucher,
   listActiveVouchers,
+  listDiaries,
   listDiaryEntries,
+  listDiaryInvitations,
+  listDiaryShares,
+  listProblemTypes,
   listSigningRequests,
   reflectDiary,
   requestRecoveryChallenge,
+  revokeDiaryShare,
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
+  shareDiary,
+  startLegreffierOnboarding,
   submitSignature,
+  updateDiary,
   updateDiaryEntry,
   verifyAgentSignature,
   verifyCryptoSignature,
@@ -38,6 +54,17 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
+    listDiaries: vi.fn(),
+    createDiary: vi.fn(),
+    getDiary: vi.fn(),
+    updateDiary: vi.fn(),
+    deleteDiary: vi.fn(),
+    listDiaryShares: vi.fn(),
+    shareDiary: vi.fn(),
+    revokeDiaryShare: vi.fn(),
+    listDiaryInvitations: vi.fn(),
+    acceptDiaryInvitation: vi.fn(),
+    declineDiaryInvitation: vi.fn(),
     createDiaryEntry: vi.fn(),
     listDiaryEntries: vi.fn(),
     getDiaryEntry: vi.fn(),
@@ -65,6 +92,11 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     getPublicEntry: vi.fn(),
     getNetworkInfo: vi.fn(),
     getLlmsTxt: vi.fn(),
+    getHealth: vi.fn(),
+    startLegreffierOnboarding: vi.fn(),
+    getLegreffierOnboardingStatus: vi.fn(),
+    listProblemTypes: vi.fn(),
+    getProblemType: vi.fn(),
   };
 });
 
@@ -114,7 +146,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.diary.create('my-diary', {
+      const result = await agent.entries.create('my-diary', {
         content: 'Hello',
       });
 
@@ -137,7 +169,7 @@ describe('Agent facade', () => {
 
       const agent = makeAgent();
       await expect(
-        agent.diary.create('my-diary', { content: 'x' }),
+        agent.entries.create('my-diary', { content: 'x' }),
       ).rejects.toThrow(MoltNetError);
     });
 
@@ -154,7 +186,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.diary.list('my-diary', { limit: 10 });
+      const result = await agent.entries.list('my-diary', { limit: 10 });
 
       expect(result).toEqual(listData);
       expect(listDiaryEntries).toHaveBeenCalledWith(
@@ -172,7 +204,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diary.get('my-diary', 'entry-1');
+      await agent.entries.get('my-diary', 'entry-1');
 
       expect(getDiaryEntry).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -188,7 +220,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diary.update('my-diary', 'entry-1', {
+      await agent.entries.update('my-diary', 'entry-1', {
         content: 'Updated',
       });
 
@@ -207,7 +239,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.diary.delete('my-diary', 'entry-1');
+      const result = await agent.entries.delete('my-diary', 'entry-1');
 
       expect(result).toEqual({ success: true });
       expect(deleteDiaryEntry).toHaveBeenCalledWith(
@@ -225,7 +257,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.diary.search({ query: 'hello' });
+      const result = await agent.entries.search({ query: 'hello' });
 
       expect(result).toEqual(searchData);
       expect(searchDiary).toHaveBeenCalledWith(
@@ -248,11 +280,11 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diary.reflect({ days: 7 });
+      await agent.entries.reflect({ diaryId: 'my-diary', days: 7 });
 
       expect(reflectDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          query: { days: 7 },
+          query: { diaryId: 'my-diary', days: 7 },
         }),
       );
     });
@@ -628,6 +660,321 @@ describe('Agent facade', () => {
       const result = await agent.public.llmsTxt();
 
       expect(result).toBe('# MoltNet');
+    });
+
+    it('public.health calls getHealth', async () => {
+      vi.mocked(getHealth).mockResolvedValueOnce({
+        data: { status: 'ok' },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.public.health();
+
+      expect(result).toEqual({ status: 'ok' });
+      expect(getHealth).toHaveBeenCalled();
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // diaries
+  // -----------------------------------------------------------------------
+  const mockDiary = {
+    id: 'diary-1',
+    ownerId: 'owner-1',
+    name: 'My Diary',
+    visibility: 'private' as const,
+    signed: false,
+    createdAt: '2024-01-01',
+    updatedAt: '2024-01-01',
+  };
+
+  describe('diaries', () => {
+    it('diaries.list calls listDiaries', async () => {
+      vi.mocked(listDiaries).mockResolvedValueOnce({
+        data: { items: [mockDiary] },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.diaries.list();
+
+      expect(result).toEqual({ items: [mockDiary] });
+      expect(listDiaries).toHaveBeenCalledWith(
+        expect.objectContaining({ client: mockClient }),
+      );
+    });
+
+    it('diaries.create passes body', async () => {
+      vi.mocked(createDiary).mockResolvedValueOnce({
+        data: mockDiary,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.create({ name: 'My Diary' });
+
+      expect(createDiary).toHaveBeenCalledWith(
+        expect.objectContaining({ body: { name: 'My Diary' } }),
+      );
+    });
+
+    it('diaries.get passes id as path param', async () => {
+      vi.mocked(getDiary).mockResolvedValueOnce({
+        data: mockDiary,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.get('diary-1');
+
+      expect(getDiary).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'diary-1' } }),
+      );
+    });
+
+    it('diaries.update passes id and body', async () => {
+      vi.mocked(updateDiary).mockResolvedValueOnce({
+        data: mockDiary,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.update('diary-1', { name: 'Renamed' });
+
+      expect(updateDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'diary-1' },
+          body: { name: 'Renamed' },
+        }),
+      );
+    });
+
+    it('diaries.delete passes id as path param', async () => {
+      vi.mocked(deleteDiary).mockResolvedValueOnce({
+        data: { success: true },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.delete('diary-1');
+
+      expect(deleteDiary).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'diary-1' } }),
+      );
+    });
+
+    it('diaries.listShares passes diaryId as path param', async () => {
+      vi.mocked(listDiaryShares).mockResolvedValueOnce({
+        data: { shares: [] },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.listShares('diary-1');
+
+      expect(listDiaryShares).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { diaryId: 'diary-1' } }),
+      );
+    });
+
+    it('diaries.share passes diaryId and body', async () => {
+      const share = { diaryId: 'diary-1', fingerprint: 'A1B2', role: 'reader' };
+      vi.mocked(shareDiary).mockResolvedValueOnce({
+        data: share,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.share('diary-1', { fingerprint: 'A1B2' });
+
+      expect(shareDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { diaryId: 'diary-1' },
+          body: { fingerprint: 'A1B2' },
+        }),
+      );
+    });
+
+    it('diaries.revokeShare passes diaryId and fingerprint', async () => {
+      vi.mocked(revokeDiaryShare).mockResolvedValueOnce({
+        data: { success: true },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.revokeShare('diary-1', 'A1B2');
+
+      expect(revokeDiaryShare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { diaryId: 'diary-1', fingerprint: 'A1B2' },
+        }),
+      );
+    });
+
+    it('diaries.listInvitations calls listDiaryInvitations', async () => {
+      vi.mocked(listDiaryInvitations).mockResolvedValueOnce({
+        data: { invitations: [] },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.listInvitations();
+
+      expect(listDiaryInvitations).toHaveBeenCalled();
+    });
+
+    it('diaries.acceptInvitation passes id as path param', async () => {
+      const share = { diaryId: 'diary-1', fingerprint: 'A1B2', role: 'reader' };
+      vi.mocked(acceptDiaryInvitation).mockResolvedValueOnce({
+        data: share,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.acceptInvitation('inv-1');
+
+      expect(acceptDiaryInvitation).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'inv-1' } }),
+      );
+    });
+
+    it('diaries.declineInvitation passes id as path param', async () => {
+      const share = { diaryId: 'diary-1', fingerprint: 'A1B2', role: 'reader' };
+      vi.mocked(declineDiaryInvitation).mockResolvedValueOnce({
+        data: share,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.declineInvitation('inv-1');
+
+      expect(declineDiaryInvitation).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { id: 'inv-1' } }),
+      );
+    });
+
+    it('diaries.list throws on error', async () => {
+      vi.mocked(listDiaries).mockResolvedValueOnce({
+        data: undefined,
+        error: problemError,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(agent.diaries.list()).rejects.toThrow(MoltNetError);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // legreffier
+  // -----------------------------------------------------------------------
+  describe('legreffier', () => {
+    it('legreffier.startOnboarding passes body', async () => {
+      const response = {
+        workflowId: 'wf-1',
+        manifestUrl: 'https://example.com',
+      };
+      vi.mocked(startLegreffierOnboarding).mockResolvedValueOnce({
+        data: response,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.legreffier.startOnboarding({
+        publicKey: 'ed25519:abc',
+        fingerprint: 'A1B2-C3D4',
+        agentName: 'test-agent',
+      });
+
+      expect(result).toEqual(response);
+      expect(startLegreffierOnboarding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            publicKey: 'ed25519:abc',
+            fingerprint: 'A1B2-C3D4',
+            agentName: 'test-agent',
+          },
+        }),
+      );
+    });
+
+    it('legreffier.getOnboardingStatus passes workflowId as path param', async () => {
+      const status = { workflowId: 'wf-1', status: 'pending' };
+      vi.mocked(getLegreffierOnboardingStatus).mockResolvedValueOnce({
+        data: status,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.legreffier.getOnboardingStatus('wf-1');
+
+      expect(getLegreffierOnboardingStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { workflowId: 'wf-1' } }),
+      );
+    });
+
+    it('legreffier.startOnboarding throws on error', async () => {
+      vi.mocked(startLegreffierOnboarding).mockResolvedValueOnce({
+        data: undefined,
+        error: problemError,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(
+        agent.legreffier.startOnboarding({
+          publicKey: 'ed25519:abc',
+          fingerprint: 'A1B2-C3D4',
+          agentName: 'test-agent',
+        }),
+      ).rejects.toThrow(MoltNetError);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // problems
+  // -----------------------------------------------------------------------
+  describe('problems', () => {
+    it('problems.list calls listProblemTypes', async () => {
+      const types = [{ type: 'not-found', title: 'Not Found' }];
+      vi.mocked(listProblemTypes).mockResolvedValueOnce({
+        data: types,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const result = await agent.problems.list();
+
+      expect(result).toEqual(types);
+      expect(listProblemTypes).toHaveBeenCalled();
+    });
+
+    it('problems.get passes type as path param', async () => {
+      const detail = {
+        type: 'not-found',
+        title: 'Not Found',
+        description: '...',
+      };
+      vi.mocked(getProblemType).mockResolvedValueOnce({
+        data: detail,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.problems.get('not-found');
+
+      expect(getProblemType).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { type: 'not-found' } }),
+      );
+    });
+
+    it('problems.list throws MoltNetError when no data', async () => {
+      vi.mocked(listProblemTypes).mockResolvedValueOnce({
+        data: undefined,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await expect(agent.problems.list()).rejects.toThrow(MoltNetError);
     });
   });
 
