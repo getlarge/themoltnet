@@ -194,6 +194,12 @@ describe('enforceBudget — unit', () => {
     const result = enforceBudget([e1, e2, e3], 10000);
     expect(result.stats.entriesIncluded).toBe(result.entries.length);
   });
+
+  it('compressionRatio is 1 when all entries fit at full level', () => {
+    const result = enforceBudget([e1, e2, e3], 10000);
+    expect(result.stats.compressionRatio).toBe(1);
+    expect(result.stats.entriesCompressed).toBe(0);
+  });
 });
 
 describe('compile — integration properties', () => {

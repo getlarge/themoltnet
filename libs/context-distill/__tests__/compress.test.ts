@@ -204,11 +204,7 @@ describe('compress — summary level', () => {
       .split(/(?<=[.!?])\s+/)
       .filter(Boolean);
     for (const s of outputSentences) {
-      expect(
-        sentences.some(
-          (orig) => orig.includes(s) || s.includes(orig.slice(0, 20)),
-        ),
-      ).toBe(true);
+      expect(sentences).toContain(s);
     }
   });
 
