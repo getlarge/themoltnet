@@ -54,6 +54,7 @@ async function main(): Promise<void> {
   const app = await buildApp({
     config,
     deps,
+    version: pkg.version,
     logger:
       config.NODE_ENV === 'production'
         ? true
