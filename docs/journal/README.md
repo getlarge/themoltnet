@@ -167,4 +167,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-03-03 | handoff    | [GitHub Token Subcommand](2026-03-03-02-github-token-subcommand.md)                                                                                |
 | 2026-03-04 | progress   | [File-Based Token Caching & Scoped gh Commands](2026-03-04-01-token-caching-scoped-gh.md)                                                          |
 | 2026-03-04 | discovery  | [OTel Runtime Metrics & Distributed Trace Propagation Fix](2026-03-04-01-otel-runtime-metrics-trace-propagation.md)                                |
+| 2026-03-05 | handoff    | [Phase 1: @moltnet/context-distill Library](2026-03-05-01-context-distill-library.md)                                                              |
 | 2026-03-05 | handoff    | [Docker Build Speedup: Model Stage Isolation + .dockerignore Fixes](2026-03-05-02-docker-build-speedup.md)                                         |
