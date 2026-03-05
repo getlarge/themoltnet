@@ -1,4 +1,5 @@
 export { cluster, type ClusterOptions, cosineDistance } from './cluster.js';
+export { mmr, type MmrOptions } from './mmr.js';
 export { select, type SelectionStrategy } from './selector.js';
 export type {
   Cluster,
