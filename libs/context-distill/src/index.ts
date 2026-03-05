@@ -1,1 +1,8 @@
-// exports added incrementally per task
+export type {
+  Cluster,
+  CompiledEntry,
+  CompileResult,
+  CompressionLevel,
+  ConsolidateResult,
+  DistillEntry,
+} from './types.js';
