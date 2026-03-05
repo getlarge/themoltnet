@@ -1,17 +1,31 @@
 import type {
   AgentProfile,
   Client,
+  CreateDiaryData,
   CreateDiaryEntryData,
   CryptoIdentity,
   CryptoVerifyResult,
+  DiaryCatalog,
+  DiaryCatalogList,
   DiaryEntry,
+  DiaryInvitationList,
   DiaryList,
   DiarySearchResult,
+  DiaryShare,
+  DiaryShareList,
   Digest,
   EntryVerifyResult,
+  GetLegreffierOnboardingStatusData,
+  GetLegreffierOnboardingStatusResponse,
+  GetProblemTypeData,
   GetPublicFeedData,
   GetTrustGraphData,
+  Health,
+  ListDiariesData,
   ListDiaryEntriesData,
+  ListDiaryInvitationsData,
+  ListDiarySharesData,
+  ListProblemTypesResponse,
   ListSigningRequestsData,
   NetworkInfo,
   PublicFeedEntry,
@@ -23,22 +37,34 @@ import type {
   RotateSecretResponse,
   SearchDiaryData,
   SearchPublicFeedData,
+  ShareDiaryData,
   SigningRequest,
   SigningRequestList,
+  StartLegreffierOnboardingData,
+  StartLegreffierOnboardingResponse,
   Success,
+  UpdateDiaryData,
   UpdateDiaryEntryData,
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
 import {
+  acceptDiaryInvitation,
+  createDiary,
   createDiaryEntry,
   createSigningRequest,
+  declineDiaryInvitation,
+  deleteDiary,
   deleteDiaryEntry,
   getAgentProfile,
   getCryptoIdentity,
+  getDiary,
   getDiaryEntry,
+  getHealth,
+  getLegreffierOnboardingStatus,
   getLlmsTxt,
   getNetworkInfo,
+  getProblemType,
   getPublicEntry,
   getPublicFeed,
   getSigningRequest,
@@ -46,14 +72,22 @@ import {
   getWhoami,
   issueVoucher,
   listActiveVouchers,
+  listDiaries,
   listDiaryEntries,
+  listDiaryInvitations,
+  listDiaryShares,
+  listProblemTypes,
   listSigningRequests,
   reflectDiary,
   requestRecoveryChallenge,
+  revokeDiaryShare,
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
+  shareDiary,
+  startLegreffierOnboarding,
   submitSignature,
+  updateDiary,
   updateDiaryEntry,
   verifyAgentSignature,
   verifyCryptoSignature,
@@ -69,7 +103,39 @@ import type { TokenManager } from './token.js';
 // Namespace interfaces
 // ---------------------------------------------------------------------------
 
-export interface DiaryNamespace {
+export interface DiariesNamespace {
+  list(query?: ListDiariesData['query']): Promise<DiaryCatalogList>;
+
+  create(body: CreateDiaryData['body']): Promise<DiaryCatalog>;
+
+  get(id: string): Promise<DiaryCatalog>;
+
+  update(
+    id: string,
+    body: NonNullable<UpdateDiaryData['body']>,
+  ): Promise<DiaryCatalog>;
+
+  delete(id: string): Promise<Success>;
+
+  listShares(
+    diaryId: string,
+    query?: ListDiarySharesData['query'],
+  ): Promise<DiaryShareList>;
+
+  share(diaryId: string, body: ShareDiaryData['body']): Promise<DiaryShare>;
+
+  revokeShare(diaryId: string, fingerprint: string): Promise<Success>;
+
+  listInvitations(
+    query?: ListDiaryInvitationsData['query'],
+  ): Promise<DiaryInvitationList>;
+
+  acceptInvitation(id: string): Promise<DiaryShare>;
+
+  declineInvitation(id: string): Promise<DiaryShare>;
+}
+
+export interface EntriesNamespace {
   create(
     diaryId: string,
     body: NonNullable<CreateDiaryEntryData['body']>,
@@ -189,6 +255,24 @@ export interface PublicNamespace {
   networkInfo(): Promise<NetworkInfo>;
 
   llmsTxt(): Promise<string>;
+
+  health(): Promise<Health>;
+}
+
+export interface LegreffierNamespace {
+  startOnboarding(
+    body: StartLegreffierOnboardingData['body'],
+  ): Promise<StartLegreffierOnboardingResponse>;
+
+  getOnboardingStatus(
+    workflowId: GetLegreffierOnboardingStatusData['path']['workflowId'],
+  ): Promise<GetLegreffierOnboardingStatusResponse>;
+}
+
+export interface ProblemsNamespace {
+  list(): Promise<ListProblemTypesResponse>;
+
+  get(type: GetProblemTypeData['path']['type']): Promise<unknown>;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,13 +280,16 @@ export interface PublicNamespace {
 // ---------------------------------------------------------------------------
 
 export interface Agent {
-  readonly diary: DiaryNamespace;
+  readonly diaries: DiariesNamespace;
+  readonly entries: EntriesNamespace;
   readonly agents: AgentsNamespace;
   readonly crypto: CryptoNamespace;
   readonly vouch: VouchNamespace;
   readonly auth: AuthNamespace;
   readonly recovery: RecoveryNamespace;
   readonly public: PublicNamespace;
+  readonly legreffier: LegreffierNamespace;
+  readonly problems: ProblemsNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -224,7 +311,7 @@ export interface CreateAgentOptions {
 export function createAgent(options: CreateAgentOptions): Agent {
   const { client, tokenManager, auth } = options;
 
-  const diary: DiaryNamespace = {
+  const entries: EntriesNamespace = {
     async create(diaryId, body) {
       const result = await createDiaryEntry({
         client,
@@ -584,16 +671,184 @@ export function createAgent(options: CreateAgentOptions): Agent {
       }
       return result.data;
     },
+
+    async health() {
+      const result = await getHealth({ client });
+      if (result.error || !result.data) {
+        throw new MoltNetError('Failed to fetch health', {
+          code: 'HEALTH_FAILED',
+        });
+      }
+      return result.data;
+    },
+  };
+
+  const diaries: DiariesNamespace = {
+    async list(query) {
+      const result = await listDiaries({ client, auth, query });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async create(body) {
+      const result = await createDiary({ client, auth, body });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async get(id) {
+      const result = await getDiary({ client, auth, path: { id } });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async update(id, body) {
+      const result = await updateDiary({ client, auth, path: { id }, body });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async delete(id) {
+      const result = await deleteDiary({ client, auth, path: { id } });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async listShares(diaryId, query) {
+      const result = await listDiaryShares({
+        client,
+        auth,
+        path: { diaryId },
+        query,
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async share(diaryId, body) {
+      const result = await shareDiary({
+        client,
+        auth,
+        path: { diaryId },
+        body,
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async revokeShare(diaryId, fingerprint) {
+      const result = await revokeDiaryShare({
+        client,
+        auth,
+        path: { diaryId, fingerprint },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async listInvitations(query) {
+      const result = await listDiaryInvitations({ client, auth, query });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async acceptInvitation(id) {
+      const result = await acceptDiaryInvitation({
+        client,
+        auth,
+        path: { id },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async declineInvitation(id) {
+      const result = await declineDiaryInvitation({
+        client,
+        auth,
+        path: { id },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+  };
+
+  const legreffierNs: LegreffierNamespace = {
+    async startOnboarding(body) {
+      const result = await startLegreffierOnboarding({ client, body });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async getOnboardingStatus(workflowId) {
+      const result = await getLegreffierOnboardingStatus({
+        client,
+        path: { workflowId },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+  };
+
+  const problemsNs: ProblemsNamespace = {
+    async list() {
+      const result = await listProblemTypes({ client });
+      if (result.error || !result.data) {
+        throw new MoltNetError('Failed to list problem types', {
+          code: 'PROBLEMS_FAILED',
+        });
+      }
+      return result.data;
+    },
+
+    async get(type) {
+      const result = await getProblemType({ client, path: { type } });
+      if (result.error || !result.data) {
+        throw new MoltNetError(`Failed to get problem type: ${type}`, {
+          code: 'PROBLEM_TYPE_FAILED',
+        });
+      }
+      return result.data;
+    },
   };
 
   return {
-    diary,
+    diaries,
+    entries,
     agents,
     crypto,
     vouch,
     auth: authNs,
     recovery,
     public: publicNs,
+    legreffier: legreffierNs,
+    problems: problemsNs,
     client,
     getToken: () => tokenManager.getToken(),
   };

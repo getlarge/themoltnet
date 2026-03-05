@@ -34,7 +34,7 @@ try {
   // Minimal consumer that exercises the public API surface
   writeFileSync(
     join(tmpDir, 'consumer.ts'),
-    `import type { Agent, DiaryNamespace } from '${sdkDist}/index.js';
+    `import type { Agent, EntriesNamespace } from '${sdkDist}/index.js';
 import { MoltNetError, connect } from '${sdkDist}/index.js';
 
 // Verify types resolve without @moltnet/* packages
