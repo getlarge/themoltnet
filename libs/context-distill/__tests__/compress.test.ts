@@ -187,6 +187,42 @@ describe('compress — summary level', () => {
     expect(result.content.length).toBeGreaterThan(0);
     expect(result.compressionLevel).toBe('summary');
   });
+
+  it('output sentences are a subset of input sentences', () => {
+    const sentences = [
+      'First sentence has some content.',
+      'Second sentence mentions something else.',
+      'Third is here.',
+      'Fourth follows.',
+      'Fifth is long and detailed with many words to score highly.',
+      'Sixth adds more noise to the corpus.',
+      'Seventh and final sentence completes it.',
+    ];
+    const e = makeEntry('a', sentences.join(' '));
+    const result = compress(e, 'summary');
+    const outputSentences = result.content
+      .split(/(?<=[.!?])\s+/)
+      .filter(Boolean);
+    for (const s of outputSentences) {
+      expect(
+        sentences.some(
+          (orig) => orig.includes(s) || s.includes(orig.slice(0, 20)),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('10-sentence input keeps ceil(10 * 0.3) = 3 sentences', () => {
+    const tenSentences = Array.from(
+      { length: 10 },
+      (_, i) => `Sentence ${i} contains words about topic ${i}.`,
+    ).join(' ');
+    const e = makeEntry('a', tenSentences);
+    const result = compress(e, 'summary');
+    // split on sentence boundaries to count
+    const kept = result.content.split(/(?<=[.!?])\s+/).filter(Boolean);
+    expect(kept).toHaveLength(3);
+  });
 });
 
 describe('compress — keywords level', () => {

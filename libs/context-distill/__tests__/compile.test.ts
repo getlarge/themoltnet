@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { compile, enforceBudget } from '../src/compile.js';
+import { estimateTokens } from '../src/compress.js';
 import type { DistillEntry } from '../src/types.js';
 
 function makeEntry(
@@ -100,13 +101,32 @@ describe('compile — unit', () => {
   });
 
   it('compresses entries that do not fit at full level', () => {
-    // Each entry is 100 tokens, budget is 120 — second entry must be compressed
-    const result = compile([e1, e2], { tokenBudget: 120 });
-    const levels = result.entries.map((e) => e.compressionLevel);
-    expect(levels[0]).toBe('full');
-    if (result.entries.length > 1) {
-      expect(['summary', 'keywords']).toContain(levels[1]);
-    }
+    // Use entries with real sentence content so extractive summary can reduce tokens.
+    // small = 5 tokens (fits at full), big = many tokens (won't fit at full in remaining budget).
+    const sentences10 = Array.from(
+      { length: 10 },
+      (_, i) =>
+        `This is sentence number ${i} about important topic ${i} with enough words.`,
+    ).join(' ');
+    const big: DistillEntry = {
+      id: 'big',
+      embedding: [0.9, 0.44, 0],
+      content: sentences10,
+      tokens: estimateTokens(sentences10),
+      importance: 5,
+      createdAt: '2024-01-01T00:00:00Z',
+    };
+    const small = makeEntry('small', [1, 0, 0], 5);
+    // budget = small.tokens + 30 — big (160 tokens) can't fit at full or summary (~48 tokens),
+    // but keywords (capped at 30 tokens) will fit exactly within the remaining 30 tokens
+    const budget = small.tokens + 30;
+    const result = compile([small, big], { tokenBudget: budget });
+    expect(result.entries).toHaveLength(2);
+    expect(result.entries[0].compressionLevel).toBe('full');
+    expect(['summary', 'keywords']).toContain(
+      result.entries[1].compressionLevel,
+    );
+    expect(result.stats.totalTokens).toBeLessThanOrEqual(budget);
   });
 
   it('entriesCompressed counts non-full entries', () => {
@@ -135,6 +155,13 @@ describe('enforceBudget — unit', () => {
     expect(result.stats.totalTokens).toBe(0);
   });
 
+  it('handles tokenBudget=0 — returns nothing', () => {
+    const result = enforceBudget([e1, e2, e3], 0);
+    expect(result.entries).toHaveLength(0);
+    expect(result.stats.totalTokens).toBe(0);
+    expect(result.stats.budgetUtilization).toBe(0);
+  });
+
   it('preserves input order', () => {
     const result = enforceBudget([e1, e2, e3], 10000);
     expect(result.entries.map((e) => e.id)).toEqual(['a', 'b', 'c']);
@@ -145,6 +172,27 @@ describe('enforceBudget — unit', () => {
     if (result.stats.entriesCompressed > 0) {
       expect(result.stats.compressionRatio).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('includes entry that fits only at keywords level', () => {
+    // e1 = 100 tokens; budget=30 → too big for full or summary, but keywords ≤ 30 tokens
+    const result = enforceBudget([e1], 30);
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0].compressionLevel).toBe('keywords');
+    expect(result.stats.totalTokens).toBeLessThanOrEqual(30);
+  });
+
+  it('skips an entry that cannot fit even at keywords level', () => {
+    // A 2000-token entry with sparse content: keywords will still be ≤ 30 tokens.
+    // Use a very small budget of 5 tokens — nothing fits.
+    const huge = makeEntry('huge', [1, 0, 0], 2000);
+    const result = enforceBudget([huge], 5);
+    expect(result.entries).toHaveLength(0);
+  });
+
+  it('entriesIncluded matches entries array length', () => {
+    const result = enforceBudget([e1, e2, e3], 10000);
+    expect(result.stats.entriesIncluded).toBe(result.entries.length);
   });
 });
 
