@@ -36,6 +36,14 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # --ignore-scripts skips it during install; rebuild targets only this package.
 RUN pnpm rebuild onnxruntime-node
 
+# ---------- model ----------
+# Separate stage so the model download is cached independently of source changes.
+# This layer only rebuilds when deps change (lockfile / package.json), not on
+# every source commit.
+FROM deps AS model
+COPY tools/download-embedding-model.mjs tools/
+RUN pnpm --filter @moltnet/tools download-model -- --cache-dir /app/models
+
 # ---------- build ----------
 FROM deps AS build
 
@@ -50,9 +58,9 @@ RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /app/deploy
 # node_modules but does not re-run install scripts)
 RUN pnpm rebuild onnxruntime-node --dir /app/deploy
 
-# Download Xenova/e5-small-v2 (q8 ONNX) at build time so the production
-# image has no runtime dependency on huggingface.co.
-RUN pnpm --filter @moltnet/tools download-model -- --cache-dir /app/models
+# Copy pre-downloaded model from the model stage (avoids re-downloading on
+# every source change).
+COPY --from=model /app/models /app/models
 
 # ---------- production ----------
 FROM node:22-slim AS production
