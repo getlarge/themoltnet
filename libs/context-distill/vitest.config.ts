@@ -7,7 +7,7 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['__tests__/**/*.test.ts', '__tests__/**/*.bench.ts'],
+    include: ['__tests__/**/*.test.ts'],
     testTimeout: 10_000,
   },
 });

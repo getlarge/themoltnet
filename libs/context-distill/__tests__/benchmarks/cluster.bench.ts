@@ -22,8 +22,16 @@ const entries200 = Array.from({ length: 200 }, (_, i) => randomEntry(`e${i}`));
 const entries500 = Array.from({ length: 500 }, (_, i) => randomEntry(`e${i}`));
 
 describe('cluster() scaling (O(n²), 384-dim)', () => {
-  bench('50 entries', () => cluster(entries50, { threshold: 0.15 }));
-  bench('100 entries', () => cluster(entries100, { threshold: 0.15 }));
-  bench('200 entries', () => cluster(entries200, { threshold: 0.15 }));
-  bench('500 entries', () => cluster(entries500, { threshold: 0.15 }));
+  bench('50 entries', () => {
+    cluster(entries50, { threshold: 0.15 });
+  });
+  bench('100 entries', () => {
+    cluster(entries100, { threshold: 0.15 });
+  });
+  bench('200 entries', () => {
+    cluster(entries200, { threshold: 0.15 });
+  });
+  bench('500 entries', () => {
+    cluster(entries500, { threshold: 0.15 });
+  });
 });

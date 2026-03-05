@@ -29,16 +29,16 @@ const entries100 = Array.from({ length: 100 }, (_, i) =>
 const query = Array.from({ length: 384 }, () => Math.random() - 0.5);
 
 describe('compile() — MMR + budget fitting (384-dim)', () => {
-  bench('50 entries, budget 8000, no task prompt', () =>
-    compile(entries50, { tokenBudget: 8000 }),
-  );
-  bench('50 entries, budget 8000, with task prompt', () =>
-    compile(entries50, { tokenBudget: 8000, taskPromptEmbedding: query }),
-  );
-  bench('100 entries, budget 8000, no task prompt', () =>
-    compile(entries100, { tokenBudget: 8000 }),
-  );
-  bench('100 entries, tight budget 500', () =>
-    compile(entries100, { tokenBudget: 500 }),
-  );
+  bench('50 entries, budget 8000, no task prompt', () => {
+    compile(entries50, { tokenBudget: 8000 });
+  });
+  bench('50 entries, budget 8000, with task prompt', () => {
+    compile(entries50, { tokenBudget: 8000, taskPromptEmbedding: query });
+  });
+  bench('100 entries, budget 8000, no task prompt', () => {
+    compile(entries100, { tokenBudget: 8000 });
+  });
+  bench('100 entries, tight budget 500', () => {
+    compile(entries100, { tokenBudget: 500 });
+  });
 });
