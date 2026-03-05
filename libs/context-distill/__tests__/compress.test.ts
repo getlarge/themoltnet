@@ -304,7 +304,7 @@ describe('compress — keywords level', () => {
     for (const w of words) {
       // Each surviving word must satisfy significance criteria
       const isSignificant =
-        w.length >= 4 || /[A-Z][a-z]/.test(w) || /\d/.test(w);
+        w.length >= 4 || /[a-z][A-Z]/.test(w) || /\d/.test(w);
       expect(isSignificant).toBe(true);
     }
   });

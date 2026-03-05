@@ -1,8 +1,8 @@
 /**
  * Agglomerative clustering with average linkage and cosine distance.
  *
- * Time: O(n²) — suitable for up to ~500 entries per call.
- * Callers should filter by tags/session to stay within this bound.
+ * Time: O(n³) worst case — outer merge loop runs O(n) times, each scanning O(n²) pairs.
+ * Suitable for up to ~500 entries per call; callers should filter by tags/session to stay within this bound.
  */
 import type { DistillEntry } from './types.js';
 

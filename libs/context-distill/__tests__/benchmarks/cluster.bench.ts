@@ -21,7 +21,7 @@ const entries100 = Array.from({ length: 100 }, (_, i) => randomEntry(`e${i}`));
 const entries200 = Array.from({ length: 200 }, (_, i) => randomEntry(`e${i}`));
 const entries500 = Array.from({ length: 500 }, (_, i) => randomEntry(`e${i}`));
 
-describe('cluster() scaling (O(n²), 384-dim)', () => {
+describe('cluster() scaling (O(n³) worst case, 384-dim)', () => {
   bench('50 entries', () => {
     cluster(entries50, { threshold: 0.15 });
   });

@@ -52,8 +52,8 @@ describe('select — centroid strategy', () => {
 
   it('with two identical embeddings, centroid equals them — picks first', () => {
     const result = select([high, low], 'centroid');
-    // centroid of [1,0,0]+[1,0,0] = [1,0,0] → both equidistant → first wins
-    expect(['high', 'low']).toContain(result.representative.id);
+    // centroid of [1,0,0]+[1,0,0] = [1,0,0] → distance 0 for both → reduce returns first
+    expect(result.representative.id).toBe('high');
   });
 });
 

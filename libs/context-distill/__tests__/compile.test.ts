@@ -168,10 +168,24 @@ describe('enforceBudget — unit', () => {
   });
 
   it('compressionRatio is <= 1 when compression occurs', () => {
-    const result = enforceBudget([e1, e2, e3], 120);
-    if (result.stats.entriesCompressed > 0) {
-      expect(result.stats.compressionRatio).toBeLessThanOrEqual(1);
-    }
+    // Use sentence-boundary content so summary compression actually reduces tokens.
+    // sentences10 ~160 tokens; budget=50 → must compress to summary/keywords.
+    const sentences10 = Array.from(
+      { length: 10 },
+      (_, i) =>
+        `This is sentence number ${i} about important topic ${i} with enough words.`,
+    ).join(' ');
+    const big: DistillEntry = {
+      id: 'big2',
+      embedding: [1, 0, 0],
+      content: sentences10,
+      tokens: estimateTokens(sentences10),
+      importance: 5,
+      createdAt: '2024-01-01T00:00:00Z',
+    };
+    const result = enforceBudget([big], 50);
+    expect(result.stats.entriesCompressed).toBeGreaterThan(0);
+    expect(result.stats.compressionRatio).toBeLessThanOrEqual(1);
   });
 
   it('includes entry that fits only at keywords level', () => {
