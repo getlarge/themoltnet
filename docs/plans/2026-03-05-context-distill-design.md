@@ -12,6 +12,34 @@ The scan consolidation pipeline produces raw `source:scan` diary entries with 30
 
 A new `libs/context-distill/` library of four deterministic algorithms (zero LLM calls), run as DBOS workflows in the REST API, exposed as MCP tools. Replaces LLM-heavy consolidation mechanics with fast, reproducible computation — agent-level review and policy decisions stay in the skill layer.
 
+## Direction Update (2026-03-05)
+
+Context-distill is now treated as the deterministic backend for a "context
+compiler" flow (similar to the REPL-brain idea), not as a standalone
+consolidation endpoint.
+
+Key clarifications:
+
+- **Scan entries stay mandatory**: we still need scan/consolidation outputs as
+  long-lived memory artifacts.
+- **Compile must be task-aware**: `context_compile` should prioritize by task
+  signal (`task_prompt` or query embedding), not only by global ranking.
+- **DBOS orchestrates mixed compute**:
+  1. deterministic fetch/rank/compress activities
+  2. optional bounded LLM review activity
+  3. deterministic policy/budget validation
+- **LLM is reviewer, not source of truth**:
+  - may reorder keep/drop candidates
+  - may flag missing risk/caveat
+  - cannot invent ungrounded rules
+- **Deterministic guardrails remain final**:
+  - hard token budget
+  - required boundary rules (security/workflow/write-path)
+  - provenance enforcement (all kept items map to source entry IDs)
+
+This keeps output reproducible while allowing targeted judgment where
+deterministic heuristics are weakest.
+
 ## Phasing
 
 - **Phase 1** (subissue A): `libs/context-distill/` — pure algorithms, full test + benchmark suite
@@ -83,6 +111,8 @@ Idempotency key: {diary_id, latest_entry_id, task_prompt_hash, token_budget}
 Step 1: fetch semantic entries from pgvector with wRecency + wImportance weights
 Step 2: MMR re-rank anchored to task_prompt embedding (or global if no prompt)
 Step 3: compress to fit token_budget (full → summary → keywords → exclude)
+Step 4: optional LLM review of candidate pack (bounded, no new facts)
+Step 5: deterministic final policy + budget enforcement
 ```
 
 Triggered on demand via `POST /diaries/:id/compile`.

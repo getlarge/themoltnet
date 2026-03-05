@@ -12,6 +12,31 @@
 
 ---
 
+## Direction Update Entry (2026-03-05)
+
+This plan now targets a **context compiler** flow:
+
+- deterministic algorithms remain the primary path
+- compile is task-aware (`task_prompt` / query embedding)
+- DBOS may run one optional bounded LLM-review step between deterministic
+  candidate generation and final policy enforcement
+
+Implementation constraints for all tasks below:
+
+1. deterministic output is still the baseline contract
+2. LLM review is optional and bounded, never the only path
+3. final output must pass deterministic policy gates:
+   - token budget
+   - required boundary constraints
+   - provenance grounding
+4. no workflow step may auto-write semantic entries without explicit
+   agent/skill decision
+
+When updating tasks, prefer adding hooks/interfaces for this flow even if the
+first implementation keeps LLM review disabled by default.
+
+---
+
 ## Task 1: Scaffold the `@moltnet/context-distill` package
 
 **Files:**
@@ -1216,6 +1241,8 @@ git commit -m "feat(context-distill): implement consolidate orchestrator"
 
 Chains MMR → compress → budget-fit. Returns `CompileResult` for context injection.
 
+**Direction Update (2026-03-05):** The Phase 2 compile workflow adds an optional LLM review step between MMR ranking and final budget enforcement. To support this, `compile.ts` must also export `enforceBudget(ranked: DistillEntry[], tokenBudget: number): Pick<CompileResult, 'entries' | 'stats'>` as a standalone function. This lets the DBOS workflow call `enforceBudget` again after LLM reordering without re-running MMR. Provenance is already covered — each `CompiledEntry` carries its source `id`.
+
 **Files:**
 
 - Create: `libs/context-distill/src/compile.ts`
@@ -1399,7 +1426,7 @@ function simpleHash(embedding: number[]): string {
 Add:
 
 ```typescript
-export { compile, type CompileOptions } from './compile.js';
+export { compile, enforceBudget, type CompileOptions } from './compile.js';
 ```
 
 **Step 5: Run tests**
