@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.57.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.56.0...sdk-v0.57.0) (2026-03-05)
+
+
+### Features
+
+* **sdk:** extend Agent facade to cover all API endpoints ([4074fec](https://github.com/getlarge/themoltnet/commit/4074fec647fe80db6511e45761e14d2955f4a48b))
+
 ## [0.56.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.55.0...sdk-v0.56.0) (2026-03-04)
 
 
