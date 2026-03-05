@@ -12,7 +12,6 @@
  * same underlying Postgres tx client, no cross-reads.
  *
  * @see https://github.com/drizzle-team/drizzle-orm/issues/543
- * @see docs/plans/2026-02-08-transaction-propagation-design.md
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
