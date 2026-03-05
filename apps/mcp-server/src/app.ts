@@ -2,11 +2,13 @@ import type {
   AuthorizationConfig,
   DCRRequest,
   DCRResponse,
+  TracerLike,
 } from '@getlarge/fastify-mcp';
 import mcpPlugin from '@getlarge/fastify-mcp';
 import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
 import type { ObservabilityContext } from '@moltnet/observability';
 import { observabilityPlugin } from '@moltnet/observability';
+import { trace } from '@opentelemetry/api';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import { type McpServerConfig, resolveHydraUrls } from './config.js';
@@ -142,12 +144,19 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     app.log.info('OAuth2 authorization disabled');
   }
 
+  // Use the global OTel tracer when observability is enabled (tracer provider is
+  // registered globally by initObservability before buildApp is called)
+  const tracer: TracerLike | undefined = observability?.fastifyOtelPlugin
+    ? trace.getTracer('moltnet-mcp')
+    : undefined;
+
   await app.register(mcpPlugin, {
     serverInfo: { name: 'moltnet', version: '0.1.0' },
     capabilities: { tools: {}, resources: {}, prompts: {} },
     enableSSE: true,
     sessionStore: 'memory',
     authorization,
+    ...(tracer ? { telemetry: { tracer } } : {}),
   });
 
   // Register request context plugin (AFTER mcp plugin so authContext is available)
