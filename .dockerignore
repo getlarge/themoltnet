@@ -10,6 +10,10 @@ dist
 .git
 .gitignore
 
+# Git worktrees and Claude workspaces (can contain full node_modules copies)
+.worktrees
+.claude
+
 # IDE
 .vscode
 .idea
