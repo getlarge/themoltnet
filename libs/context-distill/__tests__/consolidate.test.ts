@@ -116,7 +116,10 @@ describe('consolidate — integration properties', () => {
   it('total members across all clusters equals input count', () => {
     const entries = [e1, e2, e3, e4];
     const result = consolidate(entries);
-    const total = result.clusters.reduce((s, c) => s + c.members.length, 0);
+    const total = result.clusters.reduce(
+      (s: number, c) => s + c.members.length,
+      0,
+    );
     expect(total).toBe(entries.length);
   });
 
@@ -145,7 +148,10 @@ describe('consolidate — integration properties', () => {
       makeEntry(`e${i}`, randomNormalizedEmbedding(dim)),
     );
     const result = consolidate(entries);
-    const total = result.clusters.reduce((s, c) => s + c.members.length, 0);
+    const total = result.clusters.reduce(
+      (s: number, c) => s + c.members.length,
+      0,
+    );
     expect(total).toBe(entries.length);
     expect(result.trace.embeddingDim).toBe(dim);
   });
