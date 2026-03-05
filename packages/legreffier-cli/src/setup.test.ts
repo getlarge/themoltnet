@@ -129,6 +129,16 @@ describe('buildCodexRules', () => {
     expect(rules).toContain('pattern = ["git", "rev-parse"]');
     expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
     expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "diary", "create-signed"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "diary", "verify"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["moltnet", "diary", "create-signed"]',
+    );
+    expect(rules).toContain('pattern = ["moltnet", "diary", "verify"]');
+    expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "github", "token"]',
     );
     expect(rules).toContain('pattern = ["ln", "-s"]');
@@ -171,6 +181,16 @@ describe('writeSettingsLocal', () => {
     expect(parsed.permissions.allow).toContain('mcp__my-agent__*');
     expect(parsed.permissions.allow).toContain('Bash(git config *)');
     expect(parsed.permissions.allow).toContain('Bash(moltnet sign *)');
+    expect(parsed.permissions.allow).toContain(
+      'Bash(moltnet diary create-signed *)',
+    );
+    expect(parsed.permissions.allow).toContain('Bash(moltnet diary verify *)');
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli diary create-signed *)',
+    );
+    expect(parsed.permissions.allow).toContain(
+      'Bash(npx @themoltnet/cli diary verify *)',
+    );
   });
 
   it('merges into existing settings.local.json', async () => {
