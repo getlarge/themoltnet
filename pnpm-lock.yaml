@@ -10,11 +10,11 @@ catalogs:
       specifier: ^1.2.0
       version: 1.2.0
     '@dbos-inc/dbos-sdk':
-      specifier: ^4.8.0
-      version: 4.8.8
+      specifier: ^4.10.15
+      version: 4.10.15
     '@dbos-inc/drizzle-datasource':
-      specifier: ^4.8.0
-      version: 4.8.8
+      specifier: ^4.10.15
+      version: 4.10.15
     '@dotenvx/dotenvx':
       specifier: ^1.52.0
       version: 1.52.0
@@ -701,10 +701,10 @@ importers:
     dependencies:
       '@dbos-inc/dbos-sdk':
         specifier: 'catalog:'
-        version: 4.8.8
+        version: 4.10.15
       '@dbos-inc/drizzle-datasource':
         specifier: 'catalog:'
-        version: 4.8.8(@dbos-inc/dbos-sdk@4.8.8)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8))
+        version: 4.10.15(@dbos-inc/dbos-sdk@4.10.15)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8))
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
@@ -1319,18 +1319,18 @@ packages:
         integrity: sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q==,
       }
 
-  '@dbos-inc/dbos-sdk@4.8.8':
+  '@dbos-inc/dbos-sdk@4.10.15':
     resolution:
       {
-        integrity: sha512-qM15hjP2myXnXj95O/ZrFhzEcWkU6C9+izs59LHkPUp2Ro08g7S1B1DIa/RgaLhTkZqs1+fG6FzpGogK9d0bWA==,
+        integrity: sha512-wlwfjQ5XZNUeqOlcN5IzY8D0UYrWJvl0Vw9Ewhwvnz3+vbuX+2xIiKCIisnunPR7NKTZFyuN6FlyW0T0zcOwcQ==,
       }
     engines: { node: '>=20' }
     hasBin: true
 
-  '@dbos-inc/drizzle-datasource@4.8.8':
+  '@dbos-inc/drizzle-datasource@4.10.15':
     resolution:
       {
-        integrity: sha512-Hpkvsq81Oihz80CcvDxbuQz7jYzZTXGTtcagH/xBV4eOU6uJwouNWae39R17xfpT3XYEkbsUE2Vgj2o5JOQY1w==,
+        integrity: sha512-IfVJYnuZWHaYlWAWw0k8++tYoHmAhcmd+xu+vkgUDZ8TohEkaE1r6rvWvS5AnTemHW9h4w1S7iyJSkXWeuUy/w==,
       }
     peerDependencies:
       '@dbos-inc/dbos-sdk': '*'
@@ -9615,7 +9615,7 @@ snapshots:
       enabled: 2.0.0
       kuler: 2.0.0
 
-  '@dbos-inc/dbos-sdk@4.8.8':
+  '@dbos-inc/dbos-sdk@4.10.15':
     dependencies:
       commander: 12.0.0
       pg: 8.11.3
@@ -9628,9 +9628,9 @@ snapshots:
       - pg-native
       - utf-8-validate
 
-  '@dbos-inc/drizzle-datasource@4.8.8(@dbos-inc/dbos-sdk@4.8.8)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8))':
+  '@dbos-inc/drizzle-datasource@4.10.15(@dbos-inc/dbos-sdk@4.10.15)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8))':
     dependencies:
-      '@dbos-inc/dbos-sdk': 4.8.8
+      '@dbos-inc/dbos-sdk': 4.10.15
       drizzle-orm: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
       pg: 8.18.0
       superjson: 1.13.3
