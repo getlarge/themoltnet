@@ -6,6 +6,7 @@
  */
 
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
@@ -49,7 +50,9 @@ describe('DiaryRepository (integration)', () => {
   });
 
   afterEach(async () => {
-    await sharedDb.delete(diaries);
+    // Scope delete to this describe's owner so we don't remove the seed row
+    // used by DiaryEntryRepository tests sharing the same container.
+    await sharedDb.delete(diaries).where(eq(diaries.ownerId, OWNER_ID));
   });
 
   describe('listByIds', () => {

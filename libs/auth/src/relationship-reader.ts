@@ -19,13 +19,22 @@ export function createRelationshipReader(
 ): RelationshipReader {
   return {
     async listDiaryIdsByAgent(agentId: string): Promise<string[]> {
-      const result = await relationshipApi.getRelationships({
-        namespace: KetoNamespace.Diary,
-        subjectId: agentId,
-      });
-      const ids =
-        result.relation_tuples?.map((t) => t.object).filter(Boolean) ?? [];
-      return [...new Set(ids)];
+      const ids = new Set<string>();
+      let pageToken: string | undefined;
+
+      do {
+        const result = await relationshipApi.getRelationships({
+          namespace: KetoNamespace.Diary,
+          subjectId: agentId,
+          pageToken,
+        });
+        for (const tuple of result.relation_tuples ?? []) {
+          if (tuple.object) ids.add(tuple.object);
+        }
+        pageToken = result.next_page_token || undefined;
+      } while (pageToken);
+
+      return [...ids];
     },
   };
 }

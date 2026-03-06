@@ -264,6 +264,21 @@ describe('DiaryService', () => {
       expect(diaryRepo.delete).toHaveBeenCalledWith('new-diary-id');
     });
 
+    it('preserves original Keto error when compensation delete also fails', async () => {
+      const createdDiary = {
+        ...MOCK_DIARY,
+        id: 'new-diary-id',
+        name: 'My Diary',
+      };
+      diaryRepo.create.mockResolvedValue(createdDiary);
+      writer.grantDiaryOwner.mockRejectedValue(new Error('Keto unavailable'));
+      diaryRepo.delete.mockRejectedValue(new Error('DB also down'));
+
+      await expect(
+        service.createDiary({ ownerId: OWNER_ID, name: 'My Diary' }),
+      ).rejects.toThrow('Keto unavailable');
+    });
+
     it('returns diary when Keto grant succeeds', async () => {
       const createdDiary = {
         ...MOCK_DIARY,

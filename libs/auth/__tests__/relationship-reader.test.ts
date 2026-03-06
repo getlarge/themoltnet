@@ -39,7 +39,39 @@ describe('RelationshipReader', () => {
       expect(mockRelationshipApi.getRelationships).toHaveBeenCalledWith({
         namespace: 'Diary',
         subjectId: AGENT_ID,
+        pageToken: undefined,
       });
+    });
+
+    it('follows pagination tokens until exhausted', async () => {
+      const DIARY_ID_3 = '880e8400-e29b-41d4-a716-446655440003';
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            { object: DIARY_ID_1, relation: 'owner', subject_id: AGENT_ID },
+          ],
+          next_page_token: 'token-page-2',
+        })
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            { object: DIARY_ID_2, relation: 'writers', subject_id: AGENT_ID },
+            { object: DIARY_ID_3, relation: 'readers', subject_id: AGENT_ID },
+          ],
+          next_page_token: '',
+        });
+
+      const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledTimes(2);
+      expect(mockRelationshipApi.getRelationships).toHaveBeenNthCalledWith(2, {
+        namespace: 'Diary',
+        subjectId: AGENT_ID,
+        pageToken: 'token-page-2',
+      });
+      expect(ids).toEqual(
+        expect.arrayContaining([DIARY_ID_1, DIARY_ID_2, DIARY_ID_3]),
+      );
+      expect(ids).toHaveLength(3);
     });
 
     it('returns diary IDs across all relations', async () => {

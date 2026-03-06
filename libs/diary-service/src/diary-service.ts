@@ -174,7 +174,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
             { diaryId: diary.id, agentId: input.ownerId, err },
             'diary.keto_grant_failed',
           );
-          await diaryRepository.delete(diary.id);
+          try {
+            await diaryRepository.delete(diary.id);
+          } catch (deleteErr) {
+            // Compensation failed — orphan persists. Log without re-throwing
+            // so the original Keto error is preserved.
+            logger.error(
+              { diaryId: diary.id, deleteErr },
+              'diary.compensation_delete_failed',
+            );
+          }
           throw err;
         }
         logger.info(
