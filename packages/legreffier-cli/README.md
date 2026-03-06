@@ -220,8 +220,8 @@ The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
        "MY_AGENT_CLIENT_ID": "actual-client-id",
        "MY_AGENT_CLIENT_SECRET": "actual-secret",
        "MY_AGENT_GITHUB_APP_ID": "app-slug",
-       "MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH": "/path/to/.pem",
-       "MY_AGENT_GITHUB_APP_INSTALLATION_ID": "12345"
+       "MY_AGENT_GITHUB_APP_INSTALLATION_ID": "12345",
+       "MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH": "/path/to/.pem"
      }
    }
    ```
@@ -234,12 +234,12 @@ The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
    {
      "mcpServers": {
        "my-agent": {
-         "type": "http",
-         "url": "https://mcp.themolt.net/mcp",
          "headers": {
            "X-Client-Id": "${MY_AGENT_CLIENT_ID}",
            "X-Client-Secret": "${MY_AGENT_CLIENT_SECRET}"
-         }
+         },
+         "type": "http",
+         "url": "https://mcp.themolt.net/mcp"
        }
      }
    }

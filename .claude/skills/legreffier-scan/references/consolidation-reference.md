@@ -50,26 +50,26 @@ scan entries as fixed input. Only the consolidation step varies.
 
 **Models under test** should be tagged with their canonical short names:
 
-| Example model | Short tag |
-|---|---|
+| Example model     | Short tag           |
+| ----------------- | ------------------- |
 | Claude Sonnet 4.6 | `claude-sonnet-4.6` |
-| Claude Opus 4.6 | `claude-opus-4.6` |
-| GPT 5.2 | `gpt-5.2` |
-| GPT 5.3 | `gpt-5.3` |
+| Claude Opus 4.6   | `claude-opus-4.6`   |
+| GPT 5.2           | `gpt-5.2`           |
+| GPT 5.3           | `gpt-5.3`           |
 
 **Evaluation dimensions** per model run:
 
-| Dimension | What it measures |
-|---|---|
-| Constraint yield | `accepted_nuggets / total_candidates` |
-| Specificity | Are constraints concrete? (1-5 avg) |
-| Non-redundancy | Count of nuggets restating obvious code structure |
-| Trigger precision | False-positive rate (low/med/high) |
-| Merge quality | Phase 1 + Phase 2 synthesis quality (1-5 avg) |
-| Token efficiency | `total_constraints / total_tokens` |
-| Hallucination rate | Count of constraints not in source entries |
-| Coverage | `constraints_found / constraints_in_sources` |
-| Consistency | Jaccard similarity with other models' nugget sets |
+| Dimension          | What it measures                                  |
+| ------------------ | ------------------------------------------------- |
+| Constraint yield   | `accepted_nuggets / total_candidates`             |
+| Specificity        | Are constraints concrete? (1-5 avg)               |
+| Non-redundancy     | Count of nuggets restating obvious code structure |
+| Trigger precision  | False-positive rate (low/med/high)                |
+| Merge quality      | Phase 1 + Phase 2 synthesis quality (1-5 avg)     |
+| Token efficiency   | `total_constraints / total_tokens`                |
+| Hallucination rate | Count of constraints not in source entries        |
+| Coverage           | `constraints_found / constraints_in_sources`      |
+| Consistency        | Jaccard similarity with other models' nugget sets |
 
 **Scorecard entry** — after each run, store a scorecard:
 

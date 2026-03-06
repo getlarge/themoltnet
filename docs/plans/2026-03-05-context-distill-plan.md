@@ -50,31 +50,31 @@ first implementation keeps LLM review disabled by default.
 
 ```json
 {
-  "name": "@moltnet/context-distill",
-  "version": "0.1.0",
-  "license": "AGPL-3.0-only",
-  "private": true,
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
   "exports": {
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     }
   },
+  "license": "AGPL-3.0-only",
+  "main": "./dist/index.js",
+  "name": "@moltnet/context-distill",
+  "private": true,
   "scripts": {
+    "bench": "vitest bench",
     "build": "tsc -b",
     "dev": "tsc --watch",
+    "lint": "eslint .",
     "test": "vitest run",
-    "bench": "vitest bench",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "typecheck": "tsc -b --emitDeclarationOnly"
   },
-  "devDependencies": {
-    "typescript": "catalog:",
-    "vitest": "catalog:"
-  }
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "version": "0.1.0"
 }
 ```
 
@@ -82,13 +82,13 @@ first implementation keeps LLM review disabled by default.
 
 ```json
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "composite": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
+  "extends": "../../tsconfig.json",
   "include": ["src", "__tests__"]
 }
 ```

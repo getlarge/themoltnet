@@ -134,9 +134,7 @@ describe('buildCodexRules', () => {
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "diary", "verify"]',
     );
-    expect(rules).toContain(
-      'pattern = ["moltnet", "diary", "create-signed"]',
-    );
+    expect(rules).toContain('pattern = ["moltnet", "diary", "create-signed"]');
     expect(rules).toContain('pattern = ["moltnet", "diary", "verify"]');
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "github", "token"]',

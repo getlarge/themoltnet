@@ -81,6 +81,950 @@ func (s *BearerAuth) SetRoles(val []string) {
 	s.Roles = val
 }
 
+type CompileDiaryBadRequest ProblemDetails
+
+func (*CompileDiaryBadRequest) compileDiaryRes() {}
+
+type CompileDiaryForbidden ProblemDetails
+
+func (*CompileDiaryForbidden) compileDiaryRes() {}
+
+type CompileDiaryInternalServerError ProblemDetails
+
+func (*CompileDiaryInternalServerError) compileDiaryRes() {}
+
+type CompileDiaryNotFound ProblemDetails
+
+func (*CompileDiaryNotFound) compileDiaryRes() {}
+
+type CompileDiaryReq struct {
+	ExcludeTags []string   `json:"excludeTags"`
+	IncludeTags []string   `json:"includeTags"`
+	Lambda      OptFloat64 `json:"lambda"`
+	TaskPrompt  OptString  `json:"taskPrompt"`
+	TokenBudget int        `json:"tokenBudget"`
+	WImportance OptFloat64 `json:"wImportance"`
+	WRecency    OptFloat64 `json:"wRecency"`
+}
+
+// GetExcludeTags returns the value of ExcludeTags.
+func (s *CompileDiaryReq) GetExcludeTags() []string {
+	return s.ExcludeTags
+}
+
+// GetIncludeTags returns the value of IncludeTags.
+func (s *CompileDiaryReq) GetIncludeTags() []string {
+	return s.IncludeTags
+}
+
+// GetLambda returns the value of Lambda.
+func (s *CompileDiaryReq) GetLambda() OptFloat64 {
+	return s.Lambda
+}
+
+// GetTaskPrompt returns the value of TaskPrompt.
+func (s *CompileDiaryReq) GetTaskPrompt() OptString {
+	return s.TaskPrompt
+}
+
+// GetTokenBudget returns the value of TokenBudget.
+func (s *CompileDiaryReq) GetTokenBudget() int {
+	return s.TokenBudget
+}
+
+// GetWImportance returns the value of WImportance.
+func (s *CompileDiaryReq) GetWImportance() OptFloat64 {
+	return s.WImportance
+}
+
+// GetWRecency returns the value of WRecency.
+func (s *CompileDiaryReq) GetWRecency() OptFloat64 {
+	return s.WRecency
+}
+
+// SetExcludeTags sets the value of ExcludeTags.
+func (s *CompileDiaryReq) SetExcludeTags(val []string) {
+	s.ExcludeTags = val
+}
+
+// SetIncludeTags sets the value of IncludeTags.
+func (s *CompileDiaryReq) SetIncludeTags(val []string) {
+	s.IncludeTags = val
+}
+
+// SetLambda sets the value of Lambda.
+func (s *CompileDiaryReq) SetLambda(val OptFloat64) {
+	s.Lambda = val
+}
+
+// SetTaskPrompt sets the value of TaskPrompt.
+func (s *CompileDiaryReq) SetTaskPrompt(val OptString) {
+	s.TaskPrompt = val
+}
+
+// SetTokenBudget sets the value of TokenBudget.
+func (s *CompileDiaryReq) SetTokenBudget(val int) {
+	s.TokenBudget = val
+}
+
+// SetWImportance sets the value of WImportance.
+func (s *CompileDiaryReq) SetWImportance(val OptFloat64) {
+	s.WImportance = val
+}
+
+// SetWRecency sets the value of WRecency.
+func (s *CompileDiaryReq) SetWRecency(val OptFloat64) {
+	s.WRecency = val
+}
+
+type CompileDiaryUnauthorized ProblemDetails
+
+func (*CompileDiaryUnauthorized) compileDiaryRes() {}
+
+// Ref: #/components/schemas/CompileResult
+type CompileResult struct {
+	Entries []CompileResultEntriesItem `json:"entries"`
+	Stats   CompileResultStats         `json:"stats"`
+	Trace   CompileResultTrace         `json:"trace"`
+}
+
+// GetEntries returns the value of Entries.
+func (s *CompileResult) GetEntries() []CompileResultEntriesItem {
+	return s.Entries
+}
+
+// GetStats returns the value of Stats.
+func (s *CompileResult) GetStats() CompileResultStats {
+	return s.Stats
+}
+
+// GetTrace returns the value of Trace.
+func (s *CompileResult) GetTrace() CompileResultTrace {
+	return s.Trace
+}
+
+// SetEntries sets the value of Entries.
+func (s *CompileResult) SetEntries(val []CompileResultEntriesItem) {
+	s.Entries = val
+}
+
+// SetStats sets the value of Stats.
+func (s *CompileResult) SetStats(val CompileResultStats) {
+	s.Stats = val
+}
+
+// SetTrace sets the value of Trace.
+func (s *CompileResult) SetTrace(val CompileResultTrace) {
+	s.Trace = val
+}
+
+func (*CompileResult) compileDiaryRes() {}
+
+type CompileResultEntriesItem struct {
+	CompressedTokens float64                                  `json:"compressedTokens"`
+	CompressionLevel CompileResultEntriesItemCompressionLevel `json:"compressionLevel"`
+	Content          string                                   `json:"content"`
+	ID               uuid.UUID                                `json:"id"`
+	OriginalTokens   float64                                  `json:"originalTokens"`
+}
+
+// GetCompressedTokens returns the value of CompressedTokens.
+func (s *CompileResultEntriesItem) GetCompressedTokens() float64 {
+	return s.CompressedTokens
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *CompileResultEntriesItem) GetCompressionLevel() CompileResultEntriesItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetContent returns the value of Content.
+func (s *CompileResultEntriesItem) GetContent() string {
+	return s.Content
+}
+
+// GetID returns the value of ID.
+func (s *CompileResultEntriesItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetOriginalTokens returns the value of OriginalTokens.
+func (s *CompileResultEntriesItem) GetOriginalTokens() float64 {
+	return s.OriginalTokens
+}
+
+// SetCompressedTokens sets the value of CompressedTokens.
+func (s *CompileResultEntriesItem) SetCompressedTokens(val float64) {
+	s.CompressedTokens = val
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *CompileResultEntriesItem) SetCompressionLevel(val CompileResultEntriesItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetContent sets the value of Content.
+func (s *CompileResultEntriesItem) SetContent(val string) {
+	s.Content = val
+}
+
+// SetID sets the value of ID.
+func (s *CompileResultEntriesItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetOriginalTokens sets the value of OriginalTokens.
+func (s *CompileResultEntriesItem) SetOriginalTokens(val float64) {
+	s.OriginalTokens = val
+}
+
+type CompileResultEntriesItemCompressionLevel string
+
+const (
+	CompileResultEntriesItemCompressionLevelFull     CompileResultEntriesItemCompressionLevel = "full"
+	CompileResultEntriesItemCompressionLevelSummary  CompileResultEntriesItemCompressionLevel = "summary"
+	CompileResultEntriesItemCompressionLevelKeywords CompileResultEntriesItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all CompileResultEntriesItemCompressionLevel values.
+func (CompileResultEntriesItemCompressionLevel) AllValues() []CompileResultEntriesItemCompressionLevel {
+	return []CompileResultEntriesItemCompressionLevel{
+		CompileResultEntriesItemCompressionLevelFull,
+		CompileResultEntriesItemCompressionLevelSummary,
+		CompileResultEntriesItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CompileResultEntriesItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case CompileResultEntriesItemCompressionLevelFull:
+		return []byte(s), nil
+	case CompileResultEntriesItemCompressionLevelSummary:
+		return []byte(s), nil
+	case CompileResultEntriesItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CompileResultEntriesItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch CompileResultEntriesItemCompressionLevel(data) {
+	case CompileResultEntriesItemCompressionLevelFull:
+		*s = CompileResultEntriesItemCompressionLevelFull
+		return nil
+	case CompileResultEntriesItemCompressionLevelSummary:
+		*s = CompileResultEntriesItemCompressionLevelSummary
+		return nil
+	case CompileResultEntriesItemCompressionLevelKeywords:
+		*s = CompileResultEntriesItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CompileResultStats struct {
+	BudgetUtilization float64 `json:"budgetUtilization"`
+	CompressionRatio  float64 `json:"compressionRatio"`
+	ElapsedMs         float64 `json:"elapsedMs"`
+	EntriesCompressed float64 `json:"entriesCompressed"`
+	EntriesIncluded   float64 `json:"entriesIncluded"`
+	TotalTokens       float64 `json:"totalTokens"`
+}
+
+// GetBudgetUtilization returns the value of BudgetUtilization.
+func (s *CompileResultStats) GetBudgetUtilization() float64 {
+	return s.BudgetUtilization
+}
+
+// GetCompressionRatio returns the value of CompressionRatio.
+func (s *CompileResultStats) GetCompressionRatio() float64 {
+	return s.CompressionRatio
+}
+
+// GetElapsedMs returns the value of ElapsedMs.
+func (s *CompileResultStats) GetElapsedMs() float64 {
+	return s.ElapsedMs
+}
+
+// GetEntriesCompressed returns the value of EntriesCompressed.
+func (s *CompileResultStats) GetEntriesCompressed() float64 {
+	return s.EntriesCompressed
+}
+
+// GetEntriesIncluded returns the value of EntriesIncluded.
+func (s *CompileResultStats) GetEntriesIncluded() float64 {
+	return s.EntriesIncluded
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *CompileResultStats) GetTotalTokens() float64 {
+	return s.TotalTokens
+}
+
+// SetBudgetUtilization sets the value of BudgetUtilization.
+func (s *CompileResultStats) SetBudgetUtilization(val float64) {
+	s.BudgetUtilization = val
+}
+
+// SetCompressionRatio sets the value of CompressionRatio.
+func (s *CompileResultStats) SetCompressionRatio(val float64) {
+	s.CompressionRatio = val
+}
+
+// SetElapsedMs sets the value of ElapsedMs.
+func (s *CompileResultStats) SetElapsedMs(val float64) {
+	s.ElapsedMs = val
+}
+
+// SetEntriesCompressed sets the value of EntriesCompressed.
+func (s *CompileResultStats) SetEntriesCompressed(val float64) {
+	s.EntriesCompressed = val
+}
+
+// SetEntriesIncluded sets the value of EntriesIncluded.
+func (s *CompileResultStats) SetEntriesIncluded(val float64) {
+	s.EntriesIncluded = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *CompileResultStats) SetTotalTokens(val float64) {
+	s.TotalTokens = val
+}
+
+type CompileResultTrace struct {
+	EmbeddingDim   float64   `json:"embeddingDim"`
+	LambdaUsed     float64   `json:"lambdaUsed"`
+	TaskPromptHash OptString `json:"taskPromptHash"`
+}
+
+// GetEmbeddingDim returns the value of EmbeddingDim.
+func (s *CompileResultTrace) GetEmbeddingDim() float64 {
+	return s.EmbeddingDim
+}
+
+// GetLambdaUsed returns the value of LambdaUsed.
+func (s *CompileResultTrace) GetLambdaUsed() float64 {
+	return s.LambdaUsed
+}
+
+// GetTaskPromptHash returns the value of TaskPromptHash.
+func (s *CompileResultTrace) GetTaskPromptHash() OptString {
+	return s.TaskPromptHash
+}
+
+// SetEmbeddingDim sets the value of EmbeddingDim.
+func (s *CompileResultTrace) SetEmbeddingDim(val float64) {
+	s.EmbeddingDim = val
+}
+
+// SetLambdaUsed sets the value of LambdaUsed.
+func (s *CompileResultTrace) SetLambdaUsed(val float64) {
+	s.LambdaUsed = val
+}
+
+// SetTaskPromptHash sets the value of TaskPromptHash.
+func (s *CompileResultTrace) SetTaskPromptHash(val OptString) {
+	s.TaskPromptHash = val
+}
+
+type ConsolidateDiaryForbidden ProblemDetails
+
+func (*ConsolidateDiaryForbidden) consolidateDiaryRes() {}
+
+type ConsolidateDiaryInternalServerError ProblemDetails
+
+func (*ConsolidateDiaryInternalServerError) consolidateDiaryRes() {}
+
+type ConsolidateDiaryNotFound ProblemDetails
+
+func (*ConsolidateDiaryNotFound) consolidateDiaryRes() {}
+
+type ConsolidateDiaryReq struct {
+	EntryIds  []uuid.UUID                    `json:"entryIds"`
+	Strategy  OptConsolidateDiaryReqStrategy `json:"strategy"`
+	Tags      []string                       `json:"tags"`
+	Threshold OptFloat64                     `json:"threshold"`
+}
+
+// GetEntryIds returns the value of EntryIds.
+func (s *ConsolidateDiaryReq) GetEntryIds() []uuid.UUID {
+	return s.EntryIds
+}
+
+// GetStrategy returns the value of Strategy.
+func (s *ConsolidateDiaryReq) GetStrategy() OptConsolidateDiaryReqStrategy {
+	return s.Strategy
+}
+
+// GetTags returns the value of Tags.
+func (s *ConsolidateDiaryReq) GetTags() []string {
+	return s.Tags
+}
+
+// GetThreshold returns the value of Threshold.
+func (s *ConsolidateDiaryReq) GetThreshold() OptFloat64 {
+	return s.Threshold
+}
+
+// SetEntryIds sets the value of EntryIds.
+func (s *ConsolidateDiaryReq) SetEntryIds(val []uuid.UUID) {
+	s.EntryIds = val
+}
+
+// SetStrategy sets the value of Strategy.
+func (s *ConsolidateDiaryReq) SetStrategy(val OptConsolidateDiaryReqStrategy) {
+	s.Strategy = val
+}
+
+// SetTags sets the value of Tags.
+func (s *ConsolidateDiaryReq) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetThreshold sets the value of Threshold.
+func (s *ConsolidateDiaryReq) SetThreshold(val OptFloat64) {
+	s.Threshold = val
+}
+
+type ConsolidateDiaryReqStrategy string
+
+const (
+	ConsolidateDiaryReqStrategyScore    ConsolidateDiaryReqStrategy = "score"
+	ConsolidateDiaryReqStrategyCentroid ConsolidateDiaryReqStrategy = "centroid"
+	ConsolidateDiaryReqStrategyHybrid   ConsolidateDiaryReqStrategy = "hybrid"
+)
+
+// AllValues returns all ConsolidateDiaryReqStrategy values.
+func (ConsolidateDiaryReqStrategy) AllValues() []ConsolidateDiaryReqStrategy {
+	return []ConsolidateDiaryReqStrategy{
+		ConsolidateDiaryReqStrategyScore,
+		ConsolidateDiaryReqStrategyCentroid,
+		ConsolidateDiaryReqStrategyHybrid,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ConsolidateDiaryReqStrategy) MarshalText() ([]byte, error) {
+	switch s {
+	case ConsolidateDiaryReqStrategyScore:
+		return []byte(s), nil
+	case ConsolidateDiaryReqStrategyCentroid:
+		return []byte(s), nil
+	case ConsolidateDiaryReqStrategyHybrid:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ConsolidateDiaryReqStrategy) UnmarshalText(data []byte) error {
+	switch ConsolidateDiaryReqStrategy(data) {
+	case ConsolidateDiaryReqStrategyScore:
+		*s = ConsolidateDiaryReqStrategyScore
+		return nil
+	case ConsolidateDiaryReqStrategyCentroid:
+		*s = ConsolidateDiaryReqStrategyCentroid
+		return nil
+	case ConsolidateDiaryReqStrategyHybrid:
+		*s = ConsolidateDiaryReqStrategyHybrid
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ConsolidateDiaryUnauthorized ProblemDetails
+
+func (*ConsolidateDiaryUnauthorized) consolidateDiaryRes() {}
+
+// Ref: #/components/schemas/ConsolidateResult
+type ConsolidateResult struct {
+	Clusters   []ConsolidateResultClustersItem `json:"clusters"`
+	Stats      ConsolidateResultStats          `json:"stats"`
+	Trace      ConsolidateResultTrace          `json:"trace"`
+	WorkflowId string                          `json:"workflowId"`
+}
+
+// GetClusters returns the value of Clusters.
+func (s *ConsolidateResult) GetClusters() []ConsolidateResultClustersItem {
+	return s.Clusters
+}
+
+// GetStats returns the value of Stats.
+func (s *ConsolidateResult) GetStats() ConsolidateResultStats {
+	return s.Stats
+}
+
+// GetTrace returns the value of Trace.
+func (s *ConsolidateResult) GetTrace() ConsolidateResultTrace {
+	return s.Trace
+}
+
+// GetWorkflowId returns the value of WorkflowId.
+func (s *ConsolidateResult) GetWorkflowId() string {
+	return s.WorkflowId
+}
+
+// SetClusters sets the value of Clusters.
+func (s *ConsolidateResult) SetClusters(val []ConsolidateResultClustersItem) {
+	s.Clusters = val
+}
+
+// SetStats sets the value of Stats.
+func (s *ConsolidateResult) SetStats(val ConsolidateResultStats) {
+	s.Stats = val
+}
+
+// SetTrace sets the value of Trace.
+func (s *ConsolidateResult) SetTrace(val ConsolidateResultTrace) {
+	s.Trace = val
+}
+
+// SetWorkflowId sets the value of WorkflowId.
+func (s *ConsolidateResult) SetWorkflowId(val string) {
+	s.WorkflowId = val
+}
+
+func (*ConsolidateResult) consolidateDiaryRes() {}
+
+type ConsolidateResultClustersItem struct {
+	Confidence           float64                                      `json:"confidence"`
+	Members              []ConsolidateResultClustersItemMembersItem   `json:"members"`
+	Representative       ConsolidateResultClustersItemRepresentative  `json:"representative"`
+	RepresentativeReason string                                       `json:"representativeReason"`
+	Similarity           float64                                      `json:"similarity"`
+	SuggestedAction      ConsolidateResultClustersItemSuggestedAction `json:"suggestedAction"`
+}
+
+// GetConfidence returns the value of Confidence.
+func (s *ConsolidateResultClustersItem) GetConfidence() float64 {
+	return s.Confidence
+}
+
+// GetMembers returns the value of Members.
+func (s *ConsolidateResultClustersItem) GetMembers() []ConsolidateResultClustersItemMembersItem {
+	return s.Members
+}
+
+// GetRepresentative returns the value of Representative.
+func (s *ConsolidateResultClustersItem) GetRepresentative() ConsolidateResultClustersItemRepresentative {
+	return s.Representative
+}
+
+// GetRepresentativeReason returns the value of RepresentativeReason.
+func (s *ConsolidateResultClustersItem) GetRepresentativeReason() string {
+	return s.RepresentativeReason
+}
+
+// GetSimilarity returns the value of Similarity.
+func (s *ConsolidateResultClustersItem) GetSimilarity() float64 {
+	return s.Similarity
+}
+
+// GetSuggestedAction returns the value of SuggestedAction.
+func (s *ConsolidateResultClustersItem) GetSuggestedAction() ConsolidateResultClustersItemSuggestedAction {
+	return s.SuggestedAction
+}
+
+// SetConfidence sets the value of Confidence.
+func (s *ConsolidateResultClustersItem) SetConfidence(val float64) {
+	s.Confidence = val
+}
+
+// SetMembers sets the value of Members.
+func (s *ConsolidateResultClustersItem) SetMembers(val []ConsolidateResultClustersItemMembersItem) {
+	s.Members = val
+}
+
+// SetRepresentative sets the value of Representative.
+func (s *ConsolidateResultClustersItem) SetRepresentative(val ConsolidateResultClustersItemRepresentative) {
+	s.Representative = val
+}
+
+// SetRepresentativeReason sets the value of RepresentativeReason.
+func (s *ConsolidateResultClustersItem) SetRepresentativeReason(val string) {
+	s.RepresentativeReason = val
+}
+
+// SetSimilarity sets the value of Similarity.
+func (s *ConsolidateResultClustersItem) SetSimilarity(val float64) {
+	s.Similarity = val
+}
+
+// SetSuggestedAction sets the value of SuggestedAction.
+func (s *ConsolidateResultClustersItem) SetSuggestedAction(val ConsolidateResultClustersItemSuggestedAction) {
+	s.SuggestedAction = val
+}
+
+type ConsolidateResultClustersItemMembersItem struct {
+	Content    string    `json:"content"`
+	CreatedAt  time.Time `json:"createdAt"`
+	ID         uuid.UUID `json:"id"`
+	Importance float64   `json:"importance"`
+	Tokens     float64   `json:"tokens"`
+}
+
+// GetContent returns the value of Content.
+func (s *ConsolidateResultClustersItemMembersItem) GetContent() string {
+	return s.Content
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ConsolidateResultClustersItemMembersItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetID returns the value of ID.
+func (s *ConsolidateResultClustersItemMembersItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetImportance returns the value of Importance.
+func (s *ConsolidateResultClustersItemMembersItem) GetImportance() float64 {
+	return s.Importance
+}
+
+// GetTokens returns the value of Tokens.
+func (s *ConsolidateResultClustersItemMembersItem) GetTokens() float64 {
+	return s.Tokens
+}
+
+// SetContent sets the value of Content.
+func (s *ConsolidateResultClustersItemMembersItem) SetContent(val string) {
+	s.Content = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ConsolidateResultClustersItemMembersItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetID sets the value of ID.
+func (s *ConsolidateResultClustersItemMembersItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetImportance sets the value of Importance.
+func (s *ConsolidateResultClustersItemMembersItem) SetImportance(val float64) {
+	s.Importance = val
+}
+
+// SetTokens sets the value of Tokens.
+func (s *ConsolidateResultClustersItemMembersItem) SetTokens(val float64) {
+	s.Tokens = val
+}
+
+type ConsolidateResultClustersItemRepresentative struct {
+	Content    string    `json:"content"`
+	CreatedAt  time.Time `json:"createdAt"`
+	ID         uuid.UUID `json:"id"`
+	Importance float64   `json:"importance"`
+	Tokens     float64   `json:"tokens"`
+}
+
+// GetContent returns the value of Content.
+func (s *ConsolidateResultClustersItemRepresentative) GetContent() string {
+	return s.Content
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ConsolidateResultClustersItemRepresentative) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetID returns the value of ID.
+func (s *ConsolidateResultClustersItemRepresentative) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetImportance returns the value of Importance.
+func (s *ConsolidateResultClustersItemRepresentative) GetImportance() float64 {
+	return s.Importance
+}
+
+// GetTokens returns the value of Tokens.
+func (s *ConsolidateResultClustersItemRepresentative) GetTokens() float64 {
+	return s.Tokens
+}
+
+// SetContent sets the value of Content.
+func (s *ConsolidateResultClustersItemRepresentative) SetContent(val string) {
+	s.Content = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ConsolidateResultClustersItemRepresentative) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetID sets the value of ID.
+func (s *ConsolidateResultClustersItemRepresentative) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetImportance sets the value of Importance.
+func (s *ConsolidateResultClustersItemRepresentative) SetImportance(val float64) {
+	s.Importance = val
+}
+
+// SetTokens sets the value of Tokens.
+func (s *ConsolidateResultClustersItemRepresentative) SetTokens(val float64) {
+	s.Tokens = val
+}
+
+type ConsolidateResultClustersItemSuggestedAction string
+
+const (
+	ConsolidateResultClustersItemSuggestedActionMerge        ConsolidateResultClustersItemSuggestedAction = "merge"
+	ConsolidateResultClustersItemSuggestedActionKeepSeparate ConsolidateResultClustersItemSuggestedAction = "keep_separate"
+	ConsolidateResultClustersItemSuggestedActionReview       ConsolidateResultClustersItemSuggestedAction = "review"
+)
+
+// AllValues returns all ConsolidateResultClustersItemSuggestedAction values.
+func (ConsolidateResultClustersItemSuggestedAction) AllValues() []ConsolidateResultClustersItemSuggestedAction {
+	return []ConsolidateResultClustersItemSuggestedAction{
+		ConsolidateResultClustersItemSuggestedActionMerge,
+		ConsolidateResultClustersItemSuggestedActionKeepSeparate,
+		ConsolidateResultClustersItemSuggestedActionReview,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ConsolidateResultClustersItemSuggestedAction) MarshalText() ([]byte, error) {
+	switch s {
+	case ConsolidateResultClustersItemSuggestedActionMerge:
+		return []byte(s), nil
+	case ConsolidateResultClustersItemSuggestedActionKeepSeparate:
+		return []byte(s), nil
+	case ConsolidateResultClustersItemSuggestedActionReview:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ConsolidateResultClustersItemSuggestedAction) UnmarshalText(data []byte) error {
+	switch ConsolidateResultClustersItemSuggestedAction(data) {
+	case ConsolidateResultClustersItemSuggestedActionMerge:
+		*s = ConsolidateResultClustersItemSuggestedActionMerge
+		return nil
+	case ConsolidateResultClustersItemSuggestedActionKeepSeparate:
+		*s = ConsolidateResultClustersItemSuggestedActionKeepSeparate
+		return nil
+	case ConsolidateResultClustersItemSuggestedActionReview:
+		*s = ConsolidateResultClustersItemSuggestedActionReview
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ConsolidateResultStats struct {
+	ClusterCount            float64                                       `json:"clusterCount"`
+	ClusterSizeDistribution ConsolidateResultStatsClusterSizeDistribution `json:"clusterSizeDistribution"`
+	ElapsedMs               float64                                       `json:"elapsedMs"`
+	InputCount              float64                                       `json:"inputCount"`
+	SingletonRate           float64                                       `json:"singletonRate"`
+}
+
+// GetClusterCount returns the value of ClusterCount.
+func (s *ConsolidateResultStats) GetClusterCount() float64 {
+	return s.ClusterCount
+}
+
+// GetClusterSizeDistribution returns the value of ClusterSizeDistribution.
+func (s *ConsolidateResultStats) GetClusterSizeDistribution() ConsolidateResultStatsClusterSizeDistribution {
+	return s.ClusterSizeDistribution
+}
+
+// GetElapsedMs returns the value of ElapsedMs.
+func (s *ConsolidateResultStats) GetElapsedMs() float64 {
+	return s.ElapsedMs
+}
+
+// GetInputCount returns the value of InputCount.
+func (s *ConsolidateResultStats) GetInputCount() float64 {
+	return s.InputCount
+}
+
+// GetSingletonRate returns the value of SingletonRate.
+func (s *ConsolidateResultStats) GetSingletonRate() float64 {
+	return s.SingletonRate
+}
+
+// SetClusterCount sets the value of ClusterCount.
+func (s *ConsolidateResultStats) SetClusterCount(val float64) {
+	s.ClusterCount = val
+}
+
+// SetClusterSizeDistribution sets the value of ClusterSizeDistribution.
+func (s *ConsolidateResultStats) SetClusterSizeDistribution(val ConsolidateResultStatsClusterSizeDistribution) {
+	s.ClusterSizeDistribution = val
+}
+
+// SetElapsedMs sets the value of ElapsedMs.
+func (s *ConsolidateResultStats) SetElapsedMs(val float64) {
+	s.ElapsedMs = val
+}
+
+// SetInputCount sets the value of InputCount.
+func (s *ConsolidateResultStats) SetInputCount(val float64) {
+	s.InputCount = val
+}
+
+// SetSingletonRate sets the value of SingletonRate.
+func (s *ConsolidateResultStats) SetSingletonRate(val float64) {
+	s.SingletonRate = val
+}
+
+type ConsolidateResultStatsClusterSizeDistribution struct {
+	V0 float64
+	V1 float64
+	V2 float64
+	V3 float64
+	V4 float64
+}
+
+// GetV0 returns the value of V0.
+func (s *ConsolidateResultStatsClusterSizeDistribution) GetV0() float64 {
+	return s.V0
+}
+
+// GetV1 returns the value of V1.
+func (s *ConsolidateResultStatsClusterSizeDistribution) GetV1() float64 {
+	return s.V1
+}
+
+// GetV2 returns the value of V2.
+func (s *ConsolidateResultStatsClusterSizeDistribution) GetV2() float64 {
+	return s.V2
+}
+
+// GetV3 returns the value of V3.
+func (s *ConsolidateResultStatsClusterSizeDistribution) GetV3() float64 {
+	return s.V3
+}
+
+// GetV4 returns the value of V4.
+func (s *ConsolidateResultStatsClusterSizeDistribution) GetV4() float64 {
+	return s.V4
+}
+
+// SetV0 sets the value of V0.
+func (s *ConsolidateResultStatsClusterSizeDistribution) SetV0(val float64) {
+	s.V0 = val
+}
+
+// SetV1 sets the value of V1.
+func (s *ConsolidateResultStatsClusterSizeDistribution) SetV1(val float64) {
+	s.V1 = val
+}
+
+// SetV2 sets the value of V2.
+func (s *ConsolidateResultStatsClusterSizeDistribution) SetV2(val float64) {
+	s.V2 = val
+}
+
+// SetV3 sets the value of V3.
+func (s *ConsolidateResultStatsClusterSizeDistribution) SetV3(val float64) {
+	s.V3 = val
+}
+
+// SetV4 sets the value of V4.
+func (s *ConsolidateResultStatsClusterSizeDistribution) SetV4(val float64) {
+	s.V4 = val
+}
+
+type ConsolidateResultTrace struct {
+	EmbeddingDim  float64                            `json:"embeddingDim"`
+	StrategyUsed  ConsolidateResultTraceStrategyUsed `json:"strategyUsed"`
+	ThresholdUsed float64                            `json:"thresholdUsed"`
+}
+
+// GetEmbeddingDim returns the value of EmbeddingDim.
+func (s *ConsolidateResultTrace) GetEmbeddingDim() float64 {
+	return s.EmbeddingDim
+}
+
+// GetStrategyUsed returns the value of StrategyUsed.
+func (s *ConsolidateResultTrace) GetStrategyUsed() ConsolidateResultTraceStrategyUsed {
+	return s.StrategyUsed
+}
+
+// GetThresholdUsed returns the value of ThresholdUsed.
+func (s *ConsolidateResultTrace) GetThresholdUsed() float64 {
+	return s.ThresholdUsed
+}
+
+// SetEmbeddingDim sets the value of EmbeddingDim.
+func (s *ConsolidateResultTrace) SetEmbeddingDim(val float64) {
+	s.EmbeddingDim = val
+}
+
+// SetStrategyUsed sets the value of StrategyUsed.
+func (s *ConsolidateResultTrace) SetStrategyUsed(val ConsolidateResultTraceStrategyUsed) {
+	s.StrategyUsed = val
+}
+
+// SetThresholdUsed sets the value of ThresholdUsed.
+func (s *ConsolidateResultTrace) SetThresholdUsed(val float64) {
+	s.ThresholdUsed = val
+}
+
+type ConsolidateResultTraceStrategyUsed string
+
+const (
+	ConsolidateResultTraceStrategyUsedScore    ConsolidateResultTraceStrategyUsed = "score"
+	ConsolidateResultTraceStrategyUsedCentroid ConsolidateResultTraceStrategyUsed = "centroid"
+	ConsolidateResultTraceStrategyUsedHybrid   ConsolidateResultTraceStrategyUsed = "hybrid"
+)
+
+// AllValues returns all ConsolidateResultTraceStrategyUsed values.
+func (ConsolidateResultTraceStrategyUsed) AllValues() []ConsolidateResultTraceStrategyUsed {
+	return []ConsolidateResultTraceStrategyUsed{
+		ConsolidateResultTraceStrategyUsedScore,
+		ConsolidateResultTraceStrategyUsedCentroid,
+		ConsolidateResultTraceStrategyUsedHybrid,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ConsolidateResultTraceStrategyUsed) MarshalText() ([]byte, error) {
+	switch s {
+	case ConsolidateResultTraceStrategyUsedScore:
+		return []byte(s), nil
+	case ConsolidateResultTraceStrategyUsedCentroid:
+		return []byte(s), nil
+	case ConsolidateResultTraceStrategyUsedHybrid:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ConsolidateResultTraceStrategyUsed) UnmarshalText(data []byte) error {
+	switch ConsolidateResultTraceStrategyUsed(data) {
+	case ConsolidateResultTraceStrategyUsedScore:
+		*s = ConsolidateResultTraceStrategyUsedScore
+		return nil
+	case ConsolidateResultTraceStrategyUsedCentroid:
+		*s = ConsolidateResultTraceStrategyUsedCentroid
+		return nil
+	case ConsolidateResultTraceStrategyUsedHybrid:
+		*s = ConsolidateResultTraceStrategyUsedHybrid
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type CreateDiaryBadRequest ProblemDetails
 
 func (*CreateDiaryBadRequest) createDiaryRes() {}
@@ -3714,6 +4658,98 @@ func (o OptBool) Get() (v bool, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptConsolidateDiaryReq returns new OptConsolidateDiaryReq with value set to v.
+func NewOptConsolidateDiaryReq(v ConsolidateDiaryReq) OptConsolidateDiaryReq {
+	return OptConsolidateDiaryReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptConsolidateDiaryReq is optional ConsolidateDiaryReq.
+type OptConsolidateDiaryReq struct {
+	Value ConsolidateDiaryReq
+	Set   bool
+}
+
+// IsSet returns true if OptConsolidateDiaryReq was set.
+func (o OptConsolidateDiaryReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptConsolidateDiaryReq) Reset() {
+	var v ConsolidateDiaryReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptConsolidateDiaryReq) SetTo(v ConsolidateDiaryReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptConsolidateDiaryReq) Get() (v ConsolidateDiaryReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptConsolidateDiaryReq) Or(d ConsolidateDiaryReq) ConsolidateDiaryReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptConsolidateDiaryReqStrategy returns new OptConsolidateDiaryReqStrategy with value set to v.
+func NewOptConsolidateDiaryReqStrategy(v ConsolidateDiaryReqStrategy) OptConsolidateDiaryReqStrategy {
+	return OptConsolidateDiaryReqStrategy{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptConsolidateDiaryReqStrategy is optional ConsolidateDiaryReqStrategy.
+type OptConsolidateDiaryReqStrategy struct {
+	Value ConsolidateDiaryReqStrategy
+	Set   bool
+}
+
+// IsSet returns true if OptConsolidateDiaryReqStrategy was set.
+func (o OptConsolidateDiaryReqStrategy) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptConsolidateDiaryReqStrategy) Reset() {
+	var v ConsolidateDiaryReqStrategy
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptConsolidateDiaryReqStrategy) SetTo(v ConsolidateDiaryReqStrategy) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptConsolidateDiaryReqStrategy) Get() (v ConsolidateDiaryReqStrategy, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptConsolidateDiaryReqStrategy) Or(d ConsolidateDiaryReqStrategy) ConsolidateDiaryReqStrategy {
 	if v, ok := o.Get(); ok {
 		return v
 	}

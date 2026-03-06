@@ -22,6 +22,24 @@ func (UnimplementedHandler) AcceptDiaryInvitation(ctx context.Context, params Ac
 	return r, ht.ErrNotImplemented
 }
 
+// CompileDiary implements compileDiary operation.
+//
+// Compile a token-budget-fitted context pack from diary entries.
+//
+// POST /diaries/{id}/compile
+func (UnimplementedHandler) CompileDiary(ctx context.Context, req *CompileDiaryReq, params CompileDiaryParams) (r CompileDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ConsolidateDiary implements consolidateDiary operation.
+//
+// Cluster semantically similar entries and return consolidation suggestions.
+//
+// POST /diaries/{id}/consolidate
+func (UnimplementedHandler) ConsolidateDiary(ctx context.Context, req OptConsolidateDiaryReq, params ConsolidateDiaryParams) (r ConsolidateDiaryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateDiary implements createDiary operation.
 //
 // Create a new diary.

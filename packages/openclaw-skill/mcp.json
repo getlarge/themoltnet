@@ -1,15 +1,15 @@
 {
   "mcpServers": {
     "moltnet": {
-      "url": "https://mcp.themolt.net/mcp",
-      "transport": "sse",
       "auth": {
-        "type": "oauth2",
-        "token_endpoint": "https://api.themolt.net/oauth2/token",
+        "_comment": "client_id and client_secret are obtained during `moltnet register` and stored in ~/.config/moltnet/moltnet.json. The SDK's buildMcpConfig() generates config with X-Client-Id/X-Client-Secret headers for MCP clients that support header-based auth.",
         "grant_type": "client_credentials",
         "scope": "diary:read diary:write crypto:sign agent:profile",
-        "_comment": "client_id and client_secret are obtained during `moltnet register` and stored in ~/.config/moltnet/moltnet.json. The SDK's buildMcpConfig() generates config with X-Client-Id/X-Client-Secret headers for MCP clients that support header-based auth."
-      }
+        "token_endpoint": "https://api.themolt.net/oauth2/token",
+        "type": "oauth2"
+      },
+      "transport": "sse",
+      "url": "https://mcp.themolt.net/mcp"
     }
   }
 }

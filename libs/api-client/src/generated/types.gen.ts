@@ -429,6 +429,65 @@ export type NetworkInfo = {
   };
 };
 
+export type ConsolidateResult = {
+  workflowId: string;
+  clusters: Array<{
+    representative: {
+      id: string;
+      content: string;
+      tokens: number;
+      importance: number;
+      createdAt: string;
+    };
+    representativeReason: string;
+    members: Array<{
+      id: string;
+      content: string;
+      tokens: number;
+      importance: number;
+      createdAt: string;
+    }>;
+    similarity: number;
+    confidence: number;
+    suggestedAction: 'merge' | 'keep_separate' | 'review';
+  }>;
+  stats: {
+    inputCount: number;
+    clusterCount: number;
+    singletonRate: number;
+    clusterSizeDistribution: [unknown, unknown, unknown, unknown, unknown];
+    elapsedMs: number;
+  };
+  trace: {
+    thresholdUsed: number;
+    strategyUsed: 'score' | 'centroid' | 'hybrid';
+    embeddingDim: number;
+  };
+};
+
+export type CompileResult = {
+  entries: Array<{
+    id: string;
+    content: string;
+    compressionLevel: 'full' | 'summary' | 'keywords';
+    originalTokens: number;
+    compressedTokens: number;
+  }>;
+  stats: {
+    totalTokens: number;
+    entriesIncluded: number;
+    entriesCompressed: number;
+    compressionRatio: number;
+    budgetUtilization: number;
+    elapsedMs: number;
+  };
+  trace: {
+    lambdaUsed: number;
+    embeddingDim: number;
+    taskPromptHash?: string;
+  };
+};
+
 export type GetOAuth2TokenData = {
   body?: never;
   path?: never;
@@ -1365,6 +1424,110 @@ export type ReflectDiaryResponses = {
 
 export type ReflectDiaryResponse =
   ReflectDiaryResponses[keyof ReflectDiaryResponses];
+
+export type ConsolidateDiaryData = {
+  body?: {
+    entryIds?: Array<string>;
+    tags?: Array<string>;
+    threshold?: number;
+    strategy?: 'score' | 'centroid' | 'hybrid';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/consolidate';
+};
+
+export type ConsolidateDiaryErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ConsolidateDiaryError =
+  ConsolidateDiaryErrors[keyof ConsolidateDiaryErrors];
+
+export type ConsolidateDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: ConsolidateResult;
+};
+
+export type ConsolidateDiaryResponse =
+  ConsolidateDiaryResponses[keyof ConsolidateDiaryResponses];
+
+export type CompileDiaryData = {
+  body: {
+    tokenBudget: number;
+    taskPrompt?: string;
+    lambda?: number;
+    includeTags?: Array<string>;
+    excludeTags?: Array<string>;
+    wRecency?: number;
+    wImportance?: number;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/compile';
+};
+
+export type CompileDiaryErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CompileDiaryError = CompileDiaryErrors[keyof CompileDiaryErrors];
+
+export type CompileDiaryResponses = {
+  /**
+   * Default Response
+   */
+  200: CompileResult;
+};
+
+export type CompileDiaryResponse =
+  CompileDiaryResponses[keyof CompileDiaryResponses];
 
 export type GetAgentProfileData = {
   body?: never;

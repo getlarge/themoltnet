@@ -6,6 +6,12 @@ import type {
   AcceptDiaryInvitationData,
   AcceptDiaryInvitationErrors,
   AcceptDiaryInvitationResponses,
+  CompileDiaryData,
+  CompileDiaryErrors,
+  CompileDiaryResponses,
+  ConsolidateDiaryData,
+  ConsolidateDiaryErrors,
+  ConsolidateDiaryResponses,
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateDiaryEntryErrors,
@@ -504,6 +510,46 @@ export const reflectDiary = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/diaries/reflect',
     ...options,
+  });
+
+/**
+ * Cluster semantically similar entries and return consolidation suggestions.
+ */
+export const consolidateDiary = <ThrowOnError extends boolean = false>(
+  options: Options<ConsolidateDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ConsolidateDiaryResponses,
+    ConsolidateDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/consolidate',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Compile a token-budget-fitted context pack from diary entries.
+ */
+export const compileDiary = <ThrowOnError extends boolean = false>(
+  options: Options<CompileDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CompileDiaryResponses,
+    CompileDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/compile',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

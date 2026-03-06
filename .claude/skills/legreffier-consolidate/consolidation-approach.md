@@ -1,6 +1,6 @@
 # Consolidation Approach — Methodology Reference
 
-This document explains the *reasoning framework* behind the legreffier-consolidate
+This document explains the _reasoning framework_ behind the legreffier-consolidate
 skill. It is repo-agnostic. Read it for the "why" behind tile merging, nugget
 extraction, acceptance gates, and multi-model evaluation. The SKILL.md prescribes
 the execution steps; this doc explains the design choices.
@@ -40,12 +40,13 @@ consolidation must merge these, not just list them side by side.
    to `libs/database`)
 3. Group entries that cover the same conceptual area even if scoped differently
    (e.g. an `architecture:auth-flow` doc entry + a `security:auth-model` doc entry
-   + a `libs/auth` code entry all describe the auth subsystem)
+   - a `libs/auth` code entry all describe the auth subsystem)
 4. Each group becomes one tile. Standalone entries (no overlap) become tiles directly
 5. The target is **fewer tiles than source entries** — if you have the same count,
    you haven't merged enough
 
 **Signals that entries should merge:**
+
 - Same `scope:` tag
 - Same subsystem name in the entry key (e.g. `architecture:rest-api` and
   `apps-rest-api`)
@@ -53,6 +54,7 @@ consolidation must merge these, not just list them side by side.
 - Significant constraint overlap (>50% of MUST/NEVER items are shared)
 
 **Signals that entries should stay separate:**
+
 - Different subsystems with no conceptual overlap
 - Different layers (e.g. database vs API routing) even if they interact
 - Merging would exceed the 400-token budget
@@ -127,7 +129,7 @@ Reject any candidate that fails ANY of these five criteria:
 ### Why constraint-first extraction
 
 Do NOT scan entries linearly and extract nuggets one by one. This produces too many
-weak candidates because every entry has prose that *sounds* like a rule but isn't
+weak candidates because every entry has prose that _sounds_ like a rule but isn't
 specific enough.
 
 Instead, use a **constraint-first** approach:
@@ -145,12 +147,12 @@ Instead, use a **constraint-first** approach:
 
 Not all constraint domains have equal value. Prioritize extraction in this order:
 
-| Priority | Domain | Rationale |
-|----------|--------|-----------|
-| 1 | testing | Highest follow-through — test constraints are easily verifiable |
-| 2 | security | Highest consequence — security violations cause real damage |
-| 3 | workflow | High follow-through — CI/build constraints are mechanically checkable |
-| 4 | database | Error-prone — migrations, transactions, and schema constraints catch common mistakes |
+| Priority | Domain   | Rationale                                                                            |
+| -------- | -------- | ------------------------------------------------------------------------------------ |
+| 1        | testing  | Highest follow-through — test constraints are easily verifiable                      |
+| 2        | security | Highest consequence — security violations cause real damage                          |
+| 3        | workflow | High follow-through — CI/build constraints are mechanically checkable                |
+| 4        | database | Error-prone — migrations, transactions, and schema constraints catch common mistakes |
 
 Other domains (API design, naming conventions, documentation) can follow if the
 budget allows, but the four above capture the most value per nugget.
@@ -171,6 +173,7 @@ These candidate types consistently fail the acceptance gate:
 ### Load budget constraint
 
 For any single task at runtime, load at most:
+
 - 3-7 primary nuggets (directly triggered by the task)
 - 1-2 optional caveat nuggets (edge cases or warnings)
 
@@ -209,17 +212,17 @@ runs in the same diary without collision.
 
 Score each run on these dimensions:
 
-| Dimension | What it measures | How to score |
-|-----------|-----------------|--------------|
-| Constraint yield | Nuggets accepted vs total candidates | `accepted / total_candidates` |
-| Specificity | Are constraints concrete or vague? | 1-5 per nugget, averaged |
-| Non-redundancy | Avoids restating obvious things | Count of redundant nuggets |
-| Trigger precision | Would triggers fire for right tasks only? | low / med / high |
-| Merge quality | How well multi-source tiles are synthesized | 1-5 per merged tile, averaged |
-| Token efficiency | Content density | `total_constraints / total_tokens * 1000` |
-| Hallucination rate | Constraints not grounded in source entries | Count of ungrounded nuggets |
-| Coverage | Important constraints captured vs available | `found / available` (estimate) |
-| Consistency | Agreement across model runs | Jaccard similarity of nugget sets |
+| Dimension          | What it measures                            | How to score                              |
+| ------------------ | ------------------------------------------- | ----------------------------------------- |
+| Constraint yield   | Nuggets accepted vs total candidates        | `accepted / total_candidates`             |
+| Specificity        | Are constraints concrete or vague?          | 1-5 per nugget, averaged                  |
+| Non-redundancy     | Avoids restating obvious things             | Count of redundant nuggets                |
+| Trigger precision  | Would triggers fire for right tasks only?   | low / med / high                          |
+| Merge quality      | How well multi-source tiles are synthesized | 1-5 per merged tile, averaged             |
+| Token efficiency   | Content density                             | `total_constraints / total_tokens * 1000` |
+| Hallucination rate | Constraints not grounded in source entries  | Count of ungrounded nuggets               |
+| Coverage           | Important constraints captured vs available | `found / available` (estimate)            |
+| Consistency        | Agreement across model runs                 | Jaccard similarity of nugget sets         |
 
 ### Cross-model comparison
 
@@ -282,9 +285,9 @@ while compilation optimizes for runtime loading.
 
 Tiles and nuggets serve different purposes at task time:
 
-- **Tiles** are loaded for *understanding* — "what is this subsystem, how does it
+- **Tiles** are loaded for _understanding_ — "what is this subsystem, how does it
   work, what are its constraints?" An agent reads a tile to orient itself.
-- **Nuggets** are loaded for *compliance* — "what rules must I follow for this
+- **Nuggets** are loaded for _compliance_ — "what rules must I follow for this
   specific task?" An agent checks nuggets to avoid violations.
 
 A single output format forces a choice between breadth (tiles) and precision

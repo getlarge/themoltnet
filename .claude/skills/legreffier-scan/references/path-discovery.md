@@ -28,24 +28,25 @@ Identify the workspace tool, package manager, and build system at the repo
 root. These determine how packages are organized and how to read dependency
 graphs.
 
-| Signal file | What it tells you |
-|---|---|
-| `pnpm-workspace.yaml` | pnpm monorepo, `packages:` lists workspace globs |
-| `lerna.json` | Lerna monorepo (possibly with npm/yarn/pnpm) |
-| `turbo.json` | Turborepo build orchestration |
-| `nx.json` | Nx monorepo, `projects` or auto-detection |
-| `rush.json` | Rush monorepo |
-| `Cargo.toml` with `[workspace]` | Rust workspace, `members` lists crates |
-| `go.work` | Go workspace, `use` lists modules |
-| `pyproject.toml` with workspace config | Python monorepo (uv, pdm, poetry) |
-| `BUILD` / `BUILD.bazel` / `WORKSPACE` | Bazel build system |
-| `Makefile` at root | Make-based build (common in Go, C, mixed repos) |
-| `Justfile` | just command runner |
-| `Taskfile.yml` | Task runner |
-| `docker-compose*.yaml` | Docker-based local dev |
-| `flake.nix` / `shell.nix` | Nix-based dev environment |
+| Signal file                            | What it tells you                                |
+| -------------------------------------- | ------------------------------------------------ |
+| `pnpm-workspace.yaml`                  | pnpm monorepo, `packages:` lists workspace globs |
+| `lerna.json`                           | Lerna monorepo (possibly with npm/yarn/pnpm)     |
+| `turbo.json`                           | Turborepo build orchestration                    |
+| `nx.json`                              | Nx monorepo, `projects` or auto-detection        |
+| `rush.json`                            | Rush monorepo                                    |
+| `Cargo.toml` with `[workspace]`        | Rust workspace, `members` lists crates           |
+| `go.work`                              | Go workspace, `use` lists modules                |
+| `pyproject.toml` with workspace config | Python monorepo (uv, pdm, poetry)                |
+| `BUILD` / `BUILD.bazel` / `WORKSPACE`  | Bazel build system                               |
+| `Makefile` at root                     | Make-based build (common in Go, C, mixed repos)  |
+| `Justfile`                             | just command runner                              |
+| `Taskfile.yml`                         | Task runner                                      |
+| `docker-compose*.yaml`                 | Docker-based local dev                           |
+| `flake.nix` / `shell.nix`              | Nix-based dev environment                        |
 
 Also detect the package manager:
+
 - `pnpm-lock.yaml` → pnpm
 - `yarn.lock` → yarn
 - `package-lock.json` → npm
@@ -98,7 +99,10 @@ enry --json <package-path>
 Output is a JSON map of language → file list:
 
 ```json
-{"TypeScript": ["src/index.ts", "src/routes/diary.ts"], "JSON": ["package.json"]}
+{
+  "JSON": ["package.json"],
+  "TypeScript": ["src/index.ts", "src/routes/diary.ts"]
+}
 ```
 
 Use `-prog` flag to filter to programming languages only (excludes data,
@@ -144,49 +148,49 @@ checking for framework-specific config files.
 > framework not listed here, apply the same detection pattern (dependency in
 > manifest + confirmation via config file or source structure).
 
-| Framework | Detection signal (dependency) | Confirm (config/structure) | Source pattern to expect |
-|---|---|---|---|
-| **Fastify** | `fastify` in deps | `fastify` plugin pattern in entry | Route files as Fastify plugins |
-| **NestJS** | `@nestjs/core` | `nest-cli.json`, `*.module.ts` | Controllers, services, modules |
-| **Express** | `express` in deps | `app.use()` in entry | Route handlers, middleware |
-| **Hono** | `hono` in deps | — | Route handlers |
-| **Gin** | `github.com/gin-gonic/gin` | — | `router.Group()`, handlers |
-| **Echo** | `github.com/labstack/echo` | — | Route handlers |
-| **Chi** | `github.com/go-chi/chi` | — | `r.Route()`, handlers |
-| **FastAPI** | `fastapi` in deps | — | Route decorators `@app.get()` |
-| **Django** | `django` in deps | `settings.py`, `urls.py` | Views, models, serializers |
-| **Flask** / **Starlette** | `flask` / `starlette` | — | Route decorators |
-| **Actix-web** | `actix-web` in `Cargo.toml` | — | Handler functions, `web::` types |
-| **Axum** | `axum` in `Cargo.toml` | — | Router, handler functions |
-| **React** | `react` in deps | `vite.config.ts` with JSX | Components in `src/` |
-| **Next.js** | `next` in deps | `next.config.*` | `app/` or `pages/` routing |
-| **Vue** | `vue` in deps | `vite.config.ts` with Vue | `.vue` SFC files |
-| **Svelte** | `svelte` in deps | `svelte.config.js` | `.svelte` files |
+| Framework                 | Detection signal (dependency) | Confirm (config/structure)        | Source pattern to expect         |
+| ------------------------- | ----------------------------- | --------------------------------- | -------------------------------- |
+| **Fastify**               | `fastify` in deps             | `fastify` plugin pattern in entry | Route files as Fastify plugins   |
+| **NestJS**                | `@nestjs/core`                | `nest-cli.json`, `*.module.ts`    | Controllers, services, modules   |
+| **Express**               | `express` in deps             | `app.use()` in entry              | Route handlers, middleware       |
+| **Hono**                  | `hono` in deps                | —                                 | Route handlers                   |
+| **Gin**                   | `github.com/gin-gonic/gin`    | —                                 | `router.Group()`, handlers       |
+| **Echo**                  | `github.com/labstack/echo`    | —                                 | Route handlers                   |
+| **Chi**                   | `github.com/go-chi/chi`       | —                                 | `r.Route()`, handlers            |
+| **FastAPI**               | `fastapi` in deps             | —                                 | Route decorators `@app.get()`    |
+| **Django**                | `django` in deps              | `settings.py`, `urls.py`          | Views, models, serializers       |
+| **Flask** / **Starlette** | `flask` / `starlette`         | —                                 | Route decorators                 |
+| **Actix-web**             | `actix-web` in `Cargo.toml`   | —                                 | Handler functions, `web::` types |
+| **Axum**                  | `axum` in `Cargo.toml`        | —                                 | Router, handler functions        |
+| **React**                 | `react` in deps               | `vite.config.ts` with JSX         | Components in `src/`             |
+| **Next.js**               | `next` in deps                | `next.config.*`                   | `app/` or `pages/` routing       |
+| **Vue**                   | `vue` in deps                 | `vite.config.ts` with Vue         | `.vue` SFC files                 |
+| **Svelte**                | `svelte` in deps              | `svelte.config.js`                | `.svelte` files                  |
 
 **Test framework detection:**
 
-| Framework | Detection signal | Config file |
-|---|---|---|
-| **Vitest** | `vitest` in devDeps | `vitest.config.ts` |
-| **Jest** | `jest` in devDeps | `jest.config.*` |
-| **Mocha** | `mocha` in devDeps | `.mocharc.*` |
-| **pytest** | `pytest` in deps | `pytest.ini`, `pyproject.toml [tool.pytest]` |
-| **Go test** | Go module | `*_test.go` files |
-| **Rust test** | Cargo crate | `#[cfg(test)]` in source |
-| **Playwright** | `@playwright/test` | `playwright.config.ts` |
-| **Cypress** | `cypress` in devDeps | `cypress.config.*` |
+| Framework      | Detection signal     | Config file                                  |
+| -------------- | -------------------- | -------------------------------------------- |
+| **Vitest**     | `vitest` in devDeps  | `vitest.config.ts`                           |
+| **Jest**       | `jest` in devDeps    | `jest.config.*`                              |
+| **Mocha**      | `mocha` in devDeps   | `.mocharc.*`                                 |
+| **pytest**     | `pytest` in deps     | `pytest.ini`, `pyproject.toml [tool.pytest]` |
+| **Go test**    | Go module            | `*_test.go` files                            |
+| **Rust test**  | Cargo crate          | `#[cfg(test)]` in source                     |
+| **Playwright** | `@playwright/test`   | `playwright.config.ts`                       |
+| **Cypress**    | `cypress` in devDeps | `cypress.config.*`                           |
 
 **ORM / database detection:**
 
-| ORM | Detection signal | What it means for patterns |
-|---|---|---|
-| **Drizzle** | `drizzle-orm` | Schema in TS, migration SQL |
-| **Prisma** | `prisma` | `schema.prisma`, generated client |
-| **TypeORM** | `typeorm` | Entity decorators, repositories |
-| **Sequelize** | `sequelize` | Model definitions |
-| **GORM** | `gorm.io/gorm` | Struct tags, `db.Find()` |
-| **SQLAlchemy** | `sqlalchemy` | Models, sessions |
-| **Diesel** | `diesel` in Cargo.toml | Schema macros |
+| ORM            | Detection signal       | What it means for patterns        |
+| -------------- | ---------------------- | --------------------------------- |
+| **Drizzle**    | `drizzle-orm`          | Schema in TS, migration SQL       |
+| **Prisma**     | `prisma`               | `schema.prisma`, generated client |
+| **TypeORM**    | `typeorm`              | Entity decorators, repositories   |
+| **Sequelize**  | `sequelize`            | Model definitions                 |
+| **GORM**       | `gorm.io/gorm`         | Struct tags, `db.Find()`          |
+| **SQLAlchemy** | `sqlalchemy`           | Models, sessions                  |
+| **Diesel**     | `diesel` in Cargo.toml | Schema macros                     |
 
 **What to record per package in the structure entry:**
 

@@ -156,19 +156,19 @@ applyTo: '**/*.test.ts'
 
 ### Missing fields per category
 
-| Category | Missing field | What it captures | Rule type it feeds |
-|---|---|---|---|
-| All | `Constraints:` | MUST/NEVER/ALWAYS rules from docs | Hard rules |
-| All | `Anti-patterns:` | What NOT to do, common mistakes | Negative rules |
-| All | `Applies to:` | File glob pattern for this knowledge | `applyTo` in instructions |
-| Architecture | `Canonical pattern:` | Code snippet showing the right way | Pattern rules |
-| Architecture | `File conventions:` | Where files go, naming patterns | Structure rules |
-| Workflow | `Exact commands:` | Copy-paste commands with flags | Procedural rules |
-| Workflow | `Common mistakes:` | What breaks and why | Negative rules |
-| Testing | `Test example:` | A representative test from this repo | Pattern rules |
-| Testing | `Mock pattern:` | How this repo handles test doubles | Pattern rules |
-| Security | `Hard rules:` | Non-negotiable security constraints | Security rules |
-| Security | `Verification:` | How to check compliance | Audit rules |
+| Category     | Missing field        | What it captures                     | Rule type it feeds        |
+| ------------ | -------------------- | ------------------------------------ | ------------------------- |
+| All          | `Constraints:`       | MUST/NEVER/ALWAYS rules from docs    | Hard rules                |
+| All          | `Anti-patterns:`     | What NOT to do, common mistakes      | Negative rules            |
+| All          | `Applies to:`        | File glob pattern for this knowledge | `applyTo` in instructions |
+| Architecture | `Canonical pattern:` | Code snippet showing the right way   | Pattern rules             |
+| Architecture | `File conventions:`  | Where files go, naming patterns      | Structure rules           |
+| Workflow     | `Exact commands:`    | Copy-paste commands with flags       | Procedural rules          |
+| Workflow     | `Common mistakes:`   | What breaks and why                  | Negative rules            |
+| Testing      | `Test example:`      | A representative test from this repo | Pattern rules             |
+| Testing      | `Mock pattern:`      | How this repo handles test doubles   | Pattern rules             |
+| Security     | `Hard rules:`        | Non-negotiable security constraints  | Security rules            |
+| Security     | `Verification:`      | How to check compliance              | Audit rules               |
 
 ### What the scanner CAN'T do (and shouldn't try)
 
@@ -290,6 +290,7 @@ restating what the docs already said.
 **Implication for scan → rules**: The scan reads docs. If the rules just
 restate what's in the docs, they're worthless — the agent already has access
 to the docs. Rules must add **synthesis** the docs don't provide:
+
 - Cross-cutting constraints spanning multiple docs
 - Inferred patterns not explicitly documented
 - Negative rules (anti-patterns) buried in troubleshooting docs
@@ -325,6 +326,7 @@ package.json).
 ### Key finding #5: Three-tier knowledge works better than flat files
 
 The "Codified Context" paper showed a 3-tier system works well:
+
 - Tier 1 (hot): ~660-line constitution loaded every session — conventions,
   commands, checklists, failure modes
 - Tier 2 (warm): 19 specialist agent specs with domain knowledge
@@ -335,6 +337,7 @@ fewer mistakes" than agents that retrieved Tier 3 docs on demand. Pre-loaded
 context beats retrieval for error-prone domains.
 
 **Implication for scan → rules**: Rules should be organized by tier:
+
 - **Always-loaded rules** (constraints, anti-patterns, commands) → hot
 - **Domain-specific rules** (architecture patterns per subsystem) → warm,
   loaded when working on that subsystem
@@ -342,6 +345,7 @@ context beats retrieval for error-prone domains.
   available as docs in the repo
 
 This maps to the `.instructions.md` format:
+
 - `applyTo: '**'` → hot (always loaded)
 - `applyTo: 'apps/rest-api/**'` → warm (subsystem-specific)
 - No rule file needed for cold tier — the docs themselves serve this role
@@ -356,6 +360,7 @@ Agents trust documentation absolutely.
 digests for staleness detection. But the rules derived from scan entries
 inherit this risk — if the scan entry is stale, the derived rule is stale.
 The rule consolidation step should:
+
 - Include provenance (which scan entry → which source file)
 - Include the source file digest
 - Flag rules whose provenance files have changed since the last scan
@@ -378,24 +383,24 @@ The rule consolidation step should:
 
 Map the 16 Agent README categories to scan → rule priorities:
 
-| Category | Prevalence | Rule value | Scan priority |
-|---|---|---|---|
-| Testing | 75% | HIGH — concrete, actionable | Already in scan |
-| Implementation Details | 69.9% | HIGH — code patterns, style | **Missing: need canonical patterns** |
-| Architecture | 67.7% | MEDIUM — structural, less actionable | Already in scan |
-| Development Process | 63.3% | HIGH — commit, PR, workflow rules | Partially in scan (workflow) |
-| Build and Run | 62.3% | HIGH — exact commands | Partially in scan (workflow) |
-| System Overview | 59% | LOW — redundant with README | Already in scan (identity) |
-| Maintenance | 43.7% | MEDIUM — API stability, compat rules | **Missing** |
-| Configuration | 38% | MEDIUM — env setup | Partially in scan (infra) |
-| Documentation | 26.8% | LOW — meta-guidance | Not needed |
-| Debugging | 24.4% | HIGH — failure modes, workarounds | Partially in scan (caveat) |
-| AI Integration | 24.4% | LOW — agent persona guidance | Not needed for rules |
-| DevOps | 18.1% | MEDIUM — CI/CD constraints | Partially in scan (workflow) |
-| Security | 14.5% | CRITICAL — highest value | Already in scan, needs enrichment |
-| Performance | 14.5% | CRITICAL — highest value | **Missing** |
-| UI/UX | 8.7% | LOW for backend-heavy repos | Not in scan |
-| Project Management | 5.4% | LOW — planning, not actionable | Not needed |
+| Category               | Prevalence | Rule value                           | Scan priority                        |
+| ---------------------- | ---------- | ------------------------------------ | ------------------------------------ |
+| Testing                | 75%        | HIGH — concrete, actionable          | Already in scan                      |
+| Implementation Details | 69.9%      | HIGH — code patterns, style          | **Missing: need canonical patterns** |
+| Architecture           | 67.7%      | MEDIUM — structural, less actionable | Already in scan                      |
+| Development Process    | 63.3%      | HIGH — commit, PR, workflow rules    | Partially in scan (workflow)         |
+| Build and Run          | 62.3%      | HIGH — exact commands                | Partially in scan (workflow)         |
+| System Overview        | 59%        | LOW — redundant with README          | Already in scan (identity)           |
+| Maintenance            | 43.7%      | MEDIUM — API stability, compat rules | **Missing**                          |
+| Configuration          | 38%        | MEDIUM — env setup                   | Partially in scan (infra)            |
+| Documentation          | 26.8%      | LOW — meta-guidance                  | Not needed                           |
+| Debugging              | 24.4%      | HIGH — failure modes, workarounds    | Partially in scan (caveat)           |
+| AI Integration         | 24.4%      | LOW — agent persona guidance         | Not needed for rules                 |
+| DevOps                 | 18.1%      | MEDIUM — CI/CD constraints           | Partially in scan (workflow)         |
+| Security               | 14.5%      | CRITICAL — highest value             | Already in scan, needs enrichment    |
+| Performance            | 14.5%      | CRITICAL — highest value             | **Missing**                          |
+| UI/UX                  | 8.7%       | LOW for backend-heavy repos          | Not in scan                          |
+| Project Management     | 5.4%       | LOW — planning, not actionable       | Not needed                           |
 
 ### What the scan templates should change
 
@@ -462,6 +467,7 @@ when they've hit a known issue.
 
 Security rules appeared in only 14.5% of context files but are the highest
 value. The scanner should:
+
 - Actively search for security-related MUST/NEVER statements in ALL docs
 - Extract trust boundary descriptions
 - Flag when security documentation is sparse (this itself is a finding)
@@ -520,6 +526,7 @@ The consolidation step (future skill) receives scan entries and produces
    subsystem-specific globs are warm
 
 The consolidation step should also:
+
 - Deduplicate constraints that appear in multiple entries
 - Merge related constraints into coherent sections
 - Drop low-confidence constraints unless they're security-related
@@ -573,7 +580,7 @@ scope:
   subsystem: rest-api-e2e
 verification:
   mode: checklist
-  check: "Does the task require e2e execution without Docker startup?"
+  check: 'Does the task require e2e execution without Docker startup?'
 sources:
   - docs/testing.md
   - apps/rest-api/package.json

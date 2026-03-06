@@ -47,52 +47,52 @@ entries_get({
 
 ### Entry map
 
-| # | Entry Key | Entry ID | Category | Scope | Batch |
-|---|-----------|----------|----------|-------|-------|
-| 1 | identity:project-identity | `<ID>` | identity | misc | phase1-b1 |
-| 2 | architecture:project-structure | `<ID>` | architecture | misc | phase1-b1 |
-| 3 | architecture:rest-api | `<ID>` | architecture | apps/rest-api | phase1-b2 |
-| 4 | architecture:mcp-server | `<ID>` | architecture | apps/mcp-server | phase1-b2 |
-| 5 | architecture:auth-flow | `<ID>` | architecture | misc | phase1-b2 |
-| 6 | architecture:database | `<ID>` | architecture | libs/database | phase1-b2 |
-| 7 | workflow:build-and-validate | `<ID>` | workflow | misc | phase1-b3 |
-| 8 | workflow:docker-local-dev | `<ID>` | workflow | misc | phase1-b3 |
-| 9 | testing:conventions | `<ID>` | testing | misc | phase1-b3 |
-| 10 | security:auth-model | `<ID>` | security | misc | phase1-b4 |
-| 11 | caveat:sandbox-sigill | `<ID>` | caveat | misc | phase1-b4 |
-| 12 | architecture:libs-database | `<ID>` | architecture | libs/database | phase2-tier0 |
-| 13 | architecture:libs-crypto-service | `<ID>` | architecture | libs/crypto-service | phase2-tier0 |
-| 14 | architecture:libs-auth | `<ID>` | architecture | libs/auth | phase2-tier0 |
-| 15 | architecture:libs-diary-service | `<ID>` | architecture | libs/diary-service | phase2-tier1 |
-| 16 | architecture:apps-rest-api | `<ID>` | architecture | apps/rest-api | phase2-tier2 |
-| 17 | architecture:apps-mcp-server | `<ID>` | architecture | apps/mcp-server | phase2-tier2 |
+| #   | Entry Key                        | Entry ID | Category     | Scope               | Batch        |
+| --- | -------------------------------- | -------- | ------------ | ------------------- | ------------ |
+| 1   | identity:project-identity        | `<ID>`   | identity     | misc                | phase1-b1    |
+| 2   | architecture:project-structure   | `<ID>`   | architecture | misc                | phase1-b1    |
+| 3   | architecture:rest-api            | `<ID>`   | architecture | apps/rest-api       | phase1-b2    |
+| 4   | architecture:mcp-server          | `<ID>`   | architecture | apps/mcp-server     | phase1-b2    |
+| 5   | architecture:auth-flow           | `<ID>`   | architecture | misc                | phase1-b2    |
+| 6   | architecture:database            | `<ID>`   | architecture | libs/database       | phase1-b2    |
+| 7   | workflow:build-and-validate      | `<ID>`   | workflow     | misc                | phase1-b3    |
+| 8   | workflow:docker-local-dev        | `<ID>`   | workflow     | misc                | phase1-b3    |
+| 9   | testing:conventions              | `<ID>`   | testing      | misc                | phase1-b3    |
+| 10  | security:auth-model              | `<ID>`   | security     | misc                | phase1-b4    |
+| 11  | caveat:sandbox-sigill            | `<ID>`   | caveat       | misc                | phase1-b4    |
+| 12  | architecture:libs-database       | `<ID>`   | architecture | libs/database       | phase2-tier0 |
+| 13  | architecture:libs-crypto-service | `<ID>`   | architecture | libs/crypto-service | phase2-tier0 |
+| 14  | architecture:libs-auth           | `<ID>`   | architecture | libs/auth           | phase2-tier0 |
+| 15  | architecture:libs-diary-service  | `<ID>`   | architecture | libs/diary-service  | phase2-tier1 |
+| 16  | architecture:apps-rest-api       | `<ID>`   | architecture | apps/rest-api       | phase2-tier2 |
+| 17  | architecture:apps-mcp-server     | `<ID>`   | architecture | apps/mcp-server     | phase2-tier2 |
 
 ### Tags for retrieval
 
-| Tag pattern | What it matches |
-|---|---|
-| `source:scan` | All scan-derived entries (any session) |
-| `scan-session:<SCAN_SESSION>` | This specific scan run |
-| `scan-category:identity` | Identity entries |
-| `scan-category:architecture` | Architecture entries (Phase 1 + 2) |
-| `scan-category:workflow` | Workflow entries |
-| `scan-category:testing` | Testing entries |
-| `scan-category:security` | Security entries |
-| `scan-category:caveat` | Caveat/known-issue entries |
-| `scan-batch:phase1-b1` | Phase 1 batch 1 (identity + structure) |
-| `scan-batch:phase1-b2` | Phase 1 batch 2 (architecture docs) |
-| `scan-batch:phase1-b3` | Phase 1 batch 3 (workflow + testing) |
-| `scan-batch:phase1-b4` | Phase 1 batch 4 (security + caveat) |
-| `scan-batch:phase2-tier0` | Phase 2 leaf libs (db, crypto, auth) |
-| `scan-batch:phase2-tier1` | Phase 2 mid libs (diary-service) |
-| `scan-batch:phase2-tier2` | Phase 2 apps (rest-api, mcp-server) |
-| `scope:apps/rest-api` | REST API scoped entries |
-| `scope:apps/mcp-server` | MCP server scoped entries |
-| `scope:libs/database` | Database lib scoped entries |
-| `scope:libs/crypto-service` | Crypto lib scoped entries |
-| `scope:libs/auth` | Auth lib scoped entries |
-| `scope:libs/diary-service` | Diary service scoped entries |
-| `scope:misc` | Cross-cutting / project-wide entries |
+| Tag pattern                   | What it matches                        |
+| ----------------------------- | -------------------------------------- |
+| `source:scan`                 | All scan-derived entries (any session) |
+| `scan-session:<SCAN_SESSION>` | This specific scan run                 |
+| `scan-category:identity`      | Identity entries                       |
+| `scan-category:architecture`  | Architecture entries (Phase 1 + 2)     |
+| `scan-category:workflow`      | Workflow entries                       |
+| `scan-category:testing`       | Testing entries                        |
+| `scan-category:security`      | Security entries                       |
+| `scan-category:caveat`        | Caveat/known-issue entries             |
+| `scan-batch:phase1-b1`        | Phase 1 batch 1 (identity + structure) |
+| `scan-batch:phase1-b2`        | Phase 1 batch 2 (architecture docs)    |
+| `scan-batch:phase1-b3`        | Phase 1 batch 3 (workflow + testing)   |
+| `scan-batch:phase1-b4`        | Phase 1 batch 4 (security + caveat)    |
+| `scan-batch:phase2-tier0`     | Phase 2 leaf libs (db, crypto, auth)   |
+| `scan-batch:phase2-tier1`     | Phase 2 mid libs (diary-service)       |
+| `scan-batch:phase2-tier2`     | Phase 2 apps (rest-api, mcp-server)    |
+| `scope:apps/rest-api`         | REST API scoped entries                |
+| `scope:apps/mcp-server`       | MCP server scoped entries              |
+| `scope:libs/database`         | Database lib scoped entries            |
+| `scope:libs/crypto-service`   | Crypto lib scoped entries              |
+| `scope:libs/auth`             | Auth lib scoped entries                |
+| `scope:libs/diary-service`    | Diary service scoped entries           |
+| `scope:misc`                  | Cross-cutting / project-wide entries   |
 
 ---
 
@@ -141,19 +141,19 @@ Sources: [entry IDs]
 
 Several scan entries overlap. The consolidation must merge, not just list:
 
-| Tile | Input entries (merge) | Rationale |
-|---|---|---|
-| `project/identity` | #1 identity + #2 structure | Single "what is this project" tile |
-| `auth/flow` | #5 auth-flow + #10 security + #14 libs-auth | Auth is scattered across 3 entries |
-| `database/schema-and-access` | #6 architecture:database + #12 libs-database | Phase 1 docs + Phase 2 code findings |
-| `rest-api/wiring` | #3 architecture:rest-api + #16 apps-rest-api | Phase 1 docs + Phase 2 code findings |
-| `mcp-server/wiring` | #4 architecture:mcp-server + #17 apps-mcp-server | Phase 1 docs + Phase 2 code findings |
-| `crypto/signing` | #13 libs-crypto-service | Standalone — no overlap |
-| `diary-service/search` | #15 libs-diary-service | Standalone — no overlap |
-| `workflow/validate` | #7 build-and-validate | Standalone |
-| `workflow/docker` | #8 docker-local-dev | Standalone |
-| `testing/conventions` | #9 testing:conventions | Standalone |
-| `caveats/known-issues` | #11 sandbox-sigill | Standalone |
+| Tile                         | Input entries (merge)                            | Rationale                            |
+| ---------------------------- | ------------------------------------------------ | ------------------------------------ |
+| `project/identity`           | #1 identity + #2 structure                       | Single "what is this project" tile   |
+| `auth/flow`                  | #5 auth-flow + #10 security + #14 libs-auth      | Auth is scattered across 3 entries   |
+| `database/schema-and-access` | #6 architecture:database + #12 libs-database     | Phase 1 docs + Phase 2 code findings |
+| `rest-api/wiring`            | #3 architecture:rest-api + #16 apps-rest-api     | Phase 1 docs + Phase 2 code findings |
+| `mcp-server/wiring`          | #4 architecture:mcp-server + #17 apps-mcp-server | Phase 1 docs + Phase 2 code findings |
+| `crypto/signing`             | #13 libs-crypto-service                          | Standalone — no overlap              |
+| `diary-service/search`       | #15 libs-diary-service                           | Standalone — no overlap              |
+| `workflow/validate`          | #7 build-and-validate                            | Standalone                           |
+| `workflow/docker`            | #8 docker-local-dev                              | Standalone                           |
+| `testing/conventions`        | #9 testing:conventions                           | Standalone                           |
+| `caveats/known-issues`       | #11 sandbox-sigill                               | Standalone                           |
 
 **Expected output: 11 tiles** (down from 17 entries — merging removed 6
 redundant boundaries).
@@ -189,6 +189,7 @@ Process tiles in this order (matches dependency):
 11. `caveats/known-issues` — standalone
 
 Each tile is created as a new diary entry with tags:
+
 - `source:tile`
 - `tile-session:<SCAN_SESSION>` (same scan session)
 - `tile-scope:<scope>`
@@ -266,18 +267,19 @@ Instead of scanning entries linearly and extracting nuggets one by one
 
 Per scan-to-rules-experiment.md findings:
 
-| Domain | Why first | Expected nuggets |
-|---|---|---|
-| testing | Highest follow-through (F1=0.94) | 4-6 |
-| security | Highest value, lowest prevalence | 5-8 |
-| workflow | High follow-through (F1=0.92) | 3-5 |
-| database | Error-prone domain (migrations, transactions) | 3-4 |
+| Domain   | Why first                                     | Expected nuggets |
+| -------- | --------------------------------------------- | ---------------- |
+| testing  | Highest follow-through (F1=0.94)              | 4-6              |
+| security | Highest value, lowest prevalence              | 5-8              |
+| workflow | High follow-through (F1=0.92)                 | 3-5              |
+| database | Error-prone domain (migrations, transactions) | 3-4              |
 
 Target: **15-23 nuggets** in first batch.
 
 ### Nugget output format
 
 Nuggets are stored as diary entries with tags:
+
 - `source:nugget`
 - `nugget-session:<SCAN_SESSION>`
 - `nugget-domain:<domain>`
@@ -289,6 +291,7 @@ explosion. Each entry contains 3-8 nuggets in YAML format.
 ### Load budget constraint
 
 Per the research findings: for any single task, load at most:
+
 - 3-7 primary nuggets
 - 1-2 optional caveat nuggets
 
@@ -307,12 +310,12 @@ task across models lets us compare extraction quality objectively.
 
 ### Models under test
 
-| Model ID | Short tag | Notes |
-|---|---|---|
+| Model ID          | Short tag           | Notes                |
+| ----------------- | ------------------- | -------------------- |
 | Claude Sonnet 4.6 | `claude-sonnet-4.6` | Fast, cost-efficient |
-| Claude Opus 4.6 | `claude-opus-4.6` | Most capable Claude |
-| GPT 5.2 | `gpt-5.2` | OpenAI baseline |
-| GPT 5.3 | `gpt-5.3` | OpenAI latest |
+| Claude Opus 4.6   | `claude-opus-4.6`   | Most capable Claude  |
+| GPT 5.2           | `gpt-5.2`           | OpenAI baseline      |
+| GPT 5.3           | `gpt-5.3`           | OpenAI latest        |
 
 ### Tagging convention
 
@@ -320,6 +323,7 @@ Every tile and nugget entry MUST include `model:<model-short-tag>` in its tags.
 Each model run gets its own `tile-session` timestamp to keep runs separate.
 
 Full tag set per tile:
+
 ```
 source:tile
 tile-session:<per-run-timestamp>
@@ -329,6 +333,7 @@ model:<model-short-tag>
 ```
 
 Full tag set per nugget:
+
 ```
 source:nugget
 nugget-session:<per-run-timestamp>
@@ -359,17 +364,17 @@ entries_search({
 
 Each model run is scored on these dimensions:
 
-| Dimension | What it measures | Scoring method |
-|---|---|---|
-| **Constraint yield** | Nuggets accepted vs total candidates | `accepted / total_candidates` (ratio) |
-| **Specificity** | Are constraints concrete or vague? | 1-5 per nugget, averaged |
-| **Non-redundancy** | Avoids restating what's obvious from code | Count of redundant nuggets |
-| **Trigger precision** | Would triggers fire for the right tasks only? | Estimated false-positive rate (low/med/high) |
-| **Merge quality** | How well Phase 1 + Phase 2 are synthesized | 1-5 per tile, averaged |
-| **Token efficiency** | Content density | `total_constraints / total_tokens` |
-| **Hallucination rate** | Constraints not grounded in source entries | Count of ungrounded nuggets |
-| **Coverage** | Are all important constraints from sources captured? | Constraints found / constraints in source entries |
-| **Consistency** | Agreement with other models on same constraints | Jaccard similarity of nugget sets |
+| Dimension              | What it measures                                     | Scoring method                                    |
+| ---------------------- | ---------------------------------------------------- | ------------------------------------------------- |
+| **Constraint yield**   | Nuggets accepted vs total candidates                 | `accepted / total_candidates` (ratio)             |
+| **Specificity**        | Are constraints concrete or vague?                   | 1-5 per nugget, averaged                          |
+| **Non-redundancy**     | Avoids restating what's obvious from code            | Count of redundant nuggets                        |
+| **Trigger precision**  | Would triggers fire for the right tasks only?        | Estimated false-positive rate (low/med/high)      |
+| **Merge quality**      | How well Phase 1 + Phase 2 are synthesized           | 1-5 per tile, averaged                            |
+| **Token efficiency**   | Content density                                      | `total_constraints / total_tokens`                |
+| **Hallucination rate** | Constraints not grounded in source entries           | Count of ungrounded nuggets                       |
+| **Coverage**           | Are all important constraints from sources captured? | Constraints found / constraints in source entries |
+| **Consistency**        | Agreement with other models on same constraints      | Jaccard similarity of nugget sets                 |
 
 ### Scorecard entry format
 

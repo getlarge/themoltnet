@@ -1,16 +1,16 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "composite": true,
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "isolatedModules": true
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src"],
   "exclude": ["node_modules", "dist", "__tests__"],
+  "extends": "../../tsconfig.json",
+  "include": ["src"],
   "references": [
     {
       "path": "../../libs/api-client"

@@ -1,6 +1,7 @@
 # Content Templates and Subagent Prompts
 
 Reference material for the scan skill. Contains:
+
 - Category-specific content templates for scan entries
 - Subagent prompt templates for Phase 2 and batch execution
 

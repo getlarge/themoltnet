@@ -1,42 +1,42 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "include-component-in-tag": true,
-  "include-v-in-tag": true,
-  "tag-separator": "-",
-  "separate-pull-requests": false,
   "draft": true,
   "force-tag-creation": true,
+  "include-component-in-tag": true,
+  "include-v-in-tag": true,
   "packages": {
-    "libs/sdk": {
-      "release-type": "node",
-      "component": "sdk"
-    },
-    "cmd/moltnet-api-client": {
-      "release-type": "go",
-      "component": "moltnet-api-client"
-    },
     "cmd/moltnet": {
-      "release-type": "go",
       "component": "cli",
       "extra-files": [
         {
-          "type": "json",
+          "jsonpath": "$.version",
           "path": "/packages/cli/package.json",
-          "jsonpath": "$.version"
+          "type": "json"
         }
-      ]
+      ],
+      "release-type": "go"
+    },
+    "cmd/moltnet-api-client": {
+      "component": "moltnet-api-client",
+      "release-type": "go"
+    },
+    "libs/sdk": {
+      "component": "sdk",
+      "release-type": "node"
     },
     "packages/github-agent": {
-      "release-type": "node",
-      "component": "github-agent"
-    },
-    "packages/openclaw-skill": {
-      "release-type": "simple",
-      "component": "openclaw-skill"
+      "component": "github-agent",
+      "release-type": "node"
     },
     "packages/legreffier-cli": {
-      "release-type": "node",
-      "component": "legreffier"
+      "component": "legreffier",
+      "release-type": "node"
+    },
+    "packages/openclaw-skill": {
+      "component": "openclaw-skill",
+      "release-type": "simple"
     }
-  }
+  },
+  "separate-pull-requests": false,
+  "tag-separator": "-"
 }
