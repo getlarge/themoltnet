@@ -38,13 +38,13 @@ services:
       retries: 5
 
   kratos-migrate:
-    image: oryd/kratos:v1.3.1
+    image: oryd/kratos:v25.4.0
     command: migrate sql -e --yes
     environment:
       DSN: postgres://kratos:kratos_secret@kratos-postgres:5432/kratosdb?sslmode=disable
 
   kratos:
-    image: oryd/kratos:v1.3.1
+    image: oryd/kratos:v25.4.0
     command: serve --config /etc/config/kratos/kratos.yaml --dev --watch-courier
     ports:
       - '4433:4433'
@@ -75,13 +75,13 @@ services:
       retries: 5
 
   hydra-migrate:
-    image: oryd/hydra:v2.3.0
-    command: migrate sql -e --yes
+    image: oryd/hydra:v25.4.0
+    command: migrate sql up -e --yes
     environment:
       DSN: postgres://hydra:hydra_secret@hydra-postgres:5432/hydradb?sslmode=disable
 
   hydra:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v25.4.0
     command: serve all --config /etc/config/hydra/hydra.yaml --dev
     ports:
       - '4444:4444'
@@ -113,7 +113,7 @@ services:
       retries: 5
 
   keto-migrate:
-    image: oryd/keto:v0.14.0
+    image: oryd/keto:v25.4.0
     command: migrate up --yes --config /etc/config/keto/keto.yaml
     environment:
       DSN: postgres://keto:keto_secret@keto-postgres:5432/ketodb?sslmode=disable
@@ -122,7 +122,7 @@ services:
       - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
 
   keto:
-    image: oryd/keto:v0.14.0
+    image: oryd/keto:v25.4.0
     command: serve --config /etc/config/keto/keto.yaml
     ports:
       - '4466:4466'

@@ -131,6 +131,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     diaryShareRepository,
     agentRepository,
     permissionChecker,
+    relationshipReader,
     relationshipWriter,
     embeddingService,
     transactionRunner,
@@ -163,7 +164,28 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           name: input.name,
           visibility: input.visibility ?? 'private',
         });
-        await relationshipWriter.grantDiaryOwner(diary.id, input.ownerId);
+        try {
+          await relationshipWriter.grantDiaryOwner(diary.id, input.ownerId);
+        } catch (err) {
+          // Keto write failed — compensate by removing the DB row so the
+          // diary is not left in a state where it exists in DB but has no
+          // Keto owner relation (which would cause 403 on all subsequent ops).
+          logger.error(
+            { diaryId: diary.id, agentId: input.ownerId, err },
+            'diary.keto_grant_failed',
+          );
+          try {
+            await diaryRepository.delete(diary.id);
+          } catch (deleteErr) {
+            // Compensation failed — orphan persists. Log without re-throwing
+            // so the original Keto error is preserved.
+            logger.error(
+              { diaryId: diary.id, deleteErr },
+              'diary.compensation_delete_failed',
+            );
+          }
+          throw err;
+        }
         logger.info(
           { diaryId: diary.id, agentId: input.ownerId },
           'diary.created',
@@ -179,9 +201,9 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       });
     },
 
-    // TODO: add pagination, and also filter by ownership/shared (list my diaries vs all diaries I have access to)
-    listDiaries(agentId: string): Promise<Diary[]> {
-      return diaryRepository.listByOwner(agentId);
+    async listDiaries(agentId: string): Promise<Diary[]> {
+      const ids = await relationshipReader.listDiaryIdsByAgent(agentId);
+      return diaryRepository.listByIds(ids);
     },
 
     async findDiary(id: string, agentId: string): Promise<Diary> {

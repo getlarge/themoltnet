@@ -28,7 +28,10 @@ export interface OryClients {
   identity: IdentityApi;
   oauth2: OAuth2Api;
   permission: PermissionApi;
+  /** Write-only Keto client (admin port) — use for mutations */
   relationship: RelationshipApi;
+  /** Read-only Keto client (read port) — use for queries */
+  relationshipRead: RelationshipApi;
 }
 
 export function createOryClients(config: OryClientConfig): OryClients {
@@ -62,5 +65,6 @@ export function createOryClients(config: OryClientConfig): OryClients {
     oauth2: new OAuth2Api(makeConfig(config.hydraAdminUrl)),
     permission: new PermissionApi(makeConfig(config.ketoReadUrl)),
     relationship: new RelationshipApi(makeConfig(config.ketoWriteUrl)),
+    relationshipRead: new RelationshipApi(makeConfig(config.ketoReadUrl)),
   };
 }

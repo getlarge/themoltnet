@@ -30,6 +30,7 @@ import type {
   DiaryShareRepository,
   EmbeddingService,
   PermissionChecker,
+  RelationshipReader,
   RelationshipWriter,
   TransactionRunner,
 } from '../src/index.js';
@@ -93,6 +94,14 @@ function createMockPermissionChecker(): {
   };
 }
 
+function createMockRelationshipReader(): {
+  [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
+} {
+  return {
+    listDiaryIdsByAgent: vi.fn().mockResolvedValue([DIARY_ID]),
+  };
+}
+
 function createMockRelationshipWriter(): {
   [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
 } {
@@ -124,6 +133,7 @@ function createMockDiaryRepository(): {
     create: vi.fn(),
     findById: vi.fn(),
     findOwnedById: vi.fn(),
+    listByIds: vi.fn(),
     listByOwner: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -167,6 +177,7 @@ describe('DiaryService', () => {
   let repo: ReturnType<typeof createMockDiaryEntryRepository>;
   let diaryRepo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let reader: ReturnType<typeof createMockRelationshipReader>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
   let transactionRunner: {
@@ -182,6 +193,7 @@ describe('DiaryService', () => {
     diaryRepo = createMockDiaryRepository();
     diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
     permissions = createMockPermissionChecker();
+    reader = createMockRelationshipReader();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
     transactionRunner = {
@@ -197,6 +209,7 @@ describe('DiaryService', () => {
         createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipReader: reader as unknown as RelationshipReader,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
       transactionRunner: transactionRunner as unknown as TransactionRunner,
@@ -230,6 +243,82 @@ describe('DiaryService', () => {
       await expect(
         service.createEntry({ diaryId: DIARY_ID, content: 'Test' }, OWNER_ID),
       ).rejects.toThrow('Failed to grant ownership after entry creation');
+    });
+  });
+
+  describe('createDiary', () => {
+    it('compensates by deleting DB row when Keto grantDiaryOwner fails', async () => {
+      const createdDiary = {
+        ...MOCK_DIARY,
+        id: 'new-diary-id',
+        name: 'My Diary',
+      };
+      diaryRepo.create.mockResolvedValue(createdDiary);
+      writer.grantDiaryOwner.mockRejectedValue(new Error('Keto unavailable'));
+      diaryRepo.delete.mockResolvedValue(true);
+
+      await expect(
+        service.createDiary({ ownerId: OWNER_ID, name: 'My Diary' }),
+      ).rejects.toThrow('Keto unavailable');
+
+      expect(diaryRepo.delete).toHaveBeenCalledWith('new-diary-id');
+    });
+
+    it('preserves original Keto error when compensation delete also fails', async () => {
+      const createdDiary = {
+        ...MOCK_DIARY,
+        id: 'new-diary-id',
+        name: 'My Diary',
+      };
+      diaryRepo.create.mockResolvedValue(createdDiary);
+      writer.grantDiaryOwner.mockRejectedValue(new Error('Keto unavailable'));
+      diaryRepo.delete.mockRejectedValue(new Error('DB also down'));
+
+      await expect(
+        service.createDiary({ ownerId: OWNER_ID, name: 'My Diary' }),
+      ).rejects.toThrow('Keto unavailable');
+    });
+
+    it('returns diary when Keto grant succeeds', async () => {
+      const createdDiary = {
+        ...MOCK_DIARY,
+        id: 'new-diary-id',
+        name: 'My Diary',
+      };
+      diaryRepo.create.mockResolvedValue(createdDiary);
+      writer.grantDiaryOwner.mockResolvedValue(undefined);
+
+      const result = await service.createDiary({
+        ownerId: OWNER_ID,
+        name: 'My Diary',
+      });
+
+      expect(result).toEqual(createdDiary);
+      expect(diaryRepo.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listDiaries', () => {
+    it('queries Keto first then fetches by IDs', async () => {
+      reader.listDiaryIdsByAgent.mockResolvedValue([DIARY_ID]);
+      diaryRepo.listByIds.mockResolvedValue([MOCK_DIARY]);
+
+      const result = await service.listDiaries(OWNER_ID);
+
+      expect(reader.listDiaryIdsByAgent).toHaveBeenCalledWith(OWNER_ID);
+      expect(diaryRepo.listByIds).toHaveBeenCalledWith([DIARY_ID]);
+      expect(diaryRepo.listByOwner).not.toHaveBeenCalled();
+      expect(result).toEqual([MOCK_DIARY]);
+    });
+
+    it('returns empty array when agent has no Keto relations', async () => {
+      reader.listDiaryIdsByAgent.mockResolvedValue([]);
+      diaryRepo.listByIds.mockResolvedValue([]);
+
+      const result = await service.listDiaries(OWNER_ID);
+
+      expect(diaryRepo.listByIds).toHaveBeenCalledWith([]);
+      expect(result).toEqual([]);
     });
   });
 
@@ -806,6 +895,7 @@ describe('DiaryService — tags filter', () => {
   let repo: ReturnType<typeof createMockDiaryEntryRepository>;
   let diaryRepo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let reader: ReturnType<typeof createMockRelationshipReader>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
   let transactionRunner: {
@@ -817,6 +907,7 @@ describe('DiaryService — tags filter', () => {
     diaryRepo = createMockDiaryRepository();
     diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
     permissions = createMockPermissionChecker();
+    reader = createMockRelationshipReader();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
     transactionRunner = {
@@ -832,6 +923,7 @@ describe('DiaryService — tags filter', () => {
         createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipReader: reader as unknown as RelationshipReader,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
       transactionRunner: transactionRunner as unknown as TransactionRunner,

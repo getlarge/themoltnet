@@ -2,7 +2,11 @@
  * @moltnet/diary-service — Type Definitions
  */
 
-import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
+import type {
+  PermissionChecker,
+  RelationshipReader,
+  RelationshipWriter,
+} from '@moltnet/auth';
 import type {
   AgentRepository,
   DiaryEntryRepository,
@@ -29,6 +33,7 @@ export interface DiaryServiceDeps {
   diaryShareRepository: DiaryShareRepository;
   agentRepository: AgentRepository;
   permissionChecker: PermissionChecker;
+  relationshipReader: RelationshipReader;
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   /** Runs callbacks inside a database transaction */

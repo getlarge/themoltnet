@@ -1,45 +1,127 @@
 /**
- * DiaryEntryRepository Integration Tests
+ * DiaryRepository + DiaryEntryRepository Integration Tests
  *
- * Spins up an ephemeral pgvector/pgvector:pg16 container via testcontainers,
+ * Spins up a single ephemeral pgvector/pgvector:pg16 container via testcontainers,
  * applies all Drizzle migrations, then runs repository tests against it.
  */
 
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
+import { createDiaryRepository } from '../src/repositories/diary.repository.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
 import { diaries, diaryEntries } from '../src/schema.js';
 
+// Shared container state — one DB for all describes in this file
+let sharedDb: Database;
+let sharedPool: Pool;
+let stopSharedContainer: () => Promise<void>;
+
+beforeAll(async () => {
+  const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+    .withDatabase('moltnet')
+    .withUsername('moltnet')
+    .withPassword('moltnet_secret')
+    .start();
+
+  const databaseUrl = container.getConnectionUri();
+  stopSharedContainer = () => container.stop().then(() => undefined);
+
+  await runMigrations(databaseUrl);
+  ({ db: sharedDb, pool: sharedPool } = createDatabase(databaseUrl));
+}, 60_000);
+
+afterAll(async () => {
+  await sharedPool.end();
+  await stopSharedContainer();
+});
+
+describe('DiaryRepository (integration)', () => {
+  let diaryRepo: ReturnType<typeof createDiaryRepository>;
+
+  const OWNER_ID = '00000000-0000-4000-a000-000000000002';
+
+  beforeAll(() => {
+    diaryRepo = createDiaryRepository(sharedDb);
+  });
+
+  afterEach(async () => {
+    // Scope delete to this describe's owner so we don't remove the seed row
+    // used by DiaryEntryRepository tests sharing the same container.
+    await sharedDb.delete(diaries).where(eq(diaries.ownerId, OWNER_ID));
+  });
+
+  describe('listByIds', () => {
+    it('returns diaries matching the given IDs', async () => {
+      const d1 = await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'A',
+        visibility: 'private',
+      });
+      const d2 = await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'B',
+        visibility: 'private',
+      });
+      await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'C',
+        visibility: 'private',
+      });
+
+      const result = await diaryRepo.listByIds([d1.id, d2.id]);
+
+      expect(result).toHaveLength(2);
+      expect(result.map((d) => d.id)).toEqual(
+        expect.arrayContaining([d1.id, d2.id]),
+      );
+    });
+
+    it('returns empty array when ids list is empty', async () => {
+      await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'A',
+        visibility: 'private',
+      });
+
+      const result = await diaryRepo.listByIds([]);
+
+      expect(result).toEqual([]);
+    });
+
+    it('ignores ids that do not exist', async () => {
+      const d1 = await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'A',
+        visibility: 'private',
+      });
+
+      const result = await diaryRepo.listByIds([
+        d1.id,
+        '00000000-0000-4000-a000-000000000099',
+      ]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(d1.id);
+    });
+  });
+});
+
 describe('DiaryEntryRepository (integration)', () => {
-  let db: Database;
-  let pool: Pool;
   let repo: ReturnType<typeof createDiaryEntryRepository>;
-  let stopContainer: () => Promise<void>;
 
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
   const OWNER_ID = '00000000-0000-4000-a000-000000000001';
 
   beforeAll(async () => {
-    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
-      .withDatabase('moltnet')
-      .withUsername('moltnet')
-      .withPassword('moltnet_secret')
-      .start();
-
-    const databaseUrl = container.getConnectionUri();
-    stopContainer = () => container.stop().then(() => undefined);
-
-    await runMigrations(databaseUrl);
-
-    ({ db, pool } = createDatabase(databaseUrl));
-    repo = createDiaryEntryRepository(db);
+    repo = createDiaryEntryRepository(sharedDb);
 
     // diary_entries.diary_id has a FK to diaries.id — seed the parent row
-    await db
+    await sharedDb
       .insert(diaries)
       .values({
         id: DIARY_ID,
@@ -48,17 +130,15 @@ describe('DiaryEntryRepository (integration)', () => {
         visibility: 'private',
       })
       .onConflictDoNothing();
-  }, 60_000);
+  });
 
   afterEach(async () => {
-    await db.delete(diaryEntries);
+    await sharedDb.delete(diaryEntries);
   });
 
   afterAll(async () => {
-    await db.delete(diaryEntries);
-    await db.delete(diaries);
-    await pool.end();
-    await stopContainer();
+    await sharedDb.delete(diaryEntries);
+    await sharedDb.delete(diaries);
   });
 
   // ── CRUD ───────────────────────────────────────────────────────────

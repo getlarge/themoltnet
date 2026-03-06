@@ -12,6 +12,7 @@
 import {
   createOryClients,
   createPermissionChecker,
+  createRelationshipReader,
   createRelationshipWriter,
   createTokenValidator,
 } from '@moltnet/auth';
@@ -172,6 +173,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   // ── Services ───────────────────────────────────────────────────
   const permissionChecker = createPermissionChecker(oryClients.permission);
+  const relationshipReader = createRelationshipReader(
+    oryClients.relationshipRead,
+  );
   const relationshipWriter = createRelationshipWriter(oryClients.relationship);
 
   const embeddingService = createEmbeddingService({
@@ -255,6 +259,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     diaryShareRepository,
     agentRepository,
     permissionChecker,
+    relationshipReader,
     relationshipWriter,
     embeddingService,
     transactionRunner,

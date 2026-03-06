@@ -33,6 +33,7 @@ import type {
   AgentLookupRepository,
   DiaryShareRepository,
   PermissionChecker,
+  RelationshipReader,
   RelationshipWriter,
 } from '../src/index.js';
 import {
@@ -51,6 +52,9 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   let tables: {
     diaryEntries: Awaited<ReturnType<typeof setupDatabase>>['diaryEntries'];
     diaries: Awaited<ReturnType<typeof setupDatabase>>['diaries'];
+  };
+  let mockRelationshipReader: {
+    listDiaryIdsByAgent: ReturnType<typeof vi.fn>;
   };
   let mockRelationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
@@ -103,6 +107,10 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     // Deps are accessed lazily at execution time, so registration before
     // setDiaryWorkflowDeps() is safe.
     initDiaryWorkflows();
+
+    mockRelationshipReader = {
+      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
+    };
 
     mockRelationshipWriter = {
       grantEntryParent: vi.fn().mockResolvedValue(undefined),
@@ -170,6 +178,8 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       } as unknown as AgentLookupRepository,
       diaryEntryRepository: dbSetup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipReader:
+        mockRelationshipReader as unknown as RelationshipReader,
       relationshipWriter:
         mockRelationshipWriter as unknown as RelationshipWriter,
       embeddingService,
