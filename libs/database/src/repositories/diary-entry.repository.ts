@@ -53,6 +53,7 @@ export interface DiarySearchOptions {
 export interface DiaryListOptions {
   diaryId?: string;
   diaryIds?: string[];
+  ids?: string[];
   tags?: string[];
   limit?: number;
   offset?: number;
@@ -203,6 +204,7 @@ export function createDiaryEntryRepository(db: Database) {
       const {
         diaryId,
         diaryIds,
+        ids,
         tags,
         limit = 20,
         offset = 0,
@@ -213,7 +215,9 @@ export function createDiaryEntryRepository(db: Database) {
 
       const conditions = [];
 
-      if (diaryIds && diaryIds.length > 0) {
+      if (ids && ids.length > 0) {
+        conditions.push(inArray(diaryEntries.id, ids));
+      } else if (diaryIds && diaryIds.length > 0) {
         conditions.push(inArray(diaryEntries.diaryId, diaryIds));
       } else if (diaryId) {
         conditions.push(eq(diaryEntries.diaryId, diaryId));

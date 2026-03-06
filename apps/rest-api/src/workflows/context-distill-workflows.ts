@@ -29,6 +29,8 @@ import {
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
 
+import type { Logger } from './logger.js';
+
 // ── Queues ─────────────────────────────────────────────────────
 
 export const consolidateQueue = new WorkflowQueue('context.consolidate', {
@@ -46,6 +48,7 @@ export const compileQueue = new WorkflowQueue('context.compile', {
 export interface ContextDistillDeps {
   diaryEntryRepository: DiaryEntryRepository;
   embeddingService: EmbeddingService;
+  logger: Logger;
 }
 
 export interface ConsolidateWorkflowInput {
@@ -114,12 +117,10 @@ export function initContextDistillWorkflows(): void {
     ) => {
       const { diaryEntryRepository } = getDeps();
       if (entryIds && entryIds.length > 0) {
-        const entries = await diaryEntryRepository.list({
-          diaryId,
+        return diaryEntryRepository.list({
+          ids: entryIds,
           limit: Math.min(entryIds.length, 500),
         });
-        const idSet = new Set(entryIds);
-        return entries.filter((e) => idSet.has(e.id));
       }
       return diaryEntryRepository.list({
         diaryId,
@@ -141,10 +142,14 @@ export function initContextDistillWorkflows(): void {
 
   const embedQueryStep = DBOS.registerStep(
     async (query: string): Promise<number[]> => {
-      const { embeddingService } = getDeps();
+      const { embeddingService, logger } = getDeps();
       try {
         return await embeddingService.embedQuery(query);
-      } catch {
+      } catch (error) {
+        logger.error(
+          { err: error, query },
+          'context-distill: failed to embed query for compile workflow',
+        );
         return [];
       }
     },
@@ -208,7 +213,7 @@ export function initContextDistillWorkflows(): void {
               | 'hybrid',
             embeddingDim: 0,
           },
-        };
+        } satisfies ConsolidateResult & { workflowId: string };
       }
 
       const ids = entries.map((e) => e.id);

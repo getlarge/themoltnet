@@ -6,7 +6,6 @@ import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { DBOS } from '@moltnet/database';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import { DiaryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -19,6 +18,7 @@ import {
   DigestSchema,
 } from '../schemas.js';
 import { contextDistillWorkflows } from '../workflows/context-distill-workflows.js';
+import { runWorkflow } from '../workflows/run-workflow.js';
 
 function translateServiceError(err: DiaryServiceError): never {
   switch (err.code) {
@@ -153,23 +153,30 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         throw err;
       }
 
-      // Dedup: same diary + same filter = same result (entry set doesn't change mid-request)
+      // Use latest entry's updatedAt as state signal — same pattern as compile.
+      // Prevents stale cached results when diary content changes.
+      const latestEntry = await fastify.diaryEntryRepository.list({
+        diaryId,
+        limit: 1,
+      });
+      const stateSignal = latestEntry[0]?.updatedAt?.toISOString() ?? 'empty';
+
       const dedupRaw = entryIds?.length
-        ? `${diaryId}:ids:${[...entryIds].sort().join(',')}`
-        : `${diaryId}:tags:${[...(tags ?? [])].sort().join(',')}:threshold:${threshold ?? 0.15}:strategy:${strategy ?? 'hybrid'}`;
+        ? `${diaryId}:ids:${[...entryIds].sort().join(',')}:state:${stateSignal}`
+        : `${diaryId}:tags:${[...(tags ?? [])].sort().join(',')}:threshold:${threshold ?? 0.15}:strategy:${strategy ?? 'hybrid'}:state:${stateSignal}`;
       const deduplicationID = createHash('sha256')
         .update(dedupRaw)
         .digest('hex');
 
-      const handle = await DBOS.startWorkflow(
+      return runWorkflow(
         contextDistillWorkflows.consolidate,
         {
           queueName: 'context.consolidate',
-          enqueueOptions: { deduplicationID, queuePartitionKey: identityId },
+          enqueueOptions: { deduplicationID },
+          logger: request.log,
         },
-      )({ diaryId, identityId, entryIds, tags, threshold, strategy });
-
-      return handle.getResult();
+        { diaryId, identityId, entryIds, tags, threshold, strategy },
+      );
     },
   );
 
@@ -191,9 +198,6 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           ),
           lambda: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           includeTags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
-          ),
-          excludeTags: Type.Optional(
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
           wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
@@ -244,21 +248,24 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         .update(dedupRaw)
         .digest('hex');
 
-      const handle = await DBOS.startWorkflow(contextDistillWorkflows.compile, {
-        queueName: 'context.compile',
-        enqueueOptions: { deduplicationID, queuePartitionKey: identityId },
-      })({
-        diaryId,
-        identityId,
-        taskPrompt,
-        tokenBudget,
-        lambda,
-        includeTags,
-        wRecency,
-        wImportance,
-      });
-
-      return handle.getResult();
+      return runWorkflow(
+        contextDistillWorkflows.compile,
+        {
+          queueName: 'context.compile',
+          enqueueOptions: { deduplicationID },
+          logger: request.log,
+        },
+        {
+          diaryId,
+          identityId,
+          taskPrompt,
+          tokenBudget,
+          lambda,
+          includeTags,
+          wRecency,
+          wImportance,
+        },
+      );
     },
   );
 }

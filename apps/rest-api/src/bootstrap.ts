@@ -241,7 +241,11 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
       () => {
-        setContextDistillDeps({ diaryEntryRepository, embeddingService });
+        setContextDistillDeps({
+          diaryEntryRepository,
+          embeddingService,
+          logger: app.log,
+        });
       },
       () => {
         setMaintenanceDeps({ nonceRepository });
