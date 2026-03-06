@@ -545,6 +545,91 @@ export const AgentParamsSchema = Type.Object({
   }),
 });
 
+// ── Context Distill ─────────────────────────────────────────
+
+const DistillEntryRefSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  content: Type.String(),
+  tokens: Type.Number(),
+  importance: Type.Number({ minimum: 1, maximum: 10 }),
+  createdAt: DateTime,
+});
+
+const ClusterSchema = Type.Object({
+  representative: DistillEntryRefSchema,
+  representativeReason: Type.String(),
+  members: Type.Array(DistillEntryRefSchema),
+  similarity: Type.Number({ minimum: 0, maximum: 1 }),
+  confidence: Type.Number({ minimum: 0, maximum: 1 }),
+  suggestedAction: Type.Union([
+    Type.Literal('merge'),
+    Type.Literal('keep_separate'),
+    Type.Literal('review'),
+  ]),
+});
+
+export const ConsolidateResultSchema = Type.Object(
+  {
+    workflowId: Type.String(),
+    clusters: Type.Array(ClusterSchema),
+    stats: Type.Object({
+      inputCount: Type.Number(),
+      clusterCount: Type.Number(),
+      singletonRate: Type.Number(),
+      clusterSizeDistribution: Type.Tuple([
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+        Type.Number(),
+      ]),
+      elapsedMs: Type.Number(),
+    }),
+    trace: Type.Object({
+      thresholdUsed: Type.Number(),
+      strategyUsed: Type.Union([
+        Type.Literal('score'),
+        Type.Literal('centroid'),
+        Type.Literal('hybrid'),
+      ]),
+      embeddingDim: Type.Number(),
+    }),
+  },
+  { $id: 'ConsolidateResult' },
+);
+
+const CompiledEntrySchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  content: Type.String(),
+  compressionLevel: Type.Union([
+    Type.Literal('full'),
+    Type.Literal('summary'),
+    Type.Literal('keywords'),
+  ]),
+  originalTokens: Type.Number(),
+  compressedTokens: Type.Number(),
+});
+
+export const CompileResultSchema = Type.Object(
+  {
+    entries: Type.Array(CompiledEntrySchema),
+    stats: Type.Object({
+      totalTokens: Type.Number(),
+      entriesIncluded: Type.Number(),
+      entriesCompressed: Type.Number(),
+      compressionRatio: Type.Number(),
+      budgetUtilization: Type.Number(),
+      elapsedMs: Type.Number(),
+    }),
+    trace: Type.Object({
+      lambdaUsed: Type.Number(),
+      embeddingDim: Type.Number(),
+      taskPromptHash: Type.Optional(Type.String()),
+    }),
+  },
+  { $id: 'CompileResult' },
+);
+
 /**
  * All schemas that should be registered with app.addSchema()
  * for $ref resolution in @fastify/swagger.
@@ -582,4 +667,6 @@ export const sharedSchemas = [
   RegisterResponseSchema,
   RotateSecretResponseSchema,
   NetworkInfoSchema,
+  ConsolidateResultSchema,
+  CompileResultSchema,
 ];
