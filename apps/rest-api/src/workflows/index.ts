@@ -35,3 +35,8 @@ export {
   setRegistrationDeps,
   VoucherValidationError,
 } from './registration-workflow.js';
+export {
+  DEFAULT_WORKFLOW_TIMEOUT_MS,
+  runWorkflow,
+  type RunWorkflowOptions,
+} from './run-workflow.js';

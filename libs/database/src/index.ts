@@ -18,12 +18,14 @@ export {
   DBOS,
   type DBOSConfig,
   type DBOSDatabase,
+  DBOSErrors,
   type DrizzleDataSource,
   getDataSource,
   initDBOS,
   isDBOSReady,
   launchDBOS,
   shutdownDBOS,
+  type WorkflowHandle,
   WorkflowQueue,
 } from './dbos.js';
 export { runMigrations } from './migrate.js';
