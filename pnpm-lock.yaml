@@ -461,6 +461,9 @@ importers:
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../../libs/auth
+      '@moltnet/context-distill':
+        specifier: workspace:*
+        version: link:../../libs/context-distill
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service

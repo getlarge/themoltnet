@@ -19,6 +19,9 @@
       "path": "../../libs/bootstrap"
     },
     {
+      "path": "../../libs/context-distill"
+    },
+    {
       "path": "../../libs/crypto-service"
     },
     {

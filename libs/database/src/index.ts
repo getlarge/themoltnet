@@ -24,6 +24,7 @@ export {
   isDBOSReady,
   launchDBOS,
   shutdownDBOS,
+  WorkflowQueue,
 } from './dbos.js';
 export { runMigrations } from './migrate.js';
 export {

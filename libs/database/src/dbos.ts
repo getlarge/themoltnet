@@ -140,7 +140,7 @@ export async function shutdownDBOS(): Promise<void> {
 }
 
 // Re-export DBOS for workflow/step registration
-export { DBOS } from '@dbos-inc/dbos-sdk';
+export { DBOS, WorkflowQueue } from '@dbos-inc/dbos-sdk';
 
 // Re-export DrizzleDataSource type for consumers
 export type { DrizzleDataSource } from '@dbos-inc/drizzle-datasource';
