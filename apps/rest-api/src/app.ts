@@ -24,6 +24,7 @@ import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
+import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { oauth2Routes } from './routes/oauth2.js';
@@ -228,6 +229,7 @@ export async function registerApiRoutes(
   await app.register(hookRoutes);
   await app.register(healthRoutes);
   await app.register(diaryRoutes);
+  await app.register(diaryEntryRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
   await app.register(signingRequestRoutes);
