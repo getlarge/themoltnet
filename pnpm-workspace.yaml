@@ -46,6 +46,7 @@ catalog:
   '@scalar/fastify-api-reference': ^1.0.0
   '@sinclair/typebox': ^0.34.0
   '@testcontainers/postgresql': ^11.0.0
+  testcontainers: ^11.0.0
   '@types/node': ^20.11.0
   '@types/pg': ^8.11.0
   '@types/react': ^19.0.0

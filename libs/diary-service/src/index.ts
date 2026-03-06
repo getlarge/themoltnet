@@ -35,7 +35,11 @@ export type {
 } from './types.js';
 export { DiaryServiceError } from './types.js';
 // Re-export from source packages for consumers that import via diary-service
-export type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
+export type {
+  PermissionChecker,
+  RelationshipReader,
+  RelationshipWriter,
+} from '@moltnet/auth';
 export type {
   AgentRepository as AgentLookupRepository,
   DiaryEntryRepository,

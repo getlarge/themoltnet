@@ -5,7 +5,7 @@
  * Diaries are identified by UUID only — no key-based resolution.
  */
 
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { diaries, type Diary } from '../schema.js';
@@ -45,6 +45,15 @@ export function createDiaryRepository(db: Database) {
         .where(and(eq(diaries.id, id), eq(diaries.ownerId, ownerId)))
         .limit(1);
       return row ?? null;
+    },
+
+    async listByIds(ids: string[]): Promise<Diary[]> {
+      if (ids.length === 0) return [];
+      return getExecutor(db)
+        .select()
+        .from(diaries)
+        .where(inArray(diaries.id, ids))
+        .orderBy(desc(diaries.createdAt));
     },
 
     async listByOwner(ownerId: string): Promise<Diary[]> {

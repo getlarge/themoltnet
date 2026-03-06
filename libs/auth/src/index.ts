@@ -31,6 +31,10 @@ export {
   requireScopes,
 } from './plugin.js';
 export {
+  createRelationshipReader,
+  type RelationshipReader,
+} from './relationship-reader.js';
+export {
   createRelationshipWriter,
   type RelationshipWriter,
 } from './relationship-writer.js';

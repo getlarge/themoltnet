@@ -26,6 +26,8 @@
     "fastify-plugin": "catalog:"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "catalog:",
+    "testcontainers": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "fastify": "catalog:"
