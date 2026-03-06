@@ -30,6 +30,7 @@ import type {
   DiaryShareRepository,
   EmbeddingService,
   PermissionChecker,
+  RelationshipReader,
   RelationshipWriter,
   TransactionRunner,
 } from '../src/index.js';
@@ -93,6 +94,14 @@ function createMockPermissionChecker(): {
   };
 }
 
+function createMockRelationshipReader(): {
+  [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
+} {
+  return {
+    listDiaryIdsByAgent: vi.fn().mockResolvedValue([DIARY_ID]),
+  };
+}
+
 function createMockRelationshipWriter(): {
   [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
 } {
@@ -124,6 +133,7 @@ function createMockDiaryRepository(): {
     create: vi.fn(),
     findById: vi.fn(),
     findOwnedById: vi.fn(),
+    listByIds: vi.fn(),
     listByOwner: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -167,6 +177,7 @@ describe('DiaryService', () => {
   let repo: ReturnType<typeof createMockDiaryEntryRepository>;
   let diaryRepo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let reader: ReturnType<typeof createMockRelationshipReader>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
   let transactionRunner: {
@@ -182,6 +193,7 @@ describe('DiaryService', () => {
     diaryRepo = createMockDiaryRepository();
     diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
     permissions = createMockPermissionChecker();
+    reader = createMockRelationshipReader();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
     transactionRunner = {
@@ -197,6 +209,7 @@ describe('DiaryService', () => {
         createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipReader: reader as unknown as RelationshipReader,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
       transactionRunner: transactionRunner as unknown as TransactionRunner,
@@ -806,6 +819,7 @@ describe('DiaryService — tags filter', () => {
   let repo: ReturnType<typeof createMockDiaryEntryRepository>;
   let diaryRepo: ReturnType<typeof createMockDiaryRepository>;
   let permissions: ReturnType<typeof createMockPermissionChecker>;
+  let reader: ReturnType<typeof createMockRelationshipReader>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
   let transactionRunner: {
@@ -817,6 +831,7 @@ describe('DiaryService — tags filter', () => {
     diaryRepo = createMockDiaryRepository();
     diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
     permissions = createMockPermissionChecker();
+    reader = createMockRelationshipReader();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
     transactionRunner = {
@@ -832,6 +847,7 @@ describe('DiaryService — tags filter', () => {
         createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipReader: reader as unknown as RelationshipReader,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
       transactionRunner: transactionRunner as unknown as TransactionRunner,

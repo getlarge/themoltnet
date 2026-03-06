@@ -34,6 +34,7 @@ import type {
   DiaryShareRepository,
   EmbeddingService,
   PermissionChecker,
+  RelationshipReader,
   RelationshipWriter,
 } from '../src/index.js';
 import { DiaryServiceError } from '../src/types.js';
@@ -98,6 +99,9 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   let permissions: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
+  let relationshipReader: {
+    listDiaryIdsByAgent: ReturnType<typeof vi.fn>;
+  };
   let relationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
   };
@@ -127,6 +131,10 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       canReadDiary: vi.fn().mockResolvedValue(true),
       canWriteDiary: vi.fn().mockResolvedValue(true),
       canManageDiary: vi.fn().mockResolvedValue(true),
+    };
+
+    relationshipReader = {
+      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
     };
 
     relationshipWriter = {
@@ -169,6 +177,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       } as unknown as AgentLookupRepository,
       diaryEntryRepository: setup.repo,
       permissionChecker: permissions as unknown as PermissionChecker,
+      relationshipReader: relationshipReader as unknown as RelationshipReader,
       relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
       embeddingService,
       transactionRunner: dbosSetup.transactionRunner,
