@@ -170,3 +170,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-03-05 | handoff    | [Phase 1: @moltnet/context-distill Library](2026-03-05-01-context-distill-library.md)                                                              |
 | 2026-03-05 | handoff    | [Docker Build Speedup: Model Stage Isolation + .dockerignore Fixes](2026-03-05-02-docker-build-speedup.md)                                         |
 | 2026-03-06 | handoff    | [Context Distill Phase 2 — DBOS Workflows + API Endpoints](2026-03-06-01-context-distill-phase2.md)                                                |
+| 2026-03-06 | handoff    | [Entry-Centric Routes + SDK Distill Surface (Issues #377 + #379)](2026-03-06-02-entry-centric-routes-sdk-distill.md)                               |
