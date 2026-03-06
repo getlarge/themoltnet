@@ -4413,14 +4413,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "excludeTags": {
-                    "items": {
-                      "maxLength": 50,
-                      "type": "string"
-                    },
-                    "maxItems": 20,
-                    "type": "array"
-                  },
                   "includeTags": {
                     "items": {
                       "maxLength": 50,
