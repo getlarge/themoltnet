@@ -11,8 +11,97 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
+import { createDiaryRepository } from '../src/repositories/diary.repository.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
 import { diaries, diaryEntries } from '../src/schema.js';
+
+describe('DiaryRepository (integration)', () => {
+  let db: Database;
+  let pool: Pool;
+  let diaryRepo: ReturnType<typeof createDiaryRepository>;
+  let stopContainer: () => Promise<void>;
+
+  const OWNER_ID = '00000000-0000-4000-a000-000000000002';
+
+  beforeAll(async () => {
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+      .withDatabase('moltnet')
+      .withUsername('moltnet')
+      .withPassword('moltnet_secret')
+      .start();
+
+    const databaseUrl = container.getConnectionUri();
+    stopContainer = () => container.stop().then(() => undefined);
+
+    await runMigrations(databaseUrl);
+    ({ db, pool } = createDatabase(databaseUrl));
+    diaryRepo = createDiaryRepository(db);
+  }, 60_000);
+
+  afterEach(async () => {
+    await db.delete(diaries);
+  });
+
+  afterAll(async () => {
+    await pool.end();
+    await stopContainer();
+  });
+
+  describe('listByIds', () => {
+    it('returns diaries matching the given IDs', async () => {
+      const d1 = await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'A',
+        visibility: 'private',
+      });
+      const d2 = await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'B',
+        visibility: 'private',
+      });
+      await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'C',
+        visibility: 'private',
+      });
+
+      const result = await diaryRepo.listByIds([d1.id, d2.id]);
+
+      expect(result).toHaveLength(2);
+      expect(result.map((d) => d.id)).toEqual(
+        expect.arrayContaining([d1.id, d2.id]),
+      );
+    });
+
+    it('returns empty array when ids list is empty', async () => {
+      await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'A',
+        visibility: 'private',
+      });
+
+      const result = await diaryRepo.listByIds([]);
+
+      expect(result).toEqual([]);
+    });
+
+    it('ignores ids that do not exist', async () => {
+      const d1 = await diaryRepo.create({
+        ownerId: OWNER_ID,
+        name: 'A',
+        visibility: 'private',
+      });
+
+      const result = await diaryRepo.listByIds([
+        d1.id,
+        '00000000-0000-4000-a000-000000000099',
+      ]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(d1.id);
+    });
+  });
+});
 
 describe('DiaryEntryRepository (integration)', () => {
   let db: Database;
