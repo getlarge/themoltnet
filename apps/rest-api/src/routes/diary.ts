@@ -1,5 +1,5 @@
 /**
- * Diary container CRUD, sharing, and reflection routes
+ * Diary container CRUD and sharing routes
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -22,7 +22,6 @@ import {
   DiaryInvitationListSchema,
   DiaryShareListSchema,
   DiaryShareSchema,
-  DigestSchema,
   SuccessSchema,
 } from '../schemas.js';
 
@@ -447,69 +446,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         throw err;
       }
-    },
-  );
-
-  // ── Reflect ────────────────────────────────────────────────
-  server.get(
-    '/diaries/reflect',
-    {
-      schema: {
-        operationId: 'reflectDiary',
-        tags: ['diary'],
-        description: 'Get a digest of recent diary entries.',
-        security: [{ bearerAuth: [] }],
-        querystring: Type.Object({
-          diaryId: Type.String({ format: 'uuid' }),
-          days: Type.Optional(Type.Number({ minimum: 1, maximum: 365 })),
-          maxEntries: Type.Optional(Type.Number({ minimum: 1, maximum: 200 })),
-          entryTypes: Type.Optional(
-            Type.String({
-              pattern:
-                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$',
-              description: 'Comma-separated entry type filter',
-            }),
-          ),
-        }),
-        response: {
-          200: Type.Ref(DigestSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { diaryId, days, maxEntries, entryTypes } = request.query;
-
-      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
-      try {
-        diary = await fastify.diaryService.findDiary(
-          diaryId,
-          request.authContext!.identityId,
-        );
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-
-      const entryTypesFilter = entryTypes
-        ? (entryTypes.split(',') as (
-            | 'episodic'
-            | 'semantic'
-            | 'procedural'
-            | 'reflection'
-            | 'identity'
-            | 'soul'
-          )[])
-        : undefined;
-
-      return fastify.diaryService.reflect({
-        diaryId: diary.id,
-        days,
-        maxEntries,
-        entryTypes: entryTypesFilter,
-      });
     },
   );
 }
