@@ -2,15 +2,23 @@
  * Diary distill routes — reflect, consolidate, compile
  */
 
+import { createHash } from 'node:crypto';
+
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
+import { DBOS } from '@moltnet/database';
 import { DiaryServiceError } from '@moltnet/diary-service';
-import { ProblemDetailsSchema } from '@moltnet/models';
+import { DiaryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
-import { DigestSchema } from '../schemas.js';
+import {
+  CompileResultSchema,
+  ConsolidateResultSchema,
+  DigestSchema,
+} from '../schemas.js';
+import { contextDistillWorkflows } from '../workflows/context-distill-workflows.js';
 
 function translateServiceError(err: DiaryServiceError): never {
   switch (err.code) {
@@ -94,6 +102,163 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         maxEntries,
         entryTypes: entryTypesFilter,
       });
+    },
+  );
+
+  // ── Consolidate ────────────────────────────────────────────────
+  server.post(
+    '/diaries/:id/consolidate',
+    {
+      schema: {
+        operationId: 'consolidateDiary',
+        tags: ['diary'],
+        description:
+          'Cluster semantically similar entries and return consolidation suggestions.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        body: Type.Object({
+          entryIds: Type.Optional(
+            Type.Array(Type.String({ format: 'uuid' }), { maxItems: 500 }),
+          ),
+          tags: Type.Optional(
+            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+          ),
+          threshold: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+          strategy: Type.Optional(
+            Type.Union([
+              Type.Literal('score'),
+              Type.Literal('centroid'),
+              Type.Literal('hybrid'),
+            ]),
+          ),
+        }),
+        response: {
+          200: Type.Ref(ConsolidateResultSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { id: diaryId } = request.params;
+      const identityId = request.authContext!.identityId;
+      const { entryIds, tags, threshold, strategy } = request.body;
+
+      try {
+        await fastify.diaryService.findDiary(diaryId, identityId);
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
+
+      // Dedup: same diary + same filter = same result (entry set doesn't change mid-request)
+      const dedupRaw = entryIds?.length
+        ? `${diaryId}:ids:${[...entryIds].sort().join(',')}`
+        : `${diaryId}:tags:${[...(tags ?? [])].sort().join(',')}:threshold:${threshold ?? 0.15}:strategy:${strategy ?? 'hybrid'}`;
+      const deduplicationID = createHash('sha256')
+        .update(dedupRaw)
+        .digest('hex');
+
+      const handle = await DBOS.startWorkflow(
+        contextDistillWorkflows.consolidate,
+        {
+          queueName: 'context.consolidate',
+          enqueueOptions: { deduplicationID, queuePartitionKey: identityId },
+        },
+      )({ diaryId, identityId, entryIds, tags, threshold, strategy });
+
+      return handle.getResult();
+    },
+  );
+
+  // ── Compile ────────────────────────────────────────────────────
+  server.post(
+    '/diaries/:id/compile',
+    {
+      schema: {
+        operationId: 'compileDiary',
+        tags: ['diary'],
+        description:
+          'Compile a token-budget-fitted context pack from diary entries.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryParamsSchema,
+        body: Type.Object({
+          tokenBudget: Type.Integer({ minimum: 1, maximum: 100000 }),
+          taskPrompt: Type.Optional(
+            Type.String({ minLength: 1, maxLength: 2000 }),
+          ),
+          lambda: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+          includeTags: Type.Optional(
+            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+          ),
+          excludeTags: Type.Optional(
+            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+          ),
+          wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+          wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+        }),
+        response: {
+          200: Type.Ref(CompileResultSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { id: diaryId } = request.params;
+      const identityId = request.authContext!.identityId;
+      const {
+        tokenBudget,
+        taskPrompt,
+        lambda,
+        includeTags,
+        wRecency,
+        wImportance,
+      } = request.body;
+
+      try {
+        await fastify.diaryService.findDiary(diaryId, identityId);
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
+
+      // Use latest entry's updatedAt as state signal — ensures dedup key changes
+      // when diary content changes, avoiding stale cached results.
+      const latest = await fastify.diaryEntryRepository.list({
+        diaryId,
+        limit: 1,
+      });
+      const stateSignal = latest[0]?.updatedAt?.toISOString() ?? 'empty';
+
+      const promptHash = taskPrompt
+        ? createHash('sha256').update(taskPrompt).digest('hex').slice(0, 16)
+        : 'noprompt';
+      const dedupRaw = `${diaryId}:${promptHash}:budget:${tokenBudget}:lambda:${lambda ?? 0.5}:state:${stateSignal}`;
+      const deduplicationID = createHash('sha256')
+        .update(dedupRaw)
+        .digest('hex');
+
+      const handle = await DBOS.startWorkflow(contextDistillWorkflows.compile, {
+        queueName: 'context.compile',
+        enqueueOptions: { deduplicationID, queuePartitionKey: identityId },
+      })({
+        diaryId,
+        identityId,
+        taskPrompt,
+        tokenBudget,
+        lambda,
+        includeTags,
+        wRecency,
+        wImportance,
+      });
+
+      return handle.getResult();
     },
   );
 }

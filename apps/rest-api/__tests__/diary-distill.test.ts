@@ -1,5 +1,38 @@
+import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock DBOS.startWorkflow — routes call DBOS.startWorkflow(fn, opts)(input) → handle → getResult()
+const { mockGetResult, mockStartWorkflow } = vi.hoisted(() => {
+  const mockGetResult = vi.fn();
+  const mockStartWorkflow = vi
+    .fn()
+    .mockReturnValue(vi.fn().mockResolvedValue({ getResult: mockGetResult }));
+  return { mockGetResult, mockStartWorkflow };
+});
+
+vi.mock('@moltnet/database', async (importOriginal) => {
+  const original = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...original,
+    DBOS: {
+      startWorkflow: mockStartWorkflow,
+    },
+  };
+});
+
+vi.mock('../src/workflows/context-distill-workflows.js', () => ({
+  contextDistillWorkflows: {
+    get consolidate() {
+      return vi.fn();
+    },
+    get compile() {
+      return vi.fn();
+    },
+  },
+  consolidateQueue: {},
+  compileQueue: {},
+}));
 
 import {
   createMockServices,
@@ -30,6 +63,7 @@ describe('Diary distill routes', () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
+    mocks.diaryEntryRepository.list.mockResolvedValue([]);
   });
 
   describe('GET /diaries/reflect', () => {
@@ -49,6 +83,127 @@ describe('Diary distill routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().periodDays).toBe(7);
+    });
+  });
+
+  describe('POST /diaries/:id/consolidate', () => {
+    beforeEach(() => {
+      mockGetResult.mockResolvedValue({
+        workflowId: 'wf-consolidate-123',
+        clusters: [],
+        stats: {
+          inputCount: 0,
+          clusterCount: 0,
+          singletonRate: 0,
+          clusterSizeDistribution: [0, 0, 0, 0, 0],
+          elapsedMs: 1,
+        },
+        trace: { thresholdUsed: 0.15, strategyUsed: 'hybrid', embeddingDim: 0 },
+      });
+    });
+
+    it('returns 200 with consolidation result', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/consolidate`,
+        headers: authHeaders,
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('workflowId');
+      expect(response.json()).toHaveProperty('clusters');
+    });
+
+    it('returns 401 without auth', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/consolidate`,
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('returns 404 when diary not found', async () => {
+      mocks.diaryService.findDiary.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary not found'),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/consolidate`,
+        headers: authHeaders,
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST /diaries/:id/compile', () => {
+    beforeEach(() => {
+      mockGetResult.mockResolvedValue({
+        entries: [],
+        stats: {
+          totalTokens: 0,
+          entriesIncluded: 0,
+          entriesCompressed: 0,
+          compressionRatio: 1,
+          budgetUtilization: 0,
+          elapsedMs: 1,
+        },
+        trace: { lambdaUsed: 0.5, embeddingDim: 0 },
+      });
+    });
+
+    it('returns 200 with compile result', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/compile`,
+        headers: authHeaders,
+        payload: { tokenBudget: 4000 },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('entries');
+      expect(response.json()).toHaveProperty('stats');
+    });
+
+    it('returns 401 without auth', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/compile`,
+        payload: { tokenBudget: 4000 },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('returns 400 when tokenBudget missing', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/compile`,
+        headers: authHeaders,
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('returns 404 when diary not found', async () => {
+      mocks.diaryService.findDiary.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary not found'),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/compile`,
+        headers: authHeaders,
+        payload: { tokenBudget: 4000 },
+      });
+
+      expect(response.statusCode).toBe(404);
     });
   });
 });
