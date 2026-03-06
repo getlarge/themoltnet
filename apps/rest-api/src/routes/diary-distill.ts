@@ -2,8 +2,6 @@
  * Diary distill routes — reflect, consolidate, compile
  */
 
-import { createHash } from 'node:crypto';
-
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
@@ -152,27 +150,13 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         throw err;
       }
-
-      // Use latest entry's updatedAt as state signal — same pattern as compile.
-      // Prevents stale cached results when diary content changes.
-      const latestEntry = await fastify.diaryEntryRepository.list({
-        diaryId,
-        limit: 1,
-      });
-      const stateSignal = latestEntry[0]?.updatedAt?.toISOString() ?? 'empty';
-
-      const dedupRaw = entryIds?.length
-        ? `${diaryId}:ids:${[...entryIds].sort().join(',')}:state:${stateSignal}`
-        : `${diaryId}:tags:${[...(tags ?? [])].sort().join(',')}:threshold:${threshold ?? 0.15}:strategy:${strategy ?? 'hybrid'}:state:${stateSignal}`;
-      const deduplicationID = createHash('sha256')
-        .update(dedupRaw)
-        .digest('hex');
+      // TODO: create custom permission to distill const allowed = await permissionChecker.canDistillDiary(diaryId, agentId);
 
       return runWorkflow(
         contextDistillWorkflows.consolidate,
         {
           queueName: 'context.consolidate',
-          enqueueOptions: { deduplicationID },
+          enqueueOptions: { queuePartitionKey: identityId },
           logger: request.log,
         },
         { diaryId, identityId, entryIds, tags, threshold, strategy },
@@ -231,28 +215,13 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         throw err;
       }
-
-      // Use latest entry's updatedAt as state signal — ensures dedup key changes
-      // when diary content changes, avoiding stale cached results.
-      const latest = await fastify.diaryEntryRepository.list({
-        diaryId,
-        limit: 1,
-      });
-      const stateSignal = latest[0]?.updatedAt?.toISOString() ?? 'empty';
-
-      const promptHash = taskPrompt
-        ? createHash('sha256').update(taskPrompt).digest('hex').slice(0, 16)
-        : 'noprompt';
-      const dedupRaw = `${diaryId}:${promptHash}:budget:${tokenBudget}:lambda:${lambda ?? 0.5}:state:${stateSignal}`;
-      const deduplicationID = createHash('sha256')
-        .update(dedupRaw)
-        .digest('hex');
+      // TODO: create custom permission to distill; const allowed = await permissionChecker.canDistillDiary(diaryId, agentId);
 
       return runWorkflow(
         contextDistillWorkflows.compile,
         {
           queueName: 'context.compile',
-          enqueueOptions: { deduplicationID },
+          enqueueOptions: { queuePartitionKey: identityId },
           logger: request.log,
         },
         {

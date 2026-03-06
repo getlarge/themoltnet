@@ -307,13 +307,13 @@ export const contextDistillWorkflows = {
       throw new Error(
         'Context distill workflows not initialized. Call initContextDistillWorkflows() after configureDBOS().',
       );
-    return _workflows.consolidate.bind(undefined);
+    return _workflows.consolidate;
   },
   get compile() {
     if (!_workflows)
       throw new Error(
         'Context distill workflows not initialized. Call initContextDistillWorkflows() after configureDBOS().',
       );
-    return _workflows.compile.bind(undefined);
+    return _workflows.compile;
   },
 };
