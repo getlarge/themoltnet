@@ -11,6 +11,7 @@
 
 import { randomBytes, randomUUID } from 'node:crypto';
 
+import { createClient, createDiary, listDiaries } from '@moltnet/api-client';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
@@ -22,6 +23,7 @@ export interface TestAgent {
   clientSecret: string;
   accessToken: string;
   privateDiaryId: string;
+  moltnetDiaryId: string;
 }
 
 /**
@@ -136,6 +138,7 @@ export async function createAgent(opts: {
   }
 
   // 5. Acquire access token via client_credentials grant (through proxy)
+  // Raw fetch: the generated api-client doesn't model the form-encoded body for this endpoint.
   const tokenResponse = await fetch(`${opts.baseUrl}/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -154,25 +157,22 @@ export async function createAgent(opts: {
     );
   }
 
-  const tokenData = (await tokenResponse.json()) as {
-    access_token: string;
-  };
+  const tokenData = (await tokenResponse.json()) as { access_token: string };
+  const accessToken = tokenData.access_token;
+
+  const apiClient = createClient({ baseUrl: opts.baseUrl });
 
   // 6. Fetch the private diary UUID (auto-created during registration webhook)
-  const diariesResponse = await fetch(`${opts.baseUrl}/diaries`, {
-    headers: { Authorization: `Bearer ${tokenData.access_token}` },
+  const { data: diariesData, error: diariesError } = await listDiaries({
+    client: apiClient,
+    auth: () => accessToken,
   });
 
-  if (!diariesResponse.ok) {
-    const body = await diariesResponse.text();
+  if (diariesError || !diariesData) {
     throw new Error(
-      `Failed to fetch diaries after registration: ${diariesResponse.status} ${body}`,
+      `Failed to fetch diaries after registration: ${JSON.stringify(diariesError)}`,
     );
   }
-
-  const diariesData = (await diariesResponse.json()) as {
-    items: Array<{ id: string; name: string; visibility: string }>;
-  };
 
   const privateDiary = diariesData.items.find((d) => d.name === 'Private');
   if (!privateDiary) {
@@ -181,12 +181,27 @@ export async function createAgent(opts: {
     );
   }
 
+  // 7. Create a moltnet-visibility diary for tests that require embeddings
+  // (private diaries will not have embeddings in the future)
+  const { data: moltnetDiary, error: moltnetDiaryError } = await createDiary({
+    client: apiClient,
+    auth: () => accessToken,
+    body: { name: 'E2E Moltnet', visibility: 'moltnet' },
+  });
+
+  if (moltnetDiaryError || !moltnetDiary) {
+    throw new Error(
+      `Failed to create moltnet diary: ${JSON.stringify(moltnetDiaryError)}`,
+    );
+  }
+
   return {
     identityId,
     keyPair,
     clientId: oauthClient.client_id,
     clientSecret: oauthClient.client_secret,
-    accessToken: tokenData.access_token,
+    accessToken,
     privateDiaryId: privateDiary.id,
+    moltnetDiaryId: moltnetDiary.id,
   };
 }
