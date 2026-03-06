@@ -4,8 +4,8 @@
 # Data is reset on every restart.
 #
 # Usage:
-#   docker compose -f docker-compose.e2e.yaml up -d --build
-#   docker compose -f docker-compose.e2e.yaml down -v
+#   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
+#   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
 
 services:
   app-db:

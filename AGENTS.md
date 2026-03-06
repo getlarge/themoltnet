@@ -81,14 +81,15 @@ E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack
 
 ```bash
 # Start the e2e stack (builds rest-api image locally)
-docker compose -f docker-compose.e2e.yaml up -d --build
+# COMPOSE_DISABLE_ENV_FILE prevents the root dotenvx .env from leaking into containers
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
 
 # Run e2e tests (each suite polls health endpoints before starting)
 pnpm --filter @moltnet/rest-api run test:e2e
 pnpm --filter @moltnet/mcp-server run test:e2e
 
 # Tear down when done
-docker compose -f docker-compose.e2e.yaml down -v
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
 ```
 
 In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.ci.yaml` override), then runs all e2e suites sequentially.
