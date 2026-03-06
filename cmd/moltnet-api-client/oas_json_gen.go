@@ -441,16 +441,6 @@ func (s *CompileDiaryReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CompileDiaryReq) encodeFields(e *jx.Encoder) {
 	{
-		if s.ExcludeTags != nil {
-			e.FieldStart("excludeTags")
-			e.ArrStart()
-			for _, elem := range s.ExcludeTags {
-				e.Str(elem)
-			}
-			e.ArrEnd()
-		}
-	}
-	{
 		if s.IncludeTags != nil {
 			e.FieldStart("includeTags")
 			e.ArrStart()
@@ -490,14 +480,13 @@ func (s *CompileDiaryReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCompileDiaryReq = [7]string{
-	0: "excludeTags",
-	1: "includeTags",
-	2: "lambda",
-	3: "taskPrompt",
-	4: "tokenBudget",
-	5: "wImportance",
-	6: "wRecency",
+var jsonFieldsNameOfCompileDiaryReq = [6]string{
+	0: "includeTags",
+	1: "lambda",
+	2: "taskPrompt",
+	3: "tokenBudget",
+	4: "wImportance",
+	5: "wRecency",
 }
 
 // Decode decodes CompileDiaryReq from json.
@@ -509,25 +498,6 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "excludeTags":
-			if err := func() error {
-				s.ExcludeTags = make([]string, 0)
-				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem string
-					v, err := d.Str()
-					elem = string(v)
-					if err != nil {
-						return err
-					}
-					s.ExcludeTags = append(s.ExcludeTags, elem)
-					return nil
-				}); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"excludeTags\"")
-			}
 		case "includeTags":
 			if err := func() error {
 				s.IncludeTags = make([]string, 0)
@@ -568,7 +538,7 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskPrompt\"")
 			}
 		case "tokenBudget":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.TokenBudget = int(v)
@@ -609,7 +579,7 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00010000,
+		0b00001000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

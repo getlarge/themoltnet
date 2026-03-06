@@ -98,18 +98,12 @@ type CompileDiaryNotFound ProblemDetails
 func (*CompileDiaryNotFound) compileDiaryRes() {}
 
 type CompileDiaryReq struct {
-	ExcludeTags []string   `json:"excludeTags"`
 	IncludeTags []string   `json:"includeTags"`
 	Lambda      OptFloat64 `json:"lambda"`
 	TaskPrompt  OptString  `json:"taskPrompt"`
 	TokenBudget int        `json:"tokenBudget"`
 	WImportance OptFloat64 `json:"wImportance"`
 	WRecency    OptFloat64 `json:"wRecency"`
-}
-
-// GetExcludeTags returns the value of ExcludeTags.
-func (s *CompileDiaryReq) GetExcludeTags() []string {
-	return s.ExcludeTags
 }
 
 // GetIncludeTags returns the value of IncludeTags.
@@ -140,11 +134,6 @@ func (s *CompileDiaryReq) GetWImportance() OptFloat64 {
 // GetWRecency returns the value of WRecency.
 func (s *CompileDiaryReq) GetWRecency() OptFloat64 {
 	return s.WRecency
-}
-
-// SetExcludeTags sets the value of ExcludeTags.
-func (s *CompileDiaryReq) SetExcludeTags(val []string) {
-	s.ExcludeTags = val
 }
 
 // SetIncludeTags sets the value of IncludeTags.

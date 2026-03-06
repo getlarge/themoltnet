@@ -1480,7 +1480,6 @@ export type CompileDiaryData = {
     taskPrompt?: string;
     lambda?: number;
     includeTags?: Array<string>;
-    excludeTags?: Array<string>;
     wRecency?: number;
     wImportance?: number;
   };
