@@ -29,6 +29,7 @@ describe('Diary distill — consolidate + compile', () => {
   let client: Client;
   let agentA: TestAgent;
   let agentB: TestAgent;
+  let agentAEntryIds: string[];
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -171,7 +172,7 @@ describe('Diary distill — consolidate + compile', () => {
       },
     ];
 
-    await Promise.all(
+    const seeded = await Promise.all(
       seedEntries.map((entry) =>
         apiCreateDiaryEntry({
           client,
@@ -181,6 +182,7 @@ describe('Diary distill — consolidate + compile', () => {
         }),
       ),
     );
+    agentAEntryIds = seeded.map((r) => r.data!.id);
   }, 60_000);
 
   afterAll(async () => {
@@ -224,6 +226,22 @@ describe('Diary distill — consolidate + compile', () => {
       });
       expect(error).toBeDefined();
       expect(response.status).toBe(404);
+    });
+
+    it('does not leak cross-diary entries when agent B supplies agent A entry UUIDs', async () => {
+      // Security regression test for the authorization bypass:
+      // Agent B passes agent A's real entry UUIDs into their own diary's
+      // consolidate call. fetchEntriesStep must scope by diaryId AND ids —
+      // so all supplied UUIDs must be filtered out (none belong to B's diary).
+      const { data, error } = await consolidateDiary({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: agentB.moltnetDiaryId },
+        body: { entryIds: agentAEntryIds },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.stats.inputCount).toBe(0);
+      expect(data!.clusters).toHaveLength(0);
     });
 
     it('consolidates an empty diary and returns empty clusters', async () => {

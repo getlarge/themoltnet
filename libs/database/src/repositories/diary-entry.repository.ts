@@ -216,7 +216,11 @@ export function createDiaryEntryRepository(db: Database) {
       const conditions = [];
 
       if (ids && ids.length > 0) {
+        // Always scope by diaryId when provided — prevents cross-diary entry access
         conditions.push(inArray(diaryEntries.id, ids));
+        if (diaryId) {
+          conditions.push(eq(diaryEntries.diaryId, diaryId));
+        }
       } else if (diaryIds && diaryIds.length > 0) {
         conditions.push(inArray(diaryEntries.diaryId, diaryIds));
       } else if (diaryId) {
