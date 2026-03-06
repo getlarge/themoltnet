@@ -73,6 +73,7 @@ Group scan entries by subsystem. Entries covering the same subsystem from
 different scan phases (docs vs code) must be merged into a single tile.
 
 Principles:
+
 - One tile per subsystem — not one per source entry
 - If two entries cover the same area (e.g. Phase 1 docs + Phase 2 code
   for the same lib), merge them
@@ -158,12 +159,12 @@ After all tiles are created, extract rule nuggets from the scan entries.
 
 ### Priority domains
 
-| Domain | Why first | Expected nuggets |
-|--------|-----------|------------------|
-| testing | Highest follow-through | 4-6 |
-| security | Highest value, lowest prevalence | 5-8 |
-| workflow | High follow-through | 3-5 |
-| database | Error-prone domain | 3-4 |
+| Domain   | Why first                        | Expected nuggets |
+| -------- | -------------------------------- | ---------------- |
+| testing  | Highest follow-through           | 4-6              |
+| security | Highest value, lowest prevalence | 5-8              |
+| workflow | High follow-through              | 3-5              |
+| database | Error-prone domain               | 3-4              |
 
 Target: **15-23 nuggets** total.
 
@@ -276,6 +277,7 @@ deterministically.
 ### Load budget constraint
 
 For any single task at runtime, load at most:
+
 - 3-7 primary nuggets
 - 1-2 optional caveat nuggets
 
@@ -289,17 +291,17 @@ After all tiles and nuggets are created, score your own output.
 
 ### Evaluation dimensions
 
-| Dimension | What it measures | How to score |
-|-----------|-----------------|--------------|
-| Constraint yield | Nuggets accepted vs candidates | `accepted / total_candidates` |
-| Specificity | Concrete vs vague constraints | 1-5 per nugget, averaged |
-| Non-redundancy | Avoids restating obvious things | Count redundant nuggets |
-| Trigger precision | Triggers fire for right tasks only | low / med / high |
-| Merge quality | Phase 1 + Phase 2 synthesis | 1-5 per merged tile, averaged |
-| Token efficiency | Content density | `total_constraints / total_tokens * 1000` |
-| Hallucination rate | Constraints not grounded in sources | Count ungrounded nuggets |
-| Coverage | Important constraints captured | constraints found / constraints in sources |
-| Consistency | Agreement with other runs | Jaccard similarity (compute after all runs) |
+| Dimension          | What it measures                    | How to score                                |
+| ------------------ | ----------------------------------- | ------------------------------------------- |
+| Constraint yield   | Nuggets accepted vs candidates      | `accepted / total_candidates`               |
+| Specificity        | Concrete vs vague constraints       | 1-5 per nugget, averaged                    |
+| Non-redundancy     | Avoids restating obvious things     | Count redundant nuggets                     |
+| Trigger precision  | Triggers fire for right tasks only  | low / med / high                            |
+| Merge quality      | Phase 1 + Phase 2 synthesis         | 1-5 per merged tile, averaged               |
+| Token efficiency   | Content density                     | `total_constraints / total_tokens * 1000`   |
+| Hallucination rate | Constraints not grounded in sources | Count ungrounded nuggets                    |
+| Coverage           | Important constraints captured      | constraints found / constraints in sources  |
+| Consistency        | Agreement with other runs           | Jaccard similarity (compute after all runs) |
 
 ### Scorecard format
 
@@ -307,7 +309,7 @@ Scorecard content MUST use this exact YAML structure:
 
 ```yaml
 model: <MODEL_TAG>
-tile_session: "<TILE_SESSION>"
+tile_session: '<TILE_SESSION>'
 tiles_created: <N>
 tiles_avg_tokens: <N>
 tiles_avg_merge_quality: <1-5>
@@ -357,7 +359,7 @@ docs/research/consolidation-results-<model-short-tag>.md
 
 The results file MUST use this structure:
 
-```markdown
+````markdown
 # Consolidation Results — <Model Name>
 
 Date: <YYYY-MM-DD>
@@ -369,10 +371,10 @@ Diary: `<DIARY_ID>`
 
 ## Tiles: <N> created (from <M> scan entries, <K> merges)
 
-| # | Tile ID | Entry ID | Sources merged | Importance |
-|---|---------|----------|----------------|------------|
-| 1 | <tile-id> | `<short-id>` | <source short IDs> | <N> |
-| ... | ... | ... | ... | ... |
+| #   | Tile ID   | Entry ID     | Sources merged     | Importance |
+| --- | --------- | ------------ | ------------------ | ---------- |
+| 1   | <tile-id> | `<short-id>` | <source short IDs> | <N>        |
+| ... | ...       | ...          | ...                | ...        |
 
 Average ~<N> tokens per tile.
 
@@ -380,14 +382,15 @@ Average ~<N> tokens per tile.
 
 ## Nuggets: <N> accepted across <K> domains
 
-| Domain | Entry ID | Count | Rule kinds |
-|--------|----------|-------|------------|
-| <domain> | `<short-id>` | <N> | <summary> |
-| ... | ... | ... | ... |
+| Domain   | Entry ID     | Count | Rule kinds |
+| -------- | ------------ | ----- | ---------- |
+| <domain> | `<short-id>` | <N>   | <summary>  |
+| ...      | ...          | ...   | ...        |
 
 ### Nugget inventory
 
 **<Domain> (<count>)**
+
 - `<nugget_id>` — <one-line description>
 - ...
 
@@ -395,29 +398,32 @@ Average ~<N> tokens per tile.
 
 ## Key metrics
 
-| Metric | Value |
-|--------|-------|
-| Acceptance rate | <N>/<M> (<ratio>) |
-| Hallucination rate | <N> |
-| Redundancy | <N> nuggets (<details>) |
-| Token efficiency | <N> constraints per 1K tokens |
-| Compression | ~<N>K source → ~<N>K tokens (<ratio>) |
-| Coverage estimate | <ratio> |
-| Trigger precision | <low/med/high> |
-| Avg specificity | <N>/5 |
-| Avg merge quality | <N>/5 |
+| Metric             | Value                                 |
+| ------------------ | ------------------------------------- |
+| Acceptance rate    | <N>/<M> (<ratio>)                     |
+| Hallucination rate | <N>                                   |
+| Redundancy         | <N> nuggets (<details>)               |
+| Token efficiency   | <N> constraints per 1K tokens         |
+| Compression        | ~<N>K source → ~<N>K tokens (<ratio>) |
+| Coverage estimate  | <ratio>                               |
+| Trigger precision  | <low/med/high>                        |
+| Avg specificity    | <N>/5                                 |
+| Avg merge quality  | <N>/5                                 |
 
 ---
 
 ## Observations
 
 ### Tile quality
+
 <bullet points>
 
 ### Nugget quality
+
 <bullet points>
 
 ### Coverage gaps
+
 <bullet points>
 
 ---
@@ -431,26 +437,27 @@ Entry ID: `<short-id>`
 ## Compilation handoff
 
 ```yaml
-scan_session: "<SCAN_SESSION>"
-tile_session: "<TILE_SESSION>"
-model_tag: "<MODEL_TAG>"
+scan_session: '<SCAN_SESSION>'
+tile_session: '<TILE_SESSION>'
+model_tag: '<MODEL_TAG>'
 tile_entry_query:
   tags:
-    - "source:tile"
-    - "tile-session:<TILE_SESSION>"
-    - "model:<MODEL_TAG>"
+    - 'source:tile'
+    - 'tile-session:<TILE_SESSION>'
+    - 'model:<MODEL_TAG>'
 nugget_entry_query:
   tags:
-    - "source:nugget"
-    - "nugget-session:<TILE_SESSION>"
-    - "model:<MODEL_TAG>"
-scorecard_entry_id: "<short-id>"
-results_file: "docs/research/consolidation-results-<model-short-tag>.md"
+    - 'source:nugget'
+    - 'nugget-session:<TILE_SESSION>'
+    - 'model:<MODEL_TAG>'
+scorecard_entry_id: '<short-id>'
+results_file: 'docs/research/consolidation-results-<model-short-tag>.md'
 compile_ready:
   tiles: true
   nuggets: true
   scorecard: true
 ```
+````
 
 ---
 

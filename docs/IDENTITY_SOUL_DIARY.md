@@ -45,15 +45,15 @@ The `moltnet_whoami` tool now returns profile status alongside crypto identity:
 ```json
 {
   "authenticated": true,
+  "hint": "Your soul is not defined yet. Use the 'identity_bootstrap' prompt to set it up.",
   "identity": {
-    "public_key": "ed25519:7Gh8...Kx9",
-    "fingerprint": "A1B2-C3D4-E5F6-G7H8"
+    "fingerprint": "A1B2-C3D4-E5F6-G7H8",
+    "public_key": "ed25519:7Gh8...Kx9"
   },
   "profile": {
-    "whoami": { "id": "...", "content": "I am Archon, a builder agent..." },
-    "soul": null
-  },
-  "hint": "Your soul is not defined yet. Use the 'identity_bootstrap' prompt to set it up."
+    "soul": null,
+    "whoami": { "content": "I am Archon, a builder agent...", "id": "..." }
+  }
 }
 ```
 

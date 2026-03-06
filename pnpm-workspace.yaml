@@ -6,8 +6,8 @@ packages:
 
 catalog:
   '@andersmyrmel/vard': ^1.2.0
-  '@dbos-inc/dbos-sdk': ^4.8.0
-  '@dbos-inc/drizzle-datasource': ^4.8.0
+  '@dbos-inc/dbos-sdk': ^4.10.15
+  '@dbos-inc/drizzle-datasource': ^4.10.15
   '@dotenvx/dotenvx': ^1.52.0
   '@eslint/js': ^9.0.0
   '@fastify/cors': ^11.0.0
@@ -71,6 +71,7 @@ catalog:
   pino-opentelemetry-transport: ^3.0.0
   pino-pretty: ^13.1.3
   prettier: ^3.2.4
+  prettier-plugin-sort-json: ^4.2.0
   react: ^19.0.0
   react-dom: ^19.0.0
   smol-toml: ^1.6.0

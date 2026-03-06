@@ -195,11 +195,11 @@ conventions already extracted from `libs/auth`, `libs/database`, etc.
 
 Scanning tiers:
 
-| Tier | Packages | Rationale |
-| --- | --- | --- |
-| 0 | Leaf libs (no internal deps) | Pure conventions, no composition patterns |
-| 1 | Mid-tier libs (depend on tier 0) | Composition patterns with leaf libs |
-| 2 | Apps + top-tier libs | Full composition, integration patterns |
+| Tier | Packages                         | Rationale                                 |
+| ---- | -------------------------------- | ----------------------------------------- |
+| 0    | Leaf libs (no internal deps)     | Pure conventions, no composition patterns |
+| 1    | Mid-tier libs (depend on tier 0) | Composition patterns with leaf libs       |
+| 2    | Apps + top-tier libs             | Full composition, integration patterns    |
 
 Packages within the same tier can be scanned in parallel (separate subagents).
 
@@ -236,6 +236,7 @@ template, populating fields that Phase 1 couldn't fill:
   consistency of existing code)
 
 For test files, populate:
+
 - `Test example:` — actual test structure from this package
 - `Mock pattern:` — how this package handles test doubles
 
@@ -355,7 +356,7 @@ New metadata keys specific to scan entries:
 | -------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `scan-session`       | ISO-8601 timestamp                                      | Groups all entries from one scan run. Used for recovery after context compression and for bulk supersession on re-scan. |
 | `scan-batch`         | planned batch ID                                        | Lets recovery determine which batches actually completed                                                                |
-| `scan-entry-key`     | `<category>:<subject-slug>`                             | Stable identity for one logical scan entry, even when multiple entries come from the same source file                  |
+| `scan-entry-key`     | `<category>:<subject-slug>`                             | Stable identity for one logical scan entry, even when multiple entries come from the same source file                   |
 | `scan-source`        | relative file path                                      | Which file this entry was extracted from                                                                                |
 | `scan-source-type`   | `doc`, `config`, `schema`, `workflow`, `code-structure` | What kind of artifact the source is                                                                                     |
 | `scan-source-digest` | first 16 chars of SHA-256 hex                           | Content-based staleness detection on re-scan (stable across rebases, works for untracked files)                         |
@@ -369,6 +370,7 @@ Each batch subagent should receive only the templates for its assigned
 categories.
 
 Every template includes these rule-extraction fields:
+
 - `Constraints:` — MUST/NEVER/PREFER statements
 - `Anti-patterns:` — what NOT to do
 - `Applies to:` — file glob scope
@@ -725,14 +727,14 @@ Split the scan into batches based on category groups. Keep batches small —
 the enriched templates with Constraints/Anti-patterns/Verification fields
 require more cognitive work per file than plain description.
 
-| Batch         | Categories                    | Typical files                               | Expected entries |
-| ------------- | ----------------------------- | ------------------------------------------- | ---------------- |
-| 1             | identity, structure           | README, package.json, workspace config      | 2-3              |
-| 2             | architecture                  | Architecture docs, design docs              | 2-4              |
-| 3             | workflow, testing             | CONTRIBUTING, CI config, test config        | 2-4              |
-| 4             | security, caveat              | Auth docs, troubleshooting, journal handoff | 1-3              |
-| 5 (deep only) | plans, decisions              | ADRs, RFCs, plans                           | 2-4              |
-| 6 (deep only) | infrastructure, domain        | Infra config, schemas                       | 2-4              |
+| Batch         | Categories             | Typical files                               | Expected entries |
+| ------------- | ---------------------- | ------------------------------------------- | ---------------- |
+| 1             | identity, structure    | README, package.json, workspace config      | 2-3              |
+| 2             | architecture           | Architecture docs, design docs              | 2-4              |
+| 3             | workflow, testing      | CONTRIBUTING, CI config, test config        | 2-4              |
+| 4             | security, caveat       | Auth docs, troubleshooting, journal handoff | 1-3              |
+| 5 (deep only) | plans, decisions       | ADRs, RFCs, plans                           | 2-4              |
+| 6 (deep only) | infrastructure, domain | Infra config, schemas                       | 2-4              |
 
 **Rule of thumb**: no batch should produce more than 4 entries. If a category
 would produce 5+ entries (e.g., architecture on a large monorepo), split it
@@ -751,7 +753,7 @@ When subagent support is available, delegate per-batch to subagents:
 - **Primary agent**: produces the scan plan, assigns batches, collects
   entry IDs, writes the summary
 - **Batch subagent**: receives a batch assignment (category list + file list
-  + DIARY_ID), reads files, creates entries, returns entry IDs + titles +
+  - DIARY_ID), reads files, creates entries, returns entry IDs + titles +
     confidence levels + constraint counts
 
 Each subagent gets a fresh context window. The primary agent's context holds
@@ -764,11 +766,11 @@ Subagent delegation keeps each batch within a manageable context budget.
 
 **When to use subagents vs single-agent:**
 
-| Expected entries | Approach | Rationale |
-| --- | --- | --- |
-| < 10 | Single agent, batched | Small enough to fit in one context window |
-| 10-20 | Subagents, 2-3 batches | Enriched templates need fresh context per batch |
-| 20+ | Subagents, 4-5 batches | Deep scan on large repo, mandatory delegation |
+| Expected entries | Approach               | Rationale                                       |
+| ---------------- | ---------------------- | ----------------------------------------------- |
+| < 10             | Single agent, batched  | Small enough to fit in one context window       |
+| 10-20            | Subagents, 2-3 batches | Enriched templates need fresh context per batch |
+| 20+              | Subagents, 4-5 batches | Deep scan on large repo, mandatory delegation   |
 
 Batch subagent prompt template: see `references/content-templates.md`
 § "Batch scan subagent". Each subagent receives its assigned categories,
@@ -778,13 +780,13 @@ file list, and the relevant category templates from the same file.
 
 Each batch subagent should aim to stay within this budget:
 
-| Context section | Approximate tokens | Notes |
-| --- | --- | --- |
-| Prompt + templates | 2,000-3,000 | Only templates for assigned categories |
-| File reads (2-4 files) | 3,000-8,000 | Depends on file size |
-| Entry composition | 1,500-3,000 | 100-500 words per entry |
-| API calls overhead | 500-1,000 | entries_create calls |
-| **Total per batch** | **7,000-15,000** | Well within a single context window |
+| Context section        | Approximate tokens | Notes                                  |
+| ---------------------- | ------------------ | -------------------------------------- |
+| Prompt + templates     | 2,000-3,000        | Only templates for assigned categories |
+| File reads (2-4 files) | 3,000-8,000        | Depends on file size                   |
+| Entry composition      | 1,500-3,000        | 100-500 words per entry                |
+| API calls overhead     | 500-1,000          | entries_create calls                   |
+| **Total per batch**    | **7,000-15,000**   | Well within a single context window    |
 
 If a single file is very large (> 3,000 tokens), the subagent should read it
 in sections or extract only the constraint-relevant portions. Large README or
@@ -929,12 +931,12 @@ not required for correctness.
 
 Aim for the right granularity. Counts include both Phase 1 and Phase 2 entries.
 
-| Repo size                        | Bootstrap entries | Deep entries | Rationale                                          |
-| -------------------------------- | ----------------- | ------------ | -------------------------------------------------- |
-| Small (< 10 files, no docs)      | 8-15              | 12-20        | Identity, structure, workflow + 2-4 code entries   |
-| Medium (10-100 files, some docs) | 15-25             | 25-40        | Above + architecture, testing, security + code     |
-| Large (100+ files, rich docs)    | 20-30             | 35-50        | Above + multiple architecture entries + code       |
-| Monorepo (many packages)         | 20-35             | 40-60        | Above + per-package code-aware entries             |
+| Repo size                        | Bootstrap entries | Deep entries | Rationale                                        |
+| -------------------------------- | ----------------- | ------------ | ------------------------------------------------ |
+| Small (< 10 files, no docs)      | 8-15              | 12-20        | Identity, structure, workflow + 2-4 code entries |
+| Medium (10-100 files, some docs) | 15-25             | 25-40        | Above + architecture, testing, security + code   |
+| Large (100+ files, rich docs)    | 20-30             | 35-50        | Above + multiple architecture entries + code     |
+| Monorepo (many packages)         | 20-35             | 40-60        | Above + per-package code-aware entries           |
 
 Phase 2 typically adds 1 entry per scanned package (not per file). A monorepo
 with 15 packages might add 8-12 Phase 2 entries (thin packages are skipped).

@@ -14,6 +14,7 @@ import {
   declineDiaryInvitation,
   deleteDiary,
   deleteDiaryEntry,
+  getDiaryEntry,
   listDiaries,
   listDiaryEntries,
   listDiaryInvitations,
@@ -266,17 +267,20 @@ describe('Diary Management', () => {
   describe('Diary share lifecycle', () => {
     let shareDiaryId: string;
     let invitationId: string;
+    let sharedEntryId: string;
 
     beforeAll(async () => {
       const diary = await createTestDiary('share-test');
       shareDiaryId = diary.id;
 
-      await createDiaryEntry({
+      const { data, error } = await createDiaryEntry({
         client,
         auth: authA,
         path: { diaryId: shareDiaryId },
         body: { content: 'Shared diary entry' },
       });
+      expect(error).toBeUndefined();
+      sharedEntryId = data!.id;
     });
 
     it('owner invites Agent B → creates pending share', async () => {
@@ -363,6 +367,40 @@ describe('Diary Management', () => {
 
       expect(error).toBeDefined();
       expect(response.status).toBe(404);
+    });
+
+    it('Agent B cannot read entry by id after revocation', async () => {
+      const { error, response } = await getDiaryEntry({
+        client,
+        auth: authB,
+        path: { diaryId: shareDiaryId, entryId: sharedEntryId },
+      });
+
+      expect(error).toBeDefined();
+      expect([403, 404]).toContain(response.status);
+    });
+
+    it('Agent B cannot update entry by id after revocation', async () => {
+      const { error, response } = await updateDiaryEntry({
+        client,
+        auth: authB,
+        path: { diaryId: shareDiaryId, entryId: sharedEntryId },
+        body: { content: 'should fail after revoke' },
+      });
+
+      expect(error).toBeDefined();
+      expect([403, 404]).toContain(response.status);
+    });
+
+    it('Agent B cannot delete entry by id after revocation', async () => {
+      const { error, response } = await deleteDiaryEntry({
+        client,
+        auth: authB,
+        path: { diaryId: shareDiaryId, entryId: sharedEntryId },
+      });
+
+      expect(error).toBeDefined();
+      expect([403, 404]).toContain(response.status);
     });
 
     it('re-invite after revoke creates new pending share', async () => {
@@ -1142,6 +1180,28 @@ describe('Diary Management', () => {
       expect(data!.items.length).toBeGreaterThanOrEqual(1);
     });
 
+    it('writer (agentB) can read entry by id in shared diary', async () => {
+      const { data, error } = await getDiaryEntry({
+        client,
+        auth: authB,
+        path: { diaryId: sharedDiaryId, entryId: ownerEntryId },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.id).toBe(ownerEntryId);
+    });
+
+    it('reader (agentC) can read entry by id in shared diary', async () => {
+      const { data, error } = await getDiaryEntry({
+        client,
+        auth: authC,
+        path: { diaryId: sharedDiaryId, entryId: ownerEntryId },
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.id).toBe(ownerEntryId);
+    });
+
     it('writer (agentB) can update an entry in shared diary', async () => {
       const { data, error } = await updateDiaryEntry({
         client,
@@ -1187,6 +1247,46 @@ describe('Diary Management', () => {
 
       expect(error).toBeDefined();
       expect(response.status).toBe(404);
+    });
+
+    it('rejects cross-parent GET/PATCH/DELETE for shared-diary actor', async () => {
+      const sourceDiary = await createTestDiary('cross-parent-source');
+      const { data: sourceEntry, error: sourceEntryError } =
+        await createDiaryEntry({
+          client,
+          auth: authA,
+          path: { diaryId: sourceDiary.id },
+          body: { content: 'Entry bound to source diary only' },
+        });
+      expect(sourceEntryError).toBeUndefined();
+
+      // agentB can access sharedDiaryId, but this entry belongs to sourceDiary.id
+      const { error: getError, response: getResponse } = await getDiaryEntry({
+        client,
+        auth: authB,
+        path: { diaryId: sharedDiaryId, entryId: sourceEntry!.id },
+      });
+      expect(getError).toBeDefined();
+      expect([403, 404]).toContain(getResponse.status);
+
+      const { error: patchError, response: patchResponse } =
+        await updateDiaryEntry({
+          client,
+          auth: authB,
+          path: { diaryId: sharedDiaryId, entryId: sourceEntry!.id },
+          body: { content: 'cross-parent patch should fail' },
+        });
+      expect(patchError).toBeDefined();
+      expect([403, 404]).toContain(patchResponse.status);
+
+      const { error: deleteError, response: deleteResponse } =
+        await deleteDiaryEntry({
+          client,
+          auth: authB,
+          path: { diaryId: sharedDiaryId, entryId: sourceEntry!.id },
+        });
+      expect(deleteError).toBeDefined();
+      expect([403, 404]).toContain(deleteResponse.status);
     });
   });
 });

@@ -14,6 +14,18 @@ type Handler interface {
 	//
 	// POST /diaries/invitations/{id}/accept
 	AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error)
+	// CompileDiary implements compileDiary operation.
+	//
+	// Compile a token-budget-fitted context pack from diary entries.
+	//
+	// POST /diaries/{id}/compile
+	CompileDiary(ctx context.Context, req *CompileDiaryReq, params CompileDiaryParams) (CompileDiaryRes, error)
+	// ConsolidateDiary implements consolidateDiary operation.
+	//
+	// Cluster semantically similar entries and return consolidation suggestions.
+	//
+	// POST /diaries/{id}/consolidate
+	ConsolidateDiary(ctx context.Context, req OptConsolidateDiaryReq, params ConsolidateDiaryParams) (ConsolidateDiaryRes, error)
 	// CreateDiary implements createDiary operation.
 	//
 	// Create a new diary.

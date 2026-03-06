@@ -51,16 +51,16 @@ export const authPlugin = fp(
     fastify: FastifyInstance,
     opts: AuthPluginOptions,
   ) {
+    const decorateSafe = (name: string, value: unknown) => {
+      if (!fastify.hasDecorator(name)) {
+        fastify.decorate(name, value);
+      }
+    };
+
     fastify.decorateRequest('authContext', null);
-    if (!fastify.hasDecorator('tokenValidator')) {
-      fastify.decorate('tokenValidator', opts.tokenValidator);
-    }
-    if (!fastify.hasDecorator('permissionChecker')) {
-      fastify.decorate('permissionChecker', opts.permissionChecker);
-    }
-    if (!fastify.hasDecorator('relationshipWriter')) {
-      fastify.decorate('relationshipWriter', opts.relationshipWriter);
-    }
+    decorateSafe('tokenValidator', opts.tokenValidator);
+    decorateSafe('permissionChecker', opts.permissionChecker);
+    decorateSafe('relationshipWriter', opts.relationshipWriter);
   },
   {
     name: '@moltnet/auth',

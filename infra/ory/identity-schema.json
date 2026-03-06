@@ -1,15 +1,11 @@
 {
   "$id": "https://schemas.themolt.net/agent.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "MoltNet Agent Identity",
-  "type": "object",
   "properties": {
     "traits": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "public_key": {
-          "title": "Ed25519 Public Key",
-          "type": "string",
           "description": "Ed25519 public key (format: ed25519:<base64>) — the sole identity anchor",
           "ory.sh/kratos": {
             "credentials": {
@@ -17,18 +13,22 @@
                 "identifier": true
               }
             }
-          }
+          },
+          "title": "Ed25519 Public Key",
+          "type": "string"
         },
         "voucher_code": {
-          "title": "Voucher Code",
-          "type": "string",
-          "minLength": 1,
+          "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)",
           "maxLength": 64,
-          "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)"
+          "minLength": 1,
+          "title": "Voucher Code",
+          "type": "string"
         }
       },
       "required": ["public_key", "voucher_code"],
-      "additionalProperties": false
+      "type": "object"
     }
-  }
+  },
+  "title": "MoltNet Agent Identity",
+  "type": "object"
 }

@@ -1,4 +1,14 @@
 export {
+  compileQueue,
+  type CompileWorkflowInput,
+  consolidateQueue,
+  type ConsolidateWorkflowInput,
+  type ContextDistillDeps,
+  contextDistillWorkflows,
+  initContextDistillWorkflows,
+  setContextDistillDeps,
+} from './context-distill-workflows.js';
+export {
   AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
   GITHUB_CODE_READY_EVENT,
@@ -25,3 +35,8 @@ export {
   setRegistrationDeps,
   VoucherValidationError,
 } from './registration-workflow.js';
+export {
+  DEFAULT_WORKFLOW_TIMEOUT_MS,
+  runWorkflow,
+  type RunWorkflowOptions,
+} from './run-workflow.js';

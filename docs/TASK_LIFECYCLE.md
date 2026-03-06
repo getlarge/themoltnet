@@ -153,17 +153,17 @@ The `.agent-claim.json` file is the only state the hooks inspect. It is ephemera
 
 ```json
 {
-  "schema_version": 1,
-  "item_id": "PVTI_lADOBx...",
-  "issue_number": 42,
-  "branch": "claude/fix-thing-42",
   "agent_id": "edouard-1738000000",
-  "phase": "coding",
-  "summary": "",
-  "status": "In Progress",
-  "pr_number": null,
+  "branch": "claude/fix-thing-42",
+  "issue_number": 42,
+  "item_id": "PVTI_lADOBx...",
   "last_check_poll": null,
-  "last_synced_status": "In Progress"
+  "last_synced_status": "In Progress",
+  "phase": "coding",
+  "pr_number": null,
+  "schema_version": 1,
+  "status": "In Progress",
+  "summary": ""
 }
 ```
 
@@ -290,40 +290,40 @@ Hooks are declared in `.claude/settings.json`:
 ```json
 {
   "hooks": {
-    "SessionStart": [
+    "Notification": [
       {
-        "matcher": "startup",
         "hooks": [
           {
-            "type": "command",
-            "command": "... agent-sync.sh session-start",
-            "timeout": 30000
+            "command": "... agent-sync.sh on-idle",
+            "timeout": 30000,
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": "idle_prompt"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "... agent-sync.sh session-start",
+            "timeout": 30000,
+            "type": "command"
+          }
+        ],
+        "matcher": "startup"
       }
     ],
     "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
-            "type": "command",
             "command": "... agent-sync.sh on-stop",
-            "timeout": 30000
+            "timeout": 30000,
+            "type": "command"
           }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "... agent-sync.sh on-idle",
-            "timeout": 30000
-          }
-        ]
+        ],
+        "matcher": ""
       }
     ]
   }

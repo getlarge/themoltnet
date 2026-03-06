@@ -169,3 +169,4 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-03-04 | discovery  | [OTel Runtime Metrics & Distributed Trace Propagation Fix](2026-03-04-01-otel-runtime-metrics-trace-propagation.md)                                |
 | 2026-03-05 | handoff    | [Phase 1: @moltnet/context-distill Library](2026-03-05-01-context-distill-library.md)                                                              |
 | 2026-03-05 | handoff    | [Docker Build Speedup: Model Stage Isolation + .dockerignore Fixes](2026-03-05-02-docker-build-speedup.md)                                         |
+| 2026-03-06 | handoff    | [Context Distill Phase 2 — DBOS Workflows + API Endpoints](2026-03-06-01-context-distill-phase2.md)                                                |

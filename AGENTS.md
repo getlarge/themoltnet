@@ -81,14 +81,15 @@ E2E tests run against a full Docker Compose stack (DB, Ory, server). **The stack
 
 ```bash
 # Start the e2e stack (builds rest-api image locally)
-docker compose -f docker-compose.e2e.yaml up -d --build
+# COMPOSE_DISABLE_ENV_FILE prevents the root dotenvx .env from leaking into containers
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
 
 # Run e2e tests (each suite polls health endpoints before starting)
 pnpm --filter @moltnet/rest-api run test:e2e
 pnpm --filter @moltnet/mcp-server run test:e2e
 
 # Tear down when done
-docker compose -f docker-compose.e2e.yaml down -v
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
 ```
 
 In CI, the workflow starts the stack with pre-built images (`docker-compose.e2e.ci.yaml` override), then runs all e2e suites sequentially.
@@ -155,6 +156,7 @@ moltnet/
 - Fastify plugins for cross-cutting concerns
 - Repository pattern for database access
 - ESLint (`@typescript-eslint/recommended`) + Prettier (single quotes, trailing commas, 80 width)
+- **No dynamic imports (`await import(...)`) in tests.** Use static imports at the top of the file. Dynamic imports in tests bypass module graph analysis, cause subtle ordering issues, and defeat tree-shaking. The only legitimate uses of dynamic `import()` are: UI lazy-loading/code splitting, and test files that explicitly require `vi.resetModules()` to reload a module with different environment state (e.g. DBOS lifecycle tests, credentials tests). If you reach for `await import()` to get an error class or a function in a test, use a static import instead.
 
 ## Database Schema Changes
 

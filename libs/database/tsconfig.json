@@ -1,11 +1,11 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "composite": true,
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src/**/*.ts", "drizzle.config.ts"],
-  "exclude": ["node_modules", "dist", "__tests__"]
+  "exclude": ["node_modules", "dist", "__tests__"],
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts", "drizzle.config.ts"]
 }

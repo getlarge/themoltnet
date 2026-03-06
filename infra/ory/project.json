@@ -1,21 +1,22 @@
 {
-  "name": "MoltNet",
   "cors_admin": {
     "enabled": true,
     "origins": ["${APP_BASE_URL}", "${API_BASE_URL}"]
   },
   "cors_public": {
-    "enabled": true,
-    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}"],
-    "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    "allowed_headers": ["Authorization", "Content-Type", "X-Requested-With"],
-    "exposed_headers": ["Content-Type"],
     "allow_credentials": true,
-    "max_age": 86400
+    "allowed_headers": ["Authorization", "Content-Type", "X-Requested-With"],
+    "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "enabled": true,
+    "exposed_headers": ["Content-Type"],
+    "max_age": 86400,
+    "origins": ["${APP_BASE_URL}", "${API_BASE_URL}"]
   },
+  "name": "MoltNet",
   "services": {
     "identity": {
       "config": {
+        "courier": {},
         "identity": {
           "default_schema_id": "moltnet_agent",
           "schemas": [
@@ -26,136 +27,128 @@
           ]
         },
         "selfservice": {
-          "default_browser_return_url": "${APP_BASE_URL}/",
           "allowed_return_urls": ["${APP_BASE_URL}/", "${API_BASE_URL}/"],
-          "methods": {
-            "password": {
-              "enabled": true,
-              "config": {
-                "haveibeenpwned_enabled": true,
-                "min_password_length": 16,
-                "identifier_similarity_check_enabled": false
+          "default_browser_return_url": "${APP_BASE_URL}/",
+          "flows": {
+            "error": {
+              "ui_url": "${APP_BASE_URL}/auth/error"
+            },
+            "login": {
+              "lifespan": "1h",
+              "ui_url": "${APP_BASE_URL}/auth/login"
+            },
+            "logout": {
+              "after": {
+                "default_browser_return_url": "${APP_BASE_URL}/"
               }
             },
-            "link": {
+            "recovery": {
               "enabled": false
             },
-            "code": {
-              "enabled": false
-            }
-          },
-          "flows": {
             "registration": {
-              "enabled": false,
-              "ui_url": "${APP_BASE_URL}/auth/registration",
-              "lifespan": "1h",
               "after": {
                 "password": {
                   "hooks": [
                     {
-                      "hook": "web_hook",
                       "config": {
-                        "url": "${API_BASE_URL}/hooks/kratos/after-registration",
-                        "method": "POST",
                         "auth": {
-                          "type": "api_key",
                           "config": {
+                            "in": "header",
                             "name": "X-Ory-Api-Key",
-                            "value": "${ORY_ACTION_API_KEY}",
-                            "in": "header"
-                          }
+                            "value": "${ORY_ACTION_API_KEY}"
+                          },
+                          "type": "api_key"
                         },
                         "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
+                        "can_interrupt": true,
+                        "method": "POST",
                         "response": {
                           "ignore": false,
                           "parse": true
                         },
-                        "can_interrupt": true
-                      }
+                        "url": "${API_BASE_URL}/hooks/kratos/after-registration"
+                      },
+                      "hook": "web_hook"
                     },
                     {
                       "hook": "session"
                     }
                   ]
                 }
-              }
-            },
-            "login": {
-              "ui_url": "${APP_BASE_URL}/auth/login",
-              "lifespan": "1h"
-            },
-            "recovery": {
-              "enabled": false
-            },
-            "verification": {
-              "enabled": false
+              },
+              "enabled": false,
+              "lifespan": "1h",
+              "ui_url": "${APP_BASE_URL}/auth/registration"
             },
             "settings": {
-              "ui_url": "${APP_BASE_URL}/auth/settings",
-              "lifespan": "1h",
-              "privileged_session_max_age": "15m",
               "after": {
                 "profile": {
                   "hooks": [
                     {
-                      "hook": "web_hook",
                       "config": {
-                        "url": "${API_BASE_URL}/hooks/kratos/after-settings",
-                        "method": "POST",
                         "auth": {
-                          "type": "api_key",
                           "config": {
+                            "in": "header",
                             "name": "X-Ory-Api-Key",
-                            "value": "${ORY_ACTION_API_KEY}",
-                            "in": "header"
-                          }
+                            "value": "${ORY_ACTION_API_KEY}"
+                          },
+                          "type": "api_key"
                         },
                         "body": "base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ==",
+                        "can_interrupt": false,
+                        "method": "POST",
                         "response": {
                           "ignore": false,
                           "parse": false
                         },
-                        "can_interrupt": false
-                      }
+                        "url": "${API_BASE_URL}/hooks/kratos/after-settings"
+                      },
+                      "hook": "web_hook"
                     }
                   ]
                 }
-              }
+              },
+              "lifespan": "1h",
+              "privileged_session_max_age": "15m",
+              "ui_url": "${APP_BASE_URL}/auth/settings"
             },
-            "error": {
-              "ui_url": "${APP_BASE_URL}/auth/error"
+            "verification": {
+              "enabled": false
+            }
+          },
+          "methods": {
+            "code": {
+              "enabled": false
             },
-            "logout": {
-              "after": {
-                "default_browser_return_url": "${APP_BASE_URL}/"
-              }
+            "link": {
+              "enabled": false
+            },
+            "password": {
+              "config": {
+                "haveibeenpwned_enabled": true,
+                "identifier_similarity_check_enabled": false,
+                "min_password_length": 16
+              },
+              "enabled": true
             }
           }
         },
         "session": {
-          "lifespan": "720h",
           "cookie": {
+            "http_only": true,
             "same_site": "Lax",
-            "secure": true,
-            "http_only": true
-          }
-        },
-        "courier": {}
+            "secure": true
+          },
+          "lifespan": "720h"
+        }
       }
     },
     "oauth2": {
       "config": {
-        "urls": {
-          "self": {
-            "issuer": "${APP_BASE_URL}/"
-          },
-          "consent": "${API_BASE_URL}/oauth2/consent",
-          "login": "${API_BASE_URL}/oauth2/login",
-          "logout": "${API_BASE_URL}/oauth2/logout",
-          "error": "${APP_BASE_URL}/auth/error",
-          "post_logout_redirect": "${APP_BASE_URL}/"
-        },
         "oauth2": {
+          "client_credentials": {
+            "default_grant_allowed_scope": false
+          },
           "grant": {
             "jwt": {
               "iat_optional": false,
@@ -163,47 +156,54 @@
               "max_ttl": "2h"
             }
           },
-          "client_credentials": {
-            "default_grant_allowed_scope": false
-          },
           "pkce": {
             "enforced": true,
             "enforced_for_public_clients": true
           }
         },
         "oidc": {
-          "subject_identifiers": {
-            "supported_types": ["public"],
-            "pairwise": {
-              "salt": "${OIDC_PAIRWISE_SALT}"
-            }
-          },
           "dynamic_client_registration": {
-            "enabled": true,
             "default_scope": [
               "diary:read",
               "diary:write",
               "crypto:sign",
               "agent:profile"
-            ]
+            ],
+            "enabled": true
+          },
+          "subject_identifiers": {
+            "pairwise": {
+              "salt": "${OIDC_PAIRWISE_SALT}"
+            },
+            "supported_types": ["public"]
           }
+        },
+        "token_hook": {
+          "auth": {
+            "config": {
+              "in": "header",
+              "name": "X-Ory-Api-Key",
+              "value": "${ORY_ACTION_API_KEY}"
+            },
+            "type": "api_key"
+          },
+          "url": "${API_BASE_URL}/hooks/hydra/token-exchange"
         },
         "ttl": {
           "access_token": "1h",
-          "refresh_token": "720h",
-          "id_token": "1h",
           "auth_code": "10m",
-          "login_consent_request": "30m"
+          "id_token": "1h",
+          "login_consent_request": "30m",
+          "refresh_token": "720h"
         },
-        "token_hook": {
-          "url": "${API_BASE_URL}/hooks/hydra/token-exchange",
-          "auth": {
-            "type": "api_key",
-            "config": {
-              "name": "X-Ory-Api-Key",
-              "value": "${ORY_ACTION_API_KEY}",
-              "in": "header"
-            }
+        "urls": {
+          "consent": "${API_BASE_URL}/oauth2/consent",
+          "error": "${APP_BASE_URL}/auth/error",
+          "login": "${API_BASE_URL}/oauth2/login",
+          "logout": "${API_BASE_URL}/oauth2/logout",
+          "post_logout_redirect": "${APP_BASE_URL}/",
+          "self": {
+            "issuer": "${APP_BASE_URL}/"
           }
         }
       }

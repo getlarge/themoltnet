@@ -5,6 +5,14 @@ type AcceptDiaryInvitationRes interface {
 	acceptDiaryInvitationRes()
 }
 
+type CompileDiaryRes interface {
+	compileDiaryRes()
+}
+
+type ConsolidateDiaryRes interface {
+	consolidateDiaryRes()
+}
+
 type CreateDiaryEntryRes interface {
 	createDiaryEntryRes()
 }

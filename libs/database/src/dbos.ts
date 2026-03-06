@@ -140,7 +140,19 @@ export async function shutdownDBOS(): Promise<void> {
 }
 
 // Re-export DBOS for workflow/step registration
-export { DBOS } from '@dbos-inc/dbos-sdk';
+export {
+  DBOS,
+  DBOSWorkflowConflictError,
+  WorkflowQueue,
+} from '@dbos-inc/dbos-sdk';
+
+// Re-export types used by workflow runners
+export type { WorkflowHandle } from '@dbos-inc/dbos-sdk';
+
+// Re-export workflow-relevant error classes.
+// The SDK exports most errors only via `export * as Error from './error'` namespace.
+// We expose the namespace so consumers can do `instanceof DBOSErrors.DBOSQueueDuplicatedError`.
+export { Error as DBOSErrors } from '@dbos-inc/dbos-sdk';
 
 // Re-export DrizzleDataSource type for consumers
 export type { DrizzleDataSource } from '@dbos-inc/drizzle-datasource';

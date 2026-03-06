@@ -24,16 +24,16 @@ Contains settings every workspace inherits. No module system, no paths, no file 
 ```json
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "composite": true,
     "declaration": true,
     "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
     "sourceMap": true,
-    "composite": true
+    "strict": true,
+    "target": "ES2022"
   }
 }
 ```
@@ -71,16 +71,16 @@ For backend libraries that emit CommonJS/ESM via Node's native module resolution
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "lib": ["ES2022"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "__tests__"]
+  "exclude": ["node_modules", "dist", "__tests__"],
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*.ts"]
 }
 ```
 
@@ -99,16 +99,16 @@ For apps bundled by Vite (or similar), where tsc is only used for type-checking:
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-    "isolatedModules": true,
     "outDir": "./dist/tsc",
     "rootDir": "./src"
   },
+  "extends": "../../tsconfig.base.json",
   "include": ["src"]
 }
 ```
@@ -128,16 +128,16 @@ When backend Fastify apps are built, they should follow the Node.js library patt
 
 ```json
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "lib": ["ES2022"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "__tests__"]
+  "exclude": ["node_modules", "dist", "__tests__"],
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*.ts"]
 }
 ```
 

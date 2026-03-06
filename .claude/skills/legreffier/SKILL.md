@@ -361,18 +361,19 @@ scope: <comma-separated scope tags>
 
 7. Sign:
    - Call `crypto_prepare_signature({ message: "<full payload above>" })` → returns `request_id`.
-   - Run the one-shot CLI command — it fetches the signing request, signs `signing_input`, submits the signature, and **prints the base64 Ed25519 signature to stdout**:
+   - Run the one-shot CLI command — it fetches the signing request, signs `signing_input`, submits the signature, and **prints the base64 Ed25519 signature to stdout**. Write to a temp file to avoid shell `$()` substitution (which triggers permission prompts in Claude):
      ```bash
-     SIGNATURE=$(npx @themoltnet/cli sign --credentials <path> --request-id <request_id>)
+     npx @themoltnet/cli sign --credentials <path> --request-id <request_id> > /tmp/moltnet-sig.txt
      ```
-     The CLI prints `Signature submitted for request <id>` to **stderr** (confirmation) and the **base64 signature to stdout** (capture this). No piping, no `--nonce`, no `crypto_submit_signature` call needed.
-   - **Store `$SIGNATURE`** — this is the base64 Ed25519 signature that goes in the `<signature>` tag of the diary entry. This is NOT the request ID. It is the value that `crypto_verify` uses to look up and validate the signing request.
+     The CLI prints `Signature submitted for request <id>` to **stderr** (confirmation) and the **base64 signature to stdout** (written to the file). No piping, no `--nonce`, no `crypto_submit_signature` call needed.
+   - **Read the signature** using the `Read` tool on `/tmp/moltnet-sig.txt` — use the file content as the base64 Ed25519 signature in the `<signature>` tag of the diary entry. This is NOT the request ID. It is the value that `crypto_verify` uses to look up and validate the signing request.
    - If it errors with "signing request is not pending": it may have expired (5 min TTL) or already been submitted. Call `crypto_prepare_signature` again for a fresh `request_id`.
    - The MCP prompt `sign_message` is also available interactively (not programmatically) as a slash command — check available prompts in your MCP client.
 
 8. Create diary entry: call `entries_create({ diary_id: DIARY_ID, ... })` with the full signed envelope as content. The `<signature>` tag must contain the **base64 Ed25519 signature** captured from stdout in step 7, NOT the request ID. After creation, verify the returned entry has correct `tags`, `visibility`, `importance`, and `entry_type` — if any are wrong, immediately call `entries_update` to patch before proceeding to the commit.
 
    **Shortcut for content-signed procedural entries** (use when you want cryptographic immutability on the entry itself, e.g. high-risk commits): instead of the manual steps 6–8, use the CLI one-shot command. It computes the CID, signs, and creates the entry in a single call — the full entry JSON is printed to stdout:
+
    ```bash
    npx @themoltnet/cli diary create-signed \
      --diary-id "$DIARY_ID" \
@@ -381,6 +382,7 @@ scope: <comma-separated scope tags>
      --content "<rationale + metadata block>" \
      --tags "accountable-commit,risk:high,branch:<branch>,scope:<...>"
    ```
+
    After creation, verify with `npx @themoltnet/cli diary verify --diary-id "$DIARY_ID" <entry-id>` before committing. Note: content-signed entries cannot be patched after creation — get the fields right before calling `create-signed`.
 
 ```

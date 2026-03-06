@@ -79,6 +79,7 @@
     "knip": "catalog:",
     "lint-staged": "catalog:",
     "prettier": "catalog:",
+    "prettier-plugin-sort-json": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",

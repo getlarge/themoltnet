@@ -53,6 +53,7 @@ export interface DiarySearchOptions {
 export interface DiaryListOptions {
   diaryId?: string;
   diaryIds?: string[];
+  ids?: string[];
   tags?: string[];
   limit?: number;
   offset?: number;
@@ -203,6 +204,7 @@ export function createDiaryEntryRepository(db: Database) {
       const {
         diaryId,
         diaryIds,
+        ids,
         tags,
         limit = 20,
         offset = 0,
@@ -213,7 +215,13 @@ export function createDiaryEntryRepository(db: Database) {
 
       const conditions = [];
 
-      if (diaryIds && diaryIds.length > 0) {
+      if (ids && ids.length > 0) {
+        // Always scope by diaryId when provided — prevents cross-diary entry access
+        conditions.push(inArray(diaryEntries.id, ids));
+        if (diaryId) {
+          conditions.push(eq(diaryEntries.diaryId, diaryId));
+        }
+      } else if (diaryIds && diaryIds.length > 0) {
         conditions.push(inArray(diaryEntries.diaryId, diaryIds));
       } else if (diaryId) {
         conditions.push(eq(diaryEntries.diaryId, diaryId));
@@ -247,6 +255,24 @@ export function createDiaryEntryRepository(db: Database) {
         .limit(limit)
         .offset(offset);
       return rows.map((row) => ({ ...row, embedding: null }));
+    },
+
+    /**
+     * Fetch embeddings for a list of entry IDs.
+     * Returns only { id, embedding } — no content or metadata overhead.
+     * Used by context-distill workflows that need vectors for clustering/MMR.
+     */
+    async fetchEmbeddings(
+      ids: string[],
+    ): Promise<{ id: string; embedding: number[] }[]> {
+      if (ids.length === 0) return [];
+      const rows = await db
+        .select({ id: diaryEntries.id, embedding: diaryEntries.embedding })
+        .from(diaryEntries)
+        .where(inArray(diaryEntries.id, ids));
+      return rows
+        .filter((r) => r.embedding !== null)
+        .map((r) => ({ id: r.id, embedding: r.embedding as number[] }));
     },
 
     /**

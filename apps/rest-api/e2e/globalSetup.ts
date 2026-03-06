@@ -7,10 +7,10 @@
  * LeGreffier onboarding e2e tests can exercise the full happy path.
  *
  * To start the stack locally:
- *   docker compose -f docker-compose.e2e.yaml up -d --build
+ *   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --build
  *
  * To start in CI (pre-built images):
- *   docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
+ *   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml -f docker-compose.e2e.ci.yaml up -d
  */
 
 import { execFileSync } from 'node:child_process';
@@ -105,7 +105,10 @@ function restartRestApi(sponsorAgentId: string): void {
 
   // docker compose up --no-deps --force-recreate inherits the current process
   // env, so setting process.env before the call is enough.
+  // COMPOSE_DISABLE_ENV_FILE prevents the root .env (dotenvx) from leaking
+  // encrypted/decrypted values into the container environment.
   process.env['SPONSOR_AGENT_ID'] = sponsorAgentId;
+  process.env['COMPOSE_DISABLE_ENV_FILE'] = 'true';
 
   const composeFileArgs = IS_CI
     ? ['-f', COMPOSE_FILE, '-f', COMPOSE_CI_FILE]
@@ -115,8 +118,6 @@ function restartRestApi(sponsorAgentId: string): void {
     'docker',
     [
       'compose',
-      '--env-file',
-      '/dev/null',
       ...composeFileArgs,
       'up',
       '-d',
