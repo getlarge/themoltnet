@@ -276,6 +276,47 @@ describe('Diary distill — consolidate + compile', () => {
   // ── POST /diaries/:id/compile ───────────────────────────────
 
   describe('POST /diaries/:id/compile', () => {
+    let promptRelevantOldEntryId: string;
+
+    beforeAll(async () => {
+      // Create an older, highly prompt-specific entry.
+      const { data: relevant, error: relevantError } =
+        await apiCreateDiaryEntry({
+          client,
+          auth: () => agentA.accessToken,
+          path: { diaryId: agentA.moltnetDiaryId },
+          body: {
+            content:
+              'QUANTUM_SPROCKET_PROTOCOL: emergency runbook for redline recovery. Trigger term: quantum sprocket handshake.',
+            tags: ['runbook', 'incident'],
+            importance: 1,
+          },
+        });
+      expect(relevantError).toBeUndefined();
+      promptRelevantOldEntryId = relevant!.id;
+
+      // Add newer distractor entries so recency-only candidate fetch excludes the old relevant one.
+      const distractors = Array.from({ length: 12 }, (_, i) => ({
+        content: `Recent distractor ${i}: deployment checklist and routine housekeeping without special trigger terms.`,
+        tags: ['ops'],
+        importance: 10,
+      }));
+
+      const created = await Promise.all(
+        distractors.map((entry) =>
+          apiCreateDiaryEntry({
+            client,
+            auth: () => agentA.accessToken,
+            path: { diaryId: agentA.moltnetDiaryId },
+            body: entry,
+          }),
+        ),
+      );
+      for (const result of created) {
+        expect(result.error).toBeUndefined();
+      }
+    }, 120_000);
+
     it('returns 401 without auth', async () => {
       const response = await fetch(
         `${harness.baseUrl}/diaries/${NULL_UUID}/compile`,
@@ -337,6 +378,35 @@ describe('Diary distill — consolidate + compile', () => {
       expect(Array.isArray(data!.entries)).toBe(true);
       expect(data!.stats.totalTokens).toBeLessThanOrEqual(2000);
       expect(data!.stats.budgetUtilization).toBeLessThanOrEqual(1);
+    }, 120_000);
+
+    it('uses taskPrompt semantics during candidate retrieval (not only MMR)', async () => {
+      const { data, error } = await compileDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          tokenBudget: 1200,
+          taskPrompt: 'quantum sprocket protocol handshake',
+        },
+      });
+      expect(error).toBeUndefined();
+      expect(data).toBeDefined();
+      expect(data!.entries[0]?.id).toBe(promptRelevantOldEntryId);
+    }, 120_000);
+
+    it('without taskPrompt, ranking favors high-importance distractors over old low-importance entry', async () => {
+      const { data, error } = await compileDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          tokenBudget: 1200,
+        },
+      });
+      expect(error).toBeUndefined();
+      expect(data).toBeDefined();
+      expect(data!.entries[0]?.id).not.toBe(promptRelevantOldEntryId);
     }, 120_000);
   });
 });

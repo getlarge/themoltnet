@@ -162,6 +162,8 @@ export function initContextDistillWorkflows(): void {
   const searchEntriesStep = DBOS.registerStep(
     async (
       diaryId: string,
+      query: string | undefined,
+      embedding: number[] | undefined,
       tags: string[] | undefined,
       wRecency: number,
       wImportance: number,
@@ -170,6 +172,8 @@ export function initContextDistillWorkflows(): void {
       const { diaryEntryRepository } = getDeps();
       return diaryEntryRepository.search({
         diaryId,
+        query,
+        embedding,
         tags,
         wRecency,
         wImportance,
@@ -258,6 +262,8 @@ export function initContextDistillWorkflows(): void {
       const limit = input.limit ?? 200;
       const entries = await searchEntriesStep(
         input.diaryId,
+        input.taskPrompt,
+        taskPromptEmbedding?.length ? taskPromptEmbedding : undefined,
         input.includeTags,
         input.wRecency ?? 0,
         input.wImportance ?? 0,
