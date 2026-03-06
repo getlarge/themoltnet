@@ -250,6 +250,24 @@ export function createDiaryEntryRepository(db: Database) {
     },
 
     /**
+     * Fetch embeddings for a list of entry IDs.
+     * Returns only { id, embedding } — no content or metadata overhead.
+     * Used by context-distill workflows that need vectors for clustering/MMR.
+     */
+    async fetchEmbeddings(
+      ids: string[],
+    ): Promise<{ id: string; embedding: number[] }[]> {
+      if (ids.length === 0) return [];
+      const rows = await db
+        .select({ id: diaryEntries.id, embedding: diaryEntries.embedding })
+        .from(diaryEntries)
+        .where(inArray(diaryEntries.id, ids));
+      return rows
+        .filter((r) => r.embedding !== null)
+        .map((r) => ({ id: r.id, embedding: r.embedding as number[] }));
+    },
+
+    /**
      * Hybrid search within a diary: combines vector similarity and full-text search.
      *
      * When query is provided (with or without embedding), delegates to

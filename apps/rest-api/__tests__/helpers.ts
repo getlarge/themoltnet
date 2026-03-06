@@ -148,6 +148,7 @@ export interface MockServices {
     listPublicSince: ReturnType<typeof vi.fn>;
     searchPublic: ReturnType<typeof vi.fn>;
     findPublicById: ReturnType<typeof vi.fn>;
+    fetchEmbeddings: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -191,6 +192,7 @@ export function createMockServices(): MockServices {
       listPublicSince: vi.fn(),
       searchPublic: vi.fn(),
       findPublicById: vi.fn(),
+      fetchEmbeddings: vi.fn().mockResolvedValue([]),
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
