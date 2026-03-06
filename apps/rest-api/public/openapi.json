@@ -1625,6 +1625,296 @@
             }
           }
         }
+      },
+      "ConsolidateResult": {
+        "type": "object",
+        "required": ["workflowId", "clusters", "stats", "trace"],
+        "properties": {
+          "workflowId": {
+            "type": "string"
+          },
+          "clusters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "representative",
+                "representativeReason",
+                "members",
+                "similarity",
+                "confidence",
+                "suggestedAction"
+              ],
+              "properties": {
+                "representative": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "content",
+                    "tokens",
+                    "importance",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "tokens": {
+                      "type": "number"
+                    },
+                    "importance": {
+                      "minimum": 1,
+                      "maximum": 10,
+                      "type": "number"
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  }
+                },
+                "representativeReason": {
+                  "type": "string"
+                },
+                "members": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "content",
+                      "tokens",
+                      "importance",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "id": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "tokens": {
+                        "type": "number"
+                      },
+                      "importance": {
+                        "minimum": 1,
+                        "maximum": 10,
+                        "type": "number"
+                      },
+                      "createdAt": {
+                        "format": "date-time",
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "similarity": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "confidence": {
+                  "minimum": 0,
+                  "maximum": 1,
+                  "type": "number"
+                },
+                "suggestedAction": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["merge"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["keep_separate"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["review"]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "stats": {
+            "type": "object",
+            "required": [
+              "inputCount",
+              "clusterCount",
+              "singletonRate",
+              "clusterSizeDistribution",
+              "elapsedMs"
+            ],
+            "properties": {
+              "inputCount": {
+                "type": "number"
+              },
+              "clusterCount": {
+                "type": "number"
+              },
+              "singletonRate": {
+                "type": "number"
+              },
+              "clusterSizeDistribution": {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "additionalItems": false,
+                "minItems": 5,
+                "maxItems": 5
+              },
+              "elapsedMs": {
+                "type": "number"
+              }
+            }
+          },
+          "trace": {
+            "type": "object",
+            "required": ["thresholdUsed", "strategyUsed", "embeddingDim"],
+            "properties": {
+              "thresholdUsed": {
+                "type": "number"
+              },
+              "strategyUsed": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["score"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["centroid"]
+                  },
+                  {
+                    "type": "string",
+                    "enum": ["hybrid"]
+                  }
+                ]
+              },
+              "embeddingDim": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "CompileResult": {
+        "type": "object",
+        "required": ["entries", "stats", "trace"],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "content",
+                "compressionLevel",
+                "originalTokens",
+                "compressedTokens"
+              ],
+              "properties": {
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "compressionLevel": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["full"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["summary"]
+                    },
+                    {
+                      "type": "string",
+                      "enum": ["keywords"]
+                    }
+                  ]
+                },
+                "originalTokens": {
+                  "type": "number"
+                },
+                "compressedTokens": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "stats": {
+            "type": "object",
+            "required": [
+              "totalTokens",
+              "entriesIncluded",
+              "entriesCompressed",
+              "compressionRatio",
+              "budgetUtilization",
+              "elapsedMs"
+            ],
+            "properties": {
+              "totalTokens": {
+                "type": "number"
+              },
+              "entriesIncluded": {
+                "type": "number"
+              },
+              "entriesCompressed": {
+                "type": "number"
+              },
+              "compressionRatio": {
+                "type": "number"
+              },
+              "budgetUtilization": {
+                "type": "number"
+              },
+              "elapsedMs": {
+                "type": "number"
+              }
+            }
+          },
+          "trace": {
+            "type": "object",
+            "required": ["lambdaUsed", "embeddingDim"],
+            "properties": {
+              "lambdaUsed": {
+                "type": "number"
+              },
+              "embeddingDim": {
+                "type": "number"
+              },
+              "taskPromptHash": {
+                "type": "string"
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -3474,6 +3764,270 @@
             }
           },
           "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/{id}/consolidate": {
+      "post": {
+        "operationId": "consolidateDiary",
+        "tags": ["diary"],
+        "description": "Cluster semantically similar entries and return consolidation suggestions.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entryIds": {
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "tags": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
+                    }
+                  },
+                  "threshold": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  },
+                  "strategy": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["score"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["centroid"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["hybrid"]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsolidateResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diaries/{id}/compile": {
+      "post": {
+        "operationId": "compileDiary",
+        "tags": ["diary"],
+        "description": "Compile a token-budget-fitted context pack from diary entries.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tokenBudget"],
+                "properties": {
+                  "tokenBudget": {
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "type": "integer"
+                  },
+                  "taskPrompt": {
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "type": "string"
+                  },
+                  "lambda": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  },
+                  "includeTags": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
+                    }
+                  },
+                  "excludeTags": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
+                    }
+                  },
+                  "wRecency": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  },
+                  "wImportance": {
+                    "minimum": 0,
+                    "maximum": 1,
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "UUID v4 identifier"
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompileResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
             "description": "Default Response",
             "content": {
               "application/json": {
