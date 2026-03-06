@@ -53,9 +53,11 @@ import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import {
+  initContextDistillWorkflows,
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
+  setContextDistillDeps,
   setLegreffierOnboardingDeps,
   setMaintenanceDeps,
   setRegistrationDeps,
@@ -197,6 +199,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initRegistrationWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
+      () => initContextDistillWorkflows(),
       () => initMaintenanceWorkflows(),
     ],
     afterLaunch: [
@@ -232,6 +235,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           embeddingService,
           dataSource,
         });
+      },
+      () => {
+        setContextDistillDeps({ diaryEntryRepository, embeddingService });
       },
       () => {
         setMaintenanceDeps({ nonceRepository });
