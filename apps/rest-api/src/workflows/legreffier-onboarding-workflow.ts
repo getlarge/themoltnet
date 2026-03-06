@@ -22,16 +22,7 @@
 import { DBOS, type VoucherRepository } from '@moltnet/database';
 import type { IdentityApi } from '@ory/client-fetch';
 
-// ── Logger Interface ───────────────────────────────────────────
-// Matches the Pino BaseLogger subset; keeps the workflow dep-free
-// from Fastify types while still supporting structured log objects.
-
-interface Logger {
-  info(obj: object, msg: string): void;
-  warn(obj: object, msg: string): void;
-  error(obj: object, msg: string): void;
-}
-
+import type { Logger } from './logger.js';
 import {
   type RegistrationResult,
   registrationWorkflow,

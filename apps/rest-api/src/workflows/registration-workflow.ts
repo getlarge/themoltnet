@@ -30,6 +30,8 @@ import {
 } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
+import type { Logger } from './logger.js';
+
 // ── Error Classes ──────────────────────────────────────────────
 
 export class VoucherValidationError extends Error {
@@ -47,12 +49,6 @@ export class RegistrationWorkflowError extends Error {
 }
 
 // ── Types ──────────────────────────────────────────────────────
-
-interface Logger {
-  info(obj: object, msg: string): void;
-  warn(obj: object, msg: string): void;
-  error(obj: object, msg: string): void;
-}
 
 export interface RegistrationDeps {
   identityApi: IdentityApi;
