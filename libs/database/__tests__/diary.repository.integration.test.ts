@@ -1,7 +1,7 @@
 /**
- * DiaryEntryRepository Integration Tests
+ * DiaryRepository + DiaryEntryRepository Integration Tests
  *
- * Spins up an ephemeral pgvector/pgvector:pg16 container via testcontainers,
+ * Spins up a single ephemeral pgvector/pgvector:pg16 container via testcontainers,
  * applies all Drizzle migrations, then runs repository tests against it.
  */
 
@@ -15,36 +15,41 @@ import { createDiaryRepository } from '../src/repositories/diary.repository.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
 import { diaries, diaryEntries } from '../src/schema.js';
 
+// Shared container state — one DB for all describes in this file
+let sharedDb: Database;
+let sharedPool: Pool;
+let stopSharedContainer: () => Promise<void>;
+
+beforeAll(async () => {
+  const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+    .withDatabase('moltnet')
+    .withUsername('moltnet')
+    .withPassword('moltnet_secret')
+    .start();
+
+  const databaseUrl = container.getConnectionUri();
+  stopSharedContainer = () => container.stop().then(() => undefined);
+
+  await runMigrations(databaseUrl);
+  ({ db: sharedDb, pool: sharedPool } = createDatabase(databaseUrl));
+}, 60_000);
+
+afterAll(async () => {
+  await sharedPool.end();
+  await stopSharedContainer();
+});
+
 describe('DiaryRepository (integration)', () => {
-  let db: Database;
-  let pool: Pool;
   let diaryRepo: ReturnType<typeof createDiaryRepository>;
-  let stopContainer: () => Promise<void>;
 
   const OWNER_ID = '00000000-0000-4000-a000-000000000002';
 
-  beforeAll(async () => {
-    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
-      .withDatabase('moltnet')
-      .withUsername('moltnet')
-      .withPassword('moltnet_secret')
-      .start();
-
-    const databaseUrl = container.getConnectionUri();
-    stopContainer = () => container.stop().then(() => undefined);
-
-    await runMigrations(databaseUrl);
-    ({ db, pool } = createDatabase(databaseUrl));
-    diaryRepo = createDiaryRepository(db);
-  }, 60_000);
-
-  afterEach(async () => {
-    await db.delete(diaries);
+  beforeAll(() => {
+    diaryRepo = createDiaryRepository(sharedDb);
   });
 
-  afterAll(async () => {
-    await pool.end();
-    await stopContainer();
+  afterEach(async () => {
+    await sharedDb.delete(diaries);
   });
 
   describe('listByIds', () => {
@@ -104,31 +109,16 @@ describe('DiaryRepository (integration)', () => {
 });
 
 describe('DiaryEntryRepository (integration)', () => {
-  let db: Database;
-  let pool: Pool;
   let repo: ReturnType<typeof createDiaryEntryRepository>;
-  let stopContainer: () => Promise<void>;
 
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
   const OWNER_ID = '00000000-0000-4000-a000-000000000001';
 
   beforeAll(async () => {
-    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
-      .withDatabase('moltnet')
-      .withUsername('moltnet')
-      .withPassword('moltnet_secret')
-      .start();
-
-    const databaseUrl = container.getConnectionUri();
-    stopContainer = () => container.stop().then(() => undefined);
-
-    await runMigrations(databaseUrl);
-
-    ({ db, pool } = createDatabase(databaseUrl));
-    repo = createDiaryEntryRepository(db);
+    repo = createDiaryEntryRepository(sharedDb);
 
     // diary_entries.diary_id has a FK to diaries.id — seed the parent row
-    await db
+    await sharedDb
       .insert(diaries)
       .values({
         id: DIARY_ID,
@@ -137,17 +127,15 @@ describe('DiaryEntryRepository (integration)', () => {
         visibility: 'private',
       })
       .onConflictDoNothing();
-  }, 60_000);
+  });
 
   afterEach(async () => {
-    await db.delete(diaryEntries);
+    await sharedDb.delete(diaryEntries);
   });
 
   afterAll(async () => {
-    await db.delete(diaryEntries);
-    await db.delete(diaries);
-    await pool.end();
-    await stopContainer();
+    await sharedDb.delete(diaryEntries);
+    await sharedDb.delete(diaries);
   });
 
   // ── CRUD ───────────────────────────────────────────────────────────

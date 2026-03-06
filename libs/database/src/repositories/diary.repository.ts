@@ -49,7 +49,7 @@ export function createDiaryRepository(db: Database) {
 
     async listByIds(ids: string[]): Promise<Diary[]> {
       if (ids.length === 0) return [];
-      return db
+      return getExecutor(db)
         .select()
         .from(diaries)
         .where(inArray(diaries.id, ids))

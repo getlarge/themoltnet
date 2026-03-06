@@ -171,7 +171,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   // ── Services ───────────────────────────────────────────────────
   const permissionChecker = createPermissionChecker(oryClients.permission);
-  const relationshipReader = createRelationshipReader(oryClients.relationship);
+  const relationshipReader = createRelationshipReader(
+    oryClients.relationshipRead,
+  );
   const relationshipWriter = createRelationshipWriter(oryClients.relationship);
 
   const embeddingService = createEmbeddingService({

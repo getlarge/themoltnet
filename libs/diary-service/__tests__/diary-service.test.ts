@@ -246,6 +246,67 @@ describe('DiaryService', () => {
     });
   });
 
+  describe('createDiary', () => {
+    it('compensates by deleting DB row when Keto grantDiaryOwner fails', async () => {
+      const createdDiary = {
+        ...MOCK_DIARY,
+        id: 'new-diary-id',
+        name: 'My Diary',
+      };
+      diaryRepo.create.mockResolvedValue(createdDiary);
+      writer.grantDiaryOwner.mockRejectedValue(new Error('Keto unavailable'));
+      diaryRepo.delete.mockResolvedValue(true);
+
+      await expect(
+        service.createDiary({ ownerId: OWNER_ID, name: 'My Diary' }),
+      ).rejects.toThrow('Keto unavailable');
+
+      expect(diaryRepo.delete).toHaveBeenCalledWith('new-diary-id');
+    });
+
+    it('returns diary when Keto grant succeeds', async () => {
+      const createdDiary = {
+        ...MOCK_DIARY,
+        id: 'new-diary-id',
+        name: 'My Diary',
+      };
+      diaryRepo.create.mockResolvedValue(createdDiary);
+      writer.grantDiaryOwner.mockResolvedValue(undefined);
+
+      const result = await service.createDiary({
+        ownerId: OWNER_ID,
+        name: 'My Diary',
+      });
+
+      expect(result).toEqual(createdDiary);
+      expect(diaryRepo.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listDiaries', () => {
+    it('queries Keto first then fetches by IDs', async () => {
+      reader.listDiaryIdsByAgent.mockResolvedValue([DIARY_ID]);
+      diaryRepo.listByIds.mockResolvedValue([MOCK_DIARY]);
+
+      const result = await service.listDiaries(OWNER_ID);
+
+      expect(reader.listDiaryIdsByAgent).toHaveBeenCalledWith(OWNER_ID);
+      expect(diaryRepo.listByIds).toHaveBeenCalledWith([DIARY_ID]);
+      expect(diaryRepo.listByOwner).not.toHaveBeenCalled();
+      expect(result).toEqual([MOCK_DIARY]);
+    });
+
+    it('returns empty array when agent has no Keto relations', async () => {
+      reader.listDiaryIdsByAgent.mockResolvedValue([]);
+      diaryRepo.listByIds.mockResolvedValue([]);
+
+      const result = await service.listDiaries(OWNER_ID);
+
+      expect(diaryRepo.listByIds).toHaveBeenCalledWith([]);
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('getById', () => {
     it('returns entry when Keto allows', async () => {
       const mockEntry = createMockEntry();
