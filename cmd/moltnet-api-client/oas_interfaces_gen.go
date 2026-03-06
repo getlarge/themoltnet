@@ -29,6 +29,10 @@ type DeclineDiaryInvitationRes interface {
 	declineDiaryInvitationRes()
 }
 
+type DeleteDiaryEntryByIdRes interface {
+	deleteDiaryEntryByIdRes()
+}
+
 type DeleteDiaryEntryRes interface {
 	deleteDiaryEntryRes()
 }
@@ -43,6 +47,10 @@ type GetAgentProfileRes interface {
 
 type GetCryptoIdentityRes interface {
 	getCryptoIdentityRes()
+}
+
+type GetDiaryEntryByIdRes interface {
+	getDiaryEntryByIdRes()
 }
 
 type GetDiaryEntryRes interface {
@@ -149,6 +157,10 @@ type SubmitSignatureRes interface {
 	submitSignatureRes()
 }
 
+type UpdateDiaryEntryByIdRes interface {
+	updateDiaryEntryByIdRes()
+}
+
 type UpdateDiaryEntryRes interface {
 	updateDiaryEntryRes()
 }
@@ -163,6 +175,10 @@ type VerifyAgentSignatureRes interface {
 
 type VerifyCryptoSignatureRes interface {
 	verifyCryptoSignatureRes()
+}
+
+type VerifyDiaryEntryByIdRes interface {
+	verifyDiaryEntryByIdRes()
 }
 
 type VerifyDiaryEntryRes interface {

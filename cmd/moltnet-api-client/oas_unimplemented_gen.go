@@ -88,10 +88,21 @@ func (UnimplementedHandler) DeleteDiary(ctx context.Context, params DeleteDiaryP
 
 // DeleteDiaryEntry implements deleteDiaryEntry operation.
 //
-// Delete a diary entry.
+// Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // DELETE /diaries/{diaryId}/entries/{entryId}
 func (UnimplementedHandler) DeleteDiaryEntry(ctx context.Context, params DeleteDiaryEntryParams) (r DeleteDiaryEntryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteDiaryEntryById implements deleteDiaryEntryById operation.
+//
+// Delete a diary entry.
+//
+// DELETE /entries/{entryId}
+func (UnimplementedHandler) DeleteDiaryEntryById(ctx context.Context, params DeleteDiaryEntryByIdParams) (r DeleteDiaryEntryByIdRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -124,10 +135,21 @@ func (UnimplementedHandler) GetDiary(ctx context.Context, params GetDiaryParams)
 
 // GetDiaryEntry implements getDiaryEntry operation.
 //
-// Get a single diary entry by ID.
+// Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // GET /diaries/{diaryId}/entries/{entryId}
 func (UnimplementedHandler) GetDiaryEntry(ctx context.Context, params GetDiaryEntryParams) (r GetDiaryEntryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetDiaryEntryById implements getDiaryEntryById operation.
+//
+// Get a single diary entry by ID.
+//
+// GET /entries/{entryId}
+func (UnimplementedHandler) GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (r GetDiaryEntryByIdRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -414,10 +436,21 @@ func (UnimplementedHandler) UpdateDiary(ctx context.Context, req OptUpdateDiaryR
 
 // UpdateDiaryEntry implements updateDiaryEntry operation.
 //
-// Update a diary entry (content, title, tags).
+// Deprecated alias for PATCH /entries/:entryId. Update a diary entry.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // PATCH /diaries/{diaryId}/entries/{entryId}
 func (UnimplementedHandler) UpdateDiaryEntry(ctx context.Context, req OptUpdateDiaryEntryReq, params UpdateDiaryEntryParams) (r UpdateDiaryEntryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateDiaryEntryById implements updateDiaryEntryById operation.
+//
+// Update a diary entry (content, title, tags).
+//
+// PATCH /entries/{entryId}
+func (UnimplementedHandler) UpdateDiaryEntryById(ctx context.Context, req OptUpdateDiaryEntryByIdReq, params UpdateDiaryEntryByIdParams) (r UpdateDiaryEntryByIdRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -441,11 +474,22 @@ func (UnimplementedHandler) VerifyCryptoSignature(ctx context.Context, req *Veri
 
 // VerifyDiaryEntry implements verifyDiaryEntry operation.
 //
-// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
-// and signature is valid.
+// Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // GET /diaries/{diaryId}/entries/{entryId}/verify
 func (UnimplementedHandler) VerifyDiaryEntry(ctx context.Context, params VerifyDiaryEntryParams) (r VerifyDiaryEntryRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// VerifyDiaryEntryById implements verifyDiaryEntryById operation.
+//
+// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
+// and signature is valid.
+//
+// GET /entries/{entryId}/verify
+func (UnimplementedHandler) VerifyDiaryEntryById(ctx context.Context, params VerifyDiaryEntryByIdParams) (r VerifyDiaryEntryByIdRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -1,6 +1,10 @@
 import type {
   AgentProfile,
   Client,
+  CompileDiaryData,
+  CompileResult,
+  ConsolidateDiaryData,
+  ConsolidateResult,
   CreateDiaryData,
   CreateDiaryEntryData,
   CryptoIdentity,
@@ -50,16 +54,18 @@ import type {
 } from '@moltnet/api-client';
 import {
   acceptDiaryInvitation,
+  compileDiary,
+  consolidateDiary,
   createDiary,
   createDiaryEntry,
   createSigningRequest,
   declineDiaryInvitation,
   deleteDiary,
-  deleteDiaryEntry,
+  deleteDiaryEntryById,
   getAgentProfile,
   getCryptoIdentity,
   getDiary,
-  getDiaryEntry,
+  getDiaryEntryById,
   getHealth,
   getLegreffierOnboardingStatus,
   getLlmsTxt,
@@ -88,10 +94,10 @@ import {
   startLegreffierOnboarding,
   submitSignature,
   updateDiary,
-  updateDiaryEntry,
+  updateDiaryEntryById,
   verifyAgentSignature,
   verifyCryptoSignature,
-  verifyDiaryEntry,
+  verifyDiaryEntryById,
   verifyRecoveryChallenge,
 } from '@moltnet/api-client';
 import { computeContentCid } from '@moltnet/crypto-service';
@@ -133,6 +139,16 @@ export interface DiariesNamespace {
   acceptInvitation(id: string): Promise<DiaryShare>;
 
   declineInvitation(id: string): Promise<DiaryShare>;
+
+  consolidate(
+    id: string,
+    body?: ConsolidateDiaryData['body'],
+  ): Promise<ConsolidateResult>;
+
+  compile(
+    id: string,
+    body: NonNullable<CompileDiaryData['body']>,
+  ): Promise<CompileResult>;
 }
 
 export interface EntriesNamespace {
@@ -146,7 +162,14 @@ export interface EntriesNamespace {
     query?: ListDiaryEntriesData['query'],
   ): Promise<DiaryList>;
 
+  getById(entryId: string): Promise<DiaryEntry>;
+
   get(diaryId: string, entryId: string): Promise<DiaryEntry>;
+
+  updateById(
+    entryId: string,
+    body: NonNullable<UpdateDiaryEntryData['body']>,
+  ): Promise<DiaryEntry>;
 
   update(
     diaryId: string,
@@ -154,11 +177,15 @@ export interface EntriesNamespace {
     body: NonNullable<UpdateDiaryEntryData['body']>,
   ): Promise<DiaryEntry>;
 
+  deleteById(entryId: string): Promise<Success>;
+
   delete(diaryId: string, entryId: string): Promise<Success>;
 
   search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
   reflect(query: ReflectDiaryData['query']): Promise<Digest>;
+
+  verifyById(entryId: string): Promise<EntryVerifyResult>;
 
   verify(diaryId: string, entryId: string): Promise<EntryVerifyResult>;
 
@@ -339,10 +366,23 @@ export function createAgent(options: CreateAgentOptions): Agent {
     },
 
     async get(diaryId, entryId) {
-      const result = await getDiaryEntry({
+      void diaryId;
+      const result = await getDiaryEntryById({
         client,
         auth,
-        path: { diaryId, entryId },
+        path: { entryId },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async getById(entryId) {
+      const result = await getDiaryEntryById({
+        client,
+        auth,
+        path: { entryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -351,10 +391,24 @@ export function createAgent(options: CreateAgentOptions): Agent {
     },
 
     async update(diaryId, entryId, body) {
-      const result = await updateDiaryEntry({
+      void diaryId;
+      const result = await updateDiaryEntryById({
         client,
         auth,
-        path: { diaryId, entryId },
+        path: { entryId },
+        body,
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async updateById(entryId, body) {
+      const result = await updateDiaryEntryById({
+        client,
+        auth,
+        path: { entryId },
         body,
       });
       if (result.error) {
@@ -364,10 +418,23 @@ export function createAgent(options: CreateAgentOptions): Agent {
     },
 
     async delete(diaryId, entryId) {
-      const result = await deleteDiaryEntry({
+      void diaryId;
+      const result = await deleteDiaryEntryById({
         client,
         auth,
-        path: { diaryId, entryId },
+        path: { entryId },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async deleteById(entryId) {
+      const result = await deleteDiaryEntryById({
+        client,
+        auth,
+        path: { entryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -392,10 +459,23 @@ export function createAgent(options: CreateAgentOptions): Agent {
     },
 
     async verify(diaryId, entryId) {
-      const result = await verifyDiaryEntry({
+      void diaryId;
+      const result = await verifyDiaryEntryById({
         client,
         auth,
-        path: { diaryId, entryId },
+        path: { entryId },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async verifyById(entryId) {
+      const result = await verifyDiaryEntryById({
+        client,
+        auth,
+        path: { entryId },
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);
@@ -787,6 +867,32 @@ export function createAgent(options: CreateAgentOptions): Agent {
         client,
         auth,
         path: { id },
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async consolidate(id, body) {
+      const result = await consolidateDiary({
+        client,
+        auth,
+        path: { id },
+        body,
+      });
+      if (result.error) {
+        throw problemToError(result.error, result.error.status ?? 500);
+      }
+      return result.data;
+    },
+
+    async compile(id, body) {
+      const result = await compileDiary({
+        client,
+        auth,
+        path: { id },
+        body,
       });
       if (result.error) {
         throw problemToError(result.error, result.error.status ?? 500);

@@ -87,8 +87,8 @@ export interface DiaryService {
   createEntry(input: CreateEntryInput, agentId: string): Promise<DiaryEntry>;
   getEntryById(
     id: string,
-    diaryId: string,
     agentId: string,
+    opts?: { diaryId?: string },
   ): Promise<DiaryEntry>;
   listEntries(input: ListInput): Promise<DiaryEntry[]>;
   searchEntries(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
@@ -96,11 +96,15 @@ export interface DiaryService {
   searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   updateEntry(
     id: string,
-    diaryId: string,
     agentId: string,
     updates: UpdateEntryInput,
+    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
   ): Promise<DiaryEntry | null>;
-  deleteEntry(id: string, diaryId: string, agentId: string): Promise<boolean>;
+  deleteEntry(
+    id: string,
+    agentId: string,
+    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
+  ): Promise<boolean>;
   reflect(input: ReflectInput): Promise<Digest>;
 }
 
@@ -485,11 +489,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async getEntryById(
       id: string,
-      diaryId: string,
       agentId: string,
+      opts?: { diaryId?: string },
     ): Promise<DiaryEntry> {
       const entry = await diaryEntryRepository.findById(id);
-      if (!entry || entry.diaryId !== diaryId) {
+      if (!entry || (opts?.diaryId && entry.diaryId !== opts.diaryId)) {
         throw new DiaryServiceError('not_found', 'Diary entry not found');
       }
       const allowed = await permissionChecker.canViewEntry(id, agentId);
@@ -568,11 +572,26 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async updateEntry(
       id: string,
-      diaryId: string,
       agentId: string,
       updates: UpdateEntryInput,
+      opts?: { diaryId?: string; requireDiaryAccess?: boolean },
     ): Promise<DiaryEntry | null> {
-      const diary = await this.findDiary(diaryId, agentId);
+      const existingForScope = await diaryEntryRepository.findById(id);
+      if (
+        !existingForScope ||
+        (opts?.diaryId && existingForScope.diaryId !== opts.diaryId)
+      ) {
+        throw new DiaryServiceError('not_found', 'Diary entry not found');
+      }
+
+      const diaryId = existingForScope.diaryId;
+      const diary =
+        opts?.requireDiaryAccess && opts.diaryId
+          ? await this.findDiary(opts.diaryId, agentId)
+          : await diaryRepository.findById(diaryId);
+      if (!diary) {
+        throw new DiaryServiceError('not_found', 'Diary not found');
+      }
 
       if (
         updates.content &&
@@ -596,9 +615,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         updates.entryType !== undefined ||
         updates.tags !== undefined ||
         updates.importance !== undefined;
-      const existing = touchesContent
-        ? await diaryEntryRepository.findById(id)
-        : null;
+      const existing = touchesContent ? existingForScope : null;
 
       // Enforce immutability for content-signed entries
       if (existing?.contentSignature) {
@@ -645,10 +662,17 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async deleteEntry(
       id: string,
-      diaryId: string,
       agentId: string,
+      opts?: { diaryId?: string; requireDiaryAccess?: boolean },
     ): Promise<boolean> {
-      await this.findDiary(diaryId, agentId);
+      const existing = await diaryEntryRepository.findById(id);
+      if (!existing || (opts?.diaryId && existing.diaryId !== opts.diaryId)) {
+        throw new DiaryServiceError('not_found', 'Diary entry not found');
+      }
+      const diaryId = existing.diaryId;
+      if (opts?.requireDiaryAccess && opts.diaryId) {
+        await this.findDiary(opts.diaryId, agentId);
+      }
 
       const allowed = await permissionChecker.canDeleteEntry(id, agentId);
       if (!allowed)

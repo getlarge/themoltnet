@@ -79,10 +79,18 @@ type Invoker interface {
 	DeleteDiary(ctx context.Context, params DeleteDiaryParams) (DeleteDiaryRes, error)
 	// DeleteDiaryEntry invokes deleteDiaryEntry operation.
 	//
-	// Delete a diary entry.
+	// Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// DELETE /diaries/{diaryId}/entries/{entryId}
 	DeleteDiaryEntry(ctx context.Context, params DeleteDiaryEntryParams) (DeleteDiaryEntryRes, error)
+	// DeleteDiaryEntryById invokes deleteDiaryEntryById operation.
+	//
+	// Delete a diary entry.
+	//
+	// DELETE /entries/{entryId}
+	DeleteDiaryEntryById(ctx context.Context, params DeleteDiaryEntryByIdParams) (DeleteDiaryEntryByIdRes, error)
 	// GetAgentProfile invokes getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -103,10 +111,18 @@ type Invoker interface {
 	GetDiary(ctx context.Context, params GetDiaryParams) (GetDiaryRes, error)
 	// GetDiaryEntry invokes getDiaryEntry operation.
 	//
-	// Get a single diary entry by ID.
+	// Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /diaries/{diaryId}/entries/{entryId}
 	GetDiaryEntry(ctx context.Context, params GetDiaryEntryParams) (GetDiaryEntryRes, error)
+	// GetDiaryEntryById invokes getDiaryEntryById operation.
+	//
+	// Get a single diary entry by ID.
+	//
+	// GET /entries/{entryId}
+	GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error)
 	// GetHealth invokes getHealth operation.
 	//
 	// Health check endpoint.
@@ -299,10 +315,18 @@ type Invoker interface {
 	UpdateDiary(ctx context.Context, request OptUpdateDiaryReq, params UpdateDiaryParams) (UpdateDiaryRes, error)
 	// UpdateDiaryEntry invokes updateDiaryEntry operation.
 	//
-	// Update a diary entry (content, title, tags).
+	// Deprecated alias for PATCH /entries/:entryId. Update a diary entry.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// PATCH /diaries/{diaryId}/entries/{entryId}
 	UpdateDiaryEntry(ctx context.Context, request OptUpdateDiaryEntryReq, params UpdateDiaryEntryParams) (UpdateDiaryEntryRes, error)
+	// UpdateDiaryEntryById invokes updateDiaryEntryById operation.
+	//
+	// Update a diary entry (content, title, tags).
+	//
+	// PATCH /entries/{entryId}
+	UpdateDiaryEntryById(ctx context.Context, request OptUpdateDiaryEntryByIdReq, params UpdateDiaryEntryByIdParams) (UpdateDiaryEntryByIdRes, error)
 	// VerifyAgentSignature invokes verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.
@@ -317,11 +341,19 @@ type Invoker interface {
 	VerifyCryptoSignature(ctx context.Context, request *VerifyCryptoSignatureReq) (VerifyCryptoSignatureRes, error)
 	// VerifyDiaryEntry invokes verifyDiaryEntry operation.
 	//
-	// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
-	// and signature is valid.
+	// Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /diaries/{diaryId}/entries/{entryId}/verify
 	VerifyDiaryEntry(ctx context.Context, params VerifyDiaryEntryParams) (VerifyDiaryEntryRes, error)
+	// VerifyDiaryEntryById invokes verifyDiaryEntryById operation.
+	//
+	// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
+	// and signature is valid.
+	//
+	// GET /entries/{entryId}/verify
+	VerifyDiaryEntryById(ctx context.Context, params VerifyDiaryEntryByIdParams) (VerifyDiaryEntryByIdRes, error)
 	// VerifyRecoveryChallenge invokes verifyRecoveryChallenge operation.
 	//
 	// Verify a signed recovery challenge and return a Kratos recovery code.
@@ -1358,7 +1390,9 @@ func (c *Client) sendDeleteDiary(ctx context.Context, params DeleteDiaryParams) 
 
 // DeleteDiaryEntry invokes deleteDiaryEntry operation.
 //
-// Delete a diary entry.
+// Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // DELETE /diaries/{diaryId}/entries/{entryId}
 func (c *Client) DeleteDiaryEntry(ctx context.Context, params DeleteDiaryEntryParams) (DeleteDiaryEntryRes, error) {
@@ -1493,6 +1527,131 @@ func (c *Client) sendDeleteDiaryEntry(ctx context.Context, params DeleteDiaryEnt
 
 	stage = "DecodeResponse"
 	result, err := decodeDeleteDiaryEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// DeleteDiaryEntryById invokes deleteDiaryEntryById operation.
+//
+// Delete a diary entry.
+//
+// DELETE /entries/{entryId}
+func (c *Client) DeleteDiaryEntryById(ctx context.Context, params DeleteDiaryEntryByIdParams) (DeleteDiaryEntryByIdRes, error) {
+	res, err := c.sendDeleteDiaryEntryById(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendDeleteDiaryEntryById(ctx context.Context, params DeleteDiaryEntryByIdParams) (res DeleteDiaryEntryByIdRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("deleteDiaryEntryById"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/entries/{entryId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, DeleteDiaryEntryByIdOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, DeleteDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeDeleteDiaryEntryByIdResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -1826,7 +1985,9 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 
 // GetDiaryEntry invokes getDiaryEntry operation.
 //
-// Get a single diary entry by ID.
+// Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // GET /diaries/{diaryId}/entries/{entryId}
 func (c *Client) GetDiaryEntry(ctx context.Context, params GetDiaryEntryParams) (GetDiaryEntryRes, error) {
@@ -1961,6 +2122,131 @@ func (c *Client) sendGetDiaryEntry(ctx context.Context, params GetDiaryEntryPara
 
 	stage = "DecodeResponse"
 	result, err := decodeGetDiaryEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetDiaryEntryById invokes getDiaryEntryById operation.
+//
+// Get a single diary entry by ID.
+//
+// GET /entries/{entryId}
+func (c *Client) GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error) {
+	res, err := c.sendGetDiaryEntryById(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (res GetDiaryEntryByIdRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getDiaryEntryById"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/entries/{entryId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetDiaryEntryByIdOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, GetDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetDiaryEntryByIdResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -5362,7 +5648,9 @@ func (c *Client) sendUpdateDiary(ctx context.Context, request OptUpdateDiaryReq,
 
 // UpdateDiaryEntry invokes updateDiaryEntry operation.
 //
-// Update a diary entry (content, title, tags).
+// Deprecated alias for PATCH /entries/:entryId. Update a diary entry.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // PATCH /diaries/{diaryId}/entries/{entryId}
 func (c *Client) UpdateDiaryEntry(ctx context.Context, request OptUpdateDiaryEntryReq, params UpdateDiaryEntryParams) (UpdateDiaryEntryRes, error) {
@@ -5500,6 +5788,134 @@ func (c *Client) sendUpdateDiaryEntry(ctx context.Context, request OptUpdateDiar
 
 	stage = "DecodeResponse"
 	result, err := decodeUpdateDiaryEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// UpdateDiaryEntryById invokes updateDiaryEntryById operation.
+//
+// Update a diary entry (content, title, tags).
+//
+// PATCH /entries/{entryId}
+func (c *Client) UpdateDiaryEntryById(ctx context.Context, request OptUpdateDiaryEntryByIdReq, params UpdateDiaryEntryByIdParams) (UpdateDiaryEntryByIdRes, error) {
+	res, err := c.sendUpdateDiaryEntryById(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendUpdateDiaryEntryById(ctx context.Context, request OptUpdateDiaryEntryByIdReq, params UpdateDiaryEntryByIdParams) (res UpdateDiaryEntryByIdRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("updateDiaryEntryById"),
+		semconv.HTTPRequestMethodKey.String("PATCH"),
+		semconv.URLTemplateKey.String("/entries/{entryId}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, UpdateDiaryEntryByIdOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "PATCH", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeUpdateDiaryEntryByIdRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, UpdateDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeUpdateDiaryEntryByIdResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -5682,8 +6098,9 @@ func (c *Client) sendVerifyCryptoSignature(ctx context.Context, request *VerifyC
 
 // VerifyDiaryEntry invokes verifyDiaryEntry operation.
 //
-// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
-// and signature is valid.
+// Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // GET /diaries/{diaryId}/entries/{entryId}/verify
 func (c *Client) VerifyDiaryEntry(ctx context.Context, params VerifyDiaryEntryParams) (VerifyDiaryEntryRes, error) {
@@ -5819,6 +6236,133 @@ func (c *Client) sendVerifyDiaryEntry(ctx context.Context, params VerifyDiaryEnt
 
 	stage = "DecodeResponse"
 	result, err := decodeVerifyDiaryEntryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// VerifyDiaryEntryById invokes verifyDiaryEntryById operation.
+//
+// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,
+// and signature is valid.
+//
+// GET /entries/{entryId}/verify
+func (c *Client) VerifyDiaryEntryById(ctx context.Context, params VerifyDiaryEntryByIdParams) (VerifyDiaryEntryByIdRes, error) {
+	res, err := c.sendVerifyDiaryEntryById(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendVerifyDiaryEntryById(ctx context.Context, params VerifyDiaryEntryByIdParams) (res VerifyDiaryEntryByIdRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("verifyDiaryEntryById"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/entries/{entryId}/verify"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, VerifyDiaryEntryByIdOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/entries/"
+	{
+		// Encode "entryId" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "entryId",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.EntryId))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/verify"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, VerifyDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeVerifyDiaryEntryByIdResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

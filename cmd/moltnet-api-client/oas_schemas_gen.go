@@ -1369,6 +1369,22 @@ type DeleteDiaryBadRequest ProblemDetails
 
 func (*DeleteDiaryBadRequest) deleteDiaryRes() {}
 
+type DeleteDiaryEntryByIdForbidden ProblemDetails
+
+func (*DeleteDiaryEntryByIdForbidden) deleteDiaryEntryByIdRes() {}
+
+type DeleteDiaryEntryByIdInternalServerError ProblemDetails
+
+func (*DeleteDiaryEntryByIdInternalServerError) deleteDiaryEntryByIdRes() {}
+
+type DeleteDiaryEntryByIdNotFound ProblemDetails
+
+func (*DeleteDiaryEntryByIdNotFound) deleteDiaryEntryByIdRes() {}
+
+type DeleteDiaryEntryByIdUnauthorized ProblemDetails
+
+func (*DeleteDiaryEntryByIdUnauthorized) deleteDiaryEntryByIdRes() {}
+
 type DeleteDiaryEntryForbidden ProblemDetails
 
 func (*DeleteDiaryEntryForbidden) deleteDiaryEntryRes() {}
@@ -1720,9 +1736,11 @@ func (s *DiaryEntry) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
 }
 
-func (*DiaryEntry) createDiaryEntryRes() {}
-func (*DiaryEntry) getDiaryEntryRes()    {}
-func (*DiaryEntry) updateDiaryEntryRes() {}
+func (*DiaryEntry) createDiaryEntryRes()     {}
+func (*DiaryEntry) getDiaryEntryByIdRes()    {}
+func (*DiaryEntry) getDiaryEntryRes()        {}
+func (*DiaryEntry) updateDiaryEntryByIdRes() {}
+func (*DiaryEntry) updateDiaryEntryRes()     {}
 
 type DiaryEntryEntryType string
 
@@ -2344,7 +2362,8 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 	s.Valid = val
 }
 
-func (*EntryVerifyResult) verifyDiaryEntryRes() {}
+func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
+func (*EntryVerifyResult) verifyDiaryEntryRes()     {}
 
 type GetAgentProfileInternalServerError ProblemDetails
 
@@ -2361,6 +2380,22 @@ func (*GetCryptoIdentityInternalServerError) getCryptoIdentityRes() {}
 type GetCryptoIdentityUnauthorized ProblemDetails
 
 func (*GetCryptoIdentityUnauthorized) getCryptoIdentityRes() {}
+
+type GetDiaryEntryByIdForbidden ProblemDetails
+
+func (*GetDiaryEntryByIdForbidden) getDiaryEntryByIdRes() {}
+
+type GetDiaryEntryByIdInternalServerError ProblemDetails
+
+func (*GetDiaryEntryByIdInternalServerError) getDiaryEntryByIdRes() {}
+
+type GetDiaryEntryByIdNotFound ProblemDetails
+
+func (*GetDiaryEntryByIdNotFound) getDiaryEntryByIdRes() {}
+
+type GetDiaryEntryByIdUnauthorized ProblemDetails
+
+func (*GetDiaryEntryByIdUnauthorized) getDiaryEntryByIdRes() {}
 
 type GetDiaryEntryForbidden ProblemDetails
 
@@ -5205,6 +5240,98 @@ func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
 	return d
 }
 
+// NewOptUpdateDiaryEntryByIdReq returns new OptUpdateDiaryEntryByIdReq with value set to v.
+func NewOptUpdateDiaryEntryByIdReq(v UpdateDiaryEntryByIdReq) OptUpdateDiaryEntryByIdReq {
+	return OptUpdateDiaryEntryByIdReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateDiaryEntryByIdReq is optional UpdateDiaryEntryByIdReq.
+type OptUpdateDiaryEntryByIdReq struct {
+	Value UpdateDiaryEntryByIdReq
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateDiaryEntryByIdReq was set.
+func (o OptUpdateDiaryEntryByIdReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateDiaryEntryByIdReq) Reset() {
+	var v UpdateDiaryEntryByIdReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateDiaryEntryByIdReq) SetTo(v UpdateDiaryEntryByIdReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateDiaryEntryByIdReq) Get() (v UpdateDiaryEntryByIdReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateDiaryEntryByIdReq) Or(d UpdateDiaryEntryByIdReq) UpdateDiaryEntryByIdReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateDiaryEntryByIdReqEntryType returns new OptUpdateDiaryEntryByIdReqEntryType with value set to v.
+func NewOptUpdateDiaryEntryByIdReqEntryType(v UpdateDiaryEntryByIdReqEntryType) OptUpdateDiaryEntryByIdReqEntryType {
+	return OptUpdateDiaryEntryByIdReqEntryType{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateDiaryEntryByIdReqEntryType is optional UpdateDiaryEntryByIdReqEntryType.
+type OptUpdateDiaryEntryByIdReqEntryType struct {
+	Value UpdateDiaryEntryByIdReqEntryType
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateDiaryEntryByIdReqEntryType was set.
+func (o OptUpdateDiaryEntryByIdReqEntryType) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateDiaryEntryByIdReqEntryType) Reset() {
+	var v UpdateDiaryEntryByIdReqEntryType
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateDiaryEntryByIdReqEntryType) SetTo(v UpdateDiaryEntryByIdReqEntryType) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateDiaryEntryByIdReqEntryType) Get() (v UpdateDiaryEntryByIdReqEntryType, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateDiaryEntryByIdReqEntryType) Or(d UpdateDiaryEntryByIdReqEntryType) UpdateDiaryEntryByIdReqEntryType {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUpdateDiaryEntryReq returns new OptUpdateDiaryEntryReq with value set to v.
 func NewOptUpdateDiaryEntryReq(v UpdateDiaryEntryReq) OptUpdateDiaryEntryReq {
 	return OptUpdateDiaryEntryReq{
@@ -6710,9 +6837,168 @@ func (s *Success) SetSuccess(val bool) {
 	s.Success = val
 }
 
-func (*Success) deleteDiaryEntryRes() {}
-func (*Success) deleteDiaryRes()      {}
-func (*Success) revokeDiaryShareRes() {}
+func (*Success) deleteDiaryEntryByIdRes() {}
+func (*Success) deleteDiaryEntryRes()     {}
+func (*Success) deleteDiaryRes()          {}
+func (*Success) revokeDiaryShareRes()     {}
+
+type UpdateDiaryEntryByIdConflict ProblemDetails
+
+func (*UpdateDiaryEntryByIdConflict) updateDiaryEntryByIdRes() {}
+
+type UpdateDiaryEntryByIdForbidden ProblemDetails
+
+func (*UpdateDiaryEntryByIdForbidden) updateDiaryEntryByIdRes() {}
+
+type UpdateDiaryEntryByIdInternalServerError ProblemDetails
+
+func (*UpdateDiaryEntryByIdInternalServerError) updateDiaryEntryByIdRes() {}
+
+type UpdateDiaryEntryByIdNotFound ProblemDetails
+
+func (*UpdateDiaryEntryByIdNotFound) updateDiaryEntryByIdRes() {}
+
+type UpdateDiaryEntryByIdReq struct {
+	Content      OptString                           `json:"content"`
+	EntryType    OptUpdateDiaryEntryByIdReqEntryType `json:"entryType"`
+	Importance   OptInt                              `json:"importance"`
+	SupersededBy OptUUID                             `json:"supersededBy"`
+	Tags         []string                            `json:"tags"`
+	Title        OptString                           `json:"title"`
+}
+
+// GetContent returns the value of Content.
+func (s *UpdateDiaryEntryByIdReq) GetContent() OptString {
+	return s.Content
+}
+
+// GetEntryType returns the value of EntryType.
+func (s *UpdateDiaryEntryByIdReq) GetEntryType() OptUpdateDiaryEntryByIdReqEntryType {
+	return s.EntryType
+}
+
+// GetImportance returns the value of Importance.
+func (s *UpdateDiaryEntryByIdReq) GetImportance() OptInt {
+	return s.Importance
+}
+
+// GetSupersededBy returns the value of SupersededBy.
+func (s *UpdateDiaryEntryByIdReq) GetSupersededBy() OptUUID {
+	return s.SupersededBy
+}
+
+// GetTags returns the value of Tags.
+func (s *UpdateDiaryEntryByIdReq) GetTags() []string {
+	return s.Tags
+}
+
+// GetTitle returns the value of Title.
+func (s *UpdateDiaryEntryByIdReq) GetTitle() OptString {
+	return s.Title
+}
+
+// SetContent sets the value of Content.
+func (s *UpdateDiaryEntryByIdReq) SetContent(val OptString) {
+	s.Content = val
+}
+
+// SetEntryType sets the value of EntryType.
+func (s *UpdateDiaryEntryByIdReq) SetEntryType(val OptUpdateDiaryEntryByIdReqEntryType) {
+	s.EntryType = val
+}
+
+// SetImportance sets the value of Importance.
+func (s *UpdateDiaryEntryByIdReq) SetImportance(val OptInt) {
+	s.Importance = val
+}
+
+// SetSupersededBy sets the value of SupersededBy.
+func (s *UpdateDiaryEntryByIdReq) SetSupersededBy(val OptUUID) {
+	s.SupersededBy = val
+}
+
+// SetTags sets the value of Tags.
+func (s *UpdateDiaryEntryByIdReq) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetTitle sets the value of Title.
+func (s *UpdateDiaryEntryByIdReq) SetTitle(val OptString) {
+	s.Title = val
+}
+
+type UpdateDiaryEntryByIdReqEntryType string
+
+const (
+	UpdateDiaryEntryByIdReqEntryTypeEpisodic   UpdateDiaryEntryByIdReqEntryType = "episodic"
+	UpdateDiaryEntryByIdReqEntryTypeSemantic   UpdateDiaryEntryByIdReqEntryType = "semantic"
+	UpdateDiaryEntryByIdReqEntryTypeProcedural UpdateDiaryEntryByIdReqEntryType = "procedural"
+	UpdateDiaryEntryByIdReqEntryTypeReflection UpdateDiaryEntryByIdReqEntryType = "reflection"
+	UpdateDiaryEntryByIdReqEntryTypeIdentity   UpdateDiaryEntryByIdReqEntryType = "identity"
+	UpdateDiaryEntryByIdReqEntryTypeSoul       UpdateDiaryEntryByIdReqEntryType = "soul"
+)
+
+// AllValues returns all UpdateDiaryEntryByIdReqEntryType values.
+func (UpdateDiaryEntryByIdReqEntryType) AllValues() []UpdateDiaryEntryByIdReqEntryType {
+	return []UpdateDiaryEntryByIdReqEntryType{
+		UpdateDiaryEntryByIdReqEntryTypeEpisodic,
+		UpdateDiaryEntryByIdReqEntryTypeSemantic,
+		UpdateDiaryEntryByIdReqEntryTypeProcedural,
+		UpdateDiaryEntryByIdReqEntryTypeReflection,
+		UpdateDiaryEntryByIdReqEntryTypeIdentity,
+		UpdateDiaryEntryByIdReqEntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateDiaryEntryByIdReqEntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateDiaryEntryByIdReqEntryTypeEpisodic:
+		return []byte(s), nil
+	case UpdateDiaryEntryByIdReqEntryTypeSemantic:
+		return []byte(s), nil
+	case UpdateDiaryEntryByIdReqEntryTypeProcedural:
+		return []byte(s), nil
+	case UpdateDiaryEntryByIdReqEntryTypeReflection:
+		return []byte(s), nil
+	case UpdateDiaryEntryByIdReqEntryTypeIdentity:
+		return []byte(s), nil
+	case UpdateDiaryEntryByIdReqEntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateDiaryEntryByIdReqEntryType) UnmarshalText(data []byte) error {
+	switch UpdateDiaryEntryByIdReqEntryType(data) {
+	case UpdateDiaryEntryByIdReqEntryTypeEpisodic:
+		*s = UpdateDiaryEntryByIdReqEntryTypeEpisodic
+		return nil
+	case UpdateDiaryEntryByIdReqEntryTypeSemantic:
+		*s = UpdateDiaryEntryByIdReqEntryTypeSemantic
+		return nil
+	case UpdateDiaryEntryByIdReqEntryTypeProcedural:
+		*s = UpdateDiaryEntryByIdReqEntryTypeProcedural
+		return nil
+	case UpdateDiaryEntryByIdReqEntryTypeReflection:
+		*s = UpdateDiaryEntryByIdReqEntryTypeReflection
+		return nil
+	case UpdateDiaryEntryByIdReqEntryTypeIdentity:
+		*s = UpdateDiaryEntryByIdReqEntryTypeIdentity
+		return nil
+	case UpdateDiaryEntryByIdReqEntryTypeSoul:
+		*s = UpdateDiaryEntryByIdReqEntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateDiaryEntryByIdUnauthorized ProblemDetails
+
+func (*UpdateDiaryEntryByIdUnauthorized) updateDiaryEntryByIdRes() {}
 
 type UpdateDiaryEntryConflict ProblemDetails
 
@@ -6996,6 +7282,18 @@ func (s *VerifyCryptoSignatureReq) GetSignature() string {
 func (s *VerifyCryptoSignatureReq) SetSignature(val string) {
 	s.Signature = val
 }
+
+type VerifyDiaryEntryByIdInternalServerError ProblemDetails
+
+func (*VerifyDiaryEntryByIdInternalServerError) verifyDiaryEntryByIdRes() {}
+
+type VerifyDiaryEntryByIdNotFound ProblemDetails
+
+func (*VerifyDiaryEntryByIdNotFound) verifyDiaryEntryByIdRes() {}
+
+type VerifyDiaryEntryByIdUnauthorized ProblemDetails
+
+func (*VerifyDiaryEntryByIdUnauthorized) verifyDiaryEntryByIdRes() {}
 
 type VerifyDiaryEntryInternalServerError ProblemDetails
 

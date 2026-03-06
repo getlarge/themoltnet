@@ -1,16 +1,18 @@
 import type { Client } from '@moltnet/api-client';
 import {
   acceptDiaryInvitation,
+  compileDiary,
+  consolidateDiary,
   createDiary,
   createDiaryEntry,
   createSigningRequest,
   declineDiaryInvitation,
   deleteDiary,
-  deleteDiaryEntry,
+  deleteDiaryEntryById,
   getAgentProfile,
   getCryptoIdentity,
   getDiary,
-  getDiaryEntry,
+  getDiaryEntryById,
   getHealth,
   getLegreffierOnboardingStatus,
   getLlmsTxt,
@@ -39,9 +41,10 @@ import {
   startLegreffierOnboarding,
   submitSignature,
   updateDiary,
-  updateDiaryEntry,
+  updateDiaryEntryById,
   verifyAgentSignature,
   verifyCryptoSignature,
+  verifyDiaryEntryById,
   verifyRecoveryChallenge,
 } from '@moltnet/api-client';
 import { describe, expect, it, vi } from 'vitest';
@@ -67,9 +70,11 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     declineDiaryInvitation: vi.fn(),
     createDiaryEntry: vi.fn(),
     listDiaryEntries: vi.fn(),
-    getDiaryEntry: vi.fn(),
-    updateDiaryEntry: vi.fn(),
-    deleteDiaryEntry: vi.fn(),
+    getDiaryEntryById: vi.fn(),
+    updateDiaryEntryById: vi.fn(),
+    deleteDiaryEntryById: vi.fn(),
+    consolidateDiary: vi.fn(),
+    compileDiary: vi.fn(),
     searchDiary: vi.fn(),
     reflectDiary: vi.fn(),
     getWhoami: vi.fn(),
@@ -77,6 +82,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     verifyAgentSignature: vi.fn(),
     getCryptoIdentity: vi.fn(),
     verifyCryptoSignature: vi.fn(),
+    verifyDiaryEntryById: vi.fn(),
     listSigningRequests: vi.fn(),
     createSigningRequest: vi.fn(),
     getSigningRequest: vi.fn(),
@@ -197,8 +203,8 @@ describe('Agent facade', () => {
       );
     });
 
-    it('diary.get passes id as path param', async () => {
-      vi.mocked(getDiaryEntry).mockResolvedValueOnce({
+    it('diary.get passes entry id as path param', async () => {
+      vi.mocked(getDiaryEntryById).mockResolvedValueOnce({
         data: mockEntry,
         error: undefined,
       } as any);
@@ -206,15 +212,15 @@ describe('Agent facade', () => {
       const agent = makeAgent();
       await agent.entries.get('my-diary', 'entry-1');
 
-      expect(getDiaryEntry).toHaveBeenCalledWith(
+      expect(getDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryId: 'my-diary', entryId: 'entry-1' },
+          path: { entryId: 'entry-1' },
         }),
       );
     });
 
-    it('diary.update passes id and body', async () => {
-      vi.mocked(updateDiaryEntry).mockResolvedValueOnce({
+    it('diary.update passes entry id and body', async () => {
+      vi.mocked(updateDiaryEntryById).mockResolvedValueOnce({
         data: mockEntry,
         error: undefined,
       } as any);
@@ -224,16 +230,16 @@ describe('Agent facade', () => {
         content: 'Updated',
       });
 
-      expect(updateDiaryEntry).toHaveBeenCalledWith(
+      expect(updateDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryId: 'my-diary', entryId: 'entry-1' },
+          path: { entryId: 'entry-1' },
           body: { content: 'Updated' },
         }),
       );
     });
 
-    it('diary.delete passes id as path param', async () => {
-      vi.mocked(deleteDiaryEntry).mockResolvedValueOnce({
+    it('diary.delete passes entry id as path param', async () => {
+      vi.mocked(deleteDiaryEntryById).mockResolvedValueOnce({
         data: { success: true },
         error: undefined,
       } as any);
@@ -242,9 +248,60 @@ describe('Agent facade', () => {
       const result = await agent.entries.delete('my-diary', 'entry-1');
 
       expect(result).toEqual({ success: true });
-      expect(deleteDiaryEntry).toHaveBeenCalledWith(
+      expect(deleteDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryId: 'my-diary', entryId: 'entry-1' },
+          path: { entryId: 'entry-1' },
+        }),
+      );
+    });
+
+    it('diary.getById passes entry id as path param', async () => {
+      vi.mocked(getDiaryEntryById).mockResolvedValueOnce({
+        data: mockEntry,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.entries.getById('entry-1');
+
+      expect(getDiaryEntryById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { entryId: 'entry-1' },
+        }),
+      );
+    });
+
+    it('diary.updateById passes entry id and body', async () => {
+      vi.mocked(updateDiaryEntryById).mockResolvedValueOnce({
+        data: mockEntry,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.entries.updateById('entry-1', {
+        content: 'Updated',
+      });
+
+      expect(updateDiaryEntryById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { entryId: 'entry-1' },
+          body: { content: 'Updated' },
+        }),
+      );
+    });
+
+    it('diary.deleteById passes entry id as path param', async () => {
+      vi.mocked(deleteDiaryEntryById).mockResolvedValueOnce({
+        data: { success: true },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.entries.deleteById('entry-1');
+
+      expect(deleteDiaryEntryById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { entryId: 'entry-1' },
         }),
       );
     });
@@ -285,6 +342,22 @@ describe('Agent facade', () => {
       expect(reflectDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           query: { diaryId: 'my-diary', days: 7 },
+        }),
+      );
+    });
+
+    it('diary.verifyById passes entry id as path param', async () => {
+      vi.mocked(verifyDiaryEntryById).mockResolvedValueOnce({
+        data: { signed: false, hashMatches: false, signatureValid: false },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.entries.verifyById('entry-1');
+
+      expect(verifyDiaryEntryById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { entryId: 'entry-1' },
         }),
       );
     });
@@ -851,6 +924,56 @@ describe('Agent facade', () => {
 
       expect(declineDiaryInvitation).toHaveBeenCalledWith(
         expect.objectContaining({ path: { id: 'inv-1' } }),
+      );
+    });
+
+    it('diaries.consolidate passes id and body', async () => {
+      vi.mocked(consolidateDiary).mockResolvedValueOnce({
+        data: {
+          clusters: [],
+          stats: { inputCount: 0, clusterCount: 0, elapsedMs: 0 },
+          trace: { thresholdUsed: 0.2, strategyUsed: 'centroid' },
+          workflowId: 'wf-1',
+        },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.consolidate('diary-1', {
+        threshold: 0.2,
+        strategy: 'centroid',
+      });
+
+      expect(consolidateDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'diary-1' },
+          body: { threshold: 0.2, strategy: 'centroid' },
+        }),
+      );
+    });
+
+    it('diaries.compile passes id and body', async () => {
+      vi.mocked(compileDiary).mockResolvedValueOnce({
+        data: {
+          entries: [],
+          stats: { tokenBudget: 1000, usedTokens: 0, elapsedMs: 0 },
+          trace: { lambdaUsed: 0.5, selectedCount: 0 },
+          workflowId: 'wf-2',
+        },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.diaries.compile('diary-1', {
+        query: 'auth flow',
+        tokenBudget: 1000,
+      });
+
+      expect(compileDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'diary-1' },
+          body: { query: 'auth flow', tokenBudget: 1000 },
+        }),
       );
     });
 
