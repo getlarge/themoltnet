@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.16.0...github-agent-v0.17.0) (2026-03-06)
+
+
+### Features
+
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.15.0...github-agent-v0.16.0) (2026-03-04)
 
 

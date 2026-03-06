@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.23.0...moltnet-api-client-v0.24.0) (2026-03-06)
+
+
+### Features
+
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.22.0...moltnet-api-client-v0.23.0) (2026-03-04)
 
 

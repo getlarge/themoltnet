@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.62.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.61.0...sdk-v0.62.0) (2026-03-06)
+
+
+### Features
+
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+
 ## [0.61.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.60.0...sdk-v0.61.0) (2026-03-06)
 
 

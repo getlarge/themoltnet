@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.20.0...openclaw-skill-v0.21.0) (2026-03-06)
+
+
+### Features
+
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.19.0...openclaw-skill-v0.20.0) (2026-02-27)
 
 
