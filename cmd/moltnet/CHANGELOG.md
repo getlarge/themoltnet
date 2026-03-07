@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.60.0](https://github.com/getlarge/themoltnet/compare/cli-v0.59.0...cli-v0.60.0) (2026-03-07)
+
+
+### Features
+
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+
 ## [0.59.0](https://github.com/getlarge/themoltnet/compare/cli-v0.58.0...cli-v0.59.0) (2026-03-04)
 
 
