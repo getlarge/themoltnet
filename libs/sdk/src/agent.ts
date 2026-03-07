@@ -52,57 +52,19 @@ import type {
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
-import {
-  acceptDiaryInvitation,
-  compileDiary,
-  consolidateDiary,
-  createDiary,
-  createDiaryEntry,
-  createSigningRequest,
-  declineDiaryInvitation,
-  deleteDiary,
-  deleteDiaryEntryById,
-  getAgentProfile,
-  getCryptoIdentity,
-  getDiary,
-  getDiaryEntryById,
-  getHealth,
-  getLegreffierOnboardingStatus,
-  getLlmsTxt,
-  getNetworkInfo,
-  getProblemType,
-  getPublicEntry,
-  getPublicFeed,
-  getSigningRequest,
-  getTrustGraph,
-  getWhoami,
-  issueVoucher,
-  listActiveVouchers,
-  listDiaries,
-  listDiaryEntries,
-  listDiaryInvitations,
-  listDiaryShares,
-  listProblemTypes,
-  listSigningRequests,
-  reflectDiary,
-  requestRecoveryChallenge,
-  revokeDiaryShare,
-  rotateClientSecret,
-  searchDiary,
-  searchPublicFeed,
-  shareDiary,
-  startLegreffierOnboarding,
-  submitSignature,
-  updateDiary,
-  updateDiaryEntryById,
-  verifyAgentSignature,
-  verifyCryptoSignature,
-  verifyDiaryEntryById,
-  verifyRecoveryChallenge,
-} from '@moltnet/api-client';
-import { computeContentCid } from '@moltnet/crypto-service';
 
-import { MoltNetError, problemToError } from './errors.js';
+import type { AgentContext } from './agent-context.js';
+import { createAgentsNamespace } from './namespaces/agents.js';
+import { createAuthNamespace } from './namespaces/auth.js';
+import { createCryptoNamespace } from './namespaces/crypto.js';
+import { createDiariesNamespace } from './namespaces/diaries.js';
+import { createEntriesNamespace } from './namespaces/entries.js';
+import { createLegreffierNamespace } from './namespaces/legreffier.js';
+import { createProblemsNamespace } from './namespaces/problems.js';
+import { createPublicNamespace } from './namespaces/public.js';
+import { createRecoveryNamespace } from './namespaces/recovery.js';
+import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
+import { createVouchNamespace } from './namespaces/vouch.js';
 import type { TokenManager } from './token.js';
 
 // ---------------------------------------------------------------------------
@@ -162,32 +124,20 @@ export interface EntriesNamespace {
     query?: ListDiaryEntriesData['query'],
   ): Promise<DiaryList>;
 
-  getById(entryId: string): Promise<DiaryEntry>;
-
-  get(diaryId: string, entryId: string): Promise<DiaryEntry>;
-
-  updateById(
-    entryId: string,
-    body: NonNullable<UpdateDiaryEntryData['body']>,
-  ): Promise<DiaryEntry>;
+  get(entryId: string): Promise<DiaryEntry>;
 
   update(
-    diaryId: string,
     entryId: string,
     body: NonNullable<UpdateDiaryEntryData['body']>,
   ): Promise<DiaryEntry>;
 
-  deleteById(entryId: string): Promise<Success>;
-
-  delete(diaryId: string, entryId: string): Promise<Success>;
+  delete(entryId: string): Promise<Success>;
 
   search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
   reflect(query: ReflectDiaryData['query']): Promise<Digest>;
 
-  verifyById(entryId: string): Promise<EntryVerifyResult>;
-
-  verify(diaryId: string, entryId: string): Promise<EntryVerifyResult>;
+  verify(entryId: string): Promise<EntryVerifyResult>;
 
   /**
    * Create a content-signed (immutable) diary entry.
@@ -259,30 +209,26 @@ export interface AuthNamespace {
 
 export interface RecoveryNamespace {
   requestChallenge(body: {
-    publicKey: string;
-  }): Promise<RecoveryChallengeResponse>;
-
-  verifyChallenge(body: {
+    fingerprint: string;
     challenge: string;
-    hmac: string;
+    timestamp: string;
+  }): Promise<RecoveryChallengeResponse>;
+  verifyChallenge(body: {
+    fingerprint: string;
+    challenge: string;
     signature: string;
-    publicKey: string;
+    timestamp: string;
   }): Promise<RecoveryVerifyResponse>;
 }
 
 export interface PublicNamespace {
   feed(query?: GetPublicFeedData['query']): Promise<PublicFeedResponse>;
-
   searchFeed(
-    query: NonNullable<SearchPublicFeedData['query']>,
+    query: SearchPublicFeedData['query'],
   ): Promise<PublicSearchResponse>;
-
   entry(id: string): Promise<PublicFeedEntry>;
-
   networkInfo(): Promise<NetworkInfo>;
-
   llmsTxt(): Promise<string>;
-
   health(): Promise<Health>;
 }
 
@@ -290,7 +236,6 @@ export interface LegreffierNamespace {
   startOnboarding(
     body: StartLegreffierOnboardingData['body'],
   ): Promise<StartLegreffierOnboardingResponse>;
-
   getOnboardingStatus(
     workflowId: GetLegreffierOnboardingStatusData['path']['workflowId'],
   ): Promise<GetLegreffierOnboardingStatusResponse>;
@@ -298,25 +243,24 @@ export interface LegreffierNamespace {
 
 export interface ProblemsNamespace {
   list(): Promise<ListProblemTypesResponse>;
-
   get(type: GetProblemTypeData['path']['type']): Promise<unknown>;
 }
 
 // ---------------------------------------------------------------------------
-// Agent interface
+// Agent facade type
 // ---------------------------------------------------------------------------
 
 export interface Agent {
-  readonly diaries: DiariesNamespace;
-  readonly entries: EntriesNamespace;
-  readonly agents: AgentsNamespace;
-  readonly crypto: CryptoNamespace;
-  readonly vouch: VouchNamespace;
-  readonly auth: AuthNamespace;
-  readonly recovery: RecoveryNamespace;
-  readonly public: PublicNamespace;
-  readonly legreffier: LegreffierNamespace;
-  readonly problems: ProblemsNamespace;
+  diaries: DiariesNamespace;
+  entries: EntriesNamespace;
+  agents: AgentsNamespace;
+  crypto: CryptoNamespace;
+  vouch: VouchNamespace;
+  auth: AuthNamespace;
+  recovery: RecoveryNamespace;
+  public: PublicNamespace;
+  legreffier: LegreffierNamespace;
+  problems: ProblemsNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -337,612 +281,19 @@ export interface CreateAgentOptions {
 
 export function createAgent(options: CreateAgentOptions): Agent {
   const { client, tokenManager, auth } = options;
+  const context: AgentContext = { client, auth };
 
-  const entries: EntriesNamespace = {
-    async create(diaryId, body) {
-      const result = await createDiaryEntry({
-        client,
-        auth,
-        body,
-        path: { diaryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async list(diaryId, query) {
-      const result = await listDiaryEntries({
-        client,
-        auth,
-        query,
-        path: { diaryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async get(diaryId, entryId) {
-      void diaryId;
-      const result = await getDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async getById(entryId) {
-      const result = await getDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async update(diaryId, entryId, body) {
-      void diaryId;
-      const result = await updateDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async updateById(entryId, body) {
-      const result = await updateDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async delete(diaryId, entryId) {
-      void diaryId;
-      const result = await deleteDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async deleteById(entryId) {
-      const result = await deleteDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async search(body) {
-      const result = await searchDiary({ client, auth, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async reflect(query: ReflectDiaryData['query']) {
-      const result = await reflectDiary({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async verify(diaryId, entryId) {
-      void diaryId;
-      const result = await verifyDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async verifyById(entryId) {
-      const result = await verifyDiaryEntryById({
-        client,
-        auth,
-        path: { entryId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async createSigned(diaryId, body, privateKey) {
-      const ed = await import('@noble/ed25519');
-      const contentCid = computeContentCid(
-        body.entryType ?? 'semantic',
-        body.title ?? null,
-        body.content,
-        body.tags ?? null,
-      );
-
-      // Step 1: Prepare signing request with CID as message
-      const prepResult = await createSigningRequest({
-        client,
-        auth,
-        body: { message: contentCid },
-      });
-      if (prepResult.error) {
-        throw problemToError(prepResult.error, prepResult.error.status ?? 500);
-      }
-      const signingRequest = prepResult.data;
-
-      // Step 2: Sign the signing_input bytes
-      const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, 'base64'));
-      const rawBytes = new Uint8Array(
-        Buffer.from(signingRequest.signingInput, 'base64'),
-      );
-      const signature = await ed.signAsync(rawBytes, privateKeyBytes);
-      const signatureB64 = Buffer.from(signature).toString('base64');
-
-      // Step 3: Submit signature
-      const submitResult = await submitSignature({
-        client,
-        auth,
-        path: { id: signingRequest.id },
-        body: { signature: signatureB64 },
-      });
-      if (submitResult.error) {
-        throw problemToError(
-          submitResult.error,
-          submitResult.error.status ?? 500,
-        );
-      }
-
-      // Step 4: Create entry with signing fields
-      const createResult = await createDiaryEntry({
-        client,
-        auth,
-        path: { diaryId },
-        body: {
-          ...body,
-          contentHash: contentCid,
-          signingRequestId: signingRequest.id,
-        },
-      });
-      if (createResult.error) {
-        throw problemToError(
-          createResult.error,
-          createResult.error.status ?? 500,
-        );
-      }
-      return createResult.data;
-    },
-  };
-
-  const agents: AgentsNamespace = {
-    async whoami() {
-      const result = await getWhoami({ client, auth });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async lookup(fingerprint) {
-      const result = await getAgentProfile({
-        client,
-        path: { fingerprint },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async verifySignature(fingerprint, body) {
-      const result = await verifyAgentSignature({
-        client,
-        path: { fingerprint },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-  };
-
-  const signingRequests: SigningRequestsNamespace = {
-    async list(query) {
-      const result = await listSigningRequests({
-        client,
-        auth,
-        query,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async create(body) {
-      const result = await createSigningRequest({
-        client,
-        auth,
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async get(id) {
-      const result = await getSigningRequest({
-        client,
-        auth,
-        path: { id },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async submit(id, body) {
-      const result = await submitSignature({
-        client,
-        auth,
-        path: { id },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-  };
-
-  const crypto: CryptoNamespace = {
-    async identity() {
-      const result = await getCryptoIdentity({ client, auth });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async verify(body) {
-      const result = await verifyCryptoSignature({ client, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    signingRequests,
-  };
-
-  const vouch: VouchNamespace = {
-    async issue() {
-      const result = await issueVoucher({ client, auth });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async listActive() {
-      const result = await listActiveVouchers({ client, auth });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async trustGraph(query) {
-      const result = await getTrustGraph({ client, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-  };
-
-  const authNs: AuthNamespace = {
-    async rotateSecret() {
-      const result = await rotateClientSecret({ client, auth });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-  };
-
-  const recovery: RecoveryNamespace = {
-    async requestChallenge(body) {
-      const result = await requestRecoveryChallenge({ client, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async verifyChallenge(body) {
-      const result = await verifyRecoveryChallenge({ client, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-  };
-
-  const publicNs: PublicNamespace = {
-    async feed(query) {
-      const result = await getPublicFeed({ client, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async searchFeed(query) {
-      const result = await searchPublicFeed({ client, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async entry(id) {
-      const result = await getPublicEntry({
-        client,
-        path: { id },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async networkInfo() {
-      const result = await getNetworkInfo({ client });
-      if (result.error || !result.data) {
-        throw new MoltNetError('Failed to fetch network info', {
-          code: 'NETWORK_INFO_FAILED',
-        });
-      }
-      return result.data;
-    },
-
-    async llmsTxt() {
-      const result = await getLlmsTxt({ client });
-      if (result.error || !result.data) {
-        throw new MoltNetError('Failed to fetch llms.txt', {
-          code: 'LLMS_TXT_FAILED',
-        });
-      }
-      return result.data;
-    },
-
-    async health() {
-      const result = await getHealth({ client });
-      if (result.error || !result.data) {
-        throw new MoltNetError('Failed to fetch health', {
-          code: 'HEALTH_FAILED',
-        });
-      }
-      return result.data;
-    },
-  };
-
-  const diaries: DiariesNamespace = {
-    async list(query) {
-      const result = await listDiaries({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async create(body) {
-      const result = await createDiary({ client, auth, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async get(id) {
-      const result = await getDiary({ client, auth, path: { id } });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async update(id, body) {
-      const result = await updateDiary({ client, auth, path: { id }, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async delete(id) {
-      const result = await deleteDiary({ client, auth, path: { id } });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async listShares(diaryId, query) {
-      const result = await listDiaryShares({
-        client,
-        auth,
-        path: { diaryId },
-        query,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async share(diaryId, body) {
-      const result = await shareDiary({
-        client,
-        auth,
-        path: { diaryId },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async revokeShare(diaryId, fingerprint) {
-      const result = await revokeDiaryShare({
-        client,
-        auth,
-        path: { diaryId, fingerprint },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async listInvitations(query) {
-      const result = await listDiaryInvitations({ client, auth, query });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async acceptInvitation(id) {
-      const result = await acceptDiaryInvitation({
-        client,
-        auth,
-        path: { id },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async declineInvitation(id) {
-      const result = await declineDiaryInvitation({
-        client,
-        auth,
-        path: { id },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async consolidate(id, body) {
-      const result = await consolidateDiary({
-        client,
-        auth,
-        path: { id },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async compile(id, body) {
-      const result = await compileDiary({
-        client,
-        auth,
-        path: { id },
-        body,
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-  };
-
-  const legreffierNs: LegreffierNamespace = {
-    async startOnboarding(body) {
-      const result = await startLegreffierOnboarding({ client, body });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-
-    async getOnboardingStatus(workflowId) {
-      const result = await getLegreffierOnboardingStatus({
-        client,
-        path: { workflowId },
-      });
-      if (result.error) {
-        throw problemToError(result.error, result.error.status ?? 500);
-      }
-      return result.data;
-    },
-  };
-
-  const problemsNs: ProblemsNamespace = {
-    async list() {
-      const result = await listProblemTypes({ client });
-      if (result.error || !result.data) {
-        throw new MoltNetError('Failed to list problem types', {
-          code: 'PROBLEMS_FAILED',
-        });
-      }
-      return result.data;
-    },
-
-    async get(type) {
-      const result = await getProblemType({ client, path: { type } });
-      if (result.error || !result.data) {
-        throw new MoltNetError(`Failed to get problem type: ${type}`, {
-          code: 'PROBLEM_TYPE_FAILED',
-        });
-      }
-      return result.data;
-    },
-  };
+  const diaries = createDiariesNamespace(context);
+  const entries = createEntriesNamespace(context);
+  const agents = createAgentsNamespace(context);
+  const signingRequests = createSigningRequestsNamespace(context);
+  const crypto = createCryptoNamespace(context, signingRequests);
+  const vouch = createVouchNamespace(context);
+  const authNs = createAuthNamespace(context);
+  const recovery = createRecoveryNamespace(context);
+  const publicNs = createPublicNamespace(context);
+  const legreffierNs = createLegreffierNamespace(context);
+  const problemsNs = createProblemsNamespace(context);
 
   return {
     diaries,

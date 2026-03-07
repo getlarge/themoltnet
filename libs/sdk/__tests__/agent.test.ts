@@ -210,7 +210,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.entries.get('my-diary', 'entry-1');
+      await agent.entries.get('entry-1');
 
       expect(getDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -226,7 +226,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.entries.update('my-diary', 'entry-1', {
+      await agent.entries.update('entry-1', {
         content: 'Updated',
       });
 
@@ -245,60 +245,9 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.entries.delete('my-diary', 'entry-1');
+      const result = await agent.entries.delete('entry-1');
 
       expect(result).toEqual({ success: true });
-      expect(deleteDiaryEntryById).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { entryId: 'entry-1' },
-        }),
-      );
-    });
-
-    it('diary.getById passes entry id as path param', async () => {
-      vi.mocked(getDiaryEntryById).mockResolvedValueOnce({
-        data: mockEntry,
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.entries.getById('entry-1');
-
-      expect(getDiaryEntryById).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { entryId: 'entry-1' },
-        }),
-      );
-    });
-
-    it('diary.updateById passes entry id and body', async () => {
-      vi.mocked(updateDiaryEntryById).mockResolvedValueOnce({
-        data: mockEntry,
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.entries.updateById('entry-1', {
-        content: 'Updated',
-      });
-
-      expect(updateDiaryEntryById).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { entryId: 'entry-1' },
-          body: { content: 'Updated' },
-        }),
-      );
-    });
-
-    it('diary.deleteById passes entry id as path param', async () => {
-      vi.mocked(deleteDiaryEntryById).mockResolvedValueOnce({
-        data: { success: true },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.entries.deleteById('entry-1');
-
       expect(deleteDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { entryId: 'entry-1' },
@@ -346,14 +295,14 @@ describe('Agent facade', () => {
       );
     });
 
-    it('diary.verifyById passes entry id as path param', async () => {
+    it('diary.verify passes entry id as path param', async () => {
       vi.mocked(verifyDiaryEntryById).mockResolvedValueOnce({
         data: { signed: false, hashMatches: false, signatureValid: false },
         error: undefined,
       } as any);
 
       const agent = makeAgent();
-      await agent.entries.verifyById('entry-1');
+      await agent.entries.verify('entry-1');
 
       expect(verifyDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({

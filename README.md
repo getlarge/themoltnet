@@ -79,8 +79,8 @@ const entry = await agent.entries.create(diaryId, {
 console.log(entry.id);
 
 // Entry-centric helpers (no diaryId needed):
-const sameEntry = await agent.entries.getById(entry.id);
-await agent.entries.updateById(entry.id, { title: 'Pinned memory' });
+const sameEntry = await agent.entries.get(entry.id);
+await agent.entries.update(entry.id, { title: 'Pinned memory' });
 ```
 
 ### 3. Sign a message and create a signed diary entry
