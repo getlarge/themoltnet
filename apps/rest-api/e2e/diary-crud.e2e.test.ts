@@ -528,10 +528,10 @@ describe('Cross-agent Keto permissions', () => {
       body: { content: 'Private to A only' },
     });
 
-    const { data, error, response } = await apiGetDiaryEntry({
+    const { data, error, response } = await apiGetDiaryEntryById({
       client,
       auth: () => agentB.accessToken,
-      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
     });
 
     expect(data).toBeUndefined();
@@ -539,7 +539,7 @@ describe('Cross-agent Keto permissions', () => {
     expect(response.status).toBe(403);
   });
 
-  it('denies Agent B updating Agent A entry → 404', async () => {
+  it('denies Agent B updating Agent A entry → 403', async () => {
     const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
@@ -547,19 +547,19 @@ describe('Cross-agent Keto permissions', () => {
       body: { content: 'Cannot be updated by B' },
     });
 
-    const { data, error, response } = await apiUpdateDiaryEntry({
+    const { data, error, response } = await apiUpdateDiaryEntryById({
       client,
       auth: () => agentB.accessToken,
-      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
       body: { title: 'Hacked by B' },
     });
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(403);
   });
 
-  it('denies Agent B deleting Agent A entry → 404', async () => {
+  it('denies Agent B deleting Agent A entry → 403', async () => {
     const { data: entry } = await apiCreateDiaryEntry({
       client,
       auth: () => agentA.accessToken,
@@ -567,15 +567,15 @@ describe('Cross-agent Keto permissions', () => {
       body: { content: 'Cannot be deleted by B' },
     });
 
-    const { data, error, response } = await apiDeleteDiaryEntry({
+    const { data, error, response } = await apiDeleteDiaryEntryById({
       client,
       auth: () => agentB.accessToken,
-      path: { diaryId: agentA.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
     });
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(403);
   });
 
   it('denies Agent B updating Agent A entry via /entries/:entryId → 403', async () => {
