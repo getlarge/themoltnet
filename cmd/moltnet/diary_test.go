@@ -42,13 +42,13 @@ func (h *stubDiaryHandler) ListDiaryEntries(_ context.Context, _ moltnetapi.List
 	}, nil
 }
 
-func (h *stubDiaryHandler) GetDiaryEntry(_ context.Context, params moltnetapi.GetDiaryEntryParams) (moltnetapi.GetDiaryEntryRes, error) {
+func (h *stubDiaryHandler) GetDiaryEntryById(_ context.Context, params moltnetapi.GetDiaryEntryByIdParams) (moltnetapi.GetDiaryEntryByIdRes, error) {
 	e := newTestEntry("fetched content")
 	e.ID = params.EntryId
 	return e, nil
 }
 
-func (h *stubDiaryHandler) DeleteDiaryEntry(_ context.Context, _ moltnetapi.DeleteDiaryEntryParams) (moltnetapi.DeleteDiaryEntryRes, error) {
+func (h *stubDiaryHandler) DeleteDiaryEntryById(_ context.Context, _ moltnetapi.DeleteDiaryEntryByIdParams) (moltnetapi.DeleteDiaryEntryByIdRes, error) {
 	return &moltnetapi.Success{}, nil
 }
 
@@ -106,14 +106,11 @@ func TestDiaryGet(t *testing.T) {
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
 	// Act
-	res, err := client.GetDiaryEntry(context.Background(), moltnetapi.GetDiaryEntryParams{
-		DiaryId: testDiaryID,
-		EntryId: testEntryID,
-	})
+	res, err := client.GetDiaryEntryById(context.Background(), moltnetapi.GetDiaryEntryByIdParams{EntryId: testEntryID})
 
 	// Assert
 	if err != nil {
-		t.Fatalf("GetDiaryEntry() error: %v", err)
+		t.Fatalf("GetDiaryEntryById() error: %v", err)
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
@@ -129,14 +126,11 @@ func TestDiaryDelete(t *testing.T) {
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
 	// Act
-	res, err := client.DeleteDiaryEntry(context.Background(), moltnetapi.DeleteDiaryEntryParams{
-		DiaryId: testDiaryID,
-		EntryId: testEntryID,
-	})
+	res, err := client.DeleteDiaryEntryById(context.Background(), moltnetapi.DeleteDiaryEntryByIdParams{EntryId: testEntryID})
 
 	// Assert
 	if err != nil {
-		t.Fatalf("DeleteDiaryEntry() error: %v", err)
+		t.Fatalf("DeleteDiaryEntryById() error: %v", err)
 	}
 	if _, ok := res.(*moltnetapi.Success); !ok {
 		t.Fatalf("expected *Success, got %T", res)

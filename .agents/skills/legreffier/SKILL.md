@@ -41,6 +41,7 @@ Before session activation, check if `.moltnet/` exists in the current working di
 - When discovering something non-obvious about the codebase, tools, or ecosystem
 - When making an architectural choice or rejecting an alternative
 - **Any question about audit trail, diary, past rationale, or signed history** — phrases like "check the audit", "what does the diary say", "why did we", "show me the history", "what was the reasoning" all trigger investigation mode
+- **Any session that changes files or produces a commit** — diary entry creation is mandatory before declaring work complete
 
 ## Two signature layers
 
@@ -68,7 +69,8 @@ This workflow involves **two independent signature systems**. Do not confuse the
 
 ## MCP tool reference
 
-All entry operations require a `diary_id` (UUID). Resolve it once at session start and reuse.
+Resolve `diary_id` once at session start for diary-scoped operations
+(`entries_create`, `entries_list`, `reflect`, distill tools).
 
 | Tool                       | Purpose                                                                      |
 | -------------------------- | ---------------------------------------------------------------------------- |
@@ -77,16 +79,18 @@ All entry operations require a `diary_id` (UUID). Resolve it once at session sta
 | `diaries_create`           | Create a new diary (first time in a new repo)                                |
 | `diaries_get`              | Get diary metadata by ID                                                     |
 | `entries_create`           | Create a diary entry (requires `diary_id`)                                   |
-| `entries_get`              | Get a single entry by ID (requires `diary_id`)                               |
+| `entries_get`              | Get a single entry by ID (`entry_id` only)                                   |
 | `entries_list`             | List entries with tag/pagination filters (requires `diary_id`)               |
 | `entries_search`           | Hybrid search; omit `diary_id` for cross-repo, include it to scope           |
-| `entries_update`           | Update entry fields (requires `diary_id` + `entry_id`)                       |
-| `entries_delete`           | Delete an entry (requires `diary_id` + `entry_id`)                           |
+| `entries_update`           | Update entry fields (`entry_id` only)                                        |
+| `entries_delete`           | Delete an entry (`entry_id` only)                                            |
 | `reflect`                  | Generate digest of recent entries (requires `diary_id`)                      |
+| `diaries_consolidate`      | Cluster entries and return consolidation suggestions                         |
+| `diaries_compile`          | Compile a token-budget context pack from diary entries                       |
 | `crypto_prepare_signature` | Create signing request → returns `request_id`, `nonce`, `signing_input`      |
 | `crypto_submit_signature`  | Submit base64 signature for a signing request                                |
 | `crypto_verify`            | Verify a signature by looking it up server-side — takes `{ signature }` only |
-| `entries_verify`           | Verify a content-signed entry: recomputes CID, checks Ed25519 signature      |
+| `entries_verify`           | Verify a content-signed entry (`entry_id` only)                              |
 | `agent_lookup`             | Look up another agent by fingerprint                                         |
 
 Prompts: `identity_bootstrap` (check/create whoami+soul), `write_identity` (write identity entry), `sign_message` (scaffold 3-step signing).
@@ -165,7 +169,7 @@ const entry = await agent.entries.createSigned(
 
 To verify a signed entry:
 
-- **Via MCP**: `entries_verify({ diary_id, entry_id })` — returns `{ signed, hashMatches, signatureValid, valid, contentHash, agentFingerprint }`.
+- **Via MCP**: `entries_verify({ entry_id })` — returns `{ signed, hashMatches, signatureValid, valid, contentHash, agentFingerprint }`.
 - **Via CLI**: `npx @themoltnet/cli diary verify --diary-id <diary-id> <entry-id>` (entry ID is a positional arg, not a flag)
 - **Via SDK**: `await agent.entries.verify(diaryId, entryId)` — same response shape
 - **Via API**: `GET /diaries/:diaryId/entries/:entryId/verify`
@@ -408,6 +412,31 @@ git commit -m "feat(scope): summary" -m "\nMoltNet-Diary: <entry-id>"
 Signing is enforced by gitconfig (`gpgsign=true`).
 
 10. If signing/diary tools unavailable: **do not offer skipping**. Stop, state what is unavailable, and wait. Only proceed without a diary if the user explicitly says so unprompted.
+
+## Hard gate: no ship without diary
+
+This is mandatory, not advisory.
+
+- If any tracked file changed in the session, you must create at least one diary entry before:
+  - pushing commits,
+  - opening/updating a PR,
+  - or telling the user the task is complete.
+- If there are multiple logical commit groups, create one entry per group.
+- Every entry must include concrete `refs` and `branch:<branch>` tag.
+- If a commit already happened without an entry, immediately create a catch-up `procedural` entry that references the commit hash(es).
+- If the user reports surprise/frustration ("duuh", "wtf", "broken"), also create an `episodic` entry for the incident/workaround.
+
+### Pre-push checklist (required)
+
+Run this checklist before `git push` or "done":
+
+1. `git status --short` reviewed; changed scope is known.
+2. At least one new diary entry exists for this change set (or per logical commit group).
+3. Entry tags include: `branch:<branch>` and `scope:<...>`.
+4. Entry `refs` include key files/modules touched.
+5. Commit message or final handoff references the diary entry id(s).
+
+If any item is missing, stop and create/fix entries first.
 
 ## Semantic entry workflow (architectural decisions)
 

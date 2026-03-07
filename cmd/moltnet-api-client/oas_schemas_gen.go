@@ -1385,22 +1385,6 @@ type DeleteDiaryEntryByIdUnauthorized ProblemDetails
 
 func (*DeleteDiaryEntryByIdUnauthorized) deleteDiaryEntryByIdRes() {}
 
-type DeleteDiaryEntryForbidden ProblemDetails
-
-func (*DeleteDiaryEntryForbidden) deleteDiaryEntryRes() {}
-
-type DeleteDiaryEntryInternalServerError ProblemDetails
-
-func (*DeleteDiaryEntryInternalServerError) deleteDiaryEntryRes() {}
-
-type DeleteDiaryEntryNotFound ProblemDetails
-
-func (*DeleteDiaryEntryNotFound) deleteDiaryEntryRes() {}
-
-type DeleteDiaryEntryUnauthorized ProblemDetails
-
-func (*DeleteDiaryEntryUnauthorized) deleteDiaryEntryRes() {}
-
 type DeleteDiaryForbidden ProblemDetails
 
 func (*DeleteDiaryForbidden) deleteDiaryRes() {}
@@ -1738,9 +1722,7 @@ func (s *DiaryEntry) SetUpdatedAt(val time.Time) {
 
 func (*DiaryEntry) createDiaryEntryRes()     {}
 func (*DiaryEntry) getDiaryEntryByIdRes()    {}
-func (*DiaryEntry) getDiaryEntryRes()        {}
 func (*DiaryEntry) updateDiaryEntryByIdRes() {}
-func (*DiaryEntry) updateDiaryEntryRes()     {}
 
 type DiaryEntryEntryType string
 
@@ -2363,7 +2345,6 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 }
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
-func (*EntryVerifyResult) verifyDiaryEntryRes()     {}
 
 type GetAgentProfileInternalServerError ProblemDetails
 
@@ -2396,22 +2377,6 @@ func (*GetDiaryEntryByIdNotFound) getDiaryEntryByIdRes() {}
 type GetDiaryEntryByIdUnauthorized ProblemDetails
 
 func (*GetDiaryEntryByIdUnauthorized) getDiaryEntryByIdRes() {}
-
-type GetDiaryEntryForbidden ProblemDetails
-
-func (*GetDiaryEntryForbidden) getDiaryEntryRes() {}
-
-type GetDiaryEntryInternalServerError ProblemDetails
-
-func (*GetDiaryEntryInternalServerError) getDiaryEntryRes() {}
-
-type GetDiaryEntryNotFound ProblemDetails
-
-func (*GetDiaryEntryNotFound) getDiaryEntryRes() {}
-
-type GetDiaryEntryUnauthorized ProblemDetails
-
-func (*GetDiaryEntryUnauthorized) getDiaryEntryRes() {}
 
 type GetDiaryInternalServerError ProblemDetails
 
@@ -5332,98 +5297,6 @@ func (o OptUpdateDiaryEntryByIdReqEntryType) Or(d UpdateDiaryEntryByIdReqEntryTy
 	return d
 }
 
-// NewOptUpdateDiaryEntryReq returns new OptUpdateDiaryEntryReq with value set to v.
-func NewOptUpdateDiaryEntryReq(v UpdateDiaryEntryReq) OptUpdateDiaryEntryReq {
-	return OptUpdateDiaryEntryReq{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDiaryEntryReq is optional UpdateDiaryEntryReq.
-type OptUpdateDiaryEntryReq struct {
-	Value UpdateDiaryEntryReq
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDiaryEntryReq was set.
-func (o OptUpdateDiaryEntryReq) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDiaryEntryReq) Reset() {
-	var v UpdateDiaryEntryReq
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDiaryEntryReq) SetTo(v UpdateDiaryEntryReq) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDiaryEntryReq) Get() (v UpdateDiaryEntryReq, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDiaryEntryReq) Or(d UpdateDiaryEntryReq) UpdateDiaryEntryReq {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateDiaryEntryReqEntryType returns new OptUpdateDiaryEntryReqEntryType with value set to v.
-func NewOptUpdateDiaryEntryReqEntryType(v UpdateDiaryEntryReqEntryType) OptUpdateDiaryEntryReqEntryType {
-	return OptUpdateDiaryEntryReqEntryType{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateDiaryEntryReqEntryType is optional UpdateDiaryEntryReqEntryType.
-type OptUpdateDiaryEntryReqEntryType struct {
-	Value UpdateDiaryEntryReqEntryType
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateDiaryEntryReqEntryType was set.
-func (o OptUpdateDiaryEntryReqEntryType) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateDiaryEntryReqEntryType) Reset() {
-	var v UpdateDiaryEntryReqEntryType
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateDiaryEntryReqEntryType) SetTo(v UpdateDiaryEntryReqEntryType) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateDiaryEntryReqEntryType) Get() (v UpdateDiaryEntryReqEntryType, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateDiaryEntryReqEntryType) Or(d UpdateDiaryEntryReqEntryType) UpdateDiaryEntryReqEntryType {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptUpdateDiaryReq returns new OptUpdateDiaryReq with value set to v.
 func NewOptUpdateDiaryReq(v UpdateDiaryReq) OptUpdateDiaryReq {
 	return OptUpdateDiaryReq{
@@ -6838,7 +6711,6 @@ func (s *Success) SetSuccess(val bool) {
 }
 
 func (*Success) deleteDiaryEntryByIdRes() {}
-func (*Success) deleteDiaryEntryRes()     {}
 func (*Success) deleteDiaryRes()          {}
 func (*Success) revokeDiaryShareRes()     {}
 
@@ -7000,164 +6872,6 @@ type UpdateDiaryEntryByIdUnauthorized ProblemDetails
 
 func (*UpdateDiaryEntryByIdUnauthorized) updateDiaryEntryByIdRes() {}
 
-type UpdateDiaryEntryConflict ProblemDetails
-
-func (*UpdateDiaryEntryConflict) updateDiaryEntryRes() {}
-
-type UpdateDiaryEntryForbidden ProblemDetails
-
-func (*UpdateDiaryEntryForbidden) updateDiaryEntryRes() {}
-
-type UpdateDiaryEntryInternalServerError ProblemDetails
-
-func (*UpdateDiaryEntryInternalServerError) updateDiaryEntryRes() {}
-
-type UpdateDiaryEntryNotFound ProblemDetails
-
-func (*UpdateDiaryEntryNotFound) updateDiaryEntryRes() {}
-
-type UpdateDiaryEntryReq struct {
-	Content      OptString                       `json:"content"`
-	EntryType    OptUpdateDiaryEntryReqEntryType `json:"entryType"`
-	Importance   OptInt                          `json:"importance"`
-	SupersededBy OptUUID                         `json:"supersededBy"`
-	Tags         []string                        `json:"tags"`
-	Title        OptString                       `json:"title"`
-}
-
-// GetContent returns the value of Content.
-func (s *UpdateDiaryEntryReq) GetContent() OptString {
-	return s.Content
-}
-
-// GetEntryType returns the value of EntryType.
-func (s *UpdateDiaryEntryReq) GetEntryType() OptUpdateDiaryEntryReqEntryType {
-	return s.EntryType
-}
-
-// GetImportance returns the value of Importance.
-func (s *UpdateDiaryEntryReq) GetImportance() OptInt {
-	return s.Importance
-}
-
-// GetSupersededBy returns the value of SupersededBy.
-func (s *UpdateDiaryEntryReq) GetSupersededBy() OptUUID {
-	return s.SupersededBy
-}
-
-// GetTags returns the value of Tags.
-func (s *UpdateDiaryEntryReq) GetTags() []string {
-	return s.Tags
-}
-
-// GetTitle returns the value of Title.
-func (s *UpdateDiaryEntryReq) GetTitle() OptString {
-	return s.Title
-}
-
-// SetContent sets the value of Content.
-func (s *UpdateDiaryEntryReq) SetContent(val OptString) {
-	s.Content = val
-}
-
-// SetEntryType sets the value of EntryType.
-func (s *UpdateDiaryEntryReq) SetEntryType(val OptUpdateDiaryEntryReqEntryType) {
-	s.EntryType = val
-}
-
-// SetImportance sets the value of Importance.
-func (s *UpdateDiaryEntryReq) SetImportance(val OptInt) {
-	s.Importance = val
-}
-
-// SetSupersededBy sets the value of SupersededBy.
-func (s *UpdateDiaryEntryReq) SetSupersededBy(val OptUUID) {
-	s.SupersededBy = val
-}
-
-// SetTags sets the value of Tags.
-func (s *UpdateDiaryEntryReq) SetTags(val []string) {
-	s.Tags = val
-}
-
-// SetTitle sets the value of Title.
-func (s *UpdateDiaryEntryReq) SetTitle(val OptString) {
-	s.Title = val
-}
-
-type UpdateDiaryEntryReqEntryType string
-
-const (
-	UpdateDiaryEntryReqEntryTypeEpisodic   UpdateDiaryEntryReqEntryType = "episodic"
-	UpdateDiaryEntryReqEntryTypeSemantic   UpdateDiaryEntryReqEntryType = "semantic"
-	UpdateDiaryEntryReqEntryTypeProcedural UpdateDiaryEntryReqEntryType = "procedural"
-	UpdateDiaryEntryReqEntryTypeReflection UpdateDiaryEntryReqEntryType = "reflection"
-	UpdateDiaryEntryReqEntryTypeIdentity   UpdateDiaryEntryReqEntryType = "identity"
-	UpdateDiaryEntryReqEntryTypeSoul       UpdateDiaryEntryReqEntryType = "soul"
-)
-
-// AllValues returns all UpdateDiaryEntryReqEntryType values.
-func (UpdateDiaryEntryReqEntryType) AllValues() []UpdateDiaryEntryReqEntryType {
-	return []UpdateDiaryEntryReqEntryType{
-		UpdateDiaryEntryReqEntryTypeEpisodic,
-		UpdateDiaryEntryReqEntryTypeSemantic,
-		UpdateDiaryEntryReqEntryTypeProcedural,
-		UpdateDiaryEntryReqEntryTypeReflection,
-		UpdateDiaryEntryReqEntryTypeIdentity,
-		UpdateDiaryEntryReqEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateDiaryEntryReqEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateDiaryEntryReqEntryTypeEpisodic:
-		return []byte(s), nil
-	case UpdateDiaryEntryReqEntryTypeSemantic:
-		return []byte(s), nil
-	case UpdateDiaryEntryReqEntryTypeProcedural:
-		return []byte(s), nil
-	case UpdateDiaryEntryReqEntryTypeReflection:
-		return []byte(s), nil
-	case UpdateDiaryEntryReqEntryTypeIdentity:
-		return []byte(s), nil
-	case UpdateDiaryEntryReqEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateDiaryEntryReqEntryType) UnmarshalText(data []byte) error {
-	switch UpdateDiaryEntryReqEntryType(data) {
-	case UpdateDiaryEntryReqEntryTypeEpisodic:
-		*s = UpdateDiaryEntryReqEntryTypeEpisodic
-		return nil
-	case UpdateDiaryEntryReqEntryTypeSemantic:
-		*s = UpdateDiaryEntryReqEntryTypeSemantic
-		return nil
-	case UpdateDiaryEntryReqEntryTypeProcedural:
-		*s = UpdateDiaryEntryReqEntryTypeProcedural
-		return nil
-	case UpdateDiaryEntryReqEntryTypeReflection:
-		*s = UpdateDiaryEntryReqEntryTypeReflection
-		return nil
-	case UpdateDiaryEntryReqEntryTypeIdentity:
-		*s = UpdateDiaryEntryReqEntryTypeIdentity
-		return nil
-	case UpdateDiaryEntryReqEntryTypeSoul:
-		*s = UpdateDiaryEntryReqEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateDiaryEntryUnauthorized ProblemDetails
-
-func (*UpdateDiaryEntryUnauthorized) updateDiaryEntryRes() {}
-
 type UpdateDiaryForbidden ProblemDetails
 
 func (*UpdateDiaryForbidden) updateDiaryRes() {}
@@ -7294,18 +7008,6 @@ func (*VerifyDiaryEntryByIdNotFound) verifyDiaryEntryByIdRes() {}
 type VerifyDiaryEntryByIdUnauthorized ProblemDetails
 
 func (*VerifyDiaryEntryByIdUnauthorized) verifyDiaryEntryByIdRes() {}
-
-type VerifyDiaryEntryInternalServerError ProblemDetails
-
-func (*VerifyDiaryEntryInternalServerError) verifyDiaryEntryRes() {}
-
-type VerifyDiaryEntryNotFound ProblemDetails
-
-func (*VerifyDiaryEntryNotFound) verifyDiaryEntryRes() {}
-
-type VerifyDiaryEntryUnauthorized ProblemDetails
-
-func (*VerifyDiaryEntryUnauthorized) verifyDiaryEntryRes() {}
 
 type VerifyRecoveryChallengeBadGateway ProblemDetails
 

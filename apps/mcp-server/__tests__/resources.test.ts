@@ -23,14 +23,14 @@ vi.mock('@moltnet/api-client', () => ({
   getWhoami: vi.fn(),
   getDiary: vi.fn(),
   searchDiary: vi.fn(),
-  getDiaryEntry: vi.fn(),
+  getDiaryEntryById: vi.fn(),
   getAgentProfile: vi.fn(),
 }));
 
 import {
   getAgentProfile,
   getDiary,
-  getDiaryEntry,
+  getDiaryEntryById,
   getWhoami,
   searchDiary,
 } from '@moltnet/api-client';
@@ -126,33 +126,24 @@ describe('MCP Resources', () => {
     });
   });
 
-  describe('moltnet://diaries/{diaryId}/entries/{entryId}', () => {
+  describe('moltnet://entries/{entryId}', () => {
     it('returns entry using direct path (no listDiaries loop)', async () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
-      vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
+      vi.mocked(getDiaryEntryById).mockResolvedValue(sdkOk(entry) as never);
 
-      const result = await handleDiaryEntryResource(
-        deps,
-        DIARY_ID,
-        ENTRY_ID,
-        context,
-      );
+      const result = await handleDiaryEntryResource(deps, ENTRY_ID, context);
 
-      expect(getDiaryEntry).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { diaryId: DIARY_ID, entryId: ENTRY_ID },
-        }),
+      expect(getDiaryEntryById).toHaveBeenCalledWith(
+        expect.objectContaining({ path: { entryId: ENTRY_ID } }),
       );
-      expect(getDiaryEntry).toHaveBeenCalledTimes(1);
-      expect(result.contents[0].uri).toBe(
-        `moltnet://diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
-      );
+      expect(getDiaryEntryById).toHaveBeenCalledTimes(1);
+      expect(result.contents[0].uri).toBe(`moltnet://entries/${ENTRY_ID}`);
       const data = JSON.parse((result.contents[0] as { text: string }).text);
       expect(data).toHaveProperty('id', ENTRY_ID);
     });
 
     it('returns not found for missing entry', async () => {
-      vi.mocked(getDiaryEntry).mockResolvedValue(
+      vi.mocked(getDiaryEntryById).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
           message: 'Entry not found',
@@ -162,7 +153,6 @@ describe('MCP Resources', () => {
 
       const result = await handleDiaryEntryResource(
         deps,
-        DIARY_ID,
         'nonexistent',
         context,
       );
@@ -174,7 +164,6 @@ describe('MCP Resources', () => {
     it('returns error when not authenticated', async () => {
       const result = await handleDiaryEntryResource(
         deps,
-        DIARY_ID,
         ENTRY_ID,
         createMockContext(null),
       );

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  handleDiariesCompile,
+  handleDiariesConsolidate,
   handleDiariesCreate,
   handleDiariesGet,
   handleDiariesList,
@@ -10,6 +12,7 @@ import {
   handleEntryList,
   handleEntrySearch,
   handleEntryUpdate,
+  handleEntryVerify,
   handleReflect,
 } from '../src/diary-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
@@ -25,12 +28,15 @@ import {
 } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
+  compileDiary: vi.fn(),
+  consolidateDiary: vi.fn(),
   createDiaryEntry: vi.fn(),
-  getDiaryEntry: vi.fn(),
+  getDiaryEntryById: vi.fn(),
   listDiaryEntries: vi.fn(),
   searchDiary: vi.fn(),
-  updateDiaryEntry: vi.fn(),
-  deleteDiaryEntry: vi.fn(),
+  updateDiaryEntryById: vi.fn(),
+  deleteDiaryEntryById: vi.fn(),
+  verifyDiaryEntryById: vi.fn(),
   reflectDiary: vi.fn(),
   listDiaries: vi.fn(),
   createDiary: vi.fn(),
@@ -38,16 +44,19 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 import {
+  compileDiary,
+  consolidateDiary,
   createDiary,
   createDiaryEntry,
-  deleteDiaryEntry,
+  deleteDiaryEntryById,
   getDiary,
-  getDiaryEntry,
+  getDiaryEntryById,
   listDiaries,
   listDiaryEntries,
   reflectDiary,
   searchDiary,
-  updateDiaryEntry,
+  updateDiaryEntryById,
+  verifyDiaryEntryById,
 } from '@moltnet/api-client';
 
 describe('Diary tools', () => {
@@ -155,7 +164,7 @@ describe('Diary tools', () => {
   describe('entries_get', () => {
     it('returns an entry by ID', async () => {
       const entry = { id: ENTRY_ID, content: 'A memory' };
-      vi.mocked(getDiaryEntry).mockResolvedValue(sdkOk(entry) as never);
+      vi.mocked(getDiaryEntryById).mockResolvedValue(sdkOk(entry) as never);
 
       const result = await handleEntryGet(
         { diary_id: DIARY_ID, entry_id: ENTRY_ID },
@@ -163,9 +172,9 @@ describe('Diary tools', () => {
         context,
       );
 
-      expect(getDiaryEntry).toHaveBeenCalledWith(
+      expect(getDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryId: DIARY_ID, entryId: ENTRY_ID },
+          path: { entryId: ENTRY_ID },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -174,7 +183,7 @@ describe('Diary tools', () => {
     });
 
     it('returns error when entry not found', async () => {
-      vi.mocked(getDiaryEntry).mockResolvedValue(
+      vi.mocked(getDiaryEntryById).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
           message: 'Entry not found',
@@ -365,7 +374,9 @@ describe('Diary tools', () => {
   describe('entries_update', () => {
     it('updates an entry', async () => {
       const updated = { id: ENTRY_ID, tags: ['updated'] };
-      vi.mocked(updateDiaryEntry).mockResolvedValue(sdkOk(updated) as never);
+      vi.mocked(updateDiaryEntryById).mockResolvedValue(
+        sdkOk(updated) as never,
+      );
 
       const result = await handleEntryUpdate(
         { diary_id: DIARY_ID, entry_id: ENTRY_ID, tags: ['updated'] },
@@ -373,9 +384,9 @@ describe('Diary tools', () => {
         context,
       );
 
-      expect(updateDiaryEntry).toHaveBeenCalledWith(
+      expect(updateDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryId: DIARY_ID, entryId: ENTRY_ID },
+          path: { entryId: ENTRY_ID },
           body: { tags: ['updated'] },
         }),
       );
@@ -385,7 +396,7 @@ describe('Diary tools', () => {
     });
 
     it('returns error when entry not found', async () => {
-      vi.mocked(updateDiaryEntry).mockResolvedValue(
+      vi.mocked(updateDiaryEntryById).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
           message: 'Entry not found',
@@ -410,7 +421,7 @@ describe('Diary tools', () => {
 
   describe('entries_delete', () => {
     it('deletes an entry', async () => {
-      vi.mocked(deleteDiaryEntry).mockResolvedValue(
+      vi.mocked(deleteDiaryEntryById).mockResolvedValue(
         sdkOk({ success: true }) as never,
       );
 
@@ -420,9 +431,9 @@ describe('Diary tools', () => {
         context,
       );
 
-      expect(deleteDiaryEntry).toHaveBeenCalledWith(
+      expect(deleteDiaryEntryById).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: { diaryId: DIARY_ID, entryId: ENTRY_ID },
+          path: { entryId: ENTRY_ID },
         }),
       );
       const parsed = parseResult<Record<string, unknown>>(result);
@@ -430,7 +441,7 @@ describe('Diary tools', () => {
     });
 
     it('returns error when entry not found', async () => {
-      vi.mocked(deleteDiaryEntry).mockResolvedValue(
+      vi.mocked(deleteDiaryEntryById).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
           message: 'Entry not found',
@@ -486,6 +497,27 @@ describe('Diary tools', () => {
           query: { diaryId: DIARY_ID, days: 30, maxEntries: 10 },
         }),
       );
+    });
+  });
+
+  describe('entries_verify', () => {
+    it('verifies an entry by ID', async () => {
+      vi.mocked(verifyDiaryEntryById).mockResolvedValue(
+        sdkOk({ signed: true, valid: true }) as never,
+      );
+
+      const result = await handleEntryVerify(
+        { entry_id: ENTRY_ID },
+        deps,
+        context,
+      );
+
+      expect(verifyDiaryEntryById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { entryId: ENTRY_ID },
+        }),
+      );
+      expect(result.isError).toBeUndefined();
     });
   });
 
@@ -685,6 +717,65 @@ describe('Diary tools', () => {
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('Not authenticated');
+    });
+  });
+
+  describe('diaries_consolidate', () => {
+    it('calls consolidate API and returns result', async () => {
+      vi.mocked(consolidateDiary).mockResolvedValue(
+        sdkOk({ clusters: [], total: 0 }) as never,
+      );
+
+      const result = await handleDiariesConsolidate(
+        {
+          diary_id: DIARY_ID,
+          threshold: 0.75,
+          strategy: 'hybrid',
+        },
+        deps,
+        context,
+      );
+
+      expect(consolidateDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: DIARY_ID },
+          body: { threshold: 0.75, strategy: 'hybrid', entryIds: undefined },
+        }),
+      );
+      expect(result.isError).toBeUndefined();
+    });
+  });
+
+  describe('diaries_compile', () => {
+    it('calls compile API and returns result', async () => {
+      vi.mocked(compileDiary).mockResolvedValue(
+        sdkOk({ items: [], totalTokens: 0 }) as never,
+      );
+
+      const result = await handleDiariesCompile(
+        {
+          diary_id: DIARY_ID,
+          token_budget: 1024,
+          task_prompt: 'prepare context for oauth bugfix',
+        },
+        deps,
+        context,
+      );
+
+      expect(compileDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: DIARY_ID },
+          body: {
+            tokenBudget: 1024,
+            taskPrompt: 'prepare context for oauth bugfix',
+            lambda: undefined,
+            includeTags: undefined,
+            wRecency: undefined,
+            wImportance: undefined,
+          },
+        }),
+      );
+      expect(result.isError).toBeUndefined();
     });
   });
 });

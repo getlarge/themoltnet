@@ -11,8 +11,8 @@ import {
   type Client,
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
-  deleteDiaryEntry as apiDeleteDiaryEntry,
-  getDiaryEntry as apiGetDiaryEntry,
+  deleteDiaryEntryById as apiDeleteDiaryEntryById,
+  getDiaryEntryById as apiGetDiaryEntryById,
   issueVoucher,
   listActiveVouchers,
 } from '@moltnet/api-client';
@@ -35,28 +35,26 @@ describe('Concurrency and Atomicity', () => {
   }
 
   function getDiaryEntry(
-    args: Parameters<typeof apiGetDiaryEntry>[0] & {
+    args: Parameters<typeof apiGetDiaryEntryById>[0] & {
       path: { entryId: string; diaryId?: string };
     },
   ) {
-    return apiGetDiaryEntry({
+    return apiGetDiaryEntryById({
       ...args,
       path: {
-        diaryId: args.path.diaryId ?? agent.privateDiaryId,
         entryId: args.path.entryId,
       },
     });
   }
 
   function deleteDiaryEntry(
-    args: Parameters<typeof apiDeleteDiaryEntry>[0] & {
+    args: Parameters<typeof apiDeleteDiaryEntryById>[0] & {
       path: { entryId: string; diaryId?: string };
     },
   ) {
-    return apiDeleteDiaryEntry({
+    return apiDeleteDiaryEntryById({
       ...args,
       path: {
-        diaryId: args.path.diaryId ?? agent.privateDiaryId,
         entryId: args.path.entryId,
       },
     });

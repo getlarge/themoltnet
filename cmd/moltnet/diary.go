@@ -123,7 +123,6 @@ func runDiaryList(args []string) error {
 func runDiaryGet(args []string) error {
 	fs := flag.NewFlagSet("diary get", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	diaryID := fs.String("diary-id", "", "Diary UUID (required)")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: moltnet diary get <entry-id> [options]")
 		fmt.Fprintln(os.Stderr, "\nFetch a diary entry by ID.")
@@ -133,19 +132,11 @@ func runDiaryGet(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *diaryID == "" {
-		fs.Usage()
-		return fmt.Errorf("flag -diary-id is required")
-	}
 	if fs.NArg() < 1 {
 		fs.Usage()
 		return fmt.Errorf("entry id argument required")
 	}
 
-	diaryUUID, err := uuid.Parse(*diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", *diaryID, err)
-	}
 	entryUUID, err := uuid.Parse(fs.Arg(0))
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", fs.Arg(0), err)
@@ -155,7 +146,7 @@ func runDiaryGet(args []string) error {
 	if err != nil {
 		return err
 	}
-	res, err := client.GetDiaryEntry(context.Background(), moltnetapi.GetDiaryEntryParams{DiaryId: diaryUUID, EntryId: entryUUID})
+	res, err := client.GetDiaryEntryById(context.Background(), moltnetapi.GetDiaryEntryByIdParams{EntryId: entryUUID})
 	if err != nil {
 		return fmt.Errorf("diary get: %w", err)
 	}
@@ -169,7 +160,6 @@ func runDiaryGet(args []string) error {
 func runDiaryDelete(args []string) error {
 	fs := flag.NewFlagSet("diary delete", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	diaryID := fs.String("diary-id", "", "Diary UUID (required)")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: moltnet diary delete <entry-id> [options]")
 		fmt.Fprintln(os.Stderr, "\nDelete a diary entry by ID.")
@@ -179,20 +169,12 @@ func runDiaryDelete(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *diaryID == "" {
-		fs.Usage()
-		return fmt.Errorf("flag -diary-id is required")
-	}
 	if fs.NArg() < 1 {
 		fs.Usage()
 		return fmt.Errorf("entry id argument required")
 	}
 	rawEntryID := fs.Arg(0)
 
-	diaryUUID, err := uuid.Parse(*diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", *diaryID, err)
-	}
 	entryUUID, err := uuid.Parse(rawEntryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", rawEntryID, err)
@@ -202,7 +184,7 @@ func runDiaryDelete(args []string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := client.DeleteDiaryEntry(context.Background(), moltnetapi.DeleteDiaryEntryParams{DiaryId: diaryUUID, EntryId: entryUUID}); err != nil {
+	if _, err := client.DeleteDiaryEntryById(context.Background(), moltnetapi.DeleteDiaryEntryByIdParams{EntryId: entryUUID}); err != nil {
 		return fmt.Errorf("diary delete: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "Entry %s deleted.\n", rawEntryID)
@@ -288,10 +270,10 @@ func runDiaryCreateSigned(args []string) error {
 
 	// Step 5: Create signed entry
 	req := &moltnetapi.CreateDiaryEntryReq{
-		Content:     *content,
-		ContentHash: moltnetapi.OptString{Value: cid, Set: true},
+		Content:          *content,
+		ContentHash:      moltnetapi.OptString{Value: cid, Set: true},
 		SigningRequestId: moltnetapi.OptUUID{Value: sigReq.ID, Set: true},
-		Tags:        tags,
+		Tags:             tags,
 	}
 	if *title != "" {
 		req.Title = moltnetapi.OptString{Value: *title, Set: true}
@@ -319,7 +301,6 @@ func runDiaryCreateSigned(args []string) error {
 func runDiaryVerify(args []string) error {
 	fs := flag.NewFlagSet("diary verify", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	diaryID := fs.String("diary-id", "", "Diary UUID (required)")
 	fs.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage: moltnet diary verify <entry-id> [options]")
 		fmt.Fprintln(os.Stderr, "\nVerify a signed diary entry's content hash and signature.")
@@ -329,19 +310,11 @@ func runDiaryVerify(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if *diaryID == "" {
-		fs.Usage()
-		return fmt.Errorf("flag -diary-id is required")
-	}
 	if fs.NArg() < 1 {
 		fs.Usage()
 		return fmt.Errorf("entry id argument required")
 	}
 
-	diaryUUID, err := uuid.Parse(*diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", *diaryID, err)
-	}
 	entryUUID, err := uuid.Parse(fs.Arg(0))
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", fs.Arg(0), err)
@@ -351,10 +324,7 @@ func runDiaryVerify(args []string) error {
 	if err != nil {
 		return err
 	}
-	res, err := client.VerifyDiaryEntry(context.Background(), moltnetapi.VerifyDiaryEntryParams{
-		DiaryId: diaryUUID,
-		EntryId: entryUUID,
-	})
+	res, err := client.VerifyDiaryEntryById(context.Background(), moltnetapi.VerifyDiaryEntryByIdParams{EntryId: entryUUID})
 	if err != nil {
 		return fmt.Errorf("diary verify: %w", err)
 	}

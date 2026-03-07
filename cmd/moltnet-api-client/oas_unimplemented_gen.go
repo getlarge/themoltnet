@@ -86,17 +86,6 @@ func (UnimplementedHandler) DeleteDiary(ctx context.Context, params DeleteDiaryP
 	return r, ht.ErrNotImplemented
 }
 
-// DeleteDiaryEntry implements deleteDiaryEntry operation.
-//
-// Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.
-//
-// Deprecated: schema marks this operation as deprecated.
-//
-// DELETE /diaries/{diaryId}/entries/{entryId}
-func (UnimplementedHandler) DeleteDiaryEntry(ctx context.Context, params DeleteDiaryEntryParams) (r DeleteDiaryEntryRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // DeleteDiaryEntryById implements deleteDiaryEntryById operation.
 //
 // Delete a diary entry.
@@ -130,17 +119,6 @@ func (UnimplementedHandler) GetCryptoIdentity(ctx context.Context) (r GetCryptoI
 //
 // GET /diaries/{id}
 func (UnimplementedHandler) GetDiary(ctx context.Context, params GetDiaryParams) (r GetDiaryRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// GetDiaryEntry implements getDiaryEntry operation.
-//
-// Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.
-//
-// Deprecated: schema marks this operation as deprecated.
-//
-// GET /diaries/{diaryId}/entries/{entryId}
-func (UnimplementedHandler) GetDiaryEntry(ctx context.Context, params GetDiaryEntryParams) (r GetDiaryEntryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -434,17 +412,6 @@ func (UnimplementedHandler) UpdateDiary(ctx context.Context, req OptUpdateDiaryR
 	return r, ht.ErrNotImplemented
 }
 
-// UpdateDiaryEntry implements updateDiaryEntry operation.
-//
-// Deprecated alias for PATCH /entries/:entryId. Update a diary entry.
-//
-// Deprecated: schema marks this operation as deprecated.
-//
-// PATCH /diaries/{diaryId}/entries/{entryId}
-func (UnimplementedHandler) UpdateDiaryEntry(ctx context.Context, req OptUpdateDiaryEntryReq, params UpdateDiaryEntryParams) (r UpdateDiaryEntryRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // UpdateDiaryEntryById implements updateDiaryEntryById operation.
 //
 // Update a diary entry (content, title, tags).
@@ -469,17 +436,6 @@ func (UnimplementedHandler) VerifyAgentSignature(ctx context.Context, req *Verif
 //
 // POST /crypto/verify
 func (UnimplementedHandler) VerifyCryptoSignature(ctx context.Context, req *VerifyCryptoSignatureReq) (r VerifyCryptoSignatureRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// VerifyDiaryEntry implements verifyDiaryEntry operation.
-//
-// Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.
-//
-// Deprecated: schema marks this operation as deprecated.
-//
-// GET /diaries/{diaryId}/entries/{entryId}/verify
-func (UnimplementedHandler) VerifyDiaryEntry(ctx context.Context, params VerifyDiaryEntryParams) (r VerifyDiaryEntryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -6,21 +6,25 @@
  */
 
 import {
+  compileDiary,
+  consolidateDiary,
   createDiary,
   createDiaryEntry,
-  deleteDiaryEntry,
+  deleteDiaryEntryById,
   getDiary,
-  getDiaryEntry,
+  getDiaryEntryById,
   listDiaries,
   listDiaryEntries,
   reflectDiary,
   searchDiary,
-  updateDiaryEntry,
-  verifyDiaryEntry,
+  updateDiaryEntryById,
+  verifyDiaryEntryById,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import type {
+  DiariesCompileInput,
+  DiariesConsolidateInput,
   DiariesCreateInput,
   DiariesGetInput,
   DiariesListInput,
@@ -34,6 +38,8 @@ import type {
   ReflectInput,
 } from './schemas.js';
 import {
+  DiariesCompileSchema,
+  DiariesConsolidateSchema,
   DiariesCreateSchema,
   DiariesGetSchema,
   DiariesListSchema,
@@ -98,13 +104,10 @@ export async function handleEntryGet(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { data, error } = await getDiaryEntry({
+  const { data, error } = await getDiaryEntryById({
     client: deps.client,
     auth: () => token,
-    path: {
-      diaryId: args.diary_id,
-      entryId: args.entry_id,
-    },
+    path: { entryId: args.entry_id },
   });
 
   if (error) {
@@ -186,14 +189,12 @@ export async function handleEntryUpdate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { diary_id, entry_id, entry_type, superseded_by, ...updates } = args;
-  const { data, error } = await updateDiaryEntry({
+  const { entry_id, entry_type, superseded_by, ...updates } = args;
+  delete (updates as { diary_id?: string }).diary_id;
+  const { data, error } = await updateDiaryEntryById({
     client: deps.client,
     auth: () => token,
-    path: {
-      diaryId: diary_id,
-      entryId: entry_id,
-    },
+    path: { entryId: entry_id },
     body: {
       ...updates,
       entryType: entry_type,
@@ -218,13 +219,10 @@ export async function handleEntryDelete(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { error } = await deleteDiaryEntry({
+  const { error } = await deleteDiaryEntryById({
     client: deps.client,
     auth: () => token,
-    path: {
-      diaryId: args.diary_id,
-      entryId: args.entry_id,
-    },
+    path: { entryId: args.entry_id },
   });
 
   if (error) {
@@ -272,13 +270,10 @@ export async function handleEntryVerify(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { data, error } = await verifyDiaryEntry({
+  const { data, error } = await verifyDiaryEntryById({
     client: deps.client,
     auth: () => token,
-    path: {
-      diaryId: args.diary_id,
-      entryId: args.entry_id,
-    },
+    path: { entryId: args.entry_id },
   });
 
   if (error) {
@@ -359,6 +354,79 @@ export async function handleDiariesGet(
   return textResult({ diary: data });
 }
 
+export async function handleDiariesConsolidate(
+  args: DiariesConsolidateInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'diaries_consolidate' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { diary_id, entry_ids, tags, threshold, strategy } = args;
+  const { data, error } = await consolidateDiary({
+    client: deps.client,
+    auth: () => token,
+    path: { id: diary_id },
+    body: {
+      entryIds: entry_ids,
+      tags,
+      threshold,
+      strategy,
+    },
+  });
+
+  if (error) {
+    deps.logger.error(
+      { tool: 'diaries_consolidate', err: error },
+      'tool.error',
+    );
+    return errorResult('Consolidation failed');
+  }
+
+  return textResult(data);
+}
+
+export async function handleDiariesCompile(
+  args: DiariesCompileInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'diaries_compile' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const {
+    diary_id,
+    token_budget,
+    task_prompt,
+    lambda,
+    include_tags,
+    w_recency,
+    w_importance,
+  } = args;
+  const { data, error } = await compileDiary({
+    client: deps.client,
+    auth: () => token,
+    path: { id: diary_id },
+    body: {
+      tokenBudget: token_budget,
+      taskPrompt: task_prompt,
+      lambda,
+      includeTags: include_tags,
+      wRecency: w_recency,
+      wImportance: w_importance,
+    },
+  });
+
+  if (error) {
+    deps.logger.error({ tool: 'diaries_compile', err: error }, 'tool.error');
+    return errorResult('Compile failed');
+  }
+
+  return textResult(data);
+}
+
 // --- Tool registration ---
 
 export function registerDiaryTools(
@@ -373,6 +441,26 @@ export function registerDiaryTools(
       inputSchema: DiariesListSchema,
     },
     async (args, ctx) => handleDiariesList(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'diaries_consolidate',
+      description:
+        'Cluster semantically similar entries and return consolidation suggestions.',
+      inputSchema: DiariesConsolidateSchema,
+    },
+    async (args, ctx) => handleDiariesConsolidate(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'diaries_compile',
+      description:
+        'Compile a token-budget-fitted context pack from diary entries.',
+      inputSchema: DiariesCompileSchema,
+    },
+    async (args, ctx) => handleDiariesCompile(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
