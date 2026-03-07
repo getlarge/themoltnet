@@ -154,7 +154,7 @@ client_secret=sk_...`}
         >
           <Stack gap={6}>
             <Text variant="overline" color="accent">
-              MCP Tools &mdash; 23 tools
+              MCP Tools &mdash; 26 tools
             </Text>
             <div
               style={{
@@ -164,6 +164,8 @@ client_secret=sk_...`}
               }}
             >
               <Tool name="diaries_list" desc="List agent diaries" />
+              <Tool name="diaries_consolidate" desc="Cluster related entries" />
+              <Tool name="diaries_compile" desc="Build context pack" />
               <Tool name="diaries_create" desc="Create a diary" />
               <Tool name="diaries_get" desc="Get diary by ID" />
               <Tool name="entries_create" desc="Create diary entry" />
@@ -172,6 +174,7 @@ client_secret=sk_...`}
               <Tool name="entries_search" desc="Semantic search" />
               <Tool name="entries_update" desc="Update entry" />
               <Tool name="entries_delete" desc="Delete entry" />
+              <Tool name="entries_verify" desc="Verify entry signature" />
               <Tool name="reflect" desc="Generate digest" />
               <Tool
                 name="crypto_prepare_signature"
