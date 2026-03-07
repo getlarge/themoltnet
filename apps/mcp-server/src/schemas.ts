@@ -6,14 +6,16 @@
  */
 
 import type {
+  CompileDiaryData,
+  ConsolidateDiaryData,
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateSigningRequestData,
-  DeleteDiaryEntryData,
+  DeleteDiaryEntryByIdData,
   EntryType,
   GetAgentProfileData,
   GetDiaryData,
-  GetDiaryEntryData,
+  GetDiaryEntryByIdData,
   GetPublicEntryData,
   GetPublicFeedData,
   GetSigningRequestData,
@@ -22,9 +24,9 @@ import type {
   SearchDiaryData,
   SearchPublicFeedData,
   SubmitSignatureData,
-  UpdateDiaryEntryData,
+  UpdateDiaryEntryByIdData,
   VerifyCryptoSignatureData,
-  VerifyDiaryEntryData,
+  VerifyDiaryEntryByIdData,
 } from '@moltnet/api-client';
 import { EntryTypeSchema } from '@moltnet/models';
 import type { Static } from '@sinclair/typebox';
@@ -92,14 +94,17 @@ export type EntryCreateInput = SnakeCasedProperties<CreateEntryBody> & {
 };
 
 export const EntryGetSchema = Type.Object({
-  diary_id: Type.String({
-    description: 'Diary identifier (UUID).',
-  }),
+  diary_id: Type.Optional(
+    Type.String({
+      description:
+        'Deprecated. Diary identifier (UUID). No longer required for by-ID routes.',
+    }),
+  ),
   entry_id: Type.String({ description: 'The entry ID' }),
 });
 export type EntryGetInput = {
-  diary_id: PathOf<GetDiaryEntryData>['diaryId'];
-  entry_id: PathOf<GetDiaryEntryData>['entryId'];
+  diary_id?: string;
+  entry_id: PathOf<GetDiaryEntryByIdData>['entryId'];
 };
 
 export const EntryListSchema = Type.Object({
@@ -197,9 +202,12 @@ export type EntrySearchInput = EntrySearchFields & {
 };
 
 export const EntryUpdateSchema = Type.Object({
-  diary_id: Type.String({
-    description: 'Diary identifier (UUID).',
-  }),
+  diary_id: Type.Optional(
+    Type.String({
+      description:
+        'Deprecated. Diary identifier (UUID). No longer required for by-ID routes.',
+    }),
+  ),
   entry_id: Type.String({ description: 'The entry ID' }),
   content: Type.Optional(Type.String({ description: 'New content' })),
   tags: Type.Optional(Type.Array(Type.String(), { description: 'New tags' })),
@@ -220,32 +228,38 @@ export const EntryUpdateSchema = Type.Object({
     }),
   ),
 });
-type UpdateDiaryBody = NonNullable<UpdateDiaryEntryData['body']>;
+type UpdateDiaryBody = NonNullable<UpdateDiaryEntryByIdData['body']>;
 export type EntryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {
-  diary_id: PathOf<UpdateDiaryEntryData>['diaryId'];
-  entry_id: PathOf<UpdateDiaryEntryData>['entryId'];
+  diary_id?: string;
+  entry_id: PathOf<UpdateDiaryEntryByIdData>['entryId'];
 };
 
 export const EntryVerifySchema = Type.Object({
-  diary_id: Type.String({
-    description: 'Diary identifier (UUID).',
-  }),
+  diary_id: Type.Optional(
+    Type.String({
+      description:
+        'Deprecated. Diary identifier (UUID). No longer required for by-ID routes.',
+    }),
+  ),
   entry_id: Type.String({ description: 'The entry ID to verify' }),
 });
 export type EntryVerifyInput = {
-  diary_id: PathOf<VerifyDiaryEntryData>['diaryId'];
-  entry_id: PathOf<VerifyDiaryEntryData>['entryId'];
+  diary_id?: string;
+  entry_id: PathOf<VerifyDiaryEntryByIdData>['entryId'];
 };
 
 export const EntryDeleteSchema = Type.Object({
-  diary_id: Type.String({
-    description: 'Diary identifier (UUID).',
-  }),
+  diary_id: Type.Optional(
+    Type.String({
+      description:
+        'Deprecated. Diary identifier (UUID). No longer required for by-ID routes.',
+    }),
+  ),
   entry_id: Type.String({ description: 'The entry ID to delete' }),
 });
 export type EntryDeleteInput = {
-  diary_id: PathOf<DeleteDiaryEntryData>['diaryId'];
-  entry_id: PathOf<DeleteDiaryEntryData>['entryId'];
+  diary_id?: string;
+  entry_id: PathOf<DeleteDiaryEntryByIdData>['entryId'];
 };
 
 export const ReflectSchema = Type.Object({
@@ -272,6 +286,41 @@ export type ReflectInput = {
   days?: ReflectDiaryQuery['days'];
   max_entries?: ReflectDiaryQuery['maxEntries'];
   entry_types?: EntryType[];
+};
+
+export const DiariesConsolidateSchema = Type.Object({
+  diary_id: Type.String({ description: 'Diary identifier (UUID).' }),
+  entry_ids: Type.Optional(Type.Array(Type.String())),
+  tags: Type.Optional(Type.Array(Type.String())),
+  threshold: Type.Optional(Type.Number()),
+  strategy: Type.Optional(
+    Type.Union([
+      Type.Literal('score'),
+      Type.Literal('centroid'),
+      Type.Literal('hybrid'),
+    ]),
+  ),
+});
+type ConsolidateDiaryBody = BodyOf<ConsolidateDiaryData>;
+export type DiariesConsolidateInput =
+  SnakeCasedProperties<ConsolidateDiaryBody> & {
+    diary_id: PathOf<ConsolidateDiaryData>['id'];
+  };
+
+export const DiariesCompileSchema = Type.Object({
+  diary_id: Type.String({ description: 'Diary identifier (UUID).' }),
+  token_budget: Type.Number({ description: 'Maximum token budget.' }),
+  task_prompt: Type.Optional(
+    Type.String({ description: 'Optional task prompt for relevance scoring.' }),
+  ),
+  lambda: Type.Optional(Type.Number({ description: 'MMR lambda in [0,1].' })),
+  include_tags: Type.Optional(Type.Array(Type.String())),
+  w_recency: Type.Optional(Type.Number()),
+  w_importance: Type.Optional(Type.Number()),
+});
+type CompileDiaryBody = BodyOf<CompileDiaryData>;
+export type DiariesCompileInput = SnakeCasedProperties<CompileDiaryBody> & {
+  diary_id: PathOf<CompileDiaryData>['id'];
 };
 
 // --- Diary catalog schemas ---
@@ -449,6 +498,14 @@ type _EntryVerifyInputMatchesSchema = AssertSchemaToApi<
 type _ReflectInputMatchesSchema = AssertSchemaToApi<
   Static<typeof ReflectSchema>,
   ReflectInput
+>;
+type _DiariesConsolidateInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiariesConsolidateSchema>,
+  DiariesConsolidateInput
+>;
+type _DiariesCompileInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof DiariesCompileSchema>,
+  DiariesCompileInput
 >;
 type _DiariesCreateInputMatchesSchema = AssertSchemaToApi<
   Static<typeof DiariesCreateSchema>,

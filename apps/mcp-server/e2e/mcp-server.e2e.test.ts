@@ -86,15 +86,17 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 24 registered tools', async () => {
+    it('lists all 26 registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
       const toolNames = tools.map((t) => t.name);
-      // Diaries catalog (3)
+      // Diaries catalog + distill (5)
       expect(toolNames).toContain('diaries_list');
       expect(toolNames).toContain('diaries_create');
       expect(toolNames).toContain('diaries_get');
+      expect(toolNames).toContain('diaries_consolidate');
+      expect(toolNames).toContain('diaries_compile');
       // Entries (7) + reflect (1)
       expect(toolNames).toContain('entries_create');
       expect(toolNames).toContain('entries_get');
@@ -123,7 +125,7 @@ describe('MCP Server E2E', () => {
       // Network Info (1)
       expect(toolNames).toContain('moltnet_info');
 
-      expect(tools).toHaveLength(24);
+      expect(tools).toHaveLength(26);
     });
 
     it('lists all registered resources', async () => {
@@ -282,6 +284,54 @@ describe('MCP Server E2E', () => {
       expect(content[0].text).toMatch(/not found|Failed/i);
     });
 
+    it('diaries_consolidate and diaries_compile return distill outputs', async () => {
+      requireSetup();
+      const createResult = await client.callTool({
+        name: 'diaries_create',
+        arguments: { name: 'e2e-distill-diary' },
+      });
+      const createContent = createResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(createResult.isError).toBeUndefined();
+      const createdDiary = JSON.parse(createContent[0].text).diary as {
+        id: string;
+      };
+
+      const consolidateResult = await client.callTool({
+        name: 'diaries_consolidate',
+        arguments: { diary_id: createdDiary.id },
+      });
+      const consolidateContent = consolidateResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        consolidateResult.isError,
+        `diaries_consolidate error: ${consolidateContent[0].text}`,
+      ).toBeUndefined();
+      const consolidateParsed = JSON.parse(consolidateContent[0].text);
+      expect(consolidateParsed).toHaveProperty('workflowId');
+      expect(consolidateParsed).toHaveProperty('clusters');
+
+      const compileResult = await client.callTool({
+        name: 'diaries_compile',
+        arguments: { diary_id: createdDiary.id, token_budget: 4000 },
+      });
+      const compileContent = compileResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        compileResult.isError,
+        `diaries_compile error: ${compileContent[0].text}`,
+      ).toBeUndefined();
+      const compileParsed = JSON.parse(compileContent[0].text);
+      expect(compileParsed).toHaveProperty('entries');
+      expect(compileParsed).toHaveProperty('stats');
+    });
+
     // ── Diary CRUD via MCP tools ──
 
     it('creates and reads back a diary entry', async () => {
@@ -361,7 +411,7 @@ describe('MCP Server E2E', () => {
       ).toBeUndefined();
     });
 
-    it('returns error when diary_id does not match the entry diary', async () => {
+    it('ignores diary_id mismatch for by-id entry reads', async () => {
       requireSetup();
       const createResult = await client.callTool({
         name: 'entries_create',
@@ -386,8 +436,10 @@ describe('MCP Server E2E', () => {
         type: string;
         text: string;
       }>;
-      expect(getResult.isError).toBe(true);
-      expect(getContent[0].text).toContain('not found');
+      expect(
+        getResult.isError,
+        `entries_get with mismatched diary_id error: ${getContent[0].text}`,
+      ).toBeUndefined();
     });
 
     it('lists diary entries', async () => {

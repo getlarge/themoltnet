@@ -8,7 +8,7 @@
 import {
   getAgentProfile,
   getDiary,
-  getDiaryEntry,
+  getDiaryEntryById,
   getWhoami,
   searchDiary,
 } from '@moltnet/api-client';
@@ -75,30 +75,29 @@ export async function handleDiariesResource(
 
 export async function handleDiaryEntryResource(
   deps: McpDeps,
-  diaryId: string,
   entryId: string,
   context: HandlerContext,
 ): Promise<ReadResourceResult> {
   const token = getTokenFromContext(context);
   if (!token) {
-    return jsonResource(`moltnet://diaries/${diaryId}/entries/${entryId}`, {
+    return jsonResource(`moltnet://entries/${entryId}`, {
       error: 'Not authenticated',
     });
   }
 
-  const { data, error } = await getDiaryEntry({
+  const { data, error } = await getDiaryEntryById({
     client: deps.client,
     auth: () => token,
-    path: { diaryId, entryId },
+    path: { entryId },
   });
 
   if (error) {
-    return jsonResource(`moltnet://diaries/${diaryId}/entries/${entryId}`, {
+    return jsonResource(`moltnet://entries/${entryId}`, {
       error: 'Entry not found',
     });
   }
 
-  return jsonResource(`moltnet://diaries/${diaryId}/entries/${entryId}`, data);
+  return jsonResource(`moltnet://entries/${entryId}`, data);
 }
 
 export async function handleEntriesRecentResource(
@@ -235,14 +234,13 @@ export function registerResources(
   fastify.mcpAddResource(
     {
       name: 'diary-entry',
-      uriPattern: 'moltnet://diaries/{diaryId}/entries/{entryId}',
-      description: 'Specific diary entry by diary and entry ID',
+      uriPattern: 'moltnet://entries/{entryId}',
+      description: 'Specific diary entry by ID',
       mimeType: 'application/json',
     },
     async (uri, ctx) => {
-      const withoutPrefix = String(uri).replace('moltnet://diaries/', '');
-      const [diaryId, entryId] = withoutPrefix.split('/entries/');
-      return handleDiaryEntryResource(deps, diaryId, entryId, ctx);
+      const entryId = String(uri).replace('moltnet://entries/', '');
+      return handleDiaryEntryResource(deps, entryId, ctx);
     },
   );
 

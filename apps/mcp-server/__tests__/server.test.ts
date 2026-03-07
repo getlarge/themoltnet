@@ -5,12 +5,15 @@ import { createMockDeps } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
   createDiaryEntry: vi.fn(),
-  getDiaryEntry: vi.fn(),
+  getDiaryEntryById: vi.fn(),
   listDiaryEntries: vi.fn(),
   searchDiary: vi.fn(),
-  updateDiaryEntry: vi.fn(),
-  deleteDiaryEntry: vi.fn(),
+  updateDiaryEntryById: vi.fn(),
+  deleteDiaryEntryById: vi.fn(),
+  verifyDiaryEntryById: vi.fn(),
   reflectDiary: vi.fn(),
+  consolidateDiary: vi.fn(),
+  compileDiary: vi.fn(),
   listDiaries: vi.fn(),
   createDiary: vi.fn(),
   getDiary: vi.fn(),
