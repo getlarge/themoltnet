@@ -18,6 +18,8 @@ export const McpServerConfigSchema = Type.Object({
   OTLP_ENDPOINT: Type.Optional(Type.String({ minLength: 1 })),
   /** Axiom dataset for logs + traces */
   AXIOM_DATASET: Type.Optional(Type.String({ minLength: 1 })),
+  /** Axiom dataset for metrics (falls back to AXIOM_DATASET) */
+  AXIOM_METRICS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
   AUTH_ENABLED: Type.Optional(
     Type.Boolean({
       default: false,

@@ -26,6 +26,13 @@ async function main(): Promise<void> {
         ? { 'X-Axiom-Dataset': config.AXIOM_DATASET }
         : {}),
     };
+    const metricsDataset = config.AXIOM_METRICS_DATASET ?? config.AXIOM_DATASET;
+    const metricsHeaders: Record<string, string> = {
+      ...(config.AXIOM_API_TOKEN
+        ? { Authorization: `Bearer ${config.AXIOM_API_TOKEN}` }
+        : {}),
+      ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
+    };
     observability = initObservability({
       serviceName: 'moltnet-mcp-server',
       serviceVersion: pkg.version,
@@ -33,6 +40,7 @@ async function main(): Promise<void> {
       otlp: {
         endpoint: config.OTLP_ENDPOINT,
         headers,
+        metricsHeaders,
       },
       logger: {
         level: config.NODE_ENV === 'production' ? 'info' : 'debug',
