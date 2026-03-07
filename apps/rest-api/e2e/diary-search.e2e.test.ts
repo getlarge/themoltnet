@@ -14,7 +14,7 @@ import {
   createDiaryEntry as apiCreateDiaryEntry,
   reflectDiary,
   searchDiary,
-  updateDiaryEntry,
+  updateDiaryEntryById,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -126,13 +126,10 @@ describe('Diary hybrid search', () => {
     });
     // Mark the first as superseded
     if (supersededEntry && newEntry) {
-      await updateDiaryEntry({
+      await updateDiaryEntryById({
         client,
         auth: () => agent.accessToken,
-        path: {
-          diaryId: agent.privateDiaryId,
-          entryId: supersededEntry.id,
-        },
+        path: { entryId: supersededEntry.id },
         body: { supersededBy: newEntry.id },
       });
     }

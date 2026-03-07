@@ -7,7 +7,6 @@ import { requireAuth } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
-  DiaryEntryParamsSchema,
   EntryParamsSchema,
   NestedDiaryParamsSchema,
   ProblemDetailsSchema,
@@ -475,34 +474,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       getEntry(request.params.entryId, request.authContext!.identityId),
   );
 
-  server.get(
-    '/diaries/:diaryId/entries/:entryId',
-    {
-      schema: {
-        operationId: 'getDiaryEntry',
-        tags: ['diary'],
-        deprecated: true,
-        description:
-          'Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.',
-        security: [{ bearerAuth: [] }],
-        params: DiaryEntryParamsSchema,
-        response: {
-          200: Type.Ref(DiaryEntrySchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) =>
-      getEntry(
-        request.params.entryId,
-        request.authContext!.identityId,
-        request.params.diaryId,
-      ),
-  );
-
   // ── Verify Entry ──────────────────────────────────────────
   server.get(
     '/entries/:entryId/verify',
@@ -524,33 +495,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     },
     async (request) =>
       verifyEntry(request.params.entryId, request.authContext!.identityId),
-  );
-
-  server.get(
-    '/diaries/:diaryId/entries/:entryId/verify',
-    {
-      schema: {
-        operationId: 'verifyDiaryEntry',
-        tags: ['diary'],
-        deprecated: true,
-        description:
-          'Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.',
-        security: [{ bearerAuth: [] }],
-        params: DiaryEntryParamsSchema,
-        response: {
-          200: Type.Ref(EntryVerifyResultSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) =>
-      verifyEntry(
-        request.params.entryId,
-        request.authContext!.identityId,
-        request.params.diaryId,
-      ),
   );
 
   // ── Update Entry ───────────────────────────────────────────
@@ -582,37 +526,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       ),
   );
 
-  server.patch(
-    '/diaries/:diaryId/entries/:entryId',
-    {
-      schema: {
-        operationId: 'updateDiaryEntry',
-        tags: ['diary'],
-        deprecated: true,
-        description:
-          'Deprecated alias for PATCH /entries/:entryId. Update a diary entry.',
-        security: [{ bearerAuth: [] }],
-        params: DiaryEntryParamsSchema,
-        body: updateBodySchema,
-        response: {
-          200: Type.Ref(DiaryEntrySchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          409: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) =>
-      updateEntry(
-        request.params.entryId,
-        request.authContext!.identityId,
-        request.body,
-        { diaryId: request.params.diaryId, requireDiaryAccess: true },
-      ),
-  );
-
   // ── Delete Entry ───────────────────────────────────────────
   server.delete(
     '/entries/:entryId',
@@ -634,33 +547,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     },
     async (request) =>
       deleteEntry(request.params.entryId, request.authContext!.identityId),
-  );
-
-  server.delete(
-    '/diaries/:diaryId/entries/:entryId',
-    {
-      schema: {
-        operationId: 'deleteDiaryEntry',
-        tags: ['diary'],
-        deprecated: true,
-        description:
-          'Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.',
-        security: [{ bearerAuth: [] }],
-        params: DiaryEntryParamsSchema,
-        response: {
-          200: Type.Ref(SuccessSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          403: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) =>
-      deleteEntry(request.params.entryId, request.authContext!.identityId, {
-        diaryId: request.params.diaryId,
-        requireDiaryAccess: true,
-      }),
   );
 
   // ── Search ─────────────────────────────────────────────────

@@ -57,14 +57,6 @@ type Handler interface {
 	//
 	// DELETE /diaries/{id}
 	DeleteDiary(ctx context.Context, params DeleteDiaryParams) (DeleteDiaryRes, error)
-	// DeleteDiaryEntry implements deleteDiaryEntry operation.
-	//
-	// Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.
-	//
-	// Deprecated: schema marks this operation as deprecated.
-	//
-	// DELETE /diaries/{diaryId}/entries/{entryId}
-	DeleteDiaryEntry(ctx context.Context, params DeleteDiaryEntryParams) (DeleteDiaryEntryRes, error)
 	// DeleteDiaryEntryById implements deleteDiaryEntryById operation.
 	//
 	// Delete a diary entry.
@@ -89,14 +81,6 @@ type Handler interface {
 	//
 	// GET /diaries/{id}
 	GetDiary(ctx context.Context, params GetDiaryParams) (GetDiaryRes, error)
-	// GetDiaryEntry implements getDiaryEntry operation.
-	//
-	// Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.
-	//
-	// Deprecated: schema marks this operation as deprecated.
-	//
-	// GET /diaries/{diaryId}/entries/{entryId}
-	GetDiaryEntry(ctx context.Context, params GetDiaryEntryParams) (GetDiaryEntryRes, error)
 	// GetDiaryEntryById implements getDiaryEntryById operation.
 	//
 	// Get a single diary entry by ID.
@@ -293,14 +277,6 @@ type Handler interface {
 	//
 	// PATCH /diaries/{id}
 	UpdateDiary(ctx context.Context, req OptUpdateDiaryReq, params UpdateDiaryParams) (UpdateDiaryRes, error)
-	// UpdateDiaryEntry implements updateDiaryEntry operation.
-	//
-	// Deprecated alias for PATCH /entries/:entryId. Update a diary entry.
-	//
-	// Deprecated: schema marks this operation as deprecated.
-	//
-	// PATCH /diaries/{diaryId}/entries/{entryId}
-	UpdateDiaryEntry(ctx context.Context, req OptUpdateDiaryEntryReq, params UpdateDiaryEntryParams) (UpdateDiaryEntryRes, error)
 	// UpdateDiaryEntryById implements updateDiaryEntryById operation.
 	//
 	// Update a diary entry (content, title, tags).
@@ -319,14 +295,6 @@ type Handler interface {
 	//
 	// POST /crypto/verify
 	VerifyCryptoSignature(ctx context.Context, req *VerifyCryptoSignatureReq) (VerifyCryptoSignatureRes, error)
-	// VerifyDiaryEntry implements verifyDiaryEntry operation.
-	//
-	// Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.
-	//
-	// Deprecated: schema marks this operation as deprecated.
-	//
-	// GET /diaries/{diaryId}/entries/{entryId}/verify
-	VerifyDiaryEntry(ctx context.Context, params VerifyDiaryEntryParams) (VerifyDiaryEntryRes, error)
 	// VerifyDiaryEntryById implements verifyDiaryEntryById operation.
 	//
 	// Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches,

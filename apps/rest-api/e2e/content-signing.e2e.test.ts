@@ -11,10 +11,10 @@ import {
   createClient,
   createDiaryEntry,
   createSigningRequest,
-  getDiaryEntry,
+  getDiaryEntryById,
   submitSignature,
-  updateDiaryEntry,
-  verifyDiaryEntry,
+  updateDiaryEntryById,
+  verifyDiaryEntryById,
 } from '@moltnet/api-client';
 import { computeContentCid, cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -106,11 +106,12 @@ describe('Content-signed entries', () => {
     expect(entry!.contentSignature).toBe(signature);
 
     // 6. Verify the entry
-    const { data: verification, error: verifyError } = await verifyDiaryEntry({
-      client,
-      auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId, entryId: entry!.id },
-    });
+    const { data: verification, error: verifyError } =
+      await verifyDiaryEntryById({
+        client,
+        auth: () => agent.accessToken,
+        path: { entryId: entry!.id },
+      });
 
     expect(verifyError).toBeUndefined();
     expect(verification!.signed).toBe(true);
@@ -159,10 +160,10 @@ describe('Content-signed entries', () => {
     });
 
     // Attempt to update content → 409
-    const { error, response } = await updateDiaryEntry({
+    const { error, response } = await updateDiaryEntryById({
       client,
       auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
       body: { content: 'Tampered content' },
     });
 
@@ -214,10 +215,10 @@ describe('Content-signed entries', () => {
     });
 
     // supersededBy should succeed on signed entry
-    const { data: updated, error } = await updateDiaryEntry({
+    const { data: updated, error } = await updateDiaryEntryById({
       client,
       auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
       body: { supersededBy: newer!.id },
     });
 
@@ -238,10 +239,10 @@ describe('Content-signed entries', () => {
     expect(entry!.contentHash).toBeNull();
     expect(entry!.contentSignature).toBeNull();
 
-    const { data: updated, error } = await updateDiaryEntry({
+    const { data: updated, error } = await updateDiaryEntryById({
       client,
       auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
       body: { content: 'Updated mutable entry' },
     });
 
@@ -259,10 +260,10 @@ describe('Content-signed entries', () => {
       body: { content: 'No signature here' },
     });
 
-    const { data: verification, error } = await verifyDiaryEntry({
+    const { data: verification, error } = await verifyDiaryEntryById({
       client,
       auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
     });
 
     expect(error).toBeUndefined();
@@ -366,10 +367,10 @@ describe('Content-signed entries', () => {
     });
 
     // Read back
-    const { data: fetched } = await getDiaryEntry({
+    const { data: fetched } = await getDiaryEntryById({
       client,
       auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId, entryId: entry!.id },
+      path: { entryId: entry!.id },
     });
 
     expect(fetched!.contentHash).toBe(contentCid);

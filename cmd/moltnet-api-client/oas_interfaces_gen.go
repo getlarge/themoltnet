@@ -33,10 +33,6 @@ type DeleteDiaryEntryByIdRes interface {
 	deleteDiaryEntryByIdRes()
 }
 
-type DeleteDiaryEntryRes interface {
-	deleteDiaryEntryRes()
-}
-
 type DeleteDiaryRes interface {
 	deleteDiaryRes()
 }
@@ -51,10 +47,6 @@ type GetCryptoIdentityRes interface {
 
 type GetDiaryEntryByIdRes interface {
 	getDiaryEntryByIdRes()
-}
-
-type GetDiaryEntryRes interface {
-	getDiaryEntryRes()
 }
 
 type GetDiaryRes interface {
@@ -161,10 +153,6 @@ type UpdateDiaryEntryByIdRes interface {
 	updateDiaryEntryByIdRes()
 }
 
-type UpdateDiaryEntryRes interface {
-	updateDiaryEntryRes()
-}
-
 type UpdateDiaryRes interface {
 	updateDiaryRes()
 }
@@ -179,10 +167,6 @@ type VerifyCryptoSignatureRes interface {
 
 type VerifyDiaryEntryByIdRes interface {
 	verifyDiaryEntryByIdRes()
-}
-
-type VerifyDiaryEntryRes interface {
-	verifyDiaryEntryRes()
 }
 
 type VerifyRecoveryChallengeRes interface {

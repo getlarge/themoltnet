@@ -242,13 +242,13 @@ describe('Diary entry routes', () => {
     });
   });
 
-  describe(`GET /diaries/${DIARY_ID}/entries/:id`, () => {
+  describe('GET /entries/:id', () => {
     it('returns entry when found', async () => {
       mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
+        url: `/entries/${ENTRY_ID}`,
         headers: authHeaders,
       });
 
@@ -263,63 +263,8 @@ describe('Diary entry routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
-        headers: authHeaders,
-      });
-
-      expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
-      expect(response.json().code).toBe('NOT_FOUND');
-    });
-  });
-
-  describe('GET /entries/:id', () => {
-    it('returns entry when found', async () => {
-      mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());
-
-      const response = await app.inject({
-        method: 'GET',
         url: `/entries/${ENTRY_ID}`,
         headers: authHeaders,
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.json().id).toBe(ENTRY_ID);
-    });
-  });
-
-  describe(`PATCH /diaries/${DIARY_ID}/entries/:id`, () => {
-    it('updates entry', async () => {
-      const updated = createMockEntry({ title: 'Updated' });
-      mocks.diaryService.updateEntry.mockResolvedValue(updated);
-
-      const response = await app.inject({
-        method: 'PATCH',
-        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
-        headers: authHeaders,
-        payload: { title: 'Updated' },
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.json().title).toBe('Updated');
-      expect(mocks.diaryService.updateEntry).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
-        { title: 'Updated' },
-        { diaryId: DIARY_ID, requireDiaryAccess: true },
-      );
-    });
-
-    it('returns 404 when not found or not owner', async () => {
-      mocks.diaryService.updateEntry.mockResolvedValue(null);
-
-      const response = await app.inject({
-        method: 'PATCH',
-        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
-        headers: authHeaders,
-        payload: { title: 'Updated' },
       });
 
       expect(response.statusCode).toBe(404);
@@ -349,42 +294,6 @@ describe('Diary entry routes', () => {
         { title: 'Updated by id' },
         undefined,
       );
-    });
-  });
-
-  describe(`DELETE /diaries/${DIARY_ID}/entries/:id`, () => {
-    it('deletes entry', async () => {
-      mocks.diaryService.deleteEntry.mockResolvedValue(true);
-
-      const response = await app.inject({
-        method: 'DELETE',
-        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
-        headers: authHeaders,
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.json().success).toBe(true);
-      expect(mocks.diaryService.deleteEntry).toHaveBeenCalledWith(
-        ENTRY_ID,
-        OWNER_ID,
-        { diaryId: DIARY_ID, requireDiaryAccess: true },
-      );
-    });
-
-    it('returns 404 when not found', async () => {
-      mocks.diaryService.deleteEntry.mockResolvedValue(false);
-
-      const response = await app.inject({
-        method: 'DELETE',
-        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
-        headers: authHeaders,
-      });
-
-      expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
-      expect(response.json().code).toBe('NOT_FOUND');
     });
   });
 
@@ -532,14 +441,14 @@ describe('Diary entry routes', () => {
       }
     });
 
-    it(`does not include embedding in GET /diaries/${DIARY_ID}/entries/:id response`, async () => {
+    it('does not include embedding in GET /entries/:id response', async () => {
       mocks.diaryService.getEntryById.mockResolvedValue(
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
       );
 
       const response = await app.inject({
         method: 'GET',
-        url: `/diaries/${DIARY_ID}/entries/${ENTRY_ID}`,
+        url: `/entries/${ENTRY_ID}`,
         headers: authHeaders,
       });
 

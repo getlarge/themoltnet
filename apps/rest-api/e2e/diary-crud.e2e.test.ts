@@ -9,14 +9,11 @@ import {
   type Client,
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
-  deleteDiaryEntry as apiDeleteDiaryEntry,
   deleteDiaryEntryById as apiDeleteDiaryEntryById,
-  getDiaryEntry as apiGetDiaryEntry,
   getDiaryEntryById as apiGetDiaryEntryById,
   listDiaryEntries as apiListDiaryEntries,
   reflectDiary,
   searchDiary,
-  updateDiaryEntry as apiUpdateDiaryEntry,
   updateDiaryEntryById as apiUpdateDiaryEntryById,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -39,14 +36,13 @@ describe('Diary CRUD', () => {
   }
 
   function getDiaryEntry(
-    args: Parameters<typeof apiGetDiaryEntry>[0] & {
+    args: Parameters<typeof apiGetDiaryEntryById>[0] & {
       path: { entryId: string; diaryId?: string };
     },
   ) {
-    return apiGetDiaryEntry({
+    return apiGetDiaryEntryById({
       ...args,
       path: {
-        diaryId: args.path.diaryId ?? agent.privateDiaryId,
         entryId: args.path.entryId,
       },
     });
@@ -74,28 +70,26 @@ describe('Diary CRUD', () => {
   }
 
   function updateDiaryEntry(
-    args: Parameters<typeof apiUpdateDiaryEntry>[0] & {
+    args: Parameters<typeof apiUpdateDiaryEntryById>[0] & {
       path: { entryId: string; diaryId?: string };
     },
   ) {
-    return apiUpdateDiaryEntry({
+    return apiUpdateDiaryEntryById({
       ...args,
       path: {
-        diaryId: args.path.diaryId ?? agent.privateDiaryId,
         entryId: args.path.entryId,
       },
     });
   }
 
   function deleteDiaryEntry(
-    args: Parameters<typeof apiDeleteDiaryEntry>[0] & {
+    args: Parameters<typeof apiDeleteDiaryEntryById>[0] & {
       path: { entryId: string; diaryId?: string };
     },
   ) {
-    return apiDeleteDiaryEntry({
+    return apiDeleteDiaryEntryById({
       ...args,
       path: {
-        diaryId: args.path.diaryId ?? agent.privateDiaryId,
         entryId: args.path.entryId,
       },
     });
@@ -672,17 +666,17 @@ describe('Unauthorized access (no token)', () => {
     expect(response.status).toBe(401);
   });
 
-  it('GET /diaries/:id/entries/:entryId → 401', async () => {
+  it('GET /entries/:entryId → 401', async () => {
     const response = await fetch(
-      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/00000000-0000-0000-0000-000000000000`,
+      `${harness.baseUrl}/entries/00000000-0000-0000-0000-000000000000`,
     );
 
     expect(response.status).toBe(401);
   });
 
-  it('PATCH /diaries/:id/entries/:entryId → 401', async () => {
+  it('PATCH /entries/:entryId → 401', async () => {
     const response = await fetch(
-      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/00000000-0000-0000-0000-000000000000`,
+      `${harness.baseUrl}/entries/00000000-0000-0000-0000-000000000000`,
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -693,9 +687,9 @@ describe('Unauthorized access (no token)', () => {
     expect(response.status).toBe(401);
   });
 
-  it('DELETE /diaries/:id/entries/:entryId → 401', async () => {
+  it('DELETE /entries/:entryId → 401', async () => {
     const response = await fetch(
-      `${harness.baseUrl}/diaries/${agent.privateDiaryId}/entries/00000000-0000-0000-0000-000000000000`,
+      `${harness.baseUrl}/entries/00000000-0000-0000-0000-000000000000`,
       { method: 'DELETE' },
     );
 

@@ -43,11 +43,9 @@ var operationRolesBearerAuth = map[string][]string{
 	CreateSigningRequestOperation:   []string{},
 	DeclineDiaryInvitationOperation: []string{},
 	DeleteDiaryOperation:            []string{},
-	DeleteDiaryEntryOperation:       []string{},
 	DeleteDiaryEntryByIdOperation:   []string{},
 	GetCryptoIdentityOperation:      []string{},
 	GetDiaryOperation:               []string{},
-	GetDiaryEntryOperation:          []string{},
 	GetDiaryEntryByIdOperation:      []string{},
 	GetSigningRequestOperation:      []string{},
 	GetWhoamiOperation:              []string{},
@@ -65,9 +63,7 @@ var operationRolesBearerAuth = map[string][]string{
 	ShareDiaryOperation:             []string{},
 	SubmitSignatureOperation:        []string{},
 	UpdateDiaryOperation:            []string{},
-	UpdateDiaryEntryOperation:       []string{},
 	UpdateDiaryEntryByIdOperation:   []string{},
-	VerifyDiaryEntryOperation:       []string{},
 	VerifyDiaryEntryByIdOperation:   []string{},
 }
 
