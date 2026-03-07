@@ -182,6 +182,10 @@ export const DiaryEntryParamsSchema = Type.Object({
   entryId: UuidSchema,
 });
 
+export const EntryParamsSchema = Type.Object({
+  entryId: UuidSchema,
+});
+
 export const DiaryParamsSchema = Type.Object({
   id: UuidSchema,
 });
@@ -252,6 +256,7 @@ export type AuthContext = Static<typeof AuthContextSchema>;
 export type SuccessResponse = Static<typeof SuccessResponseSchema>;
 export type NestedDiaryParams = Static<typeof NestedDiaryParamsSchema>;
 export type DiaryEntryParams = Static<typeof DiaryEntryParamsSchema>;
+export type EntryParams = Static<typeof EntryParamsSchema>;
 export type DiaryParams = Static<typeof DiaryParamsSchema>;
 export type DiaryShareParams = Static<typeof DiaryShareParamsSchema>;
 export type InvitationIdParams = Static<typeof InvitationIdParamsSchema>;

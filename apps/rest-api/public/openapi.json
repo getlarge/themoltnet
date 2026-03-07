@@ -3477,7 +3477,8 @@
     },
     "/diaries/{diaryId}/entries/{entryId}": {
       "delete": {
-        "description": "Delete a diary entry.",
+        "deprecated": true,
+        "description": "Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.",
         "operationId": "deleteDiaryEntry",
         "parameters": [
           {
@@ -3561,7 +3562,8 @@
         "tags": ["diary"]
       },
       "get": {
-        "description": "Get a single diary entry by ID.",
+        "deprecated": true,
+        "description": "Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.",
         "operationId": "getDiaryEntry",
         "parameters": [
           {
@@ -3645,7 +3647,8 @@
         "tags": ["diary"]
       },
       "patch": {
-        "description": "Update a diary entry (content, title, tags).",
+        "deprecated": true,
+        "description": "Deprecated alias for PATCH /entries/:entryId. Update a diary entry.",
         "operationId": "updateDiaryEntry",
         "parameters": [
           {
@@ -3806,7 +3809,8 @@
     },
     "/diaries/{diaryId}/entries/{entryId}/verify": {
       "get": {
-        "description": "Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.",
+        "deprecated": true,
+        "description": "Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.",
         "operationId": "verifyDiaryEntry",
         "parameters": [
           {
@@ -4610,6 +4614,371 @@
             "description": "Default Response"
           },
           "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/entries/{entryId}": {
+      "delete": {
+        "description": "Delete a diary entry.",
+        "operationId": "deleteDiaryEntryById",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "get": {
+        "description": "Get a single diary entry by ID.",
+        "operationId": "getDiaryEntryById",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryEntry"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "patch": {
+        "description": "Update a diary entry (content, title, tags).",
+        "operationId": "updateDiaryEntryById",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "content": {
+                    "maxLength": 100000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "entryType": {
+                    "anyOf": [
+                      {
+                        "enum": ["episodic"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["semantic"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["procedural"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["reflection"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["identity"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["soul"],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "importance": {
+                    "maximum": 10,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "supersededBy": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "tags": {
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
+                  "title": {
+                    "maxLength": 255,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryEntry"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/entries/{entryId}/verify": {
+      "get": {
+        "description": "Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.",
+        "operationId": "verifyDiaryEntryById",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryVerifyResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
             "content": {
               "application/json": {
                 "schema": {

@@ -8,6 +8,7 @@ import { computeContentCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   DiaryEntryParamsSchema,
+  EntryParamsSchema,
   NestedDiaryParamsSchema,
   ProblemDetailsSchema,
 } from '@moltnet/models';
@@ -295,14 +296,194 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     },
   );
 
+  const updateBodySchema = Type.Object({
+    title: Type.Optional(Type.String({ maxLength: 255 })),
+    content: Type.Optional(Type.String({ minLength: 1, maxLength: 100000 })),
+    tags: Type.Optional(
+      Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+    ),
+    importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
+    entryType: Type.Optional(
+      Type.Union([
+        Type.Literal('episodic'),
+        Type.Literal('semantic'),
+        Type.Literal('procedural'),
+        Type.Literal('reflection'),
+        Type.Literal('identity'),
+        Type.Literal('soul'),
+      ]),
+    ),
+    supersededBy: Type.Optional(Type.String({ format: 'uuid' })),
+  });
+
+  const getEntry = async (
+    entryId: string,
+    agentId: string,
+    diaryId?: string,
+  ) => {
+    try {
+      return await fastify.diaryService.getEntryById(entryId, agentId, {
+        diaryId,
+      });
+    } catch (err) {
+      if (err instanceof DiaryServiceError) translateServiceError(err);
+      throw err;
+    }
+  };
+
+  const verifyEntry = async (
+    entryId: string,
+    agentId: string,
+    diaryId?: string,
+  ) => {
+    const entry = await getEntry(entryId, agentId, diaryId);
+
+    if (!entry.contentSignature || !entry.contentHash) {
+      return {
+        signed: false,
+        hashMatches: false,
+        signatureValid: false,
+        valid: false,
+        contentHash: null,
+        agentFingerprint: null,
+      };
+    }
+
+    const recomputedCid = computeContentCid(
+      entry.entryType,
+      entry.title,
+      entry.content,
+      entry.tags,
+    );
+    const hashMatches = recomputedCid === entry.contentHash;
+
+    let signatureValid = false;
+    let agentFingerprint: string | null = null;
+
+    const signingRequest =
+      await fastify.signingRequestRepository.findBySignature(
+        entry.contentSignature,
+      );
+    const nonce = entry.signingNonce ?? signingRequest?.nonce ?? null;
+    const signerIdentityId = signingRequest?.agentId ?? null;
+
+    if (nonce && signerIdentityId) {
+      const signerKey =
+        await fastify.agentRepository.findByIdentityId(signerIdentityId);
+      if (signerKey) {
+        agentFingerprint = signerKey.fingerprint;
+        signatureValid = await fastify.cryptoService.verifyWithNonce(
+          entry.contentHash,
+          nonce,
+          entry.contentSignature,
+          signerKey.publicKey,
+        );
+      }
+    }
+
+    return {
+      signed: true,
+      hashMatches,
+      signatureValid,
+      valid: hashMatches && signatureValid,
+      contentHash: entry.contentHash,
+      agentFingerprint,
+    };
+  };
+
+  const updateEntry = async (
+    entryId: string,
+    agentId: string,
+    updates: {
+      title?: string;
+      content?: string;
+      tags?: string[];
+      importance?: number;
+      entryType?:
+        | 'episodic'
+        | 'semantic'
+        | 'procedural'
+        | 'reflection'
+        | 'identity'
+        | 'soul';
+      supersededBy?: string;
+    },
+    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
+  ) => {
+    try {
+      const entry = await fastify.diaryService.updateEntry(
+        entryId,
+        agentId,
+        updates,
+        opts,
+      );
+
+      if (!entry) {
+        throw createProblem('not-found', 'Entry not found');
+      }
+
+      return entry;
+    } catch (err) {
+      if (err instanceof DiaryServiceError) translateServiceError(err);
+      throw err;
+    }
+  };
+
+  const deleteEntry = async (
+    entryId: string,
+    agentId: string,
+    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
+  ) => {
+    try {
+      const deleted = await fastify.diaryService.deleteEntry(
+        entryId,
+        agentId,
+        opts,
+      );
+
+      if (!deleted) {
+        throw createProblem('not-found', 'Entry not found');
+      }
+
+      return { success: true };
+    } catch (err) {
+      if (err instanceof DiaryServiceError) translateServiceError(err);
+      throw err;
+    }
+  };
+
   // ── Get Entry ──────────────────────────────────────────────
+  server.get(
+    '/entries/:entryId',
+    {
+      schema: {
+        operationId: 'getDiaryEntryById',
+        tags: ['diary'],
+        description: 'Get a single diary entry by ID.',
+        security: [{ bearerAuth: [] }],
+        params: EntryParamsSchema,
+        response: {
+          200: Type.Ref(DiaryEntrySchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) =>
+      getEntry(request.params.entryId, request.authContext!.identityId),
+  );
+
   server.get(
     '/diaries/:diaryId/entries/:entryId',
     {
       schema: {
         operationId: 'getDiaryEntry',
         tags: ['diary'],
-        description: 'Get a single diary entry by ID.',
+        deprecated: true,
+        description:
+          'Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.',
         security: [{ bearerAuth: [] }],
         params: DiaryEntryParamsSchema,
         response: {
@@ -314,33 +495,46 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
-      const { diaryId, entryId } = request.params;
-
-      try {
-        const entry = await fastify.diaryService.getEntryById(
-          entryId,
-          diaryId,
-          request.authContext!.identityId,
-        );
-
-        return entry;
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-    },
+    async (request) =>
+      getEntry(
+        request.params.entryId,
+        request.authContext!.identityId,
+        request.params.diaryId,
+      ),
   );
 
   // ── Verify Entry ──────────────────────────────────────────
+  server.get(
+    '/entries/:entryId/verify',
+    {
+      schema: {
+        operationId: 'verifyDiaryEntryById',
+        tags: ['diary'],
+        description:
+          'Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.',
+        security: [{ bearerAuth: [] }],
+        params: EntryParamsSchema,
+        response: {
+          200: Type.Ref(EntryVerifyResultSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) =>
+      verifyEntry(request.params.entryId, request.authContext!.identityId),
+  );
+
   server.get(
     '/diaries/:diaryId/entries/:entryId/verify',
     {
       schema: {
         operationId: 'verifyDiaryEntry',
         tags: ['diary'],
+        deprecated: true,
         description:
-          'Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.',
+          'Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.',
         security: [{ bearerAuth: [] }],
         params: DiaryEntryParamsSchema,
         response: {
@@ -351,109 +545,25 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
-      const { diaryId, entryId } = request.params;
-
-      try {
-        // Fetch entry (also checks access)
-        const entry = await fastify.diaryService.getEntryById(
-          entryId,
-          diaryId,
-          request.authContext!.identityId,
-        );
-
-        if (!entry.contentSignature || !entry.contentHash) {
-          return {
-            signed: false,
-            hashMatches: false,
-            signatureValid: false,
-            valid: false,
-            contentHash: null,
-            agentFingerprint: null,
-          };
-        }
-
-        // Recompute CID from stored fields
-        const recomputedCid = computeContentCid(
-          entry.entryType,
-          entry.title,
-          entry.content,
-          entry.tags,
-        );
-        const hashMatches = recomputedCid === entry.contentHash;
-
-        let signatureValid = false;
-        let agentFingerprint: string | null = null;
-
-        // Look up signing request once — needed for signer identity
-        // and (for pre-signingNonce entries) the nonce itself.
-        const signingRequest =
-          await fastify.signingRequestRepository.findBySignature(
-            entry.contentSignature,
-          );
-        const nonce = entry.signingNonce ?? signingRequest?.nonce ?? null;
-        const signerIdentityId = signingRequest?.agentId ?? null;
-
-        if (nonce && signerIdentityId) {
-          const signerKey =
-            await fastify.agentRepository.findByIdentityId(signerIdentityId);
-          if (signerKey) {
-            agentFingerprint = signerKey.fingerprint;
-            signatureValid = await fastify.cryptoService.verifyWithNonce(
-              entry.contentHash,
-              nonce,
-              entry.contentSignature,
-              signerKey.publicKey,
-            );
-          }
-        }
-
-        return {
-          signed: true,
-          hashMatches,
-          signatureValid,
-          valid: hashMatches && signatureValid,
-          contentHash: entry.contentHash,
-          agentFingerprint,
-        };
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-    },
+    async (request) =>
+      verifyEntry(
+        request.params.entryId,
+        request.authContext!.identityId,
+        request.params.diaryId,
+      ),
   );
 
   // ── Update Entry ───────────────────────────────────────────
   server.patch(
-    '/diaries/:diaryId/entries/:entryId',
+    '/entries/:entryId',
     {
       schema: {
-        operationId: 'updateDiaryEntry',
+        operationId: 'updateDiaryEntryById',
         tags: ['diary'],
         description: 'Update a diary entry (content, title, tags).',
         security: [{ bearerAuth: [] }],
-        params: DiaryEntryParamsSchema,
-        body: Type.Object({
-          title: Type.Optional(Type.String({ maxLength: 255 })),
-          content: Type.Optional(
-            Type.String({ minLength: 1, maxLength: 100000 }),
-          ),
-          tags: Type.Optional(
-            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
-          ),
-          importance: Type.Optional(Type.Integer({ minimum: 1, maximum: 10 })),
-          entryType: Type.Optional(
-            Type.Union([
-              Type.Literal('episodic'),
-              Type.Literal('semantic'),
-              Type.Literal('procedural'),
-              Type.Literal('reflection'),
-              Type.Literal('identity'),
-              Type.Literal('soul'),
-            ]),
-          ),
-          supersededBy: Type.Optional(Type.String({ format: 'uuid' })),
-        }),
+        params: EntryParamsSchema,
+        body: updateBodySchema,
         response: {
           200: Type.Ref(DiaryEntrySchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -464,38 +574,77 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
-      const { diaryId, entryId } = request.params;
-      const updates = request.body;
+    async (request) =>
+      updateEntry(
+        request.params.entryId,
+        request.authContext!.identityId,
+        request.body,
+      ),
+  );
 
-      try {
-        const entry = await fastify.diaryService.updateEntry(
-          entryId,
-          diaryId,
-          request.authContext!.identityId,
-          updates,
-        );
-
-        if (!entry) {
-          throw createProblem('not-found', 'Entry not found');
-        }
-
-        return entry;
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
+  server.patch(
+    '/diaries/:diaryId/entries/:entryId',
+    {
+      schema: {
+        operationId: 'updateDiaryEntry',
+        tags: ['diary'],
+        deprecated: true,
+        description:
+          'Deprecated alias for PATCH /entries/:entryId. Update a diary entry.',
+        security: [{ bearerAuth: [] }],
+        params: DiaryEntryParamsSchema,
+        body: updateBodySchema,
+        response: {
+          200: Type.Ref(DiaryEntrySchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
     },
+    async (request) =>
+      updateEntry(
+        request.params.entryId,
+        request.authContext!.identityId,
+        request.body,
+        { diaryId: request.params.diaryId, requireDiaryAccess: true },
+      ),
   );
 
   // ── Delete Entry ───────────────────────────────────────────
+  server.delete(
+    '/entries/:entryId',
+    {
+      schema: {
+        operationId: 'deleteDiaryEntryById',
+        tags: ['diary'],
+        description: 'Delete a diary entry.',
+        security: [{ bearerAuth: [] }],
+        params: EntryParamsSchema,
+        response: {
+          200: Type.Ref(SuccessSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) =>
+      deleteEntry(request.params.entryId, request.authContext!.identityId),
+  );
+
   server.delete(
     '/diaries/:diaryId/entries/:entryId',
     {
       schema: {
         operationId: 'deleteDiaryEntry',
         tags: ['diary'],
-        description: 'Delete a diary entry.',
+        deprecated: true,
+        description:
+          'Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.',
         security: [{ bearerAuth: [] }],
         params: DiaryEntryParamsSchema,
         response: {
@@ -507,26 +656,11 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
-      const { diaryId, entryId } = request.params;
-
-      try {
-        const deleted = await fastify.diaryService.deleteEntry(
-          entryId,
-          diaryId,
-          request.authContext!.identityId,
-        );
-
-        if (!deleted) {
-          throw createProblem('not-found', 'Entry not found');
-        }
-
-        return { success: true };
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-    },
+    async (request) =>
+      deleteEntry(request.params.entryId, request.authContext!.identityId, {
+        diaryId: request.params.diaryId,
+        requireDiaryAccess: true,
+      }),
   );
 
   // ── Search ─────────────────────────────────────────────────

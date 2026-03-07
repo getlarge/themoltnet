@@ -44,9 +44,11 @@ var operationRolesBearerAuth = map[string][]string{
 	DeclineDiaryInvitationOperation: []string{},
 	DeleteDiaryOperation:            []string{},
 	DeleteDiaryEntryOperation:       []string{},
+	DeleteDiaryEntryByIdOperation:   []string{},
 	GetCryptoIdentityOperation:      []string{},
 	GetDiaryOperation:               []string{},
 	GetDiaryEntryOperation:          []string{},
+	GetDiaryEntryByIdOperation:      []string{},
 	GetSigningRequestOperation:      []string{},
 	GetWhoamiOperation:              []string{},
 	IssueVoucherOperation:           []string{},
@@ -64,7 +66,9 @@ var operationRolesBearerAuth = map[string][]string{
 	SubmitSignatureOperation:        []string{},
 	UpdateDiaryOperation:            []string{},
 	UpdateDiaryEntryOperation:       []string{},
+	UpdateDiaryEntryByIdOperation:   []string{},
 	VerifyDiaryEntryOperation:       []string{},
+	VerifyDiaryEntryByIdOperation:   []string{},
 }
 
 // GetRolesForBearerAuth returns the required roles for the given operation.

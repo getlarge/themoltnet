@@ -531,6 +531,72 @@ func decodeDeleteDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// DeleteDiaryEntryByIdParams is parameters of deleteDiaryEntryById operation.
+type DeleteDiaryEntryByIdParams struct {
+	// UUID v4 identifier.
+	EntryId uuid.UUID
+}
+
+func unpackDeleteDiaryEntryByIdParams(packed middleware.Parameters) (params DeleteDiaryEntryByIdParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "entryId",
+			In:   "path",
+		}
+		params.EntryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteDiaryEntryByIdParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDiaryEntryByIdParams, _ error) {
+	// Decode path: entryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "entryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.EntryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetAgentProfileParams is parameters of getAgentProfile operation.
 type GetAgentProfileParams struct {
 	Fingerprint string
@@ -759,6 +825,72 @@ func decodeGetDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Request
 		param := args[1]
 		if argsEscaped {
 			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "entryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.EntryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetDiaryEntryByIdParams is parameters of getDiaryEntryById operation.
+type GetDiaryEntryByIdParams struct {
+	// UUID v4 identifier.
+	EntryId uuid.UUID
+}
+
+func unpackGetDiaryEntryByIdParams(packed middleware.Parameters) (params GetDiaryEntryByIdParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "entryId",
+			In:   "path",
+		}
+		params.EntryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetDiaryEntryByIdParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDiaryEntryByIdParams, _ error) {
+	// Decode path: entryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
 			if err != nil {
 				return errors.Wrap(err, "unescape path")
 			}
@@ -3375,6 +3507,72 @@ func decodeUpdateDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// UpdateDiaryEntryByIdParams is parameters of updateDiaryEntryById operation.
+type UpdateDiaryEntryByIdParams struct {
+	// UUID v4 identifier.
+	EntryId uuid.UUID
+}
+
+func unpackUpdateDiaryEntryByIdParams(packed middleware.Parameters) (params UpdateDiaryEntryByIdParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "entryId",
+			In:   "path",
+		}
+		params.EntryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateDiaryEntryByIdParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateDiaryEntryByIdParams, _ error) {
+	// Decode path: entryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "entryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.EntryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // VerifyAgentSignatureParams is parameters of verifyAgentSignature operation.
 type VerifyAgentSignatureParams struct {
 	Fingerprint string
@@ -3537,6 +3735,72 @@ func decodeVerifyDiaryEntryParams(args [2]string, argsEscaped bool, r *http.Requ
 		param := args[1]
 		if argsEscaped {
 			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "entryId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.EntryId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "entryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// VerifyDiaryEntryByIdParams is parameters of verifyDiaryEntryById operation.
+type VerifyDiaryEntryByIdParams struct {
+	// UUID v4 identifier.
+	EntryId uuid.UUID
+}
+
+func unpackVerifyDiaryEntryByIdParams(packed middleware.Parameters) (params VerifyDiaryEntryByIdParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "entryId",
+			In:   "path",
+		}
+		params.EntryId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeVerifyDiaryEntryByIdParams(args [1]string, argsEscaped bool, r *http.Request) (params VerifyDiaryEntryByIdParams, _ error) {
+	// Decode path: entryId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
 			if err != nil {
 				return errors.Wrap(err, "unescape path")
 			}

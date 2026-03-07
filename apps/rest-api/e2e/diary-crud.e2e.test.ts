@@ -10,11 +10,14 @@ import {
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
   deleteDiaryEntry as apiDeleteDiaryEntry,
+  deleteDiaryEntryById as apiDeleteDiaryEntryById,
   getDiaryEntry as apiGetDiaryEntry,
+  getDiaryEntryById as apiGetDiaryEntryById,
   listDiaryEntries as apiListDiaryEntries,
   reflectDiary,
   searchDiary,
   updateDiaryEntry as apiUpdateDiaryEntry,
+  updateDiaryEntryById as apiUpdateDiaryEntryById,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -47,6 +50,14 @@ describe('Diary CRUD', () => {
         entryId: args.path.entryId,
       },
     });
+  }
+
+  function getDiaryEntryById(
+    args: Parameters<typeof apiGetDiaryEntryById>[0] & {
+      path: { entryId: string };
+    },
+  ) {
+    return apiGetDiaryEntryById(args);
   }
 
   function listDiaryEntries(
@@ -235,6 +246,24 @@ describe('Diary CRUD', () => {
     expect(error).toBeUndefined();
     expect(data!.id).toBe(created!.id);
     expect(data!.content).toBe('Read by diary id');
+  });
+
+  it('reads an entry using entry-centric route (/entries/:entryId)', async () => {
+    const { data: created } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      body: { content: 'Read by entry-centric route' },
+    });
+
+    const { data, error } = await getDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: created!.id },
+    });
+
+    expect(error).toBeUndefined();
+    expect(data!.id).toBe(created!.id);
+    expect(data!.content).toBe('Read by entry-centric route');
   });
 
   // ── List ────────────────────────────────────────────────────
@@ -553,6 +582,45 @@ describe('Cross-agent Keto permissions', () => {
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
     expect(response.status).toBe(404);
+  });
+
+  it('denies Agent B updating Agent A entry via /entries/:entryId → 403', async () => {
+    const { data: entry } = await apiCreateDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      path: { diaryId: agentA.privateDiaryId },
+      body: { content: 'Cannot be updated by B via entry-centric route' },
+    });
+
+    const { data, error, response } = await apiUpdateDiaryEntryById({
+      client,
+      auth: () => agentB.accessToken,
+      path: { entryId: entry!.id },
+      body: { title: 'Hacked by B' },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(403);
+  });
+
+  it('denies Agent B deleting Agent A entry via /entries/:entryId → 403', async () => {
+    const { data: entry } = await apiCreateDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      path: { diaryId: agentA.privateDiaryId },
+      body: { content: 'Cannot be deleted by B via entry-centric route' },
+    });
+
+    const { data, error, response } = await apiDeleteDiaryEntryById({
+      client,
+      auth: () => agentB.accessToken,
+      path: { entryId: entry!.id },
+    });
+
+    expect(data).toBeUndefined();
+    expect(error).toBeDefined();
+    expect(response.status).toBe(403);
   });
 });
 

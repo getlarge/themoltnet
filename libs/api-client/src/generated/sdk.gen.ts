@@ -25,6 +25,9 @@ import type {
   DeclineDiaryInvitationErrors,
   DeclineDiaryInvitationResponses,
   DeleteDiaryData,
+  DeleteDiaryEntryByIdData,
+  DeleteDiaryEntryByIdErrors,
+  DeleteDiaryEntryByIdResponses,
   DeleteDiaryEntryData,
   DeleteDiaryEntryErrors,
   DeleteDiaryEntryResponses,
@@ -37,6 +40,9 @@ import type {
   GetCryptoIdentityErrors,
   GetCryptoIdentityResponses,
   GetDiaryData,
+  GetDiaryEntryByIdData,
+  GetDiaryEntryByIdErrors,
+  GetDiaryEntryByIdResponses,
   GetDiaryEntryData,
   GetDiaryEntryErrors,
   GetDiaryEntryResponses,
@@ -125,6 +131,9 @@ import type {
   SubmitSignatureErrors,
   SubmitSignatureResponses,
   UpdateDiaryData,
+  UpdateDiaryEntryByIdData,
+  UpdateDiaryEntryByIdErrors,
+  UpdateDiaryEntryByIdResponses,
   UpdateDiaryEntryData,
   UpdateDiaryEntryErrors,
   UpdateDiaryEntryResponses,
@@ -136,6 +145,9 @@ import type {
   VerifyCryptoSignatureData,
   VerifyCryptoSignatureErrors,
   VerifyCryptoSignatureResponses,
+  VerifyDiaryEntryByIdData,
+  VerifyDiaryEntryByIdErrors,
+  VerifyDiaryEntryByIdResponses,
   VerifyDiaryEntryData,
   VerifyDiaryEntryErrors,
   VerifyDiaryEntryResponses,
@@ -411,6 +423,60 @@ export const createDiaryEntry = <ThrowOnError extends boolean = false>(
 /**
  * Delete a diary entry.
  */
+export const deleteDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteDiaryEntryByIdResponses,
+    DeleteDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}',
+    ...options,
+  });
+
+/**
+ * Get a single diary entry by ID.
+ */
+export const getDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<GetDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetDiaryEntryByIdResponses,
+    GetDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}',
+    ...options,
+  });
+
+/**
+ * Update a diary entry (content, title, tags).
+ */
+export const updateDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateDiaryEntryByIdResponses,
+    UpdateDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Deprecated alias for DELETE /entries/:entryId. Delete a diary entry.
+ *
+ * @deprecated
+ */
 export const deleteDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<DeleteDiaryEntryData, ThrowOnError>,
 ) =>
@@ -425,7 +491,9 @@ export const deleteDiaryEntry = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Get a single diary entry by ID.
+ * Deprecated alias for GET /entries/:entryId. Get a single diary entry by ID.
+ *
+ * @deprecated
  */
 export const getDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<GetDiaryEntryData, ThrowOnError>,
@@ -441,7 +509,9 @@ export const getDiaryEntry = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Update a diary entry (content, title, tags).
+ * Deprecated alias for PATCH /entries/:entryId. Update a diary entry.
+ *
+ * @deprecated
  */
 export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<UpdateDiaryEntryData, ThrowOnError>,
@@ -462,6 +532,24 @@ export const updateDiaryEntry = <ThrowOnError extends boolean = false>(
 
 /**
  * Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
+ */
+export const verifyDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    VerifyDiaryEntryByIdResponses,
+    VerifyDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}/verify',
+    ...options,
+  });
+
+/**
+ * Deprecated alias for GET /entries/:entryId/verify. Verify the content signature of a diary entry.
+ *
+ * @deprecated
  */
 export const verifyDiaryEntry = <ThrowOnError extends boolean = false>(
   options: Options<VerifyDiaryEntryData, ThrowOnError>,

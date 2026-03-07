@@ -1130,6 +1130,155 @@ export type CreateDiaryEntryResponses = {
 export type CreateDiaryEntryResponse =
   CreateDiaryEntryResponses[keyof CreateDiaryEntryResponses];
 
+export type DeleteDiaryEntryByIdData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}';
+};
+
+export type DeleteDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DeleteDiaryEntryByIdError =
+  DeleteDiaryEntryByIdErrors[keyof DeleteDiaryEntryByIdErrors];
+
+export type DeleteDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: Success;
+};
+
+export type DeleteDiaryEntryByIdResponse =
+  DeleteDiaryEntryByIdResponses[keyof DeleteDiaryEntryByIdResponses];
+
+export type GetDiaryEntryByIdData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}';
+};
+
+export type GetDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetDiaryEntryByIdError =
+  GetDiaryEntryByIdErrors[keyof GetDiaryEntryByIdErrors];
+
+export type GetDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryEntry;
+};
+
+export type GetDiaryEntryByIdResponse =
+  GetDiaryEntryByIdResponses[keyof GetDiaryEntryByIdResponses];
+
+export type UpdateDiaryEntryByIdData = {
+  body?: {
+    title?: string;
+    content?: string;
+    tags?: Array<string>;
+    importance?: number;
+    entryType?:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
+    supersededBy?: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}';
+};
+
+export type UpdateDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateDiaryEntryByIdError =
+  UpdateDiaryEntryByIdErrors[keyof UpdateDiaryEntryByIdErrors];
+
+export type UpdateDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryEntry;
+};
+
+export type UpdateDiaryEntryByIdResponse =
+  UpdateDiaryEntryByIdResponses[keyof UpdateDiaryEntryByIdResponses];
+
 export type DeleteDiaryEntryData = {
   body?: never;
   path: {
@@ -1289,6 +1438,46 @@ export type UpdateDiaryEntryResponses = {
 
 export type UpdateDiaryEntryResponse =
   UpdateDiaryEntryResponses[keyof UpdateDiaryEntryResponses];
+
+export type VerifyDiaryEntryByIdData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}/verify';
+};
+
+export type VerifyDiaryEntryByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type VerifyDiaryEntryByIdError =
+  VerifyDiaryEntryByIdErrors[keyof VerifyDiaryEntryByIdErrors];
+
+export type VerifyDiaryEntryByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryVerifyResult;
+};
+
+export type VerifyDiaryEntryByIdResponse =
+  VerifyDiaryEntryByIdResponses[keyof VerifyDiaryEntryByIdResponses];
 
 export type VerifyDiaryEntryData = {
   body?: never;
