@@ -650,9 +650,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         third,
         fourth,
       );
-      const allowed = await permissionChecker.canEditEntry(id, agentId);
-      if (!allowed)
-        throw new DiaryServiceError('forbidden', 'Insufficient permissions');
+      if (opts?.requireDiaryAccess && opts.diaryId) {
+        // Preserve nested-route behavior: hide inaccessible diaries as 404.
+        await this.findDiary(opts.diaryId, agentId);
+      }
 
       let existingForScope: DiaryEntry | null = null;
       if (opts?.requireDiaryAccess || !legacyMode) {
@@ -664,6 +665,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           throw new DiaryServiceError('not_found', 'Diary entry not found');
         }
       }
+
+      const allowed = await permissionChecker.canEditEntry(id, agentId);
+      if (!allowed)
+        throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
       const touchesContent =
         updates.content !== undefined ||
