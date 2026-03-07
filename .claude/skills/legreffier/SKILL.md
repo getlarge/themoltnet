@@ -41,6 +41,7 @@ Before session activation, check if `.moltnet/` exists in the current working di
 - When discovering something non-obvious about the codebase, tools, or ecosystem
 - When making an architectural choice or rejecting an alternative
 - **Any question about audit trail, diary, past rationale, or signed history** — phrases like "check the audit", "what does the diary say", "why did we", "show me the history", "what was the reasoning" all trigger investigation mode
+- **Any session that changes files or produces a commit** — diary entry creation is mandatory before declaring work complete
 
 ## Two signature layers
 
@@ -408,6 +409,31 @@ git commit -m "feat(scope): summary" -m "\nMoltNet-Diary: <entry-id>"
 Signing is enforced by gitconfig (`gpgsign=true`).
 
 10. If signing/diary tools unavailable: **do not offer skipping**. Stop, state what is unavailable, and wait. Only proceed without a diary if the user explicitly says so unprompted.
+
+## Hard gate: no ship without diary
+
+This is mandatory, not advisory.
+
+- If any tracked file changed in the session, you must create at least one diary entry before:
+  - pushing commits,
+  - opening/updating a PR,
+  - or telling the user the task is complete.
+- If there are multiple logical commit groups, create one entry per group.
+- Every entry must include concrete `refs` and `branch:<branch>` tag.
+- If a commit already happened without an entry, immediately create a catch-up `procedural` entry that references the commit hash(es).
+- If the user reports surprise/frustration ("duuh", "wtf", "broken"), also create an `episodic` entry for the incident/workaround.
+
+### Pre-push checklist (required)
+
+Run this checklist before `git push` or "done":
+
+1. `git status --short` reviewed; changed scope is known.
+2. At least one new diary entry exists for this change set (or per logical commit group).
+3. Entry tags include: `branch:<branch>` and `scope:<...>`.
+4. Entry `refs` include key files/modules touched.
+5. Commit message or final handoff references the diary entry id(s).
+
+If any item is missing, stop and create/fix entries first.
 
 ## Semantic entry workflow (architectural decisions)
 
