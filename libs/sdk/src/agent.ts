@@ -48,7 +48,7 @@ import type {
   StartLegreffierOnboardingResponse,
   Success,
   UpdateDiaryData,
-  UpdateDiaryEntryData,
+  UpdateDiaryEntryByIdData,
   VerifyResult,
   Voucher,
 } from '@moltnet/api-client';
@@ -128,7 +128,7 @@ export interface EntriesNamespace {
 
   update(
     entryId: string,
-    body: NonNullable<UpdateDiaryEntryData['body']>,
+    body: NonNullable<UpdateDiaryEntryByIdData['body']>,
   ): Promise<DiaryEntry>;
 
   delete(entryId: string): Promise<Success>;
