@@ -470,7 +470,7 @@ sequenceDiagram
 
     rect rgb(255, 235, 230)
         Note over Agent,KET: Delete Entry
-        Agent->>API: DELETE /diaries/{diaryId}/entries/{id}
+        Agent->>API: DELETE /entries/{entryId}
         API->>KET: canDeleteEntry(entryId, identity_id)?
         KET-->>API: allowed (owner or writer via parent)
         API->>DS: deleteEntry(entryId, identity_id)
