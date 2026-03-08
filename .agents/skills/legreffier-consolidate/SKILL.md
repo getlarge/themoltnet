@@ -50,22 +50,51 @@ TILE_SESSION   = "<current ISO timestamp>"  # must be unique per run
 
 ---
 
-## Optional preflight: run server-side clustering
+## Preflight: run server-side clustering
 
 Before manual tile synthesis, call the distill endpoint to get candidate
-clusters:
+clusters. Use the output to drive Phase 2 merge group identification instead
+of doing it manually.
 
 ```
 diaries_consolidate({
   diary_id: "<DIARY_ID>",
   tags: ["source:scan", "scan-session:<SCAN_SESSION>"],
   exclude_tags: ["scan-category:plan", "scan-category:summary"],
-  strategy: "hybrid"
+  strategy: "hybrid",
+  threshold: 0.75
 })
 ```
 
-Use this output as a candidate grouping signal only. The skill's merge and
-quality rules below remain the source of truth for what becomes a tile.
+Use `tags: ["source:scan", "scan-session:<SCAN_SESSION>"]` to scope to one
+scan session, or `entry_ids` to pass an explicit list (bypasses tag filter).
+`strategy: "hybrid"` is best for general use.
+
+For **threshold**: scan entries about the same repo are all semantically
+similar, so `0.75` will collapse everything into one cluster — not useful.
+Use `0.85`–`0.88` for scan sessions to get subsystem-level clusters. Lower
+thresholds (`0.6`–`0.75`) are better for cross-repo or mixed-topic diaries.
+
+### Reading the output
+
+The response has `workflowId` + `clusters`. Each cluster has:
+
+- `representative` — the entry that best represents the cluster (by score or centroid proximity)
+- `members` — semantically similar entries grouped with the representative
+- `similarity` / `confidence` — cluster cohesion score (0–1)
+- `suggestedAction` — `merge` (high confidence, safe to combine), `review` (similar but check manually), `keep-separate` (low similarity, don't merge)
+
+**How to use clusters for merge group identification:**
+
+1. `suggestedAction: merge` clusters with members sharing the same `scan-category` → one tile.
+2. `suggestedAction: review` clusters → inspect members manually. A single giant cluster means threshold is too low; raise it and re-run.
+3. `suggestedAction: merge/review` clusters with members from different `scan-category` tags → cross-cutting tile (e.g., auth docs + auth code).
+4. Entries not in any cluster → standalone tiles directly.
+5. The `representative` entry is your starting point for tile content.
+
+The cluster output does not replace the tile quality gate or merge rules below.
+It accelerates the grouping step. You still apply the quality gate to every
+tile before creating it.
 
 ---
 

@@ -9,6 +9,7 @@
     "check-secrets": "tsx src/check-secrets.ts",
     "check-quickstart": "node --import tsx src/check-quickstart-drift.ts",
     "download-model": "node download-embedding-model.mjs",
+    "run-eval": "tsx src/run-eval.ts",
     "seed-feed": "tsx src/seed-public-feed.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "catalog:",
+    "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",

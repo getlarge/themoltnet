@@ -1,0 +1,62 @@
+{
+  "checklist": [
+    {
+      "category": "INTENT",
+      "description": "A new deleteRelationships call is added to removeDiaryRelations in libs/auth/src/relationship-writer.ts targeting namespace DiaryEntry, relation parent, with subject set filter pointing at the deleted diary.",
+      "example": "await relationshipApi.deleteRelationships({ namespace: KetoNamespace.DiaryEntry, relation: DiaryEntryRelation.Parent, subjectSetNamespace: KetoNamespace.Diary, subjectSetObject: diaryId })",
+      "max_score": 3,
+      "name": "keto_cleanup_added_to_relationship_writer"
+    },
+    {
+      "category": "SECURITY",
+      "description": "The Keto cleanup call is NOT inside the runTransaction() block in deleteDiary. It happens after the transaction commits, consistent with the existing pattern for all other Keto writes in diary-service.",
+      "example": "await transactionRunner.run(async (tx) => { /* DB deletes only */ })\\nawait relationshipWriter.removeDiaryRelations(diaryId) // outside tx",
+      "max_score": 2,
+      "name": "keto_write_happens_after_db_commit"
+    },
+    {
+      "category": "ARCHITECTURE",
+      "description": "The fix does not add any authorization or ownership check inside a repository method. The diary.repository.ts delete method remains auth-free.",
+      "example": "diaryRepository.delete(diaryId) — no identityId check inside",
+      "max_score": 1,
+      "name": "no_auth_check_added_to_repository"
+    },
+    {
+      "category": "TESTING",
+      "description": "A unit test verifies that when deleteDiary is called, the relationship writer's cleanup for DiaryEntry parent relations is invoked with the correct diaryId.",
+      "example": "expect(mockRelationshipWriter.removeDiaryRelations).toHaveBeenCalledWith(diaryId)\\n// or a more specific check on the deleteRelationships call",
+      "max_score": 2,
+      "name": "test_verifies_cleanup_call"
+    },
+    {
+      "category": "TESTING",
+      "description": "The test follows AAA: arrange mock relationship writer + diary service, act by calling deleteDiary, assert the cleanup was called.",
+      "example": "// Arrange\\nconst writer = createMockRelationshipWriter()\\nconst service = createDiaryService({ relationshipWriter: writer })\\n// Act\\nawait service.deleteDiary(diaryId, identityId)\\n// Assert\\nexpect(writer.removeDiaryRelations).toHaveBeenCalledWith(diaryId)",
+      "max_score": 1,
+      "name": "test_uses_aaa_pattern"
+    },
+    {
+      "category": "TESTING",
+      "description": "The test file imports vitest functions explicitly (import { describe, it, expect, vi } from 'vitest'), not using global vitest mode.",
+      "example": "import { describe, it, expect, vi } from 'vitest'",
+      "max_score": 1,
+      "name": "test_uses_explicit_vitest_imports"
+    },
+    {
+      "category": "RUNTIME",
+      "description": "Running pnpm --filter @moltnet/auth run typecheck completes without errors.",
+      "example": "pnpm --filter @moltnet/auth run typecheck exits 0",
+      "max_score": 2,
+      "name": "typecheck_passes"
+    },
+    {
+      "category": "RUNTIME",
+      "description": "Running pnpm --filter @moltnet/auth run test completes without failures.",
+      "example": "pnpm --filter @moltnet/auth run test exits 0",
+      "max_score": 2,
+      "name": "tests_pass"
+    }
+  ],
+  "context": "Evaluates a Keto relation cleanup bugfix against MoltNet auth conventions. Tests Keto-write timing, no-auth-in-repo rule, and test patterns.",
+  "type": "weighted_checklist"
+}

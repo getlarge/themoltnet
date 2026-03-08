@@ -1,0 +1,79 @@
+[
+  {
+    "category": "ARCHITECTURE",
+    "description": "Two dedup queues are defined (non-partitioned, no concurrency limit): 'context.consolidate.dedup' and 'context.compile.dedup'",
+    "example": "new WorkflowQueue('context.consolidate.dedup') — no concurrency or partitionQueue options",
+    "max_score": 1,
+    "name": "dedup_queues_defined"
+  },
+  {
+    "category": "ARCHITECTURE",
+    "description": "The original work queues ('context.consolidate', 'context.compile') retain their partitionQueue:true and concurrency settings",
+    "example": "new WorkflowQueue('context.consolidate', { concurrency: 1, partitionQueue: true })",
+    "max_score": 1,
+    "name": "work_queues_unchanged"
+  },
+  {
+    "category": "ARCHITECTURE",
+    "description": "Wrapper workflows are registered with DBOS for both consolidate and compile, with names 'context.consolidate.dedup' and 'context.compile.dedup'",
+    "example": "DBOS.registerWorkflow(async (input) => { ... }, { name: 'context.consolidate.dedup' })",
+    "max_score": 1,
+    "name": "wrapper_workflows_registered"
+  },
+  {
+    "category": "ARCHITECTURE",
+    "description": "A DBOS step is registered to fetch the latest entry's updatedAt for dedup key computation — not inline code",
+    "example": "DBOS.registerStep(async (diaryId) => diaryEntryRepository.findLatest(diaryId), { name: 'context-distill.step.fetchLatestEntry' })",
+    "max_score": 1,
+    "name": "latest_entry_step_registered"
+  },
+  {
+    "category": "INTENT",
+    "description": "The deduplicationID is a hash of diaryId + params + latestEntry.updatedAt (not just diaryId + params)",
+    "example": "createHash('sha256').update(diaryId + JSON.stringify(params) + updatedAt).digest('hex')",
+    "max_score": 1,
+    "name": "dedup_key_includes_updated_at"
+  },
+  {
+    "category": "INTENT",
+    "description": "The HTTP route enqueues on the dedup queue (not the work queue directly), passing deduplicationID",
+    "example": "runWorkflow(contextDistillWorkflows.consolidateDedup, { queueName: 'context.consolidate.dedup', enqueueOptions: { deduplicationID } }, input)",
+    "max_score": 1,
+    "name": "http_route_enqueues_on_dedup_queue"
+  },
+  {
+    "category": "SECURITY",
+    "description": "DBOSQueueDuplicatedError is caught and translated to HTTP 409 (not 500 or ignored)",
+    "example": "if (err instanceof DBOSQueueDuplicatedError) throw createProblem('conflict', ...)",
+    "max_score": 2,
+    "name": "duplicate_returns_409"
+  },
+  {
+    "category": "ARCHITECTURE",
+    "description": "The work queue enqueue (inside the wrapper workflow) does NOT pass deduplicationID — only queuePartitionKey",
+    "example": "DBOS.startWorkflow(consolidateWorkflow, { queueName: 'context.consolidate', enqueueOptions: { queuePartitionKey: input.identityId } })(input)",
+    "max_score": 1,
+    "name": "no_dedup_on_work_queue"
+  },
+  {
+    "category": "TESTING",
+    "description": "A test verifies that a duplicate request (same params, same diary state) returns HTTP 409",
+    "example": "it('returns 409 on duplicate consolidate request', ...)",
+    "max_score": 1,
+    "name": "test_duplicate_returns_409"
+  },
+  {
+    "category": "RUNTIME",
+    "description": "pnpm --filter @moltnet/rest-api run typecheck exits 0",
+    "example": "tsc -b --emitDeclarationOnly",
+    "max_score": 2,
+    "name": "typecheck_passes"
+  },
+  {
+    "category": "RUNTIME",
+    "description": "pnpm --filter @moltnet/rest-api run test exits 0",
+    "example": "vitest run",
+    "max_score": 2,
+    "name": "tests_pass"
+  }
+]

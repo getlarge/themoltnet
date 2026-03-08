@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "composite": true,
+    "lib": ["ES2022"],
     "outDir": "dist",
     "rootDir": "src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "types": ["node"]
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../tsconfig.json",
@@ -14,6 +16,9 @@
     },
     {
       "path": "../apps/rest-api"
+    },
+    {
+      "path": "../libs/api-client"
     },
     {
       "path": "../libs/bootstrap"
