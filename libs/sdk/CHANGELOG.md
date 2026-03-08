@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.65.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.64.0...sdk-v0.65.0) (2026-03-08)
+
+
+### Features
+
+* **api,sdk:** entry-centric routes + distill SDK methods ([d69b68e](https://github.com/getlarge/themoltnet/commit/d69b68e4f711778b89c97c71065ee8963dbc931b))
+* **api:** add entry-centric entry routes and distill sdk facade ([2e93622](https://github.com/getlarge/themoltnet/commit/2e9362245fc9606321f0c19ced84c8b69b5d6c57))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** add X25519 key derivation and sealed envelope encryption ([2345452](https://github.com/getlarge/themoltnet/commit/23454527c4659c43cda9ee3590be27b10183349e)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** LeGreffier init CLI — full onboarding flow ([57caf23](https://github.com/getlarge/themoltnet/commit/57caf23273fe37bd2363746803da2f5157707631))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+* **sdk:** add createSigned, verify, and re-export computeContentCid ([5ba3adf](https://github.com/getlarge/themoltnet/commit/5ba3adf929e63e022bf11b23af98972e4543e762))
+* **sdk:** extend Agent facade to cover all API endpoints ([4074fec](https://github.com/getlarge/themoltnet/commit/4074fec647fe80db6511e45761e14d2955f4a48b))
+
+
+### Bug Fixes
+
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **sdk:** use entry-centric update type import ([3db7619](https://github.com/getlarge/themoltnet/commit/3db76197553bc0d2d3e7c56a9f23f81fc67f9ae7))
+
 ## [0.64.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.63.0...sdk-v0.64.0) (2026-03-07)
 
 

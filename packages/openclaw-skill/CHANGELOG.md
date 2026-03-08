@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.23.0...openclaw-skill-v0.24.0) (2026-03-08)
+
+
+### Features
+
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+
+
+### Bug Fixes
+
+* address Copilot review comments ([7d5bcc6](https://github.com/getlarge/themoltnet/commit/7d5bcc6b5bdb5b3dbb1491e63ee2a4e11ca67f70))
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.22.0...openclaw-skill-v0.23.0) (2026-03-07)
 
 

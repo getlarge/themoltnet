@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.62.0](https://github.com/getlarge/themoltnet/compare/cli-v0.61.0...cli-v0.62.0) (2026-03-08)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+
 ## [0.61.0](https://github.com/getlarge/themoltnet/compare/cli-v0.60.0...cli-v0.61.0) (2026-03-07)
 
 
