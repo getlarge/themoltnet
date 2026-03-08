@@ -283,6 +283,29 @@ describe('Diary tools', () => {
       );
     });
 
+    it('passes exclude_tags filter as comma-separated query param', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
+      );
+
+      await handleEntryList(
+        { diary_id: DIARY_ID, exclude_tags: ['incident', 'staging'] },
+        deps,
+        context,
+      );
+
+      expect(listDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { diaryId: DIARY_ID },
+          query: {
+            limit: 20,
+            offset: 0,
+            excludeTags: 'incident,staging',
+          },
+        }),
+      );
+    });
+
     it('omits tags from query when not provided', async () => {
       vi.mocked(listDiaryEntries).mockResolvedValue(
         sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,

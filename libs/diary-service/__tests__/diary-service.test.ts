@@ -360,6 +360,7 @@ describe('DiaryService', () => {
       expect(result).toEqual(entries);
       expect(repo.list).toHaveBeenCalledWith({
         diaryId: DIARY_ID,
+        excludeTags: undefined,
         limit: undefined,
         offset: undefined,
       });
@@ -942,6 +943,7 @@ describe('DiaryService — tags filter', () => {
       expect(repo.list).toHaveBeenCalledWith({
         diaryId: DIARY_ID,
         tags: ['accountable-commit'],
+        excludeTags: undefined,
         limit: undefined,
         offset: undefined,
       });
@@ -959,6 +961,7 @@ describe('DiaryService — tags filter', () => {
       expect(repo.list).toHaveBeenCalledWith({
         diaryId: DIARY_ID,
         tags: ['tag-a', 'tag-b'],
+        excludeTags: undefined,
         limit: 5,
         offset: undefined,
       });

@@ -139,14 +139,10 @@ describe('context-distill compile workflow', () => {
     );
   });
 
-  it('filters out entries matching excludeTags before compilation', async () => {
-    search.mockResolvedValue([
-      createEntry('entry-keep', ['api']),
-      createEntry('entry-drop', ['incident']),
-    ]);
+  it('passes excludeTags to search before compilation', async () => {
+    search.mockResolvedValue([createEntry('entry-keep', ['api'])]);
     fetchEmbeddings.mockResolvedValue([
       { id: 'entry-keep', embedding: [0.1, 0.2, 0.3] },
-      { id: 'entry-drop', embedding: [0.2, 0.3, 0.4] },
     ]);
 
     const result = await contextDistillWorkflows.compile({
@@ -156,9 +152,14 @@ describe('context-distill compile workflow', () => {
       excludeTags: ['incident'],
     });
 
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        excludeTags: ['incident'],
+      }),
+    );
     expect(fetchEmbeddings).toHaveBeenCalledWith(['entry-keep']);
-    expect(result.entries.some((entry) => entry.id === 'entry-drop')).toBe(
-      false,
+    expect(result.entries.some((entry) => entry.id === 'entry-keep')).toBe(
+      true,
     );
   });
 });
