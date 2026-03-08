@@ -74,17 +74,6 @@ export interface CompileWorkflowInput {
   limit?: number;
 }
 
-function hasAnyExcludedTag(
-  tags: string[] | null,
-  excludeTags: string[] | undefined,
-): boolean {
-  if (!excludeTags || excludeTags.length === 0 || !tags || tags.length === 0) {
-    return false;
-  }
-  const excluded = new Set(excludeTags);
-  return tags.some((tag) => excluded.has(tag));
-}
-
 // ── Dependency Injection ───────────────────────────────────────
 
 let deps: ContextDistillDeps | null = null;
@@ -126,6 +115,7 @@ export function initContextDistillWorkflows(): void {
       diaryId: string,
       entryIds: string[] | undefined,
       tags: string[] | undefined,
+      excludeTags: string[] | undefined,
       limit: number,
     ) => {
       const { diaryEntryRepository } = getDeps();
@@ -135,12 +125,14 @@ export function initContextDistillWorkflows(): void {
         return diaryEntryRepository.list({
           ids: entryIds,
           diaryId,
+          excludeTags,
           limit: Math.min(entryIds.length, 500),
         });
       }
       return diaryEntryRepository.list({
         diaryId,
         tags,
+        excludeTags,
         limit,
         excludeSuperseded: true,
       });
@@ -178,6 +170,7 @@ export function initContextDistillWorkflows(): void {
       query: string | undefined,
       embedding: number[] | undefined,
       tags: string[] | undefined,
+      excludeTags: string[] | undefined,
       wRecency: number,
       wImportance: number,
       limit: number,
@@ -188,6 +181,7 @@ export function initContextDistillWorkflows(): void {
         query,
         embedding,
         tags,
+        excludeTags,
         wRecency,
         wImportance,
         limit,
@@ -205,13 +199,10 @@ export function initContextDistillWorkflows(): void {
         input.diaryId,
         input.entryIds,
         input.tags,
+        input.excludeTags,
         500,
       );
-      const filteredEntries = entries.filter(
-        (entry) => !hasAnyExcludedTag(entry.tags, input.excludeTags),
-      );
-
-      if (filteredEntries.length === 0) {
+      if (entries.length === 0) {
         return {
           workflowId: DBOS.workflowID ?? '',
           clusters: [],
@@ -239,13 +230,13 @@ export function initContextDistillWorkflows(): void {
         } satisfies ConsolidateResult & { workflowId: string };
       }
 
-      const ids = filteredEntries.map((e) => e.id);
+      const ids = entries.map((e) => e.id);
       const embeddingRows = await fetchEmbeddingsStep(ids);
       const embeddingMap = new Map(
         embeddingRows.map((r) => [r.id, r.embedding]),
       );
 
-      const distillEntries = filteredEntries
+      const distillEntries = entries
         .filter((e) => embeddingMap.has(e.id))
         .map((e) => ({
           id: e.id,
@@ -281,22 +272,19 @@ export function initContextDistillWorkflows(): void {
         input.taskPrompt,
         taskPromptEmbedding?.length ? taskPromptEmbedding : undefined,
         input.includeTags,
+        input.excludeTags,
         input.wRecency ?? 0,
         input.wImportance ?? 0,
         limit,
       );
-      const filteredEntries = entries.filter(
-        (entry) => !hasAnyExcludedTag(entry.tags, input.excludeTags),
-      );
-
-      const ids = filteredEntries.map((e) => e.id);
+      const ids = entries.map((e) => e.id);
       const embeddingRows =
         ids.length > 0 ? await fetchEmbeddingsStep(ids) : [];
       const embeddingMap = new Map(
         embeddingRows.map((r) => [r.id, r.embedding]),
       );
 
-      const distillEntries = filteredEntries
+      const distillEntries = entries
         .filter((e) => embeddingMap.has(e.id))
         .map((e) => ({
           id: e.id,

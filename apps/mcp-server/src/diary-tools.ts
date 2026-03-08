@@ -135,6 +135,7 @@ export async function handleEntryList(
       limit: args.limit ?? 20,
       offset: args.offset ?? 0,
       ...(args.tags && { tags: args.tags.join(',') }),
+      ...(args.exclude_tags && { excludeTags: args.exclude_tags.join(',') }),
     },
   });
 

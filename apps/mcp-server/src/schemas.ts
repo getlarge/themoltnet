@@ -130,6 +130,7 @@ type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type EntryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
   diary_id: PathOf<ListDiaryEntriesData>['diaryId'];
   tags?: string[];
+  exclude_tags?: string[];
 };
 
 export const EntrySearchSchema = Type.Object({

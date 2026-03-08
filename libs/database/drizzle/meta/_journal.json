@@ -140,6 +140,13 @@
       "tag": "0019_typical_king_cobra",
       "version": "7",
       "when": 1774560400002
+    },
+    {
+      "breakpoints": true,
+      "idx": 20,
+      "tag": "0020_exclude_tags_search",
+      "version": "7",
+      "when": 1774560400003
     }
   ],
   "version": "7"

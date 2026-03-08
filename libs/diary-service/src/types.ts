@@ -176,6 +176,7 @@ export interface SearchInput {
 export interface ListInput {
   diaryId: string;
   tags?: string[];
+  excludeTags?: string[];
   limit?: number;
   offset?: number;
   entryType?: EntryType;
