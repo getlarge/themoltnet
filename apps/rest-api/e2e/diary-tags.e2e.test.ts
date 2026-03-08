@@ -234,6 +234,29 @@ describe('Diary tags filter', () => {
     expect(results.length).toBe(0);
   });
 
+  it('search excludes entries containing excluded tags', async () => {
+    const { data, error } = await searchDiary({
+      client,
+      auth: () => agent.accessToken,
+      body: {
+        query: 'deploy',
+        diaryId: agent.privateDiaryId,
+        excludeTags: ['staging'],
+      },
+    });
+
+    expect(error).toBeUndefined();
+    const results = (
+      data as unknown as {
+        results: Array<{ tags: string[] }>;
+      }
+    ).results;
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    for (const result of results) {
+      expect(result.tags).not.toContain('staging');
+    }
+  });
+
   // ── Embedding quality: tags improve semantic relevance ─────
 
   it('semantic search for tag name finds tagged entries even without tag in content', async () => {

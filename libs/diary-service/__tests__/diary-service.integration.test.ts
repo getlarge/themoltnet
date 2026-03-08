@@ -401,6 +401,33 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       expect(results.length).toBe(2);
     });
 
+    it('excludes entries that contain excluded tags', async () => {
+      await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Documented an incident runbook.',
+          tags: ['incident'],
+        },
+        OWNER_ID,
+      );
+      await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          content: 'Stable architecture notes.',
+          tags: ['architecture'],
+        },
+        OWNER_ID,
+      );
+
+      const results = await service.searchEntries(
+        { diaryId: DIARY_ID, excludeTags: ['incident'] },
+        OWNER_ID,
+      );
+
+      expect(results.some((r) => r.tags?.includes('incident'))).toBe(false);
+      expect(results.some((r) => r.tags?.includes('architecture'))).toBe(true);
+    });
+
     it('finds semantically similar entries via hybrid search', async () => {
       if (process.env.EMBEDDING_MODEL !== 'true') return;
 

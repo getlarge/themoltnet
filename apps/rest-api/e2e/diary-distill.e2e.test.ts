@@ -271,6 +271,34 @@ describe('Diary distill — consolidate + compile', () => {
       expect(Array.isArray(data!.clusters)).toBe(true);
       expect(data!.stats.inputCount).toBeGreaterThan(0);
     }, 120_000);
+
+    it('applies excludeTags during consolidate candidate selection', async () => {
+      const { data: allData, error: allError } = await consolidateDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: { strategy: 'hybrid', tags: ['deployment'] },
+      });
+      expect(allError).toBeUndefined();
+
+      const { data: filteredData, error: filteredError } =
+        await consolidateDiary({
+          client,
+          auth: () => agentA.accessToken,
+          path: { id: agentA.moltnetDiaryId },
+          body: {
+            strategy: 'hybrid',
+            tags: ['deployment'],
+            excludeTags: ['security'],
+          },
+        });
+      expect(filteredError).toBeUndefined();
+      expect(filteredData).toBeDefined();
+      expect(allData).toBeDefined();
+      expect(filteredData!.stats.inputCount).toBeLessThan(
+        allData!.stats.inputCount,
+      );
+    }, 120_000);
   });
 
   // ── POST /diaries/:id/compile ───────────────────────────────
@@ -407,6 +435,24 @@ describe('Diary distill — consolidate + compile', () => {
       expect(error).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.entries[0]?.id).not.toBe(promptRelevantOldEntryId);
+    }, 120_000);
+
+    it('applies excludeTags to compile results', async () => {
+      const { data, error } = await compileDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          tokenBudget: 1600,
+          taskPrompt: 'deployment checklist',
+          excludeTags: ['ops'],
+        },
+      });
+      expect(error).toBeUndefined();
+      expect(data).toBeDefined();
+      for (const entry of data!.entries) {
+        expect(entry.tags ?? []).not.toContain('ops');
+      }
     }, 120_000);
   });
 });

@@ -402,6 +402,28 @@ describe('Diary entry routes', () => {
         expect.any(String),
       );
     });
+
+    it('passes excludeTags filter to service', async () => {
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'POST',
+        url: '/diaries/search',
+        headers: authHeaders,
+        payload: {
+          diaryId: DIARY_ID,
+          query: 'test',
+          excludeTags: ['incident'],
+        },
+      });
+
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          excludeTags: ['incident'],
+        }),
+        expect.any(String),
+      );
+    });
   });
 
   describe('embedding exclusion', () => {

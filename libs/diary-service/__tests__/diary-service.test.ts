@@ -1004,5 +1004,25 @@ describe('DiaryService — tags filter', () => {
         expect.objectContaining({ tags: ['high-risk'] }),
       );
     });
+
+    it('passes excludeTags to repository', async () => {
+      embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);
+      repo.search.mockResolvedValue([]);
+
+      await service.searchEntries(
+        {
+          diaryId: DIARY_ID,
+          query: 'something',
+          excludeTags: ['incident'],
+        },
+        OWNER_ID,
+      );
+
+      expect(repo.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          excludeTags: ['incident'],
+        }),
+      );
+    });
   });
 });
