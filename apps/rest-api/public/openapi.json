@@ -3101,6 +3101,16 @@
                   "excludeSuperseded": {
                     "type": "boolean"
                   },
+                  "excludeTags": {
+                    "items": {
+                      "maxLength": 50,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "minItems": 1,
+                    "type": "array"
+                  },
                   "includeShared": {
                     "type": "boolean"
                   },
@@ -4008,6 +4018,14 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "excludeTags": {
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
                   "includeTags": {
                     "items": {
                       "maxLength": 50,
@@ -4146,6 +4164,14 @@
                       "type": "string"
                     },
                     "maxItems": 500,
+                    "type": "array"
+                  },
+                  "excludeTags": {
+                    "items": {
+                      "maxLength": 50,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
                     "type": "array"
                   },
                   "strategy": {

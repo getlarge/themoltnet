@@ -1324,6 +1324,7 @@ export type SearchDiaryData = {
     diaryId?: string;
     query?: string;
     tags?: Array<string>;
+    excludeTags?: Array<string>;
     limit?: number;
     offset?: number;
     wRelevance?: number;
@@ -1414,6 +1415,7 @@ export type ConsolidateDiaryData = {
   body?: {
     entryIds?: Array<string>;
     tags?: Array<string>;
+    excludeTags?: Array<string>;
     threshold?: number;
     strategy?: 'score' | 'centroid' | 'hybrid';
   };
@@ -1465,6 +1467,7 @@ export type CompileDiaryData = {
     taskPrompt?: string;
     lambda?: number;
     includeTags?: Array<string>;
+    excludeTags?: Array<string>;
     wRecency?: number;
     wImportance?: number;
   };

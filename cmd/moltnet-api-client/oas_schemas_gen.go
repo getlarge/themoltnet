@@ -98,12 +98,18 @@ type CompileDiaryNotFound ProblemDetails
 func (*CompileDiaryNotFound) compileDiaryRes() {}
 
 type CompileDiaryReq struct {
+	ExcludeTags []string   `json:"excludeTags"`
 	IncludeTags []string   `json:"includeTags"`
 	Lambda      OptFloat64 `json:"lambda"`
 	TaskPrompt  OptString  `json:"taskPrompt"`
 	TokenBudget int        `json:"tokenBudget"`
 	WImportance OptFloat64 `json:"wImportance"`
 	WRecency    OptFloat64 `json:"wRecency"`
+}
+
+// GetExcludeTags returns the value of ExcludeTags.
+func (s *CompileDiaryReq) GetExcludeTags() []string {
+	return s.ExcludeTags
 }
 
 // GetIncludeTags returns the value of IncludeTags.
@@ -134,6 +140,11 @@ func (s *CompileDiaryReq) GetWImportance() OptFloat64 {
 // GetWRecency returns the value of WRecency.
 func (s *CompileDiaryReq) GetWRecency() OptFloat64 {
 	return s.WRecency
+}
+
+// SetExcludeTags sets the value of ExcludeTags.
+func (s *CompileDiaryReq) SetExcludeTags(val []string) {
+	s.ExcludeTags = val
 }
 
 // SetIncludeTags sets the value of IncludeTags.
@@ -433,15 +444,21 @@ type ConsolidateDiaryNotFound ProblemDetails
 func (*ConsolidateDiaryNotFound) consolidateDiaryRes() {}
 
 type ConsolidateDiaryReq struct {
-	EntryIds  []uuid.UUID                    `json:"entryIds"`
-	Strategy  OptConsolidateDiaryReqStrategy `json:"strategy"`
-	Tags      []string                       `json:"tags"`
-	Threshold OptFloat64                     `json:"threshold"`
+	EntryIds    []uuid.UUID                    `json:"entryIds"`
+	ExcludeTags []string                       `json:"excludeTags"`
+	Strategy    OptConsolidateDiaryReqStrategy `json:"strategy"`
+	Tags        []string                       `json:"tags"`
+	Threshold   OptFloat64                     `json:"threshold"`
 }
 
 // GetEntryIds returns the value of EntryIds.
 func (s *ConsolidateDiaryReq) GetEntryIds() []uuid.UUID {
 	return s.EntryIds
+}
+
+// GetExcludeTags returns the value of ExcludeTags.
+func (s *ConsolidateDiaryReq) GetExcludeTags() []string {
+	return s.ExcludeTags
 }
 
 // GetStrategy returns the value of Strategy.
@@ -462,6 +479,11 @@ func (s *ConsolidateDiaryReq) GetThreshold() OptFloat64 {
 // SetEntryIds sets the value of EntryIds.
 func (s *ConsolidateDiaryReq) SetEntryIds(val []uuid.UUID) {
 	s.EntryIds = val
+}
+
+// SetExcludeTags sets the value of ExcludeTags.
+func (s *ConsolidateDiaryReq) SetExcludeTags(val []string) {
+	s.ExcludeTags = val
 }
 
 // SetStrategy sets the value of Strategy.
@@ -6071,6 +6093,7 @@ type SearchDiaryReq struct {
 	DiaryId           OptUUID                        `json:"diaryId"`
 	EntryTypes        []SearchDiaryReqEntryTypesItem `json:"entryTypes"`
 	ExcludeSuperseded OptBool                        `json:"excludeSuperseded"`
+	ExcludeTags       []string                       `json:"excludeTags"`
 	IncludeShared     OptBool                        `json:"includeShared"`
 	Limit             OptFloat64                     `json:"limit"`
 	Offset            OptFloat64                     `json:"offset"`
@@ -6094,6 +6117,11 @@ func (s *SearchDiaryReq) GetEntryTypes() []SearchDiaryReqEntryTypesItem {
 // GetExcludeSuperseded returns the value of ExcludeSuperseded.
 func (s *SearchDiaryReq) GetExcludeSuperseded() OptBool {
 	return s.ExcludeSuperseded
+}
+
+// GetExcludeTags returns the value of ExcludeTags.
+func (s *SearchDiaryReq) GetExcludeTags() []string {
+	return s.ExcludeTags
 }
 
 // GetIncludeShared returns the value of IncludeShared.
@@ -6149,6 +6177,11 @@ func (s *SearchDiaryReq) SetEntryTypes(val []SearchDiaryReqEntryTypesItem) {
 // SetExcludeSuperseded sets the value of ExcludeSuperseded.
 func (s *SearchDiaryReq) SetExcludeSuperseded(val OptBool) {
 	s.ExcludeSuperseded = val
+}
+
+// SetExcludeTags sets the value of ExcludeTags.
+func (s *SearchDiaryReq) SetExcludeTags(val []string) {
+	s.ExcludeTags = val
 }
 
 // SetIncludeShared sets the value of IncludeShared.
