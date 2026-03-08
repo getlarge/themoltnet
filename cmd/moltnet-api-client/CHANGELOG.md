@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.27.0...moltnet-api-client-v0.28.0) (2026-03-08)
+
+
+### Features
+
+* **search:** add excludeTags filtering for distill and entries ([675f9c6](https://github.com/getlarge/themoltnet/commit/675f9c67944ae480cdf55a6061967812a9da4caf))
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.26.0...moltnet-api-client-v0.27.0) (2026-03-08)
 
 
