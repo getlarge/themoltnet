@@ -568,6 +568,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
               maxItems: 20,
             }),
           ),
+          excludeTags: Type.Optional(
+            Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
+              minItems: 1,
+              maxItems: 20,
+            }),
+          ),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
           wRelevance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
@@ -602,6 +608,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         includeShared,
         query,
         tags,
+        excludeTags,
         limit,
         offset,
         wRelevance,
@@ -616,6 +623,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         diaryId,
         query,
         tags,
+        excludeTags,
         limit,
         offset,
         wRelevance,

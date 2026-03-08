@@ -163,6 +163,7 @@ export interface SearchInput {
   diaryIds?: string[];
   query?: string;
   tags?: string[];
+  excludeTags?: string[];
   limit?: number;
   offset?: number;
   wRelevance?: number;

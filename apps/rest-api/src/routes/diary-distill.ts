@@ -121,6 +121,9 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           tags: Type.Optional(
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
+          excludeTags: Type.Optional(
+            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+          ),
           threshold: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           strategy: Type.Optional(
             Type.Union([
@@ -142,7 +145,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { id: diaryId } = request.params;
       const identityId = request.authContext!.identityId;
-      const { entryIds, tags, threshold, strategy } = request.body;
+      const { entryIds, tags, excludeTags, threshold, strategy } = request.body;
 
       try {
         await fastify.diaryService.findDiary(diaryId, identityId);
@@ -159,7 +162,15 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           enqueueOptions: { queuePartitionKey: identityId },
           logger: request.log,
         },
-        { diaryId, identityId, entryIds, tags, threshold, strategy },
+        {
+          diaryId,
+          identityId,
+          entryIds,
+          tags,
+          excludeTags,
+          threshold,
+          strategy,
+        },
       );
     },
   );
@@ -184,6 +195,9 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           includeTags: Type.Optional(
             Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
           ),
+          excludeTags: Type.Optional(
+            Type.Array(Type.String({ maxLength: 50 }), { maxItems: 20 }),
+          ),
           wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
         }),
@@ -205,6 +219,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         taskPrompt,
         lambda,
         includeTags,
+        excludeTags,
         wRecency,
         wImportance,
       } = request.body;
@@ -231,6 +246,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           tokenBudget,
           lambda,
           includeTags,
+          excludeTags,
           wRecency,
           wImportance,
         },

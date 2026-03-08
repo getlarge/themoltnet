@@ -56,6 +56,7 @@ export interface ConsolidateWorkflowInput {
   identityId: string;
   entryIds?: string[];
   tags?: string[];
+  excludeTags?: string[];
   threshold?: number;
   strategy?: ConsolidateOptions['strategy'];
 }
@@ -67,9 +68,21 @@ export interface CompileWorkflowInput {
   tokenBudget: number;
   lambda?: CompileOptions['lambda'];
   includeTags?: string[];
+  excludeTags?: string[];
   wRecency?: number;
   wImportance?: number;
   limit?: number;
+}
+
+function hasAnyExcludedTag(
+  tags: string[] | null,
+  excludeTags: string[] | undefined,
+): boolean {
+  if (!excludeTags || excludeTags.length === 0 || !tags || tags.length === 0) {
+    return false;
+  }
+  const excluded = new Set(excludeTags);
+  return tags.some((tag) => excluded.has(tag));
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -194,8 +207,11 @@ export function initContextDistillWorkflows(): void {
         input.tags,
         500,
       );
+      const filteredEntries = entries.filter(
+        (entry) => !hasAnyExcludedTag(entry.tags, input.excludeTags),
+      );
 
-      if (entries.length === 0) {
+      if (filteredEntries.length === 0) {
         return {
           workflowId: DBOS.workflowID ?? '',
           clusters: [],
@@ -223,13 +239,13 @@ export function initContextDistillWorkflows(): void {
         } satisfies ConsolidateResult & { workflowId: string };
       }
 
-      const ids = entries.map((e) => e.id);
+      const ids = filteredEntries.map((e) => e.id);
       const embeddingRows = await fetchEmbeddingsStep(ids);
       const embeddingMap = new Map(
         embeddingRows.map((r) => [r.id, r.embedding]),
       );
 
-      const distillEntries = entries
+      const distillEntries = filteredEntries
         .filter((e) => embeddingMap.has(e.id))
         .map((e) => ({
           id: e.id,
@@ -269,15 +285,18 @@ export function initContextDistillWorkflows(): void {
         input.wImportance ?? 0,
         limit,
       );
+      const filteredEntries = entries.filter(
+        (entry) => !hasAnyExcludedTag(entry.tags, input.excludeTags),
+      );
 
-      const ids = entries.map((e) => e.id);
+      const ids = filteredEntries.map((e) => e.id);
       const embeddingRows =
         ids.length > 0 ? await fetchEmbeddingsStep(ids) : [];
       const embeddingMap = new Map(
         embeddingRows.map((r) => [r.id, r.embedding]),
       );
 
-      const distillEntries = entries
+      const distillEntries = filteredEntries
         .filter((e) => embeddingMap.has(e.id))
         .map((e) => ({
           id: e.id,

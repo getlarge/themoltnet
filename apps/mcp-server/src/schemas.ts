@@ -120,6 +120,11 @@ export const EntryListSchema = Type.Object({
       description: 'Filter by tags (entry must have ALL specified tags)',
     }),
   ),
+  exclude_tags: Type.Optional(
+    Type.Array(Type.String(), {
+      description: 'Exclude entries containing ANY specified tags',
+    }),
+  ),
 });
 type ListDiaryQuery = QueryOf<ListDiaryEntriesData>;
 export type EntryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
@@ -189,6 +194,7 @@ type EntrySearchFields = SnakePick<
   | 'query'
   | 'limit'
   | 'tags'
+  | 'excludeTags'
   | 'wRelevance'
   | 'wRecency'
   | 'wImportance'
@@ -292,6 +298,7 @@ export const DiariesConsolidateSchema = Type.Object({
   diary_id: Type.String({ description: 'Diary identifier (UUID).' }),
   entry_ids: Type.Optional(Type.Array(Type.String())),
   tags: Type.Optional(Type.Array(Type.String())),
+  exclude_tags: Type.Optional(Type.Array(Type.String())),
   threshold: Type.Optional(Type.Number()),
   strategy: Type.Optional(
     Type.Union([
@@ -305,6 +312,7 @@ type ConsolidateDiaryBody = BodyOf<ConsolidateDiaryData>;
 export type DiariesConsolidateInput =
   SnakeCasedProperties<ConsolidateDiaryBody> & {
     diary_id: PathOf<ConsolidateDiaryData>['id'];
+    exclude_tags?: string[];
   };
 
 export const DiariesCompileSchema = Type.Object({
@@ -315,12 +323,14 @@ export const DiariesCompileSchema = Type.Object({
   ),
   lambda: Type.Optional(Type.Number({ description: 'MMR lambda in [0,1].' })),
   include_tags: Type.Optional(Type.Array(Type.String())),
+  exclude_tags: Type.Optional(Type.Array(Type.String())),
   w_recency: Type.Optional(Type.Number()),
   w_importance: Type.Optional(Type.Number()),
 });
 type CompileDiaryBody = BodyOf<CompileDiaryData>;
 export type DiariesCompileInput = SnakeCasedProperties<CompileDiaryBody> & {
   diary_id: PathOf<CompileDiaryData>['id'];
+  exclude_tags?: string[];
 };
 
 // --- Diary catalog schemas ---

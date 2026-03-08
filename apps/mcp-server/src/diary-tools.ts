@@ -163,6 +163,7 @@ export async function handleEntrySearch(
       query: args.query,
       limit: args.limit ?? 10,
       ...(args.tags && { tags: args.tags }),
+      ...(args.exclude_tags && { excludeTags: args.exclude_tags }),
       wRelevance: args.w_relevance,
       wRecency: args.w_recency,
       wImportance: args.w_importance,
@@ -363,7 +364,7 @@ export async function handleDiariesConsolidate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { diary_id, entry_ids, tags, threshold, strategy } = args;
+  const { diary_id, entry_ids, tags, exclude_tags, threshold, strategy } = args;
   const { data, error } = await consolidateDiary({
     client: deps.client,
     auth: () => token,
@@ -371,6 +372,7 @@ export async function handleDiariesConsolidate(
     body: {
       entryIds: entry_ids,
       tags,
+      excludeTags: exclude_tags,
       threshold,
       strategy,
     },
@@ -402,6 +404,7 @@ export async function handleDiariesCompile(
     task_prompt,
     lambda,
     include_tags,
+    exclude_tags,
     w_recency,
     w_importance,
   } = args;
@@ -414,6 +417,7 @@ export async function handleDiariesCompile(
       taskPrompt: task_prompt,
       lambda,
       includeTags: include_tags,
+      excludeTags: exclude_tags,
       wRecency: w_recency,
       wImportance: w_importance,
     },

@@ -41,6 +41,7 @@ export interface DiarySearchOptions {
   query?: string;
   embedding?: number[];
   tags?: string[];
+  excludeTags?: string[];
   limit?: number;
   offset?: number;
   wRelevance?: number;
@@ -138,6 +139,17 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };
+}
+
+function hasExcludedTag(
+  tags: string[] | null,
+  excludeTags: string[] | undefined,
+): boolean {
+  if (!excludeTags || excludeTags.length === 0 || !tags || tags.length === 0) {
+    return false;
+  }
+  const excluded = new Set(excludeTags);
+  return tags.some((tag) => excluded.has(tag));
 }
 
 function mapRowToPublicSearchResult(
@@ -289,6 +301,7 @@ export function createDiaryEntryRepository(db: Database) {
         query,
         embedding,
         tags,
+        excludeTags,
         limit = 10,
         offset = 0,
         wRelevance,
@@ -359,7 +372,9 @@ export function createDiaryEntryRepository(db: Database) {
           .rows;
         const entries = rows.map(mapRowToDiaryEntry);
         trackAccess(entries.map((e) => e.id));
-        return entries;
+        return entries.filter(
+          (entry) => !hasExcludedTag(entry.tags, excludeTags),
+        );
       }
 
       // Query only → diary_search() with NULL embedding (FTS-only)
@@ -383,7 +398,9 @@ export function createDiaryEntryRepository(db: Database) {
           .rows;
         const entries = rows.map(mapRowToDiaryEntry);
         trackAccess(entries.map((e) => e.id));
-        return entries;
+        return entries.filter(
+          (entry) => !hasExcludedTag(entry.tags, excludeTags),
+        );
       }
 
       // Embedding only → vector similarity search (no query to pass)
@@ -399,6 +416,14 @@ export function createDiaryEntryRepository(db: Database) {
               tags.map((t) => sql`${t}`),
               sql`, `,
             )}]::text[]`,
+          );
+        }
+        if (excludeTags && excludeTags.length > 0) {
+          conditions.push(
+            sql`NOT (${diaryEntries.tags} && ARRAY[${sql.join(
+              excludeTags.map((t) => sql`${t}`),
+              sql`, `,
+            )}]::text[])`,
           );
         }
         if (entryTypes && entryTypes.length > 0) {
@@ -424,7 +449,7 @@ export function createDiaryEntryRepository(db: Database) {
       }
 
       // No query/embedding → fall back to list (pass all filters)
-      return this.list({
+      const entries = await this.list({
         diaryId,
         diaryIds,
         tags,
@@ -433,6 +458,9 @@ export function createDiaryEntryRepository(db: Database) {
         entryTypes,
         excludeSuperseded,
       });
+      return entries.filter(
+        (entry) => !hasExcludedTag(entry.tags, excludeTags),
+      );
     },
 
     /**
