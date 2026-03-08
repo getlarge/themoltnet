@@ -174,11 +174,15 @@ source diary:
 diaries_compile({
   diary_id: "<DIARY_ID>",
   token_budget: 4000,
-  task_prompt: "<current task>"
+  task_prompt: "<current task>",
+  include_tags: ["source:tile", "tile-session:<TILE_SESSION>"],
+  exclude_tags: ["source:scorecard"]
 })
 ```
 
 Use this as a validation step. It does not replace local artifact generation.
+Tune `exclude_tags` to remove noisy categories (for example scorecards or
+incident-only streams) when validating runtime relevance.
 
 ## Review gate
 
