@@ -248,12 +248,12 @@ describe('Diary tags filter', () => {
     expect(error).toBeUndefined();
     const results = (
       data as unknown as {
-        results: Array<{ tags: string[] }>;
+        results: Array<{ tags: string[] | null }>;
       }
     ).results;
     expect(results.length).toBeGreaterThanOrEqual(1);
     for (const result of results) {
-      expect(result.tags).not.toContain('staging');
+      expect(result.tags ?? []).not.toContain('staging');
     }
   });
 
