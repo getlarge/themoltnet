@@ -4715,6 +4715,10 @@ func (s *Server) handleListDiaryEntriesRequest(args [1]string, argsEscaped bool,
 					In:   "query",
 				}: params.Tags,
 				{
+					Name: "excludeTags",
+					In:   "query",
+				}: params.ExcludeTags,
+				{
 					Name: "entryType",
 					In:   "query",
 				}: params.EntryType,

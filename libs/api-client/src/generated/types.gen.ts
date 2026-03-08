@@ -1023,6 +1023,10 @@ export type ListDiaryEntriesData = {
      * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
      */
     tags?: string;
+    /**
+     * Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)
+     */
+    excludeTags?: string;
     entryType?:
       | 'episodic'
       | 'semantic'

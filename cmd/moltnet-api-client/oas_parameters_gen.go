@@ -1436,8 +1436,11 @@ type ListDiaryEntriesParams struct {
 	Limit  OptFloat64 `json:",omitempty,omitzero"`
 	Offset OptFloat64 `json:",omitempty,omitzero"`
 	// Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each).
-	Tags      OptString                    `json:",omitempty,omitzero"`
-	EntryType OptListDiaryEntriesEntryType `json:",omitempty,omitzero"`
+	Tags OptString `json:",omitempty,omitzero"`
+	// Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars
+	// each).
+	ExcludeTags OptString                    `json:",omitempty,omitzero"`
+	EntryType   OptListDiaryEntriesEntryType `json:",omitempty,omitzero"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID
 }
@@ -1468,6 +1471,15 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 		}
 		if v, ok := packed[key]; ok {
 			params.Tags = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "excludeTags",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ExcludeTags = v.(OptString)
 		}
 	}
 	{
@@ -1687,6 +1699,74 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "tags",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: excludeTags.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "excludeTags",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotExcludeTagsVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotExcludeTagsVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ExcludeTags.SetTo(paramsDotExcludeTagsVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.ExcludeTags.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     1070,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["^[^,]{1,50}(,[^,]{1,50}){0,19}$"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "excludeTags",
 			In:   "query",
 			Err:  err,
 		}

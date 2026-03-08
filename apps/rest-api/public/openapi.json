@@ -3235,6 +3235,17 @@
             }
           },
           {
+            "description": "Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)",
+            "in": "query",
+            "name": "excludeTags",
+            "required": false,
+            "schema": {
+              "maxLength": 1070,
+              "pattern": "^[^,]{1,50}(,[^,]{1,50}){0,19}$",
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "entryType",
             "required": false,
