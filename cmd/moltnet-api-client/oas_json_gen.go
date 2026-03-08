@@ -441,6 +441,16 @@ func (s *CompileDiaryReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CompileDiaryReq) encodeFields(e *jx.Encoder) {
 	{
+		if s.ExcludeTags != nil {
+			e.FieldStart("excludeTags")
+			e.ArrStart()
+			for _, elem := range s.ExcludeTags {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.IncludeTags != nil {
 			e.FieldStart("includeTags")
 			e.ArrStart()
@@ -480,13 +490,14 @@ func (s *CompileDiaryReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCompileDiaryReq = [6]string{
-	0: "includeTags",
-	1: "lambda",
-	2: "taskPrompt",
-	3: "tokenBudget",
-	4: "wImportance",
-	5: "wRecency",
+var jsonFieldsNameOfCompileDiaryReq = [7]string{
+	0: "excludeTags",
+	1: "includeTags",
+	2: "lambda",
+	3: "taskPrompt",
+	4: "tokenBudget",
+	5: "wImportance",
+	6: "wRecency",
 }
 
 // Decode decodes CompileDiaryReq from json.
@@ -498,6 +509,25 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "excludeTags":
+			if err := func() error {
+				s.ExcludeTags = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.ExcludeTags = append(s.ExcludeTags, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"excludeTags\"")
+			}
 		case "includeTags":
 			if err := func() error {
 				s.IncludeTags = make([]string, 0)
@@ -538,7 +568,7 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskPrompt\"")
 			}
 		case "tokenBudget":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.TokenBudget = int(v)
@@ -579,7 +609,7 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001000,
+		0b00010000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1448,6 +1478,16 @@ func (s *ConsolidateDiaryReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ExcludeTags != nil {
+			e.FieldStart("excludeTags")
+			e.ArrStart()
+			for _, elem := range s.ExcludeTags {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.Strategy.Set {
 			e.FieldStart("strategy")
 			s.Strategy.Encode(e)
@@ -1471,11 +1511,12 @@ func (s *ConsolidateDiaryReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfConsolidateDiaryReq = [4]string{
+var jsonFieldsNameOfConsolidateDiaryReq = [5]string{
 	0: "entryIds",
-	1: "strategy",
-	2: "tags",
-	3: "threshold",
+	1: "excludeTags",
+	2: "strategy",
+	3: "tags",
+	4: "threshold",
 }
 
 // Decode decodes ConsolidateDiaryReq from json.
@@ -1504,6 +1545,25 @@ func (s *ConsolidateDiaryReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"entryIds\"")
+			}
+		case "excludeTags":
+			if err := func() error {
+				s.ExcludeTags = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.ExcludeTags = append(s.ExcludeTags, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"excludeTags\"")
 			}
 		case "strategy":
 			if err := func() error {
@@ -16413,6 +16473,16 @@ func (s *SearchDiaryReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ExcludeTags != nil {
+			e.FieldStart("excludeTags")
+			e.ArrStart()
+			for _, elem := range s.ExcludeTags {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.IncludeShared.Set {
 			e.FieldStart("includeShared")
 			s.IncludeShared.Encode(e)
@@ -16466,18 +16536,19 @@ func (s *SearchDiaryReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfSearchDiaryReq = [11]string{
+var jsonFieldsNameOfSearchDiaryReq = [12]string{
 	0:  "diaryId",
 	1:  "entryTypes",
 	2:  "excludeSuperseded",
-	3:  "includeShared",
-	4:  "limit",
-	5:  "offset",
-	6:  "query",
-	7:  "tags",
-	8:  "wImportance",
-	9:  "wRecency",
-	10: "wRelevance",
+	3:  "excludeTags",
+	4:  "includeShared",
+	5:  "limit",
+	6:  "offset",
+	7:  "query",
+	8:  "tags",
+	9:  "wImportance",
+	10: "wRecency",
+	11: "wRelevance",
 }
 
 // Decode decodes SearchDiaryReq from json.
@@ -16524,6 +16595,25 @@ func (s *SearchDiaryReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"excludeSuperseded\"")
+			}
+		case "excludeTags":
+			if err := func() error {
+				s.ExcludeTags = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.ExcludeTags = append(s.ExcludeTags, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"excludeTags\"")
 			}
 		case "includeShared":
 			if err := func() error {

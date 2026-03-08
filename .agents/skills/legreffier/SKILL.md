@@ -514,6 +514,7 @@ Use when answering "why" or tracing rationale.
      query: "<specific question>",
      limit: 5,
      entry_types: ["semantic", "episodic"],
+     exclude_tags: ["scan-category:summary", "source:scorecard"], // optional noise suppression
      w_relevance: 1.0,
      w_recency: 0.3,   // use 0.1 if >14 days
      w_importance: 0.2
@@ -521,6 +522,7 @@ Use when answering "why" or tracing rationale.
    ```
 
    Omit `diary_id` to search across all repos. Retry with 2–3 shorter phrasings before concluding no entry exists.
+   Use `exclude_tags` when high-volume categories dilute signal.
 
 4. Verify MoltNet diary signatures (Layer 2): for each `procedural` entry with `<moltnet-signed>` present:
    - Extract the value inside `<signature>...</signature>`.

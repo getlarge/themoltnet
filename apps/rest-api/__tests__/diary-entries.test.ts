@@ -192,6 +192,23 @@ describe('Diary entry routes', () => {
       );
     });
 
+    it('passes excludeTags filter from query string', async () => {
+      mocks.diaryService.listEntries.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?excludeTags=incident,staging`,
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diaryId: DIARY_ID,
+          excludeTags: ['incident', 'staging'],
+        }),
+      );
+    });
+
     it('rejects empty tag in comma-separated list', async () => {
       const response = await app.inject({
         method: 'GET',
@@ -398,6 +415,28 @@ describe('Diary entry routes', () => {
       expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
         expect.objectContaining({
           tags: undefined,
+        }),
+        expect.any(String),
+      );
+    });
+
+    it('passes excludeTags filter to service', async () => {
+      mocks.diaryService.searchEntries.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'POST',
+        url: '/diaries/search',
+        headers: authHeaders,
+        payload: {
+          diaryId: DIARY_ID,
+          query: 'test',
+          excludeTags: ['incident'],
+        },
+      });
+
+      expect(mocks.diaryService.searchEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          excludeTags: ['incident'],
         }),
         expect.any(String),
       );

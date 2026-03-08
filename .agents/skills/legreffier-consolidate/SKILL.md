@@ -59,6 +59,7 @@ clusters:
 diaries_consolidate({
   diary_id: "<DIARY_ID>",
   tags: ["source:scan", "scan-session:<SCAN_SESSION>"],
+  exclude_tags: ["scan-category:plan", "scan-category:summary"],
   strategy: "hybrid"
 })
 ```
@@ -74,13 +75,14 @@ quality rules below remain the source of truth for what becomes a tile.
 entries_search({
   query: "scan",
   tags: ["source:scan", "scan-session:<SCAN_SESSION>"],
+  exclude_tags: ["scan-category:plan", "scan-category:summary"],
   diary_id: "<DIARY_ID>",
   limit: 20
 })
 ```
 
-Filter out entries tagged `scan-category:plan` and `scan-category:summary`.
-The remaining entries are your source material.
+The remaining entries are your source material. Keep a final sanity check for
+plan/summary tags in case historical runs used different tag conventions.
 
 ---
 

@@ -41,6 +41,7 @@ export interface DiarySearchOptions {
   query?: string;
   embedding?: number[];
   tags?: string[];
+  excludeTags?: string[];
   limit?: number;
   offset?: number;
   wRelevance?: number;
@@ -55,6 +56,7 @@ export interface DiaryListOptions {
   diaryIds?: string[];
   ids?: string[];
   tags?: string[];
+  excludeTags?: string[];
   limit?: number;
   offset?: number;
   entryType?: string;
@@ -206,6 +208,7 @@ export function createDiaryEntryRepository(db: Database) {
         diaryIds,
         ids,
         tags,
+        excludeTags,
         limit = 20,
         offset = 0,
         entryType,
@@ -233,6 +236,14 @@ export function createDiaryEntryRepository(db: Database) {
             tags.map((t) => sql`${t}`),
             sql`, `,
           )}]::text[]`,
+        );
+      }
+      if (excludeTags && excludeTags.length > 0) {
+        conditions.push(
+          sql`(${diaryEntries.tags} IS NULL OR NOT (${diaryEntries.tags} && ARRAY[${sql.join(
+            excludeTags.map((t) => sql`${t}`),
+            sql`, `,
+          )}]::text[]))`,
         );
       }
       if (entryType) {
@@ -289,6 +300,7 @@ export function createDiaryEntryRepository(db: Database) {
         query,
         embedding,
         tags,
+        excludeTags,
         limit = 10,
         offset = 0,
         wRelevance,
@@ -323,6 +335,13 @@ export function createDiaryEntryRepository(db: Database) {
               sql`, `,
             )}]::entry_type[]`
           : sql`NULL::entry_type[]`;
+      const excludeTagsParam =
+        excludeTags && excludeTags.length > 0
+          ? sql`ARRAY[${sql.join(
+              excludeTags.map((t) => sql`${t}`),
+              sql`, `,
+            )}]::text[]`
+          : sql`NULL::text[]`;
 
       const trackAccess = (ids: string[]) => {
         if (ids.length > 0) {
@@ -352,6 +371,7 @@ export function createDiaryEntryRepository(db: Database) {
                 ${wRecency ?? 0.0},
                 ${wImportance ?? 0.0},
                 ${entryTypesParam},
+                ${excludeTagsParam},
                 ${excludeSuperseded ?? false}
               )`,
         );
@@ -376,6 +396,7 @@ export function createDiaryEntryRepository(db: Database) {
                 ${wRecency ?? 0.0},
                 ${wImportance ?? 0.0},
                 ${entryTypesParam},
+                ${excludeTagsParam},
                 ${excludeSuperseded ?? false}
               )`,
         );
@@ -401,6 +422,14 @@ export function createDiaryEntryRepository(db: Database) {
             )}]::text[]`,
           );
         }
+        if (excludeTags && excludeTags.length > 0) {
+          conditions.push(
+            sql`(${diaryEntries.tags} IS NULL OR NOT (${diaryEntries.tags} && ARRAY[${sql.join(
+              excludeTags.map((t) => sql`${t}`),
+              sql`, `,
+            )}]::text[]))`,
+          );
+        }
         if (entryTypes && entryTypes.length > 0) {
           conditions.push(
             inArray(diaryEntries.entryType, entryTypes as EntryType[]),
@@ -424,15 +453,17 @@ export function createDiaryEntryRepository(db: Database) {
       }
 
       // No query/embedding → fall back to list (pass all filters)
-      return this.list({
+      const entries = await this.list({
         diaryId,
         diaryIds,
         tags,
+        excludeTags,
         limit,
         offset,
         entryTypes,
         excludeSuperseded,
       });
+      return entries;
     },
 
     /**
@@ -486,6 +517,7 @@ export function createDiaryEntryRepository(db: Database) {
               0.0,
               0.0,
               ${entryTypesParam},
+              NULL::text[],
               ${excludeSuperseded ?? false},
               ${!includeSuspicious}
             )`,

@@ -1023,6 +1023,10 @@ export type ListDiaryEntriesData = {
      * Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)
      */
     tags?: string;
+    /**
+     * Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)
+     */
+    excludeTags?: string;
     entryType?:
       | 'episodic'
       | 'semantic'
@@ -1324,6 +1328,7 @@ export type SearchDiaryData = {
     diaryId?: string;
     query?: string;
     tags?: Array<string>;
+    excludeTags?: Array<string>;
     limit?: number;
     offset?: number;
     wRelevance?: number;
@@ -1414,6 +1419,7 @@ export type ConsolidateDiaryData = {
   body?: {
     entryIds?: Array<string>;
     tags?: Array<string>;
+    excludeTags?: Array<string>;
     threshold?: number;
     strategy?: 'score' | 'centroid' | 'hybrid';
   };
@@ -1465,6 +1471,7 @@ export type CompileDiaryData = {
     taskPrompt?: string;
     lambda?: number;
     includeTags?: Array<string>;
+    excludeTags?: Array<string>;
     wRecency?: number;
     wImportance?: number;
   };

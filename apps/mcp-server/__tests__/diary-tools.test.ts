@@ -283,6 +283,29 @@ describe('Diary tools', () => {
       );
     });
 
+    it('passes exclude_tags filter as comma-separated query param', async () => {
+      vi.mocked(listDiaryEntries).mockResolvedValue(
+        sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
+      );
+
+      await handleEntryList(
+        { diary_id: DIARY_ID, exclude_tags: ['incident', 'staging'] },
+        deps,
+        context,
+      );
+
+      expect(listDiaryEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { diaryId: DIARY_ID },
+          query: {
+            limit: 20,
+            offset: 0,
+            excludeTags: 'incident,staging',
+          },
+        }),
+      );
+    });
+
     it('omits tags from query when not provided', async () => {
       vi.mocked(listDiaryEntries).mockResolvedValue(
         sdkOk({ items: [], total: 0, limit: 20, offset: 0 }) as never,
@@ -366,6 +389,28 @@ describe('Diary tools', () => {
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           body: { query: 'test', limit: 10 },
+        }),
+      );
+    });
+
+    it('passes exclude_tags filter to API', async () => {
+      vi.mocked(searchDiary).mockResolvedValue(
+        sdkOk({ results: [], total: 0 }) as never,
+      );
+
+      await handleEntrySearch(
+        { query: 'commits', exclude_tags: ['incident'] },
+        deps,
+        context,
+      );
+
+      expect(searchDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            query: 'commits',
+            limit: 10,
+            excludeTags: ['incident'],
+          },
         }),
       );
     });
@@ -739,10 +784,40 @@ describe('Diary tools', () => {
       expect(consolidateDiary).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { id: DIARY_ID },
-          body: { threshold: 0.75, strategy: 'hybrid', entryIds: undefined },
+          body: {
+            threshold: 0.75,
+            strategy: 'hybrid',
+            entryIds: undefined,
+            excludeTags: undefined,
+          },
         }),
       );
       expect(result.isError).toBeUndefined();
+    });
+
+    it('passes exclude_tags to consolidate API', async () => {
+      vi.mocked(consolidateDiary).mockResolvedValue(
+        sdkOk({ clusters: [], total: 0 }) as never,
+      );
+
+      await handleDiariesConsolidate(
+        {
+          diary_id: DIARY_ID,
+          tags: ['context'],
+          exclude_tags: ['incident'],
+        },
+        deps,
+        context,
+      );
+
+      expect(consolidateDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            tags: ['context'],
+            excludeTags: ['incident'],
+          }),
+        }),
+      );
     });
   });
 
@@ -770,12 +845,39 @@ describe('Diary tools', () => {
             taskPrompt: 'prepare context for oauth bugfix',
             lambda: undefined,
             includeTags: undefined,
+            excludeTags: undefined,
             wRecency: undefined,
             wImportance: undefined,
           },
         }),
       );
       expect(result.isError).toBeUndefined();
+    });
+
+    it('passes exclude_tags to compile API', async () => {
+      vi.mocked(compileDiary).mockResolvedValue(
+        sdkOk({ items: [], totalTokens: 0 }) as never,
+      );
+
+      await handleDiariesCompile(
+        {
+          diary_id: DIARY_ID,
+          token_budget: 1024,
+          include_tags: ['context'],
+          exclude_tags: ['incident'],
+        },
+        deps,
+        context,
+      );
+
+      expect(compileDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            includeTags: ['context'],
+            excludeTags: ['incident'],
+          }),
+        }),
+      );
     });
   });
 });

@@ -240,6 +240,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
                 'Comma-separated tags filter (entry must have ALL specified tags, max 20 tags, 50 chars each)',
             }),
           ),
+          excludeTags: Type.Optional(
+            Type.String({
+              pattern: '^[^,]{1,50}(,[^,]{1,50}){0,19}$',
+              maxLength: 1070,
+              description:
+                'Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars each)',
+            }),
+          ),
           entryType: Type.Optional(
             Type.Union([
               Type.Literal('episodic'),
@@ -261,7 +269,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { diaryId } = request.params;
-      const { limit, offset, tags, entryType } = request.query;
+      const { limit, offset, tags, excludeTags, entryType } = request.query;
 
       let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
@@ -277,10 +285,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const tagsFilter = tags
         ? tags.split(',').map((t) => t.trim())
         : undefined;
+      const excludedTagsFilter = excludeTags
+        ? excludeTags.split(',').map((t) => t.trim())
+        : undefined;
 
       const entries = await fastify.diaryService.listEntries({
         diaryId: diary.id,
         tags: tagsFilter,
+        excludeTags: excludedTagsFilter,
         limit,
         offset,
         entryType,
@@ -568,6 +580,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
               maxItems: 20,
             }),
           ),
+          excludeTags: Type.Optional(
+            Type.Array(Type.String({ minLength: 1, maxLength: 50 }), {
+              minItems: 1,
+              maxItems: 20,
+            }),
+          ),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
           wRelevance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
@@ -602,6 +620,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         includeShared,
         query,
         tags,
+        excludeTags,
         limit,
         offset,
         wRelevance,
@@ -616,6 +635,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         diaryId,
         query,
         tags,
+        excludeTags,
         limit,
         offset,
         wRelevance,

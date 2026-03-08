@@ -574,6 +574,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return diaryEntryRepository.list({
         diaryId: input.diaryId,
         tags: input.tags,
+        excludeTags: input.excludeTags,
         limit: input.limit,
         offset: input.offset,
         entryType: input.entryType,

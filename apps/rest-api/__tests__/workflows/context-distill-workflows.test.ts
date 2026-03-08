@@ -36,14 +36,14 @@ import {
   setContextDistillDeps,
 } from '../../src/workflows/context-distill-workflows.js';
 
-function createEntry(id: string): DiaryEntry {
+function createEntry(id: string, tags: string[] | null = null): DiaryEntry {
   return {
     id,
     diaryId: '00000000-0000-0000-0000-000000000001',
     title: null,
     content: `entry-${id}`,
     embedding: null,
-    tags: null,
+    tags,
     injectionRisk: false,
     importance: 5,
     accessCount: 0,
@@ -136,6 +136,30 @@ describe('context-distill compile workflow', () => {
         query: undefined,
         embedding: undefined,
       }),
+    );
+  });
+
+  it('passes excludeTags to search before compilation', async () => {
+    search.mockResolvedValue([createEntry('entry-keep', ['api'])]);
+    fetchEmbeddings.mockResolvedValue([
+      { id: 'entry-keep', embedding: [0.1, 0.2, 0.3] },
+    ]);
+
+    const result = await contextDistillWorkflows.compile({
+      diaryId: '00000000-0000-0000-0000-000000000001',
+      identityId: '00000000-0000-0000-0000-000000000002',
+      tokenBudget: 2000,
+      excludeTags: ['incident'],
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        excludeTags: ['incident'],
+      }),
+    );
+    expect(fetchEmbeddings).toHaveBeenCalledWith(['entry-keep']);
+    expect(result.entries.some((entry) => entry.id === 'entry-keep')).toBe(
+      true,
     );
   });
 });
