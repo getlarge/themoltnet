@@ -9,6 +9,9 @@ catalogs:
     '@andersmyrmel/vard':
       specifier: ^1.2.0
       version: 1.2.0
+    '@ax-llm/ax':
+      specifier: ^19.0.13
+      version: 19.0.13
     '@dbos-inc/dbos-sdk':
       specifier: ^4.10.15
       version: 4.10.15
@@ -1019,6 +1022,9 @@ importers:
 
   tools:
     dependencies:
+      '@ax-llm/ax':
+        specifier: 'catalog:'
+        version: 19.0.13
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
@@ -1040,6 +1046,9 @@ importers:
       '@moltnet/rest-api':
         specifier: workspace:*
         version: link:../apps/rest-api
+      '@sinclair/typebox':
+        specifier: 'catalog:'
+        version: 0.34.48
       smol-toml:
         specifier: 'catalog:'
         version: 1.6.0
@@ -1083,6 +1092,13 @@ packages:
       {
         integrity: sha512-K1A6z8tS3XsmCMM86xoWdn7Fkdn9m6RSVtocUrJYIwZnFVkng/PvkEoWtOWmP+Scc6saYWHWZYbndEEXxl24jw==,
       }
+
+  '@ax-llm/ax@19.0.13':
+    resolution:
+      {
+        integrity: sha512-51ZFgWcaCjX0wjtdVV98QGWg7X+sBtAR8K58O5lFKZOFVgtUL8NtaWylnBIRqLfFr5L3tnfnXHAPs8omUQxwwQ==,
+      }
+    hasBin: true
 
   '@babel/code-frame@7.28.6':
     resolution:
@@ -4903,6 +4919,12 @@ packages:
     resolution:
       {
         integrity: sha512-2P0p0pFGzHS5EMnhdxQi7aJN+iMheud0UhG4dlE1DLAlvL8JHjJJTX/CSm4JXwV0Ka5nGk3zC5mcb5bUQUxxMA==,
+      }
+
+  dayjs@1.11.19:
+    resolution:
+      {
+        integrity: sha512-t5EcLVS6QPBNqM2z8fakk/NKel+Xzshgt8FFKAn+qwlD1pzZWxh0nVCrvFK7ZDb6XucZeF9z8C7CBWTRIVApAw==,
       }
 
   de-indent@1.0.2:
@@ -9445,6 +9467,11 @@ snapshots:
       '@csstools/css-tokenizer': 3.0.4
       lru-cache: 10.4.3
 
+  '@ax-llm/ax@19.0.13':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      dayjs: 1.11.19
+
   '@babel/code-frame@7.28.6':
     dependencies:
       '@babel/helper-validator-identifier': 7.28.5
@@ -11704,6 +11731,8 @@ snapshots:
       whatwg-url: 14.2.0
 
   dateformat@4.6.3: {}
+
+  dayjs@1.11.19: {}
 
   de-indent@1.0.2: {}
 
