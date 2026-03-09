@@ -43,18 +43,19 @@
   },
   "fixture": {
     "exclude": ["evals/", ".claude/", ".agents/"],
-    "ref": "426e3ced9e7e018dc72c0bf65494744fcff75fe2",
+    "ref": "8665da0729d3875fae6c6bc7ca3cff5c584f20a2",
     "repoUrl": "https://github.com/getlarge/themoltnet.git",
     "type": "commit"
   },
   "setup": {
     "commands": ["pnpm install --frozen-lockfile"]
   },
-  "type": "coding",
+  "type": "ops",
   "validation": {
     "commands": [
-      "pnpm --filter @moltnet/auth run typecheck",
-      "pnpm --filter @moltnet/auth run test"
+      "pnpm --filter @moltnet/rest-api run typecheck",
+      "pnpm --filter @moltnet/api-client run typecheck",
+      "pnpm run go:vet"
     ]
   }
 }

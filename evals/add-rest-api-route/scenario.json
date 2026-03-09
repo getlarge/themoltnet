@@ -9,7 +9,7 @@
             "tile-session:2026-03-08T19:00:00Z",
             "model:claude-sonnet-4.6"
           ],
-          "token_budget": 2500
+          "token_budget": 10000
         },
         {
           "include_tags": [
@@ -17,7 +17,7 @@
             "nugget-session:2026-03-08T19:00:00Z",
             "model:claude-sonnet-4.6"
           ],
-          "token_budget": 1500
+          "token_budget": 6000
         }
       ],
       "source": "multi_compile"
@@ -29,7 +29,7 @@
         "model:claude-sonnet-4.6"
       ],
       "source": "diaries_compile",
-      "token_budget": 2000
+      "token_budget": 8000
     },
     "scan_tiles": {
       "include_tags": [
@@ -38,7 +38,7 @@
         "model:claude-sonnet-4.6"
       ],
       "source": "diaries_compile",
-      "token_budget": 4000
+      "token_budget": 16000
     }
   },
   "fixture": {

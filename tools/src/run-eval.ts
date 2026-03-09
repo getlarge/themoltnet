@@ -182,7 +182,7 @@ async function compileLayer(
   const { data, error } = await compileDiary({
     client: apiClient,
     path: { id: diaryId },
-    body: { tokenBudget, includeTags, taskPrompt },
+    body: { tokenBudget, includeTags, taskPrompt: taskPrompt.slice(0, 2000) },
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -300,8 +300,8 @@ function runEvaluation(worktreeDir: string, variant: string): string {
     `evaluate the solution against the criteria in eval-criteria.json.` +
     ` For each criterion: state pass/fail, give a score (0 to max_score), and one sentence of evidence.` +
     ` Write results to eval-result.md`;
-  // Non-interactive: just read files and write the result, no edits to source needed
-  runClaude(worktreeDir, prompt, ['--print']);
+  // Non-interactive: read files + write eval-result.md only
+  runClaude(worktreeDir, prompt, ['--print', '--add-dir', worktreeDir]);
 
   if (existsSync(worktreeResult)) {
     copyFileSync(worktreeResult, resultFile);

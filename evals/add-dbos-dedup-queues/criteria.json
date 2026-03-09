@@ -63,6 +63,41 @@
     "name": "test_duplicate_returns_409"
   },
   {
+    "category": "TESTING",
+    "description": "E2E test verifies duplicate consolidate requests with same diary state produce a 409 conflict",
+    "example": "e2e/diary-distill.e2e.test.ts asserts one 200 and one 409 for concurrent consolidate calls",
+    "max_score": 2,
+    "name": "e2e_consolidate_duplicate_returns_409"
+  },
+  {
+    "category": "TESTING",
+    "description": "E2E test verifies duplicate compile requests with same diary state produce a 409 conflict",
+    "example": "e2e/diary-distill.e2e.test.ts asserts one 200 and one 409 for concurrent compile calls",
+    "max_score": 2,
+    "name": "e2e_compile_duplicate_returns_409"
+  },
+  {
+    "category": "TESTING",
+    "description": "E2E test verifies dedup key invalidation: after diary content changes, matching compile requests should not return 409",
+    "example": "e2e/diary-distill.e2e.test.ts creates an entry between two compile requests and asserts no 409 statuses",
+    "max_score": 2,
+    "name": "e2e_content_change_bypasses_dedup"
+  },
+  {
+    "category": "CONVENTION",
+    "description": "Consolidate duplicate e2e test uses @moltnet/api-client (`consolidateDiary`) rather than raw fetch for authenticated requests",
+    "example": "Promise.all([consolidateDiary(...), consolidateDiary(...)]) and assert response.status values",
+    "max_score": 1,
+    "name": "e2e_consolidate_uses_api_client"
+  },
+  {
+    "category": "CONVENTION",
+    "description": "Compile duplicate/invalidation e2e tests use @moltnet/api-client (`compileDiary`) rather than raw fetch for authenticated requests",
+    "example": "Promise.all([compileDiary(...), compileDiary(...)]) and assert response.status values",
+    "max_score": 1,
+    "name": "e2e_compile_uses_api_client"
+  },
+  {
     "category": "RUNTIME",
     "description": "pnpm --filter @moltnet/rest-api run typecheck exits 0",
     "example": "tsc -b --emitDeclarationOnly",

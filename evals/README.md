@@ -15,11 +15,13 @@ evals/
 
 ## Scenarios
 
-| Eval                 | Task                                       | Primary tiles tested                                             |
-| -------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
-| `add-rest-api-route` | Add `GET /agents/:agentId/public-key`      | `rest-api/wiring`, `auth/flow`, `testing/conventions`            |
-| `add-mcp-tool`       | Add `agent_public_key` MCP tool            | `mcp-server/wiring`, `testing/conventions`                       |
-| `fix-keto-cleanup`   | Fix orphaned DiaryEntry Keto tuples (#382) | `auth/flow`, `database/schema-and-access`, `testing/conventions` |
+| Eval                    | Task                                                        | Primary tiles tested                                                   |
+| ----------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `add-rest-api-route`    | Add `GET /agents/:agentId/public-key`                       | `rest-api/wiring`, `auth/flow`, `testing/conventions`                  |
+| `add-mcp-tool`          | Add `agent_public_key` MCP tool                             | `mcp-server/wiring`, `testing/conventions`                             |
+| `fix-keto-cleanup`      | Fix orphaned DiaryEntry Keto tuples (#382)                  | `auth/flow`, `database/schema-and-access`, `testing/conventions`       |
+| `regen-api-clients`     | Regenerate all API clients after route change               | `api-generation/pipeline`, `go-client/workflow`                        |
+| `add-dbos-dedup-queues` | Add dedup to consolidate/compile via two-queue DBOS pattern | `rest-api/wiring`, `database/schema-and-access`, `testing/conventions` |
 
 ## Context variants
 
@@ -85,3 +87,16 @@ Good candidates are issues where the correct solution requires knowing:
 - Security rules (404 not 403, no auth in repo layer)
 
 Avoid tasks that require E2E Docker stack for validation in the first pass — stick to typecheck + unit test verifiable tasks.
+
+## Writing criteria: HITL golden standard
+
+Criteria written purely from an issue spec are unreliable — they may miss subtle semantic requirements (e.g. _where_ in a multi-step flow a value must be placed, not just _that_ it must be used). The result is criteria that a plausible-but-wrong implementation can pass.
+
+The most reliable process:
+
+1. **Solve the task with full human context** — implement the feature with a developer who understands the issue deeply, using full HITL review. Verify it passes all validation commands.
+2. **Write criteria from the working solution** — inspect the diff and extract concrete, falsifiable checks grounded in what the correct implementation actually looks like. The `example` field should be a real snippet from the golden solution.
+3. **Adversarially probe the criteria** — ask: can a plausible wrong implementation score full marks? If yes, tighten the criterion (usually by being more specific about placement, naming, or data flow).
+4. **Fix the fixture ref** — set `scenario.json > fixture.ref` to the commit _before_ the golden solution, so the eval starts from a clean state.
+
+Criteria written by an agent without a golden solution are a starting point only. Treat any criterion that both baseline and context variants fail identically as a signal to review criterion quality, not just context quality.
