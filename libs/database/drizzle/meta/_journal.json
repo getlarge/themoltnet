@@ -147,6 +147,27 @@
       "tag": "0020_exclude_tags_search",
       "version": "7",
       "when": 1774560400003
+    },
+    {
+      "breakpoints": true,
+      "idx": 21,
+      "tag": "0021_solid_ego",
+      "version": "7",
+      "when": 1774560400004
+    },
+    {
+      "breakpoints": true,
+      "idx": 22,
+      "tag": "0022_vengeful_iron_lad",
+      "version": "7",
+      "when": 1774560400005
+    },
+    {
+      "breakpoints": true,
+      "idx": 23,
+      "tag": "0023_context_packs_retention_trigger",
+      "version": "7",
+      "when": 1774560400006
     }
   ],
   "version": "7"
