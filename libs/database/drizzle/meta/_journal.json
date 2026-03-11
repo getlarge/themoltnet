@@ -175,6 +175,13 @@
       "tag": "0024_strong_created_by_provenance",
       "version": "7",
       "when": 1774560400007
+    },
+    {
+      "breakpoints": true,
+      "idx": 25,
+      "tag": "0025_diary_search_created_by",
+      "version": "7",
+      "when": 1774560400008
     }
   ],
   "version": "7"

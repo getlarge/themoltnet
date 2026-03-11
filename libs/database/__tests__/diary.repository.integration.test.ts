@@ -387,6 +387,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
       expect(results.length).toBe(1);
       expect(results[0].content).toContain('cryptographic');
+      expect(results[0].createdBy).toBe(OWNER_ID);
     });
 
     it('falls back to list when no query or embedding provided', async () => {

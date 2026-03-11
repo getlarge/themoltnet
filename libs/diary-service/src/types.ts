@@ -137,8 +137,6 @@ export interface ShareDiaryInput {
 export interface CreateEntryInput {
   diaryId: string;
   content: string;
-  /** Strong provenance: authenticated principal creating the entry */
-  createdBy?: string;
   title?: string;
   tags?: string[];
   importance?: number;
@@ -149,6 +147,11 @@ export interface CreateEntryInput {
   contentSignature?: string;
   /** Nonce from signing request (stored for self-contained verification) */
   signingNonce?: string;
+}
+
+export interface WorkflowCreateEntryInput extends CreateEntryInput {
+  /** Strong provenance: authenticated principal creating the entry */
+  createdBy: string;
 }
 
 export interface UpdateEntryInput {
