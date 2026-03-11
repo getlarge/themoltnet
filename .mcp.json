@@ -6,7 +6,7 @@
         "X-Client-Secret": "${LEGREFFIER_CLIENT_SECRET}"
       },
       "type": "http",
-      "url": "${MOLTNET_MCP_URL:-https://mcp.themolt.net/mcp}"
+      "url": "https://mcp.themolt.net/mcp"
     },
     "legreffier-test": {
       "headers": {
