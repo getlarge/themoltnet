@@ -12,8 +12,8 @@ ALTER TABLE "context_packs"
     (pinned = false AND expires_at IS NOT NULL)
   );
 
--- Partial index for GC workers scanning expired, non-pinned packs
-CREATE INDEX IF NOT EXISTS "context_packs_expires_at_unpinned_idx"
+-- Single GC index path for expired, non-pinned packs.
+CREATE INDEX IF NOT EXISTS "context_packs_expires_at_idx"
   ON "context_packs" USING btree ("expires_at")
   WHERE "pinned" = false;
 

@@ -56,7 +56,6 @@ CREATE INDEX "context_pack_entries_pack_idx" ON "context_pack_entries" USING btr
 CREATE INDEX "context_pack_entries_entry_idx" ON "context_pack_entries" USING btree ("entry_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "context_packs_pack_cid_unique_idx" ON "context_packs" USING btree ("pack_cid");--> statement-breakpoint
 CREATE INDEX "context_packs_diary_idx" ON "context_packs" USING btree ("diary_id");--> statement-breakpoint
-CREATE INDEX "context_packs_expires_at_idx" ON "context_packs" USING btree ("expires_at");--> statement-breakpoint
 CREATE INDEX "context_packs_pinned_idx" ON "context_packs" USING btree ("pinned");--> statement-breakpoint
 CREATE UNIQUE INDEX "entry_relations_unique_idx" ON "entry_relations" USING btree ("source_id","target_id","relation");--> statement-breakpoint
 CREATE INDEX "entry_relations_source_idx" ON "entry_relations" USING btree ("source_id");--> statement-breakpoint

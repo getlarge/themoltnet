@@ -4,7 +4,7 @@
  * Persistence primitives for compiled context packs and pack membership.
  */
 
-import { and, asc, desc, eq, inArray, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -67,7 +67,11 @@ export function createContextPackRepository(db: Database) {
         .select()
         .from(contextPackEntries)
         .where(eq(contextPackEntries.packId, packId))
-        .orderBy(asc(contextPackEntries.rank));
+        .orderBy(
+          sql`${contextPackEntries.rank} ASC NULLS LAST`,
+          asc(contextPackEntries.createdAt),
+          asc(contextPackEntries.id),
+        );
     },
 
     async listExpiredUnpinned(

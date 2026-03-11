@@ -509,6 +509,7 @@
           "isUnique": false,
           "method": "btree",
           "name": "context_packs_expires_at_idx",
+          "where": "pinned = false",
           "with": {}
         },
         "context_packs_pack_cid_unique_idx": {

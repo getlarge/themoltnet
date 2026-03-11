@@ -504,7 +504,9 @@ export const contextPacks = pgTable(
       table.packCid,
     ),
     diaryIdx: index('context_packs_diary_idx').on(table.diaryId),
-    expiresAtIdx: index('context_packs_expires_at_idx').on(table.expiresAt),
+    expiresAtIdx: index('context_packs_expires_at_idx')
+      .on(table.expiresAt)
+      .where(sql`pinned = false`),
     pinnedIdx: index('context_packs_pinned_idx').on(table.pinned),
   }),
 );

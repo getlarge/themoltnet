@@ -496,21 +496,6 @@
           "name": "context_packs_diary_idx",
           "with": {}
         },
-        "context_packs_expires_at_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "expires_at",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "btree",
-          "name": "context_packs_expires_at_idx",
-          "with": {}
-        },
         "context_packs_pack_cid_unique_idx": {
           "columns": [
             {
