@@ -137,6 +137,8 @@ export interface ShareDiaryInput {
 export interface CreateEntryInput {
   diaryId: string;
   content: string;
+  /** Strong provenance: authenticated principal creating the entry */
+  createdBy?: string;
   title?: string;
   tags?: string[];
   importance?: number;

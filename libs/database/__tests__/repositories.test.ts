@@ -55,11 +55,11 @@ const mockAgent: AgentKey = {
 
 const mockEntry: DiaryEntry = {
   id: ENTRY_ID,
-  ownerId: AGENT_ID,
+  diaryId: '770e8400-e29b-41d4-a716-446655440003',
+  createdBy: AGENT_ID,
   title: 'Test Entry',
   content: 'Hello world',
   embedding: null,
-  visibility: 'private',
   tags: ['test'],
   injectionRisk: false,
   importance: 5,
@@ -67,6 +67,9 @@ const mockEntry: DiaryEntry = {
   lastAccessedAt: null,
   entryType: 'semantic',
   supersededBy: null,
+  contentHash: null,
+  contentSignature: null,
+  signingNonce: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -290,6 +293,7 @@ describe('createContextPackRepository', () => {
       packCid: mockPack.packCid,
       tokenBudget: mockPack.tokenBudget,
       payload: mockPack.payload,
+      createdBy: mockPack.createdBy,
     });
 
     expect(db.insert).toHaveBeenCalled();

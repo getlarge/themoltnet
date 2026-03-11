@@ -48,6 +48,7 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
     id: ENTRY_ID,
     diaryId: DIARY_ID,
+    createdBy: OWNER_ID,
     title: null,
     content: 'Test diary entry content',
     embedding: null,
@@ -232,7 +233,10 @@ describe('DiaryService', () => {
       const result = await service.createEntry(input, OWNER_ID);
 
       expect(result).toEqual(mockEntry);
-      expect(diaryWorkflows.createEntry).toHaveBeenCalledWith(input);
+      expect(diaryWorkflows.createEntry).toHaveBeenCalledWith({
+        ...input,
+        createdBy: OWNER_ID,
+      });
     });
 
     it('propagates errors from the workflow', async () => {

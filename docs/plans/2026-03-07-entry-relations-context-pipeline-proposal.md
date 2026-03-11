@@ -97,6 +97,7 @@ retention controls:
 
 - `expires_at` (nullable; default TTL for non-pinned packs)
 - `pinned` (`boolean`, default `false`)
+- `created_by` (authenticated principal that materialized the pack)
 - constraint: pinned packs MUST NOT have an active expiry policy applied
   (cleanup jobs skip `pinned=true`)
 
@@ -126,6 +127,26 @@ Assembler behavior:
 ### MCP resource (new, #183)
 
 - `moltnet://context`
+
+## Authorization model
+
+`context_packs` are first-class resources but inherit authorization from the
+parent diary.
+
+Recommended Keto modeling:
+
+- `Diary:{id}` remains the ACL root
+- `DiaryEntry:{id}#parent@Diary:{diaryId}`
+- `ContextPack:{id}#parent@Diary:{diaryId}`
+
+Derived permissions:
+
+- `ContextPack#read = parent->read`
+- `ContextPack#compile = parent->write` (or a dedicated `compile` relation later)
+- `ContextPack#manage = parent->manage`
+
+`created_by` on entries and packs is authoritative provenance for attribution
+and poison tracing, but it is not used for permission checks.
 
 ## Rollout Plan
 

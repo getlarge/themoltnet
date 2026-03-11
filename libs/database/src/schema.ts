@@ -159,6 +159,8 @@ export const diaryEntries = pgTable(
 
     // Metadata
     tags: text('tags').array(),
+    // Strong provenance: authenticated principal that created the entry.
+    createdBy: uuid('created_by').notNull(),
 
     // Prompt injection risk flag (set by vard scanner)
     injectionRisk: boolean('injection_risk').default(false).notNull(),
@@ -187,6 +189,7 @@ export const diaryEntries = pgTable(
   },
   (table) => ({
     diaryIdx: index('diary_entries_diary_idx').on(table.diaryId),
+    createdByIdx: index('diary_entries_created_by_idx').on(table.createdBy),
 
     // Index for entry type filtering (memory system)
     entryTypeIdx: index('diary_entries_entry_type_idx').on(table.entryType),
@@ -483,7 +486,8 @@ export const contextPacks = pgTable(
     lambda: real('lambda'),
     wRecency: real('w_recency'),
     wImportance: real('w_importance'),
-    createdBy: uuid('created_by'),
+    // Strong provenance: authenticated principal that materialized the pack.
+    createdBy: uuid('created_by').notNull(),
     supersedesPackId: uuid('supersedes_pack_id').references(
       (): AnyPgColumn => contextPacks.id,
     ),

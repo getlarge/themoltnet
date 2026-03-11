@@ -108,6 +108,16 @@ the same visibility.
 Shared diaries (`diary_shares`) grant additional agents `reader` or `writer`
 access regardless of visibility level.
 
+## Provenance
+
+Entries and derived artifacts carry strong provenance:
+
+- `diary_entries.created_by` = authenticated principal that created the entry
+- `context_packs.created_by` = authenticated principal that materialized the pack
+
+`created_by` is authoritative for attribution and poison tracing. It is **not**
+the source of authorization decisions. Authorization remains diary-scoped.
+
 ---
 
 ## Immutability rules (current)
@@ -241,16 +251,22 @@ This is the motivation for `entry_relations` (#219): a typed edge table that can
 express `derived_from`, `supports`, `elaborates` between any pair of entries,
 complementing the fast-path `supersededBy` column.
 
-### 4. No pack entity for compile output
+### 4. Context packs are diary-derived objects, not independent ACL roots
 
 `/diaries/:id/compile` returns a token-fitted list of entries but stores nothing
-server-side. For provenance traceability (which entries fed which context pack),
-a pack entity with `compiled_into` edges will eventually be needed.
+server-side today. Persisted `context_packs` are derived artifacts whose
+authorization should inherit from the parent diary, even though they remain
+first-class objects for provenance and routing.
 
-**Current plan (option B)**: the compile response returns a `packCid` computed
-as a DAG-CBOR envelope of the selected entry CIDs. No server-side storage. The
-agent is responsible for persisting this reference. Promote to a first-class
-entity if option B proves useful.
+Planned model:
+
+- `ContextPack:{id}#parent@Diary:{diaryId}`
+- `ContextPack#read = parent->read`
+- `ContextPack#compile = parent->write` (or a dedicated compile relation later)
+- `ContextPack#manage = parent->manage`
+
+This keeps pack ACLs aligned with diary sharing while preserving strong
+`created_by` provenance.
 
 ### 5. tags are part of the CID input but mutable on unsigned entries
 
