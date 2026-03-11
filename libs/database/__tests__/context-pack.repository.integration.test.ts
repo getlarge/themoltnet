@@ -36,6 +36,19 @@ describe('ContextPackRepository (integration)', () => {
 
   const DIARY_ID = '110e8400-e29b-41d4-a716-446655440011';
   const OWNER_ID = '120e8400-e29b-41d4-a716-446655440012';
+  const createPack = (
+    input: Omit<
+      Parameters<
+        ReturnType<typeof createContextPackRepository>['createPack']
+      >[0],
+      'diaryId' | 'createdBy'
+    >,
+  ) =>
+    repo.createPack({
+      diaryId: DIARY_ID,
+      createdBy: OWNER_ID,
+      ...input,
+    });
 
   beforeAll(async () => {
     const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
@@ -80,8 +93,7 @@ describe('ContextPackRepository (integration)', () => {
   describe('retention rules', () => {
     it('rejects non-pinned packs without expiry', async () => {
       try {
-        await repo.createPack({
-          diaryId: DIARY_ID,
+        await createPack({
           packCid: 'bafy-pack-no-expiry',
           tokenBudget: 4000,
           payload: {},
@@ -100,8 +112,7 @@ describe('ContextPackRepository (integration)', () => {
 
     it('rejects non-pinned packs with past expiry', async () => {
       try {
-        await repo.createPack({
-          diaryId: DIARY_ID,
+        await createPack({
           packCid: 'bafy-pack-past-expiry',
           tokenBudget: 4000,
           payload: {},
@@ -117,8 +128,7 @@ describe('ContextPackRepository (integration)', () => {
     });
 
     it('clears expiry when inserting a pinned pack', async () => {
-      const pack = await repo.createPack({
-        diaryId: DIARY_ID,
+      const pack = await createPack({
         packCid: 'bafy-pack-pinned-insert',
         tokenBudget: 4000,
         payload: {},
@@ -131,8 +141,7 @@ describe('ContextPackRepository (integration)', () => {
     });
 
     it('clears expiry when pinning an existing pack', async () => {
-      const created = await repo.createPack({
-        diaryId: DIARY_ID,
+      const created = await createPack({
         packCid: 'bafy-pack-pin-update',
         tokenBudget: 4000,
         payload: {},
@@ -148,8 +157,7 @@ describe('ContextPackRepository (integration)', () => {
     });
 
     it('rejects unpinning without a future expiry', async () => {
-      const created = await repo.createPack({
-        diaryId: DIARY_ID,
+      const created = await createPack({
         packCid: 'bafy-pack-unpin-invalid',
         tokenBudget: 4000,
         payload: {},
