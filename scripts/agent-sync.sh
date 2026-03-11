@@ -191,7 +191,8 @@ create_pr() {
     return 0
   fi
 
-  # Build PR body with mission integrity checklist (unchecked — agent/reviewer must verify)
+  # Build PR body from summary + test plan. Mission integrity rationale now
+  # lives in MoltNet diary entries rather than an enforced PR body checklist.
   local closes_line=""
   if [ -n "$issue_number" ] && [ "$issue_number" != "null" ]; then
     closes_line="Closes #${issue_number}"
@@ -204,16 +205,6 @@ create_pr() {
 ${summary}
 
 ${closes_line}
-
-## Mission Integrity Checklist
-
-Every change to MoltNet must pass these checks (see [MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)):
-
-- [ ] **Agent control**: This change does NOT move control away from the agent
-- [ ] **Offline verifiable**: Anything this change produces can be verified without the server (or N/A for infra-only changes)
-- [ ] **Platform survival**: This change works even if a managed service (Ory, Supabase, Fly.io) goes down or is replaced
-- [ ] **Simplicity**: This is the simplest solution that solves the problem
-- [ ] **Documented**: Architectural decisions are recorded (journal entry, code comments, or doc update)
 
 ## Test plan
 

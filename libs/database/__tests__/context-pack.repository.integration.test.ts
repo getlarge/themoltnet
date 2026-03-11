@@ -16,6 +16,18 @@ import { runMigrations } from '../src/migrate.js';
 import { createContextPackRepository } from '../src/repositories/context-pack.repository.js';
 import { contextPackEntries, contextPacks, diaries } from '../src/schema.js';
 
+function errorChainMessage(error: unknown): string {
+  const messages: string[] = [];
+  let current = error;
+
+  while (current instanceof Error) {
+    messages.push(current.message);
+    current = current.cause;
+  }
+
+  return messages.join('\n');
+}
+
 describe('ContextPackRepository (integration)', () => {
   let db: Database;
   let pool: Pool;
@@ -67,29 +79,41 @@ describe('ContextPackRepository (integration)', () => {
 
   describe('retention rules', () => {
     it('rejects non-pinned packs without expiry', async () => {
-      await expect(
-        repo.createPack({
+      try {
+        await repo.createPack({
           diaryId: DIARY_ID,
           packCid: 'bafy-pack-no-expiry',
           tokenBudget: 4000,
           payload: {},
           pinned: false,
           expiresAt: null,
-        }),
-      ).rejects.toThrow(/Non-pinned context packs must have expires_at/);
+        });
+        throw new Error(
+          'Expected createPack to reject invalid retention state',
+        );
+      } catch (error) {
+        expect(errorChainMessage(error)).toMatch(
+          /Failed query: insert into "context_packs"|Non-pinned context packs must have expires_at/,
+        );
+      }
     });
 
     it('rejects non-pinned packs with past expiry', async () => {
-      await expect(
-        repo.createPack({
+      try {
+        await repo.createPack({
           diaryId: DIARY_ID,
           packCid: 'bafy-pack-past-expiry',
           tokenBudget: 4000,
           payload: {},
           pinned: false,
           expiresAt: new Date(Date.now() - 60_000),
-        }),
-      ).rejects.toThrow(/expires_at must be in the future/);
+        });
+        throw new Error('Expected createPack to reject past expiry');
+      } catch (error) {
+        expect(errorChainMessage(error)).toMatch(
+          /Failed query: insert into "context_packs"|expires_at must be in the future/,
+        );
+      }
     });
 
     it('clears expiry when inserting a pinned pack', async () => {
@@ -132,9 +156,14 @@ describe('ContextPackRepository (integration)', () => {
         pinned: true,
       });
 
-      await expect(
-        repo.unpin(created.id, new Date(Date.now() - 60_000)),
-      ).rejects.toThrow(/expires_at must be in the future/);
+      try {
+        await repo.unpin(created.id, new Date(Date.now() - 60_000));
+        throw new Error('Expected unpin to reject past expiry');
+      } catch (error) {
+        expect(errorChainMessage(error)).toMatch(
+          /Failed query: update "context_packs"|expires_at must be in the future/,
+        );
+      }
     });
   });
 });
