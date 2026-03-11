@@ -116,6 +116,17 @@ describe('DiaryEntryRepository (integration)', () => {
 
   const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
   const OWNER_ID = '00000000-0000-4000-a000-000000000001';
+  const createEntry = (
+    input: Omit<
+      Parameters<ReturnType<typeof createDiaryEntryRepository>['create']>[0],
+      'diaryId' | 'createdBy'
+    >,
+  ) =>
+    repo.create({
+      diaryId: DIARY_ID,
+      createdBy: OWNER_ID,
+      ...input,
+    });
 
   beforeAll(async () => {
     repo = createDiaryEntryRepository(sharedDb);
@@ -145,8 +156,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
   describe('create', () => {
     it('creates entry with required fields', async () => {
-      const entry = await repo.create({
-        diaryId: DIARY_ID,
+      const entry = await createEntry({
         content: 'I learned about Ed25519 today.',
       });
 
@@ -161,8 +171,7 @@ describe('DiaryEntryRepository (integration)', () => {
     });
 
     it('creates entry with all optional fields', async () => {
-      const entry = await repo.create({
-        diaryId: DIARY_ID,
+      const entry = await createEntry({
         content: 'Deep learning about cryptography.',
         title: 'Crypto Diary',
         tags: ['crypto', 'learning'],
@@ -175,8 +184,7 @@ describe('DiaryEntryRepository (integration)', () => {
     it('creates entry with embedding', async () => {
       const embedding = Array.from({ length: 384 }, (_, i) => i * 0.001);
 
-      const entry = await repo.create({
-        diaryId: DIARY_ID,
+      const entry = await createEntry({
         content: 'Entry with vector embedding.',
         embedding,
       });
@@ -190,8 +198,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
   describe('findById', () => {
     it('returns entry when it exists', async () => {
-      const created = await repo.create({
-        diaryId: DIARY_ID,
+      const created = await createEntry({
         content: 'My entry.',
       });
 
@@ -210,9 +217,9 @@ describe('DiaryEntryRepository (integration)', () => {
 
   describe('list', () => {
     it('lists entries for diary ordered by createdAt desc', async () => {
-      await repo.create({ diaryId: DIARY_ID, content: 'First entry.' });
-      await repo.create({ diaryId: DIARY_ID, content: 'Second entry.' });
-      await repo.create({ diaryId: DIARY_ID, content: 'Third entry.' });
+      await createEntry({ content: 'First entry.' });
+      await createEntry({ content: 'Second entry.' });
+      await createEntry({ content: 'Third entry.' });
 
       const entries = await repo.list({ diaryId: DIARY_ID });
 
@@ -222,18 +229,15 @@ describe('DiaryEntryRepository (integration)', () => {
     });
 
     it('filters by entryType', async () => {
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content: 'Episodic entry.',
         entryType: 'episodic',
       });
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content: 'Semantic entry.',
         entryType: 'semantic',
       });
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content: 'Reflection entry.',
         entryType: 'reflection',
       });
@@ -248,7 +252,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
     it('respects limit and offset', async () => {
       for (let i = 0; i < 5; i++) {
-        await repo.create({ diaryId: DIARY_ID, content: `Entry ${i}` });
+        await createEntry({ content: `Entry ${i}` });
       }
 
       const page1 = await repo.list({ diaryId: DIARY_ID, limit: 2 });
@@ -265,8 +269,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
   describe('update', () => {
     it('updates title and content', async () => {
-      const created = await repo.create({
-        diaryId: DIARY_ID,
+      const created = await createEntry({
         content: 'Original content.',
       });
 
@@ -284,8 +287,7 @@ describe('DiaryEntryRepository (integration)', () => {
     });
 
     it('updates importance', async () => {
-      const created = await repo.create({
-        diaryId: DIARY_ID,
+      const created = await createEntry({
         content: 'Important entry.',
       });
 
@@ -295,8 +297,7 @@ describe('DiaryEntryRepository (integration)', () => {
     });
 
     it('updates tags', async () => {
-      const created = await repo.create({
-        diaryId: DIARY_ID,
+      const created = await createEntry({
         content: 'Tagged entry.',
         tags: ['old'],
       });
@@ -320,8 +321,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
   describe('delete', () => {
     it('deletes entry by id', async () => {
-      const created = await repo.create({
-        diaryId: DIARY_ID,
+      const created = await createEntry({
         content: 'To be deleted.',
       });
 
@@ -342,7 +342,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
   describe('getRecentForDigest', () => {
     it('returns entries within the specified day range', async () => {
-      await repo.create({ diaryId: DIARY_ID, content: 'Recent entry.' });
+      await createEntry({ content: 'Recent entry.' });
 
       const entries = await repo.getRecentForDigest(DIARY_ID, 7, 50);
       expect(entries.length).toBe(1);
@@ -360,7 +360,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
     it('respects limit', async () => {
       for (let i = 0; i < 5; i++) {
-        await repo.create({ diaryId: DIARY_ID, content: `Entry ${i}` });
+        await createEntry({ content: `Entry ${i}` });
       }
 
       const entries = await repo.getRecentForDigest(DIARY_ID, 7, 3);
@@ -372,13 +372,11 @@ describe('DiaryEntryRepository (integration)', () => {
 
   describe('search', () => {
     it('searches by full-text query', async () => {
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content:
           'I learned about cryptographic signatures and Ed25519 algorithms today.',
       });
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content: 'Had a nice walk in the park and saw some ducks.',
       });
 
@@ -392,8 +390,8 @@ describe('DiaryEntryRepository (integration)', () => {
     });
 
     it('falls back to list when no query or embedding provided', async () => {
-      await repo.create({ diaryId: DIARY_ID, content: 'Entry A.' });
-      await repo.create({ diaryId: DIARY_ID, content: 'Entry B.' });
+      await createEntry({ content: 'Entry A.' });
+      await createEntry({ content: 'Entry B.' });
 
       const results = await repo.search({ diaryId: DIARY_ID });
       expect(results.length).toBe(2);
@@ -403,13 +401,11 @@ describe('DiaryEntryRepository (integration)', () => {
       const closeEmbedding = Array.from({ length: 384 }, () => 0.1);
       const farEmbedding = Array.from({ length: 384 }, () => 0.9);
 
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content: 'Close entry.',
         embedding: closeEmbedding,
       });
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content: 'Far entry.',
         embedding: farEmbedding,
       });
@@ -432,14 +428,12 @@ describe('DiaryEntryRepository (integration)', () => {
         i < 192 ? 0.1 : 0.8,
       );
 
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content:
           'I studied cryptographic signature algorithms and key derivation functions.',
         embedding: cryptoEmbedding,
       });
-      await repo.create({
-        diaryId: DIARY_ID,
+      await createEntry({
         content: 'Observed mallard ducks and geese at the pond today.',
         embedding: duckEmbedding,
       });
@@ -460,8 +454,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
     it('respects limit parameter', async () => {
       for (let i = 0; i < 5; i++) {
-        await repo.create({
-          diaryId: DIARY_ID,
+        await createEntry({
           content: `Searchable entry number ${i} about algorithms.`,
         });
       }
