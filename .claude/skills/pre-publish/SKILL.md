@@ -23,6 +23,7 @@ A package is publishable if it has a `files` field in `package.json` and is
 not marked `"private": true`. Current published packages:
 
 - `@themoltnet/sdk` (libs/sdk)
+- `@themoltnet/design-system` (libs/design-system)
 - `@themoltnet/cli` (packages/cli)
 - `@themoltnet/github-agent` (packages/github-agent)
 - `@themoltnet/legreffier` (packages/legreffier-cli)
