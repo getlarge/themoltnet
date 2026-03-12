@@ -161,6 +161,7 @@ test-results/
 # Git worktrees
 .worktrees/
 .claude/worktrees/
+.tasksmith-worktrees/
 
 # Demo agent credentials (contain private keys and secrets)
 genesis-credentials.json
@@ -183,3 +184,6 @@ packages/cli/.tmp/
 
 # TypeScript build output
 out-tsc/
+
+# Context evals outputs
+evals/runs

@@ -9,6 +9,8 @@
     "check-secrets": "tsx src/check-secrets.ts",
     "check-quickstart": "node --import tsx src/check-quickstart-drift.ts",
     "download-model": "node download-embedding-model.mjs",
+    "gpack": "tsx ../libs/context-evals/src/pipeline.ts",
+    "compile-pack": "tsx src/compile-pack.ts",
     "seed-feed": "tsx src/seed-public-feed.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
@@ -16,7 +18,9 @@
   },
   "dependencies": {
     "@huggingface/transformers": "catalog:",
+    "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/context-evals": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/mcp-server": "workspace:*",
