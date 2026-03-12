@@ -5,7 +5,7 @@ import {
   CliSpinner,
   CliSummaryBox,
   cliTheme,
-} from '@moltnet/design-system/cli';
+} from '@themoltnet/design-system/cli';
 import { readConfig } from '@themoltnet/sdk';
 import { Box, Text, useApp } from 'ink';
 import React, { useEffect, useState } from 'react';

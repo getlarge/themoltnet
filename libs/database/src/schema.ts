@@ -11,8 +11,10 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
+  real,
   smallint,
   text,
   timestamp,
@@ -65,6 +67,30 @@ export const entryTypeEnum = pgEnum('entry_type', [
   'reflection',
   'identity',
   'soul',
+]);
+
+// Entry relation enum for associative memory graph
+export const relationTypeEnum = pgEnum('relation_type', [
+  'supersedes',
+  'elaborates',
+  'contradicts',
+  'supports',
+  'caused_by',
+  'references',
+]);
+
+// Relation lifecycle status (automated proposals vs accepted links)
+export const relationStatusEnum = pgEnum('relation_status', [
+  'proposed',
+  'accepted',
+  'rejected',
+]);
+
+// Compression level used when an entry is materialized into a context pack
+export const compressionLevelEnum = pgEnum('compression_level', [
+  'full',
+  'summary',
+  'keywords',
 ]);
 
 /**
@@ -133,6 +159,8 @@ export const diaryEntries = pgTable(
 
     // Metadata
     tags: text('tags').array(),
+    // Strong provenance: authenticated principal that created the entry.
+    createdBy: uuid('created_by').notNull(),
 
     // Prompt injection risk flag (set by vard scanner)
     injectionRisk: boolean('injection_risk').default(false).notNull(),
@@ -161,6 +189,7 @@ export const diaryEntries = pgTable(
   },
   (table) => ({
     diaryIdx: index('diary_entries_diary_idx').on(table.diaryId),
+    createdByIdx: index('diary_entries_created_by_idx').on(table.createdBy),
 
     // Index for entry type filtering (memory system)
     entryTypeIdx: index('diary_entries_entry_type_idx').on(table.entryType),
@@ -171,6 +200,11 @@ export const diaryEntries = pgTable(
     )
       .on(table.contentSignature)
       .where(sql`content_signature IS NOT NULL`),
+
+    // Fast CID lookup for provenance and DAG materialization.
+    contentHashIdx: index('diary_entries_content_hash_idx')
+      .on(table.contentHash)
+      .where(sql`content_hash IS NOT NULL`),
 
     // Full-text search index (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_content_fts_idx ON diary_entries USING gin(to_tsvector('english', content));
@@ -380,6 +414,140 @@ export const usedRecoveryNonces = pgTable(
   }),
 );
 
+/**
+ * Entry Relations Table
+ *
+ * Typed graph edges between diary entries. Complements supersededBy with
+ * non-linear associative memory structure.
+ */
+export const entryRelations = pgTable(
+  'entry_relations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sourceId: uuid('source_id')
+      .notNull()
+      .references(() => diaryEntries.id, { onDelete: 'cascade' }),
+    targetId: uuid('target_id')
+      .notNull()
+      .references(() => diaryEntries.id, { onDelete: 'cascade' }),
+    relation: relationTypeEnum('relation').notNull(),
+    status: relationStatusEnum('status').default('proposed').notNull(),
+    // Snapshot CIDs for audit/drift checks when entries are mutable.
+    sourceCidSnapshot: varchar('source_cid_snapshot', { length: 100 }),
+    targetCidSnapshot: varchar('target_cid_snapshot', { length: 100 }),
+    // Workflow + confidence/similarity metadata for review and ranking.
+    workflowId: text('workflow_id'),
+    metadata: jsonb('metadata')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    uniqueRelation: uniqueIndex('entry_relations_unique_idx').on(
+      table.sourceId,
+      table.targetId,
+      table.relation,
+    ),
+    sourceIdx: index('entry_relations_source_idx').on(table.sourceId),
+    targetIdx: index('entry_relations_target_idx').on(table.targetId),
+    relationIdx: index('entry_relations_type_idx').on(table.relation),
+    statusIdx: index('entry_relations_status_idx').on(table.status),
+  }),
+);
+
+/**
+ * Context Packs Table
+ *
+ * Materialized compile outputs. A pack has a CID root, retention policy,
+ * and optional supersession pointer to a newer pack.
+ */
+export const contextPacks = pgTable(
+  'context_packs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    diaryId: uuid('diary_id')
+      .notNull()
+      .references(() => diaries.id, { onDelete: 'cascade' }),
+    packCid: varchar('pack_cid', { length: 100 }).notNull(),
+    packCodec: varchar('pack_codec', { length: 50 })
+      .default('dag-cbor')
+      .notNull(),
+    // JSON mirror of DAG-CBOR envelope for direct SQL/web inspection.
+    payload: jsonb('payload')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    taskPromptHash: text('task_prompt_hash'),
+    tokenBudget: integer('token_budget').notNull(),
+    lambda: real('lambda'),
+    wRecency: real('w_recency'),
+    wImportance: real('w_importance'),
+    // Strong provenance: authenticated principal that materialized the pack.
+    createdBy: uuid('created_by').notNull(),
+    supersedesPackId: uuid('supersedes_pack_id').references(
+      (): AnyPgColumn => contextPacks.id,
+    ),
+    pinned: boolean('pinned').default(false).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).default(
+      sql`(now() + interval '7 days')`,
+    ),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    packCidUniqueIdx: uniqueIndex('context_packs_pack_cid_unique_idx').on(
+      table.packCid,
+    ),
+    diaryIdx: index('context_packs_diary_idx').on(table.diaryId),
+    expiresAtIdx: index('context_packs_expires_at_idx')
+      .on(table.expiresAt)
+      .where(sql`pinned = false`),
+    pinnedIdx: index('context_packs_pinned_idx').on(table.pinned),
+  }),
+);
+
+/**
+ * Context Pack Entries Table
+ *
+ * Membership rows for pack -> entry links with pack-specific ranking and
+ * compression metadata.
+ */
+export const contextPackEntries = pgTable(
+  'context_pack_entries',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    packId: uuid('pack_id')
+      .notNull()
+      .references(() => contextPacks.id, { onDelete: 'cascade' }),
+    entryId: uuid('entry_id')
+      .notNull()
+      .references(() => diaryEntries.id, { onDelete: 'cascade' }),
+    entryCidSnapshot: varchar('entry_cid_snapshot', { length: 100 }).notNull(),
+    compressionLevel: compressionLevelEnum('compression_level')
+      .default('full')
+      .notNull(),
+    originalTokens: integer('original_tokens'),
+    packedTokens: integer('packed_tokens'),
+    rank: integer('rank'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    uniquePackEntry: uniqueIndex('context_pack_entries_unique_idx').on(
+      table.packId,
+      table.entryId,
+    ),
+    packIdx: index('context_pack_entries_pack_idx').on(table.packId),
+    entryIdx: index('context_pack_entries_entry_idx').on(table.entryId),
+  }),
+);
+
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
@@ -393,3 +561,9 @@ export type AgentVoucher = typeof agentVouchers.$inferSelect;
 export type NewAgentVoucher = typeof agentVouchers.$inferInsert;
 export type SigningRequest = typeof signingRequests.$inferSelect;
 export type NewSigningRequest = typeof signingRequests.$inferInsert;
+export type EntryRelation = typeof entryRelations.$inferSelect;
+export type NewEntryRelation = typeof entryRelations.$inferInsert;
+export type ContextPack = typeof contextPacks.$inferSelect;
+export type NewContextPack = typeof contextPacks.$inferInsert;
+export type ContextPackEntry = typeof contextPackEntries.$inferSelect;
+export type NewContextPackEntry = typeof contextPackEntries.$inferInsert;

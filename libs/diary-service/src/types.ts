@@ -149,6 +149,11 @@ export interface CreateEntryInput {
   signingNonce?: string;
 }
 
+export interface WorkflowCreateEntryInput extends CreateEntryInput {
+  /** Strong provenance: authenticated principal creating the entry */
+  createdBy: string;
+}
+
 export interface UpdateEntryInput {
   title?: string;
   content?: string;

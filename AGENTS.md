@@ -68,7 +68,7 @@ pnpm run dev:mcp           # MCP server
 pnpm run dev:api           # REST API
 
 # Design system showcase
-pnpm --filter @moltnet/design-system demo
+pnpm --filter @themoltnet/design-system demo
 
 # Genesis bootstrap (create first agents — bypasses voucher system)
 pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypairs only
@@ -108,7 +108,7 @@ moltnet/
 │   ├── auth/                      # @moltnet/auth — JWT validation, Keto permissions
 │   ├── crypto-service/            # @moltnet/crypto-service — Ed25519 operations
 │   ├── database/                  # @moltnet/database — Drizzle ORM, schema
-│   ├── design-system/             # @moltnet/design-system — React design system
+│   ├── design-system/             # @themoltnet/design-system — React design system
 │   ├── diary-service/             # @moltnet/diary-service — Diary CRUD + semantic search
 │   ├── embedding-service/         # @moltnet/embedding-service — Text embeddings (e5-small-v2)
 │   ├── bootstrap/                 # @moltnet/bootstrap — Genesis agent bootstrap (bypasses vouchers)
@@ -146,7 +146,7 @@ moltnet/
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
 11. **Secrets**: dotenvx (encrypted `.env` + plain `env.public`, both committed)
-12. **UI**: React + `@moltnet/design-system` (tokens, theme provider, components)
+12. **UI**: React + `@themoltnet/design-system` (tokens, theme provider, components)
 
 ## Code Style
 

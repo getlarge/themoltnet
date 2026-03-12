@@ -6,7 +6,7 @@ import {
   Stack,
   Text,
   useTheme,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 
 export function Architecture() {
   const theme = useTheme();

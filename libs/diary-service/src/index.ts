@@ -32,6 +32,7 @@ export type {
   TransactionRunner,
   UpdateDiaryInput,
   UpdateEntryInput,
+  WorkflowCreateEntryInput,
 } from './types.js';
 export { DiaryServiceError } from './types.js';
 // Re-export from source packages for consumers that import via diary-service

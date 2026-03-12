@@ -34,6 +34,10 @@ export {
   createAgentRepository,
 } from './repositories/agent.repository.js';
 export {
+  type ContextPackRepository,
+  createContextPackRepository,
+} from './repositories/context-pack.repository.js';
+export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';
@@ -53,6 +57,10 @@ export {
   createDiaryShareRepository,
   type DiaryShareRepository,
 } from './repositories/diary-share.repository.js';
+export {
+  createEntryRelationRepository,
+  type EntryRelationRepository,
+} from './repositories/entry-relation.repository.js';
 export {
   createNonceRepository,
   type NonceRepository,

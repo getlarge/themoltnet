@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Database } from '../src/db.js';
 import { createAgentRepository } from '../src/repositories/agent.repository.js';
+import { createContextPackRepository } from '../src/repositories/context-pack.repository.js';
 import { createDiaryRepository } from '../src/repositories/diary.repository.js';
+import { createEntryRelationRepository } from '../src/repositories/entry-relation.repository.js';
 import type { AgentKey, DiaryEntry } from '../src/schema.js';
 
 // Helper to create a mock Drizzle database
@@ -40,6 +42,8 @@ function createMockDb() {
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const ENTRY_ID = '660e8400-e29b-41d4-a716-446655440001';
+const PACK_ID = '770e8400-e29b-41d4-a716-446655440002';
+const RELATION_ID = '880e8400-e29b-41d4-a716-446655440003';
 
 const mockAgent: AgentKey = {
   identityId: AGENT_ID,
@@ -51,11 +55,11 @@ const mockAgent: AgentKey = {
 
 const mockEntry: DiaryEntry = {
   id: ENTRY_ID,
-  ownerId: AGENT_ID,
+  diaryId: '770e8400-e29b-41d4-a716-446655440003',
+  createdBy: AGENT_ID,
   title: 'Test Entry',
   content: 'Hello world',
   embedding: null,
-  visibility: 'private',
   tags: ['test'],
   injectionRisk: false,
   importance: 5,
@@ -63,8 +67,43 @@ const mockEntry: DiaryEntry = {
   lastAccessedAt: null,
   entryType: 'semantic',
   supersededBy: null,
+  contentHash: null,
+  contentSignature: null,
+  signingNonce: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+};
+
+const mockRelation = {
+  id: RELATION_ID,
+  sourceId: ENTRY_ID,
+  targetId: '990e8400-e29b-41d4-a716-446655440004',
+  relation: 'references' as const,
+  status: 'proposed' as const,
+  sourceCidSnapshot: 'bafk-source',
+  targetCidSnapshot: 'bafk-target',
+  workflowId: 'context.consolidate',
+  metadata: {},
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const mockPack = {
+  id: PACK_ID,
+  diaryId: 'aa0e8400-e29b-41d4-a716-446655440005',
+  packCid: 'bafy-pack',
+  packCodec: 'dag-cbor',
+  payload: {},
+  taskPromptHash: 'task-hash',
+  tokenBudget: 4000,
+  lambda: 0.5,
+  wRecency: 0.3,
+  wImportance: 0.2,
+  createdBy: AGENT_ID,
+  supersedesPackId: null,
+  pinned: false,
+  expiresAt: new Date(Date.now() + 60_000),
+  createdAt: new Date(),
 };
 
 describe('createAgentRepository', () => {
@@ -191,5 +230,103 @@ describe('createDiaryRepository', () => {
 
     const result = await repo.delete(ENTRY_ID);
     expect(result).toBe(false);
+  });
+});
+
+describe('createEntryRelationRepository', () => {
+  let db: ReturnType<typeof createMockDb>;
+  let repo: ReturnType<typeof createEntryRelationRepository>;
+
+  beforeEach(() => {
+    db = createMockDb();
+    repo = createEntryRelationRepository(db);
+  });
+
+  it('create inserts a relation and returns it', async () => {
+    db._chain.returning.mockResolvedValue([mockRelation]);
+
+    const result = await repo.create({
+      sourceId: mockRelation.sourceId,
+      targetId: mockRelation.targetId,
+      relation: mockRelation.relation,
+      status: mockRelation.status,
+    });
+
+    expect(db.insert).toHaveBeenCalled();
+    expect(result).toEqual(mockRelation);
+  });
+
+  it('listByEntry returns matching relations', async () => {
+    db._chain.limit.mockResolvedValue([mockRelation]);
+
+    const result = await repo.listByEntry(ENTRY_ID, { limit: 1 });
+
+    expect(db.select).toHaveBeenCalled();
+    expect(result).toEqual([mockRelation]);
+  });
+
+  it('updateStatus returns the updated relation', async () => {
+    const updated = { ...mockRelation, status: 'accepted' as const };
+    db._chain.returning.mockResolvedValue([updated]);
+
+    const result = await repo.updateStatus(mockRelation.id, 'accepted');
+
+    expect(db.update).toHaveBeenCalled();
+    expect(result).toEqual(updated);
+  });
+});
+
+describe('createContextPackRepository', () => {
+  let db: ReturnType<typeof createMockDb>;
+  let repo: ReturnType<typeof createContextPackRepository>;
+
+  beforeEach(() => {
+    db = createMockDb();
+    repo = createContextPackRepository(db);
+  });
+
+  it('createPack inserts a pack and returns it', async () => {
+    db._chain.returning.mockResolvedValue([mockPack]);
+
+    const result = await repo.createPack({
+      diaryId: mockPack.diaryId,
+      packCid: mockPack.packCid,
+      tokenBudget: mockPack.tokenBudget,
+      payload: mockPack.payload,
+      createdBy: mockPack.createdBy,
+    });
+
+    expect(db.insert).toHaveBeenCalled();
+    expect(result).toEqual(mockPack);
+  });
+
+  it('pin clears expiry and returns the updated pack', async () => {
+    const pinned = { ...mockPack, pinned: true, expiresAt: null };
+    db._chain.returning.mockResolvedValue([pinned]);
+
+    const result = await repo.pin(mockPack.id);
+
+    expect(db.update).toHaveBeenCalled();
+    expect(result).toEqual(pinned);
+  });
+
+  it('listEntries returns membership rows ordered by rank', async () => {
+    const membership = {
+      id: 'bb0e8400-e29b-41d4-a716-446655440006',
+      packId: PACK_ID,
+      entryId: ENTRY_ID,
+      entryCidSnapshot: 'bafk-entry',
+      compressionLevel: 'summary' as const,
+      originalTokens: 100,
+      packedTokens: 30,
+      rank: 1,
+      createdAt: new Date(),
+    };
+    db._chain.orderBy.mockResolvedValue([membership]);
+
+    const result = await repo.listEntries(PACK_ID);
+
+    expect(db.select).toHaveBeenCalled();
+    expect(result).toEqual([membership]);
   });
 });

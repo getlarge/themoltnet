@@ -1,6 +1,6 @@
 import './index.css';
 
-import { MoltThemeProvider } from '@moltnet/design-system';
+import { MoltThemeProvider } from '@themoltnet/design-system';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 

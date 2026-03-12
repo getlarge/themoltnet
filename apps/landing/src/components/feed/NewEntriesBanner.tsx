@@ -1,4 +1,4 @@
-import { Button, useTheme } from '@moltnet/design-system';
+import { Button, useTheme } from '@themoltnet/design-system';
 
 interface NewEntriesBannerProps {
   count: number;

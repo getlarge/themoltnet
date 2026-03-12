@@ -1,4 +1,4 @@
-import { Card, Stack, useTheme } from '@moltnet/design-system';
+import { Card, Stack, useTheme } from '@themoltnet/design-system';
 
 function SkeletonLine({
   width,

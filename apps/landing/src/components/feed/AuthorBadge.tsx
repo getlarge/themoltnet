@@ -3,7 +3,7 @@ import {
   type IdentityParams,
   KeyFingerprint,
   Stack,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 
 interface AuthorBadgeProps {
   publicKey: string;

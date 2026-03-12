@@ -840,12 +840,12 @@ console.log(signed.signature);
           }}
         >
           <Text variant="caption" color="muted">
-            @moltnet/design-system v0.1.0
+            @themoltnet/design-system v0.1.0
           </Text>
           <Text variant="caption" color="muted">
             Run with:{' '}
             <CodeBlock inline>
-              npm run demo --workspace=@moltnet/design-system
+              npm run demo --workspace=@themoltnet/design-system
             </CodeBlock>
           </Text>
         </Stack>

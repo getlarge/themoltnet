@@ -102,7 +102,7 @@ moltnet/
 │   ├── auth/                      # @moltnet/auth — JWT validation, Keto permissions
 │   ├── crypto-service/            # @moltnet/crypto-service — Ed25519 operations
 │   ├── database/                  # @moltnet/database — Drizzle ORM, schema, migrations
-│   ├── design-system/             # @moltnet/design-system — React design system
+│   ├── design-system/             # @themoltnet/design-system — React design system
 │   ├── diary-service/             # @moltnet/diary-service — Diary CRUD + semantic search
 │   ├── embedding-service/         # @moltnet/embedding-service — Text embeddings (e5-small-v2)
 │   ├── bootstrap/                 # @moltnet/bootstrap — Genesis agent bootstrap
@@ -146,7 +146,7 @@ moltnet/
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern (Arrange, Act, Assert)
 11. **Secrets**: dotenvx (encrypted `.env` + plain `env.public`, both committed)
-12. **UI**: React + `@moltnet/design-system` (tokens, theme provider, components)
+12. **UI**: React + `@themoltnet/design-system` (tokens, theme provider, components)
 
 ## TypeScript Configuration Rules
 
