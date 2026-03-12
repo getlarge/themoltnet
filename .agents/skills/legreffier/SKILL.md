@@ -336,10 +336,14 @@ are consistently structured with complete metadata.
 1. Inspect staged changes: `git diff --cached --stat` and `git diff --cached`. If nothing staged, stop.
    - **Scope gate**: accountable commits only apply when the staged diff is one
      coherent, well-scoped change set with a single clear rationale.
+   - **Split signals**: if `git diff --cached --stat` shows >8 files or >300
+     insertions, or the diff touches >2 workspace packages — the change set is
+     likely too broad. These are signals, not hard rules; use judgment.
    - If the staged diff mixes unrelated work, broad cleanup, drive-by edits, or
      partially staged fragments that do not form one coherent story: stop.
      Split the work into smaller commits before creating any diary-linked
-     commit entry.
+     commit entry. See the "Commit shaping for task extraction" section below
+     for splitting heuristics.
 2. Risk classification (choose highest that applies):
    - **High**: crypto/random/hash code; CI/automation; dependency lockfiles/package changes; auth/secrets.
    - **Medium**: new files; config; UI/Canvas; docs that alter protocol; scripts in `.claude/`.`.agents/`.
@@ -453,6 +457,80 @@ Run this checklist before `git push` or "done":
 5. Commit message or final handoff references the diary entry id(s).
 
 If any item is missing, stop and create/fix entries first.
+
+## Commit shaping for task extraction
+
+The eval/tasksmith pipeline harvests benchmark tasks from commits. Well-shaped commits make extraction reliable; mixed or sprawling commits make it impossible. Shape every commit for harvestability.
+
+### One behavior per commit
+
+Each commit should represent **one testable behavioral change**. If you changed behavior AND added tests AND regenerated codegen, split into 2-3 commits.
+
+**Splitting heuristic:**
+
+- **Commit 1**: behavior change (the feature/fix itself)
+- **Commit 2**: tests for that behavior (if not already inline)
+- **Commit 3**: codegen/regeneration (migrations, OpenAPI, types)
+- **Commit 4**: cleanup/docs/polish (only if needed)
+
+**When to keep together**: if the test is <20 lines and tightly coupled to the behavior, it can stay in commit 1. Codegen that is <5 lines can also stay.
+
+**Split signals** (same as scope gate): if `git diff --cached --stat` shows >8 files or >300 insertions, or touches >2 workspace packages — split. These are signals, not hard rules.
+
+**Max chain length**: a chain of 2-4 commits is ideal. 5+ commits means the task was probably too big — consider breaking the task itself.
+
+### Task-chain trailers
+
+Three git trailers for task harvesting. The harvester scans `git log`, groups by `Task-Group`, and uses `Task-Completes` for boundary detection — no diary lookup needed for grouping.
+
+| Trailer                 | When                                | Purpose                                                                                                       | Example                             |
+| ----------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `Task-Group: <slug>`    | Every commit in a multi-commit task | Agent-chosen descriptive slug; groups commits into one harvestable task                                       | `Task-Group: context-pack-ordering` |
+| `Task-Family: <family>` | First commit in a chain             | Categorizes what kind of work (can differ from conventional commit type when a chain mixes fix+test+refactor) | `Task-Family: bugfix`               |
+| `Task-Completes: true`  | Last commit in a chain only         | Marks the chain as done — safe for harvester to collect                                                       | `Task-Completes: true`              |
+
+**`Task-Group` slug convention**: derive from the behavioral change, not from the issue/branch. Examples: `context-pack-ordering`, `entry-content-signing`, `jwt-validation-fix`. Keep it short (2-4 words, kebab-case).
+
+**`Task-Family` values**: `bugfix`, `feature`, `refactor`, `test`, `docs`, `codegen`, `infra`. Pick the one that best describes the overall task, even if individual commits in the chain have different conventional commit types.
+
+**Single-commit tasks**: if the entire task is one commit, add all three trailers (`Task-Group` + `Task-Family` + `Task-Completes: true`) on that commit.
+
+### Fix-chain diary integration
+
+Each commit in a chain gets its own `MoltNet-Diary:` entry when warranted (especially high-risk follow-ups), but shares the same `Task-Group` slug. The first commit's diary entry should include a `task-summary` metadata key: a one-line description of the full task for harvester enrichment.
+
+**Stacked fix-chain example:**
+
+```
+# Commit 1: behavior
+fix(database): stabilize context pack ordering
+
+MoltNet-Diary: abc123
+Task-Group: context-pack-ordering
+Task-Family: bugfix
+
+# Commit 2: tests
+test(database): add ordering assertions for context packs
+
+MoltNet-Diary: def456
+Task-Group: context-pack-ordering
+Task-Completes: true
+```
+
+Note: different `MoltNet-Diary` IDs (each commit has its own entry), same `Task-Group`. The first commit's diary entry includes `task-summary: Fix non-deterministic context pack ordering caused by unstable sort` in its metadata block.
+
+### Commit message format with task trailers
+
+Append task trailers after the `MoltNet-Diary:` trailer in the commit message:
+
+```bash
+git commit -m "feat(scope): summary" -m "MoltNet-Diary: <entry-id>
+Task-Group: <slug>
+Task-Family: <family>
+Task-Completes: true"
+```
+
+The trailers go in a single `-m` block after the diary trailer. Omit `Task-Family` on non-first commits; omit `Task-Completes` on non-last commits.
 
 ## Semantic entry workflow (architectural decisions)
 
