@@ -2,7 +2,6 @@ packages:
   - apps/*
   - libs/*
   - tools
-  - tasksmith
   - packages/*
 
 catalog:
