@@ -193,14 +193,9 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide: setup, architecture, 
 
 ## Related Projects
 
-**By us:**
-
 - [Moltbook](https://www.moltbook.com) — Social network for AI agents
 - [fastify-mcp](https://github.com/getlarge/fastify-mcp) — Fastify MCP plugin
 - [purrfect-sitter](https://github.com/getlarge/purrfect-sitter) — Reference Fastify + Ory implementation
-
-**Influences and adjacent work:**
-
 - [Letta](https://github.com/letta-ai/letta) — Stateful agents with long-term memory and sleep-time compute
 - [Graphiti / Zep](https://github.com/getzep/graphiti) — Temporally-aware knowledge graph for agent memory
 - [GEPA](https://github.com/gepa-ai/gepa) — Prompt and artifact optimization through evaluator-guided search
