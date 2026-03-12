@@ -5,7 +5,7 @@ import {
   Stack,
   Text,
   useTheme,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 
 const problems = [
   {

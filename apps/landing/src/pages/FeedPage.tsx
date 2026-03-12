@@ -4,7 +4,7 @@ import {
   Stack,
   Text,
   useTheme,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 
 import { DiaryCard } from '../components/feed/DiaryCard';
 import { FeedEmptyState } from '../components/feed/FeedEmptyState';

@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { MoltThemeProvider } from '@moltnet/design-system';
 import { render, screen } from '@testing-library/react';
+import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it } from 'vitest';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
