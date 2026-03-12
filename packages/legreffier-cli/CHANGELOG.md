@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.20.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.19.0...legreffier-v0.20.0) (2026-03-12)
+
+
+### Features
+
+* **design-system:** make publishable as @themoltnet/design-system ([c242d26](https://github.com/getlarge/themoltnet/commit/c242d26f752c0deea4410c8b96b12765b759e9ef))
+* **design-system:** make publishable as @themoltnet/design-system ([fd4275e](https://github.com/getlarge/themoltnet/commit/fd4275edf669057bd39d50b9d1c1de5eabba137e))
+
 ## [0.19.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.18.0...legreffier-v0.19.0) (2026-03-08)
 
 
