@@ -5,7 +5,7 @@ import {
   Stack,
   Text,
   useTheme,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
 import { GITHUB_REPO_URL } from '../constants';

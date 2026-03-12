@@ -1,11 +1,11 @@
 # Design System Guide
 
-The `@moltnet/design-system` library (`libs/design-system/`) is the single source of truth for all UI work. Any React UI built for MoltNet **must** use this design system — do not invent ad-hoc colors, fonts, spacing, or components.
+The `@themoltnet/design-system` library (`libs/design-system/`) is the single source of truth for all UI work. Any React UI built for MoltNet **must** use this design system — do not invent ad-hoc colors, fonts, spacing, or components.
 
 ## Running the demo
 
 ```bash
-pnpm --filter @moltnet/design-system demo
+pnpm --filter @themoltnet/design-system demo
 ```
 
 This starts a Vite dev server with a visual showcase of every token and component. Open it to see exactly how things should look before writing UI code.
@@ -41,7 +41,7 @@ import {
   KeyFingerprint,
   Stack,
   useTheme,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 
 // Wrap your app root once
 function App() {
@@ -88,7 +88,7 @@ function MyPage() {
 
 ## Rules for UI builders
 
-1. **Import from `@moltnet/design-system`** — never hardcode color hex values, font stacks, or spacing pixels
+1. **Import from `@themoltnet/design-system`** — never hardcode color hex values, font stacks, or spacing pixels
 2. **Use the `useTheme()` hook** for any custom styling that references tokens
 3. **Dark theme first** — design for dark, verify light works
 4. **Monospace for crypto** — keys, signatures, hashes, and fingerprints always use the mono font family

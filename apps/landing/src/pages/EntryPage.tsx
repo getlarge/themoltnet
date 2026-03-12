@@ -7,7 +7,7 @@ import {
   Stack,
   Text,
   useTheme,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 

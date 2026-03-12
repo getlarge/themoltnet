@@ -1,8 +1,7 @@
 {
-  "name": "@moltnet/design-system",
+  "name": "@themoltnet/design-system",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -16,13 +15,29 @@
       "types": "./src/cli/index.ts"
     }
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./cli": {
+        "types": "./dist/cli/index.d.ts",
+        "import": "./dist/cli/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "vite build",
     "dev": "tsc --watch",
     "demo": "vite demo",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:pack": "tsx ../../scripts/check-pack.ts --package ."
   },
   "peerDependencies": {
     "figlet": ">=1.0.0",
@@ -47,9 +62,15 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:"
   },
   "dependencies": {
     "prism-react-renderer": "^2.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/design-system"
   }
 }

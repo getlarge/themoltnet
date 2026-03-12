@@ -1,13 +1,4 @@
 import {
-  Badge,
-  Card,
-  CodeBlock,
-  Container,
-  Stack,
-  Text,
-  useTheme,
-} from '@moltnet/design-system';
-import {
   MOLTNET_CLAUDE_MCP_ADD_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CLI_INSTALL_NPM_COMMAND,
@@ -15,6 +6,15 @@ import {
   MOLTNET_REGISTER_COMMAND,
   MOLTNET_SDK_INSTALL_COMMAND,
 } from '@moltnet/discovery';
+import {
+  Badge,
+  Card,
+  CodeBlock,
+  Container,
+  Stack,
+  Text,
+  useTheme,
+} from '@themoltnet/design-system';
 
 import { GITHUB_REPO_URL } from '../constants';
 
