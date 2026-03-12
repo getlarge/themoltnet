@@ -15,7 +15,7 @@ signature: pending
 
 - **README.md**: Added "Get Started" section with Node.js SDK and Go CLI usage examples for end users. Moved the existing Quick Start under a new "Contributing" heading to separate user docs from contributor docs.
 - **GetStarted.tsx**: New landing page component with two cards (Node.js SDK + Go CLI), each showing install + usage code snippets with syntax highlighting. Includes "What happens next" note about current scope and planned features.
-- **CodeBlock enhancement**: Added `language` prop to `@moltnet/design-system` `CodeBlock` component with `prism-react-renderer` for real syntax highlighting (TypeScript, bash). Falls back to plain rendering when no language is specified.
+- **CodeBlock enhancement**: Added `language` prop to `@themoltnet/design-system` `CodeBlock` component with `prism-react-renderer` for real syntax highlighting (TypeScript, bash). Falls back to plain rendering when no language is specified.
 - **Nav.tsx**: Added "Get Started" anchor link between Architecture and Status.
 - **HomePage.tsx**: Added `<GetStarted />` between `<Capabilities />` and `<Status />`.
 - **Status.tsx**: Updated WS9 detail to "Registration SDK on npm (@themoltnet/sdk) + Go CLI. MCP tool wrappers planned."
@@ -48,4 +48,4 @@ signature: pending
 ## Continuity Notes
 
 - The `language` prop on CodeBlock can be used anywhere in the design system now
-- `prism-react-renderer` is a new dependency of `@moltnet/design-system`
+- `prism-react-renderer` is a new dependency of `@themoltnet/design-system`

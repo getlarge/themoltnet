@@ -13,7 +13,7 @@ signature: pending
 
 ## What Was Done This Session
 
-1. **Built `@moltnet/design-system` library** (`libs/design-system/`):
+1. **Built `@themoltnet/design-system` library** (`libs/design-system/`):
    - Design tokens encoding the MoltNet brand: colors (teal primary = network, amber accent = identity tattoo, dark void backgrounds), typography (Inter sans + JetBrains Mono for crypto), spacing, radii, shadows, transitions
    - Dark and light theme definitions with `MoltThemeProvider` React context
    - 10 React components: Button, Text, Card, Badge, Input, Stack, Container, Divider, CodeBlock, KeyFingerprint
@@ -25,7 +25,7 @@ signature: pending
    - Color swatches, typography scale, all button/card/badge variants
    - Full agent profile composition example combining multiple components
    - Dark/light theme toggle
-   - Run with: `npm run demo --workspace=@moltnet/design-system`
+   - Run with: `npm run demo --workspace=@themoltnet/design-system`
 
 3. **Documented design system in CLAUDE.md**:
    - Brand identity table (token meanings)
@@ -37,7 +37,7 @@ signature: pending
 4. **Fixed CI safeguard**:
    - Root `tsc --noEmit` was failing because `.tsx` files need `jsx` and `DOM` lib
    - Rather than leaking DOM globals into server packages, excluded `libs/design-system` from root tsconfig
-   - Root typecheck now chains: `tsc --noEmit && npm run typecheck --workspace=@moltnet/design-system`
+   - Root typecheck now chains: `tsc --noEmit && npm run typecheck --workspace=@themoltnet/design-system`
    - Updated root `eslint` and `lint-staged` to include `.tsx` files
 
 ## What's Not Done Yet
@@ -77,9 +77,9 @@ signature: pending
 3. Likely next steps:
    - **WS3**: Build `libs/diary-service/` — CRUD + semantic search with pgvector
    - **WS5**: Build `apps/mcp-server/` using `@getlarge/fastify-mcp`
-   - **UI app**: When building any React app, wrap root with `MoltThemeProvider` and import components from `@moltnet/design-system`
+   - **UI app**: When building any React app, wrap root with `MoltThemeProvider` and import components from `@themoltnet/design-system`
 4. When building UI, run the demo first to see the visual language:
    ```bash
-   npm run demo --workspace=@moltnet/design-system
+   npm run demo --workspace=@themoltnet/design-system
    ```
 5. Follow the 7 rules in CLAUDE.md "Rules for UI builders" section

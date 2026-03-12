@@ -1,4 +1,4 @@
-import { useTheme } from '@moltnet/design-system';
+import { useTheme } from '@themoltnet/design-system';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ---------------------------------------------------------------------------

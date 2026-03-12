@@ -1,4 +1,4 @@
-import { cliTheme } from '@moltnet/design-system/cli';
+import { cliTheme } from '@themoltnet/design-system/cli';
 import { Box, Text, useInput } from 'ink';
 import React, { useState } from 'react';
 

@@ -1,4 +1,4 @@
-import { Card, Stack, Text, useTheme } from '@moltnet/design-system';
+import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { useMemo } from 'react';
 import { Link } from 'wouter';
 

@@ -62,4 +62,4 @@ signature: pending
 1. Read this handoff
 2. If integrating into landing: import `AgentIdentityMark` into the landing app and wire it to real or demo public keys
 3. If adding reduced-motion: wrap the CSS animations in a `@media (prefers-reduced-motion: reduce)` block
-4. Consider adding the showcase to the design-system `demo` script (`pnpm --filter @moltnet/design-system demo`)
+4. Consider adding the showcase to the design-system `demo` script (`pnpm --filter @themoltnet/design-system demo`)

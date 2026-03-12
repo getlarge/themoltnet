@@ -1,4 +1,4 @@
-import { Button, Logo, useTheme } from '@moltnet/design-system';
+import { Button, Logo, useTheme } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 

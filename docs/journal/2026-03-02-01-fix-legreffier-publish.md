@@ -13,7 +13,7 @@ signature: pending
 
 ## Context
 
-Running `npm i -g @themoltnet/legreffier` failed with E404 for `@moltnet/api-client@0.1.0`. The published package.json listed three private workspace packages (`@moltnet/api-client`, `@moltnet/crypto-service`, `@moltnet/design-system`) in `dependencies` instead of `devDependencies`.
+Running `npm i -g @themoltnet/legreffier` failed with E404 for `@moltnet/api-client@0.1.0`. The published package.json listed three private workspace packages (`@moltnet/api-client`, `@moltnet/crypto-service`, `@themoltnet/design-system`) in `dependencies` instead of `devDependencies`.
 
 ## Substance
 
@@ -25,7 +25,7 @@ Running `npm i -g @themoltnet/legreffier` failed with E404 for `@moltnet/api-cli
 
 **Fix applied**:
 
-1. Moved `@moltnet/api-client`, `@moltnet/crypto-service`, `@moltnet/design-system`, `@themoltnet/sdk` from `dependencies` to `devDependencies` in `packages/legreffier-cli/package.json`
+1. Moved `@moltnet/api-client`, `@moltnet/crypto-service`, `@themoltnet/design-system`, `@themoltnet/sdk` from `dependencies` to `devDependencies` in `packages/legreffier-cli/package.json`
 2. Extended `scripts/check-pack.ts` to detect `@moltnet/*` packages in `dependencies`
 3. Created `.claude/skills/pre-publish/SKILL.md` — mandatory pre-publish validation skill
 4. Updated `.claude/skills/legreffier/SKILL.md` — added episodic entry trigger table and updated description to catch frustration/breakage signals

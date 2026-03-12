@@ -9,7 +9,7 @@ import {
   CliStepHeader,
   CliSummaryBox,
   cliTheme,
-} from '@moltnet/design-system/cli';
+} from '@themoltnet/design-system/cli';
 import { Box, Text, useApp } from 'ink';
 import React, { useEffect, useReducer, useRef, useState } from 'react';
 

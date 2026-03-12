@@ -433,7 +433,7 @@ jobs:
 
       - run: pnpm --filter @themoltnet/sdk build
 
-      - run: pnpm --filter @moltnet/design-system build
+      - run: pnpm --filter @themoltnet/design-system build
 
       - run: pnpm --filter @themoltnet/legreffier build
 
