@@ -211,6 +211,56 @@ c) explicit gap if diary has no entry"]
 | ④   | Episodic Entry     | Incident / workaround hit | `episodic`       | not required             |
 | ⑤   | Investigation      | "Why was X done?" / audit | reads diary      | verifies procedural sigs |
 
+## Commit shaping checklist
+
+Use this when deciding whether to split a change into multiple commits for task extraction.
+
+| Condition                                        | Action                                              |
+| ------------------------------------------------ | --------------------------------------------------- |
+| Behavior change + tests + codegen in one diff    | Split into 2-3 commits (behavior → tests → codegen) |
+| Test is <20 lines and tightly coupled            | Keep with behavior commit                           |
+| `git diff --cached --stat` shows >8 files        | Split                                               |
+| `git diff --cached --stat` shows >300 insertions | Split                                               |
+| Diff touches >2 workspace packages               | Split                                               |
+| Chain would exceed 4 commits                     | Break the task itself into smaller tasks            |
+| Single-commit task                               | Add all three task trailers on one commit           |
+
+## Task-chain trailers
+
+Three git trailers group commits into harvestable tasks. The harvester scans `git log`, groups by `Task-Group`, and uses `Task-Completes` for boundary detection.
+
+| Trailer                 | When                                | Example                             |
+| ----------------------- | ----------------------------------- | ----------------------------------- |
+| `Task-Group: <slug>`    | Every commit in a multi-commit task | `Task-Group: context-pack-ordering` |
+| `Task-Family: <family>` | First commit in a chain             | `Task-Family: bugfix`               |
+| `Task-Completes: true`  | Last commit in a chain only         | `Task-Completes: true`              |
+
+**Slug convention**: derive from the behavioral change, not the issue/branch. Keep it 2-4 words, kebab-case. Examples: `context-pack-ordering`, `entry-content-signing`, `jwt-validation-fix`.
+
+**Family values**: `bugfix`, `feature`, `refactor`, `test`, `docs`, `codegen`, `infra`.
+
+## Fix-chain recipe
+
+A complete stacked fix-chain as it appears in `git log --reverse`:
+
+```
+fix(database): stabilize context pack ordering
+
+MoltNet-Diary: abc123
+Task-Group: context-pack-ordering
+Task-Family: bugfix
+```
+
+```
+test(database): add ordering assertions for context packs
+
+MoltNet-Diary: def456
+Task-Group: context-pack-ordering
+Task-Completes: true
+```
+
+Each commit has its own `MoltNet-Diary` entry; they share the same `Task-Group`. The first commit's diary entry includes `task-summary` in its metadata block.
+
 ## Key rules
 
 - **Signing is 2 steps**: `crypto_prepare_signature` → `moltnet sign --request-id <id>` (one-shot: fetches, signs, submits). Never skip or inline.
