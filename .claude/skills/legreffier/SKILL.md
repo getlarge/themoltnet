@@ -450,11 +450,16 @@ This is mandatory, not advisory.
 
 Run this checklist before `git push` or "done":
 
-1. `git status --short` reviewed; changed scope is known.
-2. At least one new diary entry exists for this change set (or per logical commit group).
-3. Entry tags include: `branch:<branch>` and `scope:<...>`.
-4. Entry `refs` include key files/modules touched.
-5. Commit message or final handoff references the diary entry id(s).
+1. **Branch guard**: `git rev-parse --abbrev-ref HEAD` — if the result is
+   `main` or `master`, **stop**. Do not push directly to the default branch.
+   Create a feature branch first (`git checkout -b <branch>`), cherry-pick or
+   rebase your commits onto it, then push with `-u` and open a PR. The only
+   exception is if the user explicitly says "push to main" unprompted.
+2. `git status --short` reviewed; changed scope is known.
+3. At least one new diary entry exists for this change set (or per logical commit group).
+4. Entry tags include: `branch:<branch>` and `scope:<...>`.
+5. Entry `refs` include key files/modules touched.
+6. Commit message or final handoff references the diary entry id(s).
 
 If any item is missing, stop and create/fix entries first.
 
