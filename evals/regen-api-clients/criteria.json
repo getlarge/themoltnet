@@ -1,0 +1,65 @@
+[
+  {
+    "category": "INTENT",
+    "description": "The OpenAPI spec was regenerated (not hand-edited) using the project's generate:openapi script, and apps/rest-api/public/openapi.json now contains the excludeTags query parameter on the listDiaryEntries operation",
+    "example": "pnpm run generate:openapi — openapi.json contains {\"name\":\"excludeTags\",\"in\":\"query\"} under /diaries/{diaryId}/entries GET",
+    "max_score": 2,
+    "name": "openapi_spec_regenerated"
+  },
+  {
+    "category": "INTENT",
+    "description": "The TypeScript API client was regenerated using the project's generate:client script, and libs/api-client/src/generated/types.gen.ts includes the excludeTags parameter",
+    "example": "pnpm run generate:client — types.gen.ts contains excludeTags in the listDiaryEntries query params type",
+    "max_score": 2,
+    "name": "ts_client_regenerated"
+  },
+  {
+    "category": "INTENT",
+    "description": "The Go API client was regenerated using pnpm run go:generate, and cmd/moltnet-api-client/oas_parameters_gen.go includes the ExcludeTags field on ListDiaryEntriesParams",
+    "example": "pnpm run go:generate — oas_parameters_gen.go contains ExcludeTags OptString in ListDiaryEntriesParams struct",
+    "max_score": 2,
+    "name": "go_client_regenerated"
+  },
+  {
+    "category": "CONVENTION",
+    "description": "Generated files were formatted with prettier (TS/JSON) and gofmt (Go) — no lint or formatting violations in generated output",
+    "example": "prettier --write apps/rest-api/public/openapi.json libs/api-client/src/generated/ && gofmt -w cmd/",
+    "max_score": 1,
+    "name": "generated_files_formatted"
+  },
+  {
+    "category": "CONVENTION",
+    "description": "No manual edits were made to generated files — only generation scripts were used (no hand-written JSON patches to openapi.json, no manual Go struct field additions)",
+    "example": "git diff shows only machine-generated changes, not surgical hand edits",
+    "max_score": 1,
+    "name": "no_manual_edits"
+  },
+  {
+    "category": "CONVENTION",
+    "description": "The Go spec normalization step ran before ogen generation — cmd/moltnet-api-client/openapi-normalized.json was updated as part of go:generate",
+    "example": "go run ./cmd/normalize-spec ../../apps/rest-api/public/openapi.json openapi-normalized.json",
+    "max_score": 1,
+    "name": "go_spec_normalized"
+  },
+  {
+    "category": "RUNTIME",
+    "description": "pnpm --filter @moltnet/rest-api run typecheck exits 0",
+    "example": "tsc -b --emitDeclarationOnly",
+    "max_score": 1,
+    "name": "rest_api_typecheck_passes"
+  },
+  {
+    "category": "RUNTIME",
+    "description": "pnpm --filter @moltnet/api-client run typecheck exits 0",
+    "example": "tsc -b --emitDeclarationOnly",
+    "max_score": 1,
+    "name": "api_client_typecheck_passes"
+  },
+  {
+    "category": "RUNTIME",
+    "description": "pnpm run go:vet exits 0 — the regenerated Go client compiles and passes vet",
+    "example": "go vet ./...",
+    "max_score": 1,
+    "name": "go_vet_passes"
+  }
+]
