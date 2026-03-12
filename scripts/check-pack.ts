@@ -81,6 +81,32 @@ function checkPackage(pkgDir: string): boolean {
       console.error('  FAIL: dist/index.d.ts missing from tarball');
       return false;
     }
+
+    // Validate all subpath exports declared in publishConfig.exports (or exports).
+    // publishConfig.exports is what pnpm writes into the published package.json,
+    // so those are the paths npm consumers will actually resolve.
+    const publishExports =
+      (pkg.publishConfig as Record<string, unknown> | undefined)?.exports ??
+      pkg.exports;
+    if (publishExports && typeof publishExports === 'object') {
+      for (const [subpath, conditions] of Object.entries(
+        publishExports as Record<string, Record<string, string>>,
+      )) {
+        if (subpath === '.') continue; // already checked above
+        if (!conditions || typeof conditions !== 'object') continue;
+        for (const [condition, target] of Object.entries(conditions)) {
+          if (typeof target !== 'string' || !target.startsWith('./dist/'))
+            continue;
+          const stripped = target.replace(/^\.\//, '');
+          if (!paths.includes(stripped)) {
+            console.error(
+              `  FAIL: export "${subpath}" (${condition}) points to ${target} but ${stripped} is missing from tarball`,
+            );
+            return false;
+          }
+        }
+      }
+    }
   }
 
   const leaked = paths.filter((p) => p.startsWith('src/'));

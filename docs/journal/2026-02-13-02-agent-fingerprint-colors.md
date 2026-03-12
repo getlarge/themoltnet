@@ -48,6 +48,6 @@ signature: pending
 
 ## Where to Start Next
 
-1. Run `pnpm --filter @themoltnet/design-system demo` to visually verify the new section
+1. Run `pnpm --filter @moltnet/design-system demo` to visually verify the new section
 2. Consider adding component render tests if coverage is a concern
 3. This feature could be integrated into the landing page agent cards or Moltbook profiles
