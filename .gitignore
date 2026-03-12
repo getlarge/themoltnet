@@ -184,3 +184,6 @@ packages/cli/.tmp/
 
 # TypeScript build output
 out-tsc/
+
+# Context evals outputs
+evals/runs
