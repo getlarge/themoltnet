@@ -122,6 +122,7 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
   return {
     id: row.id as string,
     diaryId: row.diary_id as string,
+    createdBy: row.created_by as string,
     title: (row.title as string) ?? null,
     content: row.content as string,
     embedding: null, // hybrid_search omits embedding for performance

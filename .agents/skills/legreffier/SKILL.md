@@ -221,8 +221,15 @@ Write an `episodic` entry **immediately** when any of these happen — don't wai
 | A tool/API behaved differently than documented   | CLI flag changed between versions, API returns different shape | Documentation drift is invisible without episodic entries          |
 | Configuration was the root cause                 | Wrong scope in dependencies, missing env var, wrong file path  | Config bugs are the hardest to trace retroactively                 |
 | The user expresses frustration or surprise       | "WTF?", "this is broken", "how did that happen?"               | User reaction signals something went wrong that should be recorded |
+| A repository invariant was violated              | Generated metadata non-monotonic, graph state inconsistent     | Invariant drift is subtle and should be recorded at discovery time |
+| Generated artifacts required manual repair       | Regenerated file needed hand-fix before it was valid           | Distinguishes tool output from intentional authored changes        |
 
 **Heuristic**: if you spent more than 2 minutes investigating before finding the fix, it's worth an episodic entry. The investigation time is the signal — trivial fixes don't need entries.
+
+**Immediate-capture rule**: if you discover an invariant violation or you have
+to patch tool-generated output manually, write the `episodic` entry before
+continuing with the rest of the task. Do not defer it to the end of the
+session.
 
 ## Metadata conventions
 
@@ -327,6 +334,12 @@ are consistently structured with complete metadata.
 
 0. Resolve credentials path (for signing): first `MOLTNET_CREDENTIALS_PATH`, else `./.moltnet/<AGENT_NAME>/moltnet.json`.
 1. Inspect staged changes: `git diff --cached --stat` and `git diff --cached`. If nothing staged, stop.
+   - **Scope gate**: accountable commits only apply when the staged diff is one
+     coherent, well-scoped change set with a single clear rationale.
+   - If the staged diff mixes unrelated work, broad cleanup, drive-by edits, or
+     partially staged fragments that do not form one coherent story: stop.
+     Split the work into smaller commits before creating any diary-linked
+     commit entry.
 2. Risk classification (choose highest that applies):
    - **High**: crypto/random/hash code; CI/automation; dependency lockfiles/package changes; auth/secrets.
    - **Medium**: new files; config; UI/Canvas; docs that alter protocol; scripts in `.claude/`.`.agents/`.
@@ -334,6 +347,9 @@ are consistently structured with complete metadata.
 3. Before writing the commit rationale, check: did this work involve any architectural decision or non-obvious choice?
    - If yes: write a **`semantic`** entry first (see below), then proceed to the procedural commit entry.
    - If a concrete incident occurred during this work: write an **`episodic`** entry too.
+   - If generated artifacts were malformed or violated a repo invariant and you
+     repaired them manually: write the **`episodic`** entry immediately, before
+     staging or committing.
 4. Gather metadata:
    - `files_changed` from `git diff --cached --stat` count
    - `refs` from `git diff --cached --stat` — extract file paths (relative from repo root). Also scan `git diff --cached` hunk headers (`@@` lines) for function/class names when the change is focused on specific symbols. Limit to the 5 most significant paths.
@@ -468,6 +484,17 @@ scope: <comma-separated scope tags>
 ## Episodic entry workflow (incidents and workarounds)
 
 Write an `episodic` entry when you hit a concrete obstacle that required investigation or a workaround.
+
+This includes:
+
+- runtime or CI failures
+- misleading diagnostics
+- repository invariant violations
+- generated artifacts that needed manual correction before they were safe to keep
+
+Example: a migration generator appends entries in the right file order but
+produces non-monotonic metadata timestamps. Record the invariant violation and
+the repair, not just the resulting file diff.
 
 ```
 What happened: <description of the failure or surprise>

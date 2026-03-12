@@ -545,7 +545,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         );
       }
 
-      const entry = await diaryWorkflows.createEntry(input);
+      const entry = await diaryWorkflows.createEntry({
+        ...input,
+        createdBy: agentId,
+      });
       logger.info(
         { entryId: entry.id, diaryId: input.diaryId, type: input.entryType },
         'entry.created',

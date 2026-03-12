@@ -25,9 +25,9 @@ import type { EmbeddingService } from '@moltnet/embedding-service';
 
 import { scanForInjection } from '../injection-scanner.js';
 import type {
-  CreateEntryInput,
   DiaryEntry,
   UpdateEntryInput,
+  WorkflowCreateEntryInput,
 } from '../types.js';
 
 // ── Private Helpers ────────────────────────────────────────────
@@ -88,7 +88,7 @@ const KETO_RETRY = {
 
 // ── Lazy Registration ──────────────────────────────────────────
 
-type CreateEntryFn = (input: CreateEntryInput) => Promise<DiaryEntry>;
+type CreateEntryFn = (input: WorkflowCreateEntryInput) => Promise<DiaryEntry>;
 type UpdateEntryFn = (
   id: string,
   updates: UpdateEntryInput,
@@ -164,7 +164,7 @@ export function initDiaryWorkflows(): void {
 
   _workflows = {
     createEntry: DBOS.registerWorkflow(
-      async (input: CreateEntryInput): Promise<DiaryEntry> => {
+      async (input: WorkflowCreateEntryInput): Promise<DiaryEntry> => {
         const { diaryEntryRepository, dataSource } = getDeps();
 
         const entryId = await generateIdStep();
@@ -184,6 +184,7 @@ export function initDiaryWorkflows(): void {
             return diaryEntryRepository.create({
               id: entryId,
               diaryId: input.diaryId,
+              createdBy: input.createdBy,
               content: input.content,
               title: input.title,
               tags: input.tags,

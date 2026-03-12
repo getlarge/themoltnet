@@ -36,6 +36,7 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
   return {
     id: ENTRY_ID,
     diaryId: DIARY_ID,
+    createdBy: ENTRY_ID,
     title: null,
     content: 'Test diary entry content',
     embedding: null,
@@ -134,6 +135,7 @@ describe('Diary Workflows', () => {
 
       const result = await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
+        createdBy: ENTRY_ID,
         content: 'Test diary entry content',
       });
 
@@ -144,6 +146,7 @@ describe('Diary Workflows', () => {
       expect(repo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           diaryId: DIARY_ID,
+          createdBy: ENTRY_ID,
           content: 'Test diary entry content',
           embedding: MOCK_EMBEDDING,
           injectionRisk: false,
@@ -169,6 +172,7 @@ describe('Diary Workflows', () => {
 
       await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
+        createdBy: ENTRY_ID,
         content: 'Deployed v3',
         title: 'Deploy Log',
         tags: ['deploy'],
@@ -193,6 +197,7 @@ describe('Diary Workflows', () => {
 
       await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
+        createdBy: ENTRY_ID,
         content: 'Core values',
         importance: 9,
         entryType: 'soul',
@@ -218,6 +223,7 @@ describe('Diary Workflows', () => {
 
       const result = await diaryWorkflows.createEntry({
         diaryId: DIARY_ID,
+        createdBy: ENTRY_ID,
         content: 'Test content',
       });
 
@@ -240,6 +246,7 @@ describe('Diary Workflows', () => {
       await expect(
         diaryWorkflows.createEntry({
           diaryId: DIARY_ID,
+          createdBy: ENTRY_ID,
           content: 'Test content',
         }),
       ).rejects.toThrow('Failed to link entry to diary after creation');
