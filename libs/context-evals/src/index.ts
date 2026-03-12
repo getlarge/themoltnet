@@ -1,4 +1,5 @@
 export { type GpackOutput, MoltNetContextAdapter } from './adapter.js';
+export { createAuthedClient, type MoltnetCredentials } from './client.js';
 export {
   type CompiledPackMetadata,
   writeCompiledPack,

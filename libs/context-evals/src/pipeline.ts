@@ -36,16 +36,12 @@ import {
   AxAIOpenAIModel,
   AxGEPA,
 } from '@ax-llm/ax';
-import {
-  compileDiary,
-  createClient,
-  createConfig,
-  listDiaries,
-} from '@moltnet/api-client';
+import { compileDiary, listDiaries } from '@moltnet/api-client';
 import { type Static, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 
 import { MoltNetContextAdapter } from './adapter.js';
+import { createAuthedClient } from './client.js';
 import { loadContextEvalsConfig } from './config.js';
 import type { EvalTrace, GpackTask } from './evaluate.js';
 import { execFileText } from './process.js';
@@ -137,76 +133,16 @@ const runBaseline = values['baseline'] === true;
 const debugTraces = values['debug-traces'] === true;
 const verbose = values['verbose'] === true;
 
-// ── Credentials + API client ──────────────────────────────────────────────────
+// ── API client ────────────────────────────────────────────────────────────────
 
-interface MoltnetCredentials {
-  oauth2: { client_id: string; client_secret: string };
-  endpoints: { api: string };
-}
+let _apiClient: Awaited<ReturnType<typeof createAuthedClient>> | null = null;
 
-function resolveCredentialsPath(): string {
-  if (envConfig.MOLTNET_CREDENTIALS_PATH) {
-    return resolve(envConfig.MOLTNET_CREDENTIALS_PATH);
-  }
-
-  return resolve(repoRoot, '.moltnet/legreffier/moltnet.json');
-}
-
-let credentials: MoltnetCredentials | null = null;
-let apiClient: ReturnType<typeof createClient> | null = null;
-
-async function getCredentials(): Promise<MoltnetCredentials> {
-  if (credentials) return credentials;
-  const loadedCredentials = JSON.parse(
-    await readFile(resolveCredentialsPath(), 'utf8'),
-  ) as MoltnetCredentials;
-  credentials = loadedCredentials;
-  return loadedCredentials;
-}
-
-// ── API client with cached OAuth2 token interceptor ───────────────────────────
-
-let _cachedToken: string | null = null;
-let _tokenExpiresAt = 0;
-
-async function fetchToken(): Promise<string> {
-  const currentCredentials = await getCredentials();
-  const apiUrl = currentCredentials.endpoints.api;
-  if (_cachedToken && Date.now() < _tokenExpiresAt) return _cachedToken;
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: currentCredentials.oauth2.client_id,
-    client_secret: currentCredentials.oauth2.client_secret,
-    scope: 'diary:read diary:write',
-  });
-  const res = await fetch(`${apiUrl}/oauth2/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
-  if (!res.ok) throw new Error(`OAuth2 failed: ${await res.text()}`);
-  const data = (await res.json()) as {
-    access_token: string;
-    expires_in?: number;
-  };
-  _cachedToken = data.access_token;
-  _tokenExpiresAt = Date.now() + ((data.expires_in ?? 3600) - 60) * 1000;
-  return _cachedToken;
-}
-
-async function getApiClient(): Promise<ReturnType<typeof createClient>> {
-  if (apiClient) return apiClient;
-  const currentCredentials = await getCredentials();
-  apiClient = createClient(
-    createConfig({ baseUrl: currentCredentials.endpoints.api }),
-  );
-  apiClient.interceptors.request.use(async (request) => {
-    const token = await fetchToken();
-    request.headers.set('Authorization', `Bearer ${token}`);
-    return request;
-  });
-
-  return apiClient;
+async function getApiClient(): Promise<
+  Awaited<ReturnType<typeof createAuthedClient>>
+> {
+  if (_apiClient) return _apiClient;
+  _apiClient = await createAuthedClient();
+  return _apiClient;
 }
 
 // ── Diary ID resolution ───────────────────────────────────────────────────────
