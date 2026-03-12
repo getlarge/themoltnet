@@ -76,6 +76,9 @@
     },
     {
       "path": "packages/legreffier-cli"
+    },
+    {
+      "path": "tasksmith"
     }
   ]
 }

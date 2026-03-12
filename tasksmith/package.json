@@ -1,0 +1,25 @@
+{
+  "name": "@moltnet/tasksmith",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SWE-bench-style task harvesting, verification, and enrichment for MoltNet",
+  "scripts": {
+    "harvest": "tsx harvest.ts",
+    "derive": "tsx derive.ts",
+    "verify": "tsx verify.ts",
+    "enrich": "tsx enrich.ts",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint *.ts",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@moltnet/api-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

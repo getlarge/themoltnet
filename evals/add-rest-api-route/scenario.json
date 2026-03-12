@@ -1,0 +1,60 @@
+{
+  "context_variants": {
+    "baseline": null,
+    "combined": {
+      "layers": [
+        {
+          "include_tags": [
+            "source:tile",
+            "tile-session:2026-03-08T19:00:00Z",
+            "model:claude-sonnet-4.6"
+          ],
+          "token_budget": 10000
+        },
+        {
+          "include_tags": [
+            "source:nugget",
+            "nugget-session:2026-03-08T19:00:00Z",
+            "model:claude-sonnet-4.6"
+          ],
+          "token_budget": 6000
+        }
+      ],
+      "source": "multi_compile"
+    },
+    "gold_nuggets": {
+      "include_tags": [
+        "source:nugget",
+        "nugget-session:2026-03-08T19:00:00Z",
+        "model:claude-sonnet-4.6"
+      ],
+      "source": "diaries_compile",
+      "token_budget": 8000
+    },
+    "scan_tiles": {
+      "include_tags": [
+        "source:tile",
+        "tile-session:2026-03-08T19:00:00Z",
+        "model:claude-sonnet-4.6"
+      ],
+      "source": "diaries_compile",
+      "token_budget": 16000
+    }
+  },
+  "fixture": {
+    "exclude": ["evals/", ".claude/", ".agents/"],
+    "ref": "426e3ced9e7e018dc72c0bf65494744fcff75fe2",
+    "repoUrl": "https://github.com/getlarge/themoltnet.git",
+    "type": "commit"
+  },
+  "setup": {
+    "commands": ["pnpm install --frozen-lockfile"]
+  },
+  "type": "coding",
+  "validation": {
+    "commands": [
+      "pnpm --filter @moltnet/rest-api run typecheck",
+      "pnpm --filter @moltnet/rest-api run test"
+    ]
+  }
+}
