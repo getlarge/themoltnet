@@ -11,21 +11,22 @@
     "download-model": "node download-embedding-model.mjs",
     "run-eval": "tsx src/run-eval.ts",
     "gpack": "tsx src/gpack/pipeline.ts",
+    "compile-pack": "tsx src/compile-pack.ts",
+    "inspect-swesmith": "tsx src/tasksmith/inspect-swesmith.ts",
     "seed-feed": "tsx src/seed-public-feed.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@ax-llm/ax": "catalog:",
     "@huggingface/transformers": "catalog:",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/context-evals": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/mcp-server": "workspace:*",
     "@moltnet/rest-api": "workspace:*",
-    "@sinclair/typebox": "catalog:",
     "smol-toml": "catalog:"
   },
   "devDependencies": {

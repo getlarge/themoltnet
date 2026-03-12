@@ -5,7 +5,11 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -14,7 +18,11 @@
     "strict": true,
     "target": "ES2022"
   },
-  "exclude": ["node_modules", "dist", "infra/ory/permissions.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "infra/ory/permissions.ts"
+  ],
   "files": [],
   "references": [
     {
@@ -37,6 +45,9 @@
     },
     {
       "path": "libs/context-distill"
+    },
+    {
+      "path": "libs/context-evals"
     },
     {
       "path": "libs/crypto-service"
@@ -70,6 +81,9 @@
     },
     {
       "path": "tools"
+    },
+    {
+      "path": "tasksmith"
     },
     {
       "path": "packages/github-agent"

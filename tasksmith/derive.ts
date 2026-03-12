@@ -47,11 +47,29 @@ interface CandidateCommit {
   confidence: 'high' | 'medium' | 'low';
 }
 
+interface CommitGroup {
+  group_id: string;
+  start_commit_sha: string;
+  end_commit_sha: string;
+  fixture_ref: string;
+  commit_shas: string[];
+  subjects: string[];
+  has_diary_trailer: boolean;
+  diary_entry_ids: string[];
+  changed_files: string[];
+  family: string;
+  secondary_families: string[];
+  subsystems: string[];
+  confidence: 'high' | 'medium' | 'low';
+  grouping_reason: string;
+}
+
 interface TaskRecord {
   task_id: string;
   fixture_ref: string;
   gold_fix_ref: string;
   source_commit_ref: string;
+  source_commit_refs?: string[];
   problem_statement: string;
   family: string;
   secondary_families: string[];
@@ -69,6 +87,7 @@ interface TaskRecord {
 
 const REPO_ROOT = join(__dirname, '..');
 const CANDIDATES_FILE = join(REPO_ROOT, 'tasksmith/candidates/commits.jsonl');
+const GROUPS_FILE = join(REPO_ROOT, 'tasksmith/candidates/commit-groups.jsonl');
 const TASKS_DIR = join(REPO_ROOT, 'tasksmith/candidates/tasks');
 const INDEX_FILE = join(TASKS_DIR, 'index.jsonl');
 
@@ -212,6 +231,34 @@ async function mapConcurrent<T, R>(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Convert a CommitGroup into a CandidateCommit-like shape so it flows
+ * through the same derive pipeline. The key differences:
+ * - parent_sha = group.fixture_ref (parent of first commit)
+ * - commit_sha = group.end_commit_sha (last commit = gold fix)
+ * - subject is synthesized from group subjects
+ * - changed_files is the union across all members
+ */
+function groupToCandidate(group: CommitGroup): CandidateCommit & { _group: CommitGroup } {
+  // Use the last commit's subject as the primary, but flag as group
+  const lastSubject = group.subjects[group.subjects.length - 1];
+  return {
+    commit_sha: group.end_commit_sha,
+    parent_sha: group.fixture_ref,
+    subject: lastSubject,
+    date: '', // not used for derivation
+    has_diary_trailer: group.has_diary_trailer,
+    diary_entry_ids: group.diary_entry_ids,
+    changed_files: group.changed_files,
+    family: group.family,
+    secondary_families: group.secondary_families,
+    subsystems: group.subsystems,
+    task_shape: 'high', // groups are inherently higher quality
+    confidence: group.confidence,
+    _group: group,
+  };
+}
 
 function slugify(text: string, maxLen = 40): string {
   return text
@@ -531,11 +578,17 @@ function extractRgPatterns(diffText: string, maxPatterns = 3): string[] {
 // Task ID
 // ---------------------------------------------------------------------------
 
-function generateTaskId(candidate: CandidateCommit): string {
-  const match = candidate.subject.match(/\):\s*(.+)$/);
-  const description = match ? match[1] : candidate.subject;
+function generateTaskId(candidate: CandidateCommit & { _group?: CommitGroup }): string {
+  const subject = candidate._group
+    ? candidate._group.subjects[candidate._group.subjects.length - 1]
+    : candidate.subject;
+  const match = subject.match(/\):\s*(.+)$/);
+  const description = match ? match[1] : subject;
   const slug = slugify(description);
   const shaShort = candidate.commit_sha.slice(0, 8);
+  if (candidate._group) {
+    return `grp-${candidate.family}-${slug}-${shaShort}`;
+  }
   return `${candidate.family}-${slug}-${shaShort}`;
 }
 
@@ -543,30 +596,50 @@ function generateTaskId(candidate: CandidateCommit): string {
 // Problem statement — Fix #1: no file path leakage
 // ---------------------------------------------------------------------------
 
-function generateProblemStatement(candidate: CandidateCommit): string {
-  const { subject, subsystems } = candidate;
+function generateProblemStatement(candidate: CandidateCommit & { _group?: CommitGroup }): string {
+  const { subsystems } = candidate;
 
   let statement: string;
 
-  if (subject.startsWith('fix(')) {
-    const desc = subject.replace(/^fix\([^)]*\):\s*/, '');
-    statement = `The ${desc}. This needs to be fixed.`;
-  } else if (subject.startsWith('feat(')) {
-    const desc = subject.replace(/^feat\([^)]*\):\s*/, '');
-    statement = `Implement: ${desc}.`;
-  } else if (subject.startsWith('refactor(')) {
-    const desc = subject.replace(/^refactor\([^)]*\):\s*/, '');
-    statement = `Refactor: ${desc}.`;
-  } else if (subject.startsWith('test(')) {
-    const desc = subject.replace(/^test\([^)]*\):\s*/, '');
-    statement = `Add/fix tests: ${desc}.`;
-  } else if (subject.startsWith('chore(') && /regen/i.test(subject)) {
-    statement = 'Generated API clients are stale and need regeneration.';
+  if (candidate._group) {
+    // Group: synthesize from all subjects
+    const subjects = candidate._group.subjects;
+    const descs = subjects.map((s) => {
+      const match = s.match(/^[a-z]+\([^)]*\):\s*(.+)$/);
+      return match ? match[1] : s;
+    });
+    // Determine dominant commit type
+    const types = subjects.map((s) => s.match(/^([a-z]+)\(/)?.[1] || 'other');
+    const hasFix = types.includes('fix');
+    const hasFeat = types.includes('feat');
+    if (hasFix) {
+      statement = `Fix: ${descs.join('; ')}.`;
+    } else if (hasFeat) {
+      statement = `Implement: ${descs.join('; ')}.`;
+    } else {
+      statement = descs.join('; ') + '.';
+    }
   } else {
-    statement = subject;
+    const { subject } = candidate;
+    if (subject.startsWith('fix(')) {
+      const desc = subject.replace(/^fix\([^)]*\):\s*/, '');
+      statement = `The ${desc}. This needs to be fixed.`;
+    } else if (subject.startsWith('feat(')) {
+      const desc = subject.replace(/^feat\([^)]*\):\s*/, '');
+      statement = `Implement: ${desc}.`;
+    } else if (subject.startsWith('refactor(')) {
+      const desc = subject.replace(/^refactor\([^)]*\):\s*/, '');
+      statement = `Refactor: ${desc}.`;
+    } else if (subject.startsWith('test(')) {
+      const desc = subject.replace(/^test\([^)]*\):\s*/, '');
+      statement = `Add/fix tests: ${desc}.`;
+    } else if (subject.startsWith('chore(') && /regen/i.test(subject)) {
+      statement = 'Generated API clients are stale and need regeneration.';
+    } else {
+      statement = subject;
+    }
   }
 
-  // Only subsystem names — NOT individual file paths.
   if (subsystems.length > 0) {
     statement += `\n\nAffected subsystems: ${subsystems.join(', ')}`;
   }
@@ -584,20 +657,39 @@ async function generateFailToPass(
   const { parent_sha, commit_sha, changed_files, family } = candidate;
   const checks: string[] = [];
 
-  // --- Codegen: check ALL changed generated files (Fix #4) ---
-  if (family === 'codegen') {
-    const genFiles = changed_files.filter(isCodegenFile);
-    const diffPromises = genFiles.map(async (file) => {
+  // --- Helper: generate rg probes only for files that exist at fixture ---
+  async function rgProbesForFiles(
+    files: string[],
+    patternsPerFile = 2,
+  ): Promise<string[]> {
+    const probes: string[] = [];
+    const existingFiles = await Promise.all(
+      files.map(async (file) => ({
+        file,
+        exists: await fileExistsAtRef(parent_sha, file),
+      })),
+    );
+    const validFiles = existingFiles
+      .filter((f) => f.exists)
+      .map((f) => f.file);
+
+    const diffPromises = validFiles.map(async (file) => {
       const diff = await gitDiff(parent_sha, commit_sha, file);
-      return { file, patterns: extractRgPatterns(diff, 2) };
+      return { file, patterns: extractRgPatterns(diff, patternsPerFile) };
     });
     const results = await Promise.all(diffPromises);
     for (const { file, patterns } of results) {
       for (const p of patterns) {
-        checks.push(`rg -n '${p}' ${file}`);
+        probes.push(`rg -n '${p}' ${file}`);
       }
     }
-    return checks;
+    return probes;
+  }
+
+  // --- Codegen: check ALL changed generated files (Fix #4) ---
+  if (family === 'codegen') {
+    const genFiles = changed_files.filter(isCodegenFile);
+    return rgProbesForFiles(genFiles, 2);
   }
 
   // --- Database migration ---
@@ -612,17 +704,7 @@ async function generateFailToPass(
       ...migrationFiles,
       ...(schemaFile ? [schemaFile] : []),
     ];
-    const diffPromises = filesToCheck.map(async (file) => {
-      const diff = await gitDiff(parent_sha, commit_sha, file);
-      return { file, patterns: extractRgPatterns(diff, 2) };
-    });
-    const results = await Promise.all(diffPromises);
-    for (const { file, patterns } of results) {
-      for (const p of patterns) {
-        checks.push(`rg -n '${p}' ${file}`);
-      }
-    }
-    return checks;
+    return rgProbesForFiles(filesToCheck, 2);
   }
 
   // --- Test-aware families ---
@@ -648,7 +730,7 @@ async function generateFailToPass(
           const ws = fileToWorkspace(tf);
           const relPath = workspaceRelativePath(tf);
           if (ws && relPath) {
-            checks.push(`pnpm --filter ${ws} vitest run ${relPath}`);
+            checks.push(`pnpm --filter ${ws} run test -- ${relPath}`);
           }
         }
         return checks;
@@ -668,17 +750,8 @@ async function generateFailToPass(
     const sourceFiles = changed_files.filter(
       (f) => !isTestFile(f) && !f.endsWith('.md') && f !== 'pnpm-lock.yaml',
     );
-    const diffPromises = sourceFiles.slice(0, 5).map(async (file) => {
-      const diff = await gitDiff(parent_sha, commit_sha, file);
-      return { file, patterns: extractRgPatterns(diff, 2) };
-    });
-    const results = await Promise.all(diffPromises);
-    for (const { file, patterns } of results) {
-      for (const p of patterns) {
-        checks.push(`rg -n '${p}' ${file}`);
-      }
-      if (checks.length >= 3) break;
-    }
+    const probes = await rgProbesForFiles(sourceFiles.slice(0, 5), 2);
+    checks.push(...probes.slice(0, 3));
     return checks;
   }
 
@@ -699,27 +772,18 @@ async function generateFailToPass(
       const ws = fileToWorkspace(tf);
       const relPath = workspaceRelativePath(tf);
       if (ws && relPath) {
-        checks.push(`pnpm --filter ${ws} vitest run ${relPath}`);
+        checks.push(`pnpm --filter ${ws} run test -- ${relPath}`);
       }
     }
     if (checks.length > 0) return checks;
   }
 
-  // rg checks
+  // rg checks — only probe files that exist at the fixture
   const sourceFiles = changed_files.filter(
     (f) => !isTestFile(f) && !f.endsWith('.md') && f !== 'pnpm-lock.yaml',
   );
-  const diffPromises = sourceFiles.slice(0, 5).map(async (file) => {
-    const diff = await gitDiff(parent_sha, commit_sha, file);
-    return { file, patterns: extractRgPatterns(diff, 2) };
-  });
-  const results = await Promise.all(diffPromises);
-  for (const { file, patterns } of results) {
-    for (const p of patterns) {
-      checks.push(`rg -n '${p}' ${file}`);
-    }
-    if (checks.length >= 3) break;
-  }
+  const rgChecks = await rgProbesForFiles(sourceFiles.slice(0, 5), 2);
+  checks.push(...rgChecks.slice(0, 3));
 
   // Last resort: package-level test
   if (checks.length === 0) {
@@ -916,7 +980,52 @@ function deduplicateTasks(records: TaskRecord[]): TaskRecord[] {
 // Main
 // ---------------------------------------------------------------------------
 
+type DeriveCandidate = CandidateCommit & { _group?: CommitGroup };
+
+async function deriveOne(
+  candidate: DeriveCandidate,
+): Promise<TaskRecord | null> {
+  const taskId = generateTaskId(candidate);
+  const failToPass = await generateFailToPass(candidate);
+
+  if (failToPass.length === 0) {
+    console.error(
+      `[derive]   SKIP ${taskId} — no meaningful fail_to_pass checks`,
+    );
+    return null;
+  }
+
+  const allRg = failToPass.every((c) => c.startsWith('rg '));
+  if (allRg && failToPass.length < 2) {
+    console.error(
+      `[derive]   SKIP ${taskId} — only ${failToPass.length} rg probe (too weak)`,
+    );
+    return null;
+  }
+
+  const passToPass = generatePassToPass(candidate);
+  const problemStatement = generateProblemStatement(candidate);
+
+  return {
+    task_id: taskId,
+    fixture_ref: candidate.parent_sha,
+    gold_fix_ref: candidate.commit_sha,
+    source_commit_ref: candidate.commit_sha,
+    source_commit_refs: candidate._group?.commit_shas,
+    problem_statement: problemStatement,
+    family: candidate.family,
+    secondary_families: candidate.secondary_families,
+    subsystems: candidate.subsystems,
+    changed_files: candidate.changed_files,
+    fail_to_pass: failToPass,
+    pass_to_pass: passToPass,
+    diary_entry_ids: candidate.diary_entry_ids,
+    confidence: candidate.confidence,
+  };
+}
+
 async function main() {
+  // --- Load single-commit candidates ---
   let raw: string;
   try {
     raw = (await readFile(CANDIDATES_FILE, 'utf8')).trim();
@@ -935,35 +1044,65 @@ async function main() {
     .filter((line) => line.trim())
     .map((line) => JSON.parse(line));
 
-  // Pool pruning:
-  // - exclude low task_shape
-  // - exclude mixed family entirely (deferred to post-derive test-backed check)
-  const candidates = allCandidates
+  // --- Load commit groups ---
+  let groups: CommitGroup[] = [];
+  try {
+    const groupsRaw = (await readFile(GROUPS_FILE, 'utf8')).trim();
+    if (groupsRaw) {
+      groups = groupsRaw
+        .split('\n')
+        .filter((line) => line.trim())
+        .map((line) => JSON.parse(line));
+    }
+  } catch {
+    console.error('[derive] No commit-groups.jsonl found — skipping groups');
+  }
+
+  // --- Pool pruning for single commits ---
+  const singleCandidates = allCandidates
     .filter((c) => c.task_shape !== 'low')
     .filter((c) => c.family !== 'mixed')
     .sort((a, b) => {
-      // diary-linked first
       if (a.has_diary_trailer && !b.has_diary_trailer) return -1;
       if (!a.has_diary_trailer && b.has_diary_trailer) return 1;
-      // then by task_shape (high before medium)
       if (a.task_shape === 'high' && b.task_shape !== 'high') return -1;
       if (a.task_shape !== 'high' && b.task_shape === 'high') return 1;
-      // then by confidence
       const confOrder = { high: 0, medium: 1, low: 2 };
       return confOrder[a.confidence] - confOrder[b.confidence];
     })
     .slice(0, 150);
 
+  // --- Pool pruning for groups ---
+  // Exclude mixed groups; no task_shape filter (groups are inherently higher quality)
+  const groupCandidates: DeriveCandidate[] = groups
+    .filter((g) => g.family !== 'mixed')
+    .map(groupToCandidate);
+
+  // --- Dedup: skip single commits that are already part of a group ---
+  const groupedShas = new Set(groups.flatMap((g) => g.commit_shas));
+  const filteredSingles = singleCandidates.filter(
+    (c) => !groupedShas.has(c.commit_sha),
+  );
+
+  const allDeriveInput: DeriveCandidate[] = [
+    ...groupCandidates,
+    ...filteredSingles,
+  ];
+
   const lowSkipped = allCandidates.filter((c) => c.task_shape === 'low').length;
   const mixedSkipped = allCandidates.filter(
     (c) => c.task_shape !== 'low' && c.family === 'mixed',
   ).length;
-  const afterFilters = allCandidates.length - lowSkipped - mixedSkipped;
-  const overflowSkipped = Math.max(0, afterFilters - 150);
+  const singlesConsumedByGroups = singleCandidates.length - filteredSingles.length;
   console.error(
-    `[derive] Pool: ${allCandidates.length} total, ${lowSkipped} low-shape skipped, ${mixedSkipped} mixed-low skipped, ${overflowSkipped} overflow skipped`,
+    `[derive] Singles: ${allCandidates.length} total, ${lowSkipped} low skipped, ${mixedSkipped} mixed skipped, ${filteredSingles.length} after pruning`,
   );
-  console.error(`[derive] Deriving ${candidates.length} candidates...`);
+  console.error(
+    `[derive] Groups: ${groups.length} total, ${groupCandidates.length} non-mixed, ${singlesConsumedByGroups} singles consumed by groups`,
+  );
+  console.error(
+    `[derive] Total derive pool: ${allDeriveInput.length} (${groupCandidates.length} groups + ${filteredSingles.length} singles)`,
+  );
 
   // Clear and recreate tasks directory
   await rm(TASKS_DIR, { recursive: true, force: true }).catch(() => {});
@@ -972,58 +1111,23 @@ async function main() {
   let skipped = 0;
   const allRecords: TaskRecord[] = [];
 
-  // Phase 1: derive all records with bounded concurrency
-  await mapConcurrent(candidates, 10, async (candidate) => {
-    const taskId = generateTaskId(candidate);
-    const failToPass = await generateFailToPass(candidate);
-
-    if (failToPass.length === 0) {
-      console.error(
-        `[derive]   SKIP ${taskId} — no meaningful fail_to_pass checks`,
-      );
+  await mapConcurrent(allDeriveInput, 10, async (candidate) => {
+    const record = await deriveOne(candidate);
+    if (record) {
+      allRecords.push(record);
+    } else {
       skipped++;
-      return;
     }
-
-    // Pre-check: if ALL fail_to_pass are rg commands, require at least 2.
-    const allRg = failToPass.every((c) => c.startsWith('rg '));
-    if (allRg && failToPass.length < 2) {
-      console.error(
-        `[derive]   SKIP ${taskId} — only ${failToPass.length} rg probe (too weak)`,
-      );
-      skipped++;
-      return;
-    }
-
-    const passToPass = generatePassToPass(candidate);
-    const problemStatement = generateProblemStatement(candidate);
-
-    allRecords.push({
-      task_id: taskId,
-      fixture_ref: candidate.parent_sha,
-      gold_fix_ref: candidate.commit_sha,
-      source_commit_ref: candidate.commit_sha,
-      problem_statement: problemStatement,
-      family: candidate.family,
-      secondary_families: candidate.secondary_families,
-      subsystems: candidate.subsystems,
-      changed_files: candidate.changed_files,
-      fail_to_pass: failToPass,
-      pass_to_pass: passToPass,
-      diary_entry_ids: candidate.diary_entry_ids,
-      confidence: candidate.confidence,
-    });
   });
 
-  // Phase 2: deduplicate near-identical tasks.
-  // Cluster by: normalized subject prefix + >50% changed_files overlap + same verifier shape.
+  // Deduplicate: groups vs singles that overlap
   const deduped = deduplicateTasks(allRecords);
   const dupCount = allRecords.length - deduped.length;
   if (dupCount > 0) {
     console.error(`[derive] Deduplicated ${dupCount} near-identical tasks`);
   }
 
-  // Phase 3: write tasks
+  // Write tasks
   const indexLines: string[] = [];
   for (const record of deduped) {
     const taskFile = join(TASKS_DIR, `${record.task_id}.json`);
@@ -1037,14 +1141,17 @@ async function main() {
         fixture_ref: record.fixture_ref,
         gold_fix_ref: record.gold_fix_ref,
         confidence: record.confidence,
+        is_group: !!record.source_commit_refs,
       }),
     );
   }
 
   await writeFile(INDEX_FILE, indexLines.join('\n') + '\n');
 
+  const groupCount = deduped.filter((r) => r.source_commit_refs).length;
+  const singleCount = deduped.length - groupCount;
   console.error(
-    `[derive] Derived ${deduped.length} task records from ${candidates.length} candidates (${skipped} skipped, ${dupCount} deduped)`,
+    `[derive] Derived ${deduped.length} task records (${groupCount} groups + ${singleCount} singles), ${skipped} skipped, ${dupCount} deduped`,
   );
 }
 

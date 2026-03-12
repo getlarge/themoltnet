@@ -16,6 +16,10 @@ records from git history.
 Start with commits that include a `MoltNet-Diary:` trailer, then expand to
 regular commits once the trailer-linked pool is exhausted.
 
+Do not assume one commit equals one task. Use a single commit when the red/green
+boundary is clean, but support short commit ranges when the effective fix spans
+multiple adjacent commits.
+
 The output is not a polished public benchmark yet. It is a verified internal
 task set suitable for:
 
@@ -29,6 +33,8 @@ The current eval fixtures were hand-authored and are too easy to get wrong:
 
 - fixture commits can already be green
 - broad package-level tests can hide missing task behavior
+- typecheck-only validation can miss real API regressions that only show up in
+  e2e flows
 - criteria/rubric text is not a sufficient scoring objective
 
 Harvesting from real historical fixes gives us a more defensible path:
@@ -38,6 +44,12 @@ Harvesting from real historical fixes gives us a more defensible path:
 - narrow `FAIL_TO_PASS`
 - broader `PASS_TO_PASS`
 - provenance back to the underlying code change
+
+Many MoltNet fixes are not single-commit fixes. A behavior change, follow-up
+test update, regeneration step, and package wiring adjustment may land across
+2-4 adjacent commits. Treating each commit as an isolated task candidate
+systematically undercounts usable tasks and overproduces `fix_not_green`
+rejections.
 
 ## Monorepo constraints
 
@@ -59,6 +71,17 @@ Implication: a change in `apps/rest-api/src/routes/**` is often only the top of
 the iceberg. The real task may span service, database, auth, generated client,
 and publishable package surfaces.
 
+Also, many important correctness properties are only exercised end-to-end:
+
+- REST route registration and plugin wiring
+- auth and permission behavior through the HTTP surface
+- workflow wiring and cross-plugin initialization
+- MCP-to-API integration behavior
+
+Implication: `PASS_TO_PASS` should include targeted e2e validation when the
+historical fix changed an integration surface that is primarily defended by e2e
+tests.
+
 ## Target output
 
 Produce a seed set of 30 verified task records with this rough family mix:
@@ -74,7 +97,7 @@ the set.
 
 ## Deliverables
 
-### 1. Candidate commit export
+### 1. Candidate commit and commit-range export
 
 A machine-readable export of candidate commits, for example:
 
@@ -82,7 +105,7 @@ A machine-readable export of candidate commits, for example:
 tasksmith/candidates/commits.jsonl
 ```
 
-Each record should include:
+Each single-commit record should include:
 
 - `commit_sha`
 - `parent_sha`
@@ -94,6 +117,30 @@ Each record should include:
 - `family`
 - `subsystems[]`
 - `confidence`
+
+Also produce a grouped-candidate export for likely multi-commit fixes, for
+example:
+
+```text
+tasksmith/candidates/commit-groups.jsonl
+```
+
+Each grouped record should include:
+
+- `group_id`
+- `start_commit_sha`
+- `end_commit_sha`
+- `fixture_ref` (`parent(start_commit_sha)`)
+- `commit_shas[]`
+- `subjects[]`
+- `has_diary_trailer`
+- `diary_entry_ids[]`
+- `changed_files[]`
+- `family`
+- `secondary_families[]`
+- `subsystems[]`
+- `confidence`
+- `grouping_reason`
 
 ### 2. Candidate task records
 
@@ -108,9 +155,10 @@ Each record should include:
 - `task_id`
 - `fixture_ref`
 - `gold_fix_ref`
-- `source_commit_ref`
+- `source_commit_ref` or `source_commit_refs[]`
 - `problem_statement`
 - `family`
+- `secondary_families[]`
 - `subsystems[]`
 - `changed_files[]`
 - `fail_to_pass[]`
@@ -179,6 +227,48 @@ Acceptance criteria:
 - parent commit is captured
 - changed files are attached
 
+### Workstream A2: Commit grouping
+
+Objective: recover valid tasks whose effective fix spans multiple adjacent
+commits.
+
+Why:
+
+- `fix_not_green` often means the chosen gold-fix commit is incomplete, not that
+  the task itself is invalid
+- route, workflow, and codegen changes often land as short chains:
+  - behavior commit
+  - test follow-up
+  - regeneration commit
+  - typecheck/package wiring cleanup
+
+Grouping rules:
+
+- group only short contiguous chains, typically 2-4 commits
+- require overlapping changed files or clearly shared subsystems
+- require compatible family classification
+- prefer chains with:
+  - similar subjects
+  - shared diary entry ids
+  - close timestamps
+  - obvious follow-up language such as `fix`, `regen`, `typecheck`, `tests`
+- do not group across:
+  - merges
+  - docs-only or release commits
+  - broad unrelated refactors
+
+Examples of good grouped tasks:
+
+- route behavior commit + test follow-up
+- schema/service change + generated client regeneration
+- workflow implementation + DB/package wiring follow-up
+
+Acceptance criteria:
+
+- grouped candidates are emitted separately from single-commit candidates
+- every group records why it was grouped
+- grouping is conservative; ambiguous chains are left ungrouped
+
 ### Workstream B: Family classification
 
 Objective: classify candidates so verifier generation is family-aware.
@@ -221,15 +311,23 @@ Acceptance criteria:
 
 ### Workstream C: Candidate derivation
 
-Objective: turn `parent -> commit` into a proposed task.
+Objective: turn either `parent -> commit` or `parent(first) -> last(commit
+chain)` into a proposed task.
 
 Derivation rules:
 
-- `fixture_ref = parent_sha`
-- `gold_fix_ref = commit_sha`
+- single-commit task:
+  - `fixture_ref = parent_sha`
+  - `gold_fix_ref = commit_sha`
+- grouped task:
+  - `fixture_ref = parent(start_commit_sha)`
+  - `gold_fix_ref = end_commit_sha`
 - generate a readable `problem_statement`
 - propose task-specific `fail_to_pass`
 - propose stable `pass_to_pass`
+- preserve provenance:
+  - `source_commit_ref` for single-commit tasks
+  - `source_commit_refs[]` for grouped tasks
 
 Family-specific derivation hints:
 
@@ -240,6 +338,9 @@ Prefer:
 - changed `apps/rest-api/__tests__/*.test.ts`
 - changed `apps/rest-api/e2e/*.e2e.test.ts`
 - route-specific `vitest run <file>`
+
+Also consider targeted e2e commands when the change affects route registration,
+auth, plugin wiring, or cross-service behavior.
 
 Use `rg` checks only as a supplemental narrow assertion.
 
@@ -257,6 +358,8 @@ Prefer:
 
 - changed `apps/mcp-server/__tests__/*`
 - target tool-specific tests
+- targeted MCP e2e suites when the changed behavior crosses the network/API
+  boundary
 
 #### `codegen`
 
@@ -275,10 +378,27 @@ Prefer:
 - packability or typecheck checks
 - avoid app-level test suites when package-local checks exist
 
+#### `pass_to_pass` guidance
+
+Prefer the smallest stable command set that protects surrounding behavior.
+
+Use, in order of preference:
+
+- targeted unit/integration tests tied to the changed surface
+- targeted e2e tests for API-facing behavior
+- package-local typecheck
+- broader package-local test commands only when no narrower verifier exists
+
+Do not rely on typecheck alone when the historical fix is about runtime API
+behavior.
+
 Acceptance criteria:
 
 - `fail_to_pass` is not broad package-wide smoke unless nothing narrower exists
+- `pass_to_pass` is not typecheck-only when the task changes an API or e2e
+  integration surface with existing targeted e2e coverage
 - `problem_statement` is understandable without reading the diff
+- grouped tasks prefer the smallest commit span that produces a green gold fix
 
 ### Workstream D: Verification
 
@@ -288,7 +408,7 @@ Verification algorithm:
 
 1. check out `fixture_ref`
 2. run every `fail_to_pass`
-3. require at least one failure
+3. require the verifier to be meaningfully red
 4. check out `gold_fix_ref`
 5. run every `fail_to_pass`
 6. require all to pass
@@ -301,6 +421,11 @@ Optional but recommended:
   check exists
 - reject tasks whose commands are too slow for repeated evaluation
 - detect near-duplicates by changed files + command overlap
+- when a single-commit candidate fails as `fix_not_green`, allow derive to
+  retry it as a grouped candidate before discarding the whole task family
+- when the changed surface is route, auth, workflow, or MCP integration,
+  prefer targeted e2e validation in `pass_to_pass` before falling back to
+  package-level smoke
 
 Acceptance criteria:
 
@@ -354,6 +479,8 @@ This plan is successful when the repo has:
 - verifier derivation may be too broad
 - route-layer tasks may hide deeper service/database behavior
 - regeneration commits may cluster too tightly and reduce diversity
+- one-commit task boundaries may be too narrow for monorepo fixes
+- typecheck-only `pass_to_pass` may miss true API regressions
 
 Mitigations:
 
@@ -361,6 +488,9 @@ Mitigations:
 - reject broad verifiers aggressively
 - classify by family before deriving commands
 - cap near-duplicate task families in the first 30
+- support short commit ranges for fixes that land across adjacent commits
+- use targeted e2e suites when they are the real stability surface for the
+  changed behavior
 
 ## Recommended agent split
 
@@ -371,6 +501,7 @@ Owns:
 - commit harvesting
 - candidate schema
 - trailer parsing
+- commit-group candidate generation
 
 ### Agent B
 

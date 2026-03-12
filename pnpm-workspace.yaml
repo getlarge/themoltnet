@@ -2,9 +2,11 @@ packages:
   - apps/*
   - libs/*
   - tools
+  - tasksmith
   - packages/*
 
 catalog:
+  '@anthropic-ai/claude-agent-sdk': ^0.2.72
   '@andersmyrmel/vard': ^1.2.0
   '@ax-llm/ax': ^19.0.13
   '@dbos-inc/dbos-sdk': ^4.10.15

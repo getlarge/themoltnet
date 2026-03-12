@@ -18,7 +18,7 @@
  *
  * Resumable: skips tasks whose task record hash matches a previous result.
  *
- * Usage: npx tsx tasksmith/verify.ts [--limit N] [--family F] [--force]
+ * Usage: npx tsx tasksmith/verify.ts [--limit N] [--family F ...] [--force]
  */
 
 import { exec as execCb } from 'node:child_process';
@@ -45,6 +45,7 @@ interface TaskRecord {
   fixture_ref: string;
   gold_fix_ref: string;
   source_commit_ref: string;
+  source_commit_refs?: string[];
   problem_statement: string;
   family: string;
   secondary_families: string[];
@@ -99,10 +100,14 @@ interface VerificationResult {
 // CLI args
 // ---------------------------------------------------------------------------
 
-function parseArgs(): { limit: number; family: string | null; force: boolean } {
+function parseArgs(): {
+  limit: number;
+  families: string[];
+  force: boolean;
+} {
   const args = process.argv.slice(2);
   let limit = Infinity;
-  let family: string | null = null;
+  const families: string[] = [];
   let force = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -110,14 +115,14 @@ function parseArgs(): { limit: number; family: string | null; force: boolean } {
       limit = parseInt(args[i + 1], 10);
       i++;
     } else if (args[i] === '--family' && args[i + 1]) {
-      family = args[i + 1];
+      families.push(args[i + 1]);
       i++;
     } else if (args[i] === '--force') {
       force = true;
     }
   }
 
-  return { limit, family, force };
+  return { limit, families, force };
 }
 
 // ---------------------------------------------------------------------------
@@ -343,8 +348,9 @@ async function verifyTask(task: TaskRecord): Promise<VerificationResult> {
     duration_ms: 0,
   };
 
-  const fixtureWorktree = `fixture-${task.task_id.slice(0, 40)}`;
-  const fixWorktree = `fix-${task.task_id.slice(0, 40)}`;
+  const shortId = createHash('md5').update(task.task_id).digest('hex').slice(0, 12);
+  const fixtureWorktree = `fixture-${shortId}`;
+  const fixWorktree = `fix-${shortId}`;
   let fixturePath: string | null = null;
   let fixPath: string | null = null;
 
@@ -638,7 +644,7 @@ function generateReport(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const { limit, family, force } = parseArgs();
+  const { limit, families, force } = parseArgs();
 
   const tasksDir = join(REPO_ROOT, 'tasksmith/candidates/tasks');
   const verifiedDir = join(REPO_ROOT, 'tasksmith/verified');
@@ -659,9 +665,10 @@ async function main() {
     tasks.push(JSON.parse(content));
   }
 
-  // Filter by family if specified
-  if (family) {
-    tasks = tasks.filter((t) => t.family === family);
+  // Filter by families if specified
+  if (families.length > 0) {
+    const familySet = new Set(families);
+    tasks = tasks.filter((t) => familySet.has(t.family));
   }
 
   // Apply limit
@@ -669,9 +676,9 @@ async function main() {
     tasks = tasks.slice(0, limit);
   }
 
-  console.error(
-    `[verify] Loaded ${tasks.length} tasks${family ? ` (family: ${family})` : ''}`,
-  );
+  const familyLabel =
+    families.length > 0 ? ` (families: ${families.join(', ')})` : '';
+  console.error(`[verify] Loaded ${tasks.length} tasks${familyLabel}`);
 
   // Load existing results for resumability
   const existingResults = force

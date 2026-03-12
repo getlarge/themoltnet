@@ -1,16 +1,18 @@
 {
   "compilerOptions": {
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "composite": true,
     "lib": ["ES2022"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2022",
+    "outDir": "dist",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "types": ["node"]
   },
-  "exclude": ["node_modules"],
-  "include": ["*.ts"]
+  "exclude": ["node_modules", "dist", "candidates", "verified", "rejected", "evidence"],
+  "extends": "../tsconfig.json",
+  "include": ["*.ts"],
+  "references": [
+    {
+      "path": "../libs/api-client"
+    }
+  ]
 }
