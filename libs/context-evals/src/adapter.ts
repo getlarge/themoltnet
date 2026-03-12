@@ -115,8 +115,8 @@ export class MoltNetContextAdapter implements AxGEPAAdapter<
     candidate: Readonly<Record<string, string>>,
     evalBatch: Readonly<AxGEPAEvaluationBatch<EvalTrace, GpackOutput>>,
     componentsToUpdate: readonly string[],
-  ): Record<string, any[]> {
-    const dataset: Record<string, any[]> = {};
+  ): Record<string, unknown[]> {
+    const dataset: Record<string, unknown[]> = {};
 
     for (const component of componentsToUpdate) {
       dataset[component] = [];

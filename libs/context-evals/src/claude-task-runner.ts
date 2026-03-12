@@ -109,7 +109,9 @@ async function main(): Promise<void> {
     maxTurns: args.maxTurns,
     clientApp: args.clientApp,
     stderr: (data: string) => {
-      stderrOutput += data;
+      if (stderrOutput.length < 512_000) {
+        stderrOutput += data;
+      }
     },
   });
 

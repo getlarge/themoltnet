@@ -24,6 +24,9 @@
       "path": "../libs/bootstrap"
     },
     {
+      "path": "../libs/context-evals"
+    },
+    {
       "path": "../libs/crypto-service"
     },
     {

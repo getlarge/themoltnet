@@ -203,7 +203,9 @@ async function runAnthropicSdk(
     maxTurns: 20,
     clientApp: '@moltnet/tools:gpack',
     stderr: (data: string) => {
-      stderrOutput += data;
+      if (stderrOutput.length < 512_000) {
+        stderrOutput += data;
+      }
     },
   });
 
@@ -311,7 +313,11 @@ async function ignoreEvalArtifacts(worktreeDir: string): Promise<void> {
 
 function normalizeSetupCommand(cmd: string): string {
   if (!cmd.startsWith('pnpm install')) return cmd;
-  const withoutFrozen = cmd.replace(/\s+--frozen-lockfile\b/g, '').trim();
+  const withoutFrozen = cmd
+    .split(' ')
+    .filter((arg) => arg !== '--frozen-lockfile')
+    .join(' ')
+    .trim();
   return withoutFrozen.includes('--ignore-scripts')
     ? withoutFrozen
     : `${withoutFrozen} --ignore-scripts`;
@@ -382,7 +388,7 @@ export async function evaluateTask(
     for (const originalCmd of task.setup ?? []) {
       const cmd = normalizeSetupCommand(originalCmd);
       if (options.verbose) console.log(`  [setup] ${cmd}`);
-      const setup = await runCommand(cmd, worktreeDir, 900_000);
+      const setup = await runCommand(cmd, worktreeDir, 90_000);
       setupOutputs.push({ cmd, ...setup });
       if (!setup.passed) {
         return {
