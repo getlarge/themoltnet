@@ -1,19 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { parseArgs } from 'node:util';
 
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 
 import { createClaudeQuery } from './anthropic.js';
 import type { AssistantPayload, ResultPayload } from './sdk-types.js';
-
-interface RunnerArgs {
-  cwd: string;
-  prompt?: string;
-  promptFile?: string;
-  model?: string;
-  maxTurns: number;
-  clientApp: string;
-}
 
 interface RunnerResult {
   passed: boolean;
@@ -35,65 +27,42 @@ interface RunnerResult {
   permissionDenials?: Array<{ toolName: string; toolUseId: string }>;
 }
 
-function parseArgs(argv: string[]): RunnerArgs {
-  const args: Partial<RunnerArgs> = {
-    maxTurns: 20,
-    clientApp: '@moltnet/tools:gpack',
-  };
-
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === '--cwd') {
-      args.cwd = resolve(process.cwd(), argv[++i] ?? '');
-      continue;
-    }
-    if (arg === '--prompt') {
-      args.prompt = argv[++i] ?? '';
-      continue;
-    }
-    if (arg === '--prompt-file') {
-      args.promptFile = resolve(process.cwd(), argv[++i] ?? '');
-      continue;
-    }
-    if (arg === '--model') {
-      args.model = argv[++i] ?? '';
-      continue;
-    }
-    if (arg === '--max-turns') {
-      const raw = argv[++i] ?? '';
-      const parsed = Number(raw);
-      if (!Number.isFinite(parsed) || parsed < 1) {
-        throw new Error(`Invalid --max-turns value: ${raw}`);
-      }
-      args.maxTurns = parsed;
-      continue;
-    }
-    if (arg === '--client-app') {
-      args.clientApp = argv[++i] ?? args.clientApp;
-      continue;
-    }
-  }
-
-  if (!args.cwd) {
-    throw new Error('Missing required --cwd');
-  }
-
-  return args as RunnerArgs;
-}
-
-async function resolvePrompt(args: RunnerArgs): Promise<string> {
-  if (args.promptFile) {
-    return readFile(args.promptFile, 'utf8');
-  }
-  if (args.prompt) {
-    return args.prompt;
-  }
-  throw new Error('Missing prompt: use --prompt or --prompt-file');
-}
+const { values } = parseArgs({
+  options: {
+    cwd: { type: 'string' },
+    prompt: { type: 'string' },
+    'prompt-file': { type: 'string' },
+    model: { type: 'string' },
+    'max-turns': { type: 'string', default: '20' },
+    'client-app': { type: 'string', default: '@moltnet/tools:gpack' },
+  },
+  strict: true,
+});
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
-  const prompt = await resolvePrompt(args);
+  if (!values.cwd) {
+    throw new Error('Missing required --cwd');
+  }
+  const cwd = resolve(process.cwd(), values.cwd);
+
+  const maxTurns = Number(values['max-turns']);
+  if (!Number.isFinite(maxTurns) || maxTurns < 1) {
+    throw new Error(`Invalid --max-turns value: ${values['max-turns']}`);
+  }
+
+  const clientApp = values['client-app'] ?? '@moltnet/tools:gpack';
+
+  let prompt: string;
+  if (values['prompt-file']) {
+    prompt = await readFile(
+      resolve(process.cwd(), values['prompt-file']),
+      'utf8',
+    );
+  } else if (values.prompt) {
+    prompt = values.prompt;
+  } else {
+    throw new Error('Missing prompt: use --prompt or --prompt-file');
+  }
 
   let stderrOutput = '';
   let sessionId: string | undefined;
@@ -103,11 +72,11 @@ async function main(): Promise<void> {
   const toolSummaries: string[] = [];
 
   const q = await createClaudeQuery({
-    cwd: args.cwd,
+    cwd,
     prompt,
-    model: args.model,
-    maxTurns: args.maxTurns,
-    clientApp: args.clientApp,
+    model: values.model,
+    maxTurns,
+    clientApp,
     stderr: (data: string) => {
       if (stderrOutput.length < 512_000) {
         stderrOutput += data;
