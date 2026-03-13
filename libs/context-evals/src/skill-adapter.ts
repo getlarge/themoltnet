@@ -93,7 +93,7 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
 
         // 4. Apply patches
         for (const patchFile of task.patchFiles) {
-          const patchPath = resolve(process.cwd(), patchFile);
+          const patchPath = resolve(this.options.repoRoot, patchFile);
           await execFileText('git', ['apply', patchPath], {
             cwd: worktreeDir,
           });

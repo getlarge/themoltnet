@@ -7,6 +7,7 @@ import {
   type BootstrapConfig,
   bootstrapGenesisAgents,
 } from '@moltnet/bootstrap';
+import { resolveRepoRoot } from '@moltnet/context-evals/pipeline-shared';
 import { createDatabase } from '@moltnet/database';
 import { setupGitIdentity } from '@themoltnet/github-agent';
 import { connect, exportSSHKey, writeConfig } from '@themoltnet/sdk';
@@ -20,7 +21,9 @@ const { values } = parseArgs({
 });
 
 const repoRoot =
-  typeof values['repo-root'] === 'string' ? values['repo-root'] : process.cwd();
+  typeof values['repo-root'] === 'string'
+    ? values['repo-root']
+    : await resolveRepoRoot();
 
 // ── Ports matching docker-compose.e2e.yaml ────────────────────
 const DB_URL = 'postgresql://moltnet:moltnet_secret@localhost:5433/moltnet';

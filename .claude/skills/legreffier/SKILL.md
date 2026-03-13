@@ -488,17 +488,36 @@ Each commit should represent **one testable behavioral change**. If you changed 
 
 Three git trailers for task harvesting. The harvester scans `git log`, groups by `Task-Group`, and uses `Task-Completes` for boundary detection — no diary lookup needed for grouping.
 
-| Trailer                 | When                                | Purpose                                                                                                       | Example                             |
-| ----------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `Task-Group: <slug>`    | Every commit in a multi-commit task | Agent-chosen descriptive slug; groups commits into one harvestable task                                       | `Task-Group: context-pack-ordering` |
-| `Task-Family: <family>` | First commit in a chain             | Categorizes what kind of work (can differ from conventional commit type when a chain mixes fix+test+refactor) | `Task-Family: bugfix`               |
-| `Task-Completes: true`  | Last commit in a chain only         | Marks the chain as done — safe for harvester to collect                                                       | `Task-Completes: true`              |
+| Trailer                 | When                                           | Purpose                                                                                                       | Example                             |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `Task-Group: <slug>`    | Every commit in a multi-commit task            | Agent-chosen descriptive slug; groups commits into one harvestable task                                       | `Task-Group: context-pack-ordering` |
+| `Task-Family: <family>` | First commit in a chain                        | Categorizes what kind of work (can differ from conventional commit type when a chain mixes fix+test+refactor) | `Task-Family: bugfix`               |
+| `Task-Completes: true`  | Last commit in a chain, **after verification** | Marks the chain as done — safe for harvester to collect. See verification gate below.                         | `Task-Completes: true`              |
 
 **`Task-Group` slug convention**: derive from the behavioral change, not from the issue/branch. Examples: `context-pack-ordering`, `entry-content-signing`, `jwt-validation-fix`. Keep it short (2-4 words, kebab-case).
 
 **`Task-Family` values**: `bugfix`, `feature`, `refactor`, `test`, `docs`, `codegen`, `infra`. Pick the one that best describes the overall task, even if individual commits in the chain have different conventional commit types.
 
-**Single-commit tasks**: if the entire task is one commit, add all three trailers (`Task-Group` + `Task-Family` + `Task-Completes: true`) on that commit.
+**Single-commit tasks**: if the entire task is one commit, add all three trailers (`Task-Group` + `Task-Family` + `Task-Completes: true`) on that commit — but only after the verification gate passes.
+
+### Verification gate for `Task-Completes`
+
+**`Task-Completes: true` means "verified working", not "code written".** A task is not complete until its behavior has been confirmed. Writing code and passing typecheck/lint is necessary but not sufficient.
+
+Before adding `Task-Completes: true` to any commit, the agent must have evidence that the change works:
+
+| Change type                      | Minimum verification                                    |
+| -------------------------------- | ------------------------------------------------------- |
+| Library code with existing tests | Tests pass (`pnpm test` in the affected workspace)      |
+| New feature with new tests       | Tests written AND passing                               |
+| CLI tool / script                | Ran successfully at least once (dry-run or real)        |
+| Pipeline / integration code      | Ran baseline or smoke test against real infrastructure  |
+| Config / infra change            | Validated by the system that consumes it                |
+| Docs-only                        | N/A — docs changes can use `Task-Completes` immediately |
+
+**If verification is not possible in the current session** (e.g., requires Docker stack, external service, CI), omit `Task-Completes: true`. The trailer gets added in a follow-up commit after verification succeeds — even if that commit is otherwise empty (e.g., `chore(scope): verify <task-group>`).
+
+**Never treat typecheck + lint as sufficient verification.** Those confirm the code compiles, not that it works. The harvester uses `Task-Completes` to decide which task chains are safe to extract — incomplete chains produce broken eval tasks.
 
 ### Fix-chain diary integration
 

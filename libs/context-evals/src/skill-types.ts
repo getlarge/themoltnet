@@ -48,6 +48,7 @@ export interface SkillScorer<TExpected = unknown, TScoreResult = unknown> {
 // ── Adapter options ───────────────────────────────────────────────────────────
 
 export interface SkillEvalAdapterOptions {
+  repoRoot: string;
   preamble: string;
   epilogue: string;
   mcpServers: Record<string, McpServerConfig>;

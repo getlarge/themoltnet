@@ -43,7 +43,7 @@ import { splitSkillContent } from './skill-sections.js';
 // ── Args ──────────────────────────────────────────────────────────────────────
 
 const { values } = parseArgs({
-  allowPositionals: false,
+  allowPositionals: true,
   options: {
     eval: { type: 'string' },
     'skill-file': { type: 'string' },
@@ -180,6 +180,7 @@ async function main() {
   const agentName = str(values['agent-name']) || evalEnv.agentName;
 
   const adapter = new SkillEvalAdapter({
+    repoRoot,
     preamble,
     epilogue,
     mcpServers: {
