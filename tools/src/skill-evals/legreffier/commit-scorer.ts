@@ -32,17 +32,24 @@ export function scoreCommitTiers(input: ScoreInput): CommitScoreResult {
   const { commitMessages, diaryEntries } = input;
   const details: string[] = [];
 
-  // ── Must-have (60%) ──────────────────────────────────────────
-  const hasDiaryEntry = diaryEntries.length > 0;
-  details.push(hasDiaryEntry ? 'Diary entry exists' : 'No diary entry found');
+  const check = (tier: string, ok: boolean, pass: string, fail: string) => {
+    details.push(`[${tier}] ${ok ? pass : fail}`);
+    return ok;
+  };
 
-  const hasTrailer = commitMessages.some((msg) =>
-    /MoltNet-Diary:\s*\S+/.test(msg),
+  // ── Must-have (60%) ──────────────────────────────────────────
+  const hasDiaryEntry = check(
+    'must',
+    diaryEntries.length > 0,
+    'Diary entry exists',
+    'No diary entry found',
   );
-  details.push(
-    hasTrailer
-      ? 'MoltNet-Diary trailer present'
-      : 'Missing MoltNet-Diary trailer',
+
+  const hasTrailer = check(
+    'must',
+    commitMessages.some((msg) => /MoltNet-Diary:\s*\S+/.test(msg)),
+    'MoltNet-Diary trailer present',
+    'Missing MoltNet-Diary trailer',
   );
 
   const mustHave = hasDiaryEntry && hasTrailer;
@@ -52,30 +59,32 @@ export function scoreCommitTiers(input: ScoreInput): CommitScoreResult {
   if (mustHave && diaryEntries.length > 0) {
     const entry = diaryEntries[0];
 
-    const hasAccountableTag = entry.tags.includes('accountable-commit');
-    details.push(
-      hasAccountableTag
-        ? 'accountable-commit tag'
-        : `Missing accountable-commit tag (found: ${entry.tags.join(', ')})`,
+    const hasAccountableTag = check(
+      'should',
+      entry.tags.includes('accountable-commit'),
+      'accountable-commit tag',
+      `Missing accountable-commit tag (found: ${entry.tags.join(', ')})`,
     );
 
-    const hasRiskTag = entry.tags.some((t) => t.startsWith('risk:'));
-    details.push(
-      hasRiskTag ? 'risk:<level> tag present' : 'Missing risk:<level> tag',
+    const hasRiskTag = check(
+      'should',
+      entry.tags.some((t) => t.startsWith('risk:')),
+      'risk:<level> tag present',
+      'Missing risk:<level> tag',
     );
 
-    const hasBranchTag = entry.tags.some((t) => t.startsWith('branch:'));
-    details.push(
-      hasBranchTag
-        ? 'branch:<branch> tag present'
-        : 'Missing branch:<branch> tag',
+    const hasBranchTag = check(
+      'should',
+      entry.tags.some((t) => t.startsWith('branch:')),
+      'branch:<branch> tag present',
+      'Missing branch:<branch> tag',
     );
 
-    const isProcedural = entry.entryType === 'procedural';
-    details.push(
-      isProcedural
-        ? 'entry_type is procedural'
-        : `entry_type is "${entry.entryType}" (expected procedural)`,
+    const isProcedural = check(
+      'should',
+      entry.entryType === 'procedural',
+      'entry_type is procedural',
+      `entry_type is "${entry.entryType}" (expected procedural)`,
     );
 
     shouldHave =
@@ -87,16 +96,21 @@ export function scoreCommitTiers(input: ScoreInput): CommitScoreResult {
   if (shouldHave && diaryEntries.length > 0) {
     const entry = diaryEntries[0];
 
-    const hasSig = entry.signatureValid;
-    details.push(hasSig ? 'Signature valid' : 'Signature missing or invalid');
+    const hasSig = check(
+      'nice',
+      entry.signatureValid,
+      'Signature valid',
+      'Signature missing or invalid',
+    );
 
-    const hasMetadata =
+    const hasMetadata = check(
+      'nice',
       /\brefs:/.test(entry.content) &&
-      /\boperator:/.test(entry.content) &&
-      /\btool:/.test(entry.content) &&
-      /\btimestamp:/.test(entry.content);
-    details.push(
-      hasMetadata ? 'Metadata block complete' : 'Metadata block incomplete',
+        /\boperator:/.test(entry.content) &&
+        /\btool:/.test(entry.content) &&
+        /\btimestamp:/.test(entry.content),
+      'Metadata block complete',
+      'Metadata block incomplete',
     );
 
     niceToHave = hasSig && hasMetadata;
@@ -213,26 +227,25 @@ export class CommitScorer implements SkillScorer<
   toFeedback(result: CommitScoreResult, _task: SkillEvalTask): string {
     const sections: string[] = [];
 
+    const failedByTier = (tier: string) =>
+      result.details.filter(
+        (d) => d.startsWith(`[${tier}]`) && !d.includes('✓'),
+      );
+
     if (!result.tiers.mustHave) {
-      const failed = result.details
-        .slice(0, 2)
-        .filter((d) => d.includes('No diary') || d.includes('Missing MoltNet'));
+      const failed = failedByTier('must');
       if (failed.length > 0) {
         sections.push('MUST-HAVE FAILED:', ...failed.map((d) => `  ${d}`));
       }
     }
     if (!result.tiers.shouldHave) {
-      const failed = result.details
-        .slice(2, 6)
-        .filter((d) => d.startsWith('Missing') || d.startsWith('entry_type'));
+      const failed = failedByTier('should');
       if (failed.length > 0) {
         sections.push('SHOULD-HAVE FAILED:', ...failed.map((d) => `  ${d}`));
       }
     }
     if (!result.tiers.niceToHave) {
-      const failed = result.details
-        .slice(6)
-        .filter((d) => d.startsWith('Signature') || d.startsWith('Metadata'));
+      const failed = failedByTier('nice');
       if (failed.length > 0) {
         sections.push('NICE-TO-HAVE FAILED:', ...failed.map((d) => `  ${d}`));
       }
