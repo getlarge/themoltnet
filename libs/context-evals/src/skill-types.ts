@@ -36,9 +36,18 @@ export interface SkillEvalTrace {
 
 // ── Scorer interface ──────────────────────────────────────────────────────────
 
+export interface SkillScoreContext {
+  /** The commit the worktree was created from — use to scope git log. */
+  baseCommit: string;
+}
+
 export interface SkillScorer<TExpected = unknown, TScoreResult = unknown> {
   /** Score the worktree state after the agent finishes. */
-  score(worktreeDir: string, expected: TExpected): Promise<TScoreResult>;
+  score(
+    worktreeDir: string,
+    expected: TExpected,
+    context: SkillScoreContext,
+  ): Promise<TScoreResult>;
   /** Extract a numeric score (0.0–1.0) from the scorer's result. */
   toNumeric(result: TScoreResult): number;
   /** Build reflective feedback string from the scorer's result. */
@@ -49,11 +58,11 @@ export interface SkillScorer<TExpected = unknown, TScoreResult = unknown> {
 
 export interface SkillEvalAdapterOptions {
   repoRoot: string;
-  preamble: string;
-  epilogue: string;
   mcpServers: Record<string, McpServerConfig>;
   agentConfigDir: string;
   agentName: string;
+  /** Extra env vars injected into every agent run (e.g. MOLTNET_DIARY_ID). */
+  agentEnv?: Record<string, string>;
   scorer: SkillScorer;
   claudeModel?: string;
   verbose?: boolean;

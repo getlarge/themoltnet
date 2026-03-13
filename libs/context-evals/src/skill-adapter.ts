@@ -16,16 +16,6 @@ import type {
   SkillEvalTrace,
 } from './skill-types.js';
 
-// ── Pure helpers ──────────────────────────────────────────────────────────────
-
-export function assembleSkill(
-  preamble: string,
-  candidate: string,
-  epilogue: string,
-): string {
-  return preamble + candidate + epilogue;
-}
-
 // ── Adapter ───────────────────────────────────────────────────────────────────
 
 export class SkillEvalAdapter implements AxGEPAAdapter<
@@ -43,21 +33,16 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
     captureTraces?: boolean,
   ): Promise<AxGEPAEvaluationBatch<SkillEvalTrace, GpackOutput>> {
     const {
-      preamble,
-      epilogue,
       mcpServers,
       agentConfigDir,
       agentName,
+      agentEnv,
       scorer,
       claudeModel,
       verbose,
     } = this.options;
 
-    const skillText = assembleSkill(
-      preamble,
-      candidate['instruction'] ?? '',
-      epilogue,
-    );
+    const skillText = candidate['instruction'] ?? '';
     this.lastBatch = batch;
 
     const outputs: GpackOutput[] = [];
@@ -79,7 +64,7 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
         await mkdir(targetMoltnet, { recursive: true });
         await cp(agentConfigDir, targetMoltnet, { recursive: true });
 
-        // 3. Write assembled skill
+        // 3. Write skill to the worktree
         const skillDir = resolve(
           worktreeDir,
           ...task.skillPath.split('/').slice(0, -1),
@@ -106,10 +91,13 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
           mcpServers,
           agentName,
           claudeModel,
+          agentEnv,
         );
 
         // 6. Score
-        const scoreResult = await scorer.score(worktreeDir, task.expected);
+        const scoreResult = await scorer.score(worktreeDir, task.expected, {
+          baseCommit: task.baseCommit,
+        });
         const numericScore = scorer.toNumeric(scoreResult);
 
         outputs.push({ taskId: task.id, score: numericScore });
@@ -204,6 +192,7 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
     mcpServers: Record<string, McpServerConfig>,
     agentName: string,
     claudeModel?: string,
+    agentEnv?: Record<string, string>,
   ): Promise<{
     sessionId?: string;
     turnCount?: number;
@@ -237,6 +226,7 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
           agentName,
           'moltnet.json',
         ),
+        ...agentEnv,
         ...task.env,
       },
     });

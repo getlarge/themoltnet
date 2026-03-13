@@ -1,4 +1,8 @@
-import type { SkillEvalTask, SkillScorer } from '@moltnet/context-evals';
+import type {
+  SkillEvalTask,
+  SkillScoreContext,
+  SkillScorer,
+} from '@moltnet/context-evals';
 import { runShellCommand } from '@moltnet/context-evals/process';
 import type { Agent } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk';
@@ -117,10 +121,12 @@ export async function fetchCommitData(
   worktreeDir: string,
   sdk: Agent,
   diaryId: string,
+  baseCommit?: string,
 ): Promise<{ commitMessages: string[]; diaryEntries: DiaryEntryInfo[] }> {
-  // 1. Get commit messages
+  // 1. Get commit messages (only commits added after baseCommit)
+  const range = baseCommit ? `${baseCommit}..HEAD` : '-10';
   const gitLog = await runShellCommand(
-    'git log --format="%B---COMMIT_SEP---" -10',
+    `git log --format="%B---COMMIT_SEP---" ${range}`,
     worktreeDir,
     30_000,
   );
@@ -184,12 +190,14 @@ export class CommitScorer implements SkillScorer<
   async score(
     worktreeDir: string,
     expected: CommitExpected,
+    context: SkillScoreContext,
   ): Promise<CommitScoreResult> {
     const sdk = await this.sdkPromise;
     const { commitMessages, diaryEntries } = await fetchCommitData(
       worktreeDir,
       sdk,
       this.diaryId,
+      context.baseCommit,
     );
 
     if (expected.isChain) {

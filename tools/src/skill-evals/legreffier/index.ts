@@ -4,12 +4,12 @@ import { resolve } from 'node:path';
 import { CommitScorer } from './commit-scorer.js';
 
 export { CommitScorer } from './commit-scorer.js';
-export { loadSkillSections, splitSkillContent } from './skill-sections.js';
 export type { CommitExpected, CommitScoreResult } from './types.js';
 
 export interface EvalEnv {
   apiUrl: string;
   diaryId: string;
+  fingerprint: string;
   mcpUrl: string;
   clientId: string;
   clientSecret: string;

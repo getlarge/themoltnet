@@ -1,19 +1,11 @@
 #!/usr/bin/env -S npx tsx
 /* eslint-disable no-console */
 /**
- * skill-eval — GEPA-driven skill section optimization for LeGreffier
- *
- * Optimizes the "Accountable commit workflow" section of SKILL.md by running
- * Claude Code agents against eval tasks and scoring with CommitScorer.
+ * skill-eval — GEPA-driven skill optimization for LeGreffier
  *
  * Usage:
  *   pnpm gpack:skill-eval --eval commit-single-fix --baseline
  *   pnpm gpack:skill-eval --eval all --ai-key <key>
- *
- * Environment variables:
- *   OPENAI_API_KEY             OpenAI API key for GEPA reflection LLM
- *   ANTHROPIC_API_KEY          Anthropic API key (alternative to OpenAI)
- *   GOOGLE_API_KEY             Google AI API key (Gemini models)
  */
 
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
@@ -38,7 +30,6 @@ import { SkillEvalAdapter } from '@moltnet/context-evals/skill-adapter';
 import { Value } from '@sinclair/typebox/value';
 
 import { createScorer, loadEvalEnv } from './index.js';
-import { splitSkillContent } from './skill-sections.js';
 
 // ── Args ──────────────────────────────────────────────────────────────────────
 
@@ -47,8 +38,6 @@ const { values } = parseArgs({
   options: {
     eval: { type: 'string' },
     'skill-file': { type: 'string' },
-    'skill-preamble': { type: 'string' },
-    'skill-epilogue': { type: 'string' },
     'agent-config-dir': { type: 'string' },
     'agent-name': { type: 'string' },
     'mcp-url': { type: 'string' },
@@ -137,10 +126,8 @@ async function main() {
   }
   console.log(`[skill-eval] loaded ${tasks.length} task(s)`);
 
-  // Load eval env (written by eval:setup)
   const evalEnv = await loadEvalEnv(repoRoot);
 
-  // Create scorer
   const scorer = createScorer(
     evalEnv.apiUrl,
     evalEnv.diaryId,
@@ -148,28 +135,10 @@ async function main() {
     evalEnv.clientSecret,
   );
 
-  // Split SKILL.md into fixed preamble/epilogue + variable commit section
+  // Load the full skill — this is the candidate GEPA optimizes
   const skillFile =
     str(values['skill-file']) || '.claude/skills/legreffier/SKILL.md';
   const skillContent = await readFile(resolve(repoRoot, skillFile), 'utf8');
-
-  const preambleOverride = str(values['skill-preamble']);
-  const epilogueOverride = str(values['skill-epilogue']);
-
-  let preamble: string;
-  let commitSection: string;
-  let epilogue: string;
-
-  if (preambleOverride && epilogueOverride) {
-    preamble = await readFile(resolve(repoRoot, preambleOverride), 'utf8');
-    epilogue = await readFile(resolve(repoRoot, epilogueOverride), 'utf8');
-    commitSection = skillContent;
-  } else {
-    const sections = splitSkillContent(skillContent);
-    preamble = sections.preamble;
-    commitSection = sections.commitSection;
-    epilogue = sections.epilogue;
-  }
 
   // Build MCP config
   const mcpUrl = str(values['mcp-url']) || evalEnv.mcpUrl;
@@ -181,8 +150,6 @@ async function main() {
 
   const adapter = new SkillEvalAdapter({
     repoRoot,
-    preamble,
-    epilogue,
     mcpServers: {
       [agentName]: {
         type: 'http',
@@ -195,44 +162,67 @@ async function main() {
     },
     agentConfigDir,
     agentName,
+    agentEnv: {
+      MOLTNET_AGENT_NAME: agentName,
+      MOLTNET_DIARY_ID: evalEnv.diaryId,
+      MOLTNET_FINGERPRINT: evalEnv.fingerprint,
+    },
     scorer,
     claudeModel,
     verbose,
   });
 
-  const seedInstruction = commitSection;
-
   if (runBaseline) {
     console.log('[skill-eval] running baseline...');
     const result = await adapter.evaluate(
       tasks,
-      { instruction: seedInstruction },
+      { instruction: skillContent },
       true,
     );
     const avgScore = buildAverage(result.scores);
     console.log(
       `[skill-eval] baseline scores: ${result.scores.map((s) => s.toFixed(2)).join(', ')} avg=${avgScore.toFixed(3)}`,
     );
+
+    const outDir = resolve(repoRoot, 'evals', 'runs');
+    await mkdir(outDir, { recursive: true });
+    const outPath = resolve(outDir, `skill-eval-baseline-${Date.now()}.json`);
+    await writeFile(
+      outPath,
+      JSON.stringify(
+        {
+          mode: 'baseline',
+          timestamp: new Date().toISOString(),
+          scores: result.scores,
+          avg: avgScore,
+          traces: result.trajectories,
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+    console.log(`[skill-eval] traces saved to ${outPath}`);
     return;
   }
 
   // GEPA optimization
+  // TODO: investigate GEPA optimize_anything (task #13):
+  //   - objective_scores (multi-objective) instead of single scalar metric
+  //   - propose_new_texts method for direct instruction rewriting
   if (!aiKey) {
     throw new Error(
       '[skill-eval] GEPA optimization requires an AI key. Pass --ai-key or set OPENAI_API_KEY/ANTHROPIC_API_KEY/GOOGLE_API_KEY.',
     );
   }
 
-  // studentAI: cheap model the ax() program targets (passthrough in our case).
-  // teacherAI: more capable model that proposes improved instructions during
-  //            GEPA reflection. Optional but recommended for better results.
   const studentAI = buildAI({ aiKey, model: studentModel });
   const teacherAI = teacherModel
     ? buildAI({ aiKey, model: teacherModel })
     : undefined;
 
   const passthrough = ax('taskPrompt:string -> skillSection:string');
-  passthrough.setInstruction(seedInstruction);
+  passthrough.setInstruction(skillContent);
 
   const trainingTasks =
     tasks.length >= 2
@@ -264,7 +254,7 @@ async function main() {
 
   const metricCache = new Map<string, number>();
   const getCurrentInstruction = (): string =>
-    (passthrough as { instruction?: string }).instruction ?? seedInstruction;
+    (passthrough as { instruction?: string }).instruction ?? skillContent;
 
   const result = await optimizer.compile(
     passthrough,
@@ -297,7 +287,7 @@ async function main() {
   );
 
   const bestScore = result.bestScore;
-  const bestPack = result.optimizedProgram?.instruction ?? seedInstruction;
+  const bestPack = result.optimizedProgram?.instruction ?? skillContent;
 
   console.log(`\n[skill-eval] optimization complete`);
   console.log(`  best score: ${bestScore.toFixed(3)}`);
