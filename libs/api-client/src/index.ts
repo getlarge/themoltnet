@@ -26,3 +26,4 @@ export type {
   CreateClientConfig,
 } from './generated/client/index.js';
 export { createClient, createConfig } from './generated/client/index.js';
+export { createRetryFetch, type RetryOptions } from './retry-fetch.js';

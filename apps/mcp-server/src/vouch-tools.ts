@@ -133,6 +133,7 @@ export function registerVouchTools(
         'Each edge represents a redeemed voucher invitation.',
       inputSchema: TrustGraphSchema,
     },
-    async (args, ctx) => handleTrustGraph(args, deps, ctx),
+    async (args: Record<string, never>, ctx: HandlerContext) =>
+      handleTrustGraph(args, deps, ctx),
   );
 }
