@@ -102,9 +102,25 @@ export async function connect(options: ConnectOptions = {}): Promise<Agent> {
         )
       : undefined;
 
+  // When retries are disabled but autoToken is on, still invalidate
+  // the cached token on 401 so the next API call re-authenticates
+  // instead of reusing a stale token until natural expiry.
+  const invalidateOnAuthError =
+    autoToken && !retryFetch
+      ? async (input: RequestInfo | URL, init?: RequestInit) => {
+          const response = await fetch(input, init);
+          if (response.status === 401) {
+            tokenManager.invalidate();
+          }
+          return response;
+        }
+      : undefined;
+
+  const customFetch = retryFetch ?? invalidateOnAuthError;
+
   const client: Client = createClient({
     baseUrl: creds.apiUrl,
-    ...(retryFetch && { fetch: retryFetch }),
+    ...(customFetch && { fetch: customFetch }),
   });
 
   const auth = autoToken ? () => tokenManager.getToken() : undefined;

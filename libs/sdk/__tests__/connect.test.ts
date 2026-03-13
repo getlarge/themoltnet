@@ -225,16 +225,19 @@ describe('connect', () => {
     });
   });
 
-  it('should not pass retry fetch when retry is false', async () => {
+  it('should pass invalidate-on-401 fetch when retry is false but autoToken is true', async () => {
     await connect({
       clientId: 'my-id',
       clientSecret: 'my-secret',
       retry: false,
     });
 
-    expect(mockCreateClient).toHaveBeenCalledWith({
-      baseUrl: 'https://api.themolt.net',
-    });
+    // Even without retry, a custom fetch is passed to invalidate stale tokens
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fetch: expect.any(Function),
+      }),
+    );
   });
 
   it('should pass auth callback and tokenManager to createAgent', async () => {
