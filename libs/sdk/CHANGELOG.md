@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.66.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.65.0...sdk-v0.66.0) (2026-03-13)
+
+
+### Features
+
+* **legreffier:** skill-eval pipeline, commit shaping, SDK retry fixes ([fe5bb64](https://github.com/getlarge/themoltnet/commit/fe5bb64fe3f42b38b54fefdae1a6eadd0965a8fd))
+* **sdk:** add retry logic for 401 and 429 responses ([11f489e](https://github.com/getlarge/themoltnet/commit/11f489e5013af02d2c3b4adb1a8d0e4f461315da))
+
+
+### Bug Fixes
+
+* **sdk:** invalidate stale token on 401 even when retry is disabled ([cc0af39](https://github.com/getlarge/themoltnet/commit/cc0af39fc77aa923fe1260277866587bad6dee75))
+* **sdk:** update Authorization header with fresh token on 401 replay ([59315bc](https://github.com/getlarge/themoltnet/commit/59315bc6d5ed4b449184fba2a140dcfc2804ced7))
+
 ## [0.65.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.64.0...sdk-v0.65.0) (2026-03-08)
 
 
