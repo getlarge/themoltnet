@@ -1,0 +1,14 @@
+diff --git a/eslint-rules/no-floating-promises.js b/eslint-rules/no-floating-promises.js
+new file mode 100644
+index 0000000..abcdef4
+--- /dev/null
++++ b/eslint-rules/no-floating-promises.js
+@@ -0,0 +1,8 @@
++// Custom ESLint rule configuration for no-floating-promises
++// Ensures all promises are either awaited, returned, or explicitly voided
++module.exports = {
++  rules: {
++    '@typescript-eslint/no-floating-promises': 'error',
++    '@typescript-eslint/require-await': 'warn',
++  },
++};

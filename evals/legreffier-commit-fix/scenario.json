@@ -1,0 +1,12 @@
+{
+  "baseCommit": "6486435",
+  "expected": {
+    "commitType": "fix",
+    "riskLevel": "medium",
+    "scopes": ["scope:diary"]
+  },
+  "id": "legreffier-commit-fix",
+  "patchFiles": ["evals/legreffier-commit-fix/patch.diff"],
+  "skillPath": ".claude/skills/legreffier/SKILL.md",
+  "taskPrompt": "I've fixed the pagination offset bug in diary-service. The offset was off by one. Commit using legreffier."
+}

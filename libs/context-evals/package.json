@@ -12,6 +12,22 @@
     "./pipeline": {
       "import": "./src/pipeline.ts",
       "types": "./src/pipeline.ts"
+    },
+    "./pipeline-shared": {
+      "import": "./src/pipeline-shared.ts",
+      "types": "./src/pipeline-shared.ts"
+    },
+    "./process": {
+      "import": "./src/process.ts",
+      "types": "./src/process.ts"
+    },
+    "./config": {
+      "import": "./src/config.ts",
+      "types": "./src/config.ts"
+    },
+    "./skill-adapter": {
+      "import": "./src/skill-adapter.ts",
+      "types": "./src/skill-adapter.ts"
     }
   },
   "scripts": {

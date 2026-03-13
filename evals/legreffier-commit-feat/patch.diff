@@ -1,0 +1,31 @@
+diff --git a/libs/observability/src/health.ts b/libs/observability/src/health.ts
+new file mode 100644
+index 0000000..abcdef1
+--- /dev/null
++++ b/libs/observability/src/health.ts
+@@ -0,0 +1,22 @@
++/**
++ * Health detail helper — returns structured health info for
++ * downstream monitoring dashboards.
++ */
++
++export interface HealthDetail {
++  service: string;
++  version: string;
++  uptime: number;
++  checks: Record<string, { status: 'ok' | 'degraded' | 'down'; latencyMs?: number }>;
++}
++
++export function healthDetail(
++  service: string,
++  version: string,
++  startTime: number,
++  checks: HealthDetail['checks'] = {},
++): HealthDetail {
++  return {
++    service,
++    version,
++    uptime: Date.now() - startTime,
++    checks,
++  };
++}

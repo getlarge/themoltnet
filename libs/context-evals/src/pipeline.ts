@@ -23,19 +23,11 @@
  *   GPACK_AGENT_MODEL          model string (default: gpt-4o-mini)
  */
 
-import { createHash } from 'node:crypto';
 import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import {
-  ax,
-  AxAI,
-  AxAIAnthropicModel,
-  AxAIGoogleGeminiModel,
-  AxAIOpenAIModel,
-  AxGEPA,
-} from '@ax-llm/ax';
+import { ax, AxGEPA } from '@ax-llm/ax';
 import { compileDiary, listDiaries } from '@moltnet/api-client';
 import { type Static, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
@@ -43,8 +35,17 @@ import { Value } from '@sinclair/typebox/value';
 import { MoltNetContextAdapter } from './adapter.js';
 import { createAuthedClient } from './client.js';
 import { loadContextEvalsConfig } from './config.js';
-import type { EvalTrace, GpackTask } from './evaluate.js';
-import { execFileText } from './process.js';
+import type { GpackTask } from './evaluate.js';
+import {
+  buildAI,
+  buildAverage,
+  buildCacheKey,
+  loadEnvLocal,
+  loadPackFile,
+  resolveRepoRoot,
+  str,
+  writeDebugArtifact,
+} from './pipeline-shared.js';
 
 // ── Args ──────────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ const { values } = parseArgs({
     'diary-id': { type: 'string' },
     'ai-key': { type: 'string' },
     model: { type: 'string' },
+    'teacher-model': { type: 'string' },
     'claude-model': { type: 'string', default: 'claude-sonnet-4-6' },
     'max-evals': { type: 'string', default: '30' },
     'num-trials': { type: 'string', default: '8' },
@@ -71,18 +73,8 @@ const { values } = parseArgs({
   strict: false,
 });
 
-const str = (v: unknown): string => (typeof v === 'string' ? v : '');
-const repoRoot = (
-  await execFileText('git', ['rev-parse', '--show-toplevel'])
-).trim();
-const envLocalPath = resolve(repoRoot, '.env.local');
-
-try {
-  await access(envLocalPath);
-  process.loadEnvFile(envLocalPath);
-} catch {
-  // optional
-}
+const repoRoot = await resolveRepoRoot();
+await loadEnvLocal(repoRoot);
 const envConfig = loadContextEvalsConfig();
 
 const evalArg = str(values['eval']);
@@ -122,7 +114,8 @@ const aiKey =
   envConfig.ANTHROPIC_API_KEY ||
   envConfig.DASHSCOPE_API_KEY ||
   '';
-const reflectionModel = str(values['model']);
+const studentModel = str(values['model']);
+const teacherModel = str(values['teacher-model']);
 const claudeModel =
   str(values['claude-model']) ||
   envConfig.GPACK_AGENT_MODEL ||
@@ -502,94 +495,6 @@ async function compileSeedPack(
     .join('\n');
 }
 
-interface DebugTraceArtifact {
-  phase: 'baseline' | 'final';
-  evals: string[];
-  scores: number[];
-  averageScore: number;
-  traces: EvalTrace[];
-}
-
-function buildAverage(scores: number[]): number {
-  return (
-    scores.reduce((sum, score) => sum + score, 0) / Math.max(1, scores.length)
-  );
-}
-
-async function writeDebugArtifact(
-  artifactName: string,
-  artifact: DebugTraceArtifact,
-): Promise<void> {
-  const outDir = resolve(repoRoot, 'evals', 'runs');
-  await mkdir(outDir, { recursive: true });
-  const outPath = resolve(outDir, artifactName);
-  await writeFile(outPath, JSON.stringify(artifact, null, 2), 'utf8');
-  console.log(`[gpack] debug traces saved to ${outPath}`);
-}
-
-async function loadPackFile(packFile: string): Promise<string> {
-  const resolvedPath = resolve(repoRoot, packFile);
-  return readFile(resolvedPath, 'utf8');
-}
-
-// ── AI provider ───────────────────────────────────────────────────────────────
-
-// Qwen via DashScope OpenAI-compatible endpoint
-const QWEN_API_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
-const QWEN_DEFAULT_MODEL = 'qwen-plus' as const;
-
-function buildAI(): AxAI {
-  const key = aiKey;
-  if (!key) {
-    throw new Error(
-      'No AI key found. Set GOOGLE_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or DASHSCOPE_API_KEY, or pass --ai-key',
-    );
-  }
-
-  // Google Gemini (key starts with "AIza")
-  if (key.startsWith('AIza') || envConfig.GOOGLE_API_KEY === key) {
-    return AxAI.create({
-      name: 'google-gemini',
-      apiKey: key,
-      config: {
-        model: (reflectionModel ||
-          AxAIGoogleGeminiModel.Gemini20Flash) as AxAIGoogleGeminiModel,
-      },
-    });
-  }
-
-  // Qwen / DashScope key (starts with "sk-" but routed via dashscope)
-  if (envConfig.DASHSCOPE_API_KEY === key) {
-    return AxAI.create({
-      name: 'openai',
-      apiKey: key,
-      apiURL: QWEN_API_URL,
-      config: {
-        model: (reflectionModel || QWEN_DEFAULT_MODEL) as AxAIOpenAIModel,
-      },
-    });
-  }
-
-  if (key.startsWith('sk-ant-') || envConfig.ANTHROPIC_API_KEY === key) {
-    return AxAI.create({
-      name: 'anthropic',
-      apiKey: key,
-      config: {
-        model: (reflectionModel ||
-          AxAIAnthropicModel.Claude35Haiku) as AxAIAnthropicModel,
-      },
-    });
-  }
-
-  return AxAI.create({
-    name: 'openai',
-    apiKey: key,
-    config: {
-      model: (reflectionModel || AxAIOpenAIModel.GPT4OMini) as AxAIOpenAIModel,
-    },
-  });
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -625,7 +530,9 @@ async function main() {
       : [{ ...tasks[0] }, { ...tasks[0], id: `${tasks[0].id}-replica` }];
 
   const adapter = new MoltNetContextAdapter({ verbose, claudeModel });
-  const explicitPack = packFileArg ? await loadPackFile(packFileArg) : '';
+  const explicitPack = packFileArg
+    ? await loadPackFile(repoRoot, packFileArg)
+    : '';
 
   if (runBaseline) {
     if (packFileArg) {
@@ -643,6 +550,7 @@ async function main() {
     const averageScore = buildAverage(result.scores);
     if (debugTraces) {
       await writeDebugArtifact(
+        repoRoot,
         `${packFileArg ? 'gpack-pack' : 'gpack-baseline'}-${Date.now()}.json`,
         {
           phase: 'baseline',
@@ -701,8 +609,14 @@ async function main() {
   }
   console.log(`[gpack] seed pack: ${seedPack.length} chars`);
 
-  // Build the student AI for GEPA reflection
-  const studentAI = buildAI();
+  // Build AI models for GEPA optimization.
+  // studentAI: cheap model the ax() program targets (passthrough in our case).
+  // teacherAI: more capable model that proposes improved instructions during
+  //            reflection. Optional but recommended for better optimization.
+  const studentAI = buildAI({ aiKey, model: studentModel });
+  const teacherAI = teacherModel
+    ? buildAI({ aiKey, model: teacherModel })
+    : undefined;
 
   // Build a passthrough ax() program with the seed pack as its instruction.
   // GEPA extracts getBaseInstruction() from the program's instruction text,
@@ -714,6 +628,7 @@ async function main() {
 
   const optimizer = new AxGEPA({
     studentAI,
+    ...(teacherAI ? { teacherAI } : {}),
     numTrials,
     verbose,
     seed: 42,
@@ -760,10 +675,7 @@ async function main() {
       const task = taskById.get(taskId);
       if (!task) return 0;
       const packContent = getCurrentInstruction();
-      const cacheKey = `${task.id}:${createHash('sha256')
-        .update(packContent)
-        .digest('hex')
-        .slice(0, 16)}`;
+      const cacheKey = buildCacheKey(task.id, packContent);
       const cached = metricCache.get(cacheKey);
       if (cached !== undefined) return cached;
 
@@ -802,7 +714,7 @@ async function main() {
   );
   const finalAvg = buildAverage(finalEval.scores);
   if (debugTraces) {
-    await writeDebugArtifact(`gpack-final-${Date.now()}.json`, {
+    await writeDebugArtifact(repoRoot, `gpack-final-${Date.now()}.json`, {
       phase: 'final',
       evals: evalInputs.map((input) => input.name),
       scores: finalEval.scores,

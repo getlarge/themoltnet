@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { SDKMessage, Settings } from '@anthropic-ai/claude-agent-sdk';
+import type {
+  McpServerConfig,
+  SDKMessage,
+  Settings,
+} from '@anthropic-ai/claude-agent-sdk';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 
 import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
@@ -13,6 +17,8 @@ export interface ClaudeQueryOptions {
   maxTurns: number;
   clientApp: string;
   stderr?: (data: string) => void;
+  mcpServers?: Record<string, McpServerConfig>;
+  extraEnv?: Record<string, string>;
 }
 
 export async function createClaudeQuery({
@@ -22,6 +28,8 @@ export async function createClaudeQuery({
   maxTurns,
   clientApp,
   stderr,
+  mcpServers,
+  extraEnv,
 }: ClaudeQueryOptions): Promise<AsyncIterable<SDKMessage> & { close(): void }> {
   const config = loadContextEvalsConfig();
   const resolvedModel =
@@ -50,26 +58,27 @@ export async function createClaudeQuery({
       persistSession: false,
       includePartialMessages: false,
       maxTurns,
-      // settingSources: ['local'],
+      settingSources: ['project'],
       // Flag-layer settings override project/local file settings.
       // Disable hooks so worktree SessionStart / PreToolUse hooks from
       // .claude/settings.json don't fire (they depend on env vars and
       // scripts that may not work inside an eval worktree).
-      // TODO add a dedicated eval MCP profile so Claude Code
-      // can see the minimal Legreffier/MoltNet servers required for context-pack
-      // workflows without inheriting the full interactive project MCP setup.
       settings: { ...localSettings, disableAllHooks: true },
+      ...(mcpServers ? { mcpServers } : {}),
+      strictMcpConfig: true,
       debug: true,
       env: {
         ...runtimeEnv,
         CLAUDE_AGENT_SDK_CLIENT_APP: clientApp,
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+        ENABLE_TOOL_SEARCH: '0',
         ...(config.ANTHROPIC_API_KEY
           ? { ANTHROPIC_API_KEY: config.ANTHROPIC_API_KEY }
           : {}),
         ...(config.ANTHROPIC_AUTH_TOKEN
           ? { ANTHROPIC_AUTH_TOKEN: config.ANTHROPIC_AUTH_TOKEN }
           : {}),
+        ...extraEnv,
       },
       ...(stderr ? { stderr } : {}),
     },

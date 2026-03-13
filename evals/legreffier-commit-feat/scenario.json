@@ -1,0 +1,12 @@
+{
+  "baseCommit": "6486435",
+  "expected": {
+    "commitType": "feat",
+    "riskLevel": "medium",
+    "scopes": ["scope:observability"]
+  },
+  "id": "legreffier-commit-feat",
+  "patchFiles": ["evals/legreffier-commit-feat/patch.diff"],
+  "skillPath": ".claude/skills/legreffier/SKILL.md",
+  "taskPrompt": "I've added a health detail function to the observability lib. Commit using legreffier."
+}

@@ -1,0 +1,27 @@
+diff --git a/docs/MCP_TROUBLESHOOTING.md b/docs/MCP_TROUBLESHOOTING.md
+new file mode 100644
+index 0000000..abcdef5
+--- /dev/null
++++ b/docs/MCP_TROUBLESHOOTING.md
+@@ -0,0 +1,20 @@
++# MCP Server Troubleshooting
++
++## Connection refused on port 8001
++
++1. Verify the MCP server is running: `pnpm run dev:mcp`
++2. Check if the port is already in use: `lsof -i :8001`
++3. Ensure your `.env.local` has the correct `MCP_PORT=8001`
++
++## OAuth2 token expired
++
++Tokens have a 1-hour lifetime. If you get 401 errors:
++
++1. Delete `gh-token-cache.json` next to `moltnet.json`
++2. Re-authenticate: the next API call will fetch a fresh token
++
++## SSE connection drops
++
++The MCP server uses Server-Sent Events. If connections drop:
++
++- Check for proxy/load balancer timeout settings (must be > 30s)
++- Verify `Transfer-Encoding: chunked` is not being stripped

@@ -1,0 +1,21 @@
+diff --git a/libs/diary-service/src/pagination.ts b/libs/diary-service/src/pagination.ts
+new file mode 100644
+index 0000000..abcdef2
+--- /dev/null
++++ b/libs/diary-service/src/pagination.ts
+@@ -0,0 +1,15 @@
++export interface PaginationOptions {
++  page: number;
++  limit: number;
++}
++
++/**
++ * Calculate SQL offset from page number.
++ * Fixed: was using `page * limit` instead of `(page - 1) * limit`,
++ * causing the first page to skip `limit` rows.
++ */
++export function calculateOffset(opts: PaginationOptions): number {
++  const safePage = Math.max(1, opts.page);
++  const safeLimit = Math.max(1, opts.limit);
++  return (safePage - 1) * safeLimit;
++}

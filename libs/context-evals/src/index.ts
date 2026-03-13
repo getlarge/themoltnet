@@ -15,3 +15,13 @@ export {
   injectPack,
   removeWorktree,
 } from './evaluate.js';
+export { execFileText, runShellCommand } from './process.js';
+export { SkillEvalAdapter } from './skill-adapter.js';
+export {
+  type SkillEvalAdapterOptions,
+  type SkillEvalTask,
+  SkillEvalTaskSchema,
+  type SkillEvalTrace,
+  type SkillScoreContext,
+  type SkillScorer,
+} from './skill-types.js';

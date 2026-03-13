@@ -1,0 +1,26 @@
+diff --git a/apps/rest-api/src/rate-limiter.ts b/apps/rest-api/src/rate-limiter.ts
+new file mode 100644
+index 0000000..abcdef6
+--- /dev/null
++++ b/apps/rest-api/src/rate-limiter.ts
+@@ -0,0 +1,18 @@
++/**
++ * Fixed: rate limiter was using seconds instead of milliseconds
++ * for the window duration, causing premature throttling.
++ */
++export interface RateLimitConfig {
++  windowMs: number;
++  maxRequests: number;
++}
++
++const counters = new Map<string, { count: number; resetAt: number }>();
++
++export function checkRateLimit(key: string, config: RateLimitConfig): boolean {
++  const now = Date.now();
++  const entry = counters.get(key);
++  if (!entry || now >= entry.resetAt) {
++    counters.set(key, { count: 1, resetAt: now + config.windowMs });
++    return true;
++  }
++  return ++entry.count <= config.maxRequests;
++}

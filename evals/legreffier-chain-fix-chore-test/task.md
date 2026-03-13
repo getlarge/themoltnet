@@ -1,0 +1,1 @@
+I have three patches to apply as a task chain: first a bugfix for the rate limiter, then a chore cleanup of error messages, then a regression test. Apply all three patches, then commit each one separately as a properly shaped task chain using legreffier. Use Task-Group, Task-Family, and Task-Completes trailers.

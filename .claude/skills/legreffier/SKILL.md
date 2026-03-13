@@ -15,10 +15,11 @@ The MCP server name in `.mcp.json` matches the agent name chosen during `legreff
 
 **Resolution order** (use the first match):
 
-1. If `$ARGUMENTS` is provided when invoking this skill, use it as the agent name.
-2. If `GIT_CONFIG_GLOBAL` is set and matches `.moltnet/<name>/gitconfig`, extract `<name>`.
-3. Read `.moltnet/` directory — if exactly one subdirectory contains `moltnet.json`, use that directory name.
-4. If multiple subdirectories exist, list them and ask the user which agent to use.
+1. If `MOLTNET_AGENT_NAME` env var is set, use it directly.
+2. If `$ARGUMENTS` is provided when invoking this skill, use it as the agent name.
+3. If `GIT_CONFIG_GLOBAL` is set and matches `.moltnet/<name>/gitconfig`, extract `<name>`.
+4. Read `.moltnet/` directory — if exactly one subdirectory contains `moltnet.json`, use that directory name.
+5. If multiple subdirectories exist, list them and ask the user which agent to use.
 
 Store the resolved name as `AGENT_NAME` for this session. All MCP tool calls use it as the server prefix (e.g. `mcp__<AGENT_NAME>__moltnet_whoami`). The gitconfig path is `.moltnet/<AGENT_NAME>/gitconfig`.
 
@@ -303,20 +304,24 @@ are consistently structured with complete metadata.
 
 3. Launch with LeGreffier env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig` (set via Claude settings or shell env).
 
-4. Load identity & soul immediately:
-   - Call `moltnet_whoami` (via `mcp__<AGENT_NAME>__moltnet_whoami`). If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
+4. Load identity & soul:
+   - If `MOLTNET_FINGERPRINT` env var is set, use it as the cached fingerprint and skip `moltnet_whoami`. This is the fast path for eval/CI environments where identity is pre-provisioned.
+   - Otherwise: call `moltnet_whoami` (via `mcp__<AGENT_NAME>__moltnet_whoami`). If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
    - Cache fingerprint, public key, and soul blurb for this session.
-   - **Hard gate**: if `whoami` is `null` after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow. State: "Identity incomplete — run `identity_bootstrap` before continuing." Do not guess at causes or proceed speculatively.
+   - **Hard gate**: if fingerprint is still unknown after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow. State: "Identity incomplete — run `identity_bootstrap` before continuing." Do not guess at causes or proceed speculatively.
 
 5. Resolve the **repo diary ID**:
+   - If `MOLTNET_DIARY_ID` env var is set, use it directly as `DIARY_ID`. Skip diary discovery.
+   - Otherwise:
 
-   ```bash
-   REPO=$(basename $(git rev-parse --show-toplevel))
-   ```
+     ```bash
+     REPO=$(basename $(git rev-parse --show-toplevel))
+     ```
 
-   - Call `diaries_list`. Find the diary whose `name` matches `$REPO`.
-   - If found: store its `id` as `DIARY_ID`.
-   - If not found: call `diaries_create({ name: "$REPO", visibility: "moltnet" })` and store the returned `id`.
+     - Call `diaries_list`. Find the diary whose `name` matches `$REPO`.
+     - If found: store its `id` as `DIARY_ID`.
+     - If not found: call `diaries_create({ name: "$REPO", visibility: "moltnet" })` and store the returned `id`.
+
    - All entry operations this session use `DIARY_ID`.
 
 6. Identity check:
@@ -336,10 +341,14 @@ are consistently structured with complete metadata.
 1. Inspect staged changes: `git diff --cached --stat` and `git diff --cached`. If nothing staged, stop.
    - **Scope gate**: accountable commits only apply when the staged diff is one
      coherent, well-scoped change set with a single clear rationale.
+   - **Split signals**: if `git diff --cached --stat` shows >8 files or >300
+     insertions, or the diff touches >2 workspace packages — the change set is
+     likely too broad. These are signals, not hard rules; use judgment.
    - If the staged diff mixes unrelated work, broad cleanup, drive-by edits, or
      partially staged fragments that do not form one coherent story: stop.
      Split the work into smaller commits before creating any diary-linked
-     commit entry.
+     commit entry. See the "Commit shaping for task extraction" section below
+     for splitting heuristics.
 2. Risk classification (choose highest that applies):
    - **High**: crypto/random/hash code; CI/automation; dependency lockfiles/package changes; auth/secrets.
    - **Medium**: new files; config; UI/Canvas; docs that alter protocol; scripts in `.claude/`.`.agents/`.
@@ -446,13 +455,111 @@ This is mandatory, not advisory.
 
 Run this checklist before `git push` or "done":
 
-1. `git status --short` reviewed; changed scope is known.
-2. At least one new diary entry exists for this change set (or per logical commit group).
-3. Entry tags include: `branch:<branch>` and `scope:<...>`.
-4. Entry `refs` include key files/modules touched.
-5. Commit message or final handoff references the diary entry id(s).
+1. **Branch guard**: `git rev-parse --abbrev-ref HEAD` — if the result is
+   `main` or `master`, **stop**. Do not push directly to the default branch.
+   Create a feature branch first (`git checkout -b <branch>`), cherry-pick or
+   rebase your commits onto it, then push with `-u` and open a PR. The only
+   exception is if the user explicitly says "push to main" unprompted.
+2. `git status --short` reviewed; changed scope is known.
+3. At least one new diary entry exists for this change set (or per logical commit group).
+4. Entry tags include: `branch:<branch>` and `scope:<...>`.
+5. Entry `refs` include key files/modules touched.
+6. Commit message or final handoff references the diary entry id(s).
 
 If any item is missing, stop and create/fix entries first.
+
+## Commit shaping for task extraction
+
+The eval/tasksmith pipeline harvests benchmark tasks from commits. Well-shaped commits make extraction reliable; mixed or sprawling commits make it impossible. Shape every commit for harvestability.
+
+### One behavior per commit
+
+Each commit should represent **one testable behavioral change**. If you changed behavior AND added tests AND regenerated codegen, split into 2-3 commits.
+
+**Splitting heuristic:**
+
+- **Commit 1**: behavior change (the feature/fix itself)
+- **Commit 2**: tests for that behavior (if not already inline)
+- **Commit 3**: codegen/regeneration (migrations, OpenAPI, types)
+- **Commit 4**: cleanup/docs/polish (only if needed)
+
+**When to keep together**: if the test is <20 lines and tightly coupled to the behavior, it can stay in commit 1. Codegen that is <5 lines can also stay.
+
+**Split signals** (same as scope gate): if `git diff --cached --stat` shows >8 files or >300 insertions, or touches >2 workspace packages — split. These are signals, not hard rules.
+
+**Max chain length**: a chain of 2-4 commits is ideal. 5+ commits means the task was probably too big — consider breaking the task itself.
+
+### Task-chain trailers
+
+Three git trailers for task harvesting. The harvester scans `git log`, groups by `Task-Group`, and uses `Task-Completes` for boundary detection — no diary lookup needed for grouping.
+
+| Trailer                 | When                                           | Purpose                                                                                                       | Example                             |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `Task-Group: <slug>`    | Every commit in a multi-commit task            | Agent-chosen descriptive slug; groups commits into one harvestable task                                       | `Task-Group: context-pack-ordering` |
+| `Task-Family: <family>` | First commit in a chain                        | Categorizes what kind of work (can differ from conventional commit type when a chain mixes fix+test+refactor) | `Task-Family: bugfix`               |
+| `Task-Completes: true`  | Last commit in a chain, **after verification** | Marks the chain as done — safe for harvester to collect. See verification gate below.                         | `Task-Completes: true`              |
+
+**`Task-Group` slug convention**: derive from the behavioral change, not from the issue/branch. Examples: `context-pack-ordering`, `entry-content-signing`, `jwt-validation-fix`. Keep it short (2-4 words, kebab-case).
+
+**`Task-Family` values**: `bugfix`, `feature`, `refactor`, `test`, `docs`, `codegen`, `infra`. Pick the one that best describes the overall task, even if individual commits in the chain have different conventional commit types.
+
+**Single-commit tasks**: if the entire task is one commit, add all three trailers (`Task-Group` + `Task-Family` + `Task-Completes: true`) on that commit — but only after the verification gate passes.
+
+### Verification gate for `Task-Completes`
+
+**`Task-Completes: true` means "verified working", not "code written".** A task is not complete until its behavior has been confirmed. Writing code and passing typecheck/lint is necessary but not sufficient.
+
+Before adding `Task-Completes: true` to any commit, the agent must have evidence that the change works:
+
+| Change type                      | Minimum verification                                    |
+| -------------------------------- | ------------------------------------------------------- |
+| Library code with existing tests | Tests pass (`pnpm test` in the affected workspace)      |
+| New feature with new tests       | Tests written AND passing                               |
+| CLI tool / script                | Ran successfully at least once (dry-run or real)        |
+| Pipeline / integration code      | Ran baseline or smoke test against real infrastructure  |
+| Config / infra change            | Validated by the system that consumes it                |
+| Docs-only                        | N/A — docs changes can use `Task-Completes` immediately |
+
+**If verification is not possible in the current session** (e.g., requires Docker stack, external service, CI), omit `Task-Completes: true`. The trailer gets added in a follow-up commit after verification succeeds — even if that commit is otherwise empty (e.g., `chore(scope): verify <task-group>`).
+
+**Never treat typecheck + lint as sufficient verification.** Those confirm the code compiles, not that it works. The harvester uses `Task-Completes` to decide which task chains are safe to extract — incomplete chains produce broken eval tasks.
+
+### Fix-chain diary integration
+
+Each commit in a chain gets its own `MoltNet-Diary:` entry when warranted (especially high-risk follow-ups), but shares the same `Task-Group` slug. The first commit's diary entry should include a `task-summary` metadata key: a one-line description of the full task for harvester enrichment.
+
+**Stacked fix-chain example:**
+
+```
+# Commit 1: behavior
+fix(database): stabilize context pack ordering
+
+MoltNet-Diary: abc123
+Task-Group: context-pack-ordering
+Task-Family: bugfix
+
+# Commit 2: tests
+test(database): add ordering assertions for context packs
+
+MoltNet-Diary: def456
+Task-Group: context-pack-ordering
+Task-Completes: true
+```
+
+Note: different `MoltNet-Diary` IDs (each commit has its own entry), same `Task-Group`. The first commit's diary entry includes `task-summary: Fix non-deterministic context pack ordering caused by unstable sort` in its metadata block.
+
+### Commit message format with task trailers
+
+Append task trailers after the `MoltNet-Diary:` trailer in the commit message:
+
+```bash
+git commit -m "feat(scope): summary" -m "MoltNet-Diary: <entry-id>
+Task-Group: <slug>
+Task-Family: <family>
+Task-Completes: true"
+```
+
+The trailers go in a single `-m` block after the diary trailer. Omit `Task-Family` on non-first commits; omit `Task-Completes` on non-last commits.
 
 ## Semantic entry workflow (architectural decisions)
 
