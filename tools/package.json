@@ -14,12 +14,14 @@
     "seed-feed": "tsx src/seed-public-feed.ts",
     "eval:setup": "tsx src/skill-evals/legreffier/eval-setup.ts",
     "eval:teardown": "tsx src/skill-evals/legreffier/eval-setup.ts --teardown",
+    "gpack:skill-eval": "tsx src/skill-evals/legreffier/skill-eval-pipeline.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@huggingface/transformers": "catalog:",
+    "@ax-llm/ax": "catalog:",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/context-evals": "workspace:*",
@@ -29,6 +31,7 @@
     "@moltnet/rest-api": "workspace:*",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
+    "@sinclair/typebox": "catalog:",
     "smol-toml": "catalog:"
   },
   "devDependencies": {
