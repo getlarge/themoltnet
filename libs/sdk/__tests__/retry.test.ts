@@ -299,6 +299,43 @@ describe('createRetryFetch', () => {
     });
   });
 
+  describe('401 header refresh', () => {
+    it('should update Authorization header with fresh token on replay', async () => {
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse(401, { error: 'unauthorized' }))
+        .mockResolvedValueOnce(tokenResponse('fresh-token'))
+        .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+
+      const tm = createTokenManager();
+      const retryFetch = createRetryFetch(tm, { maxAuthRetries: 1 });
+
+      await retryFetch('https://api.test/resource', {
+        headers: { Authorization: 'Bearer stale-token' },
+      });
+
+      // The replayed request (3rd fetch call) should have the fresh token
+      const replayCall = mockFetch.mock.calls[2]!;
+      const replayHeaders = new Headers(replayCall[1]?.headers as HeadersInit);
+      expect(replayHeaders.get('Authorization')).toBe('Bearer fresh-token');
+    });
+
+    it('should add Authorization header on replay even if original had none', async () => {
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse(401, { error: 'unauthorized' }))
+        .mockResolvedValueOnce(tokenResponse('fresh-token'))
+        .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+
+      const tm = createTokenManager();
+      const retryFetch = createRetryFetch(tm, { maxAuthRetries: 1 });
+
+      await retryFetch('https://api.test/resource');
+
+      const replayCall = mockFetch.mock.calls[2]!;
+      const replayHeaders = new Headers(replayCall[1]?.headers as HeadersInit);
+      expect(replayHeaders.get('Authorization')).toBe('Bearer fresh-token');
+    });
+  });
+
   describe('default options', () => {
     it('should use defaults when no options provided', async () => {
       // 401 → re-auth → 200 (default maxAuthRetries is 1)

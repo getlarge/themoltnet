@@ -41,19 +41,22 @@ export function createRetryFetch(
   return async (input: RequestInfo | URL, init?: RequestInit) => {
     let authRetries = 0;
 
-    const doFetch = async (): Promise<Response> => {
-      const response = await rateLimitFetch(input, init);
+    const doFetch = async (fetchInit?: RequestInit): Promise<Response> => {
+      const response = await rateLimitFetch(input, fetchInit);
 
       if (response.status === 401 && authRetries < maxAuthRetries) {
         authRetries++;
         tokenManager.invalidate();
-        await tokenManager.authenticate();
-        return doFetch();
+        const freshToken = await tokenManager.authenticate();
+        // Rebuild headers with the fresh token before replaying
+        const headers = new Headers(fetchInit?.headers);
+        headers.set('Authorization', `Bearer ${freshToken}`);
+        return doFetch({ ...fetchInit, headers });
       }
 
       return response;
     };
 
-    return doFetch();
+    return doFetch(init);
   };
 }
