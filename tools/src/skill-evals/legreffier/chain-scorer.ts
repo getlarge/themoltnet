@@ -69,7 +69,7 @@ export function scoreChainTiers(input: ChainScoreInput): CommitScoreResult {
     const taskCompletesCommits = commitMessages.filter((msg) =>
       /Task-Completes:\s*true/.test(msg),
     );
-    const lastCommit = commitMessages[0]; // git log returns newest first
+    const lastCommit = commitMessages[commitMessages.length - 1];
     const hasTaskCompletes = check(
       'should',
       taskCompletesCommits.length === 1 &&
