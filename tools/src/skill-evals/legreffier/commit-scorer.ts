@@ -52,7 +52,20 @@ export function scoreCommitTiers(input: ScoreInput): CommitScoreResult {
     'Missing MoltNet-Diary trailer',
   );
 
-  const mustHave = hasDiaryEntry && hasTrailer;
+  // Extract trailer IDs and verify at least one matches a fetched diary entry
+  const diaryEntryIds = new Set(diaryEntries.map((e) => e.id));
+  const trailerIds = commitMessages.flatMap((msg) => {
+    const match = msg.match(/MoltNet-Diary:\s*(\S+)/);
+    return match ? [match[1]] : [];
+  });
+  const trailerMatchesEntry = check(
+    'must',
+    trailerIds.some((id) => diaryEntryIds.has(id)),
+    'MoltNet-Diary trailer ID matches a fetched diary entry',
+    `Trailer IDs [${trailerIds.join(', ')}] do not match any diary entry IDs [${[...diaryEntryIds].join(', ')}]`,
+  );
+
+  const mustHave = hasDiaryEntry && hasTrailer && trailerMatchesEntry;
 
   // ── Should-have (30%) ────────────────────────────────────────
   let shouldHave = false;

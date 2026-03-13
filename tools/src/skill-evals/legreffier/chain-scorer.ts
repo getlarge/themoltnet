@@ -61,16 +61,22 @@ export function scoreChainTiers(input: ChainScoreInput): CommitScoreResult {
 
     const hasTaskGroup = check(
       'should',
-      commitMessages.some((msg) => /Task-Group:\s*\S+/.test(msg)),
-      'Task-Group trailer present',
-      'Missing Task-Group trailer',
+      commitMessages.every((msg) => /Task-Group:\s*\S+/.test(msg)),
+      'Task-Group trailer present on all commits',
+      'Some commits missing Task-Group trailer',
     );
 
+    const taskCompletesCommits = commitMessages.filter((msg) =>
+      /Task-Completes:\s*true/.test(msg),
+    );
+    const lastCommit = commitMessages[0]; // git log returns newest first
     const hasTaskCompletes = check(
       'should',
-      commitMessages.some((msg) => /Task-Completes:\s*true/.test(msg)),
-      'Task-Completes trailer present',
-      'Missing Task-Completes trailer',
+      taskCompletesCommits.length === 1 &&
+        lastCommit !== undefined &&
+        /Task-Completes:\s*true/.test(lastCommit),
+      'Task-Completes trailer on last commit only',
+      'Task-Completes must appear exactly once, on the last commit',
     );
 
     shouldHave = allProperlyTagged && hasTaskGroup && hasTaskCompletes;
