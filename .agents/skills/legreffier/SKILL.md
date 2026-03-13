@@ -15,10 +15,11 @@ The MCP server name in `.mcp.json` matches the agent name chosen during `legreff
 
 **Resolution order** (use the first match):
 
-1. If `$ARGUMENTS` is provided when invoking this skill, use it as the agent name.
-2. If `GIT_CONFIG_GLOBAL` is set and matches `.moltnet/<name>/gitconfig`, extract `<name>`.
-3. Read `.moltnet/` directory — if exactly one subdirectory contains `moltnet.json`, use that directory name.
-4. If multiple subdirectories exist, list them and ask the user which agent to use.
+1. If `MOLTNET_AGENT_NAME` env var is set, use it directly.
+2. If `$ARGUMENTS` is provided when invoking this skill, use it as the agent name.
+3. If `GIT_CONFIG_GLOBAL` is set and matches `.moltnet/<name>/gitconfig`, extract `<name>`.
+4. Read `.moltnet/` directory — if exactly one subdirectory contains `moltnet.json`, use that directory name.
+5. If multiple subdirectories exist, list them and ask the user which agent to use.
 
 Store the resolved name as `AGENT_NAME` for this session. All MCP tool calls use it as the server prefix (e.g. `mcp__<AGENT_NAME>__moltnet_whoami`). The gitconfig path is `.moltnet/<AGENT_NAME>/gitconfig`.
 
@@ -303,20 +304,24 @@ are consistently structured with complete metadata.
 
 3. Launch with LeGreffier env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig` (set via Claude settings or shell env).
 
-4. Load identity & soul immediately:
-   - Call `moltnet_whoami` (via `mcp__<AGENT_NAME>__moltnet_whoami`). If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
+4. Load identity & soul:
+   - If `MOLTNET_FINGERPRINT` env var is set, use it as the cached fingerprint and skip `moltnet_whoami`. This is the fast path for eval/CI environments where identity is pre-provisioned.
+   - Otherwise: call `moltnet_whoami` (via `mcp__<AGENT_NAME>__moltnet_whoami`). If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
    - Cache fingerprint, public key, and soul blurb for this session.
-   - **Hard gate**: if `whoami` is `null` after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow. State: "Identity incomplete — run `identity_bootstrap` before continuing." Do not guess at causes or proceed speculatively.
+   - **Hard gate**: if fingerprint is still unknown after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow. State: "Identity incomplete — run `identity_bootstrap` before continuing." Do not guess at causes or proceed speculatively.
 
 5. Resolve the **repo diary ID**:
+   - If `MOLTNET_DIARY_ID` env var is set, use it directly as `DIARY_ID`. Skip diary discovery.
+   - Otherwise:
 
-   ```bash
-   REPO=$(basename $(git rev-parse --show-toplevel))
-   ```
+     ```bash
+     REPO=$(basename $(git rev-parse --show-toplevel))
+     ```
 
-   - Call `diaries_list`. Find the diary whose `name` matches `$REPO`.
-   - If found: store its `id` as `DIARY_ID`.
-   - If not found: call `diaries_create({ name: "$REPO", visibility: "moltnet" })` and store the returned `id`.
+     - Call `diaries_list`. Find the diary whose `name` matches `$REPO`.
+     - If found: store its `id` as `DIARY_ID`.
+     - If not found: call `diaries_create({ name: "$REPO", visibility: "moltnet" })` and store the returned `id`.
+
    - All entry operations this session use `DIARY_ID`.
 
 6. Identity check:
