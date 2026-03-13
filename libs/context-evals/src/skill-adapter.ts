@@ -95,6 +95,29 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
         );
 
         // 6. Score
+        if (task.expected === undefined) {
+          console.warn(
+            `[skill-eval] task=${task.id} skipped scoring: expected is undefined`,
+          );
+          outputs.push({ taskId: task.id, score: 0 });
+          scores.push(0);
+          if (captureTraces) {
+            trajectories.push({
+              taskId: task.id,
+              worktreeDir,
+              taskPrompt: task.taskPrompt,
+              executor: 'anthropic-sdk',
+              sessionId: agentResult.sessionId,
+              turnCount: agentResult.turnCount,
+              durationMs: agentResult.durationMs,
+              costUsd: agentResult.costUsd,
+              toolCallCount: agentResult.toolCallCount,
+              toolSummaries: agentResult.toolSummaries,
+              scoreResult: { warning: 'task.expected is undefined' },
+            });
+          }
+          continue;
+        }
         const scoreResult = await scorer.score(worktreeDir, task.expected, {
           baseCommit: task.baseCommit,
         });
@@ -167,7 +190,9 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
         const feedback =
           output.score >= 1
             ? `All criteria passed (score=${output.score.toFixed(2)})`
-            : scorer.toFeedback(trace?.scoreResult, task);
+            : trace?.scoreResult !== undefined && trace?.scoreResult !== null
+              ? scorer.toFeedback(trace.scoreResult, task)
+              : 'No score result available';
 
         dataset[component].push({
           Inputs: {
