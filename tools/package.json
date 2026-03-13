@@ -12,6 +12,8 @@
     "gpack": "tsx ../libs/context-evals/src/pipeline.ts",
     "compile-pack": "tsx src/compile-pack.ts",
     "seed-feed": "tsx src/seed-public-feed.ts",
+    "eval:setup": "tsx src/skill-evals/legreffier/eval-setup.ts",
+    "eval:teardown": "tsx src/skill-evals/legreffier/eval-setup.ts --teardown",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
@@ -25,6 +27,8 @@
     "@moltnet/database": "workspace:*",
     "@moltnet/mcp-server": "workspace:*",
     "@moltnet/rest-api": "workspace:*",
+    "@themoltnet/github-agent": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
     "smol-toml": "catalog:"
   },
   "devDependencies": {

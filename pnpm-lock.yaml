@@ -1077,6 +1077,12 @@ importers:
       '@moltnet/rest-api':
         specifier: workspace:*
         version: link:../apps/rest-api
+      '@themoltnet/github-agent':
+        specifier: workspace:*
+        version: link:../packages/github-agent
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../libs/sdk
       smol-toml:
         specifier: 'catalog:'
         version: 1.6.0

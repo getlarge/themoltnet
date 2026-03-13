@@ -1,3 +1,7 @@
+# Eval environment
+.eval-env.json
+.moltnet/eval-agent/
+
 # Logs
 logs
 *.log
