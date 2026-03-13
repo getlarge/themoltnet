@@ -12,6 +12,10 @@
     "./pipeline": {
       "import": "./src/pipeline.ts",
       "types": "./src/pipeline.ts"
+    },
+    "./process": {
+      "import": "./src/process.ts",
+      "types": "./src/process.ts"
     }
   },
   "scripts": {
