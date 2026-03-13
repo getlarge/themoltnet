@@ -1,3 +1,4 @@
+import type { McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 import { type Static, Type } from '@sinclair/typebox';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export interface SkillScorer<TExpected = unknown, TScoreResult = unknown> {
 export interface SkillEvalAdapterOptions {
   preamble: string;
   epilogue: string;
-  mcpServers: Record<string, unknown>;
+  mcpServers: Record<string, McpServerConfig>;
   agentConfigDir: string;
   agentName: string;
   scorer: SkillScorer;
