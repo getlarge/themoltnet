@@ -90,9 +90,9 @@ describe('connect', () => {
       clientSecret: 'my-secret',
       apiUrl: 'https://custom.api.net',
     });
-    expect(mockCreateClient).toHaveBeenCalledWith({
-      baseUrl: 'https://custom.api.net',
-    });
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: 'https://custom.api.net' }),
+    );
     expect(mockCreateAgent).toHaveBeenCalledOnce();
     expect(agent).toBeDefined();
   });
@@ -200,25 +200,41 @@ describe('connect', () => {
     );
   });
 
-  it('should register 401 error interceptor when autoToken is true', async () => {
+  it('should pass retry fetch when autoToken is true', async () => {
     await connect({
       clientId: 'my-id',
       clientSecret: 'my-secret',
     });
 
-    const mockClient = mockCreateClient.mock.results[0]!.value;
-    expect(mockClient.interceptors.error.use).toHaveBeenCalledOnce();
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fetch: expect.any(Function),
+      }),
+    );
   });
 
-  it('should not register error interceptor when autoToken is false', async () => {
+  it('should not pass retry fetch when autoToken is false', async () => {
     await connect({
       clientId: 'my-id',
       clientSecret: 'my-secret',
       autoToken: false,
     });
 
-    const mockClient = mockCreateClient.mock.results[0]!.value;
-    expect(mockClient.interceptors.error.use).not.toHaveBeenCalled();
+    expect(mockCreateClient).toHaveBeenCalledWith({
+      baseUrl: 'https://api.themolt.net',
+    });
+  });
+
+  it('should not pass retry fetch when retry is false', async () => {
+    await connect({
+      clientId: 'my-id',
+      clientSecret: 'my-secret',
+      retry: false,
+    });
+
+    expect(mockCreateClient).toHaveBeenCalledWith({
+      baseUrl: 'https://api.themolt.net',
+    });
   });
 
   it('should pass auth callback and tokenManager to createAgent', async () => {

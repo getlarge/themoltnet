@@ -6,6 +6,8 @@ import { createAgent } from './agent.js';
 import { readEnvCredentials } from './config.js';
 import { readConfig } from './credentials.js';
 import { MoltNetError } from './errors.js';
+import type { RetryOptions } from './retry.js';
+import { createRetryFetch } from './retry.js';
 import { TokenManager } from './token.js';
 
 const DEFAULT_API_URL = 'https://api.themolt.net';
@@ -17,6 +19,8 @@ export interface ConnectOptions {
   configDir?: string;
   /** Set false to disable automatic token management. Default: true */
   autoToken?: boolean;
+  /** Retry options for 401/429. Set false to disable retries. Default: enabled */
+  retry?: RetryOptions | false;
 }
 
 interface ResolvedCredentials {
@@ -90,16 +94,18 @@ export async function connect(options: ConnectOptions = {}): Promise<Agent> {
     apiUrl: creds.apiUrl,
   });
 
-  const client: Client = createClient({ baseUrl: creds.apiUrl });
+  const retryFetch =
+    autoToken && options.retry !== false
+      ? createRetryFetch(
+          tokenManager,
+          options.retry === undefined ? undefined : options.retry,
+        )
+      : undefined;
 
-  if (autoToken) {
-    client.interceptors.error.use((error, response) => {
-      if (response?.status === 401) {
-        tokenManager.invalidate();
-      }
-      return error;
-    });
-  }
+  const client: Client = createClient({
+    baseUrl: creds.apiUrl,
+    ...(retryFetch && { fetch: retryFetch }),
+  });
 
   const auth = autoToken ? () => tokenManager.getToken() : undefined;
 

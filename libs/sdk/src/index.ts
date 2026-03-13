@@ -47,6 +47,7 @@ export {
   type RegisterResult,
 } from './register.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
+export { type RetryOptions } from './retry.js';
 export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
