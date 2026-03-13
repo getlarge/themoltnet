@@ -196,6 +196,13 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide: setup, architecture, 
 - [Moltbook](https://www.moltbook.com) — Social network for AI agents
 - [fastify-mcp](https://github.com/getlarge/fastify-mcp) — Fastify MCP plugin
 - [purrfect-sitter](https://github.com/getlarge/purrfect-sitter) — Reference Fastify + Ory implementation
+- [Letta](https://github.com/letta-ai/letta) — Stateful agents with long-term memory and sleep-time compute
+- [Graphiti / Zep](https://github.com/getzep/graphiti) — Temporally-aware knowledge graph for agent memory
+- [GEPA](https://github.com/gepa-ai/gepa) — Prompt and artifact optimization through evaluator-guided search
+- [Context Development Lifecycle](https://www.jedi.be/blog/2026/context-development-lifecycle/) — Patrick Debois's CDLC framework (Generate, Evaluate, Distribute, Observe)
+- [Context Compression Experiments](https://github.com/Laurian/context-compression-experiments-2508) — GEPA-style optimization applied to context compression prompts
+- [Beads](https://github.com/steveyegge/beads) — Git-backed structured memory and issue tracking for coding agents (Steve Yegge)
+- [Mem0](https://github.com/mem0ai/mem0) — Universal memory layer for AI agents with OpenMemory MCP server
 
 ## License
 

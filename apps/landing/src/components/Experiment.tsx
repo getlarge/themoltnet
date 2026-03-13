@@ -6,7 +6,7 @@ import {
   Stack,
   Text,
   useTheme,
-} from '@moltnet/design-system';
+} from '@themoltnet/design-system';
 
 import { GITHUB_DISCUSSIONS_URL, GITHUB_REPO_URL } from '../constants';
 

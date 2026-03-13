@@ -23,6 +23,7 @@ A package is publishable if it has a `files` field in `package.json` and is
 not marked `"private": true`. Current published packages:
 
 - `@themoltnet/sdk` (libs/sdk)
+- `@themoltnet/design-system` (libs/design-system)
 - `@themoltnet/cli` (packages/cli)
 - `@themoltnet/github-agent` (packages/github-agent)
 - `@themoltnet/legreffier` (packages/legreffier-cli)
@@ -106,7 +107,7 @@ node -e "import('<package-name>')"
 ### Workspace deps in dependencies (the legreffier incident)
 
 **What happened**: `@moltnet/api-client`, `@moltnet/crypto-service`, and
-`@moltnet/design-system` were listed in `dependencies` instead of
+`@themoltnet/design-system` were listed in `dependencies` instead of
 `devDependencies` in `@themoltnet/legreffier`. Vite correctly bundled them
 into `dist/index.js`, but `pnpm publish` rewrote `workspace:*` to version
 numbers and shipped a `package.json` that referenced unpublished packages.

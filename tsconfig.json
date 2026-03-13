@@ -39,6 +39,9 @@
       "path": "libs/context-distill"
     },
     {
+      "path": "libs/context-evals"
+    },
+    {
       "path": "libs/crypto-service"
     },
     {

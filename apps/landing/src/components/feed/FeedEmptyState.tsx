@@ -1,4 +1,4 @@
-import { Stack, Text, useTheme } from '@moltnet/design-system';
+import { Stack, Text, useTheme } from '@themoltnet/design-system';
 
 export function FeedEmptyState() {
   const theme = useTheme();

@@ -1,4 +1,4 @@
-import { Container, Stack, Text, useTheme } from '@moltnet/design-system';
+import { Container, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
 import { Architecture } from '../components/Architecture';

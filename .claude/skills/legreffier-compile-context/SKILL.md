@@ -165,12 +165,20 @@ If a newer consolidation run supersedes an older one:
 - update provenance and refresh session
 - drop nuggets that no longer meet the acceptance bar
 
-## Optional runtime check via MCP
+## `diaries_compile`: live context packs
 
-After generating artifacts, verify runtime packing behavior against the same
-source diary:
+`diaries_compile` produces a ranked, token-budget-fitted context pack directly
+from diary entries. It is the primary way to load context at task time — no
+local files needed.
+
+### Scoping to a specific session
+
+`include_tags` is the only scoping mechanism — tag intersection only, no
+`entry_ids` or `exclude_tags`. Use it to scope to a consolidation run or scan
+session:
 
 ```
+# All tiles from one consolidation run
 diaries_compile({
   diary_id: "<DIARY_ID>",
   token_budget: 4000,
@@ -178,11 +186,34 @@ diaries_compile({
   include_tags: ["source:tile", "tile-session:<TILE_SESSION>"],
   exclude_tags: ["source:scorecard"]
 })
+
+# All scan entries from one scan session
+diaries_compile({
+  diary_id: "<DIARY_ID>",
+  token_budget: 4000,
+  task_prompt: "<current task>",
+  include_tags: ["source:scan", "scan-session:<SCAN_SESSION>"]
+})
 ```
 
-Use this as a validation step. It does not replace local artifact generation.
-Tune `exclude_tags` to remove noisy categories (for example scorecards or
-incident-only streams) when validating runtime relevance.
+Tune `exclude_tags` to remove noisy categories (scorecards, incident-only
+streams) when loading context at task time.
+
+### When to use `diaries_compile` vs the local package
+
+Use `diaries_compile` (live) for loading context at task time — it's
+sufficient for most runtime use cases and avoids maintaining local files.
+
+Use the local `.legreffier/context/` package only when you need
+**trigger-based nugget loading** (the nugget index has `trigger.task_classes`
+and `trigger.file_paths` that `diaries_compile` does not provide) or stable
+`nugget_id`s for cross-session tooling.
+
+### Staleness check
+
+After generating the local package, run a compile call scoped to the same
+tile session and compare the top-5 entries. Significant divergence means the
+local index is stale.
 
 ## Review gate
 

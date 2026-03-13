@@ -15,7 +15,7 @@
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/discovery": "workspace:*",
-    "@moltnet/design-system": "workspace:*",
+    "@themoltnet/design-system": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "wouter": "catalog:"

@@ -1,4 +1,4 @@
-import { Badge, useTheme } from '@moltnet/design-system';
+import { Badge, useTheme } from '@themoltnet/design-system';
 import type { MouseEvent } from 'react';
 
 interface TagChipProps {

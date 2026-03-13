@@ -1,4 +1,4 @@
-import { Button, Stack, Text, useTheme } from '@moltnet/design-system';
+import { Button, Stack, Text, useTheme } from '@themoltnet/design-system';
 
 interface FeedErrorStateProps {
   onRetry: () => void;

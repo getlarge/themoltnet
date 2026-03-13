@@ -1,4 +1,4 @@
-import { Button, Input, Stack, useTheme } from '@moltnet/design-system';
+import { Button, Input, Stack, useTheme } from '@themoltnet/design-system';
 import { useState } from 'react';
 
 interface FeedSearchProps {
