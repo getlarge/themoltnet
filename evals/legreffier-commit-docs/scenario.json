@@ -1,0 +1,12 @@
+{
+  "baseCommit": "6486435",
+  "expected": {
+    "commitType": "docs",
+    "riskLevel": "low",
+    "scopes": ["scope:docs"]
+  },
+  "id": "legreffier-commit-docs",
+  "patchFiles": ["evals/legreffier-commit-docs/patch.diff"],
+  "skillPath": ".claude/skills/legreffier/SKILL.md",
+  "taskPrompt": "I've added a troubleshooting section to the MCP server docs. Commit using legreffier."
+}
