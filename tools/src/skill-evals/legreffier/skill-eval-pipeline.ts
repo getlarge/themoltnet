@@ -19,6 +19,7 @@ import {
 } from '@moltnet/context-evals';
 import { loadContextEvalsConfig } from '@moltnet/context-evals/config';
 import {
+  type AIProvider,
   buildAI,
   buildAverage,
   buildCacheKey,
@@ -44,8 +45,10 @@ const { values } = parseArgs({
     'mcp-url': { type: 'string' },
     'mcp-client-id': { type: 'string' },
     'mcp-client-secret': { type: 'string' },
+    'student-provider': { type: 'string' },
+    'teacher-provider': { type: 'string' },
     'ai-key': { type: 'string' },
-    model: { type: 'string' },
+    'student-model': { type: 'string' },
     'teacher-model': { type: 'string' },
     'claude-model': { type: 'string', default: 'claude-sonnet-4-6' },
     'max-evals': { type: 'string', default: '30' },
@@ -68,9 +71,15 @@ if (!evalArg) {
   process.exit(1);
 }
 
-const studentModel = str(values['model']);
+const studentProvider = (str(values['student-provider']) || undefined) as
+  | AIProvider
+  | undefined;
+const teacherProvider = (str(values['teacher-provider']) || undefined) as
+  | AIProvider
+  | undefined;
+const studentModel = str(values['student-model']);
 const teacherModel = str(values['teacher-model']);
-const aiKey = resolveAIKey(str(values['ai-key']), studentModel);
+const aiKey = resolveAIKey(str(values['ai-key']), studentProvider);
 const claudeModel =
   str(values['claude-model']) ||
   envConfig.GPACK_AGENT_MODEL ||
@@ -205,16 +214,30 @@ async function main() {
   // TODO: investigate GEPA optimize_anything (task #13):
   //   - objective_scores (multi-objective) instead of single scalar metric
   //   - propose_new_texts method for direct instruction rewriting
-  if (!aiKey) {
+  if (!studentProvider) {
     throw new Error(
-      '[skill-eval] GEPA optimization requires an AI key. Pass --ai-key or set OPENAI_API_KEY/ANTHROPIC_API_KEY/GOOGLE_API_KEY.',
+      '[skill-eval] GEPA optimization requires --provider (openai, anthropic, google-gemini, or claude-agent-sdk).',
     );
   }
 
-  const studentAI = buildAI({ aiKey, model: studentModel });
-  const teacherAI = teacherModel
-    ? buildAI({ aiKey, model: teacherModel })
-    : undefined;
+  const studentAI = buildAI({
+    provider: studentProvider,
+    aiKey,
+    model: studentModel,
+  });
+  if (teacherModel && !teacherProvider) {
+    throw new Error(
+      '[skill-eval] --teacher-model requires --teacher-provider.',
+    );
+  }
+  const teacherAI =
+    teacherModel && teacherProvider
+      ? buildAI({
+          provider: teacherProvider,
+          aiKey,
+          model: teacherModel,
+        })
+      : undefined;
 
   const passthrough = ax('taskPrompt:string -> skillSection:string');
   passthrough.setInstruction(skillContent);

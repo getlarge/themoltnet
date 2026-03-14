@@ -37,6 +37,7 @@ import { createAuthedClient } from './client.js';
 import { loadContextEvalsConfig } from './config.js';
 import type { GpackTask } from './evaluate.js';
 import {
+  type AIProvider,
   buildAI,
   buildAverage,
   buildCacheKey,
@@ -61,8 +62,10 @@ const { values } = parseArgs({
     families: { type: 'string' },
     'pack-file': { type: 'string' },
     'diary-id': { type: 'string' },
+    'student-provider': { type: 'string' },
+    'teacher-provider': { type: 'string' },
     'ai-key': { type: 'string' },
-    model: { type: 'string' },
+    'student-model': { type: 'string' },
     'teacher-model': { type: 'string' },
     'claude-model': { type: 'string', default: 'claude-sonnet-4-6' },
     'max-evals': { type: 'string', default: '30' },
@@ -108,9 +111,15 @@ const familyFilter = new Set(
     .map((family) => family.trim())
     .filter(Boolean),
 );
-const studentModel = str(values['model']);
+const studentProvider = (str(values['student-provider']) || undefined) as
+  | AIProvider
+  | undefined;
+const teacherProvider = (str(values['teacher-provider']) || undefined) as
+  | AIProvider
+  | undefined;
+const studentModel = str(values['student-model']);
 const teacherModel = str(values['teacher-model']);
-const aiKey = resolveAIKey(str(values['ai-key']), studentModel);
+const aiKey = resolveAIKey(str(values['ai-key']), studentProvider);
 const claudeModel =
   str(values['claude-model']) ||
   envConfig.GPACK_AGENT_MODEL ||
@@ -608,10 +617,27 @@ async function main() {
   // studentAI: cheap model the ax() program targets (passthrough in our case).
   // teacherAI: more capable model that proposes improved instructions during
   //            reflection. Optional but recommended for better optimization.
-  const studentAI = buildAI({ aiKey, model: studentModel });
-  const teacherAI = teacherModel
-    ? buildAI({ aiKey, model: teacherModel })
-    : undefined;
+  if (!studentProvider) {
+    throw new Error(
+      '[gpack] GEPA optimization requires --provider (openai, anthropic, google-gemini, or claude-agent-sdk).',
+    );
+  }
+  const studentAI = buildAI({
+    provider: studentProvider,
+    aiKey,
+    model: studentModel,
+  });
+  if (teacherModel && !teacherProvider) {
+    throw new Error('[gpack] --teacher-model requires --teacher-provider.');
+  }
+  const teacherAI =
+    teacherModel && teacherProvider
+      ? buildAI({
+          provider: teacherProvider,
+          aiKey,
+          model: teacherModel,
+        })
+      : undefined;
 
   // Build a passthrough ax() program with the seed pack as its instruction.
   // GEPA extracts getBaseInstruction() from the program's instruction text,

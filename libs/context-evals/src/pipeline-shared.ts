@@ -16,8 +16,10 @@ import {
   AxAIAnthropicModel,
   AxAIGoogleGeminiModel,
   AxAIOpenAIModel,
+  type AxAIService,
 } from '@ax-llm/ax';
 
+import { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
 import { loadContextEvalsConfig } from './config.js';
 import type { EvalTrace } from './evaluate.js';
 import { execFileText } from './process.js';
@@ -56,25 +58,16 @@ export function buildCacheKey(taskId: string, content: string): string {
 
 // ── AI provider ──────────────────────────────────────────────────────────────
 
-type AIProvider = 'openai' | 'anthropic' | 'google-gemini';
+export type AIProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'google-gemini'
+  | 'claude-agent-sdk';
 
 export interface BuildAIOptions {
+  provider: AIProvider;
   aiKey?: string;
   model?: string;
-}
-
-function detectProviderFromModel(model: string): AIProvider | undefined {
-  if (/^claude-/i.test(model)) return 'anthropic';
-  if (/^gpt-|^o[1-9]|^chatgpt-/i.test(model)) return 'openai';
-  if (/^gemini/i.test(model)) return 'google-gemini';
-  return undefined;
-}
-
-function detectProviderFromKey(key: string): AIProvider | undefined {
-  if (key.startsWith('AIza')) return 'google-gemini';
-  if (key.startsWith('sk-ant-')) return 'anthropic';
-  if (key.startsWith('sk-')) return 'openai';
-  return undefined;
 }
 
 function resolveKeyForProvider(
@@ -92,47 +85,25 @@ function resolveKeyForProvider(
       return envConfig.ANTHROPIC_API_KEY;
     case 'openai':
       return envConfig.OPENAI_API_KEY;
+    case 'claude-agent-sdk':
+      return undefined;
   }
 }
 
 /**
- * Build an AxAI instance for GEPA student/teacher roles.
+ * Build an AxAIService instance for GEPA student/teacher roles.
  *
- * Provider is determined by (in order):
- * 1. Model name prefix (unambiguous: claude-* → anthropic, gpt-* → openai, gemini-* → google)
- * 2. Key prefix (fallback when model is not specified)
- *
- * When model implies a provider, the matching key is resolved from env
- * automatically — no need to pass aiKey explicitly.
+ * Caller specifies the provider explicitly. The matching API key is
+ * resolved from env when not passed directly. `claude-agent-sdk`
+ * needs no key — it authenticates via the host's credential store.
  */
-export function buildAI(options: BuildAIOptions): AxAI {
-  const { aiKey: explicitKey, model } = options;
+export function buildAI(options: BuildAIOptions): AxAIService {
+  const { provider, aiKey: explicitKey, model } = options;
   const envConfig = loadContextEvalsConfig();
 
-  const providerFromModel = model ? detectProviderFromModel(model) : undefined;
+  const key = explicitKey || resolveKeyForProvider(provider, envConfig) || '';
 
-  let key = explicitKey || '';
-  if (!key && providerFromModel) {
-    key = resolveKeyForProvider(providerFromModel, envConfig) || '';
-  }
-  if (!key) {
-    key =
-      envConfig.GOOGLE_API_KEY ||
-      envConfig.OPENAI_API_KEY ||
-      envConfig.ANTHROPIC_API_KEY ||
-      '';
-  }
-
-  const provider =
-    providerFromModel || (key ? detectProviderFromKey(key) : undefined);
-
-  if (!provider) {
-    throw new Error(
-      'Cannot determine AI provider. Pass --model (e.g. gpt-4o-mini, gemini-2.0-flash) or set an API key env var.',
-    );
-  }
-
-  if (!key) {
+  if (!key && provider !== 'claude-agent-sdk') {
     throw new Error(
       `Provider "${provider}" requires an API key. Set the corresponding env var or pass --ai-key.`,
     );
@@ -167,6 +138,9 @@ export function buildAI(options: BuildAIOptions): AxAI {
           model: (model || AxAIOpenAIModel.GPT4OMini) as AxAIOpenAIModel,
         },
       });
+
+    case 'claude-agent-sdk':
+      return new AxAIClaudeAgentSDK({ model });
   }
 }
 
@@ -194,12 +168,13 @@ export async function writeDebugArtifact(
 
 // ── Resolve AI key from args + env ───────────────────────────────────────────
 
-export function resolveAIKey(explicitKey: string, model?: string): string {
+export function resolveAIKey(
+  explicitKey: string,
+  provider?: AIProvider,
+): string {
   if (explicitKey) return explicitKey;
-  if (!model) return '';
+  if (!provider || provider === 'claude-agent-sdk') return '';
   const envConfig = loadContextEvalsConfig();
-  const provider = detectProviderFromModel(model);
-  if (!provider) return '';
   return resolveKeyForProvider(provider, envConfig) || '';
 }
 
