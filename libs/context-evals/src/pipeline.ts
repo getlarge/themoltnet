@@ -42,6 +42,7 @@ import {
   buildCacheKey,
   loadEnvLocal,
   loadPackFile,
+  resolveAIKey,
   resolveRepoRoot,
   str,
   writeDebugArtifact,
@@ -107,15 +108,9 @@ const familyFilter = new Set(
     .map((family) => family.trim())
     .filter(Boolean),
 );
-const aiKey =
-  str(values['ai-key']) ||
-  envConfig.GOOGLE_API_KEY ||
-  envConfig.OPENAI_API_KEY ||
-  envConfig.ANTHROPIC_API_KEY ||
-  envConfig.DASHSCOPE_API_KEY ||
-  '';
 const studentModel = str(values['model']);
 const teacherModel = str(values['teacher-model']);
+const aiKey = resolveAIKey(str(values['ai-key']), studentModel);
 const claudeModel =
   str(values['claude-model']) ||
   envConfig.GPACK_AGENT_MODEL ||

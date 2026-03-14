@@ -23,6 +23,7 @@ import {
   buildAverage,
   buildCacheKey,
   loadEnvLocal,
+  resolveAIKey,
   resolveRepoRoot,
   str,
 } from '@moltnet/context-evals/pipeline-shared';
@@ -67,15 +68,9 @@ if (!evalArg) {
   process.exit(1);
 }
 
-const aiKey =
-  str(values['ai-key']) ||
-  envConfig.GOOGLE_API_KEY ||
-  envConfig.OPENAI_API_KEY ||
-  envConfig.ANTHROPIC_API_KEY ||
-  envConfig.DASHSCOPE_API_KEY ||
-  '';
 const studentModel = str(values['model']);
 const teacherModel = str(values['teacher-model']);
+const aiKey = resolveAIKey(str(values['ai-key']), studentModel);
 const claudeModel =
   str(values['claude-model']) ||
   envConfig.GPACK_AGENT_MODEL ||
