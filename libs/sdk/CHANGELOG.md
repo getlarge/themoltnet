@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.68.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.67.0...sdk-v0.68.0) (2026-03-14)
+
+
+### Features
+
+* retry fetch + simplify content-signed entries ([#144](https://github.com/getlarge/themoltnet/issues/144), [#407](https://github.com/getlarge/themoltnet/issues/407)) ([afb3139](https://github.com/getlarge/themoltnet/commit/afb3139650198a50bb1b7da337746ff7ec1fe485))
+
 ## [0.67.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.66.0...sdk-v0.67.0) (2026-03-14)
 
 
