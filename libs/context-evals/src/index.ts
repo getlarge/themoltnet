@@ -25,3 +25,9 @@ export {
   type SkillScoreContext,
   type SkillScorer,
 } from './skill-types.js';
+export {
+  type EvalInput,
+  type TasksmithTask,
+  TasksmithTaskSchema,
+  validateTasksmithTask,
+} from './tasksmith.js';

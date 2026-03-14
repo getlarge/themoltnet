@@ -28,6 +28,10 @@
     "./skill-adapter": {
       "import": "./src/skill-adapter.ts",
       "types": "./src/skill-adapter.ts"
+    },
+    "./gepa": {
+      "import": "./src/gepa.ts",
+      "types": "./src/gepa.ts"
     }
   },
   "scripts": {
