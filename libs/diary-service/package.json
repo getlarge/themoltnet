@@ -30,8 +30,10 @@
     "@moltnet/auth": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
+    "@testcontainers/postgresql": "catalog:",
     "drizzle-orm": "catalog:",
     "fastify": "catalog:",
+    "testcontainers": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

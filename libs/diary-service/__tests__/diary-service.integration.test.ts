@@ -4,18 +4,18 @@
  * Tests the diary service layer wired with a real DiaryRepository
  * against PostgreSQL + pgvector + real DBOS runtime.
  *
- * Uses DATABASE_URL as both the app database and DBOS system database
+ * Spins up an ephemeral pgvector/pgvector:pg16 container via testcontainers,
+ * applies all Drizzle migrations, then runs tests against it.
+ *
+ * Uses the container DB as both the app database and DBOS system database
  * (DBOS creates its system tables in a `dbos` schema within the same DB).
  *
  * Without EMBEDDING_MODEL: uses noop embedding service (text search only).
  * With EMBEDDING_MODEL=true: uses @moltnet/embedding-service for real
  * vector embeddings and hybrid search testing.
- *
- * Start the test database: docker compose --env-file .env.local up -d app-db
- * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/diary-service test
- * Run with embeddings: DATABASE_URL=... EMBEDDING_MODEL=true pnpm --filter @moltnet/diary-service test
  */
 
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import {
   afterAll,
@@ -59,10 +59,10 @@ async function setupDatabase(url: string) {
     diaryEntries,
     diaries,
   } = await import('@moltnet/database');
-  const { db } = createDatabase(url);
+  const { db, pool } = createDatabase(url);
   const repo = createDiaryEntryRepository(db);
   const diaryRepo = createDiaryRepository(db);
-  return { db, repo, diaryRepo, diaryEntries, diaries };
+  return { db, pool, repo, diaryRepo, diaryEntries, diaries };
 }
 
 async function setupDBOS(url: string) {
@@ -87,9 +87,7 @@ async function setupDBOS(url: string) {
   };
 }
 
-const DATABASE_URL = process.env.DATABASE_URL;
-
-describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
+describe('DiaryService (integration)', () => {
   let service: DiaryService;
   let db: Awaited<ReturnType<typeof setupDatabase>>['db'];
   let tables: {
@@ -105,20 +103,35 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
   let relationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
   };
+  let pool: Awaited<ReturnType<typeof setupDatabase>>['pool'];
   let DIARY_ID: string;
   let OTHER_DIARY_ID: string;
+  let stopContainer: () => Promise<void>;
 
   const OWNER_ID = '00000000-0000-4000-b000-000000000001';
   const OTHER_AGENT = '00000000-0000-4000-b000-000000000002';
 
   beforeAll(async () => {
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+      .withDatabase('moltnet')
+      .withUsername('moltnet')
+      .withPassword('moltnet_secret')
+      .start();
+
+    const databaseUrl = container.getConnectionUri();
+    stopContainer = () => container.stop().then(() => undefined);
+
+    const { runMigrations } = await import('@moltnet/database');
+    await runMigrations(databaseUrl);
+
     // Register DBOS workflows BEFORE launchDBOS() — DBOS requirement.
     // Deps are accessed lazily at execution time, so registration before
     // setDiaryWorkflowDeps() is safe.
     initDiaryWorkflows();
 
-    const setup = await setupDatabase(DATABASE_URL!);
+    const setup = await setupDatabase(databaseUrl);
     db = setup.db;
+    pool = setup.pool;
     tables = {
       diaryEntries: setup.diaryEntries,
       diaries: setup.diaries,
@@ -151,7 +164,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
     const embeddingService = await loadEmbeddingService();
 
     // Launch DBOS after workflow registration
-    const dbosSetup = await setupDBOS(DATABASE_URL!);
+    const dbosSetup = await setupDBOS(databaseUrl);
 
     // Wire diary workflow deps (dataSource available now; deps are lazy)
     setDiaryWorkflowDeps({
@@ -203,7 +216,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       visibility: 'private',
     });
     OTHER_DIARY_ID = otherDiary.id;
-  });
+  }, 60_000);
 
   afterEach(async () => {
     // Clean up only entries for our test diaries to avoid cross-test interference
@@ -239,6 +252,8 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
     const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
+    await pool.end();
+    await stopContainer();
   });
 
   // ── Create ──────────────────────────────────────────────────────────
@@ -507,7 +522,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
       );
 
       permissions.canDeleteEntry.mockResolvedValue(true);
-      const deleted = await service.deleteEntry(created.id, DIARY_ID, OWNER_ID);
+      const deleted = await service.deleteEntry(created.id, OWNER_ID);
       expect(deleted).toBe(true);
       expect(relationshipWriter.removeEntryRelations).toHaveBeenCalledWith(
         created.id,
@@ -527,7 +542,7 @@ describe.runIf(DATABASE_URL)('DiaryService (integration)', () => {
 
       permissions.canDeleteEntry.mockResolvedValue(false);
       await expect(
-        service.deleteEntry(created.id, DIARY_ID, OTHER_AGENT),
+        service.deleteEntry(created.id, OTHER_AGENT),
       ).rejects.toThrow(DiaryServiceError);
       expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
     });

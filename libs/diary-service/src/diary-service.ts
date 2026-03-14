@@ -111,12 +111,7 @@ export interface DiaryService {
     updates: UpdateEntryInput,
     opts?: { diaryId?: string; requireDiaryAccess?: boolean },
   ): Promise<DiaryEntry | null>;
-  deleteEntry(id: string, diaryId: string, agentId: string): Promise<boolean>;
-  deleteEntry(
-    id: string,
-    agentId: string,
-    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
-  ): Promise<boolean>;
+  deleteEntry(id: string, agentId: string): Promise<boolean>;
   reflect(input: ReflectInput): Promise<Digest>;
 }
 
@@ -204,20 +199,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         | undefined,
       legacyMode: false,
     };
-  };
-
-  const resolveDeleteEntryArgs = (
-    second: string,
-    third?: string | { diaryId?: string; requireDiaryAccess?: boolean },
-  ): {
-    agentId: string;
-    opts?: { diaryId?: string; requireDiaryAccess?: boolean };
-    legacyMode: boolean;
-  } => {
-    if (typeof third === 'string') {
-      return { agentId: third, opts: { diaryId: second }, legacyMode: true };
-    }
-    return { agentId: second, opts: third, legacyMode: false };
   };
 
   return {
@@ -767,43 +748,29 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return updated;
     },
 
-    async deleteEntry(
-      id: string,
-      second: string,
-      third?: string | { diaryId?: string; requireDiaryAccess?: boolean },
-    ): Promise<boolean> {
-      const { agentId, opts, legacyMode } = resolveDeleteEntryArgs(
-        second,
-        third,
-      );
-      let diaryId: string | undefined = opts?.diaryId;
-      if (opts?.requireDiaryAccess || !legacyMode) {
-        const existing = await diaryEntryRepository.findById(id);
-        if (!existing || (opts?.diaryId && existing.diaryId !== opts.diaryId)) {
-          throw new DiaryServiceError('not_found', 'Diary entry not found');
-        }
-        diaryId = existing.diaryId;
-      }
-      if (opts?.requireDiaryAccess && opts.diaryId) {
-        await this.findDiary(opts.diaryId, agentId);
+    async deleteEntry(id: string, agentId: string): Promise<boolean> {
+      const existing = await diaryEntryRepository.findById(id);
+      if (!existing) {
+        throw new DiaryServiceError('not_found', 'Diary entry not found');
       }
 
       const allowed = await permissionChecker.canDeleteEntry(id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
-      // const existing = await fastify.diaryService.getEntryById(
-      //   entryId,
-      //   diaryId,
-      //   request.authContext!.identityId,
-      // );
-      // if (!existing || existing.diaryId !== diary.id) {
-      //   throw createProblem('not-found', 'Entry not found');
-      // }
+      if (existing.contentSignature) {
+        throw new DiaryServiceError(
+          'immutable',
+          'Cannot delete a content-signed entry. Use superseded_by to version it instead.',
+        );
+      }
 
       const deleted = await diaryWorkflows.deleteEntry(id);
       if (deleted) {
-        logger.info({ entryId: id, diaryId: diaryId ?? null }, 'entry.deleted');
+        logger.info(
+          { entryId: id, diaryId: existing.diaryId },
+          'entry.deleted',
+        );
       }
       return deleted;
     },

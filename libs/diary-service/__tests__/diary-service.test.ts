@@ -712,20 +712,31 @@ describe('DiaryService', () => {
   });
 
   describe('delete', () => {
+    it('throws not_found when entry does not exist', async () => {
+      repo.findById.mockResolvedValue(null);
+
+      await expect(service.deleteEntry(ENTRY_ID, OWNER_ID)).rejects.toThrow(
+        DiaryServiceError,
+      );
+      expect(diaryWorkflows.deleteEntry).not.toHaveBeenCalled();
+    });
+
     it('throws forbidden when Keto denies delete', async () => {
+      repo.findById.mockResolvedValue(createMockEntry());
       permissions.canDeleteEntry.mockResolvedValue(false);
 
       await expect(
-        service.deleteEntry(ENTRY_ID, DIARY_ID, OTHER_AGENT_ID),
+        service.deleteEntry(ENTRY_ID, OTHER_AGENT_ID),
       ).rejects.toThrow(DiaryServiceError);
       expect(diaryWorkflows.deleteEntry).not.toHaveBeenCalled();
     });
 
     it('checks permission then delegates to diaryWorkflows.deleteEntry', async () => {
+      repo.findById.mockResolvedValue(createMockEntry());
       permissions.canDeleteEntry.mockResolvedValue(true);
       vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(true);
 
-      const result = await service.deleteEntry(ENTRY_ID, DIARY_ID, OWNER_ID);
+      const result = await service.deleteEntry(ENTRY_ID, OWNER_ID);
 
       expect(result).toBe(true);
       expect(permissions.canDeleteEntry).toHaveBeenCalledWith(
@@ -736,12 +747,43 @@ describe('DiaryService', () => {
     });
 
     it('returns false when workflow reports entry not found', async () => {
+      repo.findById.mockResolvedValue(createMockEntry());
       permissions.canDeleteEntry.mockResolvedValue(true);
       vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(false);
 
-      const result = await service.deleteEntry(ENTRY_ID, DIARY_ID, OWNER_ID);
+      const result = await service.deleteEntry(ENTRY_ID, OWNER_ID);
 
       expect(result).toBe(false);
+    });
+
+    it('rejects deletion of signed entry with immutable error', async () => {
+      const signed = createMockEntry({
+        contentHash: 'bafkreitest',
+        contentSignature: 'sig123',
+      });
+      repo.findById.mockResolvedValue(signed);
+      permissions.canDeleteEntry.mockResolvedValue(true);
+
+      await expect(service.deleteEntry(ENTRY_ID, OWNER_ID)).rejects.toThrow(
+        'Cannot delete a content-signed entry',
+      );
+
+      expect(diaryWorkflows.deleteEntry).not.toHaveBeenCalled();
+    });
+
+    it('allows deletion of unsigned entry', async () => {
+      const unsigned = createMockEntry({
+        contentHash: null,
+        contentSignature: null,
+      });
+      repo.findById.mockResolvedValue(unsigned);
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(true);
+
+      const result = await service.deleteEntry(ENTRY_ID, OWNER_ID);
+
+      expect(result).toBe(true);
+      expect(diaryWorkflows.deleteEntry).toHaveBeenCalledWith(ENTRY_ID);
     });
   });
 
