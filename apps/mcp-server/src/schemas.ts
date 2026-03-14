@@ -73,23 +73,16 @@ export const EntryCreateSchema = Type.Object({
       description: 'Memory type. Default semantic.',
     }),
   ),
-  content_hash: Type.Optional(
-    Type.String({
-      description:
-        'CIDv1 content identifier for signing. Both content_hash and signing_request_id are required together.',
-    }),
-  ),
   signing_request_id: Type.Optional(
     Type.String({
       description:
-        'ID of a completed signing request whose message matches content_hash.',
+        'ID of a completed signing request. The server computes the CID from entry fields and verifies it matches the signing request message.',
     }),
   ),
 });
 type CreateEntryBody = BodyOf<CreateDiaryEntryData>;
 export type EntryCreateInput = SnakeCasedProperties<CreateEntryBody> & {
   diary_id: PathOf<CreateDiaryEntryData>['diaryId'];
-  content_hash?: string;
   signing_request_id?: string;
 };
 

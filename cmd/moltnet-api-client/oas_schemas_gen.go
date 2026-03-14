@@ -1058,12 +1058,13 @@ func (*CreateDiaryEntryNotFound) createDiaryEntryRes() {}
 
 type CreateDiaryEntryReq struct {
 	Content string `json:"content"`
-	// CIDv1 content identifier (base32lower). Required together with signingRequestId to create a signed
-	// entry.
+	// CIDv1 content identifier (base32lower). Only allowed together with signingRequestId — the server
+	// computes it from entry fields. If provided, it is validated against the computed CID.
 	ContentHash OptString                       `json:"contentHash"`
 	EntryType   OptCreateDiaryEntryReqEntryType `json:"entryType"`
 	Importance  OptInt                          `json:"importance"`
-	// ID of a completed signing request whose message matches contentHash.
+	// ID of a completed signing request. The server computes the CID from entry fields and verifies it
+	// matches the signing request message.
 	SigningRequestId OptUUID   `json:"signingRequestId"`
 	Tags             []string  `json:"tags"`
 	Title            OptString `json:"title"`
