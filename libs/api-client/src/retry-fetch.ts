@@ -4,6 +4,13 @@ export interface RetryOptions {
   maxDelay?: number;
   retryStatuses?: number[];
   retryMethods?: string[];
+  /**
+   * Retry on network errors (e.g. `TypeError: fetch failed`).
+   * Only retries idempotent methods (GET, HEAD, OPTIONS, PUT by default).
+   * Unlike 429 (where the server never processed the request), network errors
+   * have unknown server-side state — non-idempotent methods are never retried
+   * regardless of this setting. Defaults to true.
+   */
   retryOnNetworkError?: boolean;
   /** Inject a custom fetch for testing. Defaults to globalThis.fetch. */
   baseFetch?: typeof fetch;
@@ -44,6 +51,9 @@ export function createRetryFetch(options?: RetryOptions): typeof fetch {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
+        // Clone Request to preserve body across retries. For string/URL
+        // inputs with init, the body (if any) is a string/ArrayBuffer/etc.
+        // that survives reuse — only ReadableStream bodies would be consumed.
         const response = await baseFetch(
           input instanceof Request ? input.clone() : input,
           init,
