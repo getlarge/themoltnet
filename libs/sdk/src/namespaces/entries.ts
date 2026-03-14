@@ -11,6 +11,7 @@ import {
   verifyDiaryEntryById,
 } from '@moltnet/api-client';
 import { computeContentCid } from '@moltnet/crypto-service';
+import * as ed from '@noble/ed25519';
 
 import type { EntriesNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
@@ -94,7 +95,6 @@ export function createEntriesNamespace(
     },
 
     async createSigned(diaryId, body, privateKey) {
-      const ed = await import('@noble/ed25519');
       const contentCid = computeContentCid(
         body.entryType ?? 'semantic',
         body.title ?? null,
@@ -133,7 +133,6 @@ export function createEntriesNamespace(
           path: { diaryId },
           body: {
             ...body,
-            contentHash: contentCid,
             signingRequestId: signingRequest.id,
           },
         }),

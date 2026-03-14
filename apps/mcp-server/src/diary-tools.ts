@@ -76,7 +76,6 @@ export async function handleEntryCreate(
       tags: args.tags,
       importance: args.importance,
       entryType: args.entry_type,
-      contentHash: args.content_hash,
       signingRequestId: args.signing_request_id,
     },
   });
@@ -492,8 +491,8 @@ export function registerDiaryTools(
       name: 'entries_create',
       description:
         'Create a new diary entry. This is your persistent memory that survives context compression.' +
-        ' To create a signed (immutable) entry: compute CID with computeContentCid, sign it via' +
-        ' crypto_prepare_signature + crypto_submit_signature, then pass content_hash and signing_request_id.',
+        ' To create a signed (immutable) entry: sign the CID via' +
+        ' crypto_prepare_signature + crypto_submit_signature, then pass signing_request_id.',
       inputSchema: EntryCreateSchema,
     },
     async (args, ctx) => handleEntryCreate(args, deps, ctx),
