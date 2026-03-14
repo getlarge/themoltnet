@@ -1,4 +1,5 @@
 export { type GpackOutput, MoltNetContextAdapter } from './adapter.js';
+export { type AgentRunResult, runAgentTask } from './agent-runner.js';
 export { createAuthedClient, type MoltnetCredentials } from './client.js';
 export {
   type CompiledPackMetadata,
