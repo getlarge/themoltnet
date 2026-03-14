@@ -79,14 +79,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             Type.String({
               pattern: '^bafk[a-z2-7]+$',
               description:
-                'CIDv1 content identifier (base32lower). Required together with signingRequestId to create a signed entry.',
+                'CIDv1 content identifier (base32lower). Optional — the server computes it from entry fields. If provided, it is validated against the computed CID.',
             }),
           ),
           signingRequestId: Type.Optional(
             Type.String({
               format: 'uuid',
               description:
-                'ID of a completed signing request whose message matches contentHash.',
+                'ID of a completed signing request. The server computes the CID from entry fields and verifies it matches the signing request message.',
             }),
           ),
         }),
@@ -114,36 +114,30 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const agentId = request.authContext!.identityId;
 
       try {
-        // Validate signing fields: both or neither
-        if (
-          (contentHash && !signingRequestId) ||
-          (!contentHash && signingRequestId)
-        ) {
-          throw createProblem(
-            'validation-failed',
-            'Both contentHash and signingRequestId are required together for signed entries.',
-          );
-        }
-
         let contentSignature: string | undefined;
         let signingNonce: string | undefined;
+        let resolvedContentHash = contentHash;
 
-        if (contentHash && signingRequestId) {
-          // 1. Recompute CID from entry fields and verify match
-          const recomputedCid = computeContentCid(
+        if (signingRequestId) {
+          // Compute CID from entry fields (server is the authority)
+          const computedCid = computeContentCid(
             entryType ?? 'semantic',
             title ?? null,
             content,
             tags ?? null,
           );
-          if (recomputedCid !== contentHash) {
+
+          // If client provided contentHash, validate it matches
+          if (contentHash && contentHash !== computedCid) {
             throw createProblem(
               'validation-failed',
-              `Content hash mismatch: provided ${contentHash}, computed ${recomputedCid}`,
+              `Content hash mismatch: provided ${contentHash}, computed ${computedCid}`,
             );
           }
 
-          // 2. Look up signing request and verify it
+          resolvedContentHash = computedCid;
+
+          // Look up signing request and verify it
           const signingRequest =
             await fastify.signingRequestRepository.findById(signingRequestId);
 
@@ -168,7 +162,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
               'Signing request signature was not verified as valid',
             );
           }
-          if (signingRequest.message !== contentHash) {
+          if (signingRequest.message !== resolvedContentHash) {
             throw createProblem(
               'validation-failed',
               'Signing request message does not match content hash',
@@ -177,9 +171,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
 
           contentSignature = signingRequest.signature!;
           signingNonce = signingRequest.nonce;
-          // Note: the unique index on content_signature prevents reuse —
-          // if this signature was already used for another entry, the
-          // INSERT will fail with a unique constraint violation.
+        } else if (contentHash) {
+          // contentHash without signingRequestId is invalid
+          throw createProblem(
+            'validation-failed',
+            'contentHash requires signingRequestId to create a signed entry.',
+          );
         }
 
         const entry = await fastify.diaryService.createEntry(
@@ -190,7 +187,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             tags,
             importance,
             entryType,
-            contentHash,
+            contentHash: resolvedContentHash,
             contentSignature,
             signingNonce,
           },
