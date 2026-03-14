@@ -122,6 +122,62 @@ describe('Content-signed entries', () => {
     expect(verification!.agentFingerprint).toBeDefined();
   });
 
+  // ── Simplified flow: signingRequestId only ───────────────────
+
+  it('creates a signed entry with signingRequestId only (server computes CID)', async () => {
+    const content = 'Server-computed CID test';
+    const title = 'Simplified flow';
+    const entryType = 'procedural' as const;
+    const tags = ['test', 'simplified'];
+    const contentCid = computeContentCid(entryType, title, content, tags);
+
+    // 1. Sign the CID
+    const { data: signingRequest } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message: contentCid },
+    });
+    const signature = await cryptoService.signWithNonce(
+      contentCid,
+      signingRequest!.nonce,
+      agent.keyPair.privateKey,
+    );
+    await submitSignature({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: signingRequest!.id },
+      body: { signature },
+    });
+
+    // 2. Create entry WITHOUT contentHash — server computes it
+    const { data: entry, error: createError } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: {
+        content,
+        title,
+        entryType,
+        tags,
+        signingRequestId: signingRequest!.id,
+      },
+    });
+
+    expect(createError).toBeUndefined();
+    expect(entry!.contentHash).toBe(contentCid);
+    expect(entry!.contentSignature).toBe(signature);
+
+    // 3. Verify
+    const { data: verification } = await verifyDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entry!.id },
+    });
+
+    expect(verification!.valid).toBe(true);
+    expect(verification!.contentHash).toBe(contentCid);
+  });
+
   // ── Immutability enforcement ─────────────────────────────────
 
   it('rejects content update on signed entry → 409', async () => {

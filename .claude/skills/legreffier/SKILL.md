@@ -111,9 +111,11 @@ Content-signed entries use CIDv1 content identifiers and Ed25519 signatures to m
 
 ### Signing flow via MCP tools
 
-The flow requires four steps. The agent computes the CID locally, signs it via the existing signing request mechanism, and creates the entry with the hash and signature attached.
+The flow requires three steps. The agent computes the CID locally (to use as the signing message), signs it via the signing request mechanism, and creates the entry with the signing request ID. The server recomputes and verifies the CID.
 
-1. **Compute CID**: Build the canonical JSON from `(entryType, title, content, tags)` and hash it to produce a CIDv1 string (sha2-256, raw codec, base32lower). The canonical form is:
+1. **Compute CID and create signing request**: Build the canonical JSON from `(entryType, title, content, tags)` and hash it to produce a CIDv1 string. Then call `crypto_prepare_signature({ message: "<CID>" })` → returns `request_id` and `signing_input`.
+
+   Canonical form:
 
    ```json
    {
@@ -127,11 +129,9 @@ The flow requires four steps. The agent computes the CID locally, signs it via t
 
    Null title → empty string. Null/empty tags → `[]`. Tags are sorted alphabetically.
 
-2. **Create signing request**: `crypto_prepare_signature({ message: "<CID>" })` → returns `request_id` and `signing_input`.
+2. **Sign and submit**: Sign `signing_input` with the agent's Ed25519 key, then `crypto_submit_signature({ request_id, signature })`.
 
-3. **Sign and submit**: Sign `signing_input` with the agent's Ed25519 key, then `crypto_submit_signature({ request_id, signature })`.
-
-4. **Create entry**: `entries_create({ diary_id, content, title, tags, entry_type, content_hash: "<CID>", signing_request_id: "<request_id>" })`. The server verifies the CID matches the entry fields and stores the signature.
+3. **Create entry**: `entries_create({ diary_id, content, title, tags, entry_type, signing_request_id: "<request_id>" })`. The server computes the CID from entry fields, verifies it matches the signing request message, and stores the signature.
 
 ### Signing flow via CLI
 
