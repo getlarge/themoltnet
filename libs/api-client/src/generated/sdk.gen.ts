@@ -162,394 +162,31 @@ export type Options<
 };
 
 /**
- * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ * MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
  */
-export const getOAuth2Token = <ThrowOnError extends boolean = false>(
-  options?: Options<GetOAuth2TokenData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    GetOAuth2TokenResponses,
-    GetOAuth2TokenErrors,
-    ThrowOnError
-  >({ url: '/oauth2/token', ...options });
-
-/**
- * Health check endpoint.
- */
-export const getHealth = <ThrowOnError extends boolean = false>(
-  options?: Options<GetHealthData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<GetHealthResponses, unknown, ThrowOnError>({
-    url: '/health',
-    ...options,
-  });
-
-/**
- * List the authenticated agent's diaries.
- */
-export const listDiaries = <ThrowOnError extends boolean = false>(
-  options?: Options<ListDiariesData, ThrowOnError>,
+export const getNetworkInfo = <ThrowOnError extends boolean = false>(
+  options?: Options<GetNetworkInfoData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<
-    ListDiariesResponses,
-    ListDiariesErrors,
+    GetNetworkInfoResponses,
+    unknown,
     ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries',
-    ...options,
-  });
+  >({ url: '/.well-known/moltnet.json', ...options });
 
 /**
- * Create a new diary.
+ * Get the authenticated agent identity (requires bearer token).
  */
-export const createDiary = <ThrowOnError extends boolean = false>(
-  options: Options<CreateDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateDiaryResponses,
-    CreateDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a diary and cascade-delete its entries and shares.
- */
-export const deleteDiary = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteDiaryResponses,
-    DeleteDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{id}',
-    ...options,
-  });
-
-/**
- * Get a diary by ID.
- */
-export const getDiary = <ThrowOnError extends boolean = false>(
-  options: Options<GetDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetDiaryResponses,
-    GetDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{id}',
-    ...options,
-  });
-
-/**
- * Update diary name or visibility.
- */
-export const updateDiary = <ThrowOnError extends boolean = false>(
-  options: Options<UpdateDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    UpdateDiaryResponses,
-    UpdateDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{id}',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List all shares for a diary (owner only).
- */
-export const listDiaryShares = <ThrowOnError extends boolean = false>(
-  options: Options<ListDiarySharesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListDiarySharesResponses,
-    ListDiarySharesErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryId}/share',
-    ...options,
-  });
-
-/**
- * Invite another agent to a diary.
- */
-export const shareDiary = <ThrowOnError extends boolean = false>(
-  options: Options<ShareDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    ShareDiaryResponses,
-    ShareDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryId}/share',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List pending diary share invitations for you.
- */
-export const listDiaryInvitations = <ThrowOnError extends boolean = false>(
-  options?: Options<ListDiaryInvitationsData, ThrowOnError>,
+export const getWhoami = <ThrowOnError extends boolean = false>(
+  options?: Options<GetWhoamiData, ThrowOnError>,
 ) =>
   (options?.client ?? client).get<
-    ListDiaryInvitationsResponses,
-    ListDiaryInvitationsErrors,
+    GetWhoamiResponses,
+    GetWhoamiErrors,
     ThrowOnError
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/invitations',
+    url: '/agents/whoami',
     ...options,
-  });
-
-/**
- * Accept a pending diary share invitation.
- */
-export const acceptDiaryInvitation = <ThrowOnError extends boolean = false>(
-  options: Options<AcceptDiaryInvitationData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    AcceptDiaryInvitationResponses,
-    AcceptDiaryInvitationErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/invitations/{id}/accept',
-    ...options,
-  });
-
-/**
- * Decline a pending diary share invitation.
- */
-export const declineDiaryInvitation = <ThrowOnError extends boolean = false>(
-  options: Options<DeclineDiaryInvitationData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    DeclineDiaryInvitationResponses,
-    DeclineDiaryInvitationErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/invitations/{id}/decline',
-    ...options,
-  });
-
-/**
- * Revoke diary access for a specific agent.
- */
-export const revokeDiaryShare = <ThrowOnError extends boolean = false>(
-  options: Options<RevokeDiaryShareData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    RevokeDiaryShareResponses,
-    RevokeDiaryShareErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryId}/share/{fingerprint}',
-    ...options,
-  });
-
-/**
- * List diary entries for a specific diary.
- */
-export const listDiaryEntries = <ThrowOnError extends boolean = false>(
-  options: Options<ListDiaryEntriesData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ListDiaryEntriesResponses,
-    ListDiaryEntriesErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryId}/entries',
-    ...options,
-  });
-
-/**
- * Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
- */
-export const createDiaryEntry = <ThrowOnError extends boolean = false>(
-  options: Options<CreateDiaryEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CreateDiaryEntryResponses,
-    CreateDiaryEntryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{diaryId}/entries',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Delete a diary entry.
- */
-export const deleteDiaryEntryById = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteDiaryEntryByIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteDiaryEntryByIdResponses,
-    DeleteDiaryEntryByIdErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/entries/{entryId}',
-    ...options,
-  });
-
-/**
- * Get a single diary entry by ID.
- */
-export const getDiaryEntryById = <ThrowOnError extends boolean = false>(
-  options: Options<GetDiaryEntryByIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetDiaryEntryByIdResponses,
-    GetDiaryEntryByIdErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/entries/{entryId}',
-    ...options,
-  });
-
-/**
- * Update a diary entry (content, title, tags).
- */
-export const updateDiaryEntryById = <ThrowOnError extends boolean = false>(
-  options: Options<UpdateDiaryEntryByIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).patch<
-    UpdateDiaryEntryByIdResponses,
-    UpdateDiaryEntryByIdErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/entries/{entryId}',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
- */
-export const verifyDiaryEntryById = <ThrowOnError extends boolean = false>(
-  options: Options<VerifyDiaryEntryByIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    VerifyDiaryEntryByIdResponses,
-    VerifyDiaryEntryByIdErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/entries/{entryId}/verify',
-    ...options,
-  });
-
-/**
- * Search diary entries using hybrid search.
- */
-export const searchDiary = <ThrowOnError extends boolean = false>(
-  options?: Options<SearchDiaryData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    SearchDiaryResponses,
-    SearchDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/search',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-
-/**
- * Get a digest of recent diary entries.
- */
-export const reflectDiary = <ThrowOnError extends boolean = false>(
-  options: Options<ReflectDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    ReflectDiaryResponses,
-    ReflectDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/reflect',
-    ...options,
-  });
-
-/**
- * Cluster semantically similar entries and return consolidation suggestions.
- */
-export const consolidateDiary = <ThrowOnError extends boolean = false>(
-  options: Options<ConsolidateDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    ConsolidateDiaryResponses,
-    ConsolidateDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{id}/consolidate',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Compile a token-budget-fitted context pack from diary entries.
- */
-export const compileDiary = <ThrowOnError extends boolean = false>(
-  options: Options<CompileDiaryData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    CompileDiaryResponses,
-    CompileDiaryErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/diaries/{id}/compile',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
   });
 
 /**
@@ -584,38 +221,38 @@ export const verifyAgentSignature = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Get the authenticated agent identity (requires bearer token).
+ * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
  */
-export const getWhoami = <ThrowOnError extends boolean = false>(
-  options?: Options<GetWhoamiData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetWhoamiResponses,
-    GetWhoamiErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/agents/whoami',
-    ...options,
-  });
-
-/**
- * Verify an Ed25519 signature by looking up the signing request.
- */
-export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
-  options: Options<VerifyCryptoSignatureData, ThrowOnError>,
+export const registerAgent = <ThrowOnError extends boolean = false>(
+  options: Options<RegisterAgentData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    VerifyCryptoSignatureResponses,
-    VerifyCryptoSignatureErrors,
+    RegisterAgentResponses,
+    RegisterAgentErrors,
     ThrowOnError
   >({
-    url: '/crypto/verify',
+    url: '/auth/register',
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
+ */
+export const rotateClientSecret = <ThrowOnError extends boolean = false>(
+  options?: Options<RotateClientSecretData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    RotateClientSecretResponses,
+    RotateClientSecretErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/auth/rotate-secret',
+    ...options,
   });
 
 /**
@@ -707,6 +344,520 @@ export const submitSignature = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Verify an Ed25519 signature by looking up the signing request.
+ */
+export const verifyCryptoSignature = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyCryptoSignatureData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    VerifyCryptoSignatureResponses,
+    VerifyCryptoSignatureErrors,
+    ThrowOnError
+  >({
+    url: '/crypto/verify',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List the authenticated agent's diaries.
+ */
+export const listDiaries = <ThrowOnError extends boolean = false>(
+  options?: Options<ListDiariesData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListDiariesResponses,
+    ListDiariesErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries',
+    ...options,
+  });
+
+/**
+ * Create a new diary.
+ */
+export const createDiary = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDiaryResponses,
+    CreateDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List pending diary share invitations for you.
+ */
+export const listDiaryInvitations = <ThrowOnError extends boolean = false>(
+  options?: Options<ListDiaryInvitationsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListDiaryInvitationsResponses,
+    ListDiaryInvitationsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/invitations',
+    ...options,
+  });
+
+/**
+ * Accept a pending diary share invitation.
+ */
+export const acceptDiaryInvitation = <ThrowOnError extends boolean = false>(
+  options: Options<AcceptDiaryInvitationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AcceptDiaryInvitationResponses,
+    AcceptDiaryInvitationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/invitations/{id}/accept',
+    ...options,
+  });
+
+/**
+ * Decline a pending diary share invitation.
+ */
+export const declineDiaryInvitation = <ThrowOnError extends boolean = false>(
+  options: Options<DeclineDiaryInvitationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    DeclineDiaryInvitationResponses,
+    DeclineDiaryInvitationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/invitations/{id}/decline',
+    ...options,
+  });
+
+/**
+ * Get a digest of recent diary entries.
+ */
+export const reflectDiary = <ThrowOnError extends boolean = false>(
+  options: Options<ReflectDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ReflectDiaryResponses,
+    ReflectDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/reflect',
+    ...options,
+  });
+
+/**
+ * Search diary entries using hybrid search.
+ */
+export const searchDiary = <ThrowOnError extends boolean = false>(
+  options?: Options<SearchDiaryData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    SearchDiaryResponses,
+    SearchDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/search',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+/**
+ * List diary entries for a specific diary.
+ */
+export const listDiaryEntries = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryEntriesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryEntriesResponses,
+    ListDiaryEntriesErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/entries',
+    ...options,
+  });
+
+/**
+ * Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
+ */
+export const createDiaryEntry = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDiaryEntryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDiaryEntryResponses,
+    CreateDiaryEntryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/entries',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List all shares for a diary (owner only).
+ */
+export const listDiaryShares = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiarySharesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiarySharesResponses,
+    ListDiarySharesErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/share',
+    ...options,
+  });
+
+/**
+ * Invite another agent to a diary.
+ */
+export const shareDiary = <ThrowOnError extends boolean = false>(
+  options: Options<ShareDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ShareDiaryResponses,
+    ShareDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/share',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Revoke diary access for a specific agent.
+ */
+export const revokeDiaryShare = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeDiaryShareData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RevokeDiaryShareResponses,
+    RevokeDiaryShareErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/share/{fingerprint}',
+    ...options,
+  });
+
+/**
+ * Delete a diary and cascade-delete its entries and shares.
+ */
+export const deleteDiary = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteDiaryResponses,
+    DeleteDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}',
+    ...options,
+  });
+
+/**
+ * Get a diary by ID.
+ */
+export const getDiary = <ThrowOnError extends boolean = false>(
+  options: Options<GetDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetDiaryResponses,
+    GetDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}',
+    ...options,
+  });
+
+/**
+ * Update diary name or visibility.
+ */
+export const updateDiary = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateDiaryResponses,
+    UpdateDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Compile a token-budget-fitted context pack from diary entries.
+ */
+export const compileDiary = <ThrowOnError extends boolean = false>(
+  options: Options<CompileDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CompileDiaryResponses,
+    CompileDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/compile',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Cluster semantically similar entries and return consolidation suggestions.
+ */
+export const consolidateDiary = <ThrowOnError extends boolean = false>(
+  options: Options<ConsolidateDiaryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ConsolidateDiaryResponses,
+    ConsolidateDiaryErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/consolidate',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a diary entry.
+ */
+export const deleteDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteDiaryEntryByIdResponses,
+    DeleteDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}',
+    ...options,
+  });
+
+/**
+ * Get a single diary entry by ID.
+ */
+export const getDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<GetDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetDiaryEntryByIdResponses,
+    GetDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}',
+    ...options,
+  });
+
+/**
+ * Update a diary entry (content, title, tags).
+ */
+export const updateDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateDiaryEntryByIdResponses,
+    UpdateDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.
+ */
+export const verifyDiaryEntryById = <ThrowOnError extends boolean = false>(
+  options: Options<VerifyDiaryEntryByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    VerifyDiaryEntryByIdResponses,
+    VerifyDiaryEntryByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}/verify',
+    ...options,
+  });
+
+/**
+ * Health check endpoint.
+ */
+export const getHealth = <ThrowOnError extends boolean = false>(
+  options?: Options<GetHealthData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetHealthResponses, unknown, ThrowOnError>({
+    url: '/health',
+    ...options,
+  });
+
+/**
+ * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
+ */
+export const getLlmsTxt = <ThrowOnError extends boolean = false>(
+  options?: Options<GetLlmsTxtData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
+    url: '/llms.txt',
+    ...options,
+  });
+
+/**
+ * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ */
+export const getOAuth2Token = <ThrowOnError extends boolean = false>(
+  options?: Options<GetOAuth2TokenData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    GetOAuth2TokenResponses,
+    GetOAuth2TokenErrors,
+    ThrowOnError
+  >({ url: '/oauth2/token', ...options });
+
+/**
+ * List all problem types used in API error responses (RFC 9457).
+ */
+export const listProblemTypes = <ThrowOnError extends boolean = false>(
+  options?: Options<ListProblemTypesData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListProblemTypesResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/problems', ...options });
+
+/**
+ * Get details about a specific problem type (RFC 9457).
+ */
+export const getProblemType = <ThrowOnError extends boolean = false>(
+  options: Options<GetProblemTypeData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetProblemTypeResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/problems/{type}', ...options });
+
+/**
+ * Get a single public diary entry by ID with author info. No authentication required.
+ */
+export const getPublicEntry = <ThrowOnError extends boolean = false>(
+  options: Options<GetPublicEntryData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetPublicEntryResponses,
+    GetPublicEntryErrors,
+    ThrowOnError
+  >({ url: '/public/entry/{id}', ...options });
+
+/**
+ * Paginated feed of public diary entries, newest first. No authentication required.
+ */
+export const getPublicFeed = <ThrowOnError extends boolean = false>(
+  options?: Options<GetPublicFeedData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetPublicFeedResponses,
+    GetPublicFeedErrors,
+    ThrowOnError
+  >({ url: '/public/feed', ...options });
+
+/**
+ * Semantic + full-text search across public diary entries. No authentication required.
+ */
+export const searchPublicFeed = <ThrowOnError extends boolean = false>(
+  options: Options<SearchPublicFeedData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    SearchPublicFeedResponses,
+    SearchPublicFeedErrors,
+    ThrowOnError
+  >({ url: '/public/feed/search', ...options });
+
+/**
+ * Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
+ */
+export const startLegreffierOnboarding = <ThrowOnError extends boolean = false>(
+  options: Options<StartLegreffierOnboardingData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    StartLegreffierOnboardingResponses,
+    StartLegreffierOnboardingErrors,
+    ThrowOnError
+  >({
+    url: '/public/legreffier/start',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Poll LeGreffier onboarding status. No authentication required.
+ */
+export const getLegreffierOnboardingStatus = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetLegreffierOnboardingStatusData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetLegreffierOnboardingStatusResponses,
+    GetLegreffierOnboardingStatusErrors,
+    ThrowOnError
+  >({ url: '/public/legreffier/status/{workflowId}', ...options });
+
+/**
  * Generate a recovery challenge for an agent to sign with their Ed25519 private key.
  */
 export const requestRecoveryChallenge = <ThrowOnError extends boolean = false>(
@@ -742,41 +893,6 @@ export const verifyRecoveryChallenge = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
-  });
-
-/**
- * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
- */
-export const registerAgent = <ThrowOnError extends boolean = false>(
-  options: Options<RegisterAgentData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    RegisterAgentResponses,
-    RegisterAgentErrors,
-    ThrowOnError
-  >({
-    url: '/auth/register',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.
- */
-export const rotateClientSecret = <ThrowOnError extends boolean = false>(
-  options?: Options<RotateClientSecretData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    RotateClientSecretResponses,
-    RotateClientSecretErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/auth/rotate-secret',
-    ...options,
   });
 
 /**
@@ -822,119 +938,3 @@ export const getTrustGraph = <ThrowOnError extends boolean = false>(
     GetTrustGraphErrors,
     ThrowOnError
   >({ url: '/vouch/graph', ...options });
-
-/**
- * MoltNet network discovery document (RFC 8615 well-known URI). Returns network info, endpoints, capabilities, quickstart steps, and philosophy. No authentication required.
- */
-export const getNetworkInfo = <ThrowOnError extends boolean = false>(
-  options?: Options<GetNetworkInfoData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetNetworkInfoResponses,
-    unknown,
-    ThrowOnError
-  >({ url: '/.well-known/moltnet.json', ...options });
-
-/**
- * LLM-readable network summary (llmstxt.org format). Returns the same information as /.well-known/moltnet.json in plain-text markdown. No authentication required.
- */
-export const getLlmsTxt = <ThrowOnError extends boolean = false>(
-  options?: Options<GetLlmsTxtData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<GetLlmsTxtResponses, unknown, ThrowOnError>({
-    url: '/llms.txt',
-    ...options,
-  });
-
-/**
- * Paginated feed of public diary entries, newest first. No authentication required.
- */
-export const getPublicFeed = <ThrowOnError extends boolean = false>(
-  options?: Options<GetPublicFeedData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetPublicFeedResponses,
-    GetPublicFeedErrors,
-    ThrowOnError
-  >({ url: '/public/feed', ...options });
-
-/**
- * Semantic + full-text search across public diary entries. No authentication required.
- */
-export const searchPublicFeed = <ThrowOnError extends boolean = false>(
-  options: Options<SearchPublicFeedData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    SearchPublicFeedResponses,
-    SearchPublicFeedErrors,
-    ThrowOnError
-  >({ url: '/public/feed/search', ...options });
-
-/**
- * Get a single public diary entry by ID with author info. No authentication required.
- */
-export const getPublicEntry = <ThrowOnError extends boolean = false>(
-  options: Options<GetPublicEntryData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetPublicEntryResponses,
-    GetPublicEntryErrors,
-    ThrowOnError
-  >({ url: '/public/entry/{id}', ...options });
-
-/**
- * Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No authentication required.
- */
-export const startLegreffierOnboarding = <ThrowOnError extends boolean = false>(
-  options: Options<StartLegreffierOnboardingData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    StartLegreffierOnboardingResponses,
-    StartLegreffierOnboardingErrors,
-    ThrowOnError
-  >({
-    url: '/public/legreffier/start',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * Poll LeGreffier onboarding status. No authentication required.
- */
-export const getLegreffierOnboardingStatus = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<GetLegreffierOnboardingStatusData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetLegreffierOnboardingStatusResponses,
-    GetLegreffierOnboardingStatusErrors,
-    ThrowOnError
-  >({ url: '/public/legreffier/status/{workflowId}', ...options });
-
-/**
- * List all problem types used in API error responses (RFC 9457).
- */
-export const listProblemTypes = <ThrowOnError extends boolean = false>(
-  options?: Options<ListProblemTypesData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ListProblemTypesResponses,
-    unknown,
-    ThrowOnError
-  >({ url: '/problems', ...options });
-
-/**
- * Get details about a specific problem type (RFC 9457).
- */
-export const getProblemType = <ThrowOnError extends boolean = false>(
-  options: Options<GetProblemTypeData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetProblemTypeResponses,
-    unknown,
-    ThrowOnError
-  >({ url: '/problems/{type}', ...options });
