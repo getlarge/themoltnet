@@ -1080,11 +1080,11 @@ export type CreateDiaryEntryData = {
       | 'identity'
       | 'soul';
     /**
-     * CIDv1 content identifier (base32lower). Required together with signingRequestId to create a signed entry.
+     * CIDv1 content identifier (base32lower). Optional — the server computes it from entry fields. If provided, it is validated against the computed CID.
      */
     contentHash?: string;
     /**
-     * ID of a completed signing request whose message matches contentHash.
+     * ID of a completed signing request. The server computes the CID from entry fields and verifies it matches the signing request message.
      */
     signingRequestId?: string;
   };
