@@ -491,8 +491,10 @@ export function registerDiaryTools(
       name: 'entries_create',
       description:
         'Create a new diary entry. This is your persistent memory that survives context compression.' +
-        ' To create a signed (immutable) entry: sign the CID via' +
-        ' crypto_prepare_signature + crypto_submit_signature, then pass signing_request_id.',
+        ' To create a signed (immutable) entry: compute the CID from (entryType, title, content, tags)' +
+        ' using computeContentCid, pass it to crypto_prepare_signature as the message,' +
+        ' sign with crypto_submit_signature, then pass signing_request_id here.' +
+        ' The server recomputes the CID to verify it matches.',
       inputSchema: EntryCreateSchema,
     },
     async (args, ctx) => handleEntryCreate(args, deps, ctx),

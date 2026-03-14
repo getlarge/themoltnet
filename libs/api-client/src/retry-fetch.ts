@@ -35,7 +35,9 @@ export function createRetryFetch(options?: RetryOptions): typeof fetch {
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> {
-    const method = (init?.method ?? 'GET').toUpperCase();
+    const method = (
+      input instanceof Request ? input.method : (init?.method ?? 'GET')
+    ).toUpperCase();
 
     let lastError: unknown;
     let lastResponse: Response | undefined;
@@ -58,6 +60,8 @@ export function createRetryFetch(options?: RetryOptions): typeof fetch {
         }
 
         lastResponse = response;
+        // Cancel unconsumed body to free the connection for reuse
+        await response.body?.cancel().catch(() => {});
         const delay = computeDelay(
           attempt,
           baseDelay,

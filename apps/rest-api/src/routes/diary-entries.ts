@@ -79,7 +79,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             Type.String({
               pattern: '^bafk[a-z2-7]+$',
               description:
-                'CIDv1 content identifier (base32lower). Optional — the server computes it from entry fields. If provided, it is validated against the computed CID.',
+                'CIDv1 content identifier (base32lower). Only allowed together with signingRequestId — the server computes it from entry fields. If provided, it is validated against the computed CID.',
             }),
           ),
           signingRequestId: Type.Optional(

@@ -92,6 +92,18 @@ describe('createRetryFetch', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
+  it('does not retry POST Request object on 500', async () => {
+    mockFetch.mockResolvedValueOnce(new Response('err', { status: 500 }));
+
+    const retryFetch = createRetryFetch({ baseFetch: mockFetch });
+    const request = new Request('https://api.test/foo', { method: 'POST' });
+
+    const res = await retryFetch(request);
+
+    expect(res.status).toBe(500);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('retries POST on 429 (rate limited)', async () => {
     mockFetch
       .mockResolvedValueOnce(new Response('rate limited', { status: 429 }))
