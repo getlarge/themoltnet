@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.20.0...github-agent-v0.21.0) (2026-03-13)
+
+
+### Features
+
+* **legreffier:** skill-eval pipeline, commit shaping, SDK retry fixes ([fe5bb64](https://github.com/getlarge/themoltnet/commit/fe5bb64fe3f42b38b54fefdae1a6eadd0965a8fd))
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.19.0...github-agent-v0.20.0) (2026-03-08)
 
 
