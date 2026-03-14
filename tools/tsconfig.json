@@ -31,6 +31,12 @@
     },
     {
       "path": "../libs/database"
+    },
+    {
+      "path": "../libs/sdk"
+    },
+    {
+      "path": "../packages/github-agent"
     }
   ]
 }

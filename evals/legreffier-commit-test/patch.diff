@@ -1,0 +1,24 @@
+diff --git a/libs/crypto-service/src/fingerprint.test.ts b/libs/crypto-service/src/fingerprint.test.ts
+new file mode 100644
+index 0000000..abcdef3
+--- /dev/null
++++ b/libs/crypto-service/src/fingerprint.test.ts
+@@ -0,0 +1,18 @@
++import { describe, expect, it } from 'vitest';
++
++/**
++ * Fingerprint format: XXXX-XXXX-XXXX-XXXX (4 groups of 4 hex chars)
++ */
++function formatFingerprint(hash: string): string {
++  return hash.slice(0, 16).toUpperCase().match(/.{4}/g)!.join('-');
++}
++
++describe('formatFingerprint', () => {
++  it('formats a hash into 4-group fingerprint', () => {
++    expect(formatFingerprint('1671b08099bf4270abcd')).toBe('1671-B080-99BF-4270');
++  });
++
++  it('handles exact 16-char input', () => {
++    expect(formatFingerprint('abcdef0123456789')).toBe('ABCD-EF01-2345-6789');
++  });
++});

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createRetryFetch } from '../src/retry-fetch.js';
+import { createRateLimitFetch, createRetryFetch } from '../src/retry-fetch.js';
 
 describe('createRetryFetch', () => {
   let mockFetch: ReturnType<typeof vi.fn<typeof fetch>>;
@@ -112,9 +112,7 @@ describe('createRetryFetch', () => {
   it('honors Retry-After header (seconds)', async () => {
     const headers = new Headers({ 'Retry-After': '2' });
     mockFetch
-      .mockResolvedValueOnce(
-        new Response('retry', { status: 429, headers }),
-      )
+      .mockResolvedValueOnce(new Response('retry', { status: 429, headers }))
       .mockResolvedValueOnce(new Response('ok', { status: 200 }));
 
     const delays: number[] = [];
@@ -185,5 +183,33 @@ describe('createRetryFetch', () => {
 
     // baseDelay * 2^attempt: 500*2^0=500, 500*2^1=1000
     expect(delays).toEqual([500, 1000]);
+  });
+});
+
+describe('createRateLimitFetch (backward-compat alias)', () => {
+  it('retries on 429 and returns a fetch function', async () => {
+    const mockFetch = vi.fn<typeof fetch>();
+    vi.useFakeTimers();
+
+    mockFetch
+      .mockResolvedValueOnce(new Response('rate limited', { status: 429 }))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    // Patch globalThis.fetch so createRateLimitFetch picks it up
+    const original = globalThis.fetch;
+    globalThis.fetch = mockFetch;
+
+    try {
+      const rateFetch = createRateLimitFetch({ maxRetries: 2 });
+      const promise = rateFetch('https://api.test/foo', { method: 'POST' });
+      await vi.advanceTimersByTimeAsync(35_000);
+      const res = await promise;
+
+      expect(res.status).toBe(200);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    } finally {
+      globalThis.fetch = original;
+      vi.useRealTimers();
+    }
   });
 });

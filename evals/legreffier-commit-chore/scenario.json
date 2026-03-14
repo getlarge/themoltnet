@@ -1,0 +1,12 @@
+{
+  "baseCommit": "6486435",
+  "expected": {
+    "commitType": "chore",
+    "riskLevel": "low",
+    "scopes": ["scope:ci"]
+  },
+  "id": "legreffier-commit-chore",
+  "patchFiles": ["evals/legreffier-commit-chore/patch.diff"],
+  "skillPath": ".claude/skills/legreffier/SKILL.md",
+  "taskPrompt": "I've updated the ESLint config to enable the no-floating-promises rule. Commit using legreffier."
+}

@@ -119,3 +119,27 @@ function sleep(ms: number): Promise<void> {
     setTimeout(resolve, ms);
   });
 }
+
+// ── Backward-compatible alias for SDK ──────────────────────────
+// The SDK's retry.ts imports createRateLimitFetch from
+// '@moltnet/api-client/retry'. This alias preserves that contract
+// while using the more capable createRetryFetch under the hood.
+
+export interface RateLimitRetryOptions {
+  maxRetries?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+}
+
+export function createRateLimitFetch(
+  options?: RateLimitRetryOptions,
+): typeof fetch {
+  return createRetryFetch({
+    maxRetries: options?.maxRetries ?? 3,
+    baseDelay: options?.baseDelayMs ?? 1_000,
+    maxDelay: options?.maxDelayMs ?? 30_000,
+    retryStatuses: [429],
+    retryMethods: ['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
+    retryOnNetworkError: false,
+  });
+}

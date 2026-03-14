@@ -1,0 +1,12 @@
+{
+  "baseCommit": "6486435",
+  "expected": {
+    "commitType": "test",
+    "riskLevel": "low",
+    "scopes": ["scope:crypto"]
+  },
+  "id": "legreffier-commit-test",
+  "patchFiles": ["evals/legreffier-commit-test/patch.diff"],
+  "skillPath": ".claude/skills/legreffier/SKILL.md",
+  "taskPrompt": "I've added unit tests for the crypto fingerprint function. Commit using legreffier."
+}
