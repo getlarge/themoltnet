@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.30.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.29.0...moltnet-api-client-v0.30.0) (2026-03-14)
+
+
+### Features
+
+* retry fetch + simplify content-signed entries ([#144](https://github.com/getlarge/themoltnet/issues/144), [#407](https://github.com/getlarge/themoltnet/issues/407)) ([afb3139](https://github.com/getlarge/themoltnet/commit/afb3139650198a50bb1b7da337746ff7ec1fe485))
+
+
+### Bug Fixes
+
+* address Copilot review feedback ([202b875](https://github.com/getlarge/themoltnet/commit/202b8754f06f77c02340bcbdd17bc548d3425870))
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.28.0...moltnet-api-client-v0.29.0) (2026-03-08)
 
 
