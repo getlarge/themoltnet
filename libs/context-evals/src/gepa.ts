@@ -21,19 +21,25 @@ export function buildReplicas<T extends { id: string }>(tasks: T[]): T[] {
 /**
  * Wraps an evaluator function with a content-hash cache keyed by task ID and
  * instruction content. Identical (taskId, instruction) pairs return the cached
- * score without re-running the evaluator.
+ * result without re-running the evaluator.
  */
-export function buildMetricFn(
-  evaluator: (taskId: string, instruction: string) => Promise<number>,
-): (taskId: string, instruction: string) => Promise<number> {
-  const cache = new Map<string, number>();
-  return async (taskId: string, instruction: string): Promise<number> => {
+export function buildMetricFn<TTrace>(
+  evaluator: (
+    taskId: string,
+    instruction: string,
+  ) => Promise<EvalOneResult<TTrace>>,
+): (taskId: string, instruction: string) => Promise<EvalOneResult<TTrace>> {
+  const cache = new Map<string, EvalOneResult<TTrace>>();
+  return async (
+    taskId: string,
+    instruction: string,
+  ): Promise<EvalOneResult<TTrace>> => {
     const key = buildCacheKey(taskId, instruction);
     const cached = cache.get(key);
     if (cached !== undefined) return cached;
-    const score = await evaluator(taskId, instruction);
-    cache.set(key, score);
-    return score;
+    const result = await evaluator(taskId, instruction);
+    cache.set(key, result);
+    return result;
   };
 }
 
@@ -42,6 +48,22 @@ export function buildMetricFn(
 export type TaskExample = Readonly<
   AxTypedExample<Record<string, unknown> & { id: string }>
 >;
+
+/** Result from a single evaluation, optionally including a trace. */
+export interface EvalOneResult<TTrace> {
+  score: number;
+  trace?: TTrace;
+}
+
+/** Entry emitted via onEvalComplete after each evaluation. */
+export interface EvalTraceEntry<TTrace> {
+  taskId: string;
+  round: number;
+  score: number;
+  instructionLength: number;
+  trace?: TTrace;
+  timestamp: string;
+}
 
 export interface GepaRunnerOptions<
   TTask,
@@ -61,13 +83,23 @@ export interface GepaRunnerOptions<
   axSignature?: string;
   /** Build training examples from the (possibly replicated) task list. */
   buildExamples: (tasks: TTask[]) => TExample[];
-  /** Evaluate a single task with the given instruction; returns 0–1 score. */
-  evaluateOne: (task: TTask, instruction: string) => Promise<number>;
+  /** Evaluate a single task with the given instruction; returns score and optional trace. */
+  evaluateOne: (
+    task: TTask,
+    instruction: string,
+  ) => Promise<EvalOneResult<TTrace>>;
+  /**
+   * Called after each evaluation completes — use for incremental trace persistence.
+   * If multiple consumers are needed (e.g., JSONL writer + live dashboard),
+   * consider replacing this callback with a typed EventEmitter.
+   */
+  onEvalComplete?: (entry: EvalTraceEntry<TTrace>) => void | Promise<void>;
 }
 
-export interface GepaRunnerResult {
+export interface GepaRunnerResult<TTrace> {
   bestScore: number;
   bestInstruction: string;
+  traces: EvalTraceEntry<TTrace>[];
 }
 
 // ── Full GEPA compile loop ────────────────────────────────────────────────────
@@ -79,7 +111,7 @@ export async function runGepaOptimization<
   TExample extends TaskExample,
 >(
   options: GepaRunnerOptions<TTask, TTrace, TOutput, TExample>,
-): Promise<GepaRunnerResult> {
+): Promise<GepaRunnerResult<TTrace>> {
   const {
     tasks,
     adapter,
@@ -92,6 +124,7 @@ export async function runGepaOptimization<
     axSignature = 'taskPrompt:string -> output:string',
     buildExamples,
     evaluateOne,
+    onEvalComplete,
   } = options;
 
   const trainingTasks = buildReplicas(tasks);
@@ -109,14 +142,19 @@ export async function runGepaOptimization<
 
   const taskById = new Map(tasks.map((task) => [task.id, task]));
   const trainingExamples = buildExamples(trainingTasks);
+  const allTraces: EvalTraceEntry<TTrace>[] = [];
+  let evalRound = 0;
 
   const getCurrentInstruction = (): string =>
     (program as { instruction?: string }).instruction ?? seedInstruction;
 
-  const cachedEvaluate = buildMetricFn(
-    async (taskId: string, instruction: string): Promise<number> => {
+  const cachedEvaluate = buildMetricFn<TTrace>(
+    async (
+      taskId: string,
+      instruction: string,
+    ): Promise<EvalOneResult<TTrace>> => {
       const task = taskById.get(taskId);
-      if (!task) return 0;
+      if (!task) return { score: 0 };
       return evaluateOne(task, instruction);
     },
   );
@@ -133,7 +171,21 @@ export async function runGepaOptimization<
           ? example.id.replace(/-replica$/, '')
           : '';
       const instruction = getCurrentInstruction();
-      return cachedEvaluate(taskId, instruction);
+      const evalResult = await cachedEvaluate(taskId, instruction);
+
+      evalRound++;
+      const entry: EvalTraceEntry<TTrace> = {
+        taskId,
+        round: evalRound,
+        score: evalResult.score,
+        instructionLength: instruction.length,
+        trace: evalResult.trace,
+        timestamp: new Date().toISOString(),
+      };
+      allTraces.push(entry);
+      await onEvalComplete?.(entry);
+
+      return evalResult.score;
     },
     {
       maxMetricCalls,
@@ -146,6 +198,7 @@ export async function runGepaOptimization<
   return {
     bestScore: result.bestScore,
     bestInstruction: result.optimizedProgram?.instruction ?? seedInstruction,
+    traces: allTraces,
   };
 }
 

@@ -536,8 +536,11 @@ async function main() {
         setup: task.setup,
       })),
     evaluateOne: async (task, instruction) => {
-      const evalResult = await adapter.evaluate([task], { instruction });
-      return evalResult.scores[0] ?? 0;
+      const evalResult = await adapter.evaluate([task], { instruction }, true);
+      return {
+        score: evalResult.scores[0] ?? 0,
+        trace: evalResult.trajectories?.[0],
+      };
     },
   });
 

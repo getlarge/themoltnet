@@ -9,7 +9,13 @@
  *   pnpm gpack:skill-eval --eval all --scorer legreffier --baseline
  */
 
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  mkdir,
+  readdir,
+  readFile,
+  writeFile,
+} from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -221,9 +227,14 @@ async function main() {
       ? buildAI({ provider: teacherProvider, aiKey, model: teacherModel })
       : undefined;
 
+  const outDir = resolve(repoRoot, 'evals', 'runs');
+  await mkdir(outDir, { recursive: true });
+  const tracesPath = resolve(outDir, `skill-eval-traces-${Date.now()}.jsonl`);
+
   console.log(
     `[skill-eval] starting GEPA optimization (numTrials=${numTrials} maxMetricCalls=${maxMetricCalls})...`,
   );
+  console.log(`[skill-eval] traces streaming to ${tracesPath}`);
 
   const { bestScore, bestInstruction } = await runGepaOptimization({
     tasks,
@@ -245,21 +256,39 @@ async function main() {
         env: (task.env ?? null) as object | null,
       })),
     evaluateOne: async (task, instruction) => {
-      const evalResult = await adapter.evaluate([task], { instruction });
-      return evalResult.scores[0] ?? 0;
+      const evalResult = await adapter.evaluate([task], { instruction }, true);
+      const score = evalResult.scores[0] ?? 0;
+      const trace = evalResult.trajectories?.[0] ?? undefined;
+      return { score, trace };
+    },
+    onEvalComplete: async (entry) => {
+      await appendFile(tracesPath, JSON.stringify(entry) + '\n', 'utf8');
     },
   });
 
   console.log(`\n[skill-eval] optimization complete`);
   console.log(`  best score: ${bestScore.toFixed(3)}`);
 
-  const outDir = resolve(repoRoot, 'evals', 'runs');
-  await mkdir(outDir, { recursive: true });
   const outPath = resolve(outDir, `skill-eval-optimized-${Date.now()}.md`);
   await writeFile(outPath, bestInstruction, 'utf8');
   console.log(`[skill-eval] best skill section saved to ${outPath}`);
 
   const finalEval = await runBaseline(adapter, tasks, bestInstruction);
+  await writeFile(
+    resolve(outDir, `skill-eval-final-${Date.now()}.json`),
+    JSON.stringify(
+      {
+        mode: 'final',
+        timestamp: new Date().toISOString(),
+        scores: finalEval.scores,
+        avg: finalEval.averageScore,
+        traces: finalEval.trajectories,
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
   console.log(
     `[skill-eval] final scores: ${finalEval.scores.map((s) => s.toFixed(2)).join(', ')} avg=${finalEval.averageScore.toFixed(3)}`,
   );
