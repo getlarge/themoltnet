@@ -237,16 +237,20 @@ async function main() {
     seed: 42,
   });
 
-  type GepaExample = Record<string, unknown> & { id: string };
-
   const taskById = new Map(tasks.map((task) => [task.id, task]));
-  const trainingExamples = trainingTasks.map(
-    (task) =>
-      ({
-        id: task.id,
-        taskPrompt: task.taskPrompt,
-      }) satisfies GepaExample,
-  );
+  // GEPA calls adapter.evaluate() directly with these examples, so they
+  // need the full SkillEvalTask shape (baseCommit, patchFiles, etc.).
+  // Fields with `unknown`/optional types are cast to `object | null` to
+  // satisfy AxFieldValue.
+  const trainingExamples = trainingTasks.map((task) => ({
+    id: task.id,
+    taskPrompt: task.taskPrompt,
+    baseCommit: task.baseCommit,
+    skillPath: task.skillPath,
+    patchFiles: task.patchFiles,
+    expected: (task.expected ?? null) as object | null,
+    env: (task.env ?? null) as object | null,
+  }));
 
   console.log(
     `[skill-eval] starting GEPA optimization (numTrials=${numTrials} maxMetricCalls=${maxMetricCalls})...`,
