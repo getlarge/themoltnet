@@ -79,7 +79,7 @@ export interface GepaRunnerOptions<
   numTrials: number;
   maxMetricCalls: number;
   verbose?: boolean;
-  /** ax() program signature. Default: 'taskPrompt:string -> output:string' */
+  /** ax() program signature. Default: 'taskPrompt:string -> optimizedInstruction:string' */
   axSignature?: string;
   /** Build training examples from the (possibly replicated) task list. */
   buildExamples: (tasks: TTask[]) => TExample[];
@@ -121,7 +121,7 @@ export async function runGepaOptimization<
     numTrials,
     maxMetricCalls,
     verbose,
-    axSignature = 'taskPrompt:string -> output:string',
+    axSignature = 'taskPrompt:string -> optimizedInstruction:string',
     buildExamples,
     evaluateOne,
     onEvalComplete,
