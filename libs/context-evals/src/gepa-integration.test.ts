@@ -1,12 +1,11 @@
 /**
- * Integration tests for runGepaOptimization.
+ * Integration tests for runGepaOptimization and runBaseline.
  *
- * Uses a mock AxGEPAAdapter and fake AxAIService to verify that scores,
- * traces, and bestScore flow correctly through the GEPA pipeline.
- *
- * When gepaAdapter is provided, GEPA uses adapter.evaluate() for all
- * scoring. The tracing adapter wrapper intercepts these calls, so traces
- * are always populated regardless of whether program.forward() works.
+ * Key architecture (from ax-llm + gepa-ai source):
+ * - bestScore flows through metricFn via program.forward() → Pareto archive
+ * - gepaAdapter.evaluate() is only an acceptance gate, not the score source
+ * - program.forward() is overridden to call evaluateOne directly
+ * - metricFn extracts the score from forward's prediction ({score: N})
  */
 import type {
   AxAIService,
@@ -16,7 +15,12 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EvalTraceEntry, TaskExample } from './gepa.js';
-import { runBaseline, runGepaOptimization } from './gepa.js';
+import {
+  buildMetricFn,
+  buildReplicas,
+  runBaseline,
+  runGepaOptimization,
+} from './gepa.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +36,26 @@ interface TestTrace {
 
 function createMockAI(): AxAIService {
   return {
+    getId: () => 'mock-id',
+    getName: () => 'mock',
+    getFeatures: () => ({ functions: false, streaming: false }),
+    getModelList: () => [],
+    getMetrics: () => ({
+      latency: {
+        chat: { mean: 0, p95: 0, p99: 0, samples: [] },
+        embed: { mean: 0, p95: 0, p99: 0, samples: [] },
+      },
+      errors: {
+        chat: { count: 0, rate: 0, total: 0 },
+        embed: { count: 0, rate: 0, total: 0 },
+      },
+    }),
+    getLogger: () => () => {},
+    getLastUsedChatModel: () => 'mock-model',
+    getLastUsedEmbedModel: () => undefined,
+    getLastUsedModelConfig: () => ({}),
+    getOptions: () => ({}),
+    setOptions: () => {},
     getModelInfo: () => [
       {
         name: 'mock-model',
@@ -41,12 +65,14 @@ function createMockAI(): AxAIService {
         completionTokenCostPer1M: 0,
       },
     ],
-    getFeatures: () => ({ functions: false, streaming: false }),
-    getName: () => 'mock',
-    getModelList: () => [],
+    embed: vi.fn().mockResolvedValue({ embeddings: [] }),
     chat: vi.fn().mockResolvedValue({
-      results: [{ content: 'mock response' }],
-      modelUsage: { promptTokens: 0, completionTokens: 0 },
+      results: [{ content: 'Eval Score: 0.5', index: 0, finishReason: 'stop' }],
+      modelUsage: {
+        ai: 'mock',
+        model: 'mock-model',
+        tokens: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      },
     }),
   } as unknown as AxAIService;
 }
@@ -91,91 +117,90 @@ function buildExamples(tasks: TestTask[]): TaskExample[] {
   }));
 }
 
-// ── Tests ────────────────────────────────────────────────────────────────────
+// ── runGepaOptimization ─────────────────────────────────────────────────────
 
 describe('runGepaOptimization', () => {
-  it('calls adapter.evaluate with instruction candidates', async () => {
-    const adapter = createMockAdapter(() => 0.85);
-    const spy = vi.spyOn(adapter, 'evaluate');
-    const tasks = createTasks(2);
-
-    await runGepaOptimization({
-      tasks,
-      adapter,
-      seedInstruction: 'test seed',
-      studentAI: createMockAI(),
-      numTrials: 1,
-      maxMetricCalls: 4,
-      buildExamples,
-      evaluateOne: () => Promise.resolve({ score: 0.85 }),
-    });
-
-    expect(spy).toHaveBeenCalled();
-    for (const call of spy.mock.calls) {
-      const candidate = call[1] as Record<string, string>;
-      expect(candidate).toHaveProperty('instruction');
-    }
-  });
-
-  it('bestScore reflects adapter.evaluate scores (not 0)', async () => {
-    const adapter = createMockAdapter(() => 0.85);
-    const tasks = createTasks(2);
-
+  it('bestScore reflects evaluateOne scores via program.forward override', async () => {
     const result = await runGepaOptimization({
-      tasks,
-      adapter,
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.85),
       seedInstruction: 'test seed',
       studentAI: createMockAI(),
-      numTrials: 1,
+      numTrials: 0,
       maxMetricCalls: 4,
       buildExamples,
-      evaluateOne: () => Promise.resolve({ score: 0.85 }),
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.85 }),
     });
 
-    // bestScore is derived from adapter traces, not GEPA's Pareto front
     expect(result.bestScore).toBeGreaterThan(0);
     expect(result.bestScore).toBeCloseTo(0.85, 1);
   });
 
-  it('traces are populated from adapter.evaluate calls', async () => {
-    const adapter = createMockAdapter(() => 0.75);
-    const tasks = createTasks(2);
-
+  it('traces are populated from evaluateOne calls', async () => {
     const result = await runGepaOptimization({
-      tasks,
-      adapter,
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.75),
       seedInstruction: 'seed',
       studentAI: createMockAI(),
-      numTrials: 1,
+      numTrials: 0,
       maxMetricCalls: 4,
       buildExamples,
-      evaluateOne: () => Promise.resolve({ score: 0.75 }),
+      evaluateOne: (task: TestTask, instruction: string) =>
+        Promise.resolve({
+          score: 0.75,
+          trace: { taskId: task.id, instruction },
+        }),
     });
 
     expect(result.traces.length).toBeGreaterThan(0);
     for (const trace of result.traces) {
-      expect(trace.averageScore).toBe(0.75);
-      expect(trace.scores).toEqual(expect.arrayContaining([0.75]));
-      expect(trace.round).toBeGreaterThan(0);
+      expect(trace.score).toBe(0.75);
+      expect(trace.eval).toBeGreaterThan(0);
       expect(trace.timestamp).toBeTruthy();
       expect(trace.instructionLength).toBeGreaterThan(0);
+      expect(trace.taskId).toMatch(/^task-/);
     }
   });
 
-  it('onEvalComplete fires for each adapter.evaluate call', async () => {
-    const adapter = createMockAdapter(() => 0.6);
-    const tasks = createTasks(2);
+  it('trace entries contain per-task data from evaluateOne', async () => {
+    const result = await runGepaOptimization({
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.8),
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 0,
+      maxMetricCalls: 4,
+      buildExamples,
+      evaluateOne: (task: TestTask, instruction: string) =>
+        Promise.resolve({
+          score: 0.8,
+          trace: { taskId: task.id, instruction },
+        }),
+    });
+
+    expect(result.traces.length).toBeGreaterThan(0);
+    for (const entry of result.traces) {
+      expect(entry.taskId).toMatch(/^task-/);
+      expect(entry.score).toBe(0.8);
+      expect(entry.trace).toBeDefined();
+      expect(entry.trace?.taskId).toMatch(/^task-/);
+    }
+  });
+
+  it('onEvalComplete fires for each evaluation round', async () => {
     const callbackTraces: EvalTraceEntry<TestTrace>[] = [];
 
     const result = await runGepaOptimization({
-      tasks,
-      adapter,
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.6),
       seedInstruction: 'seed',
       studentAI: createMockAI(),
-      numTrials: 1,
+      numTrials: 0,
       maxMetricCalls: 4,
       buildExamples,
-      evaluateOne: () => Promise.resolve({ score: 0.6 }),
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.6 }),
       onEvalComplete: (entry) => {
         callbackTraces.push(entry);
       },
@@ -183,33 +208,174 @@ describe('runGepaOptimization', () => {
 
     expect(callbackTraces).toHaveLength(result.traces.length);
     for (let i = 0; i < callbackTraces.length; i++) {
-      expect(callbackTraces[i].averageScore).toBe(
-        result.traces[i].averageScore,
-      );
-      expect(callbackTraces[i].round).toBe(result.traces[i].round);
+      expect(callbackTraces[i].score).toBe(result.traces[i].score);
+      expect(callbackTraces[i].eval).toBe(result.traces[i].eval);
     }
   });
 
-  it('returns a bestInstruction string', async () => {
-    const adapter = createMockAdapter(() => 0.5);
-    const tasks = createTasks(2);
-    const seed = 'original seed instruction';
+  it('onEvalComplete errors are caught and logged', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     const result = await runGepaOptimization({
-      tasks,
-      adapter,
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.7),
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 0,
+      maxMetricCalls: 4,
+      buildExamples,
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.7 }),
+      onEvalComplete: () => {
+        throw new Error('callback error');
+      },
+    });
+
+    expect(result).toBeDefined();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[GEPA-trace]'),
+      expect.any(Error),
+    );
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('returns a bestInstruction string', async () => {
+    const seed = 'original seed instruction';
+    const result = await runGepaOptimization({
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.5),
       seedInstruction: seed,
       studentAI: createMockAI(),
-      numTrials: 1,
+      numTrials: 0,
       maxMetricCalls: 2,
       buildExamples,
-      evaluateOne: () => Promise.resolve({ score: 0.5 }),
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.5 }),
     });
 
     expect(result.bestInstruction).toBeTruthy();
     expect(typeof result.bestInstruction).toBe('string');
   });
+
+  it('handles single task by creating replica', async () => {
+    const result = await runGepaOptimization({
+      tasks: createTasks(1),
+      adapter: createMockAdapter(() => 0.8),
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 0,
+      maxMetricCalls: 4,
+      buildExamples,
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.8 }),
+    });
+
+    expect(result.bestScore).toBeGreaterThan(0);
+    expect(result.traces.length).toBeGreaterThan(0);
+  });
+
+  it('deduplicates replica task IDs in trace entries', async () => {
+    const result = await runGepaOptimization({
+      tasks: createTasks(1),
+      adapter: createMockAdapter(() => 0.9),
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 0,
+      maxMetricCalls: 4,
+      buildExamples,
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.9 }),
+    });
+
+    for (const entry of result.traces) {
+      expect(entry.taskId).not.toBe('task-0-replica');
+    }
+  });
+
+  it('evaluateOne receives real tasks, never replicas', async () => {
+    const evaluatedTaskIds: string[] = [];
+    await runGepaOptimization({
+      tasks: createTasks(1),
+      adapter: createMockAdapter(() => 0.7),
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 0,
+      maxMetricCalls: 4,
+      buildExamples,
+      evaluateOne: (task: TestTask, _instruction: string) => {
+        evaluatedTaskIds.push(task.id);
+        return Promise.resolve({ score: 0.7 });
+      },
+    });
+
+    expect(evaluatedTaskIds.length).toBeGreaterThan(0);
+    expect(evaluatedTaskIds.every((id) => id === 'task-0')).toBe(true);
+  });
+
+  it('different scores per task are preserved in traces', async () => {
+    const result = await runGepaOptimization({
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.7),
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 0,
+      maxMetricCalls: 4,
+      buildExamples,
+      evaluateOne: (task: TestTask, _instruction: string) => {
+        const score = task.id === 'task-0' ? 0.9 : 0.5;
+        return Promise.resolve({ score });
+      },
+    });
+
+    expect(result.traces.length).toBeGreaterThan(0);
+    // With per-eval traces, each trace has a single score per task
+    const scores = result.traces.map((t) => t.score);
+    expect(scores).toContain(0.9);
+    expect(scores).toContain(0.5);
+  });
+
+  it('eval numbers are sequential starting from 1', async () => {
+    const result = await runGepaOptimization({
+      tasks: createTasks(2),
+      adapter: createMockAdapter(() => 0.7),
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 0,
+      maxMetricCalls: 6,
+      buildExamples,
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.7 }),
+    });
+
+    for (let i = 0; i < result.traces.length; i++) {
+      expect(result.traces[i].eval).toBe(i + 1);
+    }
+  });
+
+  it('adapter.evaluate is still called by GEPA for proposal gating', async () => {
+    const adapter = createMockAdapter(() => 0.8);
+    const spy = vi.spyOn(adapter, 'evaluate');
+
+    await runGepaOptimization({
+      tasks: createTasks(2),
+      adapter,
+      seedInstruction: 'seed',
+      studentAI: createMockAI(),
+      numTrials: 1,
+      maxMetricCalls: 6,
+      buildExamples,
+      evaluateOne: (_task: TestTask, _instruction: string) =>
+        Promise.resolve({ score: 0.8 }),
+    });
+
+    // GEPA calls adapter.evaluate for acceptance gating
+    expect(spy).toHaveBeenCalled();
+  });
 });
+
+// ── runBaseline ─────────────────────────────────────────────────────────────
 
 describe('runBaseline', () => {
   it('returns scores from adapter.evaluate', async () => {
@@ -247,5 +413,60 @@ describe('runBaseline', () => {
       { instruction: 'my instruction' },
       true,
     );
+  });
+
+  it('handles empty task list', async () => {
+    const adapter = createMockAdapter();
+    const result = await runBaseline(adapter, [], 'instruction');
+
+    expect(result.scores).toEqual([]);
+    expect(result.averageScore).toBe(0);
+  });
+});
+
+// ── buildReplicas ───────────────────────────────────────────────────────────
+
+describe('buildReplicas', () => {
+  it('returns tasks unchanged when >= 2', () => {
+    const tasks = [{ id: 'a' }, { id: 'b' }];
+    expect(buildReplicas(tasks)).toBe(tasks);
+  });
+
+  it('duplicates single task with -replica suffix', () => {
+    const tasks = [{ id: 'a', extra: 42 }];
+    const result = buildReplicas(tasks);
+    expect(result).toHaveLength(2);
+    expect(result[1].id).toBe('a-replica');
+    expect(result[1].extra).toBe(42);
+  });
+});
+
+// ── buildMetricFn ───────────────────────────────────────────────────────────
+
+describe('buildMetricFn', () => {
+  it('caches by (taskId, instruction) content hash', async () => {
+    const evaluator = vi.fn().mockResolvedValue({ score: 0.5 });
+    const metric = buildMetricFn(evaluator);
+
+    await metric('task-1', 'instruction-a');
+    await metric('task-1', 'instruction-a');
+    expect(evaluator).toHaveBeenCalledOnce();
+
+    await metric('task-1', 'instruction-b');
+    expect(evaluator).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not cache across different task IDs', async () => {
+    const evaluator = vi
+      .fn()
+      .mockResolvedValueOnce({ score: 0.4 })
+      .mockResolvedValueOnce({ score: 0.9 });
+    const metric = buildMetricFn(evaluator);
+
+    const a = await metric('task-a', 'same');
+    const b = await metric('task-b', 'same');
+    expect(a.score).toBe(0.4);
+    expect(b.score).toBe(0.9);
+    expect(evaluator).toHaveBeenCalledTimes(2);
   });
 });

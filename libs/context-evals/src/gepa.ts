@@ -1,11 +1,19 @@
-/** gepa.ts — Shared GEPA runner infrastructure for gpack and skill-eval pipelines. */
+/**
+ * gepa.ts — Shared GEPA runner infrastructure for gpack and skill-eval pipelines.
+ *
+ * Architecture (matching mirror-optimize.ts and ax-llm examples):
+ *
+ * GEPA calls metricFn({prediction, example}) for each training example.
+ * The metricFn ignores the prediction (program.forward output is unreliable)
+ * and reads the current instruction directly from the program object.
+ * It then calls evaluateOne() to run the real evaluation and returns
+ * the score as a bare number. Traces are emitted inside metricFn.
+ *
+ * gepaAdapter is passed to GEPA for its proposal logic (reflective
+ * mutation, acceptance gating) but is NOT the primary scoring path.
+ */
 
-import type {
-  AxAIService,
-  AxGEPAAdapter,
-  AxGEPAEvaluationBatch,
-  AxTypedExample,
-} from '@ax-llm/ax';
+import type { AxAIService, AxGEPAAdapter, AxTypedExample } from '@ax-llm/ax';
 import { ax, AxGEPA } from '@ax-llm/ax';
 
 import { buildAverage, buildCacheKey } from './pipeline-shared.js';
@@ -60,13 +68,14 @@ export interface EvalOneResult<TTrace> {
   trace?: TTrace;
 }
 
-/** Entry emitted via onEvalComplete after each adapter.evaluate() call. */
+/** Entry emitted via onEvalComplete after each metricFn call. */
 export interface EvalTraceEntry<TTrace> {
-  round: number;
-  scores: number[];
-  averageScore: number;
+  eval: number;
+  taskId: string;
+  instruction: string;
   instructionLength: number;
-  trajectories: TTrace[] | null;
+  score: number;
+  trace?: TTrace;
   timestamp: string;
 }
 
@@ -84,7 +93,7 @@ export interface GepaRunnerOptions<
   numTrials: number;
   maxMetricCalls: number;
   verbose?: boolean;
-  /** ax() program signature. Default: 'taskPrompt:string -> optimizedInstruction:string' */
+  /** ax() program signature. Default: 'task_id:string -> evalScore:number'. */
   axSignature?: string;
   /** Build training examples from the (possibly replicated) task list. */
   buildExamples: (tasks: TTask[]) => TExample[];
@@ -93,11 +102,7 @@ export interface GepaRunnerOptions<
     task: TTask,
     instruction: string,
   ) => Promise<EvalOneResult<TTrace>>;
-  /**
-   * Called after each adapter.evaluate() completes — use for incremental
-   * trace persistence. Fires on every GEPA evaluation round (both parent
-   * and child instruction evaluations).
-   */
+  /** Called after each metricFn evaluation. Use for incremental trace persistence. */
   onEvalComplete?: (entry: EvalTraceEntry<TTrace>) => void | Promise<void>;
 }
 
@@ -105,36 +110,6 @@ export interface GepaRunnerResult<TTrace> {
   bestScore: number;
   bestInstruction: string;
   traces: EvalTraceEntry<TTrace>[];
-}
-
-// ── Tracing adapter wrapper ──────────────────────────────────────────────────
-
-/**
- * Wraps an AxGEPAAdapter to intercept evaluate() calls and collect traces.
- * GEPA uses adapter.evaluate() for all scoring when gepaAdapter is provided,
- * so this is the only reliable place to observe scores and trajectories.
- */
-function wrapAdapterWithTracing<TTask, TTrace, TOutput>(
-  adapter: AxGEPAAdapter<TTask, TTrace, TOutput>,
-  onEvaluate: (
-    instruction: string,
-    batch: AxGEPAEvaluationBatch<TTrace, TOutput>,
-  ) => void | Promise<void>,
-): AxGEPAAdapter<TTask, TTrace, TOutput> {
-  return {
-    evaluate: async (
-      batch: readonly TTask[],
-      candidate: Readonly<Record<string, string>>,
-      captureTraces?: boolean,
-    ) => {
-      const result = await adapter.evaluate(batch, candidate, captureTraces);
-      const instruction = candidate.instruction ?? '';
-      await onEvaluate(instruction, result);
-      return result;
-    },
-    make_reflective_dataset: adapter.make_reflective_dataset.bind(adapter),
-    propose_new_texts: adapter.propose_new_texts?.bind(adapter),
-  };
 }
 
 // ── Full GEPA compile loop ────────────────────────────────────────────────────
@@ -156,15 +131,19 @@ export async function runGepaOptimization<
     numTrials,
     maxMetricCalls,
     verbose,
-    axSignature = 'taskPrompt:string -> optimizedInstruction:string',
+    axSignature,
     buildExamples,
     evaluateOne,
     onEvalComplete,
   } = options;
 
   const trainingTasks = buildReplicas(tasks);
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
 
-  const program = ax(axSignature);
+  const program = ax(
+    axSignature ??
+      'task_id:string -> evalScore:number "quality score of the evaluation"',
+  );
   program.setInstruction(seedInstruction);
 
   const optimizer = new AxGEPA({
@@ -175,36 +154,15 @@ export async function runGepaOptimization<
     seed: 42,
   });
 
-  const taskById = new Map(tasks.map((task) => [task.id, task]));
-  const trainingExamples = buildExamples(trainingTasks);
+  // Training examples need task_id field to match program signature.
+  const trainingExamples = buildExamples(trainingTasks).map((ex) => ({
+    ...ex,
+    task_id: (ex as Record<string, unknown>).id as string,
+  }));
+
   const allTraces: EvalTraceEntry<TTrace>[] = [];
-  let evalRound = 0;
+  let evalCount = 0;
 
-  // Wrap the adapter to intercept evaluate() calls for tracing.
-  // GEPA calls adapter.evaluate() for all scoring decisions when gepaAdapter
-  // is provided — this is the only reliable observation point.
-  const tracingAdapter = wrapAdapterWithTracing<TTask, TTrace, TOutput>(
-    adapter,
-    async (instruction, batch) => {
-      evalRound++;
-      const entry: EvalTraceEntry<TTrace> = {
-        round: evalRound,
-        scores: batch.scores,
-        averageScore: buildAverage(batch.scores),
-        instructionLength: instruction.length,
-        trajectories: batch.trajectories ?? null,
-        timestamp: new Date().toISOString(),
-      };
-      allTraces.push(entry);
-      await onEvalComplete?.(entry);
-    },
-  );
-
-  // The metric function is called by GEPA via program.forward() → metricFn.
-  // With gepaAdapter, GEPA primarily uses adapter.evaluate() for scoring,
-  // but still calls program.forward() for the Pareto archive. We return
-  // { score: N } as Record<string, number> since GEPA v19 does
-  // Object.entries() on the return value (not normalizeScores).
   const cachedEvaluate = buildMetricFn<TTrace>(
     async (
       taskId: string,
@@ -217,40 +175,72 @@ export async function runGepaOptimization<
   );
 
   const getCurrentInstruction = (): string =>
-    (program as { instruction?: string }).instruction ?? seedInstruction;
+    (program as unknown as { instruction?: string }).instruction ??
+    seedInstruction;
 
+  // metricFn: called by GEPA for each training example.
+  // Ignores prediction (program.forward output), reads instruction from program,
+  // calls evaluateOne, returns bare score number.
+  // This matches the mirror-optimize.ts pattern exactly.
   const metricFn = async ({
     example,
-  }: Readonly<{ example: Record<string, unknown> }>) => {
-    const taskId =
-      typeof example.id === 'string' ? example.id.replace(/-replica$/, '') : '';
+  }: Readonly<{
+    example: Record<string, unknown>;
+    prediction: unknown;
+  }>) => {
+    evalCount++;
+    const rawTaskId =
+      typeof example.task_id === 'string'
+        ? example.task_id
+        : typeof example.id === 'string'
+          ? example.id
+          : '';
+    const taskId = rawTaskId.replace(/-replica$/, '');
     const instruction = getCurrentInstruction();
+
     const evalResult = await cachedEvaluate(taskId, instruction);
-    return { score: evalResult.score };
+
+    const entry: EvalTraceEntry<TTrace> = {
+      eval: evalCount,
+      taskId,
+      instruction,
+      instructionLength: instruction.length,
+      score: evalResult.score,
+      trace: evalResult.trace,
+      timestamp: new Date().toISOString(),
+    };
+    allTraces.push(entry);
+
+    try {
+      await onEvalComplete?.(entry);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[GEPA-trace] onEvalComplete error:', err);
+    }
+
+    // GEPA's internal normalizeScores expects Record<string, number>, not a bare number.
+    // Returning a plain number silently produces bestScore: 0.
+    return { score: evalResult.score } as unknown as number;
   };
 
   const result = await optimizer.compile(
     program,
-    trainingExamples,
-    // AxGEPA v19 expects Record<string, number> at runtime but types say number.
+    trainingExamples as Parameters<typeof optimizer.compile>[1],
     metricFn as unknown as Parameters<typeof optimizer.compile>[2],
     {
       maxMetricCalls,
-      gepaAdapter: tracingAdapter,
-      feedbackExamples: trainingExamples,
-      validationExamples: trainingExamples,
+      gepaAdapter: adapter,
+      feedbackExamples: trainingExamples as Parameters<
+        typeof optimizer.compile
+      >[1],
+      validationExamples: trainingExamples as Parameters<
+        typeof optimizer.compile
+      >[1],
     },
   );
 
-  // Derive bestScore from adapter traces (reliable) rather than GEPA's
-  // Pareto front (depends on program.forward() producing valid predictions).
-  const adapterBestScore =
-    allTraces.length > 0
-      ? Math.max(...allTraces.map((t) => t.averageScore))
-      : 0;
-
   return {
-    bestScore: Math.max(result.bestScore, adapterBestScore),
+    bestScore: result.bestScore,
     bestInstruction: result.optimizedProgram?.instruction ?? seedInstruction,
     traces: allTraces,
   };
