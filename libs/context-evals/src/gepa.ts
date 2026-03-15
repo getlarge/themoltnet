@@ -3,7 +3,7 @@
 import type {
   AxAIService,
   AxGEPAAdapter,
-  AxMetricFn,
+  AxGEPAEvaluationBatch,
   AxTypedExample,
 } from '@ax-llm/ax';
 import { ax, AxGEPA } from '@ax-llm/ax';
@@ -60,13 +60,13 @@ export interface EvalOneResult<TTrace> {
   trace?: TTrace;
 }
 
-/** Entry emitted via onEvalComplete after each evaluation. */
+/** Entry emitted via onEvalComplete after each adapter.evaluate() call. */
 export interface EvalTraceEntry<TTrace> {
-  taskId: string;
   round: number;
-  score: number;
+  scores: number[];
+  averageScore: number;
   instructionLength: number;
-  trace?: TTrace;
+  trajectories: TTrace[] | null;
   timestamp: string;
 }
 
@@ -94,9 +94,9 @@ export interface GepaRunnerOptions<
     instruction: string,
   ) => Promise<EvalOneResult<TTrace>>;
   /**
-   * Called after each evaluation completes — use for incremental trace persistence.
-   * If multiple consumers are needed (e.g., JSONL writer + live dashboard),
-   * consider replacing this callback with a typed EventEmitter.
+   * Called after each adapter.evaluate() completes — use for incremental
+   * trace persistence. Fires on every GEPA evaluation round (both parent
+   * and child instruction evaluations).
    */
   onEvalComplete?: (entry: EvalTraceEntry<TTrace>) => void | Promise<void>;
 }
@@ -105,6 +105,36 @@ export interface GepaRunnerResult<TTrace> {
   bestScore: number;
   bestInstruction: string;
   traces: EvalTraceEntry<TTrace>[];
+}
+
+// ── Tracing adapter wrapper ──────────────────────────────────────────────────
+
+/**
+ * Wraps an AxGEPAAdapter to intercept evaluate() calls and collect traces.
+ * GEPA uses adapter.evaluate() for all scoring when gepaAdapter is provided,
+ * so this is the only reliable place to observe scores and trajectories.
+ */
+function wrapAdapterWithTracing<TTask, TTrace, TOutput>(
+  adapter: AxGEPAAdapter<TTask, TTrace, TOutput>,
+  onEvaluate: (
+    instruction: string,
+    batch: AxGEPAEvaluationBatch<TTrace, TOutput>,
+  ) => void | Promise<void>,
+): AxGEPAAdapter<TTask, TTrace, TOutput> {
+  return {
+    evaluate: async (
+      batch: readonly TTask[],
+      candidate: Readonly<Record<string, string>>,
+      captureTraces?: boolean,
+    ) => {
+      const result = await adapter.evaluate(batch, candidate, captureTraces);
+      const instruction = candidate.instruction ?? '';
+      await onEvaluate(instruction, result);
+      return result;
+    },
+    make_reflective_dataset: adapter.make_reflective_dataset.bind(adapter),
+    propose_new_texts: adapter.propose_new_texts?.bind(adapter),
+  };
 }
 
 // ── Full GEPA compile loop ────────────────────────────────────────────────────
@@ -150,9 +180,31 @@ export async function runGepaOptimization<
   const allTraces: EvalTraceEntry<TTrace>[] = [];
   let evalRound = 0;
 
-  const getCurrentInstruction = (): string =>
-    (program as { instruction?: string }).instruction ?? seedInstruction;
+  // Wrap the adapter to intercept evaluate() calls for tracing.
+  // GEPA calls adapter.evaluate() for all scoring decisions when gepaAdapter
+  // is provided — this is the only reliable observation point.
+  const tracingAdapter = wrapAdapterWithTracing<TTask, TTrace, TOutput>(
+    adapter,
+    async (instruction, batch) => {
+      evalRound++;
+      const entry: EvalTraceEntry<TTrace> = {
+        round: evalRound,
+        scores: batch.scores,
+        averageScore: buildAverage(batch.scores),
+        instructionLength: instruction.length,
+        trajectories: batch.trajectories ?? null,
+        timestamp: new Date().toISOString(),
+      };
+      allTraces.push(entry);
+      await onEvalComplete?.(entry);
+    },
+  );
 
+  // The metric function is called by GEPA via program.forward() → metricFn.
+  // With gepaAdapter, GEPA primarily uses adapter.evaluate() for scoring,
+  // but still calls program.forward() for the Pareto archive. We return
+  // { score: N } as Record<string, number> since GEPA v19 does
+  // Object.entries() on the return value (not normalizeScores).
   const cachedEvaluate = buildMetricFn<TTrace>(
     async (
       taskId: string,
@@ -164,10 +216,9 @@ export async function runGepaOptimization<
     },
   );
 
-  // AxGEPA is a Pareto optimizer — its runtime expects the metric to return
-  // Record<string, number> (multi-objective scores), even though the TypeScript
-  // signature says AxMetricFn (returns number). With a single `score` key it
-  // behaves as single-objective. The cast works around the incorrect type def.
+  const getCurrentInstruction = (): string =>
+    (program as { instruction?: string }).instruction ?? seedInstruction;
+
   const metricFn = async ({
     example,
   }: Readonly<{ example: Record<string, unknown> }>) => {
@@ -175,36 +226,31 @@ export async function runGepaOptimization<
       typeof example.id === 'string' ? example.id.replace(/-replica$/, '') : '';
     const instruction = getCurrentInstruction();
     const evalResult = await cachedEvaluate(taskId, instruction);
-
-    evalRound++;
-    const entry: EvalTraceEntry<TTrace> = {
-      taskId,
-      round: evalRound,
-      score: evalResult.score,
-      instructionLength: instruction.length,
-      trace: evalResult.trace,
-      timestamp: new Date().toISOString(),
-    };
-    allTraces.push(entry);
-    await onEvalComplete?.(entry);
-
     return { score: evalResult.score };
   };
 
   const result = await optimizer.compile(
     program,
     trainingExamples,
-    metricFn as unknown as AxMetricFn,
+    // AxGEPA v19 expects Record<string, number> at runtime but types say number.
+    metricFn as unknown as Parameters<typeof optimizer.compile>[2],
     {
       maxMetricCalls,
-      gepaAdapter: adapter,
+      gepaAdapter: tracingAdapter,
       feedbackExamples: trainingExamples,
       validationExamples: trainingExamples,
     },
   );
 
+  // Derive bestScore from adapter traces (reliable) rather than GEPA's
+  // Pareto front (depends on program.forward() producing valid predictions).
+  const adapterBestScore =
+    allTraces.length > 0
+      ? Math.max(...allTraces.map((t) => t.averageScore))
+      : 0;
+
   return {
-    bestScore: result.bestScore,
+    bestScore: Math.max(result.bestScore, adapterBestScore),
     bestInstruction: result.optimizedProgram?.instruction ?? seedInstruction,
     traces: allTraces,
   };
