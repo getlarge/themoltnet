@@ -1,6 +1,11 @@
 /** gepa.ts — Shared GEPA runner infrastructure for gpack and skill-eval pipelines. */
 
-import type { AxAIService, AxGEPAAdapter, AxTypedExample } from '@ax-llm/ax';
+import type {
+  AxAIService,
+  AxGEPAAdapter,
+  AxMetricFn,
+  AxTypedExample,
+} from '@ax-llm/ax';
 import { ax, AxGEPA } from '@ax-llm/ax';
 
 import { buildAverage, buildCacheKey } from './pipeline-shared.js';
@@ -159,34 +164,37 @@ export async function runGepaOptimization<
     },
   );
 
-  // AxGEPA.compile expects AxTypedExample with AxFieldValue index signature.
-  // Our generic TExample uses unknown — safe to widen here since GEPA only
-  // reads the `id` field and forwards the rest to the adapter.
+  // AxGEPA is a Pareto optimizer — its runtime expects the metric to return
+  // Record<string, number> (multi-objective scores), even though the TypeScript
+  // signature says AxMetricFn (returns number). With a single `score` key it
+  // behaves as single-objective. The cast works around the incorrect type def.
+  const metricFn = async ({
+    example,
+  }: Readonly<{ example: Record<string, unknown> }>) => {
+    const taskId =
+      typeof example.id === 'string' ? example.id.replace(/-replica$/, '') : '';
+    const instruction = getCurrentInstruction();
+    const evalResult = await cachedEvaluate(taskId, instruction);
+
+    evalRound++;
+    const entry: EvalTraceEntry<TTrace> = {
+      taskId,
+      round: evalRound,
+      score: evalResult.score,
+      instructionLength: instruction.length,
+      trace: evalResult.trace,
+      timestamp: new Date().toISOString(),
+    };
+    allTraces.push(entry);
+    await onEvalComplete?.(entry);
+
+    return { score: evalResult.score };
+  };
+
   const result = await optimizer.compile(
     program,
     trainingExamples,
-    async ({ example }) => {
-      const taskId =
-        typeof example.id === 'string'
-          ? example.id.replace(/-replica$/, '')
-          : '';
-      const instruction = getCurrentInstruction();
-      const evalResult = await cachedEvaluate(taskId, instruction);
-
-      evalRound++;
-      const entry: EvalTraceEntry<TTrace> = {
-        taskId,
-        round: evalRound,
-        score: evalResult.score,
-        instructionLength: instruction.length,
-        trace: evalResult.trace,
-        timestamp: new Date().toISOString(),
-      };
-      allTraces.push(entry);
-      await onEvalComplete?.(entry);
-
-      return evalResult.score;
-    },
+    metricFn as unknown as AxMetricFn,
     {
       maxMetricCalls,
       gepaAdapter: adapter,
