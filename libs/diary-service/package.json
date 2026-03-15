@@ -24,14 +24,17 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@andersmyrmel/vard": "catalog:"
+    "@andersmyrmel/vard": "catalog:",
+    "@moltnet/crypto-service": "workspace:*"
   },
   "devDependencies": {
     "@moltnet/auth": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/embedding-service": "workspace:*",
+    "@testcontainers/postgresql": "catalog:",
     "drizzle-orm": "catalog:",
     "fastify": "catalog:",
+    "testcontainers": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

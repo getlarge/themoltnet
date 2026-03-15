@@ -1,6 +1,6 @@
 import './instrumentation.js'; // ← MUST be first: patches http/dns/pino
 
-import { createClient } from '@moltnet/api-client';
+import { createClient, createRetryFetch } from '@moltnet/api-client';
 import {
   createLogger,
   initObservability,
@@ -51,7 +51,10 @@ async function main(): Promise<void> {
     });
   }
 
-  const client = createClient({ baseUrl: config.REST_API_URL });
+  const client = createClient({
+    baseUrl: config.REST_API_URL,
+    fetch: createRetryFetch(),
+  });
 
   // buildApp replaces deps.logger with app.log after Fastify is instantiated.
   const deps: McpDeps = {

@@ -4,19 +4,21 @@
  * Tests DBOS transaction atomicity with real Postgres + real DBOS runtime.
  * Keto RelationshipWriter is mocked to isolate DB/DBOS behavior.
  *
- * Uses DATABASE_URL as both the app database and DBOS system database
+ * Spins up an ephemeral pgvector/pgvector:pg16 container via testcontainers,
+ * applies all Drizzle migrations, then runs tests against it.
+ *
+ * Uses the container DB as both the app database and DBOS system database
  * (DBOS creates its system tables in a `dbos` schema within the same DB).
  *
  * These tests verify:
  * - Transaction atomicity for DB operations
  * - Concurrent operations without race conditions
  * - RelationshipWriter calls happen after transaction commits
- *
- * Start the test database: docker compose --env-file .env.local up -d app-db
- * Run: DATABASE_URL=postgresql://moltnet:moltnet_secret@localhost:5433/moltnet pnpm --filter @moltnet/diary-service test
  */
 
+import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
+import type { Pool } from 'pg';
 import {
   afterAll,
   afterEach,
@@ -41,9 +43,7 @@ import {
   setDiaryWorkflowDeps,
 } from '../src/workflows/diary-workflows.js';
 
-const DATABASE_URL = process.env.DATABASE_URL;
-
-describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
+describe('DiaryService (DBOS integration)', () => {
   let service: DiaryService;
   let db: Awaited<ReturnType<typeof setupDatabase>>['db']['db'];
   let transactionRunner: Awaited<
@@ -62,7 +62,9 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   let permissions: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
+  let pool: Pool;
   let DIARY_ID: string;
+  let stopContainer: () => Promise<void>;
 
   const OWNER_ID = '00000000-0000-4000-b000-000000000002';
 
@@ -103,6 +105,18 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
   }
 
   beforeAll(async () => {
+    const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+      .withDatabase('moltnet')
+      .withUsername('moltnet')
+      .withPassword('moltnet_secret')
+      .start();
+
+    const databaseUrl = container.getConnectionUri();
+    stopContainer = () => container.stop().then(() => undefined);
+
+    const { runMigrations } = await import('@moltnet/database');
+    await runMigrations(databaseUrl);
+
     // Register DBOS workflows BEFORE launchDBOS() — DBOS requirement.
     // Deps are accessed lazily at execution time, so registration before
     // setDiaryWorkflowDeps() is safe.
@@ -132,8 +146,9 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       canManageDiary: vi.fn().mockResolvedValue(true),
     };
 
-    const dbSetup = await setupDatabase(DATABASE_URL!);
+    const dbSetup = await setupDatabase(databaseUrl);
     db = dbSetup.db.db;
+    pool = dbSetup.db.pool;
     tables = {
       diaryEntries: dbSetup.diaryEntries,
       diaries: dbSetup.diaries,
@@ -148,7 +163,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
     DIARY_ID = diary.id;
 
     // Launch DBOS after workflow registration
-    const dbosSetup = await setupDBOS(DATABASE_URL!);
+    const dbosSetup = await setupDBOS(databaseUrl);
     transactionRunner = dbosSetup.transactionRunner;
 
     const embeddingService = createNoopEmbeddingService();
@@ -191,7 +206,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         error: vi.fn(),
       } as never,
     });
-  });
+  }, 60_000);
 
   afterEach(async () => {
     // Clean up only entries for our test diary to avoid cross-test interference
@@ -212,9 +227,20 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
       await db.delete(tables.diaries).where(eq(tables.diaries.id, DIARY_ID));
     }
 
-    // Shutdown DBOS
+    // Shutdown DBOS and close pool before stopping container
     const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
+    await pool?.end();
+    // HACK (LeGreffier, 2026-03-15): Same DBOS pool leak workaround as
+    // diary-service.integration.test.ts — see comment there for full context.
+    const ignoreTeardownError = (err: Error & { code?: string }) => {
+      if (err.code !== '57P01') throw err;
+    };
+    process.on('uncaughtException', ignoreTeardownError);
+    await stopContainer?.();
+    process.nextTick(() => {
+      process.removeListener('uncaughtException', ignoreTeardownError);
+    });
   });
 
   // ── Atomicity Tests ────────────────────────────────────────────────────
@@ -284,7 +310,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         new Error('Keto temporarily unavailable'),
       );
 
-      const deleted = await service.deleteEntry(entry.id, DIARY_ID, OWNER_ID);
+      const deleted = await service.deleteEntry(entry.id, OWNER_ID);
       expect(deleted).toBe(true);
 
       // Verify entry is deleted from database (DB write committed before Keto step)
@@ -346,7 +372,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
 
       // Concurrently delete them all
       const deletePromises = entries.map((e) =>
-        service.deleteEntry(e.id, DIARY_ID, OWNER_ID),
+        service.deleteEntry(e.id, OWNER_ID),
       );
       await Promise.all(deletePromises);
 
@@ -392,7 +418,7 @@ describe.runIf(DATABASE_URL)('DiaryService (DBOS integration)', () => {
         OWNER_ID,
       );
 
-      await service.deleteEntry(entry.id, DIARY_ID, OWNER_ID);
+      await service.deleteEntry(entry.id, OWNER_ID);
 
       expect(mockRelationshipWriter.removeEntryRelations).toHaveBeenCalledTimes(
         1,

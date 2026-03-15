@@ -79,6 +79,7 @@ function createMockDiaryEntryRepository(): {
     update: vi.fn(),
     delete: vi.fn(),
     getRecentForDigest: vi.fn(),
+    countSignedByDiary: vi.fn(),
   };
 }
 
@@ -501,7 +502,7 @@ describe('DiaryService', () => {
       permissions.canEditEntry.mockResolvedValue(false);
 
       await expect(
-        service.updateEntry(ENTRY_ID, DIARY_ID, OTHER_AGENT_ID, {
+        service.updateEntry(ENTRY_ID, OTHER_AGENT_ID, {
           title: 'Hacked',
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -515,7 +516,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(existing);
       vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(updated);
 
-      const result = await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+      const result = await service.updateEntry(ENTRY_ID, OWNER_ID, {
         title: 'Updated Title',
       });
 
@@ -523,7 +524,10 @@ describe('DiaryService', () => {
       expect(permissions.canEditEntry).toHaveBeenCalledWith(ENTRY_ID, OWNER_ID);
       expect(diaryWorkflows.updateEntry).toHaveBeenCalledWith(
         ENTRY_ID,
-        { title: 'Updated Title' },
+        expect.objectContaining({
+          title: 'Updated Title',
+          contentHash: expect.any(String),
+        }),
         existing.content,
         existing.title,
         existing.tags,
@@ -536,7 +540,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(existing);
       vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(existing);
 
-      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
         content: 'New content',
       });
       expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID);
@@ -550,7 +554,7 @@ describe('DiaryService', () => {
         createMockEntry({ importance: 9 }),
       );
 
-      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
         importance: 9,
         entryType: 'soul',
         supersededBy: 'some-entry-id',
@@ -559,7 +563,12 @@ describe('DiaryService', () => {
       expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID);
       expect(diaryWorkflows.updateEntry).toHaveBeenCalledWith(
         ENTRY_ID,
-        { importance: 9, entryType: 'soul', supersededBy: 'some-entry-id' },
+        expect.objectContaining({
+          importance: 9,
+          entryType: 'soul',
+          supersededBy: 'some-entry-id',
+          contentHash: expect.any(String),
+        }),
         existing.content,
         existing.title,
         existing.tags,
@@ -575,7 +584,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(signed);
 
       await expect(
-        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        service.updateEntry(ENTRY_ID, OWNER_ID, {
           content: 'New content',
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -592,7 +601,7 @@ describe('DiaryService', () => {
         createMockEntry({ supersededBy: 'new-entry-id' }),
       );
 
-      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
         supersededBy: 'new-entry-id',
       });
 
@@ -609,7 +618,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(signed);
 
       await expect(
-        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        service.updateEntry(ENTRY_ID, OWNER_ID, {
           importance: 10,
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -624,7 +633,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(signed);
 
       await expect(
-        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        service.updateEntry(ENTRY_ID, OWNER_ID, {
           title: 'New title',
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -639,7 +648,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(signed);
 
       await expect(
-        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        service.updateEntry(ENTRY_ID, OWNER_ID, {
           entryType: 'reflection',
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -655,7 +664,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(signed);
 
       await expect(
-        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        service.updateEntry(ENTRY_ID, OWNER_ID, {
           tags: ['new-tag'],
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -673,7 +682,7 @@ describe('DiaryService', () => {
         createMockEntry({ importance: 8 }),
       );
 
-      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
         importance: 8,
       });
 
@@ -690,7 +699,7 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(signed);
 
       await expect(
-        service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+        service.updateEntry(ENTRY_ID, OWNER_ID, {
           importance: 10,
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -702,30 +711,141 @@ describe('DiaryService', () => {
         createMockEntry({ supersededBy: 'new-entry-id' }),
       );
 
-      await service.updateEntry(ENTRY_ID, DIARY_ID, OWNER_ID, {
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
         supersededBy: 'new-entry-id',
       });
 
       expect(repo.findById).not.toHaveBeenCalled();
       expect(diaryWorkflows.updateEntry).toHaveBeenCalled();
     });
+
+    it('recomputes contentHash when content changes on unsigned entry', async () => {
+      const unsigned = createMockEntry({
+        contentHash: 'bafkreiold',
+        contentSignature: null,
+        content: 'old content',
+        title: 'Old Title',
+        entryType: 'semantic',
+        tags: ['tag1'],
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(unsigned);
+      vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue({
+        ...unsigned,
+        content: 'new content',
+        contentHash: 'bafkreinew',
+      });
+
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
+        content: 'new content',
+      });
+
+      const updateCall = vi.mocked(diaryWorkflows.updateEntry).mock.calls[0]!;
+      const updatesArg = updateCall[1] as Record<string, unknown>;
+      expect(updatesArg.contentHash).toBeDefined();
+      expect(updatesArg.contentHash).not.toBe('bafkreiold');
+    });
+
+    it('recomputes contentHash when tags change on unsigned entry', async () => {
+      const unsigned = createMockEntry({
+        contentHash: 'bafkreiold',
+        contentSignature: null,
+        content: 'some content',
+        entryType: 'semantic',
+        tags: ['old-tag'],
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(unsigned);
+      vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue({
+        ...unsigned,
+        tags: ['new-tag'],
+      });
+
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
+        tags: ['new-tag'],
+      });
+
+      const updateCall = vi.mocked(diaryWorkflows.updateEntry).mock.calls[0]!;
+      const updatesArg = updateCall[1] as Record<string, unknown>;
+      expect(updatesArg.contentHash).toBeDefined();
+      expect(updatesArg.contentHash).not.toBe('bafkreiold');
+    });
+
+    it('does not recompute contentHash on signed entry updates', async () => {
+      const signed = createMockEntry({
+        contentHash: 'bafkreisigned',
+        contentSignature: 'sig123',
+      });
+      permissions.canEditEntry.mockResolvedValue(true);
+      repo.findById.mockResolvedValue(signed);
+      vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue({
+        ...signed,
+        supersededBy: 'some-uuid',
+      });
+
+      await service.updateEntry(ENTRY_ID, OWNER_ID, {
+        supersededBy: 'some-uuid',
+      });
+
+      const updateCall = vi.mocked(diaryWorkflows.updateEntry).mock.calls[0]!;
+      const updatesArg = updateCall[1] as Record<string, unknown>;
+      expect(updatesArg.contentHash).toBeUndefined();
+    });
+  });
+
+  describe('deleteDiary', () => {
+    it('rejects deletion of diary containing signed entries', async () => {
+      diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
+      permissions.canManageDiary.mockResolvedValue(true);
+      repo.countSignedByDiary.mockResolvedValue(1);
+
+      const err = await service
+        .deleteDiary(DIARY_ID, OWNER_ID)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(DiaryServiceError);
+      expect((err as DiaryServiceError).message).toContain(
+        'Cannot delete diary',
+      );
+    });
+
+    it('allows deletion of diary with no signed entries', async () => {
+      diaryRepo.findById.mockResolvedValue(MOCK_DIARY);
+      permissions.canManageDiary.mockResolvedValue(true);
+      repo.countSignedByDiary.mockResolvedValue(0);
+      diaryRepo.delete.mockResolvedValue(true);
+
+      const result = await service.deleteDiary(DIARY_ID, OWNER_ID);
+
+      expect(result).toBe(true);
+    });
   });
 
   describe('delete', () => {
+    it('throws not_found when entry does not exist', async () => {
+      repo.findById.mockResolvedValue(null);
+
+      await expect(service.deleteEntry(ENTRY_ID, OWNER_ID)).rejects.toThrow(
+        DiaryServiceError,
+      );
+      expect(diaryWorkflows.deleteEntry).not.toHaveBeenCalled();
+    });
+
     it('throws forbidden when Keto denies delete', async () => {
+      repo.findById.mockResolvedValue(createMockEntry());
       permissions.canDeleteEntry.mockResolvedValue(false);
 
       await expect(
-        service.deleteEntry(ENTRY_ID, DIARY_ID, OTHER_AGENT_ID),
+        service.deleteEntry(ENTRY_ID, OTHER_AGENT_ID),
       ).rejects.toThrow(DiaryServiceError);
       expect(diaryWorkflows.deleteEntry).not.toHaveBeenCalled();
     });
 
     it('checks permission then delegates to diaryWorkflows.deleteEntry', async () => {
+      repo.findById.mockResolvedValue(createMockEntry());
       permissions.canDeleteEntry.mockResolvedValue(true);
       vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(true);
 
-      const result = await service.deleteEntry(ENTRY_ID, DIARY_ID, OWNER_ID);
+      const result = await service.deleteEntry(ENTRY_ID, OWNER_ID);
 
       expect(result).toBe(true);
       expect(permissions.canDeleteEntry).toHaveBeenCalledWith(
@@ -736,12 +856,43 @@ describe('DiaryService', () => {
     });
 
     it('returns false when workflow reports entry not found', async () => {
+      repo.findById.mockResolvedValue(createMockEntry());
       permissions.canDeleteEntry.mockResolvedValue(true);
       vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(false);
 
-      const result = await service.deleteEntry(ENTRY_ID, DIARY_ID, OWNER_ID);
+      const result = await service.deleteEntry(ENTRY_ID, OWNER_ID);
 
       expect(result).toBe(false);
+    });
+
+    it('rejects deletion of signed entry with immutable error', async () => {
+      const signed = createMockEntry({
+        contentHash: 'bafkreitest',
+        contentSignature: 'sig123',
+      });
+      repo.findById.mockResolvedValue(signed);
+      permissions.canDeleteEntry.mockResolvedValue(true);
+
+      await expect(service.deleteEntry(ENTRY_ID, OWNER_ID)).rejects.toThrow(
+        'Cannot delete a content-signed entry',
+      );
+
+      expect(diaryWorkflows.deleteEntry).not.toHaveBeenCalled();
+    });
+
+    it('allows deletion of unsigned entry', async () => {
+      const unsigned = createMockEntry({
+        contentHash: null,
+        contentSignature: null,
+      });
+      repo.findById.mockResolvedValue(unsigned);
+      permissions.canDeleteEntry.mockResolvedValue(true);
+      vi.mocked(diaryWorkflows.deleteEntry).mockResolvedValue(true);
+
+      const result = await service.deleteEntry(ENTRY_ID, OWNER_ID);
+
+      expect(result).toBe(true);
+      expect(diaryWorkflows.deleteEntry).toHaveBeenCalledWith(ENTRY_ID);
     });
   });
 

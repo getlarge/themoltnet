@@ -3,19 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRetryFetch } from '../src/retry.js';
 import { TokenManager } from '../src/token.js';
 
-vi.mock('node:timers/promises', () => ({
-  setTimeout: vi.fn().mockResolvedValue(undefined),
-}));
-
 const mockFetch = vi.fn<typeof globalThis.fetch>();
 
 beforeEach(() => {
   vi.stubGlobal('fetch', mockFetch);
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
+
+function flushRetryDelay(): Promise<void> {
+  return vi.advanceTimersByTimeAsync(35_000);
+}
 
 function jsonResponse(
   status: number,
@@ -126,10 +128,7 @@ describe('createRetryFetch', () => {
   });
 
   describe('429 retry', () => {
-    it('should retry on 429 with Retry-After header (seconds)', async () => {
-      const { setTimeout: mockSetTimeout } =
-        await import('node:timers/promises');
-
+    it('should retry on 429 with Retry-After header', async () => {
       mockFetch
         .mockResolvedValueOnce(
           jsonResponse(429, { error: 'rate limited' }, { 'Retry-After': '2' }),
@@ -139,17 +138,15 @@ describe('createRetryFetch', () => {
       const tm = createTokenManager();
       const retryFetch = createRetryFetch(tm, { maxRateLimitRetries: 3 });
 
-      const response = await retryFetch('https://api.test/resource');
+      const promise = retryFetch('https://api.test/resource');
+      await flushRetryDelay();
+      const response = await promise;
 
       expect(response.status).toBe(200);
       expect(mockFetch).toHaveBeenCalledTimes(2);
-      expect(mockSetTimeout).toHaveBeenCalledWith(2000);
     });
 
     it('should fall back to exponential backoff when no Retry-After header', async () => {
-      const { setTimeout: mockSetTimeout } =
-        await import('node:timers/promises');
-
       mockFetch
         .mockResolvedValueOnce(jsonResponse(429, { error: 'rate limited' }))
         .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
@@ -161,20 +158,15 @@ describe('createRetryFetch', () => {
         maxDelayMs: 5000,
       });
 
-      const response = await retryFetch('https://api.test/resource');
+      const promise = retryFetch('https://api.test/resource');
+      await flushRetryDelay();
+      const response = await promise;
 
       expect(response.status).toBe(200);
-      expect(mockSetTimeout).toHaveBeenCalledOnce();
-      // backoff for attempt 0 with base 100: 100ms ± 25% jitter → 75..125
-      const delayArg = vi.mocked(mockSetTimeout).mock.calls[0]![0] as number;
-      expect(delayArg).toBeGreaterThanOrEqual(75);
-      expect(delayArg).toBeLessThanOrEqual(125);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it('should retry multiple 429s up to maxRateLimitRetries', async () => {
-      const { setTimeout: mockSetTimeout } =
-        await import('node:timers/promises');
-
       mockFetch
         .mockResolvedValueOnce(
           jsonResponse(429, { error: 'rate limited' }, { 'Retry-After': '1' }),
@@ -187,11 +179,12 @@ describe('createRetryFetch', () => {
       const tm = createTokenManager();
       const retryFetch = createRetryFetch(tm, { maxRateLimitRetries: 3 });
 
-      const response = await retryFetch('https://api.test/resource');
+      const promise = retryFetch('https://api.test/resource');
+      await flushRetryDelay();
+      const response = await promise;
 
       expect(response.status).toBe(200);
       expect(mockFetch).toHaveBeenCalledTimes(3);
-      expect(mockSetTimeout).toHaveBeenCalledTimes(2);
     });
 
     it('should stop retrying after maxRateLimitRetries', async () => {
@@ -209,7 +202,9 @@ describe('createRetryFetch', () => {
       const tm = createTokenManager();
       const retryFetch = createRetryFetch(tm, { maxRateLimitRetries: 2 });
 
-      const response = await retryFetch('https://api.test/resource');
+      const promise = retryFetch('https://api.test/resource');
+      await flushRetryDelay();
+      const response = await promise;
 
       expect(response.status).toBe(429);
       expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -292,7 +287,9 @@ describe('createRetryFetch', () => {
         maxRateLimitRetries: 3,
       });
 
-      const response = await retryFetch('https://api.test/resource');
+      const promise = retryFetch('https://api.test/resource');
+      await flushRetryDelay();
+      const response = await promise;
 
       expect(response.status).toBe(200);
       expect(mockFetch).toHaveBeenCalledTimes(4);

@@ -70,13 +70,13 @@ An entry moves through a simple lifecycle:
             │
             ▼
        ┌─────────┐
-       │  draft  │  contentHash=null, contentSignature=null
-       └────┬────┘  (episodic stays here permanently)
+       │  draft  │  contentHash=CIDv1, contentSignature=null
+       └────┬────┘  mutable; contentHash recomputed on update
             │ sign (prepare → submit)
             ▼
        ┌─────────┐
        │ signed  │  contentHash=CIDv1, contentSignature=Ed25519
-       └────┬────┘  content/title/entryType/tags immutable
+       └────┬────┘  content/title/entryType/tags immutable; non-deletable
             │ supersede (create new entry, set superseded_by on this)
             ▼
        ┌────────────┐
@@ -88,7 +88,11 @@ Notes:
 
 - `episodic` entries stay in `draft` state permanently by convention.
 - `superseded` is not an enum — it is inferred from `supersededBy IS NOT NULL`.
-- There is no `deleted` state; entries are hard-deleted.
+- Draft entries can be hard-deleted. Signed entries cannot be deleted — use
+  `superseded_by` instead.
+- Diaries containing signed entries cannot be deleted.
+- `contentHash` is recomputed on any update to CID-input fields (content,
+  title, entryType, tags) for unsigned entries.
 - A `draft` entry can be superseded directly (no signing required on the old
   entry — only `supersededBy` is set, which is always allowed).
 
@@ -130,6 +134,16 @@ the source of authorization decisions. Authorization remains diary-scoped.
 
 **Database trigger**: `prevent_signed_content_update()` enforces the same rule
 at the DB layer as a second line of defence.
+
+**Deletion guard**: Signed entries (`contentSignature IS NOT NULL`) cannot be
+deleted. The diary-service layer and a `BEFORE DELETE` trigger
+(`prevent_signed_entry_deletion()`) both enforce this. Diaries containing any
+signed entries are also non-deletable.
+
+**CID recomputation**: When CID-input fields (content, title, entryType, tags)
+are updated on an unsigned entry, `contentHash` is recomputed from the merged
+field values using `computeContentCid`. This keeps the stored hash consistent
+with the entry content at all times.
 
 **What is always allowed on any entry** (signed or not):
 
@@ -212,22 +226,18 @@ prevent it.
 
 ## Known tensions and open questions
 
-### 1. Implementation drift: type-based intent vs signature-based enforcement
+### 1. ~~Implementation drift~~ RESOLVED: signing opt-in is the only immutability gate
 
-The 2026-02-20 architecture decision defined immutability by entry type
-(`semantic`, `procedural`, `reflection`, `identity`, `soul` should be immutable
-once signed). The implementation enforces immutability by `contentSignature`
-presence only. As a result:
+**Decision (2026-03-14)**: Signing is opt-in. Unsigned entries of any type remain
+fully mutable. The entry type affects _conventions_ (the skill recommends signing
+semantic/procedural/reflection/identity/soul entries) but the system enforces
+immutability only when `contentSignature IS NOT NULL`.
 
-- An unsigned `semantic` entry is fully mutable today, contrary to design intent.
-- An `episodic` entry that gets signed becomes immutable, which was not intended.
+This means:
 
-**Resolution options**:
-
-- a) Add a type-check to the immutability guard: `if signed AND type != episodic`
-- b) Document that signing opt-in is the only gate (relax type semantics)
-- c) Auto-sign non-episodic entries on create (remove the explicit signing step
-  for those types)
+- An unsigned `semantic` entry is fully mutable — this is by design, not drift.
+- An `episodic` entry that gets signed becomes immutable — also correct.
+- The type-based table in "Entry types" describes conventions, not enforcement.
 
 ### 2. Visibility is not reflected in any constraint
 
@@ -268,12 +278,12 @@ Planned model:
 This keeps pack ACLs aligned with diary sharing while preserving strong
 `created_by` provenance.
 
-### 5. tags are part of the CID input but mutable on unsigned entries
+### 5. ~~tags are part of the CID input but mutable on unsigned entries~~ RESOLVED
 
-`contentHash` is computed over `content + title + entryType + tags`. Tags are
-mutable on unsigned entries. This means the stored `contentHash` on an unsigned
-entry can become stale if tags are updated after creation. The verify endpoint
-would flag a mismatch.
+**Fix (2026-03-14)**: `contentHash` is recomputed on any update that touches
+CID-input fields (content, title, entryType, tags) for unsigned entries. The
+`computeContentCid` function is called with the merged (old + new) field values,
+and the result is persisted alongside the other updates.
 
-**Short-term fix**: recompute `contentHash` on any update that touches fields
-included in the CID input, for unsigned entries.
+This keeps the stored `contentHash` consistent with the entry content at all
+times. The verify endpoint will always report a match for unsigned entries.

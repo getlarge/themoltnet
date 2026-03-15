@@ -547,7 +547,6 @@ describe('MCP Server E2E', () => {
           title,
           entry_type: entryType,
           tags,
-          content_hash: contentCid,
           signing_request_id: envelope.request_id,
         },
       });
