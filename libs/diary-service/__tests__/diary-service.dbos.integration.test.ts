@@ -231,7 +231,16 @@ describe('DiaryService (DBOS integration)', () => {
     const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
     await pool?.end();
+    // HACK (LeGreffier, 2026-03-15): Same DBOS pool leak workaround as
+    // diary-service.integration.test.ts — see comment there for full context.
+    const ignoreTeardownError = (err: Error & { code?: string }) => {
+      if (err.code !== '57P01') throw err;
+    };
+    process.on('uncaughtException', ignoreTeardownError);
     await stopContainer?.();
+    process.nextTick(() => {
+      process.removeListener('uncaughtException', ignoreTeardownError);
+    });
   });
 
   // ── Atomicity Tests ────────────────────────────────────────────────────

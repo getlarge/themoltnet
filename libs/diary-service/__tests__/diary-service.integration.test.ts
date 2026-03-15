@@ -253,7 +253,23 @@ describe('DiaryService (integration)', () => {
     const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
     await pool?.end();
+    // HACK (LeGreffier, 2026-03-15): DBOS does not close its internal
+    // DrizzleDataSource connection pool on DBOS.shutdown(). The pool's
+    // destroy() method exists on DataSourceTransactionHandler but is not
+    // exposed in the published DrizzleDataSource types, and is not called
+    // by the DBOS executor's destroy() path. When the testcontainer stops,
+    // stale connections receive pg FATAL 57P01, which vitest treats as a
+    // test failure. This handler suppresses only that specific error code
+    // during container teardown. Proper fix: upstream PR to @dbos-inc/dbos-sdk
+    // to call dataSource.destroy() in DBOS.shutdown().
+    const ignoreTeardownError = (err: Error & { code?: string }) => {
+      if (err.code !== '57P01') throw err;
+    };
+    process.on('uncaughtException', ignoreTeardownError);
     await stopContainer?.();
+    process.nextTick(() => {
+      process.removeListener('uncaughtException', ignoreTeardownError);
+    });
   });
 
   // ── Create ──────────────────────────────────────────────────────────
