@@ -62,18 +62,25 @@ If additions are deferred, encode them as `references` + metadata.
 
 Current purpose: clustering suggestions.
 
+**Decision (2026-03-15)**: Consolidation is a graph operation, not an artifact
+operation. It does NOT produce context packs. Context packs are reserved for
+compile and optimized (GEPA) artifacts.
+
 Extended purpose:
 
 - keep returning clusters for agent review
-- optionally persist relation edges for accepted cluster decisions:
-  - representative `supports` member
-  - member `elaborates` representative
+- optionally persist proposed `entry_relations` edges for cluster decisions:
+  - representative `supports` member (semantic similarity)
+  - member `elaborates` representative (adds detail)
   - detected conflicts `contradicts`
+  - agent-synthesized entries get `derived_from` edges back to source members
+- relation proposals use `status: 'proposed'` and require agent acceptance
+- `entry_relations.workflowId` records which consolidation run proposed each edge
 
 Output additions:
 
 - stable cluster IDs
-- optional proposed relation set in response
+- optional proposed relation set in response (with entry CID snapshots)
 
 ### 2) Compile (`/diaries/:id/compile`)
 
