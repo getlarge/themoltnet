@@ -309,7 +309,6 @@ describe('Diary entry routes', () => {
         ENTRY_ID,
         OWNER_ID,
         { title: 'Updated by id' },
-        undefined,
       );
     });
   });
@@ -328,7 +327,6 @@ describe('Diary entry routes', () => {
       expect(mocks.diaryService.deleteEntry).toHaveBeenCalledWith(
         ENTRY_ID,
         OWNER_ID,
-        undefined,
       );
     });
   });
