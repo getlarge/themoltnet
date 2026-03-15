@@ -241,15 +241,28 @@ like others, but there is no policy reason they need it.
 (`moltnet`) and `public` entries; keep private entries mutable with no forced
 hash unless explicitly signed.
 
-### 3. supersededBy is 1:1, but consolidation is N:1
+### 3. ~~supersededBy is 1:1, but consolidation is N:1~~ RESOLVED: consolidation produces relations, not packs
 
-Consolidation synthesises N source entries into 1 semantic entry. The current
-`supersededBy` field can only express 1:1 replacement. It cannot record that a
-semantic entry was derived from multiple sources.
+**Decision (2026-03-15)**: Consolidation is a **graph operation**, not an artifact
+operation. The consolidate endpoint returns clustering suggestions and optionally
+writes proposed `entry_relations` edges — it does NOT produce context packs.
 
-This is the motivation for `entry_relations` (#219): a typed edge table that can
-express `derived_from`, `supports`, `elaborates` between any pair of entries,
-complementing the fast-path `supersededBy` column.
+Context packs are reserved for **runtime artifacts**: compile packs (token-fitted
+selections for LLM context) and optimized packs (GEPA-refined versions of compile
+packs).
+
+Consolidation cluster mappings:
+
+- Representative `supports` each member (semantic similarity)
+- Member `elaborates` representative (adds detail to the cluster theme)
+- Detected conflicts get `contradicts` edges
+- Agent-synthesized entries from a cluster get `derived_from` edges back to sources
+
+The `entry_relations.workflowId` column records which consolidation run proposed
+each relation. Relations start as `status: 'proposed'` and require agent acceptance.
+
+The `supersededBy` column remains the fast-path for 1:1 linear replacement.
+`entry_relations` handles the N:1 and N:M cases that `supersededBy` cannot express.
 
 ### 4. Context packs are diary-derived objects, not independent ACL roots
 
