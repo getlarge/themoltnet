@@ -162,15 +162,62 @@ export async function fetchCommitData(
     .map((m) => m.trim())
     .filter(Boolean);
 
-  // 2. List diary entries via SDK (token management + 429 retry)
-  const entriesData = await sdk.entries.list(diaryId, {
-    tags: 'accountable-commit',
-    limit: 10,
+  // 2. Extract trailer IDs from commit messages and fetch those entries directly.
+  //    The previous approach (list last 10 accountable-commit entries) broke under
+  //    GEPA because entry accumulation across rounds pushed the current entry out
+  //    of the limit window.
+  const trailerIds = commitMessages.flatMap((msg) => {
+    const match = msg.match(/MoltNet-Diary:\s*(\S+)/);
+    return match ? [match[1]] : [];
   });
+
+  const entryMap = new Map<
+    string,
+    { id: string; entryType: string; tags: string[]; content: string }
+  >();
+
+  const normalizeEntry = (entry: {
+    id: string;
+    entryType: string;
+    tags: string[] | null;
+    content: string;
+  }) => ({
+    id: entry.id,
+    entryType: entry.entryType,
+    tags: entry.tags ?? [],
+    content: entry.content,
+  });
+
+  // Fetch each trailer-referenced entry by ID (parallel)
+  await Promise.all(
+    trailerIds.map(async (id) => {
+      try {
+        const entry = await sdk.entries.get(id);
+        entryMap.set(entry.id, normalizeEntry(entry));
+      } catch {
+        // Entry may not exist (agent failed to create it)
+      }
+    }),
+  );
+
+  // Also list recent entries as fallback for entries without trailers
+  try {
+    const entriesData = await sdk.entries.list(diaryId, {
+      tags: 'accountable-commit',
+      limit: 10,
+    });
+    for (const entry of entriesData.items ?? []) {
+      if (!entryMap.has(entry.id)) {
+        entryMap.set(entry.id, normalizeEntry(entry));
+      }
+    }
+  } catch {
+    // list may fail; direct lookups above are the primary source
+  }
 
   // 3. Verify signatures via SDK
   const diaryEntries: DiaryEntryInfo[] = await Promise.all(
-    (entriesData.items ?? []).map(async (entry) => {
+    [...entryMap.values()].map(async (entry) => {
       let signatureValid = false;
       try {
         const verifyResult = await sdk.entries.verify(entry.id);
