@@ -8,11 +8,13 @@
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   getTableColumns,
   gt,
   inArray,
+  isNotNull,
   lt,
   or,
   sql,
@@ -740,6 +742,23 @@ export function createDiaryEntryRepository(db: Database) {
           },
         }),
       );
+    },
+
+    /**
+     * Count signed entries in a diary.
+     * Used to guard diary deletion when signed entries are present.
+     */
+    async countSignedByDiary(diaryId: string): Promise<number> {
+      const result = await db
+        .select({ count: count() })
+        .from(diaryEntries)
+        .where(
+          and(
+            eq(diaryEntries.diaryId, diaryId),
+            isNotNull(diaryEntries.contentSignature),
+          ),
+        );
+      return result[0]?.count ?? 0;
     },
 
     /**

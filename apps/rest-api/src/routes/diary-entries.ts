@@ -416,14 +416,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         | 'soul';
       supersededBy?: string;
     },
-    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
   ) => {
     try {
       const entry = await fastify.diaryService.updateEntry(
         entryId,
         agentId,
         updates,
-        opts,
       );
 
       if (!entry) {
@@ -437,17 +435,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     }
   };
 
-  const deleteEntry = async (
-    entryId: string,
-    agentId: string,
-    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
-  ) => {
+  const deleteEntry = async (entryId: string, agentId: string) => {
     try {
-      const deleted = await fastify.diaryService.deleteEntry(
-        entryId,
-        agentId,
-        opts,
-      );
+      const deleted = await fastify.diaryService.deleteEntry(entryId, agentId);
 
       if (!deleted) {
         throw createProblem('not-found', 'Entry not found');
