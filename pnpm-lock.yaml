@@ -804,6 +804,9 @@ importers:
       '@andersmyrmel/vard':
         specifier: 'catalog:'
         version: 1.2.0
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
     devDependencies:
       '@moltnet/auth':
         specifier: workspace:*

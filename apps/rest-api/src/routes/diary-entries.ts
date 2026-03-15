@@ -416,14 +416,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         | 'soul';
       supersededBy?: string;
     },
-    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
   ) => {
     try {
       const entry = await fastify.diaryService.updateEntry(
         entryId,
         agentId,
         updates,
-        opts,
       );
 
       if (!entry) {

@@ -161,6 +161,8 @@ export interface UpdateEntryInput {
   importance?: number;
   entryType?: EntryType;
   supersededBy?: string;
+  /** Recomputed CIDv1 content hash (set by service on unsigned entry updates) */
+  contentHash?: string;
 }
 
 export interface SearchInput {

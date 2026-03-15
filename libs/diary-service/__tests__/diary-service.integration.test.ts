@@ -485,12 +485,10 @@ describe('DiaryService (integration)', () => {
       );
 
       permissions.canEditEntry.mockResolvedValue(true);
-      const updated = await service.updateEntry(
-        created.id,
-        DIARY_ID,
-        OWNER_ID,
-        { title: 'Updated Title', content: 'New content.' },
-      );
+      const updated = await service.updateEntry(created.id, OWNER_ID, {
+        title: 'Updated Title',
+        content: 'New content.',
+      });
 
       expect(updated).not.toBeNull();
       expect(updated!.title).toBe('Updated Title');
@@ -505,7 +503,7 @@ describe('DiaryService (integration)', () => {
 
       permissions.canEditEntry.mockResolvedValue(false);
       await expect(
-        service.updateEntry(created.id, DIARY_ID, OTHER_AGENT, {
+        service.updateEntry(created.id, OTHER_AGENT, {
           title: 'Hacked',
         }),
       ).rejects.toThrow(DiaryServiceError);

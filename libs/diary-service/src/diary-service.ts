@@ -27,6 +27,8 @@
  * Keto relationship writes happen inside the transaction.
  */
 
+import { computeContentCid } from '@moltnet/crypto-service';
+
 import type {
   CreateDiaryInput,
   CreateEntryInput,
@@ -101,15 +103,8 @@ export interface DiaryService {
   searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   updateEntry(
     id: string,
-    diaryId: string,
     agentId: string,
     updates: UpdateEntryInput,
-  ): Promise<DiaryEntry | null>;
-  updateEntry(
-    id: string,
-    agentId: string,
-    updates: UpdateEntryInput,
-    opts?: { diaryId?: string; requireDiaryAccess?: boolean },
   ): Promise<DiaryEntry | null>;
   deleteEntry(id: string, agentId: string): Promise<boolean>;
   reflect(input: ReflectInput): Promise<Digest>;
@@ -169,36 +164,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return { diaryId: second, agentId: third };
     }
     return { agentId: second, diaryId: third?.diaryId };
-  };
-
-  const resolveUpdateEntryArgs = (
-    second: string,
-    third: string | UpdateEntryInput,
-    fourth?:
-      | UpdateEntryInput
-      | { diaryId?: string; requireDiaryAccess?: boolean },
-  ): {
-    agentId: string;
-    updates: UpdateEntryInput;
-    opts?: { diaryId?: string; requireDiaryAccess?: boolean };
-    legacyMode: boolean;
-  } => {
-    if (typeof third === 'string') {
-      return {
-        agentId: third,
-        updates: (fourth ?? {}) as UpdateEntryInput,
-        opts: { diaryId: second },
-        legacyMode: true,
-      };
-    }
-    return {
-      agentId: second,
-      updates: third,
-      opts: fourth as
-        | { diaryId?: string; requireDiaryAccess?: boolean }
-        | undefined,
-      legacyMode: false,
-    };
   };
 
   return {
@@ -296,6 +261,14 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const allowed = await permissionChecker.canManageDiary(diary.id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
+
+      const signedCount = await diaryEntryRepository.countSignedByDiary(id);
+      if (signedCount > 0) {
+        throw new DiaryServiceError(
+          'immutable',
+          `Cannot delete diary: it contains ${signedCount} signed ${signedCount === 1 ? 'entry' : 'entries'}. Delete unsigned entries individually and use superseded_by for signed ones.`,
+        );
+      }
 
       await transactionRunner.runInTransaction(
         async () => {
@@ -624,50 +597,25 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async updateEntry(
       id: string,
-      second: string,
-      third: string | UpdateEntryInput,
-      fourth?:
-        | UpdateEntryInput
-        | { diaryId?: string; requireDiaryAccess?: boolean },
+      agentId: string,
+      updates: UpdateEntryInput,
     ): Promise<DiaryEntry | null> {
-      const { agentId, updates, opts, legacyMode } = resolveUpdateEntryArgs(
-        second,
-        third,
-        fourth,
-      );
-      if (opts?.requireDiaryAccess && opts.diaryId) {
-        // Preserve nested-route behavior: hide inaccessible diaries as 404.
-        await this.findDiary(opts.diaryId, agentId);
-      }
-
-      let existingForScope: DiaryEntry | null = null;
-      if (opts?.requireDiaryAccess || !legacyMode) {
-        existingForScope = await diaryEntryRepository.findById(id);
-        if (
-          !existingForScope ||
-          (opts?.diaryId && existingForScope.diaryId !== opts.diaryId)
-        ) {
-          throw new DiaryServiceError('not_found', 'Diary entry not found');
-        }
-      }
-
       const allowed = await permissionChecker.canEditEntry(id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
-      const touchesContent =
+      const touchesCidFields =
         updates.content !== undefined ||
         updates.title !== undefined ||
         updates.entryType !== undefined ||
-        updates.tags !== undefined ||
-        updates.importance !== undefined;
-      const needsExisting = touchesContent || !!opts?.requireDiaryAccess;
-      if (!existingForScope && needsExisting) {
-        existingForScope = await diaryEntryRepository.findById(id);
-        if (
-          !existingForScope ||
-          (opts?.diaryId && existingForScope.diaryId !== opts.diaryId)
-        ) {
+        updates.tags !== undefined;
+      const touchesContent =
+        touchesCidFields || updates.importance !== undefined;
+
+      let existing: DiaryEntry | null = null;
+      if (touchesContent) {
+        existing = await diaryEntryRepository.findById(id);
+        if (!existing) {
           throw new DiaryServiceError('not_found', 'Diary entry not found');
         }
       }
@@ -676,14 +624,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         updates.content &&
         updates.content.length > MAX_PUBLIC_CONTENT_LENGTH
       ) {
-        const diaryIdForCheck = existingForScope?.diaryId ?? opts?.diaryId;
+        const diaryIdForCheck = existing?.diaryId;
         if (!diaryIdForCheck) {
           throw new DiaryServiceError('not_found', 'Diary not found');
         }
-        const diary =
-          opts?.requireDiaryAccess && opts.diaryId
-            ? await this.findDiary(opts.diaryId, agentId)
-            : await diaryRepository.findById(diaryIdForCheck);
+        const diary = await diaryRepository.findById(diaryIdForCheck);
         if (!diary) {
           throw new DiaryServiceError('not_found', 'Diary not found');
         }
@@ -694,10 +639,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           );
         }
       }
-
-      // Fetch existing entry when the update touches fields that require it
-      // (immutability check for signed entries, embedding rebuild for content changes)
-      const existing = touchesContent ? existingForScope : null;
 
       // Enforce immutability for content-signed entries
       if (existing?.contentSignature) {
@@ -729,9 +670,30 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         }
       }
 
+      // Recompute contentHash for unsigned entries when CID-input fields change
+      let finalUpdates: UpdateEntryInput = updates;
+      if (touchesCidFields && existing && !existing.contentSignature) {
+        const mergedContent = updates.content ?? existing.content;
+        const mergedTitle =
+          updates.title !== undefined ? updates.title : existing.title;
+        const mergedEntryType = updates.entryType ?? existing.entryType;
+        const mergedTags =
+          updates.tags !== undefined ? updates.tags : existing.tags;
+
+        finalUpdates = {
+          ...updates,
+          contentHash: computeContentCid(
+            mergedEntryType,
+            mergedTitle ?? null,
+            mergedContent,
+            mergedTags ?? null,
+          ),
+        };
+      }
+
       const updated = await diaryWorkflows.updateEntry(
         id,
-        updates,
+        finalUpdates,
         existing?.content,
         existing?.title,
         existing?.tags,
@@ -740,7 +702,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         logger.info(
           {
             entryId: id,
-            diaryId: existingForScope?.diaryId ?? opts?.diaryId ?? null,
+            diaryId: existing?.diaryId ?? null,
           },
           'entry.updated',
         );
