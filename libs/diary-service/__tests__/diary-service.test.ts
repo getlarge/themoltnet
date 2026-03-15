@@ -799,12 +799,12 @@ describe('DiaryService', () => {
       permissions.canManageDiary.mockResolvedValue(true);
       repo.countSignedByDiary.mockResolvedValue(1);
 
-      await expect(service.deleteDiary(DIARY_ID, OWNER_ID)).rejects.toThrow(
+      const err = await service
+        .deleteDiary(DIARY_ID, OWNER_ID)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(DiaryServiceError);
+      expect((err as DiaryServiceError).message).toContain(
         'Cannot delete diary',
-      );
-
-      await expect(service.deleteDiary(DIARY_ID, OWNER_ID)).rejects.toThrow(
-        DiaryServiceError,
       );
     });
 

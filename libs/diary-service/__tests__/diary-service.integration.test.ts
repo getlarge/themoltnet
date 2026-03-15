@@ -495,6 +495,24 @@ describe('DiaryService (integration)', () => {
       expect(updated!.content).toBe('New content.');
     });
 
+    it('recomputes contentHash when content changes on unsigned entry', async () => {
+      const created = await service.createEntry(
+        { diaryId: DIARY_ID, content: 'Original content', tags: ['tag1'] },
+        OWNER_ID,
+      );
+      const originalHash = created.contentHash;
+      expect(originalHash).toBeDefined();
+
+      permissions.canEditEntry.mockResolvedValue(true);
+      const updated = await service.updateEntry(created.id, OWNER_ID, {
+        content: 'Updated content',
+      });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.contentHash).toBeDefined();
+      expect(updated!.contentHash).not.toBe(originalHash);
+    });
+
     it('throws forbidden when Keto denies edit', async () => {
       const created = await service.createEntry(
         { diaryId: DIARY_ID, content: 'Protected.' },

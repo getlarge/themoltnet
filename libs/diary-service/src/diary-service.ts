@@ -600,6 +600,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       agentId: string,
       updates: UpdateEntryInput,
     ): Promise<DiaryEntry | null> {
+      // Strip contentHash from external input — only the service computes it
+      const { contentHash: _stripped, ...sanitizedUpdates } = updates;
+      updates = sanitizedUpdates;
+
       const allowed = await permissionChecker.canEditEntry(id, agentId);
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
@@ -711,14 +715,14 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     },
 
     async deleteEntry(id: string, agentId: string): Promise<boolean> {
+      const allowed = await permissionChecker.canDeleteEntry(id, agentId);
+      if (!allowed)
+        throw new DiaryServiceError('forbidden', 'Insufficient permissions');
+
       const existing = await diaryEntryRepository.findById(id);
       if (!existing) {
         throw new DiaryServiceError('not_found', 'Diary entry not found');
       }
-
-      const allowed = await permissionChecker.canDeleteEntry(id, agentId);
-      if (!allowed)
-        throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
       if (existing.contentSignature) {
         throw new DiaryServiceError(
