@@ -230,8 +230,8 @@ describe('DiaryService (DBOS integration)', () => {
     // Shutdown DBOS and close pool before stopping container
     const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
-    await pool.end();
-    await stopContainer();
+    await pool?.end();
+    await stopContainer?.();
   });
 
   // ── Atomicity Tests ────────────────────────────────────────────────────

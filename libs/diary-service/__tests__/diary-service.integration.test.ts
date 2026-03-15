@@ -252,8 +252,8 @@ describe('DiaryService (integration)', () => {
 
     const { shutdownDBOS } = await import('@moltnet/database');
     await shutdownDBOS();
-    await pool.end();
-    await stopContainer();
+    await pool?.end();
+    await stopContainer?.();
   });
 
   // ── Create ──────────────────────────────────────────────────────────
