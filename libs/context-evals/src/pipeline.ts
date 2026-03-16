@@ -512,7 +512,7 @@ async function main() {
     teacherModel && teacherProvider
       ? buildAI({
           provider: teacherProvider,
-          aiKey,
+          aiKey: resolveAIKey(str(values['ai-key']), teacherProvider),
           model: teacherModel,
         })
       : undefined;

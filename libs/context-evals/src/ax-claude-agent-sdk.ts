@@ -418,10 +418,11 @@ function runAgentQueryStream(
         }
       } catch (err) {
         controller.error(err);
+        return;
       } finally {
         q.close();
-        controller.close();
       }
+      controller.close();
     },
   });
 }

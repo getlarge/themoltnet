@@ -227,7 +227,11 @@ async function main() {
   }
   const teacherAI =
     teacherModel && teacherProvider
-      ? buildAI({ provider: teacherProvider, aiKey, model: teacherModel })
+      ? buildAI({
+          provider: teacherProvider,
+          aiKey: resolveAIKey(str(values['ai-key']), teacherProvider),
+          model: teacherModel,
+        })
       : undefined;
 
   const outDir = resolve(repoRoot, 'evals', 'runs');
