@@ -20,6 +20,7 @@ import {
 } from '@ax-llm/ax';
 
 import { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
+export { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
 import { loadContextEvalsConfig } from './config.js';
 import type { EvalTrace } from './evaluate.js';
 import { execFileText } from './process.js';

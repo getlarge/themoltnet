@@ -15,13 +15,17 @@
     "eval:setup": "tsx src/skill-evals/eval-setup.ts",
     "eval:teardown": "tsx src/skill-evals/eval-setup.ts --teardown",
     "gpack:skill-eval": "tsx src/skill-evals/skill-eval-pipeline.ts",
+    "mirror-experiment": "tsx src/mirror-experiment.ts",
+    "mirror-optimize": "tsx src/mirror-optimize.ts",
+    "gepa-smoke-test": "tsx src/gepa-smoke-test.ts",
+    "mirror-optimize-simple": "tsx src/mirror-optimize-simple.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@huggingface/transformers": "catalog:",
     "@ax-llm/ax": "catalog:",
+    "@huggingface/transformers": "catalog:",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/context-evals": "workspace:*",
@@ -29,9 +33,10 @@
     "@moltnet/database": "workspace:*",
     "@moltnet/mcp-server": "workspace:*",
     "@moltnet/rest-api": "workspace:*",
+    "@sinclair/typebox": "catalog:",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
-    "@sinclair/typebox": "catalog:",
+    "fastq": "^1.20.1",
     "smol-toml": "catalog:"
   },
   "devDependencies": {

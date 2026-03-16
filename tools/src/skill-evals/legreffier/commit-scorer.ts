@@ -147,7 +147,7 @@ export function scoreCommitTiers(input: ScoreInput): CommitScoreResult {
 export async function fetchCommitData(
   worktreeDir: string,
   sdk: Agent,
-  diaryId: string,
+  diaryId?: string,
   baseCommit?: string,
 ): Promise<{ commitMessages: string[]; diaryEntries: DiaryEntryInfo[] }> {
   // 1. Get commit messages (only commits added after baseCommit)
@@ -200,20 +200,10 @@ export async function fetchCommitData(
     }),
   );
 
-  // Also list recent entries as fallback for entries without trailers
-  try {
-    const entriesData = await sdk.entries.list(diaryId, {
-      tags: 'accountable-commit',
-      limit: 10,
-    });
-    for (const entry of entriesData.items ?? []) {
-      if (!entryMap.has(entry.id)) {
-        entryMap.set(entry.id, normalizeEntry(entry));
-      }
-    }
-  } catch {
-    // list may fail; direct lookups above are the primary source
-  }
+  // No fallback listing — only score entries explicitly referenced by
+  // MoltNet-Diary trailers. The previous entries.list fallback pulled in
+  // entries from other GEPA rounds and prior eval runs, inflating
+  // diaryEntries counts and breaking chain scoring.
 
   // 3. Verify signatures via SDK
   const diaryEntries: DiaryEntryInfo[] = await Promise.all(

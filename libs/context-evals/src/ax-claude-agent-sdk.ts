@@ -31,6 +31,14 @@ import {
 import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
 import type { ResultPayload } from './sdk-types.js';
 
+// ── Debug timing ─────────────────────────────────────────────────────────────
+
+const DEBUG = getRuntimeEnv().AX_AGENT_SDK_DEBUG === '1';
+
+function dbg(msg: string): void {
+  if (DEBUG) process.stderr.write(`[ax-agent-sdk] ${msg}\n`);
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type AgentModel = string;
@@ -368,16 +376,33 @@ async function runAgentQuery(
   model: string,
   maxTurns: number,
 ): Promise<AgentResponse> {
+  const t0 = performance.now();
+  dbg(
+    `query start model=${model} maxTurns=${maxTurns} prompt=${prompt.length}chars`,
+  );
+
   const q = query({
     prompt,
     options: buildQueryOptions(model, maxTurns),
   }) as AsyncIterable<SDKMessage> & { close(): void };
 
+  const tSpawn = performance.now();
+  dbg(`query spawned in ${(tSpawn - t0).toFixed(0)}ms`);
+
   let lastAssistantText = '';
   let finalResult: ResultPayload | null = null;
+  let messageCount = 0;
+  let firstMessageAt: number | undefined;
 
   try {
     for await (const message of q) {
+      messageCount++;
+      if (!firstMessageAt) {
+        firstMessageAt = performance.now();
+        dbg(
+          `first message in ${(firstMessageAt - tSpawn).toFixed(0)}ms (type=${message.type})`,
+        );
+      }
       const text = extractAssistantText(message);
       if (text !== null) {
         lastAssistantText = text;
@@ -389,7 +414,16 @@ async function runAgentQuery(
     q.close();
   }
 
-  return buildAgentResponse(lastAssistantText, finalResult);
+  const total = performance.now() - t0;
+  const resp = buildAgentResponse(lastAssistantText, finalResult);
+  dbg(
+    `query done in ${(total / 1000).toFixed(1)}s — ` +
+      `messages=${messageCount} ` +
+      `tokens=${resp.usage.inputTokens}in/${resp.usage.outputTokens}out ` +
+      `result=${resp.resultText.length}chars`,
+  );
+
+  return resp;
 }
 
 /** Streaming: emit text deltas as SDKMessage events arrive. */
