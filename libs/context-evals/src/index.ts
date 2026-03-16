@@ -1,4 +1,5 @@
 export { type GpackOutput, MoltNetContextAdapter } from './adapter.js';
+export { type AgentRunResult, runAgentTask } from './agent-runner.js';
 export { createAuthedClient, type MoltnetCredentials } from './client.js';
 export {
   type CompiledPackMetadata,
@@ -25,3 +26,9 @@ export {
   type SkillScoreContext,
   type SkillScorer,
 } from './skill-types.js';
+export {
+  type EvalInput,
+  type TasksmithTask,
+  TasksmithTaskSchema,
+  validateTasksmithTask,
+} from './tasksmith.js';

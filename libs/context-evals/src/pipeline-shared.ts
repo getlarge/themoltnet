@@ -16,8 +16,13 @@ import {
   AxAIAnthropicModel,
   AxAIGoogleGeminiModel,
   AxAIOpenAIModel,
+  type AxAIService,
 } from '@ax-llm/ax';
 
+import { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
+import { AxAICodexAgentSDK } from './ax-codex-agent-sdk.js';
+export { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
+export { AxAICodexAgentSDK } from './ax-codex-agent-sdk.js';
 import { loadContextEvalsConfig } from './config.js';
 import type { EvalTrace } from './evaluate.js';
 import { execFileText } from './process.js';
@@ -56,77 +61,99 @@ export function buildCacheKey(taskId: string, content: string): string {
 
 // ── AI provider ──────────────────────────────────────────────────────────────
 
-// Qwen via DashScope OpenAI-compatible endpoint
-const QWEN_API_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1';
-const QWEN_DEFAULT_MODEL = 'qwen-plus' as const;
+export type AIProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'google-gemini'
+  | 'claude-agent-sdk'
+  | 'codex-agent-sdk';
 
 export interface BuildAIOptions {
-  aiKey: string;
+  provider: AIProvider;
+  aiKey?: string;
   model?: string;
 }
 
+function resolveKeyForProvider(
+  provider: AIProvider,
+  envConfig: {
+    GOOGLE_API_KEY?: string;
+    OPENAI_API_KEY?: string;
+    ANTHROPIC_API_KEY?: string;
+  },
+): string | undefined {
+  switch (provider) {
+    case 'google-gemini':
+      return envConfig.GOOGLE_API_KEY;
+    case 'anthropic':
+      return envConfig.ANTHROPIC_API_KEY;
+    case 'openai':
+      return envConfig.OPENAI_API_KEY;
+    case 'claude-agent-sdk':
+    case 'codex-agent-sdk':
+      return undefined;
+  }
+}
+
 /**
- * Build an AxAI instance from a key + optional model override.
+ * Build an AxAIService instance for GEPA student/teacher roles.
  *
- * GEPA terminology:
- * - **studentAI**: the model whose prompts are being optimized (cheap/fast).
- * - **teacherAI**: a more capable model that proposes better instructions
- *   during the reflection step (optional but recommended).
- *
- * Use this function for both roles — pass different model strings.
+ * Caller specifies the provider explicitly. The matching API key is
+ * resolved from env when not passed directly. `claude-agent-sdk`
+ * needs no key — it authenticates via the host's credential store.
  */
-export function buildAI(options: BuildAIOptions): AxAI {
-  const { aiKey: key, model: modelOverride } = options;
+export function buildAI(options: BuildAIOptions): AxAIService {
+  const { provider, aiKey: explicitKey, model } = options;
   const envConfig = loadContextEvalsConfig();
 
-  if (!key) {
+  const key = explicitKey || resolveKeyForProvider(provider, envConfig) || '';
+
+  if (
+    !key &&
+    provider !== 'claude-agent-sdk' &&
+    provider !== 'codex-agent-sdk'
+  ) {
     throw new Error(
-      'No AI key found. Set GOOGLE_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, or DASHSCOPE_API_KEY, or pass --ai-key',
+      `Provider "${provider}" requires an API key. Set the corresponding env var or pass --ai-key.`,
     );
   }
 
-  // Google Gemini (key starts with "AIza")
-  if (key.startsWith('AIza') || envConfig.GOOGLE_API_KEY === key) {
-    return AxAI.create({
-      name: 'google-gemini',
-      apiKey: key,
-      config: {
-        model: (modelOverride ||
-          AxAIGoogleGeminiModel.Gemini20Flash) as AxAIGoogleGeminiModel,
-      },
-    });
-  }
+  switch (provider) {
+    case 'google-gemini':
+      return AxAI.create({
+        name: 'google-gemini',
+        apiKey: key,
+        config: {
+          model: (model ||
+            AxAIGoogleGeminiModel.Gemini20Flash) as AxAIGoogleGeminiModel,
+        },
+      });
 
-  // Qwen / DashScope key (starts with "sk-" but routed via dashscope)
-  if (envConfig.DASHSCOPE_API_KEY === key) {
-    return AxAI.create({
-      name: 'openai',
-      apiKey: key,
-      apiURL: QWEN_API_URL,
-      config: {
-        model: (modelOverride || QWEN_DEFAULT_MODEL) as AxAIOpenAIModel,
-      },
-    });
-  }
+    case 'anthropic':
+      return AxAI.create({
+        name: 'anthropic',
+        apiKey: key,
+        config: {
+          model: (model ||
+            AxAIAnthropicModel.Claude35Haiku) as AxAIAnthropicModel,
+        },
+      });
 
-  if (key.startsWith('sk-ant-') || envConfig.ANTHROPIC_API_KEY === key) {
-    return AxAI.create({
-      name: 'anthropic',
-      apiKey: key,
-      config: {
-        model: (modelOverride ||
-          AxAIAnthropicModel.Claude35Haiku) as AxAIAnthropicModel,
-      },
-    });
-  }
+    case 'openai':
+      return AxAI.create({
+        name: 'openai',
+        apiKey: key,
+        config: {
+          model: (model || AxAIOpenAIModel.GPT4OMini) as AxAIOpenAIModel,
+        },
+      });
 
-  return AxAI.create({
-    name: 'openai',
-    apiKey: key,
-    config: {
-      model: (modelOverride || AxAIOpenAIModel.GPT4OMini) as AxAIOpenAIModel,
-    },
-  });
+    case 'claude-agent-sdk':
+      return new AxAIClaudeAgentSDK({ model });
+
+    case 'codex-agent-sdk':
+      return new AxAICodexAgentSDK({ model });
+  }
 }
 
 // ── Debug traces ─────────────────────────────────────────────────────────────
@@ -153,16 +180,20 @@ export async function writeDebugArtifact(
 
 // ── Resolve AI key from args + env ───────────────────────────────────────────
 
-export function resolveAIKey(explicitKey: string): string {
+export function resolveAIKey(
+  explicitKey: string,
+  provider?: AIProvider,
+): string {
   if (explicitKey) return explicitKey;
+  if (
+    !provider ||
+    provider === 'claude-agent-sdk' ||
+    provider === 'codex-agent-sdk'
+  ) {
+    return '';
+  }
   const envConfig = loadContextEvalsConfig();
-  return (
-    envConfig.GOOGLE_API_KEY ||
-    envConfig.OPENAI_API_KEY ||
-    envConfig.ANTHROPIC_API_KEY ||
-    envConfig.DASHSCOPE_API_KEY ||
-    ''
-  );
+  return resolveKeyForProvider(provider, envConfig) || '';
 }
 
 // ── Pack file loading ────────────────────────────────────────────────────────

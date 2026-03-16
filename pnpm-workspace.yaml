@@ -6,6 +6,7 @@ packages:
 
 catalog:
   '@anthropic-ai/claude-agent-sdk': ^0.2.72
+  '@openai/codex-sdk': ^0.114.0
   '@andersmyrmel/vard': ^1.2.0
   '@ax-llm/ax': ^19.0.13
   '@dbos-inc/dbos-sdk': ^4.10.15
@@ -62,6 +63,7 @@ catalog:
   eslint-plugin-react-hooks: ^7.0.1
   eslint-plugin-simple-import-sort: ^12.1.1
   fast-jwt: ^5.0.0
+  fastq: ^1.20.1
   fastify: ^5.7.3
   fastify-plugin: ^5.1.0
   get-jwks: ^11.0.2

@@ -28,6 +28,10 @@
     "./skill-adapter": {
       "import": "./src/skill-adapter.ts",
       "types": "./src/skill-adapter.ts"
+    },
+    "./gepa": {
+      "import": "./src/gepa.ts",
+      "types": "./src/gepa.ts"
     }
   },
   "scripts": {
@@ -41,7 +45,9 @@
     "@anthropic-ai/claude-agent-sdk": "catalog:",
     "@ax-llm/ax": "catalog:",
     "@moltnet/api-client": "workspace:*",
-    "@sinclair/typebox": "catalog:"
+    "@openai/codex-sdk": "catalog:",
+    "@sinclair/typebox": "catalog:",
+    "fastq": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -66,4 +66,5 @@ export interface SkillEvalAdapterOptions {
   scorer: SkillScorer;
   claudeModel?: string;
   verbose?: boolean;
+  concurrency?: number;
 }

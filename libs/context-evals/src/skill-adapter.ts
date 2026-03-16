@@ -1,20 +1,27 @@
 import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 import type { AxGEPAAdapter, AxGEPAEvaluationBatch } from '@ax-llm/ax';
+import fastq from 'fastq';
 
 import type { GpackOutput } from './adapter.js';
-import { createClaudeQuery } from './anthropic.js';
+import { runAgentTask } from './agent-runner.js';
 import { createWorktree, removeWorktree } from './evaluate.js';
 import { execFileText } from './process.js';
-import type { ResultPayload } from './sdk-types.js';
 import type {
   SkillEvalAdapterOptions,
   SkillEvalTask,
   SkillEvalTrace,
 } from './skill-types.js';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface TaskResult {
+  index: number;
+  output: GpackOutput;
+  score: number;
+  trajectory?: SkillEvalTrace;
+}
 
 // ── Adapter ───────────────────────────────────────────────────────────────────
 
@@ -40,16 +47,17 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
       scorer,
       claudeModel,
       verbose,
+      concurrency = 1,
     } = this.options;
 
     const skillText = candidate['instruction'] ?? '';
     this.lastBatch = batch;
 
-    const outputs: GpackOutput[] = [];
-    const scores: number[] = [];
-    const trajectories: SkillEvalTrace[] = [];
-
-    for (const task of batch) {
+    const worker = async (item: {
+      task: SkillEvalTask;
+      index: number;
+    }): Promise<TaskResult> => {
+      const { task, index } = item;
       if (verbose) {
         console.log(`[skill-eval] task=${task.id}`);
       }
@@ -85,85 +93,115 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
         }
 
         // 5. Run Claude Code agent
-        const agentResult = await this.runAgent(
-          worktreeDir,
-          task,
+        const agentResult = await runAgentTask({
+          cwd: worktreeDir,
+          prompt: task.taskPrompt,
+          model: claudeModel,
+          maxTurns: 30,
+          clientApp: '@moltnet/tools:skill-eval',
           mcpServers,
-          agentName,
-          claudeModel,
-          agentEnv,
-        );
+          extraEnv: {
+            GIT_CONFIG_GLOBAL: resolve(
+              worktreeDir,
+              '.moltnet',
+              agentName,
+              'gitconfig',
+            ),
+            MOLTNET_CREDENTIALS_PATH: resolve(
+              worktreeDir,
+              '.moltnet',
+              agentName,
+              'moltnet.json',
+            ),
+            ...agentEnv,
+            ...task.env,
+          },
+        });
 
         // 6. Score
         if (task.expected === undefined) {
           console.warn(
             `[skill-eval] task=${task.id} skipped scoring: expected is undefined`,
           );
-          outputs.push({ taskId: task.id, score: 0 });
-          scores.push(0);
-          if (captureTraces) {
-            trajectories.push({
-              taskId: task.id,
-              worktreeDir,
-              taskPrompt: task.taskPrompt,
-              executor: 'anthropic-sdk',
-              sessionId: agentResult.sessionId,
-              turnCount: agentResult.turnCount,
-              durationMs: agentResult.durationMs,
-              costUsd: agentResult.costUsd,
-              toolCallCount: agentResult.toolCallCount,
-              toolSummaries: agentResult.toolSummaries,
-              scoreResult: { warning: 'task.expected is undefined' },
-            });
-          }
-          continue;
+          return {
+            index,
+            output: { taskId: task.id, score: 0 },
+            score: 0,
+            trajectory: captureTraces
+              ? {
+                  taskId: task.id,
+                  worktreeDir,
+                  taskPrompt: task.taskPrompt,
+                  executor: 'anthropic-sdk' as const,
+                  sessionId: agentResult.sessionId,
+                  turnCount: agentResult.turnCount,
+                  durationMs: agentResult.durationMs,
+                  costUsd: agentResult.costUsd,
+                  toolCallCount: agentResult.toolCallCount,
+                  toolSummaries: agentResult.toolSummaries,
+                  scoreResult: { warning: 'task.expected is undefined' },
+                }
+              : undefined,
+          };
         }
         const scoreResult = await scorer.score(worktreeDir, task.expected, {
           baseCommit: task.baseCommit,
         });
         const numericScore = scorer.toNumeric(scoreResult);
 
-        outputs.push({ taskId: task.id, score: numericScore });
-        scores.push(numericScore);
-
-        if (captureTraces) {
-          trajectories.push({
-            taskId: task.id,
-            worktreeDir,
-            taskPrompt: task.taskPrompt,
-            executor: 'anthropic-sdk',
-            sessionId: agentResult.sessionId,
-            turnCount: agentResult.turnCount,
-            durationMs: agentResult.durationMs,
-            costUsd: agentResult.costUsd,
-            toolCallCount: agentResult.toolCallCount,
-            toolSummaries: agentResult.toolSummaries,
-            scoreResult,
-          });
-        }
+        return {
+          index,
+          output: { taskId: task.id, score: numericScore },
+          score: numericScore,
+          trajectory: captureTraces
+            ? {
+                taskId: task.id,
+                worktreeDir,
+                taskPrompt: task.taskPrompt,
+                executor: 'anthropic-sdk' as const,
+                sessionId: agentResult.sessionId,
+                turnCount: agentResult.turnCount,
+                durationMs: agentResult.durationMs,
+                costUsd: agentResult.costUsd,
+                toolCallCount: agentResult.toolCallCount,
+                toolSummaries: agentResult.toolSummaries,
+                scoreResult,
+              }
+            : undefined,
+        };
       } catch (err) {
         console.error(`[skill-eval] task=${task.id} error:`, err);
-        outputs.push({ taskId: task.id, score: 0 });
-        scores.push(0);
-        if (captureTraces) {
-          trajectories.push({
-            taskId: task.id,
-            taskPrompt: task.taskPrompt,
-            executor: 'anthropic-sdk',
-            scoreResult: { error: String(err) },
-          });
-        }
+        return {
+          index,
+          output: { taskId: task.id, score: 0 },
+          score: 0,
+          trajectory: captureTraces
+            ? {
+                taskId: task.id,
+                taskPrompt: task.taskPrompt,
+                executor: 'anthropic-sdk' as const,
+                scoreResult: { error: String(err) },
+              }
+            : undefined,
+        };
       } finally {
         if (worktreeDir) {
           await removeWorktree(worktreeDir);
         }
       }
-    }
+    };
+
+    const q = fastq.promise(worker, concurrency);
+    const results = await Promise.all(
+      batch.map((task, index) => q.push({ task, index })),
+    );
+
+    results.sort((a, b) => a.index - b.index);
 
     return {
-      outputs,
-      scores,
-      trajectories: captureTraces ? trajectories : null,
+      outputs: results.map((r) => r.output),
+      scores: results.map((r) => r.score),
+      trajectories: captureTraces ? results.map((r) => r.trajectory!) : null,
     };
   }
 
@@ -209,82 +247,5 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
     }
 
     return dataset;
-  }
-
-  private async runAgent(
-    worktreeDir: string,
-    task: SkillEvalTask,
-    mcpServers: Record<string, McpServerConfig>,
-    agentName: string,
-    claudeModel?: string,
-    agentEnv?: Record<string, string>,
-  ): Promise<{
-    sessionId?: string;
-    turnCount?: number;
-    durationMs?: number;
-    costUsd?: number;
-    toolCallCount?: number;
-    toolSummaries?: string[];
-  }> {
-    let sessionId: string | undefined;
-    let finalResult: ResultPayload | null = null;
-    let toolCallCount = 0;
-    const toolSummaries: string[] = [];
-
-    const q = await createClaudeQuery({
-      cwd: worktreeDir,
-      prompt: task.taskPrompt,
-      model: claudeModel,
-      maxTurns: 30,
-      clientApp: '@moltnet/tools:skill-eval',
-      mcpServers,
-      extraEnv: {
-        GIT_CONFIG_GLOBAL: resolve(
-          worktreeDir,
-          '.moltnet',
-          agentName,
-          'gitconfig',
-        ),
-        MOLTNET_CREDENTIALS_PATH: resolve(
-          worktreeDir,
-          '.moltnet',
-          agentName,
-          'moltnet.json',
-        ),
-        ...agentEnv,
-        ...task.env,
-      },
-    });
-
-    try {
-      for await (const message of q as AsyncIterable<SDKMessage>) {
-        sessionId ??= message.session_id;
-        if (message.type === 'assistant') {
-          const payload = message as unknown as {
-            message: { content: Array<{ type: string }> };
-          };
-          toolCallCount += payload.message.content.filter(
-            (b) => b.type === 'tool_use',
-          ).length;
-        } else if (message.type === 'tool_use_summary') {
-          toolSummaries.push(
-            (message as unknown as { summary: string }).summary,
-          );
-        } else if (message.type === 'result') {
-          finalResult = message as unknown as ResultPayload;
-        }
-      }
-    } finally {
-      q.close();
-    }
-
-    return {
-      sessionId,
-      turnCount: finalResult?.num_turns,
-      durationMs: finalResult?.duration_ms,
-      costUsd: finalResult?.total_cost_usd,
-      toolCallCount,
-      toolSummaries,
-    };
   }
 }
