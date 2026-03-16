@@ -680,6 +680,24 @@ importers:
 
   libs/context-distill:
     devDependencies:
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../database
+      '@testcontainers/postgresql':
+        specifier: 'catalog:'
+        version: 11.12.0
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.16.0
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
+      pg:
+        specifier: 'catalog:'
+        version: 8.18.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -749,9 +767,6 @@ importers:
         specifier: 'catalog:'
         version: 8.18.0
     devDependencies:
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../crypto-service
       '@testcontainers/postgresql':
         specifier: 'catalog:'
         version: 11.12.0

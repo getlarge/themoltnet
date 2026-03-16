@@ -11,23 +11,23 @@
 
 import type { CompileParams } from '@moltnet/crypto-service';
 import { computeContentCid, computePackCid } from '@moltnet/crypto-service';
+import {
+  contextPackEntries,
+  contextPacks,
+  createContextPackRepository,
+  createDatabase,
+  createDiaryEntryRepository,
+  createEntryRelationRepository,
+  type Database,
+  diaries,
+  diaryEntries,
+  entryRelations,
+  runMigrations,
+} from '@moltnet/database';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-
-import { createDatabase, type Database } from '../src/db.js';
-import { runMigrations } from '../src/migrate.js';
-import { createContextPackRepository } from '../src/repositories/context-pack.repository.js';
-import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
-import { createEntryRelationRepository } from '../src/repositories/entry-relation.repository.js';
-import {
-  contextPackEntries,
-  contextPacks,
-  diaries,
-  diaryEntries,
-  entryRelations,
-} from '../src/schema.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 

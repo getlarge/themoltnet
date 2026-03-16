@@ -32,7 +32,6 @@
     "pg": "catalog:"
   },
   "devDependencies": {
-    "@moltnet/crypto-service": "workspace:*",
     "@types/pg": "catalog:",
     "drizzle-kit": "catalog:",
     "@testcontainers/postgresql": "catalog:",
