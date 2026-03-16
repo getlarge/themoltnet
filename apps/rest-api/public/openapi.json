@@ -15,51 +15,7 @@
       },
       "CompileResult": {
         "properties": {
-          "entries": {
-            "items": {
-              "properties": {
-                "compressedTokens": {
-                  "type": "number"
-                },
-                "compressionLevel": {
-                  "anyOf": [
-                    {
-                      "enum": ["full"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["summary"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["keywords"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "content": {
-                  "type": "string"
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "originalTokens": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "id",
-                "content",
-                "compressionLevel",
-                "originalTokens",
-                "compressedTokens"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "stats": {
+          "compileStats": {
             "properties": {
               "budgetUtilization": {
                 "type": "number"
@@ -90,7 +46,7 @@
             ],
             "type": "object"
           },
-          "trace": {
+          "compileTrace": {
             "properties": {
               "embeddingDim": {
                 "type": "number"
@@ -104,9 +60,174 @@
             },
             "required": ["lambdaUsed", "embeddingDim"],
             "type": "object"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entries": {
+            "items": {
+              "properties": {
+                "compressionLevel": {
+                  "anyOf": [
+                    {
+                      "enum": ["full"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["summary"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["keywords"],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "entryCidSnapshot": {
+                  "type": "string"
+                },
+                "entryId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "originalTokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "packId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "packedTokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rank": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "packId",
+                "entryId",
+                "entryCidSnapshot",
+                "compressionLevel",
+                "originalTokens",
+                "packedTokens",
+                "rank",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "packCodec": {
+            "type": "string"
+          },
+          "packType": {
+            "anyOf": [
+              {
+                "enum": ["compile"],
+                "type": "string"
+              },
+              {
+                "enum": ["optimized"],
+                "type": "string"
+              },
+              {
+                "enum": ["custom"],
+                "type": "string"
+              }
+            ]
+          },
+          "params": {},
+          "payload": {},
+          "pinned": {
+            "type": "boolean"
+          },
+          "supersedesPackId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
-        "required": ["entries", "stats", "trace"],
+        "required": [
+          "id",
+          "diaryId",
+          "packCid",
+          "packCodec",
+          "packType",
+          "params",
+          "payload",
+          "createdBy",
+          "supersedesPackId",
+          "pinned",
+          "expiresAt",
+          "createdAt",
+          "entries",
+          "compileStats",
+          "compileTrace"
+        ],
         "type": "object"
       },
       "ConsolidateResult": {

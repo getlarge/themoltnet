@@ -703,6 +703,26 @@ func (s *CompileResult) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CompileResult) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("compileStats")
+		s.CompileStats.Encode(e)
+	}
+	{
+		e.FieldStart("compileTrace")
+		s.CompileTrace.Encode(e)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("createdBy")
+		json.EncodeUUID(e, s.CreatedBy)
+	}
+	{
+		e.FieldStart("diaryId")
+		json.EncodeUUID(e, s.DiaryId)
+	}
+	{
 		e.FieldStart("entries")
 		e.ArrStart()
 		for _, elem := range s.Entries {
@@ -711,19 +731,63 @@ func (s *CompileResult) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
-		e.FieldStart("stats")
-		s.Stats.Encode(e)
+		e.FieldStart("expiresAt")
+		s.ExpiresAt.Encode(e, json.EncodeDateTime)
 	}
 	{
-		e.FieldStart("trace")
-		s.Trace.Encode(e)
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("packCid")
+		e.Str(s.PackCid)
+	}
+	{
+		e.FieldStart("packCodec")
+		e.Str(s.PackCodec)
+	}
+	{
+		e.FieldStart("packType")
+		s.PackType.Encode(e)
+	}
+	{
+		if len(s.Params) != 0 {
+			e.FieldStart("params")
+			e.Raw(s.Params)
+		}
+	}
+	{
+		if len(s.Payload) != 0 {
+			e.FieldStart("payload")
+			e.Raw(s.Payload)
+		}
+	}
+	{
+		e.FieldStart("pinned")
+		e.Bool(s.Pinned)
+	}
+	{
+		e.FieldStart("supersedesPackId")
+		s.SupersedesPackId.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfCompileResult = [3]string{
-	0: "entries",
-	1: "stats",
-	2: "trace",
+var jsonFieldsNameOfCompileResult = [15]string{
+	0:  "compileStats",
+	1:  "compileTrace",
+	2:  "createdAt",
+	3:  "createdBy",
+	4:  "diaryId",
+	5:  "entries",
+	6:  "expiresAt",
+	7:  "id",
+	8:  "packCid",
+	9:  "packCodec",
+	10: "packType",
+	11: "params",
+	12: "payload",
+	13: "pinned",
+	14: "supersedesPackId",
 }
 
 // Decode decodes CompileResult from json.
@@ -731,12 +795,68 @@ func (s *CompileResult) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode CompileResult to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "entries":
+		case "compileStats":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.CompileStats.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compileStats\"")
+			}
+		case "compileTrace":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.CompileTrace.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compileTrace\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "createdBy":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.CreatedBy = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdBy\"")
+			}
+		case "diaryId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.DiaryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"diaryId\"")
+			}
+		case "entries":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				s.Entries = make([]CompileResultEntriesItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -753,25 +873,107 @@ func (s *CompileResult) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"entries\"")
 			}
-		case "stats":
-			requiredBitSet[0] |= 1 << 1
+		case "expiresAt":
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
-				if err := s.Stats.Decode(d); err != nil {
+				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"stats\"")
+				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
-		case "trace":
-			requiredBitSet[0] |= 1 << 2
+		case "id":
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
-				if err := s.Trace.Decode(d); err != nil {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"trace\"")
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "packCid":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCid\"")
+			}
+		case "packCodec":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCodec = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCodec\"")
+			}
+		case "packType":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				if err := s.PackType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packType\"")
+			}
+		case "params":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				s.Params = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"params\"")
+			}
+		case "payload":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				s.Payload = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"payload\"")
+			}
+		case "pinned":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := d.Bool()
+				s.Pinned = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"pinned\"")
+			}
+		case "supersedesPackId":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				if err := s.SupersedesPackId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"supersedesPackId\"")
 			}
 		default:
 			return d.Skip()
@@ -782,8 +984,9 @@ func (s *CompileResult) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000111,
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -830,6 +1033,317 @@ func (s *CompileResult) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *CompileResultCompileStats) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CompileResultCompileStats) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("budgetUtilization")
+		e.Float64(s.BudgetUtilization)
+	}
+	{
+		e.FieldStart("compressionRatio")
+		e.Float64(s.CompressionRatio)
+	}
+	{
+		e.FieldStart("elapsedMs")
+		e.Float64(s.ElapsedMs)
+	}
+	{
+		e.FieldStart("entriesCompressed")
+		e.Float64(s.EntriesCompressed)
+	}
+	{
+		e.FieldStart("entriesIncluded")
+		e.Float64(s.EntriesIncluded)
+	}
+	{
+		e.FieldStart("totalTokens")
+		e.Float64(s.TotalTokens)
+	}
+}
+
+var jsonFieldsNameOfCompileResultCompileStats = [6]string{
+	0: "budgetUtilization",
+	1: "compressionRatio",
+	2: "elapsedMs",
+	3: "entriesCompressed",
+	4: "entriesIncluded",
+	5: "totalTokens",
+}
+
+// Decode decodes CompileResultCompileStats from json.
+func (s *CompileResultCompileStats) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CompileResultCompileStats to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "budgetUtilization":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.BudgetUtilization = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"budgetUtilization\"")
+			}
+		case "compressionRatio":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.CompressionRatio = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"compressionRatio\"")
+			}
+		case "elapsedMs":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Float64()
+				s.ElapsedMs = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"elapsedMs\"")
+			}
+		case "entriesCompressed":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Float64()
+				s.EntriesCompressed = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entriesCompressed\"")
+			}
+		case "entriesIncluded":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.EntriesIncluded = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entriesIncluded\"")
+			}
+		case "totalTokens":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.TotalTokens = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalTokens\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CompileResultCompileStats")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCompileResultCompileStats) {
+					name = jsonFieldsNameOfCompileResultCompileStats[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CompileResultCompileStats) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CompileResultCompileStats) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CompileResultCompileTrace) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CompileResultCompileTrace) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("embeddingDim")
+		e.Float64(s.EmbeddingDim)
+	}
+	{
+		e.FieldStart("lambdaUsed")
+		e.Float64(s.LambdaUsed)
+	}
+	{
+		if s.TaskPromptHash.Set {
+			e.FieldStart("taskPromptHash")
+			s.TaskPromptHash.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCompileResultCompileTrace = [3]string{
+	0: "embeddingDim",
+	1: "lambdaUsed",
+	2: "taskPromptHash",
+}
+
+// Decode decodes CompileResultCompileTrace from json.
+func (s *CompileResultCompileTrace) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CompileResultCompileTrace to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "embeddingDim":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.EmbeddingDim = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"embeddingDim\"")
+			}
+		case "lambdaUsed":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.LambdaUsed = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lambdaUsed\"")
+			}
+		case "taskPromptHash":
+			if err := func() error {
+				s.TaskPromptHash.Reset()
+				if err := s.TaskPromptHash.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskPromptHash\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CompileResultCompileTrace")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCompileResultCompileTrace) {
+					name = jsonFieldsNameOfCompileResultCompileTrace[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CompileResultCompileTrace) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CompileResultCompileTrace) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *CompileResultEntriesItem) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -839,16 +1353,20 @@ func (s *CompileResultEntriesItem) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CompileResultEntriesItem) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("compressedTokens")
-		e.Float64(s.CompressedTokens)
-	}
-	{
 		e.FieldStart("compressionLevel")
 		s.CompressionLevel.Encode(e)
 	}
 	{
-		e.FieldStart("content")
-		e.Str(s.Content)
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("entryCidSnapshot")
+		e.Str(s.EntryCidSnapshot)
+	}
+	{
+		e.FieldStart("entryId")
+		json.EncodeUUID(e, s.EntryId)
 	}
 	{
 		e.FieldStart("id")
@@ -856,16 +1374,32 @@ func (s *CompileResultEntriesItem) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("originalTokens")
-		e.Float64(s.OriginalTokens)
+		s.OriginalTokens.Encode(e)
+	}
+	{
+		e.FieldStart("packId")
+		json.EncodeUUID(e, s.PackId)
+	}
+	{
+		e.FieldStart("packedTokens")
+		s.PackedTokens.Encode(e)
+	}
+	{
+		e.FieldStart("rank")
+		s.Rank.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfCompileResultEntriesItem = [5]string{
-	0: "compressedTokens",
-	1: "compressionLevel",
-	2: "content",
-	3: "id",
-	4: "originalTokens",
+var jsonFieldsNameOfCompileResultEntriesItem = [9]string{
+	0: "compressionLevel",
+	1: "createdAt",
+	2: "entryCidSnapshot",
+	3: "entryId",
+	4: "id",
+	5: "originalTokens",
+	6: "packId",
+	7: "packedTokens",
+	8: "rank",
 }
 
 // Decode decodes CompileResultEntriesItem from json.
@@ -873,24 +1407,12 @@ func (s *CompileResultEntriesItem) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode CompileResultEntriesItem to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "compressedTokens":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Float64()
-				s.CompressedTokens = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"compressedTokens\"")
-			}
 		case "compressionLevel":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
 				if err := s.CompressionLevel.Decode(d); err != nil {
 					return err
@@ -899,20 +1421,44 @@ func (s *CompileResultEntriesItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"compressionLevel\"")
 			}
-		case "content":
-			requiredBitSet[0] |= 1 << 2
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				v, err := d.Str()
-				s.Content = string(v)
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
 				if err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"content\"")
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "entryCidSnapshot":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.EntryCidSnapshot = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryCidSnapshot\"")
+			}
+		case "entryId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.EntryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryId\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -924,16 +1470,46 @@ func (s *CompileResultEntriesItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "originalTokens":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Float64()
-				s.OriginalTokens = float64(v)
-				if err != nil {
+				if err := s.OriginalTokens.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"originalTokens\"")
+			}
+		case "packId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.PackId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packId\"")
+			}
+		case "packedTokens":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				if err := s.PackedTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packedTokens\"")
+			}
+		case "rank":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				if err := s.Rank.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"rank\"")
 			}
 		default:
 			return d.Skip()
@@ -944,8 +1520,9 @@ func (s *CompileResultEntriesItem) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00011111,
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1033,313 +1610,44 @@ func (s *CompileResultEntriesItemCompressionLevel) UnmarshalJSON(data []byte) er
 	return s.Decode(d)
 }
 
-// Encode implements json.Marshaler.
-func (s *CompileResultStats) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
+// Encode encodes CompileResultPackType as json.
+func (s CompileResultPackType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
 }
 
-// encodeFields encodes fields.
-func (s *CompileResultStats) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("budgetUtilization")
-		e.Float64(s.BudgetUtilization)
-	}
-	{
-		e.FieldStart("compressionRatio")
-		e.Float64(s.CompressionRatio)
-	}
-	{
-		e.FieldStart("elapsedMs")
-		e.Float64(s.ElapsedMs)
-	}
-	{
-		e.FieldStart("entriesCompressed")
-		e.Float64(s.EntriesCompressed)
-	}
-	{
-		e.FieldStart("entriesIncluded")
-		e.Float64(s.EntriesIncluded)
-	}
-	{
-		e.FieldStart("totalTokens")
-		e.Float64(s.TotalTokens)
-	}
-}
-
-var jsonFieldsNameOfCompileResultStats = [6]string{
-	0: "budgetUtilization",
-	1: "compressionRatio",
-	2: "elapsedMs",
-	3: "entriesCompressed",
-	4: "entriesIncluded",
-	5: "totalTokens",
-}
-
-// Decode decodes CompileResultStats from json.
-func (s *CompileResultStats) Decode(d *jx.Decoder) error {
+// Decode decodes CompileResultPackType from json.
+func (s *CompileResultPackType) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode CompileResultStats to nil")
+		return errors.New("invalid: unable to decode CompileResultPackType to nil")
 	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "budgetUtilization":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Float64()
-				s.BudgetUtilization = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"budgetUtilization\"")
-			}
-		case "compressionRatio":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Float64()
-				s.CompressionRatio = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"compressionRatio\"")
-			}
-		case "elapsedMs":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Float64()
-				s.ElapsedMs = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"elapsedMs\"")
-			}
-		case "entriesCompressed":
-			requiredBitSet[0] |= 1 << 3
-			if err := func() error {
-				v, err := d.Float64()
-				s.EntriesCompressed = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"entriesCompressed\"")
-			}
-		case "entriesIncluded":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := d.Float64()
-				s.EntriesIncluded = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"entriesIncluded\"")
-			}
-		case "totalTokens":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				v, err := d.Float64()
-				s.TotalTokens = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"totalTokens\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode CompileResultStats")
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
 	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00111111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfCompileResultStats) {
-					name = jsonFieldsNameOfCompileResultStats[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
+	// Try to use constant string.
+	switch CompileResultPackType(v) {
+	case CompileResultPackTypeCompile:
+		*s = CompileResultPackTypeCompile
+	case CompileResultPackTypeOptimized:
+		*s = CompileResultPackTypeOptimized
+	case CompileResultPackTypeCustom:
+		*s = CompileResultPackTypeCustom
+	default:
+		*s = CompileResultPackType(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *CompileResultStats) MarshalJSON() ([]byte, error) {
+func (s CompileResultPackType) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CompileResultStats) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *CompileResultTrace) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *CompileResultTrace) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("embeddingDim")
-		e.Float64(s.EmbeddingDim)
-	}
-	{
-		e.FieldStart("lambdaUsed")
-		e.Float64(s.LambdaUsed)
-	}
-	{
-		if s.TaskPromptHash.Set {
-			e.FieldStart("taskPromptHash")
-			s.TaskPromptHash.Encode(e)
-		}
-	}
-}
-
-var jsonFieldsNameOfCompileResultTrace = [3]string{
-	0: "embeddingDim",
-	1: "lambdaUsed",
-	2: "taskPromptHash",
-}
-
-// Decode decodes CompileResultTrace from json.
-func (s *CompileResultTrace) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CompileResultTrace to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "embeddingDim":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Float64()
-				s.EmbeddingDim = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"embeddingDim\"")
-			}
-		case "lambdaUsed":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Float64()
-				s.LambdaUsed = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lambdaUsed\"")
-			}
-		case "taskPromptHash":
-			if err := func() error {
-				s.TaskPromptHash.Reset()
-				if err := s.TaskPromptHash.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"taskPromptHash\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode CompileResultTrace")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000011,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfCompileResultTrace) {
-					name = jsonFieldsNameOfCompileResultTrace[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *CompileResultTrace) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CompileResultTrace) UnmarshalJSON(data []byte) error {
+func (s *CompileResultPackType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -13633,6 +13941,98 @@ func (s NilDateTime) MarshalJSON() ([]byte, error) {
 func (s *NilDateTime) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d, json.DecodeDateTime)
+}
+
+// Encode encodes float64 as json.
+func (o NilFloat64) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Float64(float64(o.Value))
+}
+
+// Decode decodes float64 from json.
+func (o *NilFloat64) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilFloat64 to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v float64
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	v, err := d.Float64()
+	if err != nil {
+		return err
+	}
+	o.Value = float64(v)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilFloat64) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilFloat64) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes int as json.
+func (o NilInt) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Int(int(o.Value))
+}
+
+// Decode decodes int from json.
+func (o *NilInt) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilInt to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v int
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	v, err := d.Int()
+	if err != nil {
+		return err
+	}
+	o.Value = int(v)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilInt) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilInt) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
 }
 
 // Encode encodes string as json.

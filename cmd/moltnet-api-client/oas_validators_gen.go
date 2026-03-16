@@ -331,6 +331,28 @@ func (s *CompileResult) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if err := s.CompileStats.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "compileStats",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.CompileTrace.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "compileTrace",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if s.Entries == nil {
 			return errors.New("nil is invalid value")
 		}
@@ -359,24 +381,13 @@ func (s *CompileResult) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.Stats.Validate(); err != nil {
+		if err := s.PackType.Validate(); err != nil {
 			return err
 		}
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "stats",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.Trace.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "trace",
+			Name:  "packType",
 			Error: err,
 		})
 	}
@@ -386,65 +397,7 @@ func (s *CompileResult) Validate() error {
 	return nil
 }
 
-func (s *CompileResultEntriesItem) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := (validate.Float{}).Validate(float64(s.CompressedTokens)); err != nil {
-			return errors.Wrap(err, "float")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "compressedTokens",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.CompressionLevel.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "compressionLevel",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.Float{}).Validate(float64(s.OriginalTokens)); err != nil {
-			return errors.Wrap(err, "float")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "originalTokens",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s CompileResultEntriesItemCompressionLevel) Validate() error {
-	switch s {
-	case "full":
-		return nil
-	case "summary":
-		return nil
-	case "keywords":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s *CompileResultStats) Validate() error {
+func (s *CompileResultCompileStats) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -522,7 +475,7 @@ func (s *CompileResultStats) Validate() error {
 	return nil
 }
 
-func (s *CompileResultTrace) Validate() error {
+func (s *CompileResultCompileTrace) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
@@ -554,6 +507,91 @@ func (s *CompileResultTrace) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s *CompileResultEntriesItem) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.CompressionLevel.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "compressionLevel",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.OriginalTokens.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "originalTokens",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.PackedTokens.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "packedTokens",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s CompileResultEntriesItemCompressionLevel) Validate() error {
+	switch s {
+	case "full":
+		return nil
+	case "summary":
+		return nil
+	case "keywords":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s CompileResultPackType) Validate() error {
+	switch s {
+	case "compile":
+		return nil
+	case "optimized":
+		return nil
+	case "custom":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *ConsolidateDiaryForbidden) Validate() error {
