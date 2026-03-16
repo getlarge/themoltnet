@@ -1,15 +1,31 @@
 #!/usr/bin/env -S npx tsx
 /* eslint-disable no-console */
+/**
+ * gepa-smoke-test — Minimal GEPA example with AxAIClaudeAgentSDK
+ *
+ * Reproduces the ax-llm email classifier GEPA example using our
+ * Agent SDK adapter instead of a direct API key. Proves GEPA works
+ * end-to-end with AxAIClaudeAgentSDK before we try mirror optimization.
+ *
+ * Usage:
+ *   pnpm gepa-smoke-test
+ */
 
 import { ax, AxGEPA } from '@ax-llm/ax';
-import { AxAICodexAgentSDK } from '@moltnet/context-evals/pipeline-shared';
+import { AxAIClaudeAgentSDK } from '@moltnet/context-evals/pipeline-shared';
+
+// ── Timing ──────────────────────────────────────────────────────────────────
 
 const t0 = performance.now();
 const elapsed = () => `[${((performance.now() - t0) / 1000).toFixed(1)}s]`;
 
+// ── Program: email classifier (from ax-llm examples) ─────────────────────────
+
 const classifier = ax(
   'emailText:string "Email content" -> priority:class "high, normal, low"',
 );
+
+// ── Training data (with expected outputs) ────────────────────────────────────
 
 const train = [
   {
@@ -33,6 +49,8 @@ const val = [
   { emailText: 'FYI: New coffee machine in the kitchen', priority: 'low' },
 ];
 
+// ── Metric: exact match ──────────────────────────────────────────────────────
+
 let metricCalls = 0;
 
 const metric = async ({
@@ -48,16 +66,19 @@ const metric = async ({
   const correct = pred?.priority === ex?.priority ? 1 : 0;
 
   console.log(
-    `${elapsed()} [metric ${metricCalls}] expected=${String(ex?.priority)} predicted=${String(pred?.priority)} correct=${correct}`,
+    `${elapsed()} [metric ${metricCalls}] expected=${String(ex?.priority)} predicted=${String(pred?.priority)} correct=${correct} type=${typeof correct}`,
   );
 
+  // Return Record<string, number> like ax examples do (cast to bypass types)
   return { accuracy: correct } as unknown as number;
 };
 
-const model = process.env.GPACK_AGENT_MODEL || 'gpt-5-codex-mini';
+// ── GEPA setup ───────────────────────────────────────────────────────────────
 
-const studentAI = new AxAICodexAgentSDK({ model, maxTurns: 1 });
-const teacherAI = new AxAICodexAgentSDK({ model, maxTurns: 1 });
+const model = 'claude-haiku-4-5';
+
+const studentAI = new AxAIClaudeAgentSDK({ model, maxTurns: 1 });
+const teacherAI = new AxAIClaudeAgentSDK({ model, maxTurns: 1 });
 
 const optimizer = new AxGEPA({
   studentAI,
@@ -67,8 +88,10 @@ const optimizer = new AxGEPA({
   seed: 42,
 });
 
+// ── Run ──────────────────────────────────────────────────────────────────────
+
 console.log('╔═══════════════════════════════════════════════════╗');
-console.log('║          GEPA SMOKE TEST (Codex SDK)             ║');
+console.log('║          GEPA SMOKE TEST (Agent SDK)             ║');
 console.log('╚═══════════════════════════════════════════════════╝');
 console.log(`Model: ${model}`);
 console.log(`Train: ${train.length} examples`);
@@ -105,9 +128,10 @@ if (optimizedInstruction) {
 }
 console.log('═══════════════════════════════════════════════════');
 
+// Quick inference test
 console.log(`\n${elapsed()} Running inference with optimized program...\n`);
 
-const testAI = new AxAICodexAgentSDK({ model, maxTurns: 1 });
+const testAI = new AxAIClaudeAgentSDK({ model, maxTurns: 1 });
 const tests = [
   'EMERGENCY: Database corruption, data loss imminent',
   'Hey, lunch at noon?',

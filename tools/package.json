@@ -16,10 +16,7 @@
     "eval:teardown": "tsx src/skill-evals/eval-setup.ts --teardown",
     "gpack:skill-eval": "tsx src/skill-evals/skill-eval-pipeline.ts",
     "mirror:experiment": "tsx src/mirror-experiment/experiment.ts",
-    "mirror:optimize": "tsx src/mirror-experiment/optimize.ts",
-    "mirror:optimize-simple": "tsx src/mirror-experiment/optimize-simple.ts",
     "mirror:gepa-smoke": "tsx src/mirror-experiment/gepa-smoke-test.ts",
-    "mirror:gepa-smoke:codex": "tsx src/mirror-experiment/gepa-smoke-test-codex.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
