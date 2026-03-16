@@ -45,7 +45,8 @@
     "@anthropic-ai/claude-agent-sdk": "catalog:",
     "@ax-llm/ax": "catalog:",
     "@moltnet/api-client": "workspace:*",
-    "@sinclair/typebox": "catalog:"
+    "@sinclair/typebox": "catalog:",
+    "fastq": "^1.20.1"
   },
   "devDependencies": {
     "@types/node": "catalog:",

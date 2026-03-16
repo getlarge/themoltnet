@@ -2,6 +2,7 @@ import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type { AxGEPAAdapter, AxGEPAEvaluationBatch } from '@ax-llm/ax';
+import fastq from 'fastq';
 
 import type { GpackOutput } from './adapter.js';
 import { runAgentTask } from './agent-runner.js';
@@ -12,6 +13,15 @@ import type {
   SkillEvalTask,
   SkillEvalTrace,
 } from './skill-types.js';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface TaskResult {
+  index: number;
+  output: GpackOutput;
+  score: number;
+  trajectory?: SkillEvalTrace;
+}
 
 // ── Adapter ───────────────────────────────────────────────────────────────────
 
@@ -37,16 +47,17 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
       scorer,
       claudeModel,
       verbose,
+      concurrency = 1,
     } = this.options;
 
     const skillText = candidate['instruction'] ?? '';
     this.lastBatch = batch;
 
-    const outputs: GpackOutput[] = [];
-    const scores: number[] = [];
-    const trajectories: SkillEvalTrace[] = [];
-
-    for (const task of batch) {
+    const worker = async (item: {
+      task: SkillEvalTask;
+      index: number;
+    }): Promise<TaskResult> => {
+      const { task, index } = item;
       if (verbose) {
         console.log(`[skill-eval] task=${task.id}`);
       }
@@ -112,71 +123,85 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
           console.warn(
             `[skill-eval] task=${task.id} skipped scoring: expected is undefined`,
           );
-          outputs.push({ taskId: task.id, score: 0 });
-          scores.push(0);
-          if (captureTraces) {
-            trajectories.push({
-              taskId: task.id,
-              worktreeDir,
-              taskPrompt: task.taskPrompt,
-              executor: 'anthropic-sdk',
-              sessionId: agentResult.sessionId,
-              turnCount: agentResult.turnCount,
-              durationMs: agentResult.durationMs,
-              costUsd: agentResult.costUsd,
-              toolCallCount: agentResult.toolCallCount,
-              toolSummaries: agentResult.toolSummaries,
-              scoreResult: { warning: 'task.expected is undefined' },
-            });
-          }
-          continue;
+          return {
+            index,
+            output: { taskId: task.id, score: 0 },
+            score: 0,
+            trajectory: captureTraces
+              ? {
+                  taskId: task.id,
+                  worktreeDir,
+                  taskPrompt: task.taskPrompt,
+                  executor: 'anthropic-sdk' as const,
+                  sessionId: agentResult.sessionId,
+                  turnCount: agentResult.turnCount,
+                  durationMs: agentResult.durationMs,
+                  costUsd: agentResult.costUsd,
+                  toolCallCount: agentResult.toolCallCount,
+                  toolSummaries: agentResult.toolSummaries,
+                  scoreResult: { warning: 'task.expected is undefined' },
+                }
+              : undefined,
+          };
         }
         const scoreResult = await scorer.score(worktreeDir, task.expected, {
           baseCommit: task.baseCommit,
         });
         const numericScore = scorer.toNumeric(scoreResult);
 
-        outputs.push({ taskId: task.id, score: numericScore });
-        scores.push(numericScore);
-
-        if (captureTraces) {
-          trajectories.push({
-            taskId: task.id,
-            worktreeDir,
-            taskPrompt: task.taskPrompt,
-            executor: 'anthropic-sdk',
-            sessionId: agentResult.sessionId,
-            turnCount: agentResult.turnCount,
-            durationMs: agentResult.durationMs,
-            costUsd: agentResult.costUsd,
-            toolCallCount: agentResult.toolCallCount,
-            toolSummaries: agentResult.toolSummaries,
-            scoreResult,
-          });
-        }
+        return {
+          index,
+          output: { taskId: task.id, score: numericScore },
+          score: numericScore,
+          trajectory: captureTraces
+            ? {
+                taskId: task.id,
+                worktreeDir,
+                taskPrompt: task.taskPrompt,
+                executor: 'anthropic-sdk' as const,
+                sessionId: agentResult.sessionId,
+                turnCount: agentResult.turnCount,
+                durationMs: agentResult.durationMs,
+                costUsd: agentResult.costUsd,
+                toolCallCount: agentResult.toolCallCount,
+                toolSummaries: agentResult.toolSummaries,
+                scoreResult,
+              }
+            : undefined,
+        };
       } catch (err) {
         console.error(`[skill-eval] task=${task.id} error:`, err);
-        outputs.push({ taskId: task.id, score: 0 });
-        scores.push(0);
-        if (captureTraces) {
-          trajectories.push({
-            taskId: task.id,
-            taskPrompt: task.taskPrompt,
-            executor: 'anthropic-sdk',
-            scoreResult: { error: String(err) },
-          });
-        }
+        return {
+          index,
+          output: { taskId: task.id, score: 0 },
+          score: 0,
+          trajectory: captureTraces
+            ? {
+                taskId: task.id,
+                taskPrompt: task.taskPrompt,
+                executor: 'anthropic-sdk' as const,
+                scoreResult: { error: String(err) },
+              }
+            : undefined,
+        };
       } finally {
         if (worktreeDir) {
           await removeWorktree(worktreeDir);
         }
       }
-    }
+    };
+
+    const q = fastq.promise(worker, concurrency);
+    const results = await Promise.all(
+      batch.map((task, index) => q.push({ task, index })),
+    );
+
+    results.sort((a, b) => a.index - b.index);
 
     return {
-      outputs,
-      scores,
-      trajectories: captureTraces ? trajectories : null,
+      outputs: results.map((r) => r.output),
+      scores: results.map((r) => r.score),
+      trajectories: captureTraces ? results.map((r) => r.trajectory!) : null,
     };
   }
 

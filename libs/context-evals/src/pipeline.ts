@@ -76,6 +76,7 @@ const { values } = parseArgs({
     baseline: { type: 'boolean', default: false },
     'debug-traces': { type: 'boolean', default: false },
     verbose: { type: 'boolean', default: false },
+    concurrency: { type: 'string', default: '1' },
   },
   strict: false,
 });
@@ -132,6 +133,7 @@ const numTrials = parseInt(str(values['num-trials']) || '8', 10);
 const runBaselineMode = values['baseline'] === true;
 const debugTraces = values['debug-traces'] === true;
 const verbose = values['verbose'] === true;
+const concurrency = parseInt(str(values['concurrency']) || '1', 10);
 
 // ── API client ────────────────────────────────────────────────────────────────
 
@@ -410,7 +412,11 @@ async function main() {
           .context_variants?.combined
       : undefined;
 
-  const adapter = new MoltNetContextAdapter({ verbose, claudeModel });
+  const adapter = new MoltNetContextAdapter({
+    verbose,
+    claudeModel,
+    concurrency,
+  });
   const explicitPack = packFileArg
     ? await loadPackFile(repoRoot, packFileArg)
     : '';

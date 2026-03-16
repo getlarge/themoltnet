@@ -62,6 +62,7 @@ const { values } = parseArgs({
     'num-trials': { type: 'string', default: '8' },
     baseline: { type: 'boolean', default: false },
     verbose: { type: 'boolean', default: false },
+    concurrency: { type: 'string', default: '1' },
   },
   strict: false,
 });
@@ -95,6 +96,7 @@ const maxMetricCalls = parseInt(str(values['max-evals']) || '30', 10);
 const numTrials = parseInt(str(values['num-trials']) || '8', 10);
 const runBaselineMode = values['baseline'] === true;
 const verbose = values['verbose'] === true;
+const concurrency = parseInt(str(values['concurrency']) || '1', 10);
 
 // ── Skill eval task loading ──────────────────────────────────────────────────
 
@@ -176,6 +178,7 @@ async function main() {
     scorer,
     claudeModel,
     verbose,
+    concurrency,
   });
 
   if (runBaselineMode) {

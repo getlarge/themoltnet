@@ -698,6 +698,9 @@ importers:
       '@sinclair/typebox':
         specifier: 'catalog:'
         version: 0.34.48
+      fastq:
+        specifier: ^1.20.1
+        version: 1.20.1
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -1098,6 +1101,9 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../libs/sdk
+      fastq:
+        specifier: ^1.20.1
+        version: 1.20.1
       smol-toml:
         specifier: 'catalog:'
         version: 1.6.0

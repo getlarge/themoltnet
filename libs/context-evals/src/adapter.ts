@@ -10,6 +10,7 @@
  */
 
 import type { AxGEPAAdapter, AxGEPAEvaluationBatch } from '@ax-llm/ax';
+import fastq from 'fastq';
 
 import { type EvalTrace, evaluateTask, type GpackTask } from './evaluate.js';
 
@@ -18,6 +19,13 @@ import { type EvalTrace, evaluateTask, type GpackTask } from './evaluate.js';
 export interface GpackOutput {
   taskId: string;
   score: number;
+}
+
+interface TaskResult {
+  index: number;
+  output: GpackOutput;
+  score: number;
+  trajectory?: EvalTrace;
 }
 
 // ── Adapter ───────────────────────────────────────────────────────────────────
@@ -29,11 +37,19 @@ export class MoltNetContextAdapter implements AxGEPAAdapter<
 > {
   private verbose: boolean;
   private claudeModel: string;
+  private concurrency: number;
   private lastBatch: readonly GpackTask[] = [];
 
-  constructor(options: { verbose?: boolean; claudeModel?: string } = {}) {
+  constructor(
+    options: {
+      verbose?: boolean;
+      claudeModel?: string;
+      concurrency?: number;
+    } = {},
+  ) {
     this.verbose = options.verbose ?? false;
     this.claudeModel = options.claudeModel ?? 'claude-sonnet-4-6';
+    this.concurrency = options.concurrency ?? 1;
   }
 
   /**
@@ -46,64 +62,71 @@ export class MoltNetContextAdapter implements AxGEPAAdapter<
     candidate: Readonly<Record<string, string>>,
     captureTraces?: boolean,
   ): Promise<AxGEPAEvaluationBatch<EvalTrace, GpackOutput>> {
-    // AxGEPA passes candidate as { instruction: "<text>" }
     const packContent =
       candidate['instruction'] ?? candidate['session_pack'] ?? '';
     this.lastBatch = batch;
 
-    const outputs: GpackOutput[] = [];
-    const scores: number[] = [];
-    const trajectories: EvalTrace[] = [];
-
-    for (const task of batch) {
+    const worker = async (item: {
+      task: GpackTask;
+      index: number;
+    }): Promise<TaskResult> => {
+      const { task, index } = item;
       if (this.verbose) {
         console.log(
           `[gpack/adapter] task=${task.id} pack=${packContent.length}chars`,
         );
       }
 
-      let result;
       try {
-        result = await evaluateTask(task, packContent, {
+        const result = await evaluateTask(task, packContent, {
           verbose: this.verbose,
           claudeModel: this.claudeModel,
         });
+        return {
+          index,
+          output: { taskId: task.id, score: result.score },
+          score: result.score,
+          trajectory: captureTraces ? result.trace : undefined,
+        };
       } catch (err) {
-        // Return a failed result rather than crashing the optimization run
         console.error(`[gpack/adapter] task=${task.id} error:`, err);
-        outputs.push({ taskId: task.id, score: 0 });
-        scores.push(0);
-        if (captureTraces) {
-          trajectories.push({
-            taskId: task.id,
-            taskPrompt: task.problemStatement,
-            executor: 'anthropic-sdk',
-            setupOutputs: [],
-            preTaskTestOutputs: [],
-            evalResult: `ERROR: ${String(err)}`,
-            taskStepPassed: false,
-            taskStepOutput: '',
-            gitStatus: '',
-            gitDiffStat: '',
-            testsPassed: false,
-            testOutputs: [],
-            regressionOutputs: [],
-          });
-        }
-        continue;
+        return {
+          index,
+          output: { taskId: task.id, score: 0 },
+          score: 0,
+          trajectory: captureTraces
+            ? {
+                taskId: task.id,
+                taskPrompt: task.problemStatement,
+                executor: 'anthropic-sdk' as const,
+                setupOutputs: [],
+                preTaskTestOutputs: [],
+                evalResult: `ERROR: ${String(err)}`,
+                taskStepPassed: false,
+                taskStepOutput: '',
+                gitStatus: '',
+                gitDiffStat: '',
+                testsPassed: false,
+                testOutputs: [],
+                regressionOutputs: [],
+              }
+            : undefined,
+        };
       }
+    };
 
-      outputs.push({ taskId: task.id, score: result.score });
-      scores.push(result.score);
-      if (captureTraces) {
-        trajectories.push(result.trace);
-      }
-    }
+    const q = fastq.promise(worker, this.concurrency);
+    const results = await Promise.all(
+      batch.map((task, index) => q.push({ task, index })),
+    );
+
+    // Sort by original index to preserve batch ordering
+    results.sort((a, b) => a.index - b.index);
 
     return {
-      outputs,
-      scores,
-      trajectories: captureTraces ? trajectories : null,
+      outputs: results.map((r) => r.output),
+      scores: results.map((r) => r.score),
+      trajectories: captureTraces ? results.map((r) => r.trajectory!) : null,
     };
   }
 
