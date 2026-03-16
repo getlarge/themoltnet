@@ -143,7 +143,12 @@ const COMPILED_ENTRIES: MockCompiledEntry[] = [
 function buildCompilePackInput(
   compiledEntries: MockCompiledEntry[],
   sourceEntries: MockEntry[],
-  overrides?: Partial<PackEnvelopeInput>,
+  overrides?: {
+    diaryId?: string;
+    createdBy?: string;
+    createdAt?: string;
+    entries?: PackEntryRef[];
+  },
 ): PackEnvelopeInput {
   const entryMap = new Map(sourceEntries.map((e) => [e.id, e]));
 
@@ -158,17 +163,16 @@ function buildCompilePackInput(
   });
 
   return {
-    diaryId: 'diary-001',
-    createdBy: 'agent-001',
-    createdAt: '2026-03-15T14:00:00.000Z',
+    diaryId: overrides?.diaryId ?? 'diary-001',
+    createdBy: overrides?.createdBy ?? 'agent-001',
+    createdAt: overrides?.createdAt ?? '2026-03-15T14:00:00.000Z',
     packType: 'compile',
     params: {
       tokenBudget: 4000,
       lambda: 0.5,
       taskPromptHash: 'how-to-add-auth-route',
     } satisfies CompileParams,
-    entries: packEntries,
-    ...overrides,
+    entries: overrides?.entries ?? packEntries,
   };
 }
 

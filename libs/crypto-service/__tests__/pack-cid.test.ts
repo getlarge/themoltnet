@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { computeContentCid } from '../src/content-cid.js';
 import {
   buildPackEnvelope,
+  type CompileParams,
   computePackCid,
   decodePackEnvelope,
   type PackEntryRef,
@@ -24,25 +25,32 @@ const ENTRY_CIDS = [
   makeEntryCid('Third entry about testing conventions', 2),
 ];
 
+type CompileInputOverrides = {
+  diaryId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  params?: CompileParams;
+  entries?: PackEntryRef[];
+};
+
 function makeCompileInput(
-  overrides?: Partial<PackEnvelopeInput>,
+  overrides?: CompileInputOverrides,
 ): PackEnvelopeInput {
   return {
-    diaryId: '550e8400-e29b-41d4-a716-446655440000',
-    createdBy: '660e8400-e29b-41d4-a716-446655440001',
-    createdAt: '2026-03-15T12:00:00.000Z',
+    diaryId: overrides?.diaryId ?? '550e8400-e29b-41d4-a716-446655440000',
+    createdBy: overrides?.createdBy ?? '660e8400-e29b-41d4-a716-446655440001',
+    createdAt: overrides?.createdAt ?? '2026-03-15T12:00:00.000Z',
     packType: 'compile',
-    params: {
+    params: overrides?.params ?? {
       tokenBudget: 4000,
       lambda: 0.5,
       taskPromptHash: 'abc123',
     },
-    entries: [
+    entries: overrides?.entries ?? [
       { cid: ENTRY_CIDS[0], compressionLevel: 'full', rank: 1 },
       { cid: ENTRY_CIDS[1], compressionLevel: 'summary', rank: 2 },
       { cid: ENTRY_CIDS[2], compressionLevel: 'keywords', rank: 3 },
     ],
-    ...overrides,
   };
 }
 
@@ -219,22 +227,23 @@ describe('computePackCid', () => {
   });
 
   it('works with optimized pack type', () => {
-    const input = makeCompileInput({
+    const sourcePackCid = computePackCid(makeCompileInput());
+    const input: PackEnvelopeInput = {
+      diaryId: '550e8400-e29b-41d4-a716-446655440000',
+      createdBy: '660e8400-e29b-41d4-a716-446655440001',
+      createdAt: '2026-03-15T13:00:00.000Z',
       packType: 'optimized',
       params: {
-        sourcePackCid: computePackCid(makeCompileInput()),
+        sourcePackCid,
         gepaTrials: 8,
         gepaScore: 0.85,
         teacherModel: 'gpt-4o-mini',
       },
-    });
+      entries: [{ cid: ENTRY_CIDS[0], compressionLevel: 'full', rank: 1 }],
+    };
     const cid = computePackCid(input);
     expect(cid).toMatch(/^bafy/);
-
-    // Optimized pack CID differs from its source compile pack CID
-    expect(cid).not.toBe(
-      (input.params as { sourcePackCid: string }).sourcePackCid,
-    );
+    expect(cid).not.toBe(sourcePackCid);
   });
 });
 
@@ -279,7 +288,7 @@ describe('decodePackEnvelope', () => {
       createdBy: decoded['createdBy'] as string,
       createdAt: decoded['createdAt'] as string,
       packType: decoded['packType'] as 'compile',
-      params: decoded['params'] as PackEnvelopeInput['params'],
+      params: decoded['params'] as CompileParams,
       entries: entries.map((entry) => ({
         cid: (entry['cid'] as CID).toString(),
         compressionLevel: entry[

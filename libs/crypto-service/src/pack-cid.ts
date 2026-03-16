@@ -63,15 +63,22 @@ export interface PackEntryRef {
   rank: number;
 }
 
-/** Input to computePackCid — everything needed to build the envelope. */
-export interface PackEnvelopeInput {
+/** Common fields shared by all pack envelope inputs. */
+interface PackEnvelopeBase {
   diaryId: string;
   createdBy: string;
   createdAt: string;
-  packType: PackType;
-  params: CompileParams | OptimizedParams;
   entries: PackEntryRef[];
 }
+
+/**
+ * Discriminated union for pack envelope input.
+ * packType determines which params shape is valid — prevents passing
+ * CompileParams with packType: 'optimized' at compile time.
+ */
+export type PackEnvelopeInput =
+  | (PackEnvelopeBase & { packType: 'compile'; params: CompileParams })
+  | (PackEnvelopeBase & { packType: 'optimized'; params: OptimizedParams });
 
 /**
  * Build the canonical DAG-CBOR envelope for a context pack.

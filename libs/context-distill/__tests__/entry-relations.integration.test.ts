@@ -28,7 +28,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { compile } from '../src/compile.js';
 import { estimateTokens } from '../src/compress.js';
 import { consolidate } from '../src/consolidate.js';
-import type { Cluster, DistillEntry } from '../src/types.js';
+import { clusterToRelationProposals } from '../src/relation-proposals.js';
+import type { DistillEntry } from '../src/types.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -151,59 +152,9 @@ function toDistillEntry(entry: DBEntry): DistillEntry {
   };
 }
 
-/**
- * Map consolidation clusters to proposed entry_relations.
- * This is the server-side logic that would run after consolidate().
- */
-function clusterToRelationProposals(
-  clusters: Cluster[],
-  sourceEntries: DBEntry[],
-  workflowId: string,
-): Array<{
-  sourceId: string;
-  targetId: string;
-  relation: 'supports' | 'elaborates';
-  sourceCidSnapshot: string;
-  targetCidSnapshot: string;
-  metadata: Record<string, unknown>;
-}> {
-  const entryMap = new Map(sourceEntries.map((e) => [e.id, e]));
-  const proposals: Array<{
-    sourceId: string;
-    targetId: string;
-    relation: 'supports' | 'elaborates';
-    sourceCidSnapshot: string;
-    targetCidSnapshot: string;
-    metadata: Record<string, unknown>;
-  }> = [];
-
-  for (const cluster of clusters) {
-    if (cluster.members.length < 2) continue;
-
-    const repId = cluster.representative.id;
-    const repEntry = entryMap.get(repId)!;
-
-    for (const member of cluster.members) {
-      if (member.id === repId) continue;
-      const memberEntry = entryMap.get(member.id)!;
-
-      // Representative supports members (shared knowledge)
-      proposals.push({
-        sourceId: repId,
-        targetId: member.id,
-        relation: 'supports',
-        sourceCidSnapshot: repEntry.contentHash,
-        targetCidSnapshot: memberEntry.contentHash,
-        metadata: {
-          workflowId,
-          similarity: cluster.similarity,
-          suggestedAction: cluster.suggestedAction,
-        },
-      });
-    }
-  }
-
-  return proposals;
+/** Build a CID lookup map from entry fixtures. */
+function buildCidLookup(entries: DBEntry[]): Map<string, string> {
+  return new Map(entries.map((e) => [e.id, e.contentHash]));
 }
 
 // ── Setup ────────────────────────────────────────────────────────────────────
@@ -291,7 +242,7 @@ describe('entry relations from consolidation (integration)', () => {
 
       const proposals = clusterToRelationProposals(
         result.clusters,
-        ENTRIES,
+        buildCidLookup(ENTRIES),
         'consolidate-wf-test-001',
       );
 
@@ -311,6 +262,42 @@ describe('entry relations from consolidation (integration)', () => {
         );
       }
     });
+    it('tight threshold (low distance tolerance) → all singletons → no proposals', () => {
+      const distillEntries = ENTRIES.map(toDistillEntry);
+      // threshold is cosine distance: 0.001 = entries must be nearly identical
+      const result = consolidate(distillEntries, { threshold: 0.001 });
+
+      // All clusters should be singletons
+      expect(result.stats.singletonRate).toBe(1);
+      expect(result.stats.clusterCount).toBe(result.stats.inputCount);
+
+      const proposals = clusterToRelationProposals(
+        result.clusters,
+        buildCidLookup(ENTRIES),
+        'consolidate-wf-no-clusters',
+      );
+
+      // No multi-member clusters → no proposals
+      expect(proposals).toHaveLength(0);
+    });
+
+    it('loose threshold (high distance tolerance) → one cluster → proposals span all entries', () => {
+      const distillEntries = ENTRIES.map(toDistillEntry);
+      // threshold is cosine distance: 1.0 = any pair is close enough → one cluster
+      const result = consolidate(distillEntries, { threshold: 1.0 });
+
+      expect(result.stats.clusterCount).toBe(1);
+      expect(result.clusters[0].members).toHaveLength(ENTRIES.length);
+
+      const proposals = clusterToRelationProposals(
+        result.clusters,
+        buildCidLookup(ENTRIES),
+        'consolidate-wf-collapsed',
+      );
+
+      // One cluster with 5 members → 4 proposals (rep supports each non-rep)
+      expect(proposals).toHaveLength(ENTRIES.length - 1);
+    });
   });
 
   // ── Persist and manage relation proposals ──────────────────────────────
@@ -321,7 +308,7 @@ describe('entry relations from consolidation (integration)', () => {
       const result = consolidate(distillEntries, { threshold: 0.15 });
       const proposals = clusterToRelationProposals(
         result.clusters,
-        ENTRIES,
+        buildCidLookup(ENTRIES),
         'consolidate-wf-persist-001',
       );
 
@@ -422,7 +409,7 @@ describe('entry relations from consolidation (integration)', () => {
       });
       const proposals = clusterToRelationProposals(
         consolidateResult.clusters,
-        ENTRIES,
+        buildCidLookup(ENTRIES),
         'consolidate-wf-lifecycle',
       );
 
