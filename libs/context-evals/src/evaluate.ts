@@ -19,15 +19,12 @@ import {
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-
-import { createClaudeQuery } from './anthropic.js';
+import { runAgentTask } from './agent-runner.js';
 import {
   type CommandResult,
   execFileText,
   runShellCommand,
 } from './process.js';
-import type { AssistantPayload, ResultPayload } from './sdk-types.js';
 
 export interface GpackTask {
   id: string;
@@ -72,26 +69,6 @@ export interface EvalTrace {
 export interface EvalResult {
   score: number;
   trace: EvalTrace;
-}
-
-interface TaskStepResult {
-  passed: boolean;
-  output: string;
-  stderrOutput?: string;
-  sessionId?: string;
-  turnCount?: number;
-  durationMs?: number;
-  apiDurationMs?: number;
-  costUsd?: number;
-  usage?: {
-    inputTokens: number;
-    outputTokens: number;
-    cacheCreationInputTokens?: number;
-    cacheReadInputTokens?: number;
-  };
-  toolCallCount?: number;
-  toolSummaries?: string[];
-  permissionDenials?: Array<{ toolName: string; toolUseId: string }>;
 }
 
 const TELEMETRY_HIDDEN_PATHS = new Set([
@@ -182,110 +159,6 @@ export async function removeWorktree(worktreeDir: string): Promise<void> {
 
 export async function cleanupAllWorktrees(): Promise<void> {
   await Promise.all([...activeWorktrees].map((p) => removeWorktree(p)));
-}
-
-async function runAnthropicSdk(
-  cwd: string,
-  prompt: string,
-  options: { model?: string } = {},
-): Promise<TaskStepResult> {
-  let stderrOutput = '';
-  let sessionId: string | undefined;
-  let finalResult: ResultPayload | null = null;
-  let lastAssistantText = '';
-  let toolCallCount = 0;
-  const toolSummaries: string[] = [];
-
-  const q = await createClaudeQuery({
-    cwd,
-    prompt,
-    model: options.model,
-    maxTurns: 20,
-    clientApp: '@moltnet/tools:gpack',
-    stderr: (data: string) => {
-      if (stderrOutput.length < 512_000) {
-        stderrOutput += data;
-      }
-    },
-  });
-
-  try {
-    for await (const message of q as AsyncIterable<SDKMessage>) {
-      sessionId ??= message.session_id;
-
-      if (message.type === 'assistant') {
-        const payload = message as unknown as AssistantPayload;
-        const textBlocks = payload.message.content.filter(
-          (b): b is { type: 'text'; text: string } =>
-            b.type === 'text' && typeof b.text === 'string',
-        );
-        if (textBlocks.length > 0) {
-          lastAssistantText = textBlocks.map((b) => b.text).join('\n');
-        }
-        // Count tool_use blocks in assistant messages for accurate tool call tracking
-        toolCallCount += payload.message.content.filter(
-          (b) => b.type === 'tool_use',
-        ).length;
-      } else if (message.type === 'tool_use_summary') {
-        toolSummaries.push(message.summary);
-      } else if (message.type === 'result') {
-        finalResult = message as unknown as ResultPayload;
-      }
-    }
-  } catch (error: unknown) {
-    const msg =
-      error instanceof Error ? error.message : 'Anthropic SDK execution failed';
-    q.close();
-    return {
-      passed: false,
-      output: stderrOutput ? `${msg}\n\n${stderrOutput.trim()}` : msg,
-      stderrOutput: stderrOutput || undefined,
-      sessionId,
-      toolCallCount,
-      toolSummaries,
-    };
-  }
-
-  q.close();
-
-  if (!finalResult) {
-    return {
-      passed: false,
-      output: stderrOutput
-        ? `${lastAssistantText || 'No result from Anthropic SDK'}\n\n${stderrOutput.trim()}`
-        : lastAssistantText || 'No result from Anthropic SDK',
-      stderrOutput: stderrOutput || undefined,
-      sessionId,
-      toolCallCount,
-      toolSummaries,
-    };
-  }
-
-  return {
-    passed: finalResult.subtype === 'success' && !finalResult.is_error,
-    output:
-      finalResult.subtype === 'success'
-        ? (finalResult.result ?? lastAssistantText)
-        : finalResult.errors?.join('\n') || lastAssistantText,
-    stderrOutput: stderrOutput || undefined,
-    sessionId,
-    turnCount: finalResult.num_turns,
-    durationMs: finalResult.duration_ms,
-    apiDurationMs: finalResult.duration_api_ms,
-    costUsd: finalResult.total_cost_usd,
-    usage: {
-      inputTokens: finalResult.usage?.input_tokens ?? 0,
-      outputTokens: finalResult.usage?.output_tokens ?? 0,
-      cacheCreationInputTokens: finalResult.usage?.cache_creation_input_tokens,
-      cacheReadInputTokens: finalResult.usage?.cache_read_input_tokens,
-    },
-    toolCallCount,
-    toolSummaries,
-    permissionDenials: (finalResult.permission_denials ?? []).map((d) => ({
-      toolName: d.tool_name,
-      toolUseId: d.tool_use_id,
-    })),
-  };
 }
 
 export async function injectPack(
@@ -436,8 +309,12 @@ export async function evaluateTask(
       (options.taskPromptSuffix ? ` ${options.taskPromptSuffix}` : '');
     if (options.verbose) console.log('  [task] running anthropic-sdk...');
 
-    const resolvedTaskStep = await runAnthropicSdk(worktreeDir, taskPrompt, {
+    const resolvedTaskStep = await runAgentTask({
+      cwd: worktreeDir,
+      prompt: taskPrompt,
       model: options.claudeModel,
+      maxTurns: 20,
+      clientApp: '@moltnet/tools:gpack',
     });
     preserveWorktree = !resolvedTaskStep.passed;
 
@@ -521,8 +398,12 @@ export async function evaluateTask(
         `Evaluate the solution against the criteria in eval-criteria.json.` +
         ` For each criterion: state pass/fail, score (0 to max_score), one sentence evidence.` +
         ` Write results to eval-result.md`;
-      const evalStep = await runAnthropicSdk(worktreeDir, evalPrompt, {
+      const evalStep = await runAgentTask({
+        cwd: worktreeDir,
+        prompt: evalPrompt,
         model: options.claudeModel,
+        maxTurns: 20,
+        clientApp: '@moltnet/tools:gpack',
       });
       const resultPath = `${worktreeDir}/eval-result.md`;
       try {
