@@ -47,7 +47,7 @@
     "@moltnet/api-client": "workspace:*",
     "@openai/codex-sdk": "catalog:",
     "@sinclair/typebox": "catalog:",
-    "fastq": "^1.20.1"
+    "fastq": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

@@ -34,7 +34,7 @@
     "@sinclair/typebox": "catalog:",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
-    "fastq": "^1.20.1",
+    "fastq": "catalog:",
     "smol-toml": "catalog:"
   },
   "devDependencies": {

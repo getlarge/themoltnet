@@ -79,6 +79,7 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
 
 // ── Import after mock ────────────────────────────────────────────────────────
 
+// Dynamic import required: vi.mock() must be set up before the module loads.
 const { AxAIClaudeAgentSDK } = await import('./ax-claude-agent-sdk.js');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

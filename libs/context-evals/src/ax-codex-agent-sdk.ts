@@ -7,7 +7,6 @@
  */
 
 import {
-  type AxAIFeatures,
   type AxAIServiceImpl,
   type AxAIServiceOptions,
   type AxAPI,
@@ -26,6 +25,7 @@ import {
   type Usage,
 } from '@openai/codex-sdk';
 
+import { AGENT_FEATURES, flattenChatPrompt } from './ax-shared.js';
 import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
 
 const DEBUG = getRuntimeEnv().AX_AGENT_SDK_DEBUG === '1';
@@ -164,20 +164,6 @@ const MODEL_INFO: AxModelInfo[] = [
   { name: 'gpt-5-codex-mini' },
 ];
 
-const FEATURES: AxAIFeatures = {
-  functions: false,
-  streaming: true,
-  thinking: false,
-  multiTurn: false,
-  caching: { supported: false, types: [] },
-  media: {
-    images: { supported: false, formats: [] },
-    audio: { supported: false, formats: [] },
-    files: { supported: false, formats: [], uploadMethod: 'none' },
-    urls: { supported: false, webSearch: false, contextFetching: false },
-  },
-};
-
 export class AxAICodexAgentSDK extends AxBaseAI<
   AgentModel,
   never,
@@ -199,7 +185,7 @@ export class AxAICodexAgentSDK extends AxBaseAI<
       modelInfo: MODEL_INFO,
       defaults: { model },
       options: opts.options,
-      supportFor: FEATURES,
+      supportFor: AGENT_FEATURES,
     });
   }
 }
@@ -211,41 +197,6 @@ function toTokenUsage(usage: AgentResponse['usage']): AxTokenUsage {
     totalTokens: usage.inputTokens + usage.outputTokens,
     cacheReadTokens: usage.cachedInputTokens,
   };
-}
-
-function flattenChatPrompt(
-  chatPrompt: AxInternalChatRequest<AgentModel>['chatPrompt'],
-): string {
-  const parts: string[] = [];
-
-  for (const msg of chatPrompt) {
-    switch (msg.role) {
-      case 'system':
-        parts.push(msg.content);
-        break;
-      case 'user':
-        if (typeof msg.content === 'string') {
-          parts.push(msg.content);
-        } else if (Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if ('text' in block && typeof block.text === 'string') {
-              parts.push(block.text);
-            }
-          }
-        }
-        break;
-      case 'assistant':
-        if (msg.content) {
-          parts.push(`Assistant: ${msg.content}`);
-        }
-        break;
-      case 'function':
-        parts.push(`Function result (${msg.functionId}): ${msg.result}`);
-        break;
-    }
-  }
-
-  return parts.join('\n\n');
 }
 
 function buildInstructionPrompt(prompt: string, maxTurns: number): string {
