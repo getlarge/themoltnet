@@ -6,6 +6,7 @@ import {
   buildPackEnvelope,
   computePackCid,
   decodePackEnvelope,
+  type PackEntryRef,
   type PackEnvelopeInput,
 } from '../src/pack-cid.js';
 
@@ -80,6 +81,17 @@ describe('buildPackEnvelope', () => {
     const bytes1 = buildPackEnvelope(input1);
     const bytes2 = buildPackEnvelope(input2);
     expect(bytes1).toEqual(bytes2);
+  });
+
+  it('strips undefined params — CID stable regardless of explicit undefined', () => {
+    const input1 = makeCompileInput({
+      params: { tokenBudget: 4000, lambda: 0.5, taskPromptHash: undefined },
+    });
+    const input2 = makeCompileInput({
+      params: { tokenBudget: 4000, lambda: 0.5 },
+    });
+    expect(buildPackEnvelope(input1)).toEqual(buildPackEnvelope(input2));
+    expect(computePackCid(input1)).toBe(computePackCid(input2));
   });
 
   it('round-trips through decode', () => {
@@ -270,7 +282,9 @@ describe('decodePackEnvelope', () => {
       params: decoded['params'] as PackEnvelopeInput['params'],
       entries: entries.map((entry) => ({
         cid: (entry['cid'] as CID).toString(),
-        compressionLevel: entry['compressionLevel'] as 'full',
+        compressionLevel: entry[
+          'compressionLevel'
+        ] as PackEntryRef['compressionLevel'],
         rank: entry['rank'] as number,
       })),
     };

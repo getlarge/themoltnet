@@ -90,8 +90,11 @@ export function buildPackEnvelope(input: PackEnvelopeInput): Uint8Array {
     rank: entry.rank,
   }));
 
-  // Sort entries by rank for determinism (rank is unique per pack).
-  entries.sort((a, b) => a.rank - b.rank);
+  // Sort entries by rank, then CID string as tiebreaker for total ordering.
+  entries.sort(
+    (a, b) =>
+      a.rank - b.rank || a.cid.toString().localeCompare(b.cid.toString()),
+  );
 
   const envelope = {
     v: 'moltnet:pack:v1',
@@ -100,10 +103,27 @@ export function buildPackEnvelope(input: PackEnvelopeInput): Uint8Array {
     diaryId: input.diaryId,
     entries,
     packType: input.packType,
-    params: input.params,
+    params: stripUndefined(input.params),
   };
 
   return dagCbor.encode(envelope);
+}
+
+/**
+ * Remove keys with undefined values from an object.
+ * DAG-CBOR encodes undefined differently from omitted keys,
+ * so stripping them ensures CID stability across calling patterns.
+ */
+function stripUndefined(
+  obj: CompileParams | OptimizedParams,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 /**
