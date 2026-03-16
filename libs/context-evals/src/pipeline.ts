@@ -133,7 +133,10 @@ const numTrials = parseInt(str(values['num-trials']) || '8', 10);
 const runBaselineMode = values['baseline'] === true;
 const debugTraces = values['debug-traces'] === true;
 const verbose = values['verbose'] === true;
-const concurrency = parseInt(str(values['concurrency']) || '1', 10);
+const concurrency = Math.max(
+  1,
+  parseInt(str(values['concurrency']) || '1', 10) || 1,
+);
 
 // ── API client ────────────────────────────────────────────────────────────────
 
@@ -497,7 +500,7 @@ async function main() {
   //            reflection. Optional but recommended for better optimization.
   if (!studentProvider) {
     throw new Error(
-      '[gpack] GEPA optimization requires --provider (openai, anthropic, google-gemini, claude-agent-sdk, or codex-agent-sdk).',
+      '[gpack] GEPA optimization requires --student-provider (openai, anthropic, google-gemini, claude-agent-sdk, or codex-agent-sdk).',
     );
   }
   const studentAI = buildAI({

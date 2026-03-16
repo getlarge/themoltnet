@@ -187,8 +187,9 @@ export async function runGepaOptimization<
 
   // metricFn: called by GEPA for each training example.
   // Ignores prediction (program.forward output), reads instruction from program,
-  // calls evaluateOne, returns bare score number.
-  // This matches the mirror-optimize.ts pattern exactly.
+  // calls evaluateOne, returns { score: number } (Record<string, number>).
+  // IMPORTANT: GEPA's normalizeScores expects an object, NOT a bare number.
+  // Returning a plain number silently produces bestScore: 0.
   const metricFn = async ({
     example,
   }: Readonly<{
@@ -225,11 +226,10 @@ export async function runGepaOptimization<
       console.error('[GEPA-trace] onEvalComplete error:', err);
     }
 
-    // TODO: remove cast when ax-llm fixes AxMetricFn types — GEPA's normalizeScores
-    // expects Record<string, number> but the type signature says number.
-    // See: https://github.com/ax-llm/ax/issues/TBD
-    // GEPA's internal normalizeScores expects Record<string, number>, not a bare number.
-    // Returning a plain number silently produces bestScore: 0.
+    // GEPA's normalizeScores expects Record<string, number> at runtime, but
+    // AxMetricFn types say number. Cast through unknown to satisfy both.
+    // DO NOT simplify to `return evalResult.score` — bare numbers produce bestScore: 0.
+    // TODO: remove cast when ax-llm fixes AxMetricFn return type.
     return { score: evalResult.score } as unknown as number;
   };
 

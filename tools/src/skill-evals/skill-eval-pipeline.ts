@@ -96,7 +96,10 @@ const maxMetricCalls = parseInt(str(values['max-evals']) || '30', 10);
 const numTrials = parseInt(str(values['num-trials']) || '8', 10);
 const runBaselineMode = values['baseline'] === true;
 const verbose = values['verbose'] === true;
-const concurrency = parseInt(str(values['concurrency']) || '1', 10);
+const concurrency = Math.max(
+  1,
+  parseInt(str(values['concurrency']) || '1', 10) || 1,
+);
 
 // ── Skill eval task loading ──────────────────────────────────────────────────
 

@@ -69,7 +69,9 @@ const metric = async ({
     `${elapsed()} [metric ${metricCalls}] expected=${String(ex?.priority)} predicted=${String(pred?.priority)} correct=${correct} type=${typeof correct}`,
   );
 
-  // Return Record<string, number> like ax examples do (cast to bypass types)
+  // GEPA's normalizeScores expects Record<string, number> at runtime, but
+  // AxMetricFn types say number. Cast through unknown to satisfy both.
+  // DO NOT simplify to `return correct` — bare numbers produce bestScore: 0.
   return { accuracy: correct } as unknown as number;
 };
 

@@ -29,7 +29,8 @@ pnpm --filter @moltnet/tools run gpack:skill-eval --eval all --baseline
 # GEPA optimization
 pnpm --filter @moltnet/tools run gpack:skill-eval \
   --eval legreffier-commit-feat,legreffier-commit-fix,legreffier-commit-test \
-  --ai-key "$OPENAI_API_KEY" --model gpt-4o-mini --teacher-model gpt-4o --num-trials 5
+  --student-provider openai --ai-key "$OPENAI_API_KEY" --student-model gpt-4o-mini \
+  --teacher-provider openai --teacher-model gpt-4o --num-trials 5
 
 # Tear down
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v
@@ -39,17 +40,20 @@ Do **not** use `--` between script name and flags.
 
 ## CLI flags
 
-| Flag              | Default           | Description                             |
-| ----------------- | ----------------- | --------------------------------------- |
-| `--eval`          | required          | Eval name(s), comma-separated, or `all` |
-| `--baseline`      | false             | Score once, no optimization             |
-| `--ai-key`        | env               | Key for GEPA student/teacher LLMs       |
-| `--model`         | auto              | GEPA student model                      |
-| `--teacher-model` | none              | GEPA teacher model                      |
-| `--claude-model`  | claude-sonnet-4-6 | Model for the eval agent                |
-| `--num-trials`    | 8                 | GEPA trials                             |
-| `--max-evals`     | 30                | Max metric calls                        |
-| `--verbose`       | false             | Per-task progress                       |
+| Flag                 | Default           | Description                                          |
+| -------------------- | ----------------- | ---------------------------------------------------- |
+| `--eval`             | required          | Eval name(s), comma-separated, or `all`              |
+| `--baseline`         | false             | Score once, no optimization                          |
+| `--student-provider` | none              | GEPA student LLM provider (openai, anthropic, etc.)  |
+| `--teacher-provider` | none              | GEPA teacher LLM provider                            |
+| `--ai-key`           | env               | Explicit API key (auto-resolved per provider if not) |
+| `--student-model`    | auto              | GEPA student model                                   |
+| `--teacher-model`    | none              | GEPA teacher model                                   |
+| `--claude-model`     | claude-sonnet-4-6 | Model for the eval agent                             |
+| `--num-trials`       | 8                 | GEPA trials                                          |
+| `--max-evals`        | 30                | Max metric calls                                     |
+| `--concurrency`      | 1                 | Parallel eval task workers                           |
+| `--verbose`          | false             | Per-task progress                                    |
 
 ## Running from inside Claude Code
 
