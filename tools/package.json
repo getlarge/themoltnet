@@ -15,6 +15,7 @@
     "eval:setup": "tsx src/skill-evals/legreffier/eval-setup.ts",
     "eval:teardown": "tsx src/skill-evals/legreffier/eval-setup.ts --teardown",
     "gpack:skill-eval": "tsx src/skill-evals/legreffier/skill-eval-pipeline.ts",
+    "legreffier-local": "tsx src/legreffier-local/main.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
@@ -31,7 +32,10 @@
     "@moltnet/rest-api": "workspace:*",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
+    "@anthropic-ai/claude-agent-sdk": "catalog:",
+    "@getlarge/fastify-mcp": "catalog:",
     "@sinclair/typebox": "catalog:",
+    "fastify": "catalog:",
     "smol-toml": "catalog:"
   },
   "devDependencies": {

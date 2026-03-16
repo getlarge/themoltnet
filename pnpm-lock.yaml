@@ -1086,9 +1086,15 @@ importers:
 
   tools:
     dependencies:
+      '@anthropic-ai/claude-agent-sdk':
+        specifier: 'catalog:'
+        version: 0.2.74(zod@4.3.6)
       '@ax-llm/ax':
         specifier: 'catalog:'
         version: 19.0.13
+      '@getlarge/fastify-mcp':
+        specifier: 'catalog:'
+        version: 1.3.0-getlarge.2(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
@@ -1122,6 +1128,9 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../libs/sdk
+      fastify:
+        specifier: 'catalog:'
+        version: 5.7.4
       smol-toml:
         specifier: 'catalog:'
         version: 1.6.0
