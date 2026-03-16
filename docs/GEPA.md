@@ -288,6 +288,57 @@ Full report: [tools/src/mirror-experiment/RESEARCH.md](../tools/src/mirror-exper
 4. **Optimized prompts are model-specific**: don't transfer across capability levels
 5. **Sequential evaluation is the bottleneck**: use `fastq` in adapters
 
+## Roadmap: Known Weaknesses and Next Steps
+
+Based on code review and experimental findings. Tracked in GitHub issues.
+
+### P0 — Methodological fixes
+
+1. **Split train/validation/reflection sets.** Currently `gepa.ts:234` uses the
+   same array for all three. `bestScore` is an in-sample number and overstates
+   real improvement. Hold out 20-30% of tasks for validation. Blocked by having
+   enough tasks (tasksmith #410).
+
+2. **Multi-objective metric for gpack.** The criteria eval (`eval-result.md`)
+   is computed but never feeds back into the score. Return
+   `{ ftp_rate, ptp_rate, criteria_score }` instead of a single blunt scalar.
+   GEPA already handles `Record<string, number>`.
+
+3. **Parse eval-result.md into structured scores.** Extract per-criterion
+   numeric scores and feed into both the metric and the reflective dataset.
+   Currently stored as opaque text in `trace.evalResult`.
+
+### P1 — Reflection quality
+
+4. **Enrich gpack reflective dataset** (`adapter.ts`). Add: `changed_files`,
+   `git_diff_stat`, `tool_summaries`, `permission_denials`, `pre/post task
+failures`. The teacher currently sees a scalar plus truncated logs.
+
+5. **Enrich skill-eval reflective dataset** (`skill-adapter.ts`). Add: agent
+   final output, changed files, tool usage summary, score breakdown from scorer.
+   Current reflection data is too thin for meaningful prompt repair.
+
+6. **Add instruction size penalty.** GEPA bloats instructions if it improves
+   training score (observed: 269 → 2138 chars in mirror experiment). Add a soft
+   penalty for instruction length / token cost.
+
+### P2 — Infrastructure
+
+7. **Parallel evaluation in AxGEPA.** `evaluateOnSet` is sequential but evals
+   are independent. Propose concurrency option to ax-llm/ax. Our adapters
+   already use `fastq` for parallelism within `evaluate()`.
+
+8. **Evaluation caching.** GEPA re-evaluates identical `(instruction, example)`
+   pairs. `buildMetricFn` in `gepa.ts` is a workaround; AxGEPA should cache
+   natively (Python GEPA does).
+
+9. **Overfitting detection.** Print both training and held-out validation scores.
+   Flag runs where they diverge materially.
+
+10. **Preserve chat role structure in local adapters.** `flattenChatPrompt` in
+    `ax-claude-agent-sdk.ts` loses role boundaries. Render as `[SYSTEM]/[USER]/
+[ASSISTANT]` blocks for better GEPA reflection quality.
+
 ## File Map
 
 ```
