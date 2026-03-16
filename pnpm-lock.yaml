@@ -54,6 +54,9 @@ catalogs:
     '@huggingface/transformers':
       specifier: ^3.4.0
       version: 3.8.1
+    '@ipld/dag-cbor':
+      specifier: ^9.2.5
+      version: 9.2.5
     '@modelcontextprotocol/sdk':
       specifier: ^1.26.0
       version: 1.26.0
@@ -677,6 +680,24 @@ importers:
 
   libs/context-distill:
     devDependencies:
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../database
+      '@testcontainers/postgresql':
+        specifier: 'catalog:'
+        version: 11.12.0
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.16.0
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(knex@3.1.0(pg@8.18.0))(pg@8.18.0)(postgres@3.4.8)
+      pg:
+        specifier: 'catalog:'
+        version: 8.18.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -711,6 +732,9 @@ importers:
 
   libs/crypto-service:
     dependencies:
+      '@ipld/dag-cbor':
+        specifier: 'catalog:'
+        version: 9.2.5
       '@noble/curves':
         specifier: 'catalog:'
         version: 2.0.1
@@ -2608,6 +2632,13 @@ packages:
       {
         integrity: sha512-eUgLqrMf8nJkZxT24JvVRrQya1vZkQh8BBeYNwGDqa5I0VUi8ACx7uFvAaLxintokpTenkK6DASvo/bvNbBGow==,
       }
+
+  '@ipld/dag-cbor@9.2.5':
+    resolution:
+      {
+        integrity: sha512-84wSr4jv30biui7endhobYhXBQzQE4c/wdoWlFrKcfiwH+ofaPg8fwsM8okX9cOzkkrsAsNdDyH3ou+kiLquwQ==,
+      }
+    engines: { node: '>=16.0.0', npm: '>=7.0.0' }
 
   '@isaacs/balanced-match@4.0.1':
     resolution:
@@ -4573,6 +4604,13 @@ packages:
       {
         integrity: sha512-4C0lfJ0/YPjJQHagaE9x2Elb69CIqEPZeG0anQt9SIvIoOH4a4uaRl73IavyO+0qZh6MDLH//DrXThEYKHkmYA==,
       }
+
+  cborg@4.5.8:
+    resolution:
+      {
+        integrity: sha512-6/viltD51JklRhq4L7jC3zgy6gryuG5xfZ3kzpE+PravtyeQLeQmCYLREhQH7pWENg5pY4Yu/XCd6a7dKScVlw==,
+      }
+    hasBin: true
 
   chai@5.3.3:
     resolution:
@@ -10308,6 +10346,11 @@ snapshots:
 
   '@ioredis/commands@1.5.0': {}
 
+  '@ipld/dag-cbor@9.2.5':
+    dependencies:
+      cborg: 4.5.8
+      multiformats: 13.4.2
+
   '@isaacs/balanced-match@4.0.1': {}
 
   '@isaacs/brace-expansion@5.0.0':
@@ -11670,6 +11713,8 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001766: {}
+
+  cborg@4.5.8: {}
 
   chai@5.3.3:
     dependencies:

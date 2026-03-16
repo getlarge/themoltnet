@@ -21,6 +21,12 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@testcontainers/postgresql": "catalog:",
+    "drizzle-orm": "catalog:",
+    "pg": "catalog:",
+    "@types/pg": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
