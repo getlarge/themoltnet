@@ -20,7 +20,9 @@ import {
 } from '@ax-llm/ax';
 
 import { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
+import { AxAICodexAgentSDK } from './ax-codex-agent-sdk.js';
 export { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
+export { AxAICodexAgentSDK } from './ax-codex-agent-sdk.js';
 import { loadContextEvalsConfig } from './config.js';
 import type { EvalTrace } from './evaluate.js';
 import { execFileText } from './process.js';
@@ -63,7 +65,8 @@ export type AIProvider =
   | 'openai'
   | 'anthropic'
   | 'google-gemini'
-  | 'claude-agent-sdk';
+  | 'claude-agent-sdk'
+  | 'codex-agent-sdk';
 
 export interface BuildAIOptions {
   provider: AIProvider;
@@ -87,6 +90,7 @@ function resolveKeyForProvider(
     case 'openai':
       return envConfig.OPENAI_API_KEY;
     case 'claude-agent-sdk':
+    case 'codex-agent-sdk':
       return undefined;
   }
 }
@@ -104,7 +108,11 @@ export function buildAI(options: BuildAIOptions): AxAIService {
 
   const key = explicitKey || resolveKeyForProvider(provider, envConfig) || '';
 
-  if (!key && provider !== 'claude-agent-sdk') {
+  if (
+    !key &&
+    provider !== 'claude-agent-sdk' &&
+    provider !== 'codex-agent-sdk'
+  ) {
     throw new Error(
       `Provider "${provider}" requires an API key. Set the corresponding env var or pass --ai-key.`,
     );
@@ -142,6 +150,9 @@ export function buildAI(options: BuildAIOptions): AxAIService {
 
     case 'claude-agent-sdk':
       return new AxAIClaudeAgentSDK({ model });
+
+    case 'codex-agent-sdk':
+      return new AxAICodexAgentSDK({ model });
   }
 }
 
@@ -174,7 +185,13 @@ export function resolveAIKey(
   provider?: AIProvider,
 ): string {
   if (explicitKey) return explicitKey;
-  if (!provider || provider === 'claude-agent-sdk') return '';
+  if (
+    !provider ||
+    provider === 'claude-agent-sdk' ||
+    provider === 'codex-agent-sdk'
+  ) {
+    return '';
+  }
   const envConfig = loadContextEvalsConfig();
   return resolveKeyForProvider(provider, envConfig) || '';
 }

@@ -497,7 +497,7 @@ async function main() {
   //            reflection. Optional but recommended for better optimization.
   if (!studentProvider) {
     throw new Error(
-      '[gpack] GEPA optimization requires --provider (openai, anthropic, google-gemini, or claude-agent-sdk).',
+      '[gpack] GEPA optimization requires --provider (openai, anthropic, google-gemini, claude-agent-sdk, or codex-agent-sdk).',
     );
   }
   const studentAI = buildAI({

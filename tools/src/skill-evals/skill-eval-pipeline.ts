@@ -212,7 +212,7 @@ async function main() {
   // GEPA optimization
   if (!studentProvider) {
     throw new Error(
-      '[skill-eval] GEPA optimization requires --student-provider (openai, anthropic, google-gemini, or claude-agent-sdk).',
+      '[skill-eval] GEPA optimization requires --student-provider (openai, anthropic, google-gemini, claude-agent-sdk, or codex-agent-sdk).',
     );
   }
   const studentAI = buildAI({

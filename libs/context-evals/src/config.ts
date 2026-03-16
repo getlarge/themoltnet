@@ -11,6 +11,7 @@ export const ContextEvalsConfigSchema = Type.Object({
   GOOGLE_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
   GPACK_AGENT_MODEL: Type.Optional(Type.String({ minLength: 1 })),
   CLAUDE_CODE_EXECUTABLE: Type.Optional(Type.String({ minLength: 1 })),
+  CODEX_EXECUTABLE: Type.Optional(Type.String({ minLength: 1 })),
 });
 
 export type ContextEvalsConfig = Static<typeof ContextEvalsConfigSchema>;
