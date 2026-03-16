@@ -598,22 +598,54 @@ export const ConsolidateResultSchema = Type.Object(
   { $id: 'ConsolidateResult' },
 );
 
-const CompiledEntrySchema = Type.Object({
+const PackEntrySchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
-  content: Type.String(),
+  packId: Type.String({ format: 'uuid' }),
+  entryId: Type.String({ format: 'uuid' }),
+  entryCidSnapshot: Type.String(),
   compressionLevel: Type.Union([
     Type.Literal('full'),
     Type.Literal('summary'),
     Type.Literal('keywords'),
   ]),
-  originalTokens: Type.Number(),
-  compressedTokens: Type.Number(),
+  originalTokens: Type.Union([Type.Number(), Type.Null()]),
+  packedTokens: Type.Union([Type.Number(), Type.Null()]),
+  rank: Type.Union([Type.Integer(), Type.Null()]),
+  createdAt: Type.Unsafe<Date | string>({
+    type: 'string',
+    format: 'date-time',
+  }),
 });
 
 export const CompileResultSchema = Type.Object(
   {
-    entries: Type.Array(CompiledEntrySchema),
-    stats: Type.Object({
+    id: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
+    packCid: Type.String(),
+    packCodec: Type.String(),
+    packType: Type.Union([
+      Type.Literal('compile'),
+      Type.Literal('optimized'),
+      Type.Literal('custom'),
+    ]),
+    params: Type.Unknown(),
+    payload: Type.Unknown(),
+    createdBy: Type.String({ format: 'uuid' }),
+    supersedesPackId: Type.Union([
+      Type.String({ format: 'uuid' }),
+      Type.Null(),
+    ]),
+    pinned: Type.Boolean(),
+    expiresAt: Type.Union([
+      Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+      Type.Null(),
+    ]),
+    createdAt: Type.Unsafe<Date | string>({
+      type: 'string',
+      format: 'date-time',
+    }),
+    entries: Type.Array(PackEntrySchema),
+    compileStats: Type.Object({
       totalTokens: Type.Number(),
       entriesIncluded: Type.Number(),
       entriesCompressed: Type.Number(),
@@ -621,7 +653,7 @@ export const CompileResultSchema = Type.Object(
       budgetUtilization: Type.Number(),
       elapsedMs: Type.Number(),
     }),
-    trace: Type.Object({
+    compileTrace: Type.Object({
       lambdaUsed: Type.Number(),
       embeddingDim: Type.Number(),
       taskPromptHash: Type.Optional(Type.String()),

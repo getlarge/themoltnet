@@ -23,6 +23,14 @@ import {
   estimateTokens,
 } from '@moltnet/context-distill';
 import {
+  type CompileParams,
+  computePackCid,
+  type PackEntryRef,
+} from '@moltnet/crypto-service';
+import {
+  type ContextPack,
+  type ContextPackEntry,
+  type ContextPackRepository,
   DBOS,
   type DiaryEntryRepository,
   WorkflowQueue,
@@ -47,8 +55,16 @@ export const compileQueue = new WorkflowQueue('context.compile', {
 
 export interface ContextDistillDeps {
   diaryEntryRepository: DiaryEntryRepository;
+  contextPackRepository: ContextPackRepository;
   embeddingService: EmbeddingService;
   logger: Logger;
+}
+
+/** Compile workflow output: the persisted pack + its entries + compile stats. */
+export interface CompileWorkflowResult {
+  pack: ContextPack;
+  packEntries: ContextPackEntry[];
+  compileResult: CompileResult;
 }
 
 export interface ConsolidateWorkflowInput {
@@ -98,7 +114,7 @@ type ConsolidateWorkflowFn = (
 
 type CompileWorkflowFn = (
   input: CompileWorkflowInput,
-) => Promise<CompileResult>;
+) => Promise<CompileWorkflowResult>;
 
 let _workflows: {
   consolidate: ConsolidateWorkflowFn;
@@ -191,6 +207,88 @@ export function initContextDistillWorkflows(): void {
     { name: 'context-distill.step.searchEntries' },
   );
 
+  /**
+   * Persist a compile pack + its entry membership in a single step.
+   * Server computes the pack CID from compile output + source entry CIDs.
+   */
+  const persistCompilePackStep = DBOS.registerStep(
+    async (
+      diaryId: string,
+      createdBy: string,
+      compileResult: CompileResult,
+      sourceEntryHashes: Array<{ id: string; contentHash: string | null }>,
+      compileInput: CompileWorkflowInput,
+    ): Promise<{ pack: ContextPack; packEntries: ContextPackEntry[] }> => {
+      const { contextPackRepository } = getDeps();
+
+      const hashMap = new Map(
+        sourceEntryHashes.map((e) => [e.id, e.contentHash]),
+      );
+      const createdAt = new Date().toISOString();
+
+      const params: CompileParams = {
+        tokenBudget: compileInput.tokenBudget,
+        lambda: compileInput.lambda,
+        taskPromptHash: compileResult.trace.taskPromptHash,
+        wRecency: compileInput.wRecency,
+        wImportance: compileInput.wImportance,
+      };
+
+      const packEntryRefs: PackEntryRef[] = compileResult.entries.map(
+        (compiled, index) => ({
+          cid: hashMap.get(compiled.id) ?? '',
+          compressionLevel:
+            compiled.compressionLevel as PackEntryRef['compressionLevel'],
+          rank: index + 1,
+        }),
+      );
+
+      const packCid = computePackCid({
+        diaryId,
+        createdBy,
+        createdAt,
+        packType: 'compile',
+        params,
+        entries: packEntryRefs,
+      });
+
+      const pack = await contextPackRepository.createPack({
+        diaryId,
+        createdBy,
+        packCid,
+        packType: 'compile',
+        params,
+        payload: {
+          v: 'moltnet:pack:v1',
+          diaryId,
+          createdBy,
+          createdAt,
+          packType: 'compile',
+          params,
+          entries: packEntryRefs,
+        },
+        pinned: false,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+
+      const packEntries = await contextPackRepository.addEntries(
+        compileResult.entries.map((compiled, index) => ({
+          packId: pack.id,
+          entryId: compiled.id,
+          entryCidSnapshot: hashMap.get(compiled.id) ?? '',
+          compressionLevel:
+            compiled.compressionLevel as PackEntryRef['compressionLevel'],
+          originalTokens: compiled.originalTokens,
+          packedTokens: compiled.compressedTokens,
+          rank: index + 1,
+        })),
+      );
+
+      return { pack, packEntries };
+    },
+    { name: 'context-distill.step.persistCompilePack' },
+  );
+
   // ── Workflows ──────────────────────────────────────────────
 
   const consolidateWorkflow = DBOS.registerWorkflow(
@@ -261,7 +359,7 @@ export function initContextDistillWorkflows(): void {
   );
 
   const compileWorkflow = DBOS.registerWorkflow(
-    async (input: CompileWorkflowInput) => {
+    async (input: CompileWorkflowInput): Promise<CompileWorkflowResult> => {
       const taskPromptEmbedding = input.taskPrompt
         ? await embedQueryStep(input.taskPrompt)
         : undefined;
@@ -298,13 +396,31 @@ export function initContextDistillWorkflows(): void {
               : e.createdAt,
         }));
 
-      return compile(distillEntries, {
+      const compileResult = compile(distillEntries, {
         tokenBudget: input.tokenBudget,
         taskPromptEmbedding: taskPromptEmbedding?.length
           ? taskPromptEmbedding
           : undefined,
         lambda: input.lambda,
       });
+
+      // Persist pack with DAG-CBOR CID (server is CID authority)
+      const sourceEntryHashes = entries
+        .filter((e) => compileResult.entries.some((ce) => ce.id === e.id))
+        .map((e) => ({
+          id: e.id,
+          contentHash: e.contentHash,
+        }));
+
+      const { pack, packEntries } = await persistCompilePackStep(
+        input.diaryId,
+        input.identityId,
+        compileResult,
+        sourceEntryHashes,
+        input,
+      );
+
+      return { pack, packEntries, compileResult };
     },
     { name: 'context.compile' },
   );

@@ -39,6 +39,7 @@ import {
   createTestApp,
   DIARY_ID,
   type MockServices,
+  OWNER_ID,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -144,20 +145,37 @@ describe('Diary distill routes', () => {
   describe('POST /diaries/:id/compile', () => {
     beforeEach(() => {
       mockGetResult.mockResolvedValue({
-        entries: [],
-        stats: {
-          totalTokens: 0,
-          entriesIncluded: 0,
-          entriesCompressed: 0,
-          compressionRatio: 1,
-          budgetUtilization: 0,
-          elapsedMs: 1,
+        pack: {
+          id: 'pack-001',
+          diaryId: DIARY_ID,
+          packCid: 'bafytest',
+          packCodec: 'dag-cbor',
+          packType: 'compile',
+          params: { tokenBudget: 4000 },
+          payload: {},
+          createdBy: OWNER_ID,
+          supersedesPackId: null,
+          pinned: false,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          createdAt: new Date(),
         },
-        trace: { lambdaUsed: 0.5, embeddingDim: 0 },
+        packEntries: [],
+        compileResult: {
+          entries: [],
+          stats: {
+            totalTokens: 0,
+            entriesIncluded: 0,
+            entriesCompressed: 0,
+            compressionRatio: 1,
+            budgetUtilization: 0,
+            elapsedMs: 1,
+          },
+          trace: { lambdaUsed: 0.5, embeddingDim: 0 },
+        },
       });
     });
 
-    it('returns 200 with compile result', async () => {
+    it('returns 200 with context pack', async () => {
       const response = await app.inject({
         method: 'POST',
         url: `/diaries/${DIARY_ID}/compile`,
@@ -166,8 +184,9 @@ describe('Diary distill routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
+      expect(response.json()).toHaveProperty('packCid');
       expect(response.json()).toHaveProperty('entries');
-      expect(response.json()).toHaveProperty('stats');
+      expect(response.json()).toHaveProperty('compileStats');
     });
 
     it('returns 401 without auth', async () => {

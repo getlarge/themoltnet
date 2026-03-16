@@ -232,7 +232,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       }
       // TODO: create custom permission to distill; const allowed = await permissionChecker.canDistillDiary(diaryId, agentId);
 
-      return runWorkflow(
+      const result = await runWorkflow(
         contextDistillWorkflows.compile,
         {
           queueName: 'context.compile',
@@ -251,6 +251,13 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           wImportance,
         },
       );
+
+      return {
+        ...result.pack,
+        entries: result.packEntries,
+        compileStats: result.compileResult.stats,
+        compileTrace: result.compileResult.trace,
+      };
     },
   );
 }
