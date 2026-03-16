@@ -14,7 +14,6 @@ import {
   jsonb,
   pgEnum,
   pgTable,
-  real,
   smallint,
   text,
   timestamp,
@@ -91,6 +90,16 @@ export const compressionLevelEnum = pgEnum('compression_level', [
   'full',
   'summary',
   'keywords',
+]);
+
+// Pack type discriminator — determines the shape of the params JSONB column.
+// compile: server-generated via /compile endpoint
+// optimized: GEPA-refined version of a compile pack
+// custom: agent-submitted with opaque params
+export const packTypeEnum = pgEnum('pack_type', [
+  'compile',
+  'optimized',
+  'custom',
 ]);
 
 /**
@@ -463,8 +472,13 @@ export const entryRelations = pgTable(
 /**
  * Context Packs Table
  *
- * Materialized compile outputs. A pack has a CID root, retention policy,
- * and optional supersession pointer to a newer pack.
+ * Materialized compile/optimized/custom outputs. A pack has a CID root,
+ * typed params, retention policy, and optional supersession pointer.
+ *
+ * packType discriminates the params JSONB shape:
+ * - compile: { tokenBudget, lambda?, taskPromptHash?, wRecency?, wImportance? }
+ * - optimized: { sourcePackCid, gepaTrials, gepaScore, teacherModel?, studentModel? }
+ * - custom: agent-defined (opaque JSONB, validated as object only)
  */
 export const contextPacks = pgTable(
   'context_packs',
@@ -477,15 +491,16 @@ export const contextPacks = pgTable(
     packCodec: varchar('pack_codec', { length: 50 })
       .default('dag-cbor')
       .notNull(),
+    packType: packTypeEnum('pack_type').default('compile').notNull(),
+    // Type-specific parameters. Shape determined by packType.
+    // Validated at the service layer, not the DB layer.
+    params: jsonb('params')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
     // JSON mirror of DAG-CBOR envelope for direct SQL/web inspection.
     payload: jsonb('payload')
       .default(sql`'{}'::jsonb`)
       .notNull(),
-    taskPromptHash: text('task_prompt_hash'),
-    tokenBudget: integer('token_budget').notNull(),
-    lambda: real('lambda'),
-    wRecency: real('w_recency'),
-    wImportance: real('w_importance'),
     // Strong provenance: authenticated principal that materialized the pack.
     createdBy: uuid('created_by').notNull(),
     supersedesPackId: uuid('supersedes_pack_id').references(
@@ -504,6 +519,7 @@ export const contextPacks = pgTable(
       table.packCid,
     ),
     diaryIdx: index('context_packs_diary_idx').on(table.diaryId),
+    packTypeIdx: index('context_packs_pack_type_idx').on(table.packType),
     expiresAtIdx: index('context_packs_expires_at_idx')
       .on(table.expiresAt)
       .where(sql`pinned = false`),
