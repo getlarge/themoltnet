@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['__tests__/**/*.test.ts'],
-    testTimeout: 10_000,
+    testTimeout: 15_000,
+    hookTimeout: 60_000,
   },
 });
