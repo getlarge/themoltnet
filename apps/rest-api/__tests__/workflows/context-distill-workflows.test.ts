@@ -109,6 +109,9 @@ describe('context-distill compile workflow', () => {
     setContextDistillDeps({
       diaryEntryRepository,
       contextPackRepository,
+      relationshipWriter: {
+        grantPackParent: vi.fn().mockResolvedValue(undefined),
+      } as never,
       embeddingService: {
         embedQuery,
       } as never,

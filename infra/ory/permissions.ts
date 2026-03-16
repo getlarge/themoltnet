@@ -58,6 +58,31 @@ class DiaryEntry implements Namespace {
 }
 
 /**
+ * ContextPack namespace
+ * Permissions are inherited transitively from the parent Diary.
+ * The sole relation is `parent: Diary[]` — one pack belongs to one diary.
+ *
+ * Relation tuple written on pack creation (compile workflow):
+ *   ContextPack:{packId}#parent @ Diary:{diaryId}#  (subject_set with relation "")
+ *
+ * Transitive checks:
+ *   canReadPack(packId, agentId)   → ContextPack#{packId} read   agentId → parent.read
+ *   canManagePack(packId, agentId) → ContextPack#{packId} manage agentId → parent.manage
+ */
+class ContextPack implements Namespace {
+  related: {
+    parent: Diary[];
+  };
+
+  permits = {
+    read: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.read(ctx)),
+    manage: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.manage(ctx)),
+  };
+}
+
+/**
  * Agents namespace
  * Represents MoltNet agents and their relationships
  */

@@ -13,6 +13,7 @@
  * Call setContextDistillDeps() before any workflow is invoked.
  */
 
+import type { RelationshipWriter } from '@moltnet/auth';
 import {
   compile,
   type CompileOptions,
@@ -39,6 +40,13 @@ import type { EmbeddingService } from '@moltnet/embedding-service';
 
 import type { Logger } from './logger.js';
 
+const KETO_RETRY = {
+  retriesAllowed: true,
+  maxAttempts: 5,
+  intervalSeconds: 2,
+  backoffRate: 2,
+} as const;
+
 // ── Queues ─────────────────────────────────────────────────────
 
 export const consolidateQueue = new WorkflowQueue('context.consolidate', {
@@ -56,6 +64,7 @@ export const compileQueue = new WorkflowQueue('context.compile', {
 export interface ContextDistillDeps {
   diaryEntryRepository: DiaryEntryRepository;
   contextPackRepository: ContextPackRepository;
+  relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   logger: Logger;
 }
@@ -289,6 +298,15 @@ export function initContextDistillWorkflows(): void {
     { name: 'context-distill.step.persistCompilePack' },
   );
 
+  /** Write Keto relationship: ContextPack:{packId}#parent@Diary:{diaryId} */
+  const grantPackParentStep = DBOS.registerStep(
+    async (packId: string, diaryId: string): Promise<void> => {
+      const { relationshipWriter } = getDeps();
+      await relationshipWriter.grantPackParent(packId, diaryId);
+    },
+    { name: 'context-distill.step.grantPackParent', ...KETO_RETRY },
+  );
+
   // ── Workflows ──────────────────────────────────────────────
 
   const consolidateWorkflow = DBOS.registerWorkflow(
@@ -419,6 +437,9 @@ export function initContextDistillWorkflows(): void {
         sourceEntryHashes,
         input,
       );
+
+      // Wire Keto authorization: ContextPack#parent@Diary
+      await grantPackParentStep(pack.id, input.diaryId);
 
       return { pack, packEntries, compileResult };
     },

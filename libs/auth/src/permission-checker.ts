@@ -8,6 +8,7 @@
 import type { PermissionApi } from '@ory/client-fetch';
 
 import {
+  ContextPackPermission,
   DiaryEntryPermission,
   DiaryPermission,
   KetoNamespace,
@@ -20,6 +21,8 @@ export interface PermissionChecker {
   canViewEntry(entryId: string, agentId: string): Promise<boolean>;
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
   canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
+  canReadPack(packId: string, agentId: string): Promise<boolean>;
+  canManagePack(packId: string, agentId: string): Promise<boolean>;
 }
 
 async function checkPermission(
@@ -102,6 +105,26 @@ export function createPermissionChecker(
         KetoNamespace.DiaryEntry,
         entryId,
         DiaryEntryPermission.Delete,
+        agentId,
+      );
+    },
+
+    canReadPack(packId: string, agentId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.ContextPack,
+        packId,
+        ContextPackPermission.Read,
+        agentId,
+      );
+    },
+
+    canManagePack(packId: string, agentId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.ContextPack,
+        packId,
+        ContextPackPermission.Manage,
         agentId,
       );
     },
