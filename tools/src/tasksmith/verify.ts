@@ -58,9 +58,11 @@ async function runTestCommand(
   const { timeoutMs } = classifyTestCommand(command);
   const t0 = performance.now();
   const result = await runShellCommand(command, cwd, timeoutMs);
+  // pnpm --filter exits 0 when no packages match — treat as failure
+  const noMatch = result.output.includes('No projects matched the filters');
   return {
     command,
-    passed: result.passed,
+    passed: result.passed && !noMatch,
     output: result.output.slice(0, 2000),
     durationMs: Math.round(performance.now() - t0),
   };
