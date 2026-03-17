@@ -14,18 +14,19 @@
  *   3. Explicit --client-id / --client-secret flags (not yet)
  *
  * Environment:
- *   MOLTNET_API_URL    — REST API base URL (default: https://api.themolt.net)
- *   LEGREFFIER_PORT    — SSE port (default: 0 = random)
- *   LEGREFFIER_TEACHER — Teacher model (default: claude-opus-4-6)
- *   LEGREFFIER_STUDENT — Student model (default: claude-sonnet-4-6)
- *   LEGREFFIER_IDLE_MS — Idle timeout in ms (default: 7200000 = 2h)
+ *   MOLTNET_API_URL       — REST API base URL (default: https://api.themolt.net)
+ *   LEGREFFIER_PORT       — SSE port (default: 0 = random)
+ *   LEGREFFIER_TRANSPORT  — "stdio" or "sse" (default: sse)
+ *   LEGREFFIER_TEACHER    — Teacher model (default: claude-opus-4-6)
+ *   LEGREFFIER_STUDENT    — Student model (default: claude-sonnet-4-6)
+ *   LEGREFFIER_IDLE_MS    — Idle timeout in ms (default: 7200000 = 2h)
  */
 
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { basename } from 'node:path';
 
-import mcpPlugin from '@getlarge/fastify-mcp';
+import mcpPlugin, { runStdioServer } from '@getlarge/fastify-mcp';
 import { connect } from '@themoltnet/sdk';
 import Fastify from 'fastify';
 
@@ -48,9 +49,22 @@ function repoName(): string {
 
 async function main(): Promise<void> {
   const config = loadConfig();
+  // CLI flag --stdio overrides env var
+  const transport = process.argv.includes('--stdio')
+    ? 'stdio'
+    : config.LEGREFFIER_TRANSPORT;
   const sessionId = randomUUID();
 
-  const app = Fastify({ logger: { level: 'info' } });
+  const useStdio = transport === 'stdio';
+  // In stdio mode, Fastify logs must go to stderr to keep stdout clean for MCP
+  const app = Fastify({
+    logger: useStdio
+      ? {
+          level: 'info',
+          transport: { target: 'pino/file', options: { destination: 2 } },
+        }
+      : { level: 'info' },
+  });
 
   // ── Authenticate via SDK ────────────────────────────────
   app.log.info('Connecting to MoltNet...');
@@ -111,7 +125,7 @@ async function main(): Promise<void> {
   await app.register(mcpPlugin, {
     serverInfo: { name: 'legreffier-local', version: '0.1.0' },
     capabilities: { tools: {} },
-    enableSSE: true,
+    enableSSE: !useStdio,
     sessionStore: 'memory',
     authorization: { enabled: false },
   });
@@ -135,14 +149,19 @@ async function main(): Promise<void> {
   registerTools(app, deps);
 
   // ── Start ───────────────────────────────────────────────
-  const address = await app.listen({
-    port: config.LEGREFFIER_PORT,
-    host: '127.0.0.1',
-  });
-  app.log.info(
-    { address, sessionId, diaryId },
-    'Legreffier local MCP server started',
-  );
+  if (useStdio) {
+    app.log.info({ sessionId, diaryId }, 'Starting in stdio mode');
+    await runStdioServer(app);
+  } else {
+    const address = await app.listen({
+      port: config.LEGREFFIER_PORT,
+      host: '127.0.0.1',
+    });
+    app.log.info(
+      { address, sessionId, diaryId },
+      'Legreffier local MCP server started (SSE)',
+    );
+  }
 
   // ── Idle shutdown ───────────────────────────────────────
   const idleCheck = setInterval(() => {

@@ -14,6 +14,7 @@
   },
   "scripts": {
     "dev": "tsx src/main.ts",
+    "dev:stdio": "tsx src/main.ts --stdio",
     "build": "tsc -b",
     "test": "vitest run",
     "typecheck": "tsc -b --emitDeclarationOnly",

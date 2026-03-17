@@ -2,9 +2,9 @@
  * AxStorage adapter backed by MoltNet diary entries via @themoltnet/sdk.
  *
  * Maps AxLearn's AxStorage interface to diary entry CRUD:
- * - Traces → procedural entries tagged axlearn:trace
- * - Checkpoints → reflection entries tagged axlearn:checkpoint
- * - Queries → entries.search (traces) or entries.list (checkpoints)
+ * - Traces → semantic entries tagged ${TAG}:trace
+ * - Checkpoints → reflection entries tagged ${TAG}:checkpoint
+ * - Queries → entries.list with tag filtering (TAG prefix: "learn")
  */
 
 import type {
@@ -20,6 +20,8 @@ export interface DiaryStorageOptions {
   diaryId: string;
   sessionId: string;
 }
+
+const TAG = 'learn';
 
 export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
   const { sdkAgent, diaryId, sessionId } = options;
@@ -38,14 +40,13 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
     const cached = traceEntryCache.get(traceId);
     if (cached) return cached;
 
-    const data = await sdkAgent.entries.search({
-      diaryId,
-      tags: [`axlearn:id:${traceId}`, `axlearn:agent:${agentName}`],
+    const data = await sdkAgent.entries.list(diaryId, {
+      tags: [`${TAG}:id:${traceId}`, `${TAG}:agent:${agentName}`].join(','),
       limit: 1,
-      entryTypes: ['procedural'],
+      entryType: 'semantic',
     });
 
-    const entry = data?.results?.[0];
+    const entry = data?.items?.[0];
     if (entry?.id) {
       traceEntryCache.set(traceId, entry.id);
       return entry.id;
@@ -60,13 +61,13 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
     if (item.type === 'trace') {
       const trace = item;
       const tags = [
-        'axlearn:trace',
-        `axlearn:agent:${name}`,
-        `axlearn:session:${sessionId}`,
-        `axlearn:id:${trace.id}`,
+        `${TAG}:trace`,
+        `${TAG}:agent:${name}`,
+        `${TAG}:s:${sessionId}`,
+        `${TAG}:id:${trace.id}`,
       ];
       if (trace.feedback) {
-        tags.push('axlearn:has-feedback');
+        tags.push(`${TAG}:has-feedback`);
       }
 
       const existingEntryId = await resolveTraceEntryId(trace.id, name);
@@ -80,8 +81,8 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
 
       const entry = await sdkAgent.entries.create(diaryId, {
         content: JSON.stringify(trace),
-        title: `axlearn trace: ${truncate(stringifyInput(trace.input), 80)}`,
-        entryType: 'procedural',
+        title: `${TAG} trace: ${truncate(stringifyInput(trace.input), 80)}`,
+        entryType: 'semantic',
         tags,
         importance: 5,
       });
@@ -91,14 +92,14 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
     } else {
       const checkpoint = item;
       const tags = [
-        'axlearn:checkpoint',
-        `axlearn:agent:${name}`,
-        `axlearn:v:${checkpoint.version}`,
+        `${TAG}:checkpoint`,
+        `${TAG}:agent:${name}`,
+        `${TAG}:v:${checkpoint.version}`,
       ];
 
       await sdkAgent.entries.create(diaryId, {
         content: JSON.stringify(checkpoint),
-        title: `axlearn checkpoint v${checkpoint.version} (score: ${checkpoint.score?.toFixed(2) ?? 'n/a'})`,
+        title: `${TAG} checkpoint v${checkpoint.version} (score: ${checkpoint.score?.toFixed(2) ?? 'n/a'})`,
         entryType: 'reflection',
         tags,
         importance: 8,
@@ -111,26 +112,25 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
     query: AxStorageQuery,
   ): Promise<(AxTrace | AxCheckpoint)[]> => {
     if (query.type === 'trace') {
-      const tags = ['axlearn:trace', `axlearn:agent:${name}`];
+      const tags = [`${TAG}:trace`, `${TAG}:agent:${name}`];
       if (query.hasFeedback) {
-        tags.push('axlearn:has-feedback');
+        tags.push(`${TAG}:has-feedback`);
       }
 
-      const data = await sdkAgent.entries.search({
-        diaryId,
-        tags,
+      const data = await sdkAgent.entries.list(diaryId, {
+        tags: tags.join(','),
         limit: query.limit ?? 50,
         offset: query.offset,
-        entryTypes: ['procedural'],
+        entryType: 'semantic',
       });
 
-      return parseEntries(data?.results);
+      return parseEntries(data?.items);
     }
 
     // Checkpoints: use list with tag filter
-    const tags = ['axlearn:checkpoint', `axlearn:agent:${name}`];
+    const tags = [`${TAG}:checkpoint`, `${TAG}:agent:${name}`];
     if (query.version !== undefined) {
-      tags.push(`axlearn:v:${query.version}`);
+      tags.push(`${TAG}:v:${query.version}`);
     }
 
     const data = await sdkAgent.entries.list(diaryId, {

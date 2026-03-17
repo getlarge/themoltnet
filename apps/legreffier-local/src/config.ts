@@ -28,6 +28,10 @@ export const ServerConfigSchema = Type.Object({
     default: 7_200_000,
     description: 'Idle timeout in ms before auto-shutdown (default: 2h)',
   }),
+  LEGREFFIER_TRANSPORT: Type.Union(
+    [Type.Literal('sse'), Type.Literal('stdio')],
+    { default: 'sse', description: 'Transport mode: sse (HTTP) or stdio' },
+  ),
 });
 
 export type ServerConfigEnv = Static<typeof ServerConfigSchema>;
