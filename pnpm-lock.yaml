@@ -1104,6 +1104,9 @@ importers:
       '@dotenvx/dotenvx':
         specifier: 'catalog:'
         version: 1.52.0
+      '@huggingface/transformers':
+        specifier: 'catalog:'
+        version: 3.8.1
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../libs/api-client
