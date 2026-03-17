@@ -33,7 +33,7 @@ import Fastify from 'fastify';
 import { createAgentBundle } from './agent.js';
 import { loadConfig } from './config.js';
 import { registerTools } from './tools.js';
-import type { LocalMcpDeps } from './types.js';
+import type { LocalMcpContext, LocalMcpDeps, LocalMcpState } from './types.js';
 
 /** Detect repo name from git for diary auto-discovery. */
 function repoName(): string {
@@ -67,6 +67,17 @@ async function main(): Promise<void> {
   });
 
   // ── Authenticate via SDK ────────────────────────────────
+  // connect() resolves creds from: explicit opts → env vars → ~/.config/moltnet/moltnet.json
+  // Fail early with a clear message if env vars are set but incomplete.
+  if (
+    (config.MOLTNET_CLIENT_ID && !config.MOLTNET_CLIENT_SECRET) ||
+    (!config.MOLTNET_CLIENT_ID && config.MOLTNET_CLIENT_SECRET)
+  ) {
+    throw new Error(
+      'MOLTNET_CLIENT_ID and MOLTNET_CLIENT_SECRET must both be set or both be omitted.',
+    );
+  }
+
   app.log.info('Connecting to MoltNet...');
   const sdkAgent = await connect({
     clientId: config.MOLTNET_CLIENT_ID,
@@ -133,7 +144,7 @@ async function main(): Promise<void> {
   });
 
   // ── Build deps + register tools ─────────────────────────
-  const deps: LocalMcpDeps = {
+  const ctx: LocalMcpContext = {
     agent,
     gen,
     studentAi,
@@ -142,11 +153,14 @@ async function main(): Promise<void> {
     config,
     logger: app.log,
     sessionId,
+  };
+  const state: LocalMcpState = {
     traceCounter: 0,
     traceIndex: new Map(),
     lastActivity: Date.now(),
     startTime: Date.now(),
   };
+  const deps: LocalMcpDeps = { ...ctx, ...state };
 
   registerTools(app, deps);
 

@@ -21,8 +21,8 @@ export type AgentOutput = {
   confidence: 'high' | 'medium' | 'low';
 };
 
-/** Dependencies injected into tool handlers. */
-export interface LocalMcpDeps {
+/** Immutable context injected at startup. */
+export interface LocalMcpContext {
   agent: AxLearn<AgentInput, AgentOutput>;
   gen: AxGen<AgentInput, AgentOutput>;
   studentAi: AxAIService;
@@ -34,6 +34,10 @@ export interface LocalMcpDeps {
   logger: FastifyBaseLogger;
   /** Current session UUID (generated on server start). */
   sessionId: string;
+}
+
+/** Mutable session state — mutated by tool handlers. */
+export interface LocalMcpState {
   /** Tracks trace index within session for easy feedback targeting. */
   traceCounter: number;
   /** Map of session-local index → trace ID for feedback targeting. */
@@ -43,3 +47,6 @@ export interface LocalMcpDeps {
   /** Server start timestamp for uptime calculation. */
   startTime: number;
 }
+
+/** Combined deps passed to tool handlers. */
+export type LocalMcpDeps = LocalMcpContext & LocalMcpState;

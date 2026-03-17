@@ -4,4 +4,10 @@ export {
   type DiaryStorageOptions,
 } from './ax-storage.js';
 export { loadConfig, type ServerConfigEnv } from './config.js';
-export type { AgentInput, AgentOutput, LocalMcpDeps } from './types.js';
+export type {
+  AgentInput,
+  AgentOutput,
+  LocalMcpContext,
+  LocalMcpDeps,
+  LocalMcpState,
+} from './types.js';
