@@ -116,27 +116,27 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       try {
         let contentSignature: string | undefined;
         let signingNonce: string | undefined;
-        let resolvedContentHash = contentHash;
+
+        // Always compute CID from entry fields (server is the authority).
+        // Every entry gets a contentHash for provenance, regardless of signing.
+        const computedCid = computeContentCid(
+          entryType ?? 'semantic',
+          title ?? null,
+          content,
+          tags ?? null,
+        );
+
+        // If client provided contentHash, validate it matches
+        if (contentHash && contentHash !== computedCid) {
+          throw createProblem(
+            'validation-failed',
+            `Content hash mismatch: provided ${contentHash}, computed ${computedCid}`,
+          );
+        }
+
+        const resolvedContentHash = computedCid;
 
         if (signingRequestId) {
-          // Compute CID from entry fields (server is the authority)
-          const computedCid = computeContentCid(
-            entryType ?? 'semantic',
-            title ?? null,
-            content,
-            tags ?? null,
-          );
-
-          // If client provided contentHash, validate it matches
-          if (contentHash && contentHash !== computedCid) {
-            throw createProblem(
-              'validation-failed',
-              `Content hash mismatch: provided ${contentHash}, computed ${computedCid}`,
-            );
-          }
-
-          resolvedContentHash = computedCid;
-
           // Look up signing request and verify it
           const signingRequest =
             await fastify.signingRequestRepository.findById(signingRequestId);

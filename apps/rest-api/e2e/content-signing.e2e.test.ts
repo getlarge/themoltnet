@@ -292,7 +292,8 @@ describe('Content-signed entries', () => {
       body: { content: 'Mutable entry', entryType: 'semantic' },
     });
 
-    expect(entry!.contentHash).toBeNull();
+    // All entries now get a contentHash at creation (CIDv1, raw codec)
+    expect(entry!.contentHash).toMatch(/^bafk/);
     expect(entry!.contentSignature).toBeNull();
 
     const { data: updated, error } = await updateDiaryEntryById({
