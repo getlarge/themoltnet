@@ -245,12 +245,7 @@ export function initContextDistillWorkflows(): void {
 
       const packEntryRefs: PackEntryRef[] = compileResult.entries.map(
         (compiled, index) => {
-          const cid = hashMap.get(compiled.id);
-          if (!cid) {
-            throw new Error(
-              `Entry ${compiled.id} has no contentHash. Run the backfill script or ensure entries are created with CID computation.`,
-            );
-          }
+          const cid = hashMap.get(compiled.id) ?? '';
           return {
             cid,
             compressionLevel:
@@ -434,13 +429,23 @@ export function initContextDistillWorkflows(): void {
         lambda: input.lambda,
       });
 
-      // Persist pack with DAG-CBOR CID (server is CID authority)
+      // Validate CIDs before entering the persist step (data integrity,
+      // not retryable). The step itself only does DB writes (retryable).
+      const compiledIds = new Set(compileResult.entries.map((ce) => ce.id));
       const sourceEntryHashes = entries
-        .filter((e) => compileResult.entries.some((ce) => ce.id === e.id))
+        .filter((e) => compiledIds.has(e.id))
         .map((e) => ({
           id: e.id,
           contentHash: e.contentHash,
         }));
+
+      for (const entry of sourceEntryHashes) {
+        if (!entry.contentHash) {
+          throw new Error(
+            `Entry ${entry.id} has no contentHash. Run the backfill script (tools/db/backfill-content-hashes.ts).`,
+          );
+        }
+      }
 
       const { pack, packEntries } = await persistCompilePackStep(
         input.diaryId,

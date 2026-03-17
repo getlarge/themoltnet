@@ -23,11 +23,10 @@
  *   GPACK_AGENT_MODEL          model string (default: gpt-4o-mini)
  */
 
-import { access, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { ax, AxGEPA } from '@ax-llm/ax';
 import { compileDiary, listDiaries } from '@moltnet/api-client';
 import { type Static, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
@@ -36,16 +35,22 @@ import { MoltNetContextAdapter } from './adapter.js';
 import { createAuthedClient } from './client.js';
 import { loadContextEvalsConfig } from './config.js';
 import type { GpackTask } from './evaluate.js';
+import { runBaseline, runGepaOptimization } from './gepa.js';
 import {
+  type AIProvider,
   buildAI,
-  buildAverage,
-  buildCacheKey,
   loadEnvLocal,
   loadPackFile,
+  resolveAIKey,
   resolveRepoRoot,
   str,
   writeDebugArtifact,
 } from './pipeline-shared.js';
+import {
+  type EvalInput,
+  loadTasksmithInputs,
+  loadTasksmithTaskFile,
+} from './tasksmith.js';
 
 // ── Args ──────────────────────────────────────────────────────────────────────
 
@@ -60,8 +65,10 @@ const { values } = parseArgs({
     families: { type: 'string' },
     'pack-file': { type: 'string' },
     'diary-id': { type: 'string' },
+    'student-provider': { type: 'string' },
+    'teacher-provider': { type: 'string' },
     'ai-key': { type: 'string' },
-    model: { type: 'string' },
+    'student-model': { type: 'string' },
     'teacher-model': { type: 'string' },
     'claude-model': { type: 'string', default: 'claude-sonnet-4-6' },
     'max-evals': { type: 'string', default: '30' },
@@ -69,6 +76,7 @@ const { values } = parseArgs({
     baseline: { type: 'boolean', default: false },
     'debug-traces': { type: 'boolean', default: false },
     verbose: { type: 'boolean', default: false },
+    concurrency: { type: 'string', default: '1' },
   },
   strict: false,
 });
@@ -107,24 +115,28 @@ const familyFilter = new Set(
     .map((family) => family.trim())
     .filter(Boolean),
 );
-const aiKey =
-  str(values['ai-key']) ||
-  envConfig.GOOGLE_API_KEY ||
-  envConfig.OPENAI_API_KEY ||
-  envConfig.ANTHROPIC_API_KEY ||
-  envConfig.DASHSCOPE_API_KEY ||
-  '';
-const studentModel = str(values['model']);
+const studentProvider = (str(values['student-provider']) || undefined) as
+  | AIProvider
+  | undefined;
+const teacherProvider = (str(values['teacher-provider']) || undefined) as
+  | AIProvider
+  | undefined;
+const studentModel = str(values['student-model']);
 const teacherModel = str(values['teacher-model']);
+const aiKey = resolveAIKey(str(values['ai-key']), studentProvider);
 const claudeModel =
   str(values['claude-model']) ||
   envConfig.GPACK_AGENT_MODEL ||
   'claude-sonnet-4-6';
 const maxMetricCalls = parseInt(str(values['max-evals']) || '30', 10);
 const numTrials = parseInt(str(values['num-trials']) || '8', 10);
-const runBaseline = values['baseline'] === true;
+const runBaselineMode = values['baseline'] === true;
 const debugTraces = values['debug-traces'] === true;
 const verbose = values['verbose'] === true;
+const concurrency = Math.max(
+  1,
+  parseInt(str(values['concurrency']) || '1', 10) || 1,
+);
 
 // ── API client ────────────────────────────────────────────────────────────────
 
@@ -293,12 +305,6 @@ function buildTask(
   };
 }
 
-interface EvalInput {
-  name: string;
-  task: GpackTask;
-  taskPrompt: string;
-}
-
 async function loadEvalInputs(spec: string): Promise<EvalInput[]> {
   const names =
     spec === 'all'
@@ -330,135 +336,23 @@ async function loadEvalInputs(spec: string): Promise<EvalInput[]> {
   return inputs;
 }
 
-const TasksmithTaskSchema = Type.Object({
-  task_id: NonEmptyString,
-  fixture_ref: NonEmptyString,
-  gold_fix_ref: NonEmptyString,
-  source_commit_ref: NonEmptyString,
-  source_commit_refs: Type.Optional(NonEmptyStringArray),
-  problem_statement: NonEmptyString,
-  family: NonEmptyString,
-  secondary_families: Type.Optional(NonEmptyStringArray),
-  subsystems: Type.Optional(NonEmptyStringArray),
-  changed_files: Type.Optional(NonEmptyStringArray),
-  fail_to_pass: Type.Array(NonEmptyString, { minItems: 1 }),
-  pass_to_pass: Type.Array(NonEmptyString),
-  diary_entry_ids: Type.Optional(NonEmptyStringArray),
-  confidence: Type.Optional(NonEmptyString),
-});
-
-type TasksmithTask = Static<typeof TasksmithTaskSchema>;
-
-function validateTasksmithTask(
-  taskName: string,
-  task: unknown,
-): asserts task is TasksmithTask {
-  if (!Value.Check(TasksmithTaskSchema, task)) {
-    formatTypeboxErrors(TasksmithTaskSchema, taskName, task);
-  }
-}
-
-async function loadTasksmithInputs(spec: string): Promise<EvalInput[]> {
-  const taskDir = resolve(repoRoot, 'tasksmith', 'candidates', 'tasks');
-  const verifiedDir = resolve(repoRoot, 'tasksmith', 'verified');
-  const names =
-    spec === 'all'
-      ? (await readdir(taskDir, { withFileTypes: true }))
-          .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-          .map((entry) => entry.name.replace(/\.json$/, ''))
-      : spec
-          .split(',')
-          .map((name) => name.trim())
-          .filter(Boolean);
-
-  const allowedByStatus =
-    taskStatus === 'verified'
-      ? new Set(
-          (await readdir(verifiedDir, { withFileTypes: true }))
-            .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-            .map((entry) => entry.name.replace(/\.json$/, '')),
-        )
-      : null;
-
-  const inputs: EvalInput[] = [];
-  for (const name of names) {
-    const path = resolve(taskDir, `${name}.json`);
-    try {
-      await access(path);
-    } catch {
-      continue;
-    }
-    if (allowedByStatus && !allowedByStatus.has(name)) continue;
-    const raw = JSON.parse(await readFile(path, 'utf8')) as unknown;
-    validateTasksmithTask(name, raw);
-    if (familyFilter.size > 0 && !familyFilter.has(raw.family)) continue;
-
-    const task: GpackTask = {
-      id: raw.task_id,
-      baseCommit: raw.fixture_ref,
-      problemStatement: raw.problem_statement,
-      failToPass: raw.fail_to_pass,
-      passToPass: raw.pass_to_pass,
-      setup:
-        raw.fail_to_pass.some((cmd) => cmd.includes('pnpm')) ||
-        raw.pass_to_pass.some((cmd) => cmd.includes('pnpm'))
-          ? ['pnpm install --frozen-lockfile']
-          : [],
-    };
-    inputs.push({
-      name: raw.task_id,
-      task,
-      taskPrompt: raw.problem_statement,
-    });
-  }
-
-  return inputs;
-}
-
-async function loadTasksmithTaskFile(taskFile: string): Promise<EvalInput> {
-  const resolvedPath = resolve(repoRoot, taskFile);
-  const raw = JSON.parse(await readFile(resolvedPath, 'utf8')) as unknown;
-  const taskName =
-    resolvedPath
-      .split('/')
-      .at(-1)
-      ?.replace(/\.json$/, '') ?? taskFile;
-  validateTasksmithTask(taskName, raw);
-
-  const task: GpackTask = {
-    id: raw.task_id,
-    baseCommit: raw.fixture_ref,
-    problemStatement: raw.problem_statement,
-    failToPass: raw.fail_to_pass,
-    passToPass: raw.pass_to_pass,
-    setup:
-      raw.fail_to_pass.some((cmd) => cmd.includes('pnpm')) ||
-      raw.pass_to_pass.some((cmd) => cmd.includes('pnpm'))
-        ? ['pnpm install --frozen-lockfile']
-        : [],
-  };
-
-  return {
-    name: raw.task_id,
-    task,
-    taskPrompt: raw.problem_statement,
-  };
-}
-
 async function loadInputs(spec: string): Promise<EvalInput[]> {
   if (taskFileArgs.length > 0) {
     const inputs = await Promise.all(
-      taskFileArgs.map((taskFile) => loadTasksmithTaskFile(taskFile)),
+      taskFileArgs.map((taskFile) => loadTasksmithTaskFile(repoRoot, taskFile)),
     );
     return inputs;
   }
 
   if (taskIdArgs.length > 0) {
-    return loadTasksmithInputs(taskIdArgs.join(','));
+    return loadTasksmithInputs(repoRoot, taskIdArgs.join(','), {
+      taskStatus,
+      familyFilter,
+    });
   }
 
   if (taskSource === 'tasksmith') {
-    return loadTasksmithInputs(spec);
+    return loadTasksmithInputs(repoRoot, spec, { taskStatus, familyFilter });
   }
 
   return loadEvalInputs(spec);
@@ -524,20 +418,16 @@ async function main() {
           .context_variants?.combined
       : undefined;
 
-  // GEPA requires at least 2 examples for train/validation split.
-  // For single-task optimization, duplicate the task as a synthetic second
-  // sample so the optimizer can still run.
-  const trainingTasks: GpackTask[] =
-    tasks.length >= 2
-      ? tasks
-      : [{ ...tasks[0] }, { ...tasks[0], id: `${tasks[0].id}-replica` }];
-
-  const adapter = new MoltNetContextAdapter({ verbose, claudeModel });
+  const adapter = new MoltNetContextAdapter({
+    verbose,
+    claudeModel,
+    concurrency,
+  });
   const explicitPack = packFileArg
     ? await loadPackFile(repoRoot, packFileArg)
     : '';
 
-  if (runBaseline) {
+  if (runBaselineMode) {
     if (packFileArg) {
       console.log(
         `[gpack] running pack eval from ${resolve(repoRoot, packFileArg)}...`,
@@ -545,12 +435,7 @@ async function main() {
     } else {
       console.log('[gpack] running baseline (empty pack)...');
     }
-    const result = await adapter.evaluate(
-      tasks,
-      { instruction: explicitPack },
-      true,
-    );
-    const averageScore = buildAverage(result.scores);
+    const baselineResult = await runBaseline(adapter, tasks, explicitPack);
     if (debugTraces) {
       await writeDebugArtifact(
         repoRoot,
@@ -558,16 +443,16 @@ async function main() {
         {
           phase: 'baseline',
           evals: evalInputs.map((input) => input.name),
-          scores: result.scores,
-          averageScore,
-          traces: result.trajectories ?? [],
+          scores: baselineResult.scores,
+          averageScore: baselineResult.averageScore,
+          traces: baselineResult.trajectories ?? [],
         },
       );
     }
     console.log(
-      `[gpack] ${packFileArg ? 'pack' : 'baseline'} scores: ${result.scores
+      `[gpack] ${packFileArg ? 'pack' : 'baseline'} scores: ${baselineResult.scores
         .map((s) => s.toFixed(2))
-        .join(', ')} avg=${averageScore.toFixed(2)}`,
+        .join(', ')} avg=${baselineResult.averageScore.toFixed(2)}`,
     );
     return;
   }
@@ -616,89 +501,60 @@ async function main() {
   // studentAI: cheap model the ax() program targets (passthrough in our case).
   // teacherAI: more capable model that proposes improved instructions during
   //            reflection. Optional but recommended for better optimization.
-  const studentAI = buildAI({ aiKey, model: studentModel });
-  const teacherAI = teacherModel
-    ? buildAI({ aiKey, model: teacherModel })
-    : undefined;
-
-  // Build a passthrough ax() program with the seed pack as its instruction.
-  // GEPA extracts getBaseInstruction() from the program's instruction text,
-  // so setting it here seeds the optimization with our compiled context pack.
-  const passthrough = ax(
-    'id:string, baseCommit:string, problemStatement:string, failToPass:json, passToPass:json, setup?:json -> sessionPack:string "Context pack content"',
-  );
-  passthrough.setInstruction(seedPack);
-
-  const optimizer = new AxGEPA({
-    studentAI,
-    ...(teacherAI ? { teacherAI } : {}),
-    numTrials,
-    verbose,
-    seed: 42,
+  if (!studentProvider) {
+    throw new Error(
+      '[gpack] GEPA optimization requires --student-provider (openai, anthropic, google-gemini, claude-agent-sdk, or codex-agent-sdk).',
+    );
+  }
+  const studentAI = buildAI({
+    provider: studentProvider,
+    aiKey,
+    model: studentModel,
   });
+  if (teacherModel && !teacherProvider) {
+    throw new Error('[gpack] --teacher-model requires --teacher-provider.');
+  }
+  const teacherAI =
+    teacherModel && teacherProvider
+      ? buildAI({
+          provider: teacherProvider,
+          aiKey: resolveAIKey(str(values['ai-key']), teacherProvider),
+          model: teacherModel,
+        })
+      : undefined;
 
-  type GepaExample = Record<string, unknown> & {
-    id: string;
-    baseCommit: string;
-    problemStatement: string;
-    failToPass: string[];
-    passToPass: string[];
-    setup?: string[];
-  };
+  console.log(
+    `[gpack] starting GEPA optimization (numTrials=${numTrials} maxMetricCalls=${maxMetricCalls})...`,
+  );
 
-  const taskById = new Map(tasks.map((task) => [task.id, task]));
-  const trainingExamples = trainingTasks.map(
-    (task) =>
-      ({
+  const { bestScore, bestInstruction } = await runGepaOptimization({
+    tasks,
+    adapter,
+    seedInstruction: seedPack,
+    studentAI,
+    teacherAI,
+    numTrials,
+    maxMetricCalls,
+    verbose,
+    axSignature:
+      'id:string, baseCommit:string, problemStatement:string, failToPass:json, passToPass:json, setup?:json -> sessionPack:string "Context pack content"',
+    buildExamples: (trainingTasks) =>
+      trainingTasks.map((task) => ({
         id: task.id,
         baseCommit: task.baseCommit,
         problemStatement: task.problemStatement,
         failToPass: task.failToPass,
         passToPass: task.passToPass,
         setup: task.setup,
-      }) satisfies GepaExample,
-  );
-
-  console.log(
-    `[gpack] starting GEPA optimization (numTrials=${numTrials} maxMetricCalls=${maxMetricCalls})...`,
-  );
-
-  const metricCache = new Map<string, number>();
-  const getCurrentInstruction = (): string =>
-    (passthrough as { instruction?: string }).instruction ?? seedPack;
-
-  const result = await optimizer.compile(
-    passthrough,
-    trainingExamples,
-    async ({ example }) => {
-      const taskId =
-        typeof example.id === 'string'
-          ? example.id.replace(/-replica$/, '')
-          : '';
-      const task = taskById.get(taskId);
-      if (!task) return 0;
-      const packContent = getCurrentInstruction();
-      const cacheKey = buildCacheKey(task.id, packContent);
-      const cached = metricCache.get(cacheKey);
-      if (cached !== undefined) return cached;
-
-      const evalResult = await adapter.evaluate([task], {
-        instruction: packContent,
-      });
-      const score = evalResult.scores[0] ?? 0;
-      metricCache.set(cacheKey, score);
-      return score;
+      })),
+    evaluateOne: async (task, instruction) => {
+      const evalResult = await adapter.evaluate([task], { instruction }, true);
+      return {
+        score: evalResult.scores[0] ?? 0,
+        trace: evalResult.trajectories?.[0],
+      };
     },
-    {
-      maxMetricCalls,
-      gepaAdapter: adapter,
-      feedbackExamples: trainingExamples,
-      validationExamples: trainingExamples,
-    },
-  );
-
-  const bestScore = result.bestScore;
-  const bestPack = result.optimizedProgram?.instruction ?? seedPack;
+  });
 
   console.log(`\n[gpack] optimization complete`);
   console.log(`  best score: ${bestScore.toFixed(3)}`);
@@ -706,27 +562,22 @@ async function main() {
   const outDir = resolve(repoRoot, 'evals', 'runs');
   await mkdir(outDir, { recursive: true });
   const outPath = resolve(outDir, `gpack-optimized-${Date.now()}.md`);
-  await writeFile(outPath, bestPack, 'utf8');
+  await writeFile(outPath, bestInstruction, 'utf8');
   console.log(`[gpack] best pack saved to ${outPath}`);
 
   // Evaluate best pack once on the canonical task set (no synthetic replica)
-  const finalEval = await adapter.evaluate(
-    tasks,
-    { instruction: bestPack },
-    true,
-  );
-  const finalAvg = buildAverage(finalEval.scores);
+  const finalEval = await runBaseline(adapter, tasks, bestInstruction);
   if (debugTraces) {
     await writeDebugArtifact(repoRoot, `gpack-final-${Date.now()}.json`, {
       phase: 'final',
       evals: evalInputs.map((input) => input.name),
       scores: finalEval.scores,
-      averageScore: finalAvg,
+      averageScore: finalEval.averageScore,
       traces: finalEval.trajectories ?? [],
     });
   }
   console.log(
-    `[gpack] final scores: ${finalEval.scores.map((s) => s.toFixed(2)).join(', ')} avg=${finalAvg.toFixed(3)}`,
+    `[gpack] final scores: ${finalEval.scores.map((s) => s.toFixed(2)).join(', ')} avg=${finalEval.averageScore.toFixed(3)}`,
   );
 
   console.log(

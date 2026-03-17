@@ -13,6 +13,9 @@
       "path": "../auth"
     },
     {
+      "path": "../crypto-service"
+    },
+    {
       "path": "../database"
     },
     {

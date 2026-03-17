@@ -8,10 +8,10 @@ export const ContextEvalsConfigSchema = Type.Object({
   OPENAI_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
   ANTHROPIC_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
   ANTHROPIC_AUTH_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
-  DASHSCOPE_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
   GOOGLE_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
   GPACK_AGENT_MODEL: Type.Optional(Type.String({ minLength: 1 })),
   CLAUDE_CODE_EXECUTABLE: Type.Optional(Type.String({ minLength: 1 })),
+  CODEX_EXECUTABLE: Type.Optional(Type.String({ minLength: 1 })),
 });
 
 export type ContextEvalsConfig = Static<typeof ContextEvalsConfigSchema>;

@@ -232,25 +232,36 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       }
       // TODO: create custom permission to distill; const allowed = await permissionChecker.canDistillDiary(diaryId, agentId);
 
-      const result = await runWorkflow(
-        contextDistillWorkflows.compile,
-        {
-          queueName: 'context.compile',
-          enqueueOptions: { queuePartitionKey: identityId },
-          logger: request.log,
-        },
-        {
-          diaryId,
-          identityId,
-          taskPrompt,
-          tokenBudget,
-          lambda,
-          includeTags,
-          excludeTags,
-          wRecency,
-          wImportance,
-        },
-      );
+      let result;
+      try {
+        result = await runWorkflow(
+          contextDistillWorkflows.compile,
+          {
+            queueName: 'context.compile',
+            enqueueOptions: { queuePartitionKey: identityId },
+            logger: request.log,
+          },
+          {
+            diaryId,
+            identityId,
+            taskPrompt,
+            tokenBudget,
+            lambda,
+            includeTags,
+            excludeTags,
+            wRecency,
+            wImportance,
+          },
+        );
+      } catch (err) {
+        if (
+          err instanceof Error &&
+          err.message.includes('has no contentHash')
+        ) {
+          throw createProblem('validation-failed', err.message);
+        }
+        throw err;
+      }
 
       return {
         ...result.pack,
