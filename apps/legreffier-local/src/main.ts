@@ -89,19 +89,19 @@ async function main(): Promise<void> {
   const diaryId = diary.id;
   app.log.info({ diaryId, repo }, 'Using diary');
 
-  // ── Fetch identity/soul for instruction customization ───
+  // ── Fetch diary entries for instruction context ─────────
   let identityContext: string | null = null;
   try {
-    const digest = await sdkAgent.entries.reflect({
-      diaryId,
-      maxEntries: 10,
-      entryTypes: 'identity,soul',
-    });
-    if (digest?.entries?.length) {
-      identityContext = digest.entries.map((e) => e.content).join('\n\n');
+    const [identity, soul] = await Promise.all([
+      sdkAgent.entries.list(diaryId, { entryType: 'identity', limit: 5 }),
+      sdkAgent.entries.list(diaryId, { entryType: 'soul', limit: 5 }),
+    ]);
+    const entries = [...(identity?.items ?? []), ...(soul?.items ?? [])];
+    if (entries.length) {
+      identityContext = entries.map((e) => e.content).join('\n\n');
     }
   } catch {
-    app.log.warn('Could not fetch identity/soul entries');
+    app.log.warn('Could not fetch diary entries for context');
   }
 
   // ── Create AxLearn agent ────────────────────────────────
@@ -114,8 +114,10 @@ async function main(): Promise<void> {
 
   if (identityContext) {
     const base = gen.getInstruction() ?? '';
-    gen.setInstruction(`${base}\n\n## Agent Identity\n${identityContext}`);
-    app.log.info('Loaded identity/soul context into instruction');
+    gen.setInstruction(
+      `${base}\n\n## Agent Context (from diary)\n${identityContext}`,
+    );
+    app.log.info('Loaded diary context into instruction');
   }
 
   // ── Health check ────────────────────────────────────────
