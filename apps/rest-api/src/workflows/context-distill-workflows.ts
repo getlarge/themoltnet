@@ -232,31 +232,8 @@ export function initContextDistillWorkflows(): void {
     { name: 'context-distill.step.searchEntries' },
   );
 
-  /**
-   * Persist a compile pack + its entry membership atomically.
-   * Uses DBOS dataSource.runTransaction so if entry insertion fails,
-   * the pack row is rolled back.
-   */
-  const persistCompilePackStep = DBOS.registerStep(
-    async (
-      packInput: NewContextPack,
-      entryInputs: NewContextPackEntry[],
-    ): Promise<{ pack: ContextPack; packEntries: ContextPackEntry[] }> => {
-      const { contextPackRepository, dataSource } = getDeps();
-
-      return dataSource.runTransaction(
-        async () => {
-          const pack = await contextPackRepository.createPack(packInput);
-          const packEntries = await contextPackRepository.addEntries(
-            entryInputs.map((e) => ({ ...e, packId: pack.id })),
-          );
-          return { pack, packEntries };
-        },
-        { name: 'context-distill.tx.persistCompilePack' },
-      );
-    },
-    { name: 'context-distill.step.persistCompilePack' },
-  );
+  // No registered step for persist — uses dataSource.runTransaction()
+  // directly from workflow body (DBOS doesn't allow transactions inside steps).
 
   /** Write Keto relationship: ContextPack:{packId}#parent@Diary:{diaryId} */
   const grantPackParentStep = DBOS.registerStep(
@@ -464,10 +441,19 @@ export function initContextDistillWorkflows(): void {
         }),
       );
 
-      // Persist atomically (pack + entries in one transaction)
-      const { pack, packEntries } = await persistCompilePackStep(
-        packInput,
-        entryInputs,
+      // Persist atomically (pack + entries in one transaction).
+      // Called directly from workflow body — DBOS doesn't allow
+      // dataSource.runTransaction inside a step.
+      const { contextPackRepository, dataSource } = getDeps();
+      const { pack, packEntries } = await dataSource.runTransaction(
+        async () => {
+          const p = await contextPackRepository.createPack(packInput);
+          const pe = await contextPackRepository.addEntries(
+            entryInputs.map((e) => ({ ...e, packId: p.id })),
+          );
+          return { pack: p, packEntries: pe };
+        },
+        { name: 'context-distill.tx.persistCompilePack' },
       );
 
       // Wire Keto authorization: ContextPack#parent@Diary
