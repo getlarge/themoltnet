@@ -31,6 +31,10 @@ prefix_rule(
     decision = "allow",
 )
 prefix_rule(
+    pattern = ["npx", "@themoltnet/cli", "diary", "commit"],
+    decision = "allow",
+)
+prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "diary", "create-signed"],
     decision = "allow",
 )
@@ -44,6 +48,10 @@ prefix_rule(
 )
 prefix_rule(
     pattern = ["moltnet", "sign"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["moltnet", "diary", "commit"],
     decision = "allow",
 )
 prefix_rule(
