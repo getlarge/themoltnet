@@ -20,6 +20,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@dotenvx/dotenvx": "catalog:",
+    "drizzle-orm": "catalog:",
     "@huggingface/transformers": "catalog:",
     "@ax-llm/ax": "catalog:",
     "@moltnet/api-client": "workspace:*",
