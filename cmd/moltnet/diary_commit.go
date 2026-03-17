@@ -67,11 +67,6 @@ func parseGitDiffStat(output string) (int, []string) {
 
 // buildCommitPayload constructs the <content> + <metadata> block for a commit entry.
 func buildCommitPayload(rationale string, meta *gitMeta, fingerprint, operator, tool, risk string, scopes []string) string {
-	var scopeTags []string
-	for _, s := range scopes {
-		scopeTags = append(scopeTags, "scope:"+s)
-	}
-
 	var b strings.Builder
 	b.WriteString("<content>\n")
 	b.WriteString(rationale)
@@ -85,7 +80,7 @@ func buildCommitPayload(rationale string, meta *gitMeta, fingerprint, operator, 
 	fmt.Fprintf(&b, "refs: %s\n", strings.Join(meta.Refs, ", "))
 	fmt.Fprintf(&b, "timestamp: %s\n", nowUTC())
 	fmt.Fprintf(&b, "branch: %s\n", meta.Branch)
-	fmt.Fprintf(&b, "scope: %s\n", strings.Join(scopeTags, ", "))
+	fmt.Fprintf(&b, "scope: %s\n", strings.Join(scopes, ", "))
 	b.WriteString("</metadata>")
 	return b.String()
 }
@@ -115,13 +110,14 @@ func deriveImportance(risk string) int {
 }
 
 // firstSentence returns the first sentence of s (up to the first period).
-// If there is no period, it returns s truncated to 80 characters.
+// If there is no period, it returns s truncated to 80 runes (UTF-8 safe).
 func firstSentence(s string) string {
 	if idx := strings.Index(s, "."); idx >= 0 {
 		return s[:idx+1]
 	}
-	if len(s) > 80 {
-		return s[:80]
+	runes := []rune(s)
+	if len(runes) > 80 {
+		return string(runes[:80])
 	}
 	return s
 }
@@ -358,6 +354,9 @@ func runDiaryCommit(args []string) error {
 	}
 
 	scopes := splitAndTrim(*scope, ",")
+	if len(scopes) == 0 {
+		return fmt.Errorf("flag -scope must contain at least one non-empty scope")
+	}
 	var extraTags []string
 	if *extraTagsStr != "" {
 		extraTags = splitAndTrim(*extraTagsStr, ",")

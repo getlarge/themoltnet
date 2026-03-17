@@ -155,9 +155,10 @@ func bootstrapGenesisAgent() (*bootstrapAgent, error) {
 }
 
 func waitForHealth(url string, timeout time.Duration) error {
+	httpClient := &http.Client{Timeout: 5 * time.Second}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		resp, err := http.Get(url)
+		resp, err := httpClient.Get(url)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			resp.Body.Close()
 			return nil
@@ -246,8 +247,20 @@ func TestE2E_DiaryCommit_Signed(t *testing.T) {
 		t.Fatalf("unexpected verify response type: %T", verifyRes)
 	}
 
-	data, _ := json.MarshalIndent(verifyResult, "", "  ")
-	t.Logf("Signed entry verification: %s", string(data))
+	if !verifyResult.Valid {
+		data, _ := json.MarshalIndent(verifyResult, "", "  ")
+		t.Fatalf("expected valid=true, got: %s", string(data))
+	}
+	if !verifyResult.Signed {
+		t.Error("expected signed=true")
+	}
+	if !verifyResult.HashMatches {
+		t.Error("expected hashMatches=true")
+	}
+	if !verifyResult.SignatureValid {
+		t.Error("expected signatureValid=true")
+	}
+	t.Logf("Signed entry verified: %s (CID: %s)", entryUUID, verifyResult.ContentHash.Value)
 }
 
 func TestE2E_Sign_RequestID(t *testing.T) {

@@ -107,7 +107,7 @@ files-changed: 3
 refs: a.go, b.go, c.go
 timestamp: 2026-03-17T12:00:00Z
 branch: feat/test
-scope: scope:auth, scope:api
+scope: auth, api
 </metadata>`
 
 	if payload != want {
@@ -252,11 +252,7 @@ func TestValidateCommitFlags_InvalidDiaryId(t *testing.T) {
 }
 
 func TestValidateCommitFlags_InvalidImportance(t *testing.T) {
-	for _, imp := range []int{-1, 0, 11, 100} {
-		if imp == 0 {
-			// 0 means "not provided", which is valid
-			continue
-		}
+	for _, imp := range []int{-1, 11, 100} {
 		err := validateCommitFlags("00000000-0000-0000-0000-000000000001", "text", "low", "auth", "ed", "claude", imp)
 		if err == nil {
 			t.Errorf("expected error for importance=%d", imp)

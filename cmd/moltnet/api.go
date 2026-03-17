@@ -31,13 +31,6 @@ func newAuthedClient(apiURL string, tm *TokenManager) (*moltnetapi.Client, error
 	)
 }
 
-// newClientFromCredsExplicit creates a client from pre-loaded OAuth2 credentials,
-// avoiding a second loadCredentials call when credentials are already in memory.
-func newClientFromCredsExplicit(apiURL, clientID, clientSecret string) (*moltnetapi.Client, error) {
-	tm := NewTokenManager(apiURL, clientID, clientSecret)
-	return newAuthedClient(apiURL, tm)
-}
-
 // newClientFromCreds loads stored credentials, creates a TokenManager, and
 // returns a fully authenticated moltnetapi.Client.
 func newClientFromCreds(apiURL string) (*moltnetapi.Client, error) {
