@@ -92,9 +92,37 @@ export async function handleAsk(
   const thisIndex = ++deps.traceCounter;
 
   try {
+    // Auto-enrich: search diary for entries relevant to the question
+    let diaryContext = '';
+    try {
+      const search = await deps.sdkAgent.entries.search({
+        diaryId: deps.diaryId,
+        query: args.question,
+        limit: 5,
+        entryTypes: ['semantic', 'procedural', 'episodic'],
+        excludeTags: ['learn:trace'],
+        wRelevance: 1.0,
+        wRecency: 0.3,
+        wImportance: 0.2,
+      });
+      if (search?.results?.length) {
+        diaryContext = search.results
+          .map(
+            (e) => `[${e.entryType ?? 'entry'}] ${e.title ?? ''}\n${e.content}`,
+          )
+          .join('\n\n---\n\n');
+      }
+    } catch {
+      deps.logger.warn('Diary search for context failed, proceeding without');
+    }
+
+    const codeContext = [args.codeContext, diaryContext]
+      .filter(Boolean)
+      .join('\n\n---\n\n');
+
     const result = await deps.agent.forward(deps.studentAi, {
       question: args.question,
-      codeContext: args.codeContext,
+      codeContext: codeContext || undefined,
     });
 
     const traces = await deps.agent.getTraces({ limit: 1 });
