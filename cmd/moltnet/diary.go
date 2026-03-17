@@ -13,10 +13,12 @@ import (
 
 func runDiary(args []string) error {
 	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet diary <create|create-signed|list|get|delete|search|verify> [options]")
+		fmt.Fprintln(os.Stderr, "Usage: moltnet diary <commit|create|create-signed|list|get|delete|search|verify> [options]")
 		return fmt.Errorf("subcommand required")
 	}
 	switch args[0] {
+	case "commit":
+		return runDiaryCommit(args[1:])
 	case "create":
 		return runDiaryCreate(args[1:])
 	case "create-signed":
@@ -33,7 +35,7 @@ func runDiary(args []string) error {
 		return runDiaryVerify(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown diary subcommand: %s\n", args[0])
-		fmt.Fprintln(os.Stderr, "Usage: moltnet diary <create|create-signed|list|get|delete|search|verify> [options]")
+		fmt.Fprintln(os.Stderr, "Usage: moltnet diary <commit|create|create-signed|list|get|delete|search|verify> [options]")
 		return fmt.Errorf("unknown subcommand: %s", args[0])
 	}
 }

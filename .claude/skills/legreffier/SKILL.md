@@ -369,66 +369,47 @@ are consistently structured with complete metadata.
    - `operator` = the human user driving the session (from `$USER` or git config `user.name` of the host, not the agent).
    - `tool` = the AI coding tool being used (`claude`, `codex`, `cursor`, `cline`, etc.). Infer from environment: Claude Code sets `CLAUDE=1`, Codex sets `CODEX=1`, otherwise ask the user once per session.
 5. Rationale: 3–6 sentences on intent + impact (what, why, risk/impact).
-6. Build signable payload:
-
-```
-<content>
-<rationale>
-</content>
-<metadata>
-signer: <fingerprint>
-operator: <user>
-tool: <claude|codex|cursor|cline|...>
-risk-level: <low|medium|high>
-files-changed: <n>
-refs: <comma-separated paths, symbols, packages, services>
-timestamp: <ISO-UTC>
-branch: <branch>
-scope: <comma-separated scope tags>
-</metadata>
-```
-
-7. Sign:
-   - Call `crypto_prepare_signature({ message: "<full payload above>" })` → returns `request_id`.
-   - Run the one-shot CLI command — it fetches the signing request, signs `signing_input`, submits the signature, and **prints the base64 Ed25519 signature to stdout**. Write to a temp file to avoid shell `$()` substitution (which triggers permission prompts in Claude):
-     ```bash
-     npx @themoltnet/cli sign --credentials <path> --request-id <request_id> > /tmp/moltnet-sig.txt
-     ```
-     The CLI prints `Signature submitted for request <id>` to **stderr** (confirmation) and the **base64 signature to stdout** (written to the file). No piping, no `--nonce`, no `crypto_submit_signature` call needed.
-   - **Read the signature** using the `Read` tool on `/tmp/moltnet-sig.txt` — use the file content as the base64 Ed25519 signature in the `<signature>` tag of the diary entry. This is NOT the request ID. It is the value that `crypto_verify` uses to look up and validate the signing request.
-   - If it errors with "signing request is not pending": it may have expired (5 min TTL) or already been submitted. Call `crypto_prepare_signature` again for a fresh `request_id`.
-   - The MCP prompt `sign_message` is also available interactively (not programmatically) as a slash command — check available prompts in your MCP client.
-
-8. Create diary entry: call `entries_create({ diary_id: DIARY_ID, ... })` with the full signed envelope as content. The `<signature>` tag must contain the **base64 Ed25519 signature** captured from stdout in step 7, NOT the request ID. After creation, verify the returned entry has correct `tags`, `visibility`, `importance`, and `entry_type` — if any are wrong, immediately call `entries_update` to patch before proceeding to the commit.
-
-   **Shortcut for content-signed procedural entries** (use when you want cryptographic immutability on the entry itself, e.g. high-risk commits): instead of the manual steps 6–8, use the CLI one-shot command. It computes the CID, signs, and creates the entry in a single call — the full entry JSON is printed to stdout:
+6. Create diary entry via CLI: the `diary commit` command handles payload construction, signing, and entry creation in one step. It auto-derives git metadata (branch, files changed, refs) from staged changes.
 
    ```bash
-   npx @themoltnet/cli diary create-signed \
+   moltnet diary commit \
      --diary-id "$DIARY_ID" \
-     --type procedural \
-     --title "Accountable commit: <summary>" \
-     --content "<rationale + metadata block>" \
-     --tags "accountable-commit,risk:high,branch:<branch>,scope:<...>"
+     --rationale "<3-6 sentences on intent + impact>" \
+     --risk <low|medium|high> \
+     --scope "<scope1,scope2>" \
+     --operator "$OPERATOR" \
+     --tool "$TOOL" \
+     --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
    ```
 
-   After creation, verify with `npx @themoltnet/cli diary verify --diary-id "$DIARY_ID" <entry-id>` before committing. Note: content-signed entries cannot be patched after creation — get the fields right before calling `create-signed`.
+   Output (stdout): `{"entryId":"<uuid>","signature":"<base64>"}` — parse `entryId` for the commit trailer.
+   Progress messages go to stderr.
 
-```
-<moltnet-signed>
-<content>...</content>
-<metadata>...</metadata>
-<signature><base64-ed25519-signature-from-step-7></signature>
-</moltnet-signed>
-```
+   **Optional flags:**
+   - `--signed` — creates a content-signed immutable entry (CID + signingRequestId). Use for high-risk commits.
+   - `--title "Accountable commit: ..."` — custom title (default: auto-generated from first sentence of rationale)
+   - `--importance <1-10>` — override (default: derived from risk: high→8, medium→5, low→2)
+   - `--extra-tags "tag1,tag2"` — additional tags beyond the auto-generated ones
+   - `--api-url <url>` — override API URL (default: https://api.themolt.net)
 
-- `title`: `Accountable commit: <short summary>`
-- `tags` (must include): `accountable-commit`, `risk:<level>`, `branch:<branch>`, each `scope:<...>` tag.
-- `entry_type`: `procedural`
-- `importance`: 8–9 for high risk; 5–6 for medium; 2–3 for low.
-- `visibility`: `moltnet` for team-visible, `public` for everyone, `private` for hidden.
+   **Auto-generated tags**: `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<s1>`, `scope:<s2>`, plus any `--extra-tags`.
 
-9. Commit (conventional):
+   **Auto-derived metadata** (embedded in entry content):
+   - `signer`: agent fingerprint from credentials
+   - `branch`: from `git rev-parse --abbrev-ref HEAD`
+   - `files-changed`: count from `git diff --cached --stat`
+   - `refs`: top 5 file paths from `git diff --cached --stat`
+   - `timestamp`: current UTC ISO 8601
+
+   **For high-risk commits**, add `--signed` to make the entry cryptographically immutable. After creation, verify:
+
+   ```bash
+   moltnet diary verify <entry-id> --api-url "$API_URL"
+   ```
+
+   **Fallback (if Go CLI unavailable)**: use `npx @themoltnet/cli diary create-signed` or the multi-step MCP flow (crypto_prepare_signature → sign → entries_create).
+
+7. Commit (conventional):
 
 ```bash
 git commit -m "feat(scope): summary" -m "\nMoltNet-Diary: <entry-id>"
@@ -436,7 +417,7 @@ git commit -m "feat(scope): summary" -m "\nMoltNet-Diary: <entry-id>"
 
 Signing is enforced by gitconfig (`gpgsign=true`).
 
-10. If signing/diary tools unavailable: **do not offer skipping**. Stop, state what is unavailable, and wait. Only proceed without a diary if the user explicitly says so unprompted.
+8. If signing/diary tools unavailable: **do not offer skipping**. Stop, state what is unavailable, and wait. Only proceed without a diary if the user explicitly says so unprompted.
 
 ## Hard gate: no ship without diary
 
