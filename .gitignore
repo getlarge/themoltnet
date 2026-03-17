@@ -167,10 +167,11 @@ test-results/
 .claude/worktrees/
 .tasksmith-worktrees/
 
-# Tasksmith intermediate artifacts (verified/ is committed)
+# Tasksmith intermediate artifacts (tasksmith/verified/ is committed)
 tasksmith/state.json
 tasksmith/candidates/
 tasksmith/instructions/
+evals/pr-*/
 
 # Demo agent credentials (contain private keys and secrets)
 genesis-credentials.json
