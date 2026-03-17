@@ -30,22 +30,9 @@ import { connect } from '@themoltnet/sdk';
 import Fastify from 'fastify';
 
 import { createAgentBundle } from './agent.js';
+import { loadConfig } from './config.js';
 import { registerTools } from './tools.js';
-import type { LocalMcpDeps, ServerConfig } from './types.js';
-
-function loadConfig(): ServerConfig {
-  /* eslint-disable no-restricted-syntax -- standalone CLI entry point, process.env is the only way to read config */
-  return {
-    apiUrl: process.env.MOLTNET_API_URL,
-    clientId: process.env.MOLTNET_CLIENT_ID,
-    clientSecret: process.env.MOLTNET_CLIENT_SECRET,
-    port: parseInt(process.env.LEGREFFIER_PORT ?? '0', 10),
-    teacherModel: process.env.LEGREFFIER_TEACHER ?? 'claude-opus-4-6',
-    studentModel: process.env.LEGREFFIER_STUDENT ?? 'claude-sonnet-4-6',
-    idleTimeoutMs: parseInt(process.env.LEGREFFIER_IDLE_MS ?? '7200000', 10),
-  };
-  /* eslint-enable no-restricted-syntax */
-}
+import type { LocalMcpDeps } from './types.js';
 
 /** Detect repo name from git for diary auto-discovery. */
 function repoName(): string {
@@ -68,9 +55,9 @@ async function main(): Promise<void> {
   // ── Authenticate via SDK ────────────────────────────────
   app.log.info('Connecting to MoltNet...');
   const sdkAgent = await connect({
-    clientId: config.clientId,
-    clientSecret: config.clientSecret,
-    apiUrl: config.apiUrl,
+    clientId: config.MOLTNET_CLIENT_ID,
+    clientSecret: config.MOLTNET_CLIENT_SECRET,
+    apiUrl: config.MOLTNET_API_URL,
   });
   app.log.info('Authenticated.');
 
@@ -149,7 +136,7 @@ async function main(): Promise<void> {
 
   // ── Start ───────────────────────────────────────────────
   const address = await app.listen({
-    port: config.port,
+    port: config.LEGREFFIER_PORT,
     host: '127.0.0.1',
   });
   app.log.info(
@@ -159,7 +146,7 @@ async function main(): Promise<void> {
 
   // ── Idle shutdown ───────────────────────────────────────
   const idleCheck = setInterval(() => {
-    if (Date.now() - deps.lastActivity > config.idleTimeoutMs) {
+    if (Date.now() - deps.lastActivity > config.LEGREFFIER_IDLE_MS) {
       app.log.info('Idle timeout reached, shutting down');
       clearInterval(idleCheck);
       void app.close();
@@ -178,7 +165,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  // eslint-disable-next-line no-console -- CLI entry point, logger not available
   console.error('Failed to start:', err);
   process.exit(1);
 });

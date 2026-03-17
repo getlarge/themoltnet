@@ -7,7 +7,8 @@ import { AxAIClaudeAgentSDK } from '@moltnet/context-evals/pipeline-shared';
 import type { Agent } from '@themoltnet/sdk';
 
 import { createDiaryAxStorage } from './ax-storage.js';
-import type { AgentInput, AgentOutput, ServerConfig } from './types.js';
+import type { ServerConfigEnv } from './config.js';
+import type { AgentInput, AgentOutput } from './types.js';
 
 export interface AgentBundle {
   agent: AxLearn<AgentInput, AgentOutput>;
@@ -16,7 +17,7 @@ export interface AgentBundle {
 }
 
 export function createAgentBundle(
-  config: ServerConfig,
+  config: ServerConfigEnv,
   sessionId: string,
   sdkAgent: Agent,
   diaryId: string,
@@ -28,10 +29,10 @@ export function createAgentBundle(
   });
 
   const teacherAi = new AxAIClaudeAgentSDK({
-    model: config.teacherModel,
+    model: config.LEGREFFIER_TEACHER,
   });
   const studentAi = new AxAIClaudeAgentSDK({
-    model: config.studentModel,
+    model: config.LEGREFFIER_STUDENT,
   });
 
   const gen = ax(

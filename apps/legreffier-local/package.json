@@ -22,7 +22,6 @@
   "dependencies": {
     "@ax-llm/ax": "catalog:",
     "@getlarge/fastify-mcp": "catalog:",
-    "@moltnet/api-client": "workspace:*",
     "@moltnet/context-evals": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "@themoltnet/sdk": "workspace:*",

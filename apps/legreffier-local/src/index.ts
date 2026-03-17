@@ -3,9 +3,5 @@ export {
   createDiaryAxStorage,
   type DiaryStorageOptions,
 } from './ax-storage.js';
-export type {
-  AgentInput,
-  AgentOutput,
-  LocalMcpDeps,
-  ServerConfig,
-} from './types.js';
+export { loadConfig, type ServerConfigEnv } from './config.js';
+export type { AgentInput, AgentOutput, LocalMcpDeps } from './types.js';

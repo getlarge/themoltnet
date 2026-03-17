@@ -88,6 +88,8 @@ export async function handleAsk(
   deps: LocalMcpDeps,
 ): Promise<CallToolResult> {
   deps.lastActivity = Date.now();
+  // Reserve index synchronously to avoid races with concurrent calls
+  const thisIndex = ++deps.traceCounter;
 
   try {
     const result = await deps.agent.forward(deps.studentAi, {
@@ -98,15 +100,14 @@ export async function handleAsk(
     const traces = await deps.agent.getTraces({ limit: 1 });
     const latestTrace = traces[0];
 
-    deps.traceCounter++;
     if (latestTrace) {
-      deps.traceIndex.set(deps.traceCounter, latestTrace.id);
+      deps.traceIndex.set(thisIndex, latestTrace.id);
     }
 
     return textResult({
       answer: result.answer,
       confidence: result.confidence,
-      traceIndex: deps.traceCounter,
+      traceIndex: thisIndex,
     });
   } catch (err) {
     deps.logger.error({ err }, 'legreffier_ask failed');

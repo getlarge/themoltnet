@@ -9,9 +9,6 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/api-client"
-    },
-    {
       "path": "../../libs/context-evals"
     },
     {
