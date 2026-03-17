@@ -244,12 +244,20 @@ export function initContextDistillWorkflows(): void {
       };
 
       const packEntryRefs: PackEntryRef[] = compileResult.entries.map(
-        (compiled, index) => ({
-          cid: hashMap.get(compiled.id) ?? '',
-          compressionLevel:
-            compiled.compressionLevel as PackEntryRef['compressionLevel'],
-          rank: index + 1,
-        }),
+        (compiled, index) => {
+          const cid = hashMap.get(compiled.id);
+          if (!cid) {
+            throw new Error(
+              `Entry ${compiled.id} has no contentHash. Run the backfill script or ensure entries are created with CID computation.`,
+            );
+          }
+          return {
+            cid,
+            compressionLevel:
+              compiled.compressionLevel as PackEntryRef['compressionLevel'],
+            rank: index + 1,
+          };
+        },
       );
 
       const packCid = computePackCid({

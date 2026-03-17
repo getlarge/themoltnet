@@ -95,11 +95,18 @@ export type PackEnvelopeInput =
  * order in the input object does not affect the output.
  */
 export function buildPackEnvelope(input: PackEnvelopeInput): Uint8Array {
-  const entries = input.entries.map((entry) => ({
-    cid: CID.parse(entry.cid),
-    compressionLevel: entry.compressionLevel,
-    rank: entry.rank,
-  }));
+  const entries = input.entries.map((entry) => {
+    if (!entry.cid) {
+      throw new Error(
+        `Pack entry at rank ${entry.rank} has empty/null CID. All entries must have a contentHash.`,
+      );
+    }
+    return {
+      cid: CID.parse(entry.cid),
+      compressionLevel: entry.compressionLevel,
+      rank: entry.rank,
+    };
+  });
 
   // Sort entries by rank, then CID string as tiebreaker for total ordering.
   entries.sort(
