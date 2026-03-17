@@ -95,7 +95,7 @@ describe('ContextPackRepository (integration)', () => {
       try {
         await createPack({
           packCid: 'bafy-pack-no-expiry',
-          tokenBudget: 4000,
+          params: { tokenBudget: 4000 },
           payload: {},
           pinned: false,
           expiresAt: null,
@@ -114,7 +114,7 @@ describe('ContextPackRepository (integration)', () => {
       try {
         await createPack({
           packCid: 'bafy-pack-past-expiry',
-          tokenBudget: 4000,
+          params: { tokenBudget: 4000 },
           payload: {},
           pinned: false,
           expiresAt: new Date(Date.now() - 60_000),
@@ -130,7 +130,7 @@ describe('ContextPackRepository (integration)', () => {
     it('clears expiry when inserting a pinned pack', async () => {
       const pack = await createPack({
         packCid: 'bafy-pack-pinned-insert',
-        tokenBudget: 4000,
+        params: { tokenBudget: 4000 },
         payload: {},
         pinned: true,
         expiresAt: new Date(Date.now() + 60_000),
@@ -143,7 +143,7 @@ describe('ContextPackRepository (integration)', () => {
     it('clears expiry when pinning an existing pack', async () => {
       const created = await createPack({
         packCid: 'bafy-pack-pin-update',
-        tokenBudget: 4000,
+        params: { tokenBudget: 4000 },
         payload: {},
         pinned: false,
         expiresAt: new Date(Date.now() + 60_000),
@@ -159,7 +159,7 @@ describe('ContextPackRepository (integration)', () => {
     it('rejects unpinning without a future expiry', async () => {
       const created = await createPack({
         packCid: 'bafy-pack-unpin-invalid',
-        tokenBudget: 4000,
+        params: { tokenBudget: 4000 },
         payload: {},
         pinned: true,
       });

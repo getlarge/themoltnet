@@ -28,7 +28,12 @@ vi.mock('@moltnet/database', async (importOriginal) => {
   };
 });
 
-import type { DiaryEntry, DiaryEntryRepository } from '@moltnet/database';
+import { computeContentCid } from '@moltnet/crypto-service';
+import type {
+  ContextPackRepository,
+  DiaryEntry,
+  DiaryEntryRepository,
+} from '@moltnet/database';
 
 import {
   contextDistillWorkflows,
@@ -37,11 +42,12 @@ import {
 } from '../../src/workflows/context-distill-workflows.js';
 
 function createEntry(id: string, tags: string[] | null = null): DiaryEntry {
+  const content = `entry-${id}`;
   return {
     id,
     diaryId: '00000000-0000-0000-0000-000000000001',
     title: null,
-    content: `entry-${id}`,
+    content,
     embedding: null,
     tags,
     injectionRisk: false,
@@ -50,9 +56,10 @@ function createEntry(id: string, tags: string[] | null = null): DiaryEntry {
     lastAccessedAt: null,
     entryType: 'semantic',
     supersededBy: null,
-    contentHash: null,
+    contentHash: computeContentCid('semantic', null, content, tags),
     contentSignature: null,
     signingNonce: null,
+    createdBy: '00000000-0000-0000-0000-000000000002',
     createdAt: new Date('2026-03-06T00:00:00Z'),
     updatedAt: new Date('2026-03-06T00:00:00Z'),
   };
@@ -81,14 +88,40 @@ describe('context-distill compile workflow', () => {
       fetchEmbeddings,
     } as unknown as DiaryEntryRepository;
 
+    const contextPackRepository = {
+      createPack: vi.fn().mockResolvedValue({
+        id: 'pack-001',
+        diaryId: '00000000-0000-0000-0000-000000000001',
+        packCid: 'bafytest',
+        packCodec: 'dag-cbor',
+        packType: 'compile',
+        params: {},
+        payload: {},
+        createdBy: '00000000-0000-0000-0000-000000000002',
+        supersedesPackId: null,
+        pinned: false,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+      }),
+      addEntries: vi.fn().mockResolvedValue([]),
+    } as unknown as ContextPackRepository;
+
     setContextDistillDeps({
       diaryEntryRepository,
+      contextPackRepository,
+      dataSource: {
+        runTransaction: vi
+          .fn()
+          .mockImplementation(async (fn: () => Promise<unknown>) => fn()),
+      } as never,
+      relationshipWriter: {
+        grantPackParent: vi.fn().mockResolvedValue(undefined),
+      } as never,
       embeddingService: {
         embedQuery,
-      },
+      } as never,
       logger: {
         info: vi.fn(),
-        debug: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
       },
@@ -158,8 +191,8 @@ describe('context-distill compile workflow', () => {
       }),
     );
     expect(fetchEmbeddings).toHaveBeenCalledWith(['entry-keep']);
-    expect(result.entries.some((entry) => entry.id === 'entry-keep')).toBe(
-      true,
-    );
+    expect(
+      result.compileResult.entries.some((entry) => entry.id === 'entry-keep'),
+    ).toBe(true);
   });
 });

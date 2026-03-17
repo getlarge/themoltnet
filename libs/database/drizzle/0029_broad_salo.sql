@@ -1,0 +1,4 @@
+-- Snapshot sync: no-op migration to align drizzle-kit metadata with
+-- custom migrations 0024 (created_by), 0027 (pack_type/params), 0028 (diary_search).
+-- All schema changes were already applied by those migrations.
+-- This file exists only so the drizzle snapshot chain is correct.

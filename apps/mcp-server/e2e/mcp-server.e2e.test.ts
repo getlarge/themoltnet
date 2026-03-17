@@ -328,8 +328,9 @@ describe('MCP Server E2E', () => {
         `diaries_compile error: ${compileContent[0].text}`,
       ).toBeUndefined();
       const compileParsed = JSON.parse(compileContent[0].text);
+      expect(compileParsed).toHaveProperty('packCid');
       expect(compileParsed).toHaveProperty('entries');
-      expect(compileParsed).toHaveProperty('stats');
+      expect(compileParsed).toHaveProperty('compileStats');
     });
 
     // ── Diary CRUD via MCP tools ──

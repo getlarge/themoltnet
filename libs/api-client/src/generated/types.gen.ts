@@ -466,14 +466,30 @@ export type ConsolidateResult = {
 };
 
 export type CompileResult = {
+  id: string;
+  diaryId: string;
+  packCid: string;
+  packCodec: string;
+  packType: 'compile' | 'optimized' | 'custom';
+  params: unknown;
+  payload: unknown;
+  createdBy: string;
+  supersedesPackId: string | null;
+  pinned: boolean;
+  expiresAt: string | null;
+  createdAt: string;
   entries: Array<{
     id: string;
-    content: string;
+    packId: string;
+    entryId: string;
+    entryCidSnapshot: string;
     compressionLevel: 'full' | 'summary' | 'keywords';
-    originalTokens: number;
-    compressedTokens: number;
+    originalTokens: number | null;
+    packedTokens: number | null;
+    rank: number | null;
+    createdAt: string;
   }>;
-  stats: {
+  compileStats: {
     totalTokens: number;
     entriesIncluded: number;
     entriesCompressed: number;
@@ -481,7 +497,7 @@ export type CompileResult = {
     budgetUtilization: number;
     elapsedMs: number;
   };
-  trace: {
+  compileTrace: {
     lambdaUsed: number;
     embeddingDim: number;
     taskPromptHash?: string;

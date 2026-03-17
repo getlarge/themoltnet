@@ -13,6 +13,7 @@
  * Call setContextDistillDeps() before any workflow is invoked.
  */
 
+import type { RelationshipWriter } from '@moltnet/auth';
 import {
   compile,
   type CompileOptions,
@@ -23,13 +24,31 @@ import {
   estimateTokens,
 } from '@moltnet/context-distill';
 import {
+  type CompileParams,
+  computePackCid,
+  type PackEntryRef,
+} from '@moltnet/crypto-service';
+import {
+  type ContextPack,
+  type ContextPackEntry,
+  type ContextPackRepository,
+  type DataSource,
   DBOS,
   type DiaryEntryRepository,
+  type NewContextPack,
+  type NewContextPackEntry,
   WorkflowQueue,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
 
 import type { Logger } from './logger.js';
+
+const KETO_RETRY = {
+  retriesAllowed: true,
+  maxAttempts: 5,
+  intervalSeconds: 2,
+  backoffRate: 2,
+} as const;
 
 // ── Queues ─────────────────────────────────────────────────────
 
@@ -43,12 +62,34 @@ export const compileQueue = new WorkflowQueue('context.compile', {
   partitionQueue: true,
 });
 
+// ── Errors ─────────────────────────────────────────────────────
+
+export class CompileWorkflowError extends Error {
+  constructor(
+    public readonly code: 'missing_content_hash' | 'no_entries',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'CompileWorkflowError';
+  }
+}
+
 // ── Types ──────────────────────────────────────────────────────
 
 export interface ContextDistillDeps {
   diaryEntryRepository: DiaryEntryRepository;
+  contextPackRepository: ContextPackRepository;
+  dataSource: DataSource;
+  relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   logger: Logger;
+}
+
+/** Compile workflow output: the persisted pack + its entries + compile stats. */
+export interface CompileWorkflowResult {
+  pack: ContextPack;
+  packEntries: ContextPackEntry[];
+  compileResult: CompileResult;
 }
 
 export interface ConsolidateWorkflowInput {
@@ -98,7 +139,7 @@ type ConsolidateWorkflowFn = (
 
 type CompileWorkflowFn = (
   input: CompileWorkflowInput,
-) => Promise<CompileResult>;
+) => Promise<CompileWorkflowResult>;
 
 let _workflows: {
   consolidate: ConsolidateWorkflowFn;
@@ -191,6 +232,18 @@ export function initContextDistillWorkflows(): void {
     { name: 'context-distill.step.searchEntries' },
   );
 
+  // No registered step for persist — uses dataSource.runTransaction()
+  // directly from workflow body (DBOS doesn't allow transactions inside steps).
+
+  /** Write Keto relationship: ContextPack:{packId}#parent@Diary:{diaryId} */
+  const grantPackParentStep = DBOS.registerStep(
+    async (packId: string, diaryId: string): Promise<void> => {
+      const { relationshipWriter } = getDeps();
+      await relationshipWriter.grantPackParent(packId, diaryId);
+    },
+    { name: 'context-distill.step.grantPackParent', ...KETO_RETRY },
+  );
+
   // ── Workflows ──────────────────────────────────────────────
 
   const consolidateWorkflow = DBOS.registerWorkflow(
@@ -261,7 +314,7 @@ export function initContextDistillWorkflows(): void {
   );
 
   const compileWorkflow = DBOS.registerWorkflow(
-    async (input: CompileWorkflowInput) => {
+    async (input: CompileWorkflowInput): Promise<CompileWorkflowResult> => {
       const taskPromptEmbedding = input.taskPrompt
         ? await embedQueryStep(input.taskPrompt)
         : undefined;
@@ -298,13 +351,115 @@ export function initContextDistillWorkflows(): void {
               : e.createdAt,
         }));
 
-      return compile(distillEntries, {
+      const compileResult = compile(distillEntries, {
         tokenBudget: input.tokenBudget,
         taskPromptEmbedding: taskPromptEmbedding?.length
           ? taskPromptEmbedding
           : undefined,
         lambda: input.lambda,
       });
+
+      // Validate CIDs before entering the persist step (data integrity,
+      // not retryable). The step itself only does DB writes (retryable).
+      const compiledIds = new Set(compileResult.entries.map((ce) => ce.id));
+      const sourceEntryHashes = entries
+        .filter((e) => compiledIds.has(e.id))
+        .map((e) => ({
+          id: e.id,
+          contentHash: e.contentHash,
+        }));
+
+      for (const entry of sourceEntryHashes) {
+        if (!entry.contentHash) {
+          throw new CompileWorkflowError(
+            'missing_content_hash',
+            `Entry ${entry.id} has no contentHash. Run the backfill script (tools/db/backfill-content-hashes.ts).`,
+          );
+        }
+      }
+
+      // Build pack CID and inputs (pure computation, no DB)
+      const hashMap = new Map(
+        sourceEntryHashes.map((e) => [e.id, e.contentHash]),
+      );
+      const createdAt = new Date().toISOString();
+      const params: CompileParams = {
+        tokenBudget: input.tokenBudget,
+        lambda: input.lambda,
+        taskPromptHash: compileResult.trace.taskPromptHash,
+        wRecency: input.wRecency,
+        wImportance: input.wImportance,
+      };
+      const packEntryRefs: PackEntryRef[] = compileResult.entries.map(
+        (compiled, index) => ({
+          cid: hashMap.get(compiled.id) ?? '',
+          compressionLevel:
+            compiled.compressionLevel as PackEntryRef['compressionLevel'],
+          rank: index + 1,
+        }),
+      );
+      const packCid = computePackCid({
+        diaryId: input.diaryId,
+        createdBy: input.identityId,
+        createdAt,
+        packType: 'compile',
+        params,
+        entries: packEntryRefs,
+      });
+
+      const createdAtDate = new Date(createdAt);
+      const packInput: NewContextPack = {
+        diaryId: input.diaryId,
+        createdBy: input.identityId,
+        packCid,
+        packType: 'compile',
+        params,
+        payload: {
+          v: 'moltnet:pack:v1',
+          diaryId: input.diaryId,
+          createdBy: input.identityId,
+          createdAt,
+          packType: 'compile',
+          params,
+          entries: packEntryRefs,
+        },
+        createdAt: createdAtDate,
+        pinned: false,
+        expiresAt: new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+      };
+
+      const entryInputs: NewContextPackEntry[] = compileResult.entries.map(
+        (compiled, index) => ({
+          packId: '', // filled by the step after pack creation
+          entryId: compiled.id,
+          entryCidSnapshot: hashMap.get(compiled.id) ?? '',
+          compressionLevel:
+            compiled.compressionLevel as PackEntryRef['compressionLevel'],
+          originalTokens: compiled.originalTokens,
+          packedTokens: compiled.compressedTokens,
+          rank: index + 1,
+        }),
+      );
+
+      // Persist atomically (pack + entries in one transaction).
+      // Called directly from workflow body — DBOS doesn't allow
+      // dataSource.runTransaction inside a step.
+      const { contextPackRepository, dataSource } = getDeps();
+      const { pack, packEntries } = await dataSource.runTransaction(
+        async () => {
+          const p = await contextPackRepository.createPack(packInput);
+          const pe = await contextPackRepository.addEntries(
+            entryInputs.map((e) => ({ ...e, packId: p.id })),
+          );
+          return { pack: p, packEntries: pe };
+        },
+        { name: 'context-distill.tx.persistCompilePack' },
+      );
+
+      // Wire Keto authorization: ContextPack#parent@Diary
+      await grantPackParentStep(pack.id, input.diaryId);
+
+      return { pack, packEntries, compileResult };
     },
     { name: 'context.compile' },
   );
