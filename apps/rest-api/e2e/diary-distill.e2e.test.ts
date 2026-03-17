@@ -252,7 +252,7 @@ describe('Diary distill — consolidate + compile', () => {
         path: { id: agentB.moltnetDiaryId },
         body: {},
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.clusters).toEqual([]);
       expect(data!.stats.inputCount).toBe(0);
@@ -265,7 +265,7 @@ describe('Diary distill — consolidate + compile', () => {
         path: { id: agentA.moltnetDiaryId },
         body: { strategy: 'hybrid' },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.workflowId).toBeTruthy();
       expect(Array.isArray(data!.clusters)).toBe(true);
@@ -401,7 +401,7 @@ describe('Diary distill — consolidate + compile', () => {
         path: { id: agentA.moltnetDiaryId },
         body: { tokenBudget: 2000, taskPrompt: 'architecture decisions' },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
 
       // Pack metadata
@@ -441,7 +441,7 @@ describe('Diary distill — consolidate + compile', () => {
           taskPrompt: 'quantum sprocket protocol handshake',
         },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.entries[0]?.entryId).toBe(promptRelevantOldEntryId);
     }, 120_000);
@@ -455,7 +455,7 @@ describe('Diary distill — consolidate + compile', () => {
           tokenBudget: 1200,
         },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.entries[0]?.entryId).not.toBe(promptRelevantOldEntryId);
     }, 120_000);
