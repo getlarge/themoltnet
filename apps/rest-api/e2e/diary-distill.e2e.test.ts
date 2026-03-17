@@ -460,7 +460,7 @@ describe('Diary distill — consolidate + compile', () => {
       expect(data!.entries[0]?.entryId).not.toBe(promptRelevantOldEntryId);
     }, 120_000);
 
-    it('compile pack CID is deterministic for same parameters', async () => {
+    it('each compile produces a unique pack CID (createdAt is part of envelope)', async () => {
       const body = { tokenBudget: 800 };
       const { data: data1 } = await compileDiary({
         client,

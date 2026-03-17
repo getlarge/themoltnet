@@ -269,6 +269,7 @@ export function initContextDistillWorkflows(): void {
         entries: packEntryRefs,
       });
 
+      const createdAtDate = new Date(createdAt);
       const pack = await contextPackRepository.createPack({
         diaryId,
         createdBy,
@@ -284,8 +285,11 @@ export function initContextDistillWorkflows(): void {
           params,
           entries: packEntryRefs,
         },
+        // Use the same timestamp as the CID envelope so the DB row
+        // matches the CID — prevents drift on CID re-verification.
+        createdAt: createdAtDate,
         pinned: false,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000),
       });
 
       const packEntries = await contextPackRepository.addEntries(
