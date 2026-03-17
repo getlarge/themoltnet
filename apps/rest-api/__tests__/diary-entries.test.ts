@@ -56,6 +56,7 @@ describe('Diary entry routes', () => {
         {
           diaryId: DIARY_ID,
           content: 'Test diary entry content',
+          contentHash: expect.stringMatching(/^bafk/),
           title: undefined,
           tags: undefined,
           importance: undefined,

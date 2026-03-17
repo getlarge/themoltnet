@@ -35,20 +35,24 @@ export interface WriteCompiledPackOptions {
   metadataPath?: string;
 }
 
+// TODO: renderCompiledPack needs entry content from a pack expansion endpoint.
+// Currently pack entries only have metadata (entryId, CID, compression, rank).
+// This function will be updated when GET /packs/:id?expand=entries is available.
 function renderCompiledPack(
   result: CompileResult,
   metadata: CompiledPackMetadata,
 ): string {
   const sections = result.entries.map((entry, index) => {
-    const title = `Entry ${index + 1} — ${entry.id.slice(0, 8)}`;
+    const title = `Entry ${index + 1} — ${entry.entryId.slice(0, 8)}`;
     return [
       `### ${title}`,
       '',
-      `- Entry ID: \`${entry.id}\``,
+      `- Entry ID: \`${entry.entryId}\``,
+      `- CID: \`${entry.entryCidSnapshot}\``,
       `- Compression: \`${entry.compressionLevel}\``,
-      `- Tokens: ${entry.compressedTokens}/${entry.originalTokens}`,
+      `- Tokens: ${entry.packedTokens ?? '?'}/${entry.originalTokens ?? '?'}`,
       '',
-      entry.content.trim(),
+      `<!-- content not available in pack response — use expand=entries -->`,
     ].join('\n');
   });
 
@@ -125,7 +129,7 @@ export async function writeCompiledPack(
   const metadata: CompiledPackMetadata = {
     compile_session: compileSession,
     source_model_tag: options.modelTag ?? 'unknown',
-    source_entry_ids: data.entries.map((entry) => entry.id),
+    source_entry_ids: data.entries.map((entry) => entry.entryId),
     compile_profile: 'gepa-runtime',
     diary_id: options.diaryId,
     token_budget: options.tokenBudget,

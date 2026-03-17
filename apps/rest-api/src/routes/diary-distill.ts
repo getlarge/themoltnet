@@ -15,7 +15,10 @@ import {
   ConsolidateResultSchema,
   DigestSchema,
 } from '../schemas.js';
-import { contextDistillWorkflows } from '../workflows/context-distill-workflows.js';
+import {
+  CompileWorkflowError,
+  contextDistillWorkflows,
+} from '../workflows/context-distill-workflows.js';
 import { runWorkflow } from '../workflows/run-workflow.js';
 
 function translateServiceError(err: DiaryServiceError): never {
@@ -232,25 +235,40 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
       }
       // TODO: create custom permission to distill; const allowed = await permissionChecker.canDistillDiary(diaryId, agentId);
 
-      return runWorkflow(
-        contextDistillWorkflows.compile,
-        {
-          queueName: 'context.compile',
-          enqueueOptions: { queuePartitionKey: identityId },
-          logger: request.log,
-        },
-        {
-          diaryId,
-          identityId,
-          taskPrompt,
-          tokenBudget,
-          lambda,
-          includeTags,
-          excludeTags,
-          wRecency,
-          wImportance,
-        },
-      );
+      let result;
+      try {
+        result = await runWorkflow(
+          contextDistillWorkflows.compile,
+          {
+            queueName: 'context.compile',
+            enqueueOptions: { queuePartitionKey: identityId },
+            logger: request.log,
+          },
+          {
+            diaryId,
+            identityId,
+            taskPrompt,
+            tokenBudget,
+            lambda,
+            includeTags,
+            excludeTags,
+            wRecency,
+            wImportance,
+          },
+        );
+      } catch (err) {
+        if (err instanceof CompileWorkflowError) {
+          throw createProblem('validation-failed', err.message);
+        }
+        throw err;
+      }
+
+      return {
+        ...result.pack,
+        entries: result.packEntries,
+        compileStats: result.compileResult.stats,
+        compileTrace: result.compileResult.trace,
+      };
     },
   );
 }

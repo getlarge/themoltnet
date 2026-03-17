@@ -33,6 +33,11 @@
         "soul"
       ]
     },
+    "public.pack_type": {
+      "name": "pack_type",
+      "schema": "public",
+      "values": ["compile", "optimized", "custom"]
+    },
     "public.relation_status": {
       "name": "relation_status",
       "schema": "public",
@@ -61,9 +66,9 @@
       "values": ["private", "moltnet", "public"]
     }
   },
-  "id": "c3264d19-e1db-4f67-8aef-24eaf3e3e56f",
+  "id": "1abaea18-4568-490e-9a00-988ca0761a23",
   "policies": {},
-  "prevId": "a3f51846-9376-4219-b5a4-988369e9c3d9",
+  "prevId": "750d89cd-0ad7-4eb0-a2b9-75b632ad8fdd",
   "roles": {},
   "schemas": {},
   "sequences": {},
@@ -371,7 +376,7 @@
         },
         "created_by": {
           "name": "created_by",
-          "notNull": false,
+          "notNull": true,
           "primaryKey": false,
           "type": "uuid"
         },
@@ -395,12 +400,6 @@
           "primaryKey": true,
           "type": "uuid"
         },
-        "lambda": {
-          "name": "lambda",
-          "notNull": false,
-          "primaryKey": false,
-          "type": "real"
-        },
         "pack_cid": {
           "name": "pack_cid",
           "notNull": true,
@@ -413,6 +412,21 @@
           "notNull": true,
           "primaryKey": false,
           "type": "varchar(50)"
+        },
+        "pack_type": {
+          "default": "'compile'",
+          "name": "pack_type",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "pack_type",
+          "typeSchema": "public"
+        },
+        "params": {
+          "default": "'{}'::jsonb",
+          "name": "params",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "jsonb"
         },
         "payload": {
           "default": "'{}'::jsonb",
@@ -433,30 +447,6 @@
           "notNull": false,
           "primaryKey": false,
           "type": "uuid"
-        },
-        "task_prompt_hash": {
-          "name": "task_prompt_hash",
-          "notNull": false,
-          "primaryKey": false,
-          "type": "text"
-        },
-        "token_budget": {
-          "name": "token_budget",
-          "notNull": true,
-          "primaryKey": false,
-          "type": "integer"
-        },
-        "w_importance": {
-          "name": "w_importance",
-          "notNull": false,
-          "primaryKey": false,
-          "type": "real"
-        },
-        "w_recency": {
-          "name": "w_recency",
-          "notNull": false,
-          "primaryKey": false,
-          "type": "real"
         }
       },
       "compositePrimaryKeys": {},
@@ -525,6 +515,21 @@
           "isUnique": true,
           "method": "btree",
           "name": "context_packs_pack_cid_unique_idx",
+          "with": {}
+        },
+        "context_packs_pack_type_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "pack_type",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "context_packs_pack_type_idx",
           "with": {}
         },
         "context_packs_pinned_idx": {
@@ -682,6 +687,12 @@
           "primaryKey": false,
           "type": "timestamp with time zone"
         },
+        "created_by": {
+          "name": "created_by",
+          "notNull": true,
+          "primaryKey": false,
+          "type": "uuid"
+        },
         "diary_id": {
           "name": "diary_id",
           "notNull": true,
@@ -813,6 +824,21 @@
           "method": "btree",
           "name": "diary_entries_content_signature_unique_idx",
           "where": "content_signature IS NOT NULL",
+          "with": {}
+        },
+        "diary_entries_created_by_idx": {
+          "columns": [
+            {
+              "asc": true,
+              "expression": "created_by",
+              "isExpression": false,
+              "nulls": "last"
+            }
+          ],
+          "concurrently": false,
+          "isUnique": false,
+          "method": "btree",
+          "name": "diary_entries_created_by_idx",
           "with": {}
         },
         "diary_entries_diary_idx": {

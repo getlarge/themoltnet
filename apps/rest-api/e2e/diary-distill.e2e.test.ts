@@ -252,7 +252,7 @@ describe('Diary distill — consolidate + compile', () => {
         path: { id: agentB.moltnetDiaryId },
         body: {},
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.clusters).toEqual([]);
       expect(data!.stats.inputCount).toBe(0);
@@ -265,7 +265,7 @@ describe('Diary distill — consolidate + compile', () => {
         path: { id: agentA.moltnetDiaryId },
         body: { strategy: 'hybrid' },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
       expect(data!.workflowId).toBeTruthy();
       expect(Array.isArray(data!.clusters)).toBe(true);
@@ -394,18 +394,41 @@ describe('Diary distill — consolidate + compile', () => {
       expect(response.status).toBe(404);
     });
 
-    it('compiles a seeded diary within token budget', async () => {
+    it('compiles a seeded diary and returns a persisted context pack', async () => {
       const { data, error } = await compileDiary({
         client,
         auth: () => agentA.accessToken,
         path: { id: agentA.moltnetDiaryId },
         body: { tokenBudget: 2000, taskPrompt: 'architecture decisions' },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
+
+      // Pack metadata
+      expect(data!.packCid).toBeTruthy();
+      expect(data!.packCid).toMatch(/^bafy/); // dag-cbor CIDv1
+      expect(data!.packType).toBe('compile');
+      expect(data!.diaryId).toBe(agentA.moltnetDiaryId);
+      expect(data!.pinned).toBe(false);
+      expect(data!.expiresAt).toBeTruthy();
+
+      // Pack entries (membership with CID snapshots)
       expect(Array.isArray(data!.entries)).toBe(true);
-      expect(data!.stats.totalTokens).toBeLessThanOrEqual(2000);
-      expect(data!.stats.budgetUtilization).toBeLessThanOrEqual(1);
+      expect(data!.entries.length).toBeGreaterThan(0);
+      for (const entry of data!.entries) {
+        expect(entry.entryId).toBeTruthy();
+        expect(entry.entryCidSnapshot).toBeTruthy();
+        expect(entry.entryCidSnapshot).toMatch(/^bafk/); // raw CIDv1
+        expect(entry.rank).toBeGreaterThan(0);
+        expect(['full', 'summary', 'keywords']).toContain(
+          entry.compressionLevel,
+        );
+      }
+
+      // Compile stats preserved
+      expect(data!.compileStats.totalTokens).toBeLessThanOrEqual(2000);
+      expect(data!.compileStats.budgetUtilization).toBeLessThanOrEqual(1);
+      expect(data!.compileStats.entriesIncluded).toBeGreaterThan(0);
     }, 120_000);
 
     it('uses taskPrompt semantics during candidate retrieval (not only MMR)', async () => {
@@ -418,9 +441,9 @@ describe('Diary distill — consolidate + compile', () => {
           taskPrompt: 'quantum sprocket protocol handshake',
         },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
-      expect(data!.entries[0]?.id).toBe(promptRelevantOldEntryId);
+      expect(data!.entries[0]?.entryId).toBe(promptRelevantOldEntryId);
     }, 120_000);
 
     it('without taskPrompt, ranking favors high-importance distractors over old low-importance entry', async () => {
@@ -432,27 +455,30 @@ describe('Diary distill — consolidate + compile', () => {
           tokenBudget: 1200,
         },
       });
-      expect(error).toBeUndefined();
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
       expect(data).toBeDefined();
-      expect(data!.entries[0]?.id).not.toBe(promptRelevantOldEntryId);
+      expect(data!.entries[0]?.entryId).not.toBe(promptRelevantOldEntryId);
     }, 120_000);
 
-    it('applies excludeTags to compile results', async () => {
-      const { data, error } = await compileDiary({
+    it('each compile produces a unique pack CID (createdAt is part of envelope)', async () => {
+      const body = { tokenBudget: 800 };
+      const { data: data1 } = await compileDiary({
         client,
         auth: () => agentA.accessToken,
         path: { id: agentA.moltnetDiaryId },
-        body: {
-          tokenBudget: 1600,
-          taskPrompt: 'deployment checklist',
-          excludeTags: ['ops'],
-        },
+        body,
       });
-      expect(error).toBeUndefined();
-      expect(data).toBeDefined();
-      for (const entry of data!.entries) {
-        expect(entry.tags ?? []).not.toContain('ops');
-      }
+      const { data: data2 } = await compileDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body,
+      });
+      // Different packs (different createdAt), but both have valid CIDs
+      expect(data1!.packCid).toMatch(/^bafy/);
+      expect(data2!.packCid).toMatch(/^bafy/);
+      // CIDs differ because createdAt is part of the envelope
+      expect(data1!.packCid).not.toBe(data2!.packCid);
     }, 120_000);
   });
 });

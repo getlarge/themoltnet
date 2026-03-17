@@ -33,7 +33,7 @@ const SHA2_256_CODE = 0x12;
 /** DAG-CBOR multicodec code */
 const DAG_CBOR_CODE = 0x71;
 
-export type PackType = 'compile' | 'optimized';
+export type PackType = 'compile' | 'optimized' | 'custom';
 
 export type CompressionLevel = 'full' | 'summary' | 'keywords';
 
@@ -78,7 +78,11 @@ interface PackEnvelopeBase {
  */
 export type PackEnvelopeInput =
   | (PackEnvelopeBase & { packType: 'compile'; params: CompileParams })
-  | (PackEnvelopeBase & { packType: 'optimized'; params: OptimizedParams });
+  | (PackEnvelopeBase & { packType: 'optimized'; params: OptimizedParams })
+  | (PackEnvelopeBase & {
+      packType: 'custom';
+      params: Record<string, unknown>;
+    });
 
 /**
  * Build the canonical DAG-CBOR envelope for a context pack.
@@ -91,11 +95,18 @@ export type PackEnvelopeInput =
  * order in the input object does not affect the output.
  */
 export function buildPackEnvelope(input: PackEnvelopeInput): Uint8Array {
-  const entries = input.entries.map((entry) => ({
-    cid: CID.parse(entry.cid),
-    compressionLevel: entry.compressionLevel,
-    rank: entry.rank,
-  }));
+  const entries = input.entries.map((entry) => {
+    if (!entry.cid) {
+      throw new Error(
+        `Pack entry at rank ${entry.rank} has empty/null CID. All entries must have a contentHash.`,
+      );
+    }
+    return {
+      cid: CID.parse(entry.cid),
+      compressionLevel: entry.compressionLevel,
+      rank: entry.rank,
+    };
+  });
 
   // Sort entries by rank, then CID string as tiebreaker for total ordering.
   entries.sort(
@@ -110,7 +121,7 @@ export function buildPackEnvelope(input: PackEnvelopeInput): Uint8Array {
     diaryId: input.diaryId,
     entries,
     packType: input.packType,
-    params: stripUndefined(input.params),
+    params: stripUndefined(input.params as Record<string, unknown>),
   };
 
   return dagCbor.encode(envelope);
@@ -121,9 +132,7 @@ export function buildPackEnvelope(input: PackEnvelopeInput): Uint8Array {
  * DAG-CBOR encodes undefined differently from omitted keys,
  * so stripping them ensures CID stability across calling patterns.
  */
-function stripUndefined(
-  obj: CompileParams | OptimizedParams,
-): Record<string, unknown> {
+function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {

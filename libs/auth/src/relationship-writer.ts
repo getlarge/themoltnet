@@ -9,6 +9,7 @@ import type { RelationshipApi } from '@ory/client-fetch';
 
 import {
   AgentRelation,
+  ContextPackRelation,
   DiaryEntryRelation,
   DiaryRelation,
   KetoNamespace,
@@ -21,8 +22,10 @@ export interface RelationshipWriter {
   removeDiaryRelations(diaryId: string): Promise<void>;
   removeDiaryRelationForAgent(diaryId: string, agentId: string): Promise<void>;
   grantEntryParent(entryId: string, diaryId: string): Promise<void>;
+  grantPackParent(packId: string, diaryId: string): Promise<void>;
   registerAgent(agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
+  removePackRelations(packId: string): Promise<void>;
 }
 
 export function createRelationshipWriter(
@@ -99,6 +102,28 @@ export function createRelationshipWriter(
             relation: '',
           },
         },
+      });
+    },
+
+    async grantPackParent(packId: string, diaryId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.ContextPack,
+          object: packId,
+          relation: ContextPackRelation.Parent,
+          subject_set: {
+            namespace: KetoNamespace.Diary,
+            object: diaryId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async removePackRelations(packId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.ContextPack,
+        object: packId,
       });
     },
 

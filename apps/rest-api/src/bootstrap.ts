@@ -19,6 +19,7 @@ import {
 import { cryptoService } from '@moltnet/crypto-service';
 import {
   createAgentRepository,
+  createContextPackRepository,
   createDatabase,
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
@@ -168,6 +169,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
+  const contextPackRepository = createContextPackRepository(dbConnection.db);
   const diaryShareRepository = createDiaryShareRepository(dbConnection.db);
   const nonceRepository = createNonceRepository(dbConnection.db);
 
@@ -243,6 +245,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => {
         setContextDistillDeps({
           diaryEntryRepository,
+          contextPackRepository,
+          dataSource: getDataSource(),
+          relationshipWriter,
           embeddingService,
           logger: app.log,
         });

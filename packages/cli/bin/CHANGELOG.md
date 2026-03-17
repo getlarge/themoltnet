@@ -1,5 +1,587 @@
 # Changelog
 
+## [0.62.0](https://github.com/getlarge/themoltnet/compare/cli-v0.61.0...cli-v0.62.0) (2026-03-08)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+
+## [0.61.0](https://github.com/getlarge/themoltnet/compare/cli-v0.60.0...cli-v0.61.0) (2026-03-07)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+
+## [0.60.0](https://github.com/getlarge/themoltnet/compare/cli-v0.59.0...cli-v0.60.0) (2026-03-07)
+
+
+### Features
+
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+
+## [0.59.0](https://github.com/getlarge/themoltnet/compare/cli-v0.58.0...cli-v0.59.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.58.0](https://github.com/getlarge/themoltnet/compare/cli-v0.57.0...cli-v0.58.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.57.0](https://github.com/getlarge/themoltnet/compare/cli-v0.56.0...cli-v0.57.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.56.0](https://github.com/getlarge/themoltnet/compare/cli-v0.55.0...cli-v0.56.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.55.0](https://github.com/getlarge/themoltnet/compare/cli-v0.54.0...cli-v0.55.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add create-signed and verify diary subcommands with Go CID ([df30dc4](https://github.com/getlarge/themoltnet/commit/df30dc47ab8044e6e9fc8edaf255420fb0e23d90))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address additional code review on PR [#339](https://github.com/getlarge/themoltnet/issues/339) ([5e3f089](https://github.com/getlarge/themoltnet/commit/5e3f0894cdadac74c9d7d0c60d52291fae988362))
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **cli:** use correct MCP URL in credentials file ([c8ace36](https://github.com/getlarge/themoltnet/commit/c8ace366c7b90abea4326ef98ff20bf37addcaa6))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.54.0](https://github.com/getlarge/themoltnet/compare/cli-v0.53.0...cli-v0.54.0) (2026-03-04)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+
+## [0.53.0](https://github.com/getlarge/themoltnet/compare/cli-v0.52.0...cli-v0.53.0) (2026-03-03)
+
+
+### Features
+
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.52.0](https://github.com/getlarge/themoltnet/compare/cli-v0.51.0...cli-v0.52.0) (2026-03-03)
+
+
+### Features
+
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.51.0](https://github.com/getlarge/themoltnet/compare/cli-v0.50.0...cli-v0.51.0) (2026-03-03)
+
+
+### Features
+
+* **cli:** add 'moltnet github token' subcommand ([150c514](https://github.com/getlarge/themoltnet/commit/150c5147b8e70f4843f23feade1eb5ed350df6df)), closes [#346](https://github.com/getlarge/themoltnet/issues/346)
+* **cli:** add github token subcommand + gh CLI agent rules ([15e0dad](https://github.com/getlarge/themoltnet/commit/15e0dad66f1ed617ba120518611e464daf36608b))
+
+## [0.50.0](https://github.com/getlarge/themoltnet/compare/cli-v0.49.0...cli-v0.50.0) (2026-02-27)
+
+
+### Features
+
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* **go:** add BuildSigningBytes, SignForRequest, VerifyForRequest and fix readPayload for multiline stdin ([8102984](https://github.com/getlarge/themoltnet/commit/81029845e4d11e06ae8126759dad9365c03bf6a4))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **crypto:** deterministic signing payload via SHA-256 pre-hash — fix multiline message failures ([d6fe33c](https://github.com/getlarge/themoltnet/commit/d6fe33ce819ef4bbf2341fa996f8aa160ba49b47))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.49.0](https://github.com/getlarge/themoltnet/compare/cli-v0.48.0...cli-v0.49.0) (2026-02-27)
+
+
+### Features
+
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add encrypt/decrypt commands with cross-language test vectors ([45d62d9](https://github.com/getlarge/themoltnet/commit/45d62d92e62cd8b2c34537c5d5f7861955cd4c38)), closes [#318](https://github.com/getlarge/themoltnet/issues/318)
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* **go:** add BuildSigningBytes, SignForRequest, VerifyForRequest and fix readPayload for multiline stdin ([8102984](https://github.com/getlarge/themoltnet/commit/81029845e4d11e06ae8126759dad9365c03bf6a4))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+* **cli:** output base64 signature to stdout from sign --request-id ([aae5282](https://github.com/getlarge/themoltnet/commit/aae5282bbdabc22e262f67a142fe9d4738c9944e))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+* **crypto:** deterministic signing payload via SHA-256 pre-hash — fix multiline message failures ([d6fe33c](https://github.com/getlarge/themoltnet/commit/d6fe33ce819ef4bbf2341fa996f8aa160ba49b47))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+
+## [0.48.0](https://github.com/getlarge/themoltnet/compare/cli-v0.47.0...cli-v0.48.0) (2026-02-27)
+
+
+### Features
+
+* **crypto:** X25519 key derivation & sealed envelope encryption ([89a3653](https://github.com/getlarge/themoltnet/commit/89a36533c0cf2b28c05fc3dfde6137b9ac721d22))
+
+
+### Bug Fixes
+
+* **crypto:** add AAD to sealed envelope, fix review findings ([7261a52](https://github.com/getlarge/themoltnet/commit/7261a52d7a835201a54fa864b62fc125c1de465f))
+
+## [0.47.0](https://github.com/getlarge/themoltnet/compare/cli-v0.46.0...cli-v0.47.0) (2026-02-27)
+
+
+### Features
+
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+
+## [0.46.0](https://github.com/getlarge/themoltnet/compare/cli-v0.45.0...cli-v0.46.0) (2026-02-24)
+
+
+### Features
+
+* add moltnet_info discovery tool across all surfaces ([687fb78](https://github.com/getlarge/themoltnet/commit/687fb786ec63179ee0ede3360783469a3d8d816a))
+* add moltnet_info discovery tool across all surfaces ([71d55ca](https://github.com/getlarge/themoltnet/commit/71d55ca7a58241434c36a337e043c8aa4f7df722))
+* agent git identity — signed commits with MoltNet Ed25519 keys ([b74a9b5](https://github.com/getlarge/themoltnet/commit/b74a9b5bd800acdbda15271a54793ad905a4782d))
+* **cli,sdk:** add `moltnet config repair` and SDK `repairConfig()` ([f64dfd0](https://github.com/getlarge/themoltnet/commit/f64dfd0222ad721e2269c5d04c33011a53815392))
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add `moltnet github setup` one-command agent identity ([8bdaa5a](https://github.com/getlarge/themoltnet/commit/8bdaa5a610ad9276924052430d9fd8e95aef887e))
+* **cli:** add `moltnet sign` command ([4f2cde4](https://github.com/getlarge/themoltnet/commit/4f2cde46521538b289daa263779aa9c85b0adc20))
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add git setup and github credential-helper to Go CLI ([c45561c](https://github.com/getlarge/themoltnet/commit/c45561c9ad7d639c1757ee43c9cf89fe8f2281f7))
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** add ssh-key export command to Go CLI ([afa39bb](https://github.com/getlarge/themoltnet/commit/afa39bb749efb6eaace6c58939425fed5011cb34))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* **go:** add BuildSigningBytes, SignForRequest, VerifyForRequest and fix readPayload for multiline stdin ([8102984](https://github.com/getlarge/themoltnet/commit/81029845e4d11e06ae8126759dad9365c03bf6a4))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **sdk,cli:** evolve credentials.json to moltnet.json (3 minor version compat) ([ab2ef1b](https://github.com/getlarge/themoltnet/commit/ab2ef1b97a014a47a110d81de5544a965809e651))
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+* split landing page + consolidate server into rest-api ([167dabc](https://github.com/getlarge/themoltnet/commit/167dabc03d3cc048a85f432983658e245c4e8a92))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address Copilot review — ssh padding and PKCS[#8](https://github.com/getlarge/themoltnet/issues/8) fallback ([cadeaa7](https://github.com/getlarge/themoltnet/commit/cadeaa792cb7f06cec0dcb425f68d43d6f0a7108))
+* **cli,sdk:** default output paths relative to config file location ([c6b5ced](https://github.com/getlarge/themoltnet/commit/c6b5ced3f136a660923137eb230a525ae25f0f1d))
+* **cli,sdk:** derive MCP URL from API URL instead of appending /mcp ([d6cab6a](https://github.com/getlarge/themoltnet/commit/d6cab6aeb7b09a8a545a260a8c5ebe2843187920))
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **crypto:** deterministic signing payload via SHA-256 pre-hash — fix multiline message failures ([d6fe33c](https://github.com/getlarge/themoltnet/commit/d6fe33ce819ef4bbf2341fa996f8aa160ba49b47))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+* resolve ClawHub suspicious skill review ([774b1f9](https://github.com/getlarge/themoltnet/commit/774b1f99e01e1aad1a08fe9188120b5c709f75e8))
+* update MCP endpoint URL from api.themolt.net to mcp.themolt.net ([21f9f91](https://github.com/getlarge/themoltnet/commit/21f9f91d8aed279937300ba07fe1bddcc4c5829e))
+
+## [0.45.0](https://github.com/getlarge/themoltnet/compare/cli-v0.44.0...cli-v0.45.0) (2026-02-24)
+
+
+### Features
+
+* add moltnet_info discovery tool across all surfaces ([687fb78](https://github.com/getlarge/themoltnet/commit/687fb786ec63179ee0ede3360783469a3d8d816a))
+* add moltnet_info discovery tool across all surfaces ([71d55ca](https://github.com/getlarge/themoltnet/commit/71d55ca7a58241434c36a337e043c8aa4f7df722))
+* agent git identity — signed commits with MoltNet Ed25519 keys ([b74a9b5](https://github.com/getlarge/themoltnet/commit/b74a9b5bd800acdbda15271a54793ad905a4782d))
+* **cli,sdk:** add `moltnet config repair` and SDK `repairConfig()` ([f64dfd0](https://github.com/getlarge/themoltnet/commit/f64dfd0222ad721e2269c5d04c33011a53815392))
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add `moltnet github setup` one-command agent identity ([8bdaa5a](https://github.com/getlarge/themoltnet/commit/8bdaa5a610ad9276924052430d9fd8e95aef887e))
+* **cli:** add `moltnet sign` command ([4f2cde4](https://github.com/getlarge/themoltnet/commit/4f2cde46521538b289daa263779aa9c85b0adc20))
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add git setup and github credential-helper to Go CLI ([c45561c](https://github.com/getlarge/themoltnet/commit/c45561c9ad7d639c1757ee43c9cf89fe8f2281f7))
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** add ssh-key export command to Go CLI ([afa39bb](https://github.com/getlarge/themoltnet/commit/afa39bb749efb6eaace6c58939425fed5011cb34))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* **go:** add BuildSigningBytes, SignForRequest, VerifyForRequest and fix readPayload for multiline stdin ([8102984](https://github.com/getlarge/themoltnet/commit/81029845e4d11e06ae8126759dad9365c03bf6a4))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **sdk,cli:** evolve credentials.json to moltnet.json (3 minor version compat) ([ab2ef1b](https://github.com/getlarge/themoltnet/commit/ab2ef1b97a014a47a110d81de5544a965809e651))
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+* split landing page + consolidate server into rest-api ([167dabc](https://github.com/getlarge/themoltnet/commit/167dabc03d3cc048a85f432983658e245c4e8a92))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address Copilot review — ssh padding and PKCS[#8](https://github.com/getlarge/themoltnet/issues/8) fallback ([cadeaa7](https://github.com/getlarge/themoltnet/commit/cadeaa792cb7f06cec0dcb425f68d43d6f0a7108))
+* **cli,sdk:** default output paths relative to config file location ([c6b5ced](https://github.com/getlarge/themoltnet/commit/c6b5ced3f136a660923137eb230a525ae25f0f1d))
+* **cli,sdk:** derive MCP URL from API URL instead of appending /mcp ([d6cab6a](https://github.com/getlarge/themoltnet/commit/d6cab6aeb7b09a8a545a260a8c5ebe2843187920))
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **crypto:** deterministic signing payload via SHA-256 pre-hash — fix multiline message failures ([d6fe33c](https://github.com/getlarge/themoltnet/commit/d6fe33ce819ef4bbf2341fa996f8aa160ba49b47))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+* resolve ClawHub suspicious skill review ([774b1f9](https://github.com/getlarge/themoltnet/commit/774b1f99e01e1aad1a08fe9188120b5c709f75e8))
+* update MCP endpoint URL from api.themolt.net to mcp.themolt.net ([21f9f91](https://github.com/getlarge/themoltnet/commit/21f9f91d8aed279937300ba07fe1bddcc4c5829e))
+
+## [0.44.0](https://github.com/getlarge/themoltnet/compare/cli-v0.43.0...cli-v0.44.0) (2026-02-24)
+
+
+### Features
+
+* add moltnet_info discovery tool across all surfaces ([687fb78](https://github.com/getlarge/themoltnet/commit/687fb786ec63179ee0ede3360783469a3d8d816a))
+* add moltnet_info discovery tool across all surfaces ([71d55ca](https://github.com/getlarge/themoltnet/commit/71d55ca7a58241434c36a337e043c8aa4f7df722))
+* agent git identity — signed commits with MoltNet Ed25519 keys ([b74a9b5](https://github.com/getlarge/themoltnet/commit/b74a9b5bd800acdbda15271a54793ad905a4782d))
+* **cli,sdk:** add `moltnet config repair` and SDK `repairConfig()` ([f64dfd0](https://github.com/getlarge/themoltnet/commit/f64dfd0222ad721e2269c5d04c33011a53815392))
+* **cli:** add --request-id to moltnet sign for one-shot fetch+sign+submit ([b521635](https://github.com/getlarge/themoltnet/commit/b5216357706b117cbf1674b4b59d59ff6deacab1))
+* **cli:** add `moltnet github setup` one-command agent identity ([8bdaa5a](https://github.com/getlarge/themoltnet/commit/8bdaa5a610ad9276924052430d9fd8e95aef887e))
+* **cli:** add `moltnet sign` command ([4f2cde4](https://github.com/getlarge/themoltnet/commit/4f2cde46521538b289daa263779aa9c85b0adc20))
+* **cli:** add agents, crypto, vouch, diary subcommands with API client ([f2ef64e](https://github.com/getlarge/themoltnet/commit/f2ef64e0e8a4e44221744d9ea54a20b09e3163fe))
+* **cli:** add APIClient with token injection and 401 retry ([85a8eaa](https://github.com/getlarge/themoltnet/commit/85a8eaab4d7c6ac2d6266ffa1ea3ee6383b9d311))
+* **cli:** add authenticated API operations to Go CLI ([5b0a6b9](https://github.com/getlarge/themoltnet/commit/5b0a6b94a8a7262cbd022dd646b868596d29d076))
+* **cli:** add git setup and github credential-helper to Go CLI ([c45561c](https://github.com/getlarge/themoltnet/commit/c45561c9ad7d639c1757ee43c9cf89fe8f2281f7))
+* **cli:** add OAuth2 token manager with caching and invalidation ([43b6d8c](https://github.com/getlarge/themoltnet/commit/43b6d8c13c688aeae2c05a5d9df77da7fef243ed))
+* **cli:** add ssh-key export command to Go CLI ([afa39bb](https://github.com/getlarge/themoltnet/commit/afa39bb749efb6eaace6c58939425fed5011cb34))
+* **cli:** replace hand-written API client with ogen-generated client ([36302ae](https://github.com/getlarge/themoltnet/commit/36302aeb43f079ef6dab1a4009ca70e2a802a015))
+* **go-cli:** use signing_input in moltnet sign --request-id ([f52c98b](https://github.com/getlarge/themoltnet/commit/f52c98b2d9e77205351667a4c99c6874bc56d9e8))
+* **go:** add BuildSigningBytes, SignForRequest, VerifyForRequest and fix readPayload for multiline stdin ([8102984](https://github.com/getlarge/themoltnet/commit/81029845e4d11e06ae8126759dad9365c03bf6a4))
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+* multi-diary catalogs, sharing, and Keto permission enforcement ([b7d0103](https://github.com/getlarge/themoltnet/commit/b7d0103f99eaac7afaa358227a1fd0acaba11013))
+* **release:** add moltnet-api-client versioning and Go proxy tag job ([98a0bbf](https://github.com/getlarge/themoltnet/commit/98a0bbfd402484174fbec290b7e63814b85c71b0))
+* **sdk,cli:** evolve credentials.json to moltnet.json (3 minor version compat) ([ab2ef1b](https://github.com/getlarge/themoltnet/commit/ab2ef1b97a014a47a110d81de5544a965809e651))
+* signature-only verify with nonce signing ([d8dd574](https://github.com/getlarge/themoltnet/commit/d8dd574703b52eb3aee69c80c62537009e25ea18))
+* split landing page + consolidate server into rest-api ([167dabc](https://github.com/getlarge/themoltnet/commit/167dabc03d3cc048a85f432983658e245c4e8a92))
+* **workspace:** add Go-related scripts for building, testing, vetting, formatting, and generating ([6aea157](https://github.com/getlarge/themoltnet/commit/6aea157d5f11942614fd55d5da5d00503963bb46))
+
+
+### Bug Fixes
+
+* address Copilot review — ssh padding and PKCS[#8](https://github.com/getlarge/themoltnet/issues/8) fallback ([cadeaa7](https://github.com/getlarge/themoltnet/commit/cadeaa792cb7f06cec0dcb425f68d43d6f0a7108))
+* **cli,sdk:** default output paths relative to config file location ([c6b5ced](https://github.com/getlarge/themoltnet/commit/c6b5ced3f136a660923137eb230a525ae25f0f1d))
+* **cli,sdk:** derive MCP URL from API URL instead of appending /mcp ([d6cab6a](https://github.com/getlarge/themoltnet/commit/d6cab6aeb7b09a8a545a260a8c5ebe2843187920))
+* **cli:** add HTTP timeout and fix early expiry fallback in TokenManager ([d7e97b8](https://github.com/getlarge/themoltnet/commit/d7e97b83288a2a773236a15307d0f116c82ec597))
+* **cli:** add mutex to TokenManager for concurrent safety ([fd041ee](https://github.com/getlarge/themoltnet/commit/fd041eeb27e10af2a2b3b7fc782e559596f53952))
+* **cli:** add scope=openid to token request ([de0e2d8](https://github.com/getlarge/themoltnet/commit/de0e2d863503e5aaa7528990b25186a4643fc89c))
+* **cli:** inject version via ldflags at build time ([4a706aa](https://github.com/getlarge/themoltnet/commit/4a706aa2783039ab8acc0b7822ee0dbfdac000f6))
+* **cli:** remove scope=openid from token request + fix goreleaser deprecations ([df53284](https://github.com/getlarge/themoltnet/commit/df5328425ec53960f538f2b6d4774757f5a91018))
+* **crypto:** deterministic signing payload via SHA-256 pre-hash — fix multiline message failures ([d6fe33c](https://github.com/getlarge/themoltnet/commit/d6fe33ce819ef4bbf2341fa996f8aa160ba49b47))
+* **release:** fix goreleaser hook YAML syntax and API_CLIENT_VERSION fallback ([c98c74d](https://github.com/getlarge/themoltnet/commit/c98c74d3129be2d16a5c943686f7afe446f44b34))
+* **release:** fix homebrew_casks url_template -&gt; url.template ([562e9b7](https://github.com/getlarge/themoltnet/commit/562e9b741644ed62716128e5a96a51f27aa21f9f))
+* **release:** use go mod tidy instead of go mod download in goreleaser hook ([9dd5123](https://github.com/getlarge/themoltnet/commit/9dd512347db50aa61e817eb9b6c0e99f96aae337))
+* resolve ClawHub suspicious skill review ([774b1f9](https://github.com/getlarge/themoltnet/commit/774b1f99e01e1aad1a08fe9188120b5c709f75e8))
+* update MCP endpoint URL from api.themolt.net to mcp.themolt.net ([21f9f91](https://github.com/getlarge/themoltnet/commit/21f9f91d8aed279937300ba07fe1bddcc4c5829e))
+
+## [0.43.0](https://github.com/getlarge/themoltnet/compare/cli-v0.42.0...cli-v0.43.0) (2026-02-24)
+
+
+### Features
+
+* LeGreffier skill, committable MCP config, and accountable commit hooks ([a939719](https://github.com/getlarge/themoltnet/commit/a939719addc9b8a150c328f07a733475e44cc8b8))
+
 ## [0.42.0](https://github.com/getlarge/themoltnet/compare/cli-v0.41.0...cli-v0.42.0) (2026-02-24)
 
 

@@ -824,7 +824,30 @@ describe('Diary tools', () => {
   describe('diaries_compile', () => {
     it('calls compile API and returns result', async () => {
       vi.mocked(compileDiary).mockResolvedValue(
-        sdkOk({ items: [], totalTokens: 0 }) as never,
+        sdkOk({
+          id: 'pack-001',
+          diaryId: DIARY_ID,
+          packCid: 'bafytest',
+          packCodec: 'dag-cbor',
+          packType: 'compile',
+          params: {},
+          payload: {},
+          createdBy: 'agent-001',
+          supersedesPackId: null,
+          pinned: false,
+          expiresAt: null,
+          createdAt: new Date().toISOString(),
+          entries: [],
+          compileStats: {
+            totalTokens: 0,
+            entriesIncluded: 0,
+            entriesCompressed: 0,
+            compressionRatio: 1,
+            budgetUtilization: 0,
+            elapsedMs: 1,
+          },
+          compileTrace: { lambdaUsed: 0.5, embeddingDim: 0 },
+        }) as never,
       );
 
       const result = await handleDiariesCompile(
@@ -856,7 +879,30 @@ describe('Diary tools', () => {
 
     it('passes exclude_tags to compile API', async () => {
       vi.mocked(compileDiary).mockResolvedValue(
-        sdkOk({ items: [], totalTokens: 0 }) as never,
+        sdkOk({
+          id: 'pack-001',
+          diaryId: DIARY_ID,
+          packCid: 'bafytest',
+          packCodec: 'dag-cbor',
+          packType: 'compile',
+          params: {},
+          payload: {},
+          createdBy: 'agent-001',
+          supersedesPackId: null,
+          pinned: false,
+          expiresAt: null,
+          createdAt: new Date().toISOString(),
+          entries: [],
+          compileStats: {
+            totalTokens: 0,
+            entriesIncluded: 0,
+            entriesCompressed: 0,
+            compressionRatio: 1,
+            budgetUtilization: 0,
+            elapsedMs: 1,
+          },
+          compileTrace: { lambdaUsed: 0.5, embeddingDim: 0 },
+        }) as never,
       );
 
       await handleDiariesCompile(

@@ -183,9 +183,46 @@ func (*CompileDiaryUnauthorized) compileDiaryRes() {}
 
 // Ref: #/components/schemas/CompileResult
 type CompileResult struct {
-	Entries []CompileResultEntriesItem `json:"entries"`
-	Stats   CompileResultStats         `json:"stats"`
-	Trace   CompileResultTrace         `json:"trace"`
+	CompileStats     CompileResultCompileStats  `json:"compileStats"`
+	CompileTrace     CompileResultCompileTrace  `json:"compileTrace"`
+	CreatedAt        time.Time                  `json:"createdAt"`
+	CreatedBy        uuid.UUID                  `json:"createdBy"`
+	DiaryId          uuid.UUID                  `json:"diaryId"`
+	Entries          []CompileResultEntriesItem `json:"entries"`
+	ExpiresAt        NilDateTime                `json:"expiresAt"`
+	ID               uuid.UUID                  `json:"id"`
+	PackCid          string                     `json:"packCid"`
+	PackCodec        string                     `json:"packCodec"`
+	PackType         CompileResultPackType      `json:"packType"`
+	Params           jx.Raw                     `json:"params"`
+	Payload          jx.Raw                     `json:"payload"`
+	Pinned           bool                       `json:"pinned"`
+	SupersedesPackId NilUUID                    `json:"supersedesPackId"`
+}
+
+// GetCompileStats returns the value of CompileStats.
+func (s *CompileResult) GetCompileStats() CompileResultCompileStats {
+	return s.CompileStats
+}
+
+// GetCompileTrace returns the value of CompileTrace.
+func (s *CompileResult) GetCompileTrace() CompileResultCompileTrace {
+	return s.CompileTrace
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *CompileResult) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *CompileResult) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *CompileResult) GetDiaryId() uuid.UUID {
+	return s.DiaryId
 }
 
 // GetEntries returns the value of Entries.
@@ -193,14 +230,74 @@ func (s *CompileResult) GetEntries() []CompileResultEntriesItem {
 	return s.Entries
 }
 
-// GetStats returns the value of Stats.
-func (s *CompileResult) GetStats() CompileResultStats {
-	return s.Stats
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *CompileResult) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
 }
 
-// GetTrace returns the value of Trace.
-func (s *CompileResult) GetTrace() CompileResultTrace {
-	return s.Trace
+// GetID returns the value of ID.
+func (s *CompileResult) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *CompileResult) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackCodec returns the value of PackCodec.
+func (s *CompileResult) GetPackCodec() string {
+	return s.PackCodec
+}
+
+// GetPackType returns the value of PackType.
+func (s *CompileResult) GetPackType() CompileResultPackType {
+	return s.PackType
+}
+
+// GetParams returns the value of Params.
+func (s *CompileResult) GetParams() jx.Raw {
+	return s.Params
+}
+
+// GetPayload returns the value of Payload.
+func (s *CompileResult) GetPayload() jx.Raw {
+	return s.Payload
+}
+
+// GetPinned returns the value of Pinned.
+func (s *CompileResult) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetSupersedesPackId returns the value of SupersedesPackId.
+func (s *CompileResult) GetSupersedesPackId() NilUUID {
+	return s.SupersedesPackId
+}
+
+// SetCompileStats sets the value of CompileStats.
+func (s *CompileResult) SetCompileStats(val CompileResultCompileStats) {
+	s.CompileStats = val
+}
+
+// SetCompileTrace sets the value of CompileTrace.
+func (s *CompileResult) SetCompileTrace(val CompileResultCompileTrace) {
+	s.CompileTrace = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *CompileResult) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *CompileResult) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *CompileResult) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
 }
 
 // SetEntries sets the value of Entries.
@@ -208,29 +305,168 @@ func (s *CompileResult) SetEntries(val []CompileResultEntriesItem) {
 	s.Entries = val
 }
 
-// SetStats sets the value of Stats.
-func (s *CompileResult) SetStats(val CompileResultStats) {
-	s.Stats = val
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *CompileResult) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
 }
 
-// SetTrace sets the value of Trace.
-func (s *CompileResult) SetTrace(val CompileResultTrace) {
-	s.Trace = val
+// SetID sets the value of ID.
+func (s *CompileResult) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *CompileResult) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackCodec sets the value of PackCodec.
+func (s *CompileResult) SetPackCodec(val string) {
+	s.PackCodec = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *CompileResult) SetPackType(val CompileResultPackType) {
+	s.PackType = val
+}
+
+// SetParams sets the value of Params.
+func (s *CompileResult) SetParams(val jx.Raw) {
+	s.Params = val
+}
+
+// SetPayload sets the value of Payload.
+func (s *CompileResult) SetPayload(val jx.Raw) {
+	s.Payload = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *CompileResult) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetSupersedesPackId sets the value of SupersedesPackId.
+func (s *CompileResult) SetSupersedesPackId(val NilUUID) {
+	s.SupersedesPackId = val
 }
 
 func (*CompileResult) compileDiaryRes() {}
 
-type CompileResultEntriesItem struct {
-	CompressedTokens float64                                  `json:"compressedTokens"`
-	CompressionLevel CompileResultEntriesItemCompressionLevel `json:"compressionLevel"`
-	Content          string                                   `json:"content"`
-	ID               uuid.UUID                                `json:"id"`
-	OriginalTokens   float64                                  `json:"originalTokens"`
+type CompileResultCompileStats struct {
+	BudgetUtilization float64 `json:"budgetUtilization"`
+	CompressionRatio  float64 `json:"compressionRatio"`
+	ElapsedMs         float64 `json:"elapsedMs"`
+	EntriesCompressed float64 `json:"entriesCompressed"`
+	EntriesIncluded   float64 `json:"entriesIncluded"`
+	TotalTokens       float64 `json:"totalTokens"`
 }
 
-// GetCompressedTokens returns the value of CompressedTokens.
-func (s *CompileResultEntriesItem) GetCompressedTokens() float64 {
-	return s.CompressedTokens
+// GetBudgetUtilization returns the value of BudgetUtilization.
+func (s *CompileResultCompileStats) GetBudgetUtilization() float64 {
+	return s.BudgetUtilization
+}
+
+// GetCompressionRatio returns the value of CompressionRatio.
+func (s *CompileResultCompileStats) GetCompressionRatio() float64 {
+	return s.CompressionRatio
+}
+
+// GetElapsedMs returns the value of ElapsedMs.
+func (s *CompileResultCompileStats) GetElapsedMs() float64 {
+	return s.ElapsedMs
+}
+
+// GetEntriesCompressed returns the value of EntriesCompressed.
+func (s *CompileResultCompileStats) GetEntriesCompressed() float64 {
+	return s.EntriesCompressed
+}
+
+// GetEntriesIncluded returns the value of EntriesIncluded.
+func (s *CompileResultCompileStats) GetEntriesIncluded() float64 {
+	return s.EntriesIncluded
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *CompileResultCompileStats) GetTotalTokens() float64 {
+	return s.TotalTokens
+}
+
+// SetBudgetUtilization sets the value of BudgetUtilization.
+func (s *CompileResultCompileStats) SetBudgetUtilization(val float64) {
+	s.BudgetUtilization = val
+}
+
+// SetCompressionRatio sets the value of CompressionRatio.
+func (s *CompileResultCompileStats) SetCompressionRatio(val float64) {
+	s.CompressionRatio = val
+}
+
+// SetElapsedMs sets the value of ElapsedMs.
+func (s *CompileResultCompileStats) SetElapsedMs(val float64) {
+	s.ElapsedMs = val
+}
+
+// SetEntriesCompressed sets the value of EntriesCompressed.
+func (s *CompileResultCompileStats) SetEntriesCompressed(val float64) {
+	s.EntriesCompressed = val
+}
+
+// SetEntriesIncluded sets the value of EntriesIncluded.
+func (s *CompileResultCompileStats) SetEntriesIncluded(val float64) {
+	s.EntriesIncluded = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *CompileResultCompileStats) SetTotalTokens(val float64) {
+	s.TotalTokens = val
+}
+
+type CompileResultCompileTrace struct {
+	EmbeddingDim   float64   `json:"embeddingDim"`
+	LambdaUsed     float64   `json:"lambdaUsed"`
+	TaskPromptHash OptString `json:"taskPromptHash"`
+}
+
+// GetEmbeddingDim returns the value of EmbeddingDim.
+func (s *CompileResultCompileTrace) GetEmbeddingDim() float64 {
+	return s.EmbeddingDim
+}
+
+// GetLambdaUsed returns the value of LambdaUsed.
+func (s *CompileResultCompileTrace) GetLambdaUsed() float64 {
+	return s.LambdaUsed
+}
+
+// GetTaskPromptHash returns the value of TaskPromptHash.
+func (s *CompileResultCompileTrace) GetTaskPromptHash() OptString {
+	return s.TaskPromptHash
+}
+
+// SetEmbeddingDim sets the value of EmbeddingDim.
+func (s *CompileResultCompileTrace) SetEmbeddingDim(val float64) {
+	s.EmbeddingDim = val
+}
+
+// SetLambdaUsed sets the value of LambdaUsed.
+func (s *CompileResultCompileTrace) SetLambdaUsed(val float64) {
+	s.LambdaUsed = val
+}
+
+// SetTaskPromptHash sets the value of TaskPromptHash.
+func (s *CompileResultCompileTrace) SetTaskPromptHash(val OptString) {
+	s.TaskPromptHash = val
+}
+
+type CompileResultEntriesItem struct {
+	CompressionLevel CompileResultEntriesItemCompressionLevel `json:"compressionLevel"`
+	CreatedAt        time.Time                                `json:"createdAt"`
+	EntryCidSnapshot string                                   `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                `json:"entryId"`
+	ID               uuid.UUID                                `json:"id"`
+	OriginalTokens   NilFloat64                               `json:"originalTokens"`
+	PackId           uuid.UUID                                `json:"packId"`
+	PackedTokens     NilFloat64                               `json:"packedTokens"`
+	Rank             NilInt                                   `json:"rank"`
 }
 
 // GetCompressionLevel returns the value of CompressionLevel.
@@ -238,9 +474,19 @@ func (s *CompileResultEntriesItem) GetCompressionLevel() CompileResultEntriesIte
 	return s.CompressionLevel
 }
 
-// GetContent returns the value of Content.
-func (s *CompileResultEntriesItem) GetContent() string {
-	return s.Content
+// GetCreatedAt returns the value of CreatedAt.
+func (s *CompileResultEntriesItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *CompileResultEntriesItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *CompileResultEntriesItem) GetEntryId() uuid.UUID {
+	return s.EntryId
 }
 
 // GetID returns the value of ID.
@@ -249,13 +495,23 @@ func (s *CompileResultEntriesItem) GetID() uuid.UUID {
 }
 
 // GetOriginalTokens returns the value of OriginalTokens.
-func (s *CompileResultEntriesItem) GetOriginalTokens() float64 {
+func (s *CompileResultEntriesItem) GetOriginalTokens() NilFloat64 {
 	return s.OriginalTokens
 }
 
-// SetCompressedTokens sets the value of CompressedTokens.
-func (s *CompileResultEntriesItem) SetCompressedTokens(val float64) {
-	s.CompressedTokens = val
+// GetPackId returns the value of PackId.
+func (s *CompileResultEntriesItem) GetPackId() uuid.UUID {
+	return s.PackId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *CompileResultEntriesItem) GetPackedTokens() NilFloat64 {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *CompileResultEntriesItem) GetRank() NilInt {
+	return s.Rank
 }
 
 // SetCompressionLevel sets the value of CompressionLevel.
@@ -263,9 +519,19 @@ func (s *CompileResultEntriesItem) SetCompressionLevel(val CompileResultEntriesI
 	s.CompressionLevel = val
 }
 
-// SetContent sets the value of Content.
-func (s *CompileResultEntriesItem) SetContent(val string) {
-	s.Content = val
+// SetCreatedAt sets the value of CreatedAt.
+func (s *CompileResultEntriesItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *CompileResultEntriesItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *CompileResultEntriesItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
 }
 
 // SetID sets the value of ID.
@@ -274,8 +540,23 @@ func (s *CompileResultEntriesItem) SetID(val uuid.UUID) {
 }
 
 // SetOriginalTokens sets the value of OriginalTokens.
-func (s *CompileResultEntriesItem) SetOriginalTokens(val float64) {
+func (s *CompileResultEntriesItem) SetOriginalTokens(val NilFloat64) {
 	s.OriginalTokens = val
+}
+
+// SetPackId sets the value of PackId.
+func (s *CompileResultEntriesItem) SetPackId(val uuid.UUID) {
+	s.PackId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *CompileResultEntriesItem) SetPackedTokens(val NilFloat64) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *CompileResultEntriesItem) SetRank(val NilInt) {
+	s.Rank = val
 }
 
 type CompileResultEntriesItemCompressionLevel string
@@ -326,109 +607,52 @@ func (s *CompileResultEntriesItemCompressionLevel) UnmarshalText(data []byte) er
 	}
 }
 
-type CompileResultStats struct {
-	BudgetUtilization float64 `json:"budgetUtilization"`
-	CompressionRatio  float64 `json:"compressionRatio"`
-	ElapsedMs         float64 `json:"elapsedMs"`
-	EntriesCompressed float64 `json:"entriesCompressed"`
-	EntriesIncluded   float64 `json:"entriesIncluded"`
-	TotalTokens       float64 `json:"totalTokens"`
+type CompileResultPackType string
+
+const (
+	CompileResultPackTypeCompile   CompileResultPackType = "compile"
+	CompileResultPackTypeOptimized CompileResultPackType = "optimized"
+	CompileResultPackTypeCustom    CompileResultPackType = "custom"
+)
+
+// AllValues returns all CompileResultPackType values.
+func (CompileResultPackType) AllValues() []CompileResultPackType {
+	return []CompileResultPackType{
+		CompileResultPackTypeCompile,
+		CompileResultPackTypeOptimized,
+		CompileResultPackTypeCustom,
+	}
 }
 
-// GetBudgetUtilization returns the value of BudgetUtilization.
-func (s *CompileResultStats) GetBudgetUtilization() float64 {
-	return s.BudgetUtilization
+// MarshalText implements encoding.TextMarshaler.
+func (s CompileResultPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case CompileResultPackTypeCompile:
+		return []byte(s), nil
+	case CompileResultPackTypeOptimized:
+		return []byte(s), nil
+	case CompileResultPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
 }
 
-// GetCompressionRatio returns the value of CompressionRatio.
-func (s *CompileResultStats) GetCompressionRatio() float64 {
-	return s.CompressionRatio
-}
-
-// GetElapsedMs returns the value of ElapsedMs.
-func (s *CompileResultStats) GetElapsedMs() float64 {
-	return s.ElapsedMs
-}
-
-// GetEntriesCompressed returns the value of EntriesCompressed.
-func (s *CompileResultStats) GetEntriesCompressed() float64 {
-	return s.EntriesCompressed
-}
-
-// GetEntriesIncluded returns the value of EntriesIncluded.
-func (s *CompileResultStats) GetEntriesIncluded() float64 {
-	return s.EntriesIncluded
-}
-
-// GetTotalTokens returns the value of TotalTokens.
-func (s *CompileResultStats) GetTotalTokens() float64 {
-	return s.TotalTokens
-}
-
-// SetBudgetUtilization sets the value of BudgetUtilization.
-func (s *CompileResultStats) SetBudgetUtilization(val float64) {
-	s.BudgetUtilization = val
-}
-
-// SetCompressionRatio sets the value of CompressionRatio.
-func (s *CompileResultStats) SetCompressionRatio(val float64) {
-	s.CompressionRatio = val
-}
-
-// SetElapsedMs sets the value of ElapsedMs.
-func (s *CompileResultStats) SetElapsedMs(val float64) {
-	s.ElapsedMs = val
-}
-
-// SetEntriesCompressed sets the value of EntriesCompressed.
-func (s *CompileResultStats) SetEntriesCompressed(val float64) {
-	s.EntriesCompressed = val
-}
-
-// SetEntriesIncluded sets the value of EntriesIncluded.
-func (s *CompileResultStats) SetEntriesIncluded(val float64) {
-	s.EntriesIncluded = val
-}
-
-// SetTotalTokens sets the value of TotalTokens.
-func (s *CompileResultStats) SetTotalTokens(val float64) {
-	s.TotalTokens = val
-}
-
-type CompileResultTrace struct {
-	EmbeddingDim   float64   `json:"embeddingDim"`
-	LambdaUsed     float64   `json:"lambdaUsed"`
-	TaskPromptHash OptString `json:"taskPromptHash"`
-}
-
-// GetEmbeddingDim returns the value of EmbeddingDim.
-func (s *CompileResultTrace) GetEmbeddingDim() float64 {
-	return s.EmbeddingDim
-}
-
-// GetLambdaUsed returns the value of LambdaUsed.
-func (s *CompileResultTrace) GetLambdaUsed() float64 {
-	return s.LambdaUsed
-}
-
-// GetTaskPromptHash returns the value of TaskPromptHash.
-func (s *CompileResultTrace) GetTaskPromptHash() OptString {
-	return s.TaskPromptHash
-}
-
-// SetEmbeddingDim sets the value of EmbeddingDim.
-func (s *CompileResultTrace) SetEmbeddingDim(val float64) {
-	s.EmbeddingDim = val
-}
-
-// SetLambdaUsed sets the value of LambdaUsed.
-func (s *CompileResultTrace) SetLambdaUsed(val float64) {
-	s.LambdaUsed = val
-}
-
-// SetTaskPromptHash sets the value of TaskPromptHash.
-func (s *CompileResultTrace) SetTaskPromptHash(val OptString) {
-	s.TaskPromptHash = val
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CompileResultPackType) UnmarshalText(data []byte) error {
+	switch CompileResultPackType(data) {
+	case CompileResultPackTypeCompile:
+		*s = CompileResultPackTypeCompile
+		return nil
+	case CompileResultPackTypeOptimized:
+		*s = CompileResultPackTypeOptimized
+		return nil
+	case CompileResultPackTypeCustom:
+		*s = CompileResultPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type ConsolidateDiaryForbidden ProblemDetails
@@ -4534,6 +4758,96 @@ func (o NilDateTime) Get() (v time.Time, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o NilDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilFloat64 returns new NilFloat64 with value set to v.
+func NewNilFloat64(v float64) NilFloat64 {
+	return NilFloat64{
+		Value: v,
+	}
+}
+
+// NilFloat64 is nullable float64.
+type NilFloat64 struct {
+	Value float64
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilFloat64) SetTo(v float64) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilFloat64) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilFloat64) SetToNull() {
+	o.Null = true
+	var v float64
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilFloat64) Get() (v float64, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilFloat64) Or(d float64) float64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilInt returns new NilInt with value set to v.
+func NewNilInt(v int) NilInt {
+	return NilInt{
+		Value: v,
+	}
+}
+
+// NilInt is nullable int.
+type NilInt struct {
+	Value int
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilInt) SetTo(v int) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilInt) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilInt) SetToNull() {
+	o.Null = true
+	var v int
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilInt) Get() (v int, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilInt) Or(d int) int {
 	if v, ok := o.Get(); ok {
 		return v
 	}

@@ -8,6 +8,7 @@
  */
 export enum KetoNamespace {
   Agent = 'Agent',
+  ContextPack = 'ContextPack',
   Diary = 'Diary',
   DiaryEntry = 'DiaryEntry',
 }
@@ -50,6 +51,21 @@ export enum DiaryEntryPermission {
 export enum DiaryPermission {
   Read = 'read',
   Write = 'write',
+  Manage = 'manage',
+}
+
+/**
+ * Relations for the ContextPack namespace
+ */
+export enum ContextPackRelation {
+  Parent = 'parent',
+}
+
+/**
+ * Permissions for the ContextPack namespace
+ */
+export enum ContextPackPermission {
+  Read = 'read',
   Manage = 'manage',
 }
 
