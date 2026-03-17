@@ -767,6 +767,9 @@ importers:
         specifier: 'catalog:'
         version: 8.18.0
     devDependencies:
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
       '@testcontainers/postgresql':
         specifier: 'catalog:'
         version: 11.12.0

@@ -196,6 +196,13 @@
       "tag": "0027_pack-type-params-migration",
       "version": "7",
       "when": 1773673770298
+    },
+    {
+      "breakpoints": true,
+      "idx": 28,
+      "tag": "0028_diary-search-content-hash",
+      "version": "7",
+      "when": 1773728191014
     }
   ],
   "version": "7"
