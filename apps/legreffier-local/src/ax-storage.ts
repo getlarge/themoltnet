@@ -15,6 +15,8 @@ import type {
 } from '@ax-llm/ax';
 import type { Agent } from '@themoltnet/sdk';
 
+import { truncate } from './util.js';
+
 export interface DiaryStorageOptions {
   sdkAgent: Agent;
   diaryId: string;
@@ -186,8 +188,4 @@ function stringifyInput(input: Record<string, unknown>): string {
   const question = input.question;
   if (typeof question === 'string') return question;
   return JSON.stringify(input);
-}
-
-function truncate(s: string, max: number): string {
-  return s.length <= max ? s : s.slice(0, max - 3) + '...';
 }

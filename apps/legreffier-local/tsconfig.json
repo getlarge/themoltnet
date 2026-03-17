@@ -9,7 +9,7 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/context-evals"
+      "path": "../../libs/ax-agents"
     },
     {
       "path": "../../libs/sdk"

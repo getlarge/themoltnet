@@ -3,7 +3,7 @@
  */
 
 import { ax, type AxGen, AxLearn } from '@ax-llm/ax';
-import { AxAIClaudeAgentSDK } from '@moltnet/context-evals/pipeline-shared';
+import { AxAIClaudeAgentSDK } from '@moltnet/ax-agents';
 import type { Agent } from '@themoltnet/sdk';
 
 import { createDiaryAxStorage } from './ax-storage.js';

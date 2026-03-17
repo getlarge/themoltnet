@@ -26,12 +26,10 @@ import {
 } from '@openai/codex-sdk';
 
 import { AGENT_FEATURES, flattenChatPrompt } from './ax-shared.js';
-import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
+import { getRuntimeEnv, resolveConfig } from './env.js';
 
-const DEBUG = getRuntimeEnv().AX_AGENT_SDK_DEBUG === '1';
-
-function dbg(msg: string): void {
-  if (DEBUG) process.stderr.write(`[ax-codex-agent-sdk] ${msg}\n`);
+function dbg(debug: boolean, msg: string): void {
+  if (debug) process.stderr.write(`[ax-codex-agent-sdk] ${msg}\n`);
 }
 
 type AgentModel = string;
@@ -60,6 +58,8 @@ export interface AxAICodexAgentSDKOptions {
   model?: string;
   maxTurns?: number;
   options?: AxAIServiceOptions;
+  /** Override env for config resolution. Defaults to resolveConfig() + getRuntimeEnv(). */
+  env?: Record<string, string | undefined>;
 }
 
 class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
@@ -73,9 +73,14 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
   private maxTurns: number;
+  private env: Record<string, string | undefined>;
+  private debug: boolean;
 
-  constructor(maxTurns: number) {
+  constructor(maxTurns: number, env?: Record<string, string | undefined>) {
     this.maxTurns = maxTurns;
+    this.env = env ?? {};
+    this.debug =
+      (env?.AX_AGENT_SDK_DEBUG ?? getRuntimeEnv().AX_AGENT_SDK_DEBUG) === '1';
   }
 
   createChatReq(
@@ -86,13 +91,22 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
     const maxTurns = this.maxTurns;
     const stream = req.modelConfig?.stream ?? false;
 
+    const env = this.env;
+    const debug = this.debug;
+
     const localCall = async (
       data: AgentRequest,
     ): Promise<AgentResponse | ReadableStream<AgentStreamDelta>> => {
       if (stream) {
-        return runAgentQueryStream(data.prompt, data.model, maxTurns);
+        return runAgentQueryStream(
+          data.prompt,
+          data.model,
+          maxTurns,
+          env,
+          debug,
+        );
       }
-      return runAgentQuery(data.prompt, data.model, maxTurns);
+      return runAgentQuery(data.prompt, data.model, maxTurns, env, debug);
     };
 
     const api: AxAPI = {
@@ -178,7 +192,7 @@ export class AxAICodexAgentSDK extends AxBaseAI<
     const model = opts.model ?? DEFAULT_MODEL;
     const maxTurns = opts.maxTurns ?? 1;
 
-    super(new AxAICodexAgentSDKImpl(maxTurns), {
+    super(new AxAICodexAgentSDKImpl(maxTurns, opts.env), {
       name: 'codex-agent-sdk',
       apiURL: '',
       headers: () => Promise.resolve({}),
@@ -221,9 +235,9 @@ function buildThreadOptions(model: string): ThreadOptions {
   };
 }
 
-function buildCodex(): Codex {
-  const config = loadContextEvalsConfig();
-  const env = buildCodexEnv();
+function buildCodex(overrides: Record<string, string | undefined>): Codex {
+  const config = resolveConfig(overrides);
+  const env = buildCodexEnv(overrides);
 
   return new Codex({
     ...(config.CODEX_EXECUTABLE
@@ -234,13 +248,16 @@ function buildCodex(): Codex {
   });
 }
 
-function buildCodexEnv(): Record<string, string> {
-  const config = loadContextEvalsConfig();
-  const runtimeEnv = getRuntimeEnv();
+function buildCodexEnv(
+  overrides: Record<string, string | undefined>,
+): Record<string, string> {
+  const baseEnv = getRuntimeEnv();
+  const mergedEnv = { ...baseEnv, ...overrides };
+  const config = resolveConfig(mergedEnv);
   const env: Record<string, string> = {
     OTEL_SDK_DISABLED: 'true',
     OPENAI_DISABLE_TELEMETRY: '1',
-    PATH: runtimeEnv.PATH || '',
+    PATH: mergedEnv.PATH || '',
   };
 
   if (config.OPENAI_API_KEY) {
@@ -254,9 +271,11 @@ async function runAgentQuery(
   prompt: string,
   model: string,
   maxTurns: number,
+  overrides: Record<string, string | undefined>,
+  debug: boolean,
 ): Promise<AgentResponse> {
-  dbg(`run model=${model} prompt=${prompt.length}chars`);
-  const thread = buildCodex().startThread(buildThreadOptions(model));
+  dbg(debug, `run model=${model} prompt=${prompt.length}chars`);
+  const thread = buildCodex(overrides).startThread(buildThreadOptions(model));
   const turn = await thread.run(buildInstructionPrompt(prompt, maxTurns));
 
   return {
@@ -270,11 +289,15 @@ function runAgentQueryStream(
   prompt: string,
   model: string,
   maxTurns: number,
+  overrides: Record<string, string | undefined>,
+  _debug: boolean,
 ): ReadableStream<AgentStreamDelta> {
   return new ReadableStream<AgentStreamDelta>({
     async start(controller) {
       try {
-        const thread = buildCodex().startThread(buildThreadOptions(model));
+        const thread = buildCodex(overrides).startThread(
+          buildThreadOptions(model),
+        );
         const { events } = await thread.runStreamed(
           buildInstructionPrompt(prompt, maxTurns),
         );

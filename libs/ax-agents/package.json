@@ -1,9 +1,9 @@
 {
-  "name": "@moltnet/legreffier-local",
+  "name": "@moltnet/ax-agents",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local MCP server wrapping AxLearn with diary-backed self-improvement",
+  "description": "AxAIService adapters for Claude Agent SDK and Codex SDK",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,24 +13,18 @@
     }
   },
   "scripts": {
-    "dev": "tsx src/main.ts",
-    "dev:stdio": "tsx src/main.ts --stdio",
     "build": "tsc -b",
     "test": "vitest run",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "catalog:",
     "@ax-llm/ax": "catalog:",
-    "@getlarge/fastify-mcp": "catalog:",
-    "@moltnet/ax-agents": "workspace:*",
-    "@sinclair/typebox": "catalog:",
-    "@themoltnet/sdk": "workspace:*",
-    "fastify": "catalog:"
+    "@openai/codex-sdk": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

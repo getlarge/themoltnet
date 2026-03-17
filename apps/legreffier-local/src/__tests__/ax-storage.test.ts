@@ -25,12 +25,11 @@ interface EntryUpdateBody {
   tags: string[];
 }
 
-interface SearchBody {
-  diaryId: string;
-  tags: string[];
+interface ListQuery {
+  tags: string;
   limit: number;
   offset?: number;
-  entryTypes: string[];
+  entryType: string;
 }
 
 function mockSdkAgent() {
@@ -64,7 +63,7 @@ describe('createDiaryAxStorage', () => {
   });
 
   describe('save', () => {
-    it('saves a trace as a procedural diary entry with correct tags', async () => {
+    it('saves a trace as a semantic diary entry with correct tags', async () => {
       const trace = {
         type: 'trace' as const,
         id: 'trace-abc',
@@ -82,13 +81,13 @@ describe('createDiaryAxStorage', () => {
       const calls = mockCalls<[string, EntryCreateBody]>(sdk.entries.create);
       const [callDiaryId, callBody] = calls[0];
       expect(callDiaryId).toBe(diaryId);
-      expect(callBody.entryType).toBe('procedural');
+      expect(callBody.entryType).toBe('semantic');
       expect(callBody.tags).toEqual(
         expect.arrayContaining([
-          'axlearn:trace',
-          'axlearn:agent:test-agent',
-          'axlearn:session:session-uuid-456',
-          'axlearn:id:trace-abc',
+          'learn:trace',
+          'learn:agent:test-agent',
+          'learn:s:session-uuid-456',
+          'learn:id:trace-abc',
         ]),
       );
       const content = JSON.parse(callBody.content) as {
@@ -118,9 +117,9 @@ describe('createDiaryAxStorage', () => {
       expect(callBody.entryType).toBe('reflection');
       expect(callBody.tags).toEqual(
         expect.arrayContaining([
-          'axlearn:checkpoint',
-          'axlearn:agent:test-agent',
-          'axlearn:v:3',
+          'learn:checkpoint',
+          'learn:agent:test-agent',
+          'learn:v:3',
         ]),
       );
       expect(callBody.importance).toBe(8);
@@ -153,15 +152,15 @@ describe('createDiaryAxStorage', () => {
       const calls = mockCalls<[string, EntryUpdateBody]>(sdk.entries.update);
       const [entryId, body] = calls[0];
       expect(entryId).toBe('entry-1');
-      expect(body.tags).toEqual(
-        expect.arrayContaining(['axlearn:has-feedback']),
-      );
+      expect(body.tags).toEqual(expect.arrayContaining(['learn:has-feedback']));
     });
 
-    it('resolves trace entry ID via tag search when cache misses', async () => {
-      vi.mocked(sdk.entries.search).mockResolvedValue({
-        results: [{ id: 'entry-from-search', content: '{}' }],
+    it('resolves trace entry ID via list when cache misses', async () => {
+      vi.mocked(sdk.entries.list).mockResolvedValue({
+        items: [{ id: 'entry-from-list', content: '{}' }],
         total: 1,
+        limit: 1,
+        offset: 0,
       } as never);
 
       const trace = {
@@ -177,23 +176,24 @@ describe('createDiaryAxStorage', () => {
       };
       await storage.save('test-agent', trace);
 
-      expect(vi.mocked(sdk.entries.search)).toHaveBeenCalled();
-      const searchCalls = mockCalls<[SearchBody]>(sdk.entries.search);
-      const searchBody = searchCalls[0][0];
-      expect(searchBody.tags).toEqual(
-        expect.arrayContaining(['axlearn:id:trace-xyz']),
-      );
+      expect(vi.mocked(sdk.entries.list)).toHaveBeenCalled();
+      const listCalls = mockCalls<[string, ListQuery]>(sdk.entries.list);
+      // First call is resolveTraceEntryId
+      const [listDiaryId, listQuery] = listCalls[0];
+      expect(listDiaryId).toBe(diaryId);
+      expect(listQuery.tags).toContain('learn:id:trace-xyz');
+      expect(listQuery.entryType).toBe('semantic');
       expect(vi.mocked(sdk.entries.update)).toHaveBeenCalledOnce();
       const updateCalls = mockCalls<[string]>(sdk.entries.update);
-      expect(updateCalls[0][0]).toBe('entry-from-search');
+      expect(updateCalls[0][0]).toBe('entry-from-list');
     });
   });
 
   describe('load', () => {
-    it('loads traces via search with correct tag filters', async () => {
+    it('loads traces via list with correct tag filters', async () => {
       const now = new Date();
-      vi.mocked(sdk.entries.search).mockResolvedValue({
-        results: [
+      vi.mocked(sdk.entries.list).mockResolvedValue({
+        items: [
           {
             id: 'entry-1',
             content: JSON.stringify({
@@ -209,6 +209,8 @@ describe('createDiaryAxStorage', () => {
           },
         ],
         total: 1,
+        limit: 5,
+        offset: 0,
       } as never);
 
       const result = await storage.load('test-agent', {
@@ -216,13 +218,14 @@ describe('createDiaryAxStorage', () => {
         limit: 5,
       });
 
-      expect(vi.mocked(sdk.entries.search)).toHaveBeenCalledOnce();
-      const searchCalls = mockCalls<[SearchBody]>(sdk.entries.search);
-      const searchBody = searchCalls[0][0];
-      expect(searchBody.tags).toEqual(
-        expect.arrayContaining(['axlearn:trace', 'axlearn:agent:test-agent']),
-      );
-      expect(searchBody.limit).toBe(5);
+      expect(vi.mocked(sdk.entries.list)).toHaveBeenCalledOnce();
+      const listCalls = mockCalls<[string, ListQuery]>(sdk.entries.list);
+      const [listDiaryId, listQuery] = listCalls[0];
+      expect(listDiaryId).toBe(diaryId);
+      expect(listQuery.tags).toContain('learn:trace');
+      expect(listQuery.tags).toContain('learn:agent:test-agent');
+      expect(listQuery.limit).toBe(5);
+      expect(listQuery.entryType).toBe('semantic');
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('trace');
       expect((result[0] as { id: string }).id).toBe('trace-abc');
@@ -265,11 +268,9 @@ describe('createDiaryAxStorage', () => {
         hasFeedback: true,
       });
 
-      const searchCalls = mockCalls<[SearchBody]>(sdk.entries.search);
-      const searchBody = searchCalls[0][0];
-      expect(searchBody.tags).toEqual(
-        expect.arrayContaining(['axlearn:has-feedback']),
-      );
+      const listCalls = mockCalls<[string, ListQuery]>(sdk.entries.list);
+      const [, listQuery] = listCalls[0];
+      expect(listQuery.tags).toContain('learn:has-feedback');
     });
 
     it('returns empty array when no entries found', async () => {

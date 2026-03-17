@@ -7,6 +7,7 @@ import { type Static, Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import type { LocalMcpDeps } from './types.js';
+import { truncate } from './util.js';
 
 // Re-export for tests
 export type { CallToolResult };
@@ -312,8 +313,4 @@ export function registerTools(
     },
     async () => handleStatus(deps),
   );
-}
-
-function truncate(s: string, max: number): string {
-  return s.length <= max ? s : s.slice(0, max - 3) + '...';
 }
