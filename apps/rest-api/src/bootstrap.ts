@@ -246,6 +246,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         setContextDistillDeps({
           diaryEntryRepository,
           contextPackRepository,
+          dataSource: getDataSource(),
           relationshipWriter,
           embeddingService,
           logger: app.log,

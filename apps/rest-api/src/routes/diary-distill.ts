@@ -15,7 +15,10 @@ import {
   ConsolidateResultSchema,
   DigestSchema,
 } from '../schemas.js';
-import { contextDistillWorkflows } from '../workflows/context-distill-workflows.js';
+import {
+  CompileWorkflowError,
+  contextDistillWorkflows,
+} from '../workflows/context-distill-workflows.js';
 import { runWorkflow } from '../workflows/run-workflow.js';
 
 function translateServiceError(err: DiaryServiceError): never {
@@ -254,10 +257,7 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           },
         );
       } catch (err) {
-        if (
-          err instanceof Error &&
-          err.message.includes('has no contentHash')
-        ) {
+        if (err instanceof CompileWorkflowError) {
           throw createProblem('validation-failed', err.message);
         }
         throw err;

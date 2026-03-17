@@ -32,8 +32,11 @@ import {
   type ContextPack,
   type ContextPackEntry,
   type ContextPackRepository,
+  type DataSource,
   DBOS,
   type DiaryEntryRepository,
+  type NewContextPack,
+  type NewContextPackEntry,
   WorkflowQueue,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
@@ -59,11 +62,24 @@ export const compileQueue = new WorkflowQueue('context.compile', {
   partitionQueue: true,
 });
 
+// ── Errors ─────────────────────────────────────────────────────
+
+export class CompileWorkflowError extends Error {
+  constructor(
+    public readonly code: 'missing_content_hash' | 'no_entries',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'CompileWorkflowError';
+  }
+}
+
 // ── Types ──────────────────────────────────────────────────────
 
 export interface ContextDistillDeps {
   diaryEntryRepository: DiaryEntryRepository;
   contextPackRepository: ContextPackRepository;
+  dataSource: DataSource;
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   logger: Logger;
@@ -217,90 +233,27 @@ export function initContextDistillWorkflows(): void {
   );
 
   /**
-   * Persist a compile pack + its entry membership in a single step.
-   * Server computes the pack CID from compile output + source entry CIDs.
+   * Persist a compile pack + its entry membership atomically.
+   * Uses DBOS dataSource.runTransaction so if entry insertion fails,
+   * the pack row is rolled back.
    */
   const persistCompilePackStep = DBOS.registerStep(
     async (
-      diaryId: string,
-      createdBy: string,
-      compileResult: CompileResult,
-      sourceEntryHashes: Array<{ id: string; contentHash: string | null }>,
-      compileInput: CompileWorkflowInput,
+      packInput: NewContextPack,
+      entryInputs: NewContextPackEntry[],
     ): Promise<{ pack: ContextPack; packEntries: ContextPackEntry[] }> => {
-      const { contextPackRepository } = getDeps();
+      const { contextPackRepository, dataSource } = getDeps();
 
-      const hashMap = new Map(
-        sourceEntryHashes.map((e) => [e.id, e.contentHash]),
-      );
-      const createdAt = new Date().toISOString();
-
-      const params: CompileParams = {
-        tokenBudget: compileInput.tokenBudget,
-        lambda: compileInput.lambda,
-        taskPromptHash: compileResult.trace.taskPromptHash,
-        wRecency: compileInput.wRecency,
-        wImportance: compileInput.wImportance,
-      };
-
-      const packEntryRefs: PackEntryRef[] = compileResult.entries.map(
-        (compiled, index) => {
-          const cid = hashMap.get(compiled.id) ?? '';
-          return {
-            cid,
-            compressionLevel:
-              compiled.compressionLevel as PackEntryRef['compressionLevel'],
-            rank: index + 1,
-          };
+      return dataSource.runTransaction(
+        async () => {
+          const pack = await contextPackRepository.createPack(packInput);
+          const packEntries = await contextPackRepository.addEntries(
+            entryInputs.map((e) => ({ ...e, packId: pack.id })),
+          );
+          return { pack, packEntries };
         },
+        { name: 'context-distill.tx.persistCompilePack' },
       );
-
-      const packCid = computePackCid({
-        diaryId,
-        createdBy,
-        createdAt,
-        packType: 'compile',
-        params,
-        entries: packEntryRefs,
-      });
-
-      const createdAtDate = new Date(createdAt);
-      const pack = await contextPackRepository.createPack({
-        diaryId,
-        createdBy,
-        packCid,
-        packType: 'compile',
-        params,
-        payload: {
-          v: 'moltnet:pack:v1',
-          diaryId,
-          createdBy,
-          createdAt,
-          packType: 'compile',
-          params,
-          entries: packEntryRefs,
-        },
-        // Use the same timestamp as the CID envelope so the DB row
-        // matches the CID — prevents drift on CID re-verification.
-        createdAt: createdAtDate,
-        pinned: false,
-        expiresAt: new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000),
-      });
-
-      const packEntries = await contextPackRepository.addEntries(
-        compileResult.entries.map((compiled, index) => ({
-          packId: pack.id,
-          entryId: compiled.id,
-          entryCidSnapshot: hashMap.get(compiled.id) ?? '',
-          compressionLevel:
-            compiled.compressionLevel as PackEntryRef['compressionLevel'],
-          originalTokens: compiled.originalTokens,
-          packedTokens: compiled.compressedTokens,
-          rank: index + 1,
-        })),
-      );
-
-      return { pack, packEntries };
     },
     { name: 'context-distill.step.persistCompilePack' },
   );
@@ -441,18 +394,80 @@ export function initContextDistillWorkflows(): void {
 
       for (const entry of sourceEntryHashes) {
         if (!entry.contentHash) {
-          throw new Error(
+          throw new CompileWorkflowError(
+            'missing_content_hash',
             `Entry ${entry.id} has no contentHash. Run the backfill script (tools/db/backfill-content-hashes.ts).`,
           );
         }
       }
 
+      // Build pack CID and inputs (pure computation, no DB)
+      const hashMap = new Map(
+        sourceEntryHashes.map((e) => [e.id, e.contentHash]),
+      );
+      const createdAt = new Date().toISOString();
+      const params: CompileParams = {
+        tokenBudget: input.tokenBudget,
+        lambda: input.lambda,
+        taskPromptHash: compileResult.trace.taskPromptHash,
+        wRecency: input.wRecency,
+        wImportance: input.wImportance,
+      };
+      const packEntryRefs: PackEntryRef[] = compileResult.entries.map(
+        (compiled, index) => ({
+          cid: hashMap.get(compiled.id) ?? '',
+          compressionLevel:
+            compiled.compressionLevel as PackEntryRef['compressionLevel'],
+          rank: index + 1,
+        }),
+      );
+      const packCid = computePackCid({
+        diaryId: input.diaryId,
+        createdBy: input.identityId,
+        createdAt,
+        packType: 'compile',
+        params,
+        entries: packEntryRefs,
+      });
+
+      const createdAtDate = new Date(createdAt);
+      const packInput: NewContextPack = {
+        diaryId: input.diaryId,
+        createdBy: input.identityId,
+        packCid,
+        packType: 'compile',
+        params,
+        payload: {
+          v: 'moltnet:pack:v1',
+          diaryId: input.diaryId,
+          createdBy: input.identityId,
+          createdAt,
+          packType: 'compile',
+          params,
+          entries: packEntryRefs,
+        },
+        createdAt: createdAtDate,
+        pinned: false,
+        expiresAt: new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+      };
+
+      const entryInputs: NewContextPackEntry[] = compileResult.entries.map(
+        (compiled, index) => ({
+          packId: '', // filled by the step after pack creation
+          entryId: compiled.id,
+          entryCidSnapshot: hashMap.get(compiled.id) ?? '',
+          compressionLevel:
+            compiled.compressionLevel as PackEntryRef['compressionLevel'],
+          originalTokens: compiled.originalTokens,
+          packedTokens: compiled.compressedTokens,
+          rank: index + 1,
+        }),
+      );
+
+      // Persist atomically (pack + entries in one transaction)
       const { pack, packEntries } = await persistCompilePackStep(
-        input.diaryId,
-        input.identityId,
-        compileResult,
-        sourceEntryHashes,
-        input,
+        packInput,
+        entryInputs,
       );
 
       // Wire Keto authorization: ContextPack#parent@Diary

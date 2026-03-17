@@ -109,6 +109,11 @@ describe('context-distill compile workflow', () => {
     setContextDistillDeps({
       diaryEntryRepository,
       contextPackRepository,
+      dataSource: {
+        runTransaction: vi
+          .fn()
+          .mockImplementation(async (fn: () => Promise<unknown>) => fn()),
+      } as never,
       relationshipWriter: {
         grantPackParent: vi.fn().mockResolvedValue(undefined),
       } as never,
