@@ -487,10 +487,13 @@ async function compileSeedPack(
     return '';
   }
 
+  // TODO: pack entries no longer include content. This needs the pack
+  // expansion endpoint (GET /packs/:id?expand=entries) to fetch content.
+  // For now, return a stub with entry metadata only.
   return data.entries
     .map(
-      (e: { id: string; content: string }) =>
-        `---\n## ${e.id.slice(0, 8)}\n\n${e.content}\n`,
+      (e) =>
+        `---\n## ${e.entryId.slice(0, 8)} (${e.compressionLevel})\n\nCID: ${e.entryCidSnapshot}\n`,
     )
     .join('\n');
 }
