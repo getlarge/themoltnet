@@ -172,4 +172,29 @@ export async function gitDiff(base: string, head: string): Promise<string> {
   return out;
 }
 
+/** Check if a file exists at a given git ref. */
+export async function gitFileExistsAtRef(
+  ref: string,
+  filePath: string,
+): Promise<boolean> {
+  try {
+    await execFileText('git', ['cat-file', '-e', `${ref}:${filePath}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Read a file's content at a given git ref. Returns null if the file doesn't exist. */
+export async function gitShowFileAtRef(
+  ref: string,
+  filePath: string,
+): Promise<string | null> {
+  try {
+    return await execFileText('git', ['show', `${ref}:${filePath}`]);
+  } catch {
+    return null;
+  }
+}
+
 export { isTestFile, PACE_DELAY_MS };
