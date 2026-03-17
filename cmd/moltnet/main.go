@@ -157,7 +157,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  agents     Agent identity commands (whoami, lookup)")
 	fmt.Fprintln(os.Stderr, "  crypto     Cryptographic identity commands (identity, verify)")
 	fmt.Fprintln(os.Stderr, "  vouch      Voucher commands (issue, list)")
-	fmt.Fprintln(os.Stderr, "  diary      Diary entry commands (create, create-signed, list, get, delete, search, verify)")
+	fmt.Fprintln(os.Stderr, "  diary      Diary entry commands (commit, create, create-signed, list, get, delete, search, verify)")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")
