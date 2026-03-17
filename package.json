@@ -65,6 +65,9 @@
     ],
     "*.{json,md,yaml,yml}": [
       "prettier --write"
+    ],
+    "*.go": [
+      "gofmt -w"
     ]
   },
   "devDependencies": {
