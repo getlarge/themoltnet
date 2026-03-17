@@ -17,15 +17,12 @@
     "gpack:skill-eval": "tsx src/skill-evals/skill-eval-pipeline.ts",
     "mirror:experiment": "tsx src/mirror-experiment/experiment.ts",
     "mirror:gepa-smoke": "tsx src/mirror-experiment/gepa-smoke-test.ts",
-    "legreffier-local": "tsx src/legreffier-local/main.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "catalog:",
     "@ax-llm/ax": "catalog:",
-    "@getlarge/fastify-mcp": "catalog:",
     "@huggingface/transformers": "catalog:",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
@@ -37,7 +34,6 @@
     "@sinclair/typebox": "catalog:",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
-    "fastify": "catalog:",
     "fastq": "catalog:",
     "smol-toml": "catalog:"
   },

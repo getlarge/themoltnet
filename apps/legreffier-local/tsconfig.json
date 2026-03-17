@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "extends": "../../tsconfig.json",
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../libs/api-client"
+    },
+    {
+      "path": "../../libs/context-evals"
+    },
+    {
+      "path": "../../libs/sdk"
+    }
+  ]
+}

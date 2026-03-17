@@ -1,10 +1,10 @@
 /**
- * AxStorage adapter backed by MoltNet diary entries.
+ * AxStorage adapter backed by MoltNet diary entries via @themoltnet/sdk.
  *
  * Maps AxLearn's AxStorage interface to diary entry CRUD:
  * - Traces → procedural entries tagged axlearn:trace
  * - Checkpoints → reflection entries tagged axlearn:checkpoint
- * - Queries → searchDiary (traces) or listDiaryEntries (checkpoints)
+ * - Queries → entries.search (traces) or entries.list (checkpoints)
  */
 
 import type {
@@ -13,24 +13,16 @@ import type {
   AxStorageQuery,
   AxTrace,
 } from '@ax-llm/ax';
-import type { Client } from '@moltnet/api-client';
-import {
-  createDiaryEntry,
-  listDiaryEntries,
-  searchDiary,
-  updateDiaryEntryById,
-} from '@moltnet/api-client';
+import type { Agent } from '@themoltnet/sdk';
 
 export interface DiaryStorageOptions {
-  client: Client;
+  sdkAgent: Agent;
   diaryId: string;
-  bearerToken: string;
   sessionId: string;
 }
 
 export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
-  const { client, diaryId, bearerToken, sessionId } = options;
-  const auth = () => bearerToken;
+  const { sdkAgent, diaryId, sessionId } = options;
 
   /**
    * In-memory cache from trace ID → diary entry ID for fast lookups.
@@ -46,16 +38,11 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
     const cached = traceEntryCache.get(traceId);
     if (cached) return cached;
 
-    // Search by axlearn:id:<traceId> tag — survives server restarts
-    const { data } = await searchDiary({
-      client,
-      auth,
-      body: {
-        diaryId,
-        tags: [`axlearn:id:${traceId}`, `axlearn:agent:${agentName}`],
-        limit: 1,
-        entryTypes: ['procedural'],
-      },
+    const data = await sdkAgent.entries.search({
+      diaryId,
+      tags: [`axlearn:id:${traceId}`, `axlearn:agent:${agentName}`],
+      limit: 1,
+      entryTypes: ['procedural'],
     });
 
     const entry = data?.results?.[0];
@@ -82,35 +69,24 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
         tags.push('axlearn:has-feedback');
       }
 
-      // Check if this trace already exists (feedback update)
       const existingEntryId = await resolveTraceEntryId(trace.id, name);
       if (existingEntryId) {
-        await updateDiaryEntryById({
-          client,
-          auth,
-          path: { entryId: existingEntryId },
-          body: {
-            content: JSON.stringify(trace),
-            tags,
-          },
+        await sdkAgent.entries.update(existingEntryId, {
+          content: JSON.stringify(trace),
+          tags,
         });
         return;
       }
 
-      const { data } = await createDiaryEntry({
-        client,
-        auth,
-        path: { diaryId },
-        body: {
-          content: JSON.stringify(trace),
-          title: `axlearn trace: ${truncate(stringifyInput(trace.input), 80)}`,
-          entryType: 'procedural',
-          tags,
-          importance: 5,
-        },
+      const entry = await sdkAgent.entries.create(diaryId, {
+        content: JSON.stringify(trace),
+        title: `axlearn trace: ${truncate(stringifyInput(trace.input), 80)}`,
+        entryType: 'procedural',
+        tags,
+        importance: 5,
       });
-      if (data?.id) {
-        traceEntryCache.set(trace.id, data.id);
+      if (entry?.id) {
+        traceEntryCache.set(trace.id, entry.id);
       }
     } else {
       const checkpoint = item;
@@ -120,17 +96,12 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
         `axlearn:v:${checkpoint.version}`,
       ];
 
-      await createDiaryEntry({
-        client,
-        auth,
-        path: { diaryId },
-        body: {
-          content: JSON.stringify(checkpoint),
-          title: `axlearn checkpoint v${checkpoint.version} (score: ${checkpoint.score?.toFixed(2) ?? 'n/a'})`,
-          entryType: 'reflection',
-          tags,
-          importance: 8,
-        },
+      await sdkAgent.entries.create(diaryId, {
+        content: JSON.stringify(checkpoint),
+        title: `axlearn checkpoint v${checkpoint.version} (score: ${checkpoint.score?.toFixed(2) ?? 'n/a'})`,
+        entryType: 'reflection',
+        tags,
+        importance: 8,
       });
     }
   };
@@ -145,16 +116,12 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
         tags.push('axlearn:has-feedback');
       }
 
-      const { data } = await searchDiary({
-        client,
-        auth,
-        body: {
-          diaryId,
-          tags,
-          limit: query.limit ?? 50,
-          offset: query.offset,
-          entryTypes: ['procedural'],
-        },
+      const data = await sdkAgent.entries.search({
+        diaryId,
+        tags,
+        limit: query.limit ?? 50,
+        offset: query.offset,
+        entryTypes: ['procedural'],
       });
 
       return parseEntries(data?.results);
@@ -166,20 +133,25 @@ export function createDiaryAxStorage(options: DiaryStorageOptions): AxStorage {
       tags.push(`axlearn:v:${query.version}`);
     }
 
-    const { data } = await listDiaryEntries({
-      client,
-      auth,
-      path: { diaryId },
-      query: {
-        tags: tags.join(','),
-        limit: query.limit ?? 10,
-      },
+    const data = await sdkAgent.entries.list(diaryId, {
+      tags: tags.join(','),
+      limit: query.limit ?? 10,
     });
 
     return parseEntries(data?.items);
   };
 
   return { save, load };
+}
+
+function isTraceOrCheckpoint(value: unknown): value is AxTrace | AxCheckpoint {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    ((value as { type: unknown }).type === 'trace' ||
+      (value as { type: unknown }).type === 'checkpoint')
+  );
 }
 
 function parseEntries(
@@ -189,21 +161,25 @@ function parseEntries(
   return entries
     .map((e) => {
       try {
-        const parsed = JSON.parse(e.content);
-        // Restore Date objects from ISO strings
+        const parsed: unknown = JSON.parse(e.content);
+        if (!isTraceOrCheckpoint(parsed)) return null;
         if (parsed.type === 'trace') {
-          parsed.startTime = new Date(parsed.startTime);
-          parsed.endTime = new Date(parsed.endTime);
+          const trace = parsed;
+          trace.startTime = new Date(trace.startTime);
+          trace.endTime = new Date(trace.endTime);
+          return trace;
         }
-        if (parsed.type === 'checkpoint' && parsed.createdAt) {
-          parsed.createdAt = new Date(parsed.createdAt);
+        const checkpoint = parsed;
+        if ('createdAt' in checkpoint && checkpoint.createdAt) {
+          (checkpoint as AxCheckpoint & { createdAt: Date }).createdAt =
+            new Date(checkpoint.createdAt as unknown as string);
         }
-        return parsed;
+        return checkpoint;
       } catch {
         return null;
       }
     })
-    .filter(Boolean);
+    .filter((v): v is AxTrace | AxCheckpoint => v !== null);
 }
 
 function stringifyInput(input: Record<string, unknown>): string {

@@ -368,6 +368,43 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  apps/legreffier-local:
+    dependencies:
+      '@ax-llm/ax':
+        specifier: 'catalog:'
+        version: 19.0.13
+      '@getlarge/fastify-mcp':
+        specifier: 'catalog:'
+        version: 1.3.0-getlarge.2(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../../libs/api-client
+      '@moltnet/context-evals':
+        specifier: workspace:*
+        version: link:../../libs/context-evals
+      '@sinclair/typebox':
+        specifier: 'catalog:'
+        version: 0.34.48
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
+      fastify:
+        specifier: 'catalog:'
+        version: 5.7.4
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.30
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@20.19.30)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
+
   apps/mcp-server:
     dependencies:
       '@fastify/otel':
@@ -1098,15 +1135,9 @@ importers:
 
   tools:
     dependencies:
-      '@anthropic-ai/claude-agent-sdk':
-        specifier: 'catalog:'
-        version: 0.2.74(zod@4.3.6)
       '@ax-llm/ax':
         specifier: 'catalog:'
         version: 19.0.13
-      '@getlarge/fastify-mcp':
-        specifier: 'catalog:'
-        version: 1.3.0-getlarge.2(@opentelemetry/api@1.9.0)(@sinclair/typebox@0.34.48)
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
@@ -1140,9 +1171,6 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../libs/sdk
-      fastify:
-        specifier: 'catalog:'
-        version: 5.7.4
       fastq:
         specifier: 'catalog:'
         version: 1.20.1

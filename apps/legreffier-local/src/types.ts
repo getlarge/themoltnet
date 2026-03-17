@@ -3,7 +3,7 @@
  */
 
 import type { AxAIService, AxGen, AxLearn } from '@ax-llm/ax';
-import type { Client } from '@moltnet/api-client';
+import type { Agent } from '@themoltnet/sdk';
 import type { FastifyBaseLogger } from 'fastify';
 
 /** Agent input/output signature. Index signatures required by AxGenIn/AxGenOut. */
@@ -21,12 +21,12 @@ export type AgentOutput = {
 
 /** Server configuration loaded from environment. */
 export interface ServerConfig {
-  /** MoltNet REST API base URL (default: http://localhost:8000) */
-  apiBaseUrl: string;
-  /** Diary ID to use for storage */
-  diaryId: string;
-  /** Bearer token for API auth */
-  bearerToken: string;
+  /** MoltNet REST API base URL (default: https://api.themolt.net) */
+  apiUrl?: string;
+  /** OAuth2 client ID (resolved by SDK if not set) */
+  clientId?: string;
+  /** OAuth2 client secret (resolved by SDK if not set) */
+  clientSecret?: string;
   /** Port for MCP SSE transport (default: 0 = random) */
   port: number;
   /** Teacher model for optimization (default: claude-opus-4-6) */
@@ -42,7 +42,10 @@ export interface LocalMcpDeps {
   agent: AxLearn<AgentInput, AgentOutput>;
   gen: AxGen<AgentInput, AgentOutput>;
   studentAi: AxAIService;
-  client: Client;
+  /** Authenticated SDK agent — handles token refresh, diary CRUD, etc. */
+  sdkAgent: Agent;
+  /** Diary ID resolved at startup. */
+  diaryId: string;
   config: ServerConfig;
   logger: FastifyBaseLogger;
   /** Current session UUID (generated on server start). */
