@@ -6,7 +6,8 @@ import {
   ghIssueBody,
   ghPrFiles,
   ghPrList,
-  gitMergeBase,
+  ghPrView,
+  gitFirstParent,
   isTestFile,
   PACE_DELAY_MS,
   parseLinkedIssue,
@@ -85,41 +86,57 @@ export async function discoverCandidates(
   const state = await loadHarvestState(stateFile);
   const processed = new Set(state.processed_prs);
 
-  // Step 1: list merged PRs
+  // Step 1: fetch PRs — either targeted (--prs) or rolling list
+  // When --prs is specified, fetch each PR directly so we don't miss PRs
+  // outside the most recent 200 merged.
   // eslint-disable-next-line no-console
   console.log('[discovery] Fetching merged PRs...');
-  const rawPrs = await ghPrList(200);
 
-  // Step 2: fetch file lists per PR (with pacing)
-  // eslint-disable-next-line no-console
-  console.log(`[discovery] Fetching file lists for ${rawPrs.length} PRs...`);
-  for (const pr of rawPrs) {
-    if (!pr.files) {
+  let rawPrs: Awaited<ReturnType<typeof ghPrList>>;
+  if (options.prs?.length) {
+    rawPrs = [];
+    for (const prNum of options.prs) {
       try {
-        const files = await ghPrFiles(pr.number);
-        (pr as unknown as Record<string, unknown>).files = files;
+        const pr = await ghPrView(prNum);
+        rawPrs.push(pr);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         // eslint-disable-next-line no-console
-        console.warn(
-          `[discovery] Failed to fetch files for PR #${pr.number}: ${msg}`,
-        );
-        state.errors = { ...state.errors, [pr.number]: msg };
-        (pr as unknown as Record<string, unknown>).files = [];
+        console.warn(`[discovery] Failed to fetch PR #${prNum}: ${msg}`);
+        state.errors = { ...state.errors, [prNum]: msg };
       }
       await sleep(PACE_DELAY_MS);
     }
+  } else {
+    rawPrs = await ghPrList(200);
+
+    // Fetch file lists per PR that don't already have them (with pacing)
+    // eslint-disable-next-line no-console
+    console.log(`[discovery] Fetching file lists for ${rawPrs.length} PRs...`);
+    for (const pr of rawPrs) {
+      if (!pr.files) {
+        try {
+          const files = await ghPrFiles(pr.number);
+          (pr as unknown as Record<string, unknown>).files = files;
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[discovery] Failed to fetch files for PR #${pr.number}: ${msg}`,
+          );
+          state.errors = { ...state.errors, [pr.number]: msg };
+          (pr as unknown as Record<string, unknown>).files = [];
+        }
+        await sleep(PACE_DELAY_MS);
+      }
+    }
   }
 
-  // Step 3: filter
+  // Step 2: filter candidates
   const filtered = filterCandidatePrs(rawPrs);
 
-  // Step 4: apply --prs filter and skip already-processed (unless --force)
+  // Step 3: skip already-processed (unless --force)
   let selected = filtered;
-  if (options.prs?.length) {
-    const prSet = new Set(options.prs);
-    selected = selected.filter((pr) => prSet.has(pr.number));
-  }
   if (!options.force) {
     selected = selected.filter((pr) => !processed.has(pr.number));
   }
@@ -129,11 +146,15 @@ export async function discoverCandidates(
     `[discovery] ${rawPrs.length} merged PRs → ${filtered.length} candidates → ${selected.length} to process`,
   );
 
-  // Step 5: compute refs and build PrCandidate[]
+  // Step 4: compute refs and build PrCandidate[]
+  // fixture_ref = first parent of the merge commit (pre-merge main state).
+  // Using merge-base(main, headRefOid) is wrong for merge commits because
+  // headRefOid is already reachable from main, resolving to itself.
   const candidates: PrCandidate[] = [];
   for (const pr of selected) {
     try {
-      const fixtureRef = await gitMergeBase('main', pr.headRefOid);
+      const mergeOid = pr.mergeCommit!.oid;
+      const fixtureRef = await gitFirstParent(mergeOid);
       const issueNum = parseLinkedIssue(pr.body);
       const issueBody = issueNum ? await ghIssueBody(issueNum) : undefined;
 
@@ -141,7 +162,7 @@ export async function discoverCandidates(
         buildPrCandidate(
           {
             ...pr,
-            mergeCommitOid: pr.mergeCommit!.oid,
+            mergeCommitOid: mergeOid,
             labels: pr.labels.map((l: { name: string }) => l.name),
             files: (pr.files ?? []) as Array<{ path: string }>,
           },

@@ -147,6 +147,26 @@ export async function gitMergeBase(
   return out.trim();
 }
 
+/** Get the first parent of a merge commit — the pre-merge main state. */
+export async function gitFirstParent(mergeCommitOid: string): Promise<string> {
+  const out = await execFileText('git', ['rev-parse', `${mergeCommitOid}^1`]);
+  return out.trim();
+}
+
+/** Fetch a single PR's full metadata (for targeted --prs runs). */
+export async function ghPrView(prNumber: number): Promise<GhPrListItem> {
+  return withRetry(async () => {
+    const json = await execFileText('gh', [
+      'pr',
+      'view',
+      String(prNumber),
+      '--json',
+      'number,title,body,baseRefName,headRefOid,mergeCommit,labels,closedAt,files',
+    ]);
+    return JSON.parse(json) as GhPrListItem;
+  }, `pr view ${prNumber}`);
+}
+
 export async function gitDiff(base: string, head: string): Promise<string> {
   const out = await execFileText('git', ['diff', base, head]);
   return out;
