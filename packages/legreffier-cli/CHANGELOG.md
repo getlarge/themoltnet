@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.21.0...legreffier-v0.22.0) (2026-03-17)
+
+
+### Features
+
+* **cli:** add `moltnet diary commit` command ([01a8af6](https://github.com/getlarge/themoltnet/commit/01a8af657c172e7e289fad20abf45da39d66bac8))
+
 ## [0.21.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.20.0...legreffier-v0.21.0) (2026-03-12)
 
 
