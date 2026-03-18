@@ -165,6 +165,138 @@ export type DiarySearchResult = {
   total: number;
 };
 
+export type ContextPack = {
+  id: string;
+  diaryId: string;
+  packCid: string;
+  packCodec: string;
+  packType: 'compile' | 'optimized' | 'custom';
+  params: unknown;
+  payload: unknown;
+  createdBy: string;
+  supersedesPackId: string | null;
+  pinned: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+export type ContextPackExpanded = {
+  id: string;
+  diaryId: string;
+  packCid: string;
+  packCodec: string;
+  packType: 'compile' | 'optimized' | 'custom';
+  params: unknown;
+  payload: unknown;
+  createdBy: string;
+  supersedesPackId: string | null;
+  pinned: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+  entries: Array<{
+    id: string;
+    packId: string;
+    entryId: string;
+    entryCidSnapshot: string;
+    compressionLevel: 'full' | 'summary' | 'keywords';
+    originalTokens: number | null;
+    packedTokens: number | null;
+    rank: number | null;
+    createdAt: string;
+    entry: DiaryEntry;
+  }>;
+};
+
+export type ExpandedPackEntry = {
+  id: string;
+  packId: string;
+  entryId: string;
+  entryCidSnapshot: string;
+  compressionLevel: 'full' | 'summary' | 'keywords';
+  originalTokens: number | null;
+  packedTokens: number | null;
+  rank: number | null;
+  createdAt: string;
+  entry: DiaryEntry;
+};
+
+export type ContextPackResponse = {
+  id: string;
+  diaryId: string;
+  packCid: string;
+  packCodec: string;
+  packType: 'compile' | 'optimized' | 'custom';
+  params: unknown;
+  payload: unknown;
+  createdBy: string;
+  supersedesPackId: string | null;
+  pinned: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+  entries?: Array<{
+    id: string;
+    packId: string;
+    entryId: string;
+    entryCidSnapshot: string;
+    compressionLevel: 'full' | 'summary' | 'keywords';
+    originalTokens: number | null;
+    packedTokens: number | null;
+    rank: number | null;
+    createdAt: string;
+    entry: DiaryEntry;
+  }>;
+};
+
+export type ContextPackList = {
+  items: Array<{
+    id: string;
+    diaryId: string;
+    packCid: string;
+    packCodec: string;
+    packType: 'compile' | 'optimized' | 'custom';
+    params: unknown;
+    payload: unknown;
+    createdBy: string;
+    supersedesPackId: string | null;
+    pinned: boolean;
+    expiresAt: string | null;
+    createdAt: string;
+  }>;
+  total: number;
+  limit: number;
+};
+
+export type ContextPackResponseList = {
+  items: Array<{
+    id: string;
+    diaryId: string;
+    packCid: string;
+    packCodec: string;
+    packType: 'compile' | 'optimized' | 'custom';
+    params: unknown;
+    payload: unknown;
+    createdBy: string;
+    supersedesPackId: string | null;
+    pinned: boolean;
+    expiresAt: string | null;
+    createdAt: string;
+    entries?: Array<{
+      id: string;
+      packId: string;
+      entryId: string;
+      entryCidSnapshot: string;
+      compressionLevel: 'full' | 'summary' | 'keywords';
+      originalTokens: number | null;
+      packedTokens: number | null;
+      rank: number | null;
+      createdAt: string;
+      entry: DiaryEntry;
+    }>;
+  }>;
+  total: number;
+  limit: number;
+};
+
 export type Digest = {
   entries: Array<{
     id: string;
@@ -1535,6 +1667,92 @@ export type CompileDiaryResponses = {
 
 export type CompileDiaryResponse =
   CompileDiaryResponses[keyof CompileDiaryResponses];
+
+export type GetContextPackByIdData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: {
+    expand?: 'entries';
+  };
+  url: '/packs/{id}';
+};
+
+export type GetContextPackByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetContextPackByIdError =
+  GetContextPackByIdErrors[keyof GetContextPackByIdErrors];
+
+export type GetContextPackByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponse;
+};
+
+export type GetContextPackByIdResponse =
+  GetContextPackByIdResponses[keyof GetContextPackByIdResponses];
+
+export type ListDiaryPacksData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: {
+    limit?: number;
+    expand?: 'entries';
+  };
+  url: '/diaries/{id}/packs';
+};
+
+export type ListDiaryPacksErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryPacksError =
+  ListDiaryPacksErrors[keyof ListDiaryPacksErrors];
+
+export type ListDiaryPacksResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponseList;
+};
+
+export type ListDiaryPacksResponse =
+  ListDiaryPacksResponses[keyof ListDiaryPacksResponses];
 
 export type GetAgentProfileData = {
   body?: never;

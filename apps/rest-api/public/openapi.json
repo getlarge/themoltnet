@@ -424,6 +424,721 @@
         "required": ["workflowId", "clusters", "stats", "trace"],
         "type": "object"
       },
+      "ContextPack": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "packCodec": {
+            "type": "string"
+          },
+          "packType": {
+            "anyOf": [
+              {
+                "enum": ["compile"],
+                "type": "string"
+              },
+              {
+                "enum": ["optimized"],
+                "type": "string"
+              },
+              {
+                "enum": ["custom"],
+                "type": "string"
+              }
+            ]
+          },
+          "params": {},
+          "payload": {},
+          "pinned": {
+            "type": "boolean"
+          },
+          "supersedesPackId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "diaryId",
+          "packCid",
+          "packCodec",
+          "packType",
+          "params",
+          "payload",
+          "createdBy",
+          "supersedesPackId",
+          "pinned",
+          "expiresAt",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ContextPackExpanded": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entries": {
+            "items": {
+              "properties": {
+                "compressionLevel": {
+                  "anyOf": [
+                    {
+                      "enum": ["full"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["summary"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["keywords"],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "entry": {
+                  "$ref": "#/components/schemas/DiaryEntry"
+                },
+                "entryCidSnapshot": {
+                  "type": "string"
+                },
+                "entryId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "originalTokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "packId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "packedTokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rank": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "packId",
+                "entryId",
+                "entryCidSnapshot",
+                "compressionLevel",
+                "originalTokens",
+                "packedTokens",
+                "rank",
+                "createdAt",
+                "entry"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "packCodec": {
+            "type": "string"
+          },
+          "packType": {
+            "anyOf": [
+              {
+                "enum": ["compile"],
+                "type": "string"
+              },
+              {
+                "enum": ["optimized"],
+                "type": "string"
+              },
+              {
+                "enum": ["custom"],
+                "type": "string"
+              }
+            ]
+          },
+          "params": {},
+          "payload": {},
+          "pinned": {
+            "type": "boolean"
+          },
+          "supersedesPackId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "diaryId",
+          "packCid",
+          "packCodec",
+          "packType",
+          "params",
+          "payload",
+          "createdBy",
+          "supersedesPackId",
+          "pinned",
+          "expiresAt",
+          "createdAt",
+          "entries"
+        ],
+        "type": "object"
+      },
+      "ContextPackList": {
+        "properties": {
+          "items": {
+            "items": {
+              "properties": {
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "createdBy": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "diaryId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "expiresAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "packCid": {
+                  "type": "string"
+                },
+                "packCodec": {
+                  "type": "string"
+                },
+                "packType": {
+                  "anyOf": [
+                    {
+                      "enum": ["compile"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["optimized"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["custom"],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "params": {},
+                "payload": {},
+                "pinned": {
+                  "type": "boolean"
+                },
+                "supersedesPackId": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "packCid",
+                "packCodec",
+                "packType",
+                "params",
+                "payload",
+                "createdBy",
+                "supersedesPackId",
+                "pinned",
+                "expiresAt",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": ["items", "total", "limit"],
+        "type": "object"
+      },
+      "ContextPackResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entries": {
+            "items": {
+              "properties": {
+                "compressionLevel": {
+                  "anyOf": [
+                    {
+                      "enum": ["full"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["summary"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["keywords"],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "entry": {
+                  "$ref": "#/components/schemas/DiaryEntry"
+                },
+                "entryCidSnapshot": {
+                  "type": "string"
+                },
+                "entryId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "originalTokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "packId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "packedTokens": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "rank": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "packId",
+                "entryId",
+                "entryCidSnapshot",
+                "compressionLevel",
+                "originalTokens",
+                "packedTokens",
+                "rank",
+                "createdAt",
+                "entry"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "packCodec": {
+            "type": "string"
+          },
+          "packType": {
+            "anyOf": [
+              {
+                "enum": ["compile"],
+                "type": "string"
+              },
+              {
+                "enum": ["optimized"],
+                "type": "string"
+              },
+              {
+                "enum": ["custom"],
+                "type": "string"
+              }
+            ]
+          },
+          "params": {},
+          "payload": {},
+          "pinned": {
+            "type": "boolean"
+          },
+          "supersedesPackId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "diaryId",
+          "packCid",
+          "packCodec",
+          "packType",
+          "params",
+          "payload",
+          "createdBy",
+          "supersedesPackId",
+          "pinned",
+          "expiresAt",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ContextPackResponseList": {
+        "properties": {
+          "items": {
+            "items": {
+              "properties": {
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "createdBy": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "diaryId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "entries": {
+                  "items": {
+                    "properties": {
+                      "compressionLevel": {
+                        "anyOf": [
+                          {
+                            "enum": ["full"],
+                            "type": "string"
+                          },
+                          {
+                            "enum": ["summary"],
+                            "type": "string"
+                          },
+                          {
+                            "enum": ["keywords"],
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "createdAt": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "entry": {
+                        "$ref": "#/components/schemas/DiaryEntry"
+                      },
+                      "entryCidSnapshot": {
+                        "type": "string"
+                      },
+                      "entryId": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "id": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "originalTokens": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "packId": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "packedTokens": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "rank": {
+                        "anyOf": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "packId",
+                      "entryId",
+                      "entryCidSnapshot",
+                      "compressionLevel",
+                      "originalTokens",
+                      "packedTokens",
+                      "rank",
+                      "createdAt",
+                      "entry"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "expiresAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "packCid": {
+                  "type": "string"
+                },
+                "packCodec": {
+                  "type": "string"
+                },
+                "packType": {
+                  "anyOf": [
+                    {
+                      "enum": ["compile"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["optimized"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["custom"],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "params": {},
+                "payload": {},
+                "pinned": {
+                  "type": "boolean"
+                },
+                "supersedesPackId": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "diaryId",
+                "packCid",
+                "packCodec",
+                "packType",
+                "params",
+                "payload",
+                "createdBy",
+                "supersedesPackId",
+                "pinned",
+                "expiresAt",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": ["items", "total", "limit"],
+        "type": "object"
+      },
       "CryptoIdentity": {
         "properties": {
           "fingerprint": {
@@ -950,6 +1665,91 @@
           "valid",
           "contentHash",
           "agentFingerprint"
+        ],
+        "type": "object"
+      },
+      "ExpandedPackEntry": {
+        "properties": {
+          "compressionLevel": {
+            "anyOf": [
+              {
+                "enum": ["full"],
+                "type": "string"
+              },
+              {
+                "enum": ["summary"],
+                "type": "string"
+              },
+              {
+                "enum": ["keywords"],
+                "type": "string"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "entry": {
+            "$ref": "#/components/schemas/DiaryEntry"
+          },
+          "entryCidSnapshot": {
+            "type": "string"
+          },
+          "entryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "originalTokens": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "packId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packedTokens": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "packId",
+          "entryId",
+          "entryCidSnapshot",
+          "compressionLevel",
+          "originalTokens",
+          "packedTokens",
+          "rank",
+          "createdAt",
+          "entry"
         ],
         "type": "object"
       },
@@ -4401,6 +5201,91 @@
         "tags": ["diary"]
       }
     },
+    "/diaries/{id}/packs": {
+      "get": {
+        "description": "List persisted context packs for a diary. Use `expand=entries` to include entry content.",
+        "operationId": "listDiaryPacks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expand",
+            "required": false,
+            "schema": {
+              "enum": ["entries"],
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextPackResponseList"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
     "/entries/{entryId}": {
       "delete": {
         "description": "Delete a diary entry.",
@@ -4900,6 +5785,90 @@
           }
         },
         "tags": ["auth"]
+      }
+    },
+    "/packs/{id}": {
+      "get": {
+        "description": "Get a persisted context pack by ID. Use `expand=entries` to include entry content.",
+        "operationId": "getContextPackById",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "expand",
+            "required": false,
+            "schema": {
+              "enum": ["entries"],
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextPackResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
       }
     },
     "/problems": {

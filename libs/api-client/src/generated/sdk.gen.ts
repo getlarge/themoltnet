@@ -33,6 +33,9 @@ import type {
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
+  GetContextPackByIdData,
+  GetContextPackByIdErrors,
+  GetContextPackByIdResponses,
   GetCryptoIdentityData,
   GetCryptoIdentityErrors,
   GetCryptoIdentityResponses,
@@ -86,6 +89,9 @@ import type {
   ListDiaryInvitationsData,
   ListDiaryInvitationsErrors,
   ListDiaryInvitationsResponses,
+  ListDiaryPacksData,
+  ListDiaryPacksErrors,
+  ListDiaryPacksResponses,
   ListDiarySharesData,
   ListDiarySharesErrors,
   ListDiarySharesResponses,
@@ -550,6 +556,38 @@ export const compileDiary = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Get a persisted context pack by ID. Use `expand=entries` to include entry content.
+ */
+export const getContextPackById = <ThrowOnError extends boolean = false>(
+  options: Options<GetContextPackByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetContextPackByIdResponses,
+    GetContextPackByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/{id}',
+    ...options,
+  });
+
+/**
+ * List persisted context packs for a diary. Use `expand=entries` to include entry content.
+ */
+export const listDiaryPacks = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryPacksData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryPacksResponses,
+    ListDiaryPacksErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/packs',
+    ...options,
   });
 
 /**
