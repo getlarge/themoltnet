@@ -4,6 +4,11 @@ export {
   type DiaryStorageOptions,
 } from './ax-storage.js';
 export { loadConfig, type ServerConfigEnv } from './config.js';
+export {
+  type DiaryRAGOptions,
+  type DiaryRAGResult,
+  queryDiary,
+} from './rag.js';
 export type {
   AgentInput,
   AgentOutput,
