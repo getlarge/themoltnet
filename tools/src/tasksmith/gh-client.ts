@@ -167,8 +167,14 @@ export async function ghPrView(prNumber: number): Promise<GhPrListItem> {
   }, `pr view ${prNumber}`);
 }
 
-export async function gitDiff(base: string, head: string): Promise<string> {
-  const out = await execFileText('git', ['diff', base, head]);
+export async function gitDiff(
+  base: string,
+  head: string,
+  filePath?: string,
+): Promise<string> {
+  const args = ['diff', base, head];
+  if (filePath) args.push('--', filePath);
+  const out = await execFileText('git', args);
   return out;
 }
 

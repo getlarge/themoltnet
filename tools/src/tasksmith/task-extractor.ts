@@ -41,8 +41,8 @@ GOAL: Extract test commands that FAIL on the pre-PR code (fixture) and PASS on t
 
 TEST FILE LABELS:
 - Test files are labeled [NEW] or [MODIFIED].
-- [NEW] = file was ADDED by this PR. It does not exist on the fixture. These are your primary fail_to_pass candidates — they will error/fail on fixture because the file or the code they test doesn't exist yet.
-- [MODIFIED] = file existed before the PR. Only the changed/added test cases within it are fail_to_pass candidates.
+- [NEW] = file was ADDED by this PR. Full content is shown. These are your primary fail_to_pass candidates — they will error/fail on fixture because the file doesn't exist yet.
+- [MODIFIED] = file existed before the PR. Only the DIFF is shown — lines starting with + are additions by this PR. Use added test() or it() blocks as fail_to_pass candidates with --testNamePattern to target them specifically.
 - Unchanged test files are pass_to_pass candidates (regression guard).
 
 TEST COMMANDS:
@@ -93,9 +93,9 @@ export function assembleTasksmithTask(
 // ── Context building ──
 
 /**
- * Read test files from the gold ref and classify each as NEW or MODIFIED
- * relative to the fixture ref. This tells the LLM which tests were added
- * by the PR (primary fail_to_pass candidates) vs which already existed.
+ * Build test file context with NEW/MODIFIED classification.
+ * - [NEW] files: show full content from gold ref (the whole file is new)
+ * - [MODIFIED] files: show only the diff (added lines = new test cases)
  */
 async function readTestFileContents(
   fixtureRef: string,
@@ -109,16 +109,28 @@ async function readTestFileContents(
 
   for (const file of testFiles) {
     if (totalChars >= maxChars) break;
-    const content = await gitShowFileAtRef(goldRef, file);
-    if (!content) continue;
 
     const existsOnFixture = await gitFileExistsAtRef(fixtureRef, file);
-    const label = existsOnFixture ? 'MODIFIED' : 'NEW';
+
+    let content: string;
+    if (existsOnFixture) {
+      // MODIFIED: show the diff so the LLM sees which test cases are new
+      const fileDiff = await gitDiff(fixtureRef, goldRef, file);
+      if (!fileDiff) continue;
+      content = `--- ${file} [MODIFIED — diff shows added/changed tests] ---\n${fileDiff}`;
+    } else {
+      // NEW: show full file content from gold ref
+      const fullContent = await gitShowFileAtRef(goldRef, file);
+      if (!fullContent) continue;
+      content = `--- ${file} [NEW — entire file added by this PR] ---\n${fullContent}`;
+    }
+
     const truncated = content.slice(0, maxChars - totalChars);
-    parts.push(`--- ${file} [${label}] ---\n${truncated}`);
+    parts.push(truncated);
     totalChars += truncated.length;
   }
-  return parts.join('\n\n');
+  const result = parts.join('\n\n');
+  return result || '(no test file context available)';
 }
 
 function buildPrBody(candidate: PrCandidate): string {
