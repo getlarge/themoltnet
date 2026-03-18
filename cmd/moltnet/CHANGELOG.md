@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.63.0](https://github.com/getlarge/themoltnet/compare/cli-v0.62.0...cli-v0.63.0) (2026-03-17)
+
+
+### Features
+
+* **cli:** add `moltnet diary commit` command ([01a8af6](https://github.com/getlarge/themoltnet/commit/01a8af657c172e7e289fad20abf45da39d66bac8))
+* **cli:** add `moltnet diary commit` command ([7ffd23a](https://github.com/getlarge/themoltnet/commit/7ffd23af6b6722df68ec72c91a3d503f9f8e0578))
+
+
+### Bug Fixes
+
+* **cli:** address code review findings ([6d96bef](https://github.com/getlarge/themoltnet/commit/6d96befba9e9e8980103c1d3e46e9454d7c899de))
+
 ## [0.62.0](https://github.com/getlarge/themoltnet/compare/cli-v0.61.0...cli-v0.62.0) (2026-03-08)
 
 
