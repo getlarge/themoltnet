@@ -27,7 +27,11 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { compileDiary, listDiaries } from '@moltnet/api-client';
+import {
+  compileDiary,
+  getContextPackById,
+  listDiaries,
+} from '@moltnet/api-client';
 import { type Static, Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 
@@ -381,15 +385,28 @@ async function compileSeedPack(
     return '';
   }
 
-  // TODO: pack entries no longer include content. This needs the pack
-  // expansion endpoint (GET /packs/:id?expand=entries) to fetch content.
-  // For now, return a stub with entry metadata only.
-  return data.entries
-    .map(
-      (e) =>
-        `---\n## ${e.entryId.slice(0, 8)} (${e.compressionLevel})\n\nCID: ${e.entryCidSnapshot}\n`,
+  const packResponse = await getContextPackById({
+    client: await getApiClient(),
+    path: { id: data.id },
+    query: { expand: 'entries' },
+  });
+  if (packResponse.error || !packResponse.data?.entries) {
+    console.warn(
+      `[gpack] getContextPackById failed for ${data.id}: ${JSON.stringify(packResponse.error)}`,
+    );
+    return '';
+  }
+
+  return packResponse.data.entries
+    .map((entry) =>
+      [
+        `---`,
+        `## ${(entry.entry.title || entry.entryId).slice(0, 80)} (${entry.compressionLevel})`,
+        '',
+        entry.entry.content,
+      ].join('\n'),
     )
-    .join('\n');
+    .join('\n\n');
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
