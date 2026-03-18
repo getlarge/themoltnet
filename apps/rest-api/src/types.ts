@@ -10,8 +10,10 @@
 export type { CryptoService } from '@moltnet/crypto-service';
 export type {
   AgentRepository,
+  ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
+  EntryRelationRepository,
   NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
@@ -22,8 +24,10 @@ export type { EmbeddingService } from '@moltnet/embedding-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
+  ContextPackRepository,
   DataSource,
   DiaryEntryRepository,
+  EntryRelationRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -38,6 +42,8 @@ declare module 'fastify' {
     diaryService: DiaryService;
     /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
     diaryEntryRepository: DiaryEntryRepository;
+    contextPackRepository: ContextPackRepository;
+    entryRelationRepository: EntryRelationRepository;
     embeddingService: EmbeddingService;
     agentRepository: AgentRepository;
     cryptoService: CryptoService;

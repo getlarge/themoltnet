@@ -36,6 +36,7 @@ export {
 export {
   type ContextPackRepository,
   createContextPackRepository,
+  type ExpandedPackEntry,
 } from './repositories/context-pack.repository.js';
 export {
   createDiaryRepository,

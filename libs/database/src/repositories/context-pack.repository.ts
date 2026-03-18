@@ -4,7 +4,16 @@
  * Persistence primitives for compiled context packs and pack membership.
  */
 
-import { and, asc, desc, eq, inArray, lte, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  type InferSelectModel,
+  lte,
+  sql,
+} from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -12,6 +21,7 @@ import {
   contextPackEntries,
   type ContextPackEntry,
   contextPacks,
+  diaryEntries,
   type NewContextPack,
   type NewContextPackEntry,
 } from '../schema.js';
@@ -66,6 +76,52 @@ export function createContextPackRepository(db: Database) {
       return getExecutor(db)
         .select()
         .from(contextPackEntries)
+        .where(eq(contextPackEntries.packId, packId))
+        .orderBy(
+          sql`${contextPackEntries.rank} ASC NULLS LAST`,
+          asc(contextPackEntries.createdAt),
+          asc(contextPackEntries.id),
+        );
+    },
+
+    async listEntriesExpanded(packId: string): Promise<ExpandedPackEntry[]> {
+      return getExecutor(db)
+        .select({
+          id: contextPackEntries.id,
+          packId: contextPackEntries.packId,
+          entryId: contextPackEntries.entryId,
+          entryCidSnapshot: contextPackEntries.entryCidSnapshot,
+          compressionLevel: contextPackEntries.compressionLevel,
+          originalTokens: contextPackEntries.originalTokens,
+          packedTokens: contextPackEntries.packedTokens,
+          rank: contextPackEntries.rank,
+          createdAt: contextPackEntries.createdAt,
+          entry: {
+            id: diaryEntries.id,
+            diaryId: diaryEntries.diaryId,
+            title: diaryEntries.title,
+            content: diaryEntries.content,
+            embedding: diaryEntries.embedding,
+            tags: diaryEntries.tags,
+            injectionRisk: diaryEntries.injectionRisk,
+            importance: diaryEntries.importance,
+            accessCount: diaryEntries.accessCount,
+            lastAccessedAt: diaryEntries.lastAccessedAt,
+            entryType: diaryEntries.entryType,
+            supersededBy: diaryEntries.supersededBy,
+            contentHash: diaryEntries.contentHash,
+            contentSignature: diaryEntries.contentSignature,
+            signingNonce: diaryEntries.signingNonce,
+            createdBy: diaryEntries.createdBy,
+            createdAt: diaryEntries.createdAt,
+            updatedAt: diaryEntries.updatedAt,
+          },
+        })
+        .from(contextPackEntries)
+        .innerJoin(
+          diaryEntries,
+          eq(contextPackEntries.entryId, diaryEntries.id),
+        )
         .where(eq(contextPackEntries.packId, packId))
         .orderBy(
           sql`${contextPackEntries.rank} ASC NULLS LAST`,
@@ -133,3 +189,9 @@ export function createContextPackRepository(db: Database) {
 export type ContextPackRepository = ReturnType<
   typeof createContextPackRepository
 >;
+
+export interface ExpandedPackEntry extends InferSelectModel<
+  typeof contextPackEntries
+> {
+  entry: InferSelectModel<typeof diaryEntries>;
+}

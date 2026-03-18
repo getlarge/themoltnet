@@ -598,7 +598,7 @@ export const ConsolidateResultSchema = Type.Object(
   { $id: 'ConsolidateResult' },
 );
 
-const PackEntrySchema = Type.Object({
+export const ContextPackEntrySchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   packId: Type.String({ format: 'uuid' }),
   entryId: Type.String({ format: 'uuid' }),
@@ -616,6 +616,85 @@ const PackEntrySchema = Type.Object({
     format: 'date-time',
   }),
 });
+
+export const ExpandedPackEntrySchema = Type.Composite(
+  [
+    ContextPackEntrySchema,
+    Type.Object({
+      entry: Type.Ref(DiaryEntrySchema),
+    }),
+  ],
+  { $id: 'ExpandedPackEntry' },
+);
+
+export const ContextPackSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
+    packCid: Type.String(),
+    packCodec: Type.String(),
+    packType: Type.Union([
+      Type.Literal('compile'),
+      Type.Literal('optimized'),
+      Type.Literal('custom'),
+    ]),
+    params: Type.Unknown(),
+    payload: Type.Unknown(),
+    createdBy: Type.String({ format: 'uuid' }),
+    supersedesPackId: Type.Union([
+      Type.String({ format: 'uuid' }),
+      Type.Null(),
+    ]),
+    pinned: Type.Boolean(),
+    expiresAt: Type.Union([
+      Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
+      Type.Null(),
+    ]),
+    createdAt: Type.Unsafe<Date | string>({
+      type: 'string',
+      format: 'date-time',
+    }),
+  },
+  { $id: 'ContextPack' },
+);
+
+export const ContextPackExpandedSchema = Type.Composite(
+  [
+    ContextPackSchema,
+    Type.Object({
+      entries: Type.Array(ExpandedPackEntrySchema),
+    }),
+  ],
+  { $id: 'ContextPackExpanded' },
+);
+
+export const ContextPackResponseSchema = Type.Composite(
+  [
+    ContextPackSchema,
+    Type.Object({
+      entries: Type.Optional(Type.Array(ExpandedPackEntrySchema)),
+    }),
+  ],
+  { $id: 'ContextPackResponse' },
+);
+
+export const ContextPackListSchema = Type.Object(
+  {
+    items: Type.Array(ContextPackSchema),
+    total: Type.Number(),
+    limit: Type.Number(),
+  },
+  { $id: 'ContextPackList' },
+);
+
+export const ContextPackResponseListSchema = Type.Object(
+  {
+    items: Type.Array(ContextPackResponseSchema),
+    total: Type.Number(),
+    limit: Type.Number(),
+  },
+  { $id: 'ContextPackResponseList' },
+);
 
 export const CompileResultSchema = Type.Object(
   {
@@ -644,7 +723,7 @@ export const CompileResultSchema = Type.Object(
       type: 'string',
       format: 'date-time',
     }),
-    entries: Type.Array(PackEntrySchema),
+    entries: Type.Array(ContextPackEntrySchema),
     compileStats: Type.Object({
       totalTokens: Type.Number(),
       entriesIncluded: Type.Number(),
@@ -682,6 +761,11 @@ export const sharedSchemas = [
   PublicSearchResponseSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
+  ContextPackSchema,
+  ContextPackExpandedSchema,
+  ContextPackResponseSchema,
+  ContextPackListSchema,
+  ContextPackResponseListSchema,
   DigestSchema,
   EntryVerifyResultSchema,
   SuccessSchema,

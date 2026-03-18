@@ -29,6 +29,7 @@ import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { oauth2Routes } from './routes/oauth2.js';
+import { packRoutes } from './routes/packs.js';
 import { problemRoutes } from './routes/problems.js';
 import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
@@ -38,11 +39,13 @@ import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
 import type {
   AgentRepository,
+  ContextPackRepository,
   CryptoService,
   DataSource,
   DiaryEntryRepository,
   DiaryService,
   EmbeddingService,
+  EntryRelationRepository,
   NonceRepository,
   SigningRequestRepository,
   TransactionRunner,
@@ -84,6 +87,8 @@ export interface AppOptions {
   diaryService: DiaryService;
   /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
   diaryEntryRepository: DiaryEntryRepository;
+  contextPackRepository: ContextPackRepository;
+  entryRelationRepository: EntryRelationRepository;
   embeddingService: EmbeddingService;
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
@@ -207,6 +212,8 @@ export async function registerApiRoutes(
   };
   decorateSafe('diaryService', options.diaryService);
   decorateSafe('diaryEntryRepository', options.diaryEntryRepository);
+  decorateSafe('contextPackRepository', options.contextPackRepository);
+  decorateSafe('entryRelationRepository', options.entryRelationRepository);
   decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);
@@ -232,6 +239,7 @@ export async function registerApiRoutes(
   await app.register(diaryRoutes);
   await app.register(diaryEntryRoutes);
   await app.register(diaryDistillRoutes);
+  await app.register(packRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
   await app.register(signingRequestRoutes);
