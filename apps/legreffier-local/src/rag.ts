@@ -25,11 +25,12 @@ export async function queryDiary(
 ): Promise<DiaryRAGResult> {
   const { sdkAgent, diaryId, limit = 5 } = options;
 
-  const data = await sdkAgent.entries.search({
+  const searchBody = {
     diaryId,
     query: question,
     limit,
-  });
+  };
+  const data = await sdkAgent.entries.search(searchBody);
 
   if (!data?.results?.length) {
     return { context: '', resultCount: 0 };

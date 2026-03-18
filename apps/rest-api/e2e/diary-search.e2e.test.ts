@@ -346,6 +346,70 @@ describe('Diary hybrid search', () => {
       expect(results.every((r) => r.entryType === 'episodic')).toBe(true);
     });
 
+    it('entryTypes + query combo filters and searches', async () => {
+      const { data, error } = await searchDiary({
+        client,
+        auth: () => agent.accessToken,
+        body: {
+          query: 'deploy',
+          entryTypes: ['semantic'],
+          diaryId: agent.privateDiaryId,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      const results = (
+        data as unknown as {
+          results: Array<{ entryType: string; content: string }>;
+        }
+      ).results;
+      // All seeded deploy entries are semantic (default type)
+      expect(results.every((r) => r.entryType === 'semantic')).toBe(true);
+    });
+
+    it('excludeTags filters out matching entries', async () => {
+      const { data, error } = await searchDiary({
+        client,
+        auth: () => agent.accessToken,
+        body: {
+          query: 'deploy',
+          excludeTags: ['staging'],
+          diaryId: agent.privateDiaryId,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      const results = (
+        data as unknown as {
+          results: Array<{ tags: string[] | null; content: string }>;
+        }
+      ).results;
+      // No result should have the 'staging' tag
+      for (const r of results) {
+        expect(r.tags ?? []).not.toContain('staging');
+      }
+    });
+
+    it('wRelevance weight param does not cause errors', async () => {
+      const { data, error } = await searchDiary({
+        client,
+        auth: () => agent.accessToken,
+        body: {
+          query: 'deploy',
+          wRelevance: 1.0,
+          wRecency: 0.3,
+          wImportance: 0.2,
+          diaryId: agent.privateDiaryId,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      const results = (
+        data as unknown as { results: Array<{ content: string }> }
+      ).results;
+      expect(results.length).toBeGreaterThanOrEqual(1);
+    });
+
     it('excludeSuperseded hides superseded entries', async () => {
       const { data: allData } = await searchDiary({
         client,
