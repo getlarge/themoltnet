@@ -28,6 +28,16 @@ function wantsExpandedEntries(expand?: 'entries'): boolean {
   return expand === 'entries';
 }
 
+function toListResponse<T>(items: T[], limit: number) {
+  return {
+    items,
+    // `total` follows the existing REST list convention in this API:
+    // it reports the number of items returned in this response window.
+    total: items.length,
+    limit,
+  };
+}
+
 function translateServiceError(err: DiaryServiceError): never {
   switch (err.code) {
     case 'not_found':
@@ -113,6 +123,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         response: {
           200: Type.Ref(ContextPackResponseListSchema),
           401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
           500: Type.Ref(ProblemDetailsSchema),
         },
@@ -134,29 +145,34 @@ export async function packRoutes(fastify: FastifyInstance) {
         diary.id,
         limit,
       );
-
-      if (!wantsExpandedEntries(request.query.expand)) {
-        return {
-          items: packs,
-          total: packs.length,
-          limit,
-        };
-      }
-
-      const items = await Promise.all(
+      const visibility = await Promise.all(
         packs.map(async (pack) => ({
-          ...pack,
-          entries: await fastify.contextPackRepository.listEntriesExpanded(
+          pack,
+          allowed: await fastify.permissionChecker.canReadPack(
             pack.id,
+            request.authContext!.identityId,
           ),
         })),
       );
+      const visiblePacks = visibility
+        .filter((result) => result.allowed)
+        .map((result) => result.pack);
 
-      return {
-        items,
-        total: items.length,
-        limit,
-      };
+      if (!wantsExpandedEntries(request.query.expand)) {
+        return toListResponse(visiblePacks, limit);
+      }
+
+      const entriesByPack =
+        await fastify.contextPackRepository.listEntriesExpandedByPackIds(
+          visiblePacks.map((pack) => pack.id),
+        );
+
+      const items = visiblePacks.map((pack) => ({
+        ...pack,
+        entries: entriesByPack.get(pack.id) ?? [],
+      }));
+
+      return toListResponse(items, limit);
     },
   );
 }

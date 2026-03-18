@@ -681,8 +681,13 @@ export const ContextPackResponseSchema = Type.Composite(
 export const ContextPackListSchema = Type.Object(
   {
     items: Type.Array(ContextPackSchema),
-    total: Type.Number(),
-    limit: Type.Number(),
+    total: Type.Number({
+      description:
+        'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
+    }),
+    limit: Type.Number({
+      description: 'Maximum number of items requested for this response.',
+    }),
   },
   { $id: 'ContextPackList' },
 );
@@ -690,8 +695,13 @@ export const ContextPackListSchema = Type.Object(
 export const ContextPackResponseListSchema = Type.Object(
   {
     items: Type.Array(ContextPackResponseSchema),
-    total: Type.Number(),
-    limit: Type.Number(),
+    total: Type.Number({
+      description:
+        'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
+    }),
+    limit: Type.Number({
+      description: 'Maximum number of items requested for this response.',
+    }),
   },
   { $id: 'ContextPackResponseList' },
 );

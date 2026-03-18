@@ -15,11 +15,51 @@ import {
 import { getExecutor } from '../transaction-context.js';
 
 export function createEntryRelationRepository(db: Database) {
+  async function createOne(input: NewEntryRelation): Promise<EntryRelation> {
+    const [row] = await getExecutor(db)
+      .insert(entryRelations)
+      .values(input)
+      .onConflictDoNothing({
+        target: [
+          entryRelations.sourceId,
+          entryRelations.targetId,
+          entryRelations.relation,
+        ],
+      })
+      .returning();
+
+    if (row) return row;
+
+    const [existing] = await getExecutor(db)
+      .select()
+      .from(entryRelations)
+      .where(
+        and(
+          eq(entryRelations.sourceId, input.sourceId),
+          eq(entryRelations.targetId, input.targetId),
+          eq(entryRelations.relation, input.relation),
+        ),
+      )
+      .limit(1);
+
+    if (!existing) {
+      throw new Error('entry relation upsert failed unexpectedly');
+    }
+
+    return existing;
+  }
+
   return {
     async create(input: NewEntryRelation): Promise<EntryRelation> {
-      const [row] = await getExecutor(db)
+      return createOne(input);
+    },
+
+    async createMany(inputs: NewEntryRelation[]): Promise<EntryRelation[]> {
+      if (inputs.length === 0) return [];
+
+      const inserted = await getExecutor(db)
         .insert(entryRelations)
-        .values(input)
+        .values(inputs)
         .onConflictDoNothing({
           target: [
             entryRelations.sourceId,
@@ -29,24 +69,13 @@ export function createEntryRelationRepository(db: Database) {
         })
         .returning();
 
-      if (row) return row;
-
-      const [existing] = await getExecutor(db)
-        .select()
-        .from(entryRelations)
-        .where(
-          and(
-            eq(entryRelations.sourceId, input.sourceId),
-            eq(entryRelations.targetId, input.targetId),
-            eq(entryRelations.relation, input.relation),
-          ),
-        )
-        .limit(1);
-
-      if (!existing) {
-        throw new Error('entry relation upsert failed unexpectedly');
+      if (inserted.length === inputs.length) {
+        return inserted;
       }
 
+      const existing = await Promise.all(
+        inputs.map((input) => createOne(input)),
+      );
       return existing;
     },
 

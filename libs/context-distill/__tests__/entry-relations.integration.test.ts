@@ -303,6 +303,32 @@ describe('entry relations from consolidation (integration)', () => {
   // ── Persist and manage relation proposals ──────────────────────────────
 
   describe('relation proposal lifecycle', () => {
+    it('persists proposal batches atomically with createMany', async () => {
+      const distillEntries = ENTRIES.map(toDistillEntry);
+      const result = consolidate(distillEntries, { threshold: 0.15 });
+      const proposals = clusterToRelationProposals(
+        result.clusters,
+        buildCidLookup(ENTRIES),
+        'consolidate-wf-batch-001',
+      );
+
+      const created = await relationRepo.createMany(
+        proposals.map((proposal) => ({
+          ...proposal,
+          status: 'proposed',
+          workflowId: 'consolidate-wf-batch-001',
+          metadata: proposal.metadata,
+        })),
+      );
+
+      expect(created).toHaveLength(proposals.length);
+
+      const persisted = await relationRepo.listByEntry(ENTRIES[0].id, {
+        status: 'proposed',
+      });
+      expect(persisted.length).toBeGreaterThan(0);
+    });
+
     it('persists proposed relations from consolidation clusters', async () => {
       const distillEntries = ENTRIES.map(toDistillEntry);
       const result = consolidate(distillEntries, { threshold: 0.15 });

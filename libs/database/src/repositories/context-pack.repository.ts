@@ -101,7 +101,6 @@ export function createContextPackRepository(db: Database) {
             diaryId: diaryEntries.diaryId,
             title: diaryEntries.title,
             content: diaryEntries.content,
-            embedding: diaryEntries.embedding,
             tags: diaryEntries.tags,
             injectionRisk: diaryEntries.injectionRisk,
             importance: diaryEntries.importance,
@@ -128,6 +127,66 @@ export function createContextPackRepository(db: Database) {
           asc(contextPackEntries.createdAt),
           asc(contextPackEntries.id),
         );
+    },
+
+    async listEntriesExpandedByPackIds(
+      packIds: string[],
+    ): Promise<Map<string, ExpandedPackEntry[]>> {
+      if (packIds.length === 0) return new Map();
+
+      const rows = await getExecutor(db)
+        .select({
+          id: contextPackEntries.id,
+          packId: contextPackEntries.packId,
+          entryId: contextPackEntries.entryId,
+          entryCidSnapshot: contextPackEntries.entryCidSnapshot,
+          compressionLevel: contextPackEntries.compressionLevel,
+          originalTokens: contextPackEntries.originalTokens,
+          packedTokens: contextPackEntries.packedTokens,
+          rank: contextPackEntries.rank,
+          createdAt: contextPackEntries.createdAt,
+          entry: {
+            id: diaryEntries.id,
+            diaryId: diaryEntries.diaryId,
+            title: diaryEntries.title,
+            content: diaryEntries.content,
+            tags: diaryEntries.tags,
+            injectionRisk: diaryEntries.injectionRisk,
+            importance: diaryEntries.importance,
+            accessCount: diaryEntries.accessCount,
+            lastAccessedAt: diaryEntries.lastAccessedAt,
+            entryType: diaryEntries.entryType,
+            supersededBy: diaryEntries.supersededBy,
+            contentHash: diaryEntries.contentHash,
+            contentSignature: diaryEntries.contentSignature,
+            signingNonce: diaryEntries.signingNonce,
+            createdBy: diaryEntries.createdBy,
+            createdAt: diaryEntries.createdAt,
+            updatedAt: diaryEntries.updatedAt,
+          },
+        })
+        .from(contextPackEntries)
+        .innerJoin(
+          diaryEntries,
+          eq(contextPackEntries.entryId, diaryEntries.id),
+        )
+        .where(inArray(contextPackEntries.packId, packIds))
+        .orderBy(
+          sql`${contextPackEntries.rank} ASC NULLS LAST`,
+          asc(contextPackEntries.createdAt),
+          asc(contextPackEntries.id),
+        );
+
+      const grouped = new Map<string, ExpandedPackEntry[]>();
+      for (const packId of packIds) {
+        grouped.set(packId, []);
+      }
+
+      for (const row of rows) {
+        grouped.get(row.packId)!.push(row);
+      }
+
+      return grouped;
     },
 
     async listExpiredUnpinned(
@@ -193,5 +252,5 @@ export type ContextPackRepository = ReturnType<
 export interface ExpandedPackEntry extends InferSelectModel<
   typeof contextPackEntries
 > {
-  entry: InferSelectModel<typeof diaryEntries>;
+  entry: Omit<InferSelectModel<typeof diaryEntries>, 'embedding'>;
 }

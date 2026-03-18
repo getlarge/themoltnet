@@ -157,6 +157,7 @@ export interface MockServices {
     findByCid: ReturnType<typeof vi.fn>;
     listEntries: ReturnType<typeof vi.fn>;
     listEntriesExpanded: ReturnType<typeof vi.fn>;
+    listEntriesExpandedByPackIds: ReturnType<typeof vi.fn>;
     listExpiredUnpinned: ReturnType<typeof vi.fn>;
     pin: ReturnType<typeof vi.fn>;
     unpin: ReturnType<typeof vi.fn>;
@@ -165,6 +166,7 @@ export interface MockServices {
   };
   entryRelationRepository: {
     create: ReturnType<typeof vi.fn>;
+    createMany: ReturnType<typeof vi.fn>;
     listByEntry: ReturnType<typeof vi.fn>;
     updateStatus: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
@@ -220,6 +222,7 @@ export function createMockServices(): MockServices {
       findByCid: vi.fn(),
       listEntries: vi.fn().mockResolvedValue([]),
       listEntriesExpanded: vi.fn().mockResolvedValue([]),
+      listEntriesExpandedByPackIds: vi.fn().mockResolvedValue(new Map()),
       listExpiredUnpinned: vi.fn().mockResolvedValue([]),
       pin: vi.fn(),
       unpin: vi.fn(),
@@ -228,6 +231,7 @@ export function createMockServices(): MockServices {
     },
     entryRelationRepository: {
       create: vi.fn(),
+      createMany: vi.fn().mockResolvedValue([]),
       listByEntry: vi.fn().mockResolvedValue([]),
       updateStatus: vi.fn(),
       delete: vi.fn(),

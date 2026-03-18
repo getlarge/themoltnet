@@ -321,8 +321,8 @@ export function initContextDistillWorkflows(): void {
         const { dataSource, entryRelationRepository } = getDeps();
         await dataSource.runTransaction(
           async () => {
-            for (const proposal of proposals) {
-              await entryRelationRepository.create({
+            await entryRelationRepository.createMany(
+              proposals.map((proposal) => ({
                 sourceId: proposal.sourceId,
                 targetId: proposal.targetId,
                 relation: proposal.relation,
@@ -330,8 +330,8 @@ export function initContextDistillWorkflows(): void {
                 targetCidSnapshot: proposal.targetCidSnapshot,
                 workflowId: DBOS.workflowID ?? '',
                 metadata: proposal.metadata,
-              });
-            }
+              })),
+            );
           },
           { name: 'context-distill.tx.persistConsolidationRelations' },
         );
