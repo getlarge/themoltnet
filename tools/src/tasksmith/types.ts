@@ -68,6 +68,7 @@ export interface VerificationResult {
   status:
     | 'verified'
     | 'unit_verified'
+    | 'extracted_unverified'
     | 'fixture_already_green'
     | 'fix_doesnt_pass'
     | 'extraction_not_viable'

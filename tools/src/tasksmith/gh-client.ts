@@ -10,6 +10,7 @@ const TEST_FILE_PATTERNS = [
 
 const RETRY_DELAYS_MS = [1000, 3000, 9000]; // exponential backoff
 const PACE_DELAY_MS = 200;
+let repoRootPromise: Promise<string> | undefined;
 
 // ── Types (raw GH API shapes) ──
 
@@ -93,6 +94,14 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
   throw new Error('unreachable');
 }
 
+async function getRepoRoot(): Promise<string> {
+  repoRootPromise ??= execFileText('git', [
+    'rev-parse',
+    '--show-toplevel',
+  ]).then((out) => out.trim());
+  return repoRootPromise;
+}
+
 export async function ghPrList(limit: number): Promise<GhPrListItem[]> {
   return withRetry(async () => {
     const json = await execFileText('gh', [
@@ -174,7 +183,9 @@ export async function gitDiff(
 ): Promise<string> {
   const args = ['diff', base, head];
   if (filePath) args.push('--', filePath);
-  const out = await execFileText('git', args);
+  const out = await execFileText('git', args, {
+    cwd: filePath ? await getRepoRoot() : undefined,
+  });
   return out;
 }
 

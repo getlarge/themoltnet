@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyTestCommand,
   isDockerDependent,
+  outputIndicatesNoTestsRun,
   partitionCommands,
 } from './verify.js';
 
@@ -55,5 +56,37 @@ describe('classifyTestCommand', () => {
     expect(
       classifyTestCommand('pnpm --filter @moltnet/rest-api test:e2e'),
     ).toEqual({ isE2e: true, timeoutMs: 300_000 });
+  });
+});
+
+describe('outputIndicatesNoTestsRun', () => {
+  it('flags vitest no-test-files output', () => {
+    expect(
+      outputIndicatesNoTestsRun('No test files found, exiting with code 0'),
+    ).toBe(true);
+  });
+
+  it('flags go no-tests-to-run output', () => {
+    expect(
+      outputIndicatesNoTestsRun(
+        'ok github.com/getlarge/themoltnet/cmd/moltnet 0.1s [no tests to run]',
+      ),
+    ).toBe(true);
+  });
+
+  it('flags skipped-only vitest output', () => {
+    expect(
+      outputIndicatesNoTestsRun(
+        'Test Files  1 skipped (1)\n      Tests  28 skipped (28)',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not flag a normal passing run', () => {
+    expect(
+      outputIndicatesNoTestsRun(
+        'Test Files  1 passed (1)\n      Tests  12 passed (12)',
+      ),
+    ).toBe(false);
   });
 });

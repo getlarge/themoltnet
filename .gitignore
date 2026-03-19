@@ -197,3 +197,6 @@ out-tsc/
 
 # Context evals outputs
 evals/runs
+
+tasksmith/verified
+tasksmith/reports

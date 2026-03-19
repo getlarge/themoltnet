@@ -1,8 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { filterCandidatePrs, parseLinkedIssue } from './gh-client.js';
+const { execFileTextMock } = vi.hoisted(() => ({
+  execFileTextMock: vi.fn(),
+}));
+
+vi.mock('@moltnet/context-evals/process', () => ({
+  execFileText: execFileTextMock,
+}));
+
+import { filterCandidatePrs, gitDiff, parseLinkedIssue } from './gh-client.js';
 
 describe('parseLinkedIssue', () => {
+  beforeEach(() => {
+    execFileTextMock.mockReset();
+  });
+
   it('extracts issue number from "Fixes #123"', () => {
     expect(parseLinkedIssue('Some text\nFixes #42\nMore text')).toBe(42);
   });
@@ -67,5 +79,35 @@ describe('filterCandidatePrs', () => {
     const files = [{ path: 'src/index.ts' }, { path: 'src/utils.ts' }];
     const result = filterCandidatePrs([{ ...basePr, files }]);
     expect(result).toHaveLength(0);
+  });
+});
+
+describe('gitDiff', () => {
+  beforeEach(() => {
+    execFileTextMock.mockReset();
+  });
+
+  it('runs file-scoped diffs from the repo root', async () => {
+    execFileTextMock
+      .mockResolvedValueOnce('/repo/root\n')
+      .mockResolvedValueOnce('diff output');
+
+    const out = await gitDiff(
+      'base123',
+      'head456',
+      'apps/rest-api/foo.test.ts',
+    );
+
+    expect(out).toBe('diff output');
+    expect(execFileTextMock).toHaveBeenNthCalledWith(1, 'git', [
+      'rev-parse',
+      '--show-toplevel',
+    ]);
+    expect(execFileTextMock).toHaveBeenNthCalledWith(
+      2,
+      'git',
+      ['diff', 'base123', 'head456', '--', 'apps/rest-api/foo.test.ts'],
+      { cwd: '/repo/root' },
+    );
   });
 });

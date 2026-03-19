@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assembleTasksmithTask,
+  extractTouchedTestNames,
   normalizeTestCommand,
   truncateToTokenBudget,
 } from './task-extractor.js';
@@ -56,7 +57,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         "pnpm --filter @moltnet/diary-service test --testPathPattern='diary-service.test'",
       ),
-    ).toBe('pnpm --filter @moltnet/diary-service test -- diary-service.test');
+    ).toBe('pnpm --filter @moltnet/diary-service test diary-service.test');
   });
 
   it('strips repo-root path prefixes', () => {
@@ -87,6 +88,24 @@ describe('normalizeTestCommand', () => {
     ).toBe('pnpm --filter @moltnet/api-client test __tests__/retry.test.ts');
   });
 
+  it('removes extra -- after test script before file args', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @moltnet/rest-api run test -- __tests__/signing-requests.test.ts',
+      ),
+    ).toBe(
+      'pnpm --filter @moltnet/rest-api run test __tests__/signing-requests.test.ts',
+    );
+  });
+
+  it('rewrites test --run <file> to positional file arg', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @themoltnet/sdk test --run __tests__/sign-bytes.test.ts',
+      ),
+    ).toBe('pnpm --filter @themoltnet/sdk test __tests__/sign-bytes.test.ts');
+  });
+
   it('removes --reporter=verbose', () => {
     expect(
       normalizeTestCommand(
@@ -97,13 +116,21 @@ describe('normalizeTestCommand', () => {
 
   it('prefixes Go test commands with cd when missing', () => {
     expect(normalizeTestCommand('go test ./cmd/moltnet/ -run TestSign')).toBe(
-      'cd cmd/moltnet && go test ./cmd/moltnet/ -run TestSign',
+      'cd cmd/moltnet && go test . -run TestSign',
     );
   });
 
   it('leaves Go test commands with cd prefix untouched', () => {
     const goCmd = 'cd cmd/moltnet && go test -run TestSign ./...';
     expect(normalizeTestCommand(goCmd)).toBe(goCmd);
+  });
+
+  it('rewrites duplicated Go package path after cd', () => {
+    expect(
+      normalizeTestCommand(
+        'cd cmd/moltnet && go test ./cmd/moltnet/ -run TestParseGitDiffStat',
+      ),
+    ).toBe('cd cmd/moltnet && go test . -run TestParseGitDiffStat');
   });
 
   // ── Package name fixes ──
@@ -113,7 +140,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @themoltnet/rest-api test -- diary-distill',
       ),
-    ).toBe('pnpm --filter @moltnet/rest-api test -- diary-distill');
+    ).toBe('pnpm --filter @moltnet/rest-api test diary-distill');
   });
 
   it('fixes @themoltnet/landing → @moltnet/landing', () => {
@@ -128,7 +155,7 @@ describe('normalizeTestCommand', () => {
         'pnpm --filter legreffier-cli run test -- src/adapters/codex.test.ts',
       ),
     ).toBe(
-      'pnpm --filter @themoltnet/legreffier run test -- src/adapters/codex.test.ts',
+      'pnpm --filter @themoltnet/legreffier run test src/adapters/codex.test.ts',
     );
   });
 
@@ -137,7 +164,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @moltnet/legreffier-cli run test -- src/api.test.ts',
       ),
-    ).toBe('pnpm --filter @themoltnet/legreffier run test -- src/api.test.ts');
+    ).toBe('pnpm --filter @themoltnet/legreffier run test src/api.test.ts');
   });
 
   it('fixes bare package names by adding scope', () => {
@@ -181,5 +208,33 @@ describe('truncateToTokenBudget', () => {
   it('preserves short text', () => {
     const shortText = 'hello world';
     expect(truncateToTokenBudget(shortText, 8000)).toBe(shortText);
+  });
+});
+
+describe('extractTouchedTestNames', () => {
+  it('captures newly added test declarations', () => {
+    const diff = `
+@@
++it('adds signingInput to response', () => {
++  expect(body.signingInput).toBeDefined();
++});
+`;
+    expect(extractTouchedTestNames(diff)).toEqual([
+      'adds signingInput to response',
+    ]);
+  });
+
+  it('captures existing test blocks touched by added assertions', () => {
+    const diff = `
+@@
+ it('returns 200 with compile result', async () => {
+   expect(response.statusCode).toBe(200);
++  expect(response.json()).toHaveProperty('packCid');
+   expect(response.json()).toHaveProperty('entries');
+ });
+`;
+    expect(extractTouchedTestNames(diff)).toEqual([
+      'returns 200 with compile result',
+    ]);
   });
 });

@@ -2,7 +2,7 @@
 // optimize-extractor.ts — Phase 4: GEPA self-optimization of extraction instruction
 /* eslint-disable no-console */
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -27,8 +27,8 @@ const { values } = parseArgs({
     'student-model': { type: 'string' },
     'teacher-provider': { type: 'string', default: 'claude-agent-sdk' },
     'teacher-model': { type: 'string', default: 'claude-sonnet-4-6' },
-    'num-trials': { type: 'string', default: '5' },
-    'max-metric-calls': { type: 'string', default: '30' },
+    'num-trials': { type: 'string', default: '10' },
+    'max-metric-calls': { type: 'string', default: '200' },
     help: { type: 'boolean', short: 'h', default: false },
   },
   strict: true,
@@ -39,15 +39,15 @@ if (values.help) {
 Usage: pnpm --filter @moltnet/tools tasksmith:optimize [options]
 
 Optimizes the extraction instruction using GEPA.
-Requires 10+ PRs already processed (use tasksmith:harvest first).
+Uses verified tasksmith tasks as the training set.
 
 Options:
-  --student-provider <name>  AI for extraction (default: codex-agent-sdk)
+  --student-provider <name>  AI for extraction (default: claude-agent-sdk)
   --student-model <model>    Model for extraction
   --teacher-provider <name>  AI for reflection (default: claude-agent-sdk)
   --teacher-model <model>    Model for reflection (default: claude-sonnet-4-6)
-  --num-trials <n>           GEPA trials (default: 5)
-  --max-metric-calls <n>     Max metric evaluations (default: 30)
+  --num-trials <n>           GEPA trials (default: 10)
+  --max-metric-calls <n>     Max metric evaluations (default: 200)
   -h, --help                 Show this help
 `);
   process.exit(0);
@@ -57,14 +57,7 @@ Options:
 
 const repoRoot = await resolveRepoRoot();
 const stateFile = resolve(repoRoot, 'tasksmith', 'state.json');
-const state = await loadHarvestState(stateFile);
-
-if (state.processed_prs.length < 10) {
-  console.error(
-    `[optimize] Only ${state.processed_prs.length} PRs processed. Run tasksmith:harvest first (need 10+).`,
-  );
-  process.exit(1);
-}
+await loadHarvestState(stateFile);
 
 const studentAI = buildAI({
   provider: str(values['student-provider']) as Parameters<
@@ -81,9 +74,27 @@ const teacherAI = buildAI({
 });
 
 // Use processed PRs as training data
-// Re-discover to get PrCandidate objects for known PRs
+// Re-discover to get PrCandidate objects for verified tasks only.
+const verifiedDir = resolve(repoRoot, 'tasksmith', 'verified');
+const verifiedFiles = await readdir(verifiedDir).catch(() => [] as string[]);
+const verifiedPrs = Array.from(
+  new Set(
+    verifiedFiles
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => parseInt(file.replace('.json', ''), 10))
+      .filter((pr) => Number.isFinite(pr)),
+  ),
+).sort((a, b) => b - a);
+
+if (verifiedPrs.length < 2) {
+  console.error(
+    `[optimize] Only ${verifiedPrs.length} verified tasks found. Run tasksmith:harvest until you have at least 2 verified tasks in tasksmith/verified/.`,
+  );
+  process.exit(1);
+}
+
 const { candidates } = await discoverCandidates(repoRoot, {
-  prs: state.processed_prs.slice(0, 50),
+  prs: verifiedPrs.slice(0, 50),
   force: true,
 });
 
@@ -95,8 +106,8 @@ const tasks: TaskWithId[] = candidates.map((c) => ({
 
 console.log(`[optimize] Using ${tasks.length} PRs for GEPA optimization`);
 
-const numTrials = parseInt(str(values['num-trials']) || '5', 10);
-const maxMetricCalls = parseInt(str(values['max-metric-calls']) || '30', 10);
+const numTrials = parseInt(str(values['num-trials']) || '10', 10);
+const maxMetricCalls = parseInt(str(values['max-metric-calls']) || '200', 10);
 
 const t0 = performance.now();
 
@@ -123,7 +134,13 @@ const result = await runGepaOptimization({
             (task as PrCandidate).number,
             { debug: false, skipDocker: true },
           );
-          scores.push(verification.status === 'verified' ? 1 : 0);
+          scores.push(
+            verification.status === 'verified'
+              ? 1
+              : verification.status === 'unit_verified'
+                ? 0.5
+                : 0,
+          );
         }
       }
       return { scores, trajectories: null };
@@ -135,21 +152,19 @@ const result = await runGepaOptimization({
   numTrials,
   maxMetricCalls,
   verbose: true,
-  buildExamples: (ts: TaskWithId[]) =>
-    ts.map((t) => ({ id: t.id, task_id: t.id })),
-  evaluateOne: async (task: TaskWithId, instruction: string) => {
+  buildExamples: (tasks) => tasks.map((t) => ({ id: t.id, task_id: t.id })),
+  evaluateOne: async (task, instruction) => {
     const extractionResult = await extractTask(
-      task as PrCandidate,
+      task,
       studentAI,
       repoRoot,
       instruction,
     );
     if ('skipReason' in extractionResult) return { score: 0 };
-    const verification = await verifyTask(
-      extractionResult.task,
-      (task as PrCandidate).number,
-      { debug: false, skipDocker: true },
-    );
+    const verification = await verifyTask(extractionResult.task, task.number, {
+      debug: false,
+      skipDocker: true,
+    });
     return {
       score:
         verification.status === 'verified'
@@ -161,7 +176,7 @@ const result = await runGepaOptimization({
   },
 });
 
-// Save optimized instruction
+// Save optimized instruction + Pareto front
 const instructionsDir = resolve(repoRoot, 'tasksmith', 'instructions');
 await mkdir(instructionsDir, { recursive: true });
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -169,6 +184,30 @@ await writeFile(
   resolve(instructionsDir, `${timestamp}.txt`),
   result.bestInstruction,
 );
+await writeFile(
+  resolve(instructionsDir, `${timestamp}-pareto.json`),
+  JSON.stringify(
+    {
+      bestScore: result.bestScore,
+      paretoFront: result.paretoFront.map((p) => ({
+        scores: p.scores,
+        dominatedSolutions: p.dominatedSolutions,
+        instructionLength: p.instruction.length,
+        instructionPreview: p.instruction.slice(0, 200),
+      })),
+    },
+    null,
+    2,
+  ),
+);
+
+// Save each Pareto candidate instruction as a separate file
+for (let i = 0; i < result.paretoFront.length; i++) {
+  await writeFile(
+    resolve(instructionsDir, `${timestamp}-pareto-${i}.txt`),
+    result.paretoFront[i].instruction,
+  );
+}
 
 const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
 console.log('\n═══════════════════════════════════════════════');
@@ -176,6 +215,13 @@ console.log('  OPTIMIZATION RESULTS');
 console.log('═══════════════════════════════════════════════');
 console.log(`  Best score:    ${result.bestScore.toFixed(3)}`);
 console.log(`  Instruction:   ${result.bestInstruction.length} chars`);
-console.log(`  Saved to:      tasksmith/instructions/${timestamp}.txt`);
+console.log(`  Pareto front:  ${result.paretoFront.length} candidates`);
+for (const [i, p] of result.paretoFront.entries()) {
+  const scoreStr = Object.entries(p.scores)
+    .map(([k, v]) => `${k}=${(v as number).toFixed(3)}`)
+    .join(', ');
+  console.log(`    [${i}] ${scoreStr} (${p.instruction.length} chars)`);
+}
+console.log(`  Saved to:      tasksmith/instructions/${timestamp}*.txt`);
 console.log(`  Time:          ${elapsed}s`);
 console.log('═══════════════════════════════════════════════');

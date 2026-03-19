@@ -58,14 +58,26 @@ async function runTestCommand(
   const { timeoutMs } = classifyTestCommand(command);
   const t0 = performance.now();
   const result = await runShellCommand(command, cwd, timeoutMs);
-  // pnpm --filter exits 0 when no packages match — treat as failure
-  const noMatch = result.output.includes('No projects matched the filters');
+
+  // Several runners exit 0 even when the command matched no package, no test
+  // files, or no actual test cases. Treat those as failed checks.
+  const noMatch = outputIndicatesNoTestsRun(result.output);
+
   return {
     command,
     passed: result.passed && !noMatch,
     output: result.output.slice(0, 2000),
     durationMs: Math.round(performance.now() - t0),
   };
+}
+
+export function outputIndicatesNoTestsRun(output: string): boolean {
+  return (
+    output.includes('No projects matched the filters') ||
+    output.includes('No test files found') ||
+    output.includes('[no tests to run]') ||
+    /Test Files\s+\d+\s+skipped/.test(output)
+  );
 }
 
 // ── Docker stack lifecycle ──

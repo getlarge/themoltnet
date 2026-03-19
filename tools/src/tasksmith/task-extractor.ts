@@ -130,11 +130,25 @@ const PACKAGE_ALIASES: Record<string, string> = {
 export function normalizeTestCommand(cmd: string): string {
   // Go test commands: ensure they run from the correct directory
   if (cmd.includes('go test')) {
+    let goNormalized = cmd;
+
     // If command doesn't already have `cd`, prefix with `cd cmd/moltnet &&`
-    if (!cmd.startsWith('cd ')) {
-      return `cd cmd/moltnet && ${cmd}`;
+    if (!goNormalized.startsWith('cd ')) {
+      goNormalized = `cd cmd/moltnet && ${goNormalized}`;
     }
-    return cmd;
+
+    // Avoid `cd cmd/moltnet && go test ./cmd/moltnet/...`, which resolves to
+    // `cmd/moltnet/cmd/moltnet/...` and fails on both fixture and gold.
+    goNormalized = goNormalized.replace(
+      /go test \.\/cmd\/moltnet\/\.\.\./g,
+      'go test ./...',
+    );
+    goNormalized = goNormalized.replace(
+      /go test \.\/cmd\/moltnet\/(?=\s|$)/g,
+      'go test .',
+    );
+
+    return goNormalized;
   }
 
   let normalized = cmd;
@@ -178,6 +192,20 @@ export function normalizeTestCommand(cmd: string): string {
     '$1 test',
   );
 
+  // Fix: `pnpm --filter <pkg> test -- <args>` → `pnpm --filter <pkg> test <args>`
+  // The extra `--` often causes vitest to ignore file targeting and run broadly.
+  normalized = normalized.replace(
+    /(\bpnpm --filter [^ ]+(?: run)? test)\s+--\s+/,
+    '$1 ',
+  );
+
+  // Fix: `test --run <file>` is interpreted as a name filter, not a file path.
+  // Rewrite to a positional file argument when the RHS looks like a test path.
+  normalized = normalized.replace(
+    /(\bpnpm --filter [^ ]+(?: run)? test)\s+--run\s+((?:__tests__|src|test)\/\S+)/,
+    '$1 $2',
+  );
+
   // Remove --reporter=verbose (sometimes causes issues, not needed for pass/fail)
   normalized = normalized.replace(/\s*--reporter[= ]?verbose\s*/g, ' ');
 
@@ -201,6 +229,204 @@ export function normalizeTestCommand(cmd: string): string {
   normalized = normalized.replace(/\s{2,}/g, ' ').trim();
 
   return normalized;
+}
+
+function getPackageRoot(filePath: string): string | null {
+  const parts = filePath.split('/');
+  if (parts.length < 2) return null;
+  if (!['apps', 'libs', 'packages'].includes(parts[0])) return null;
+  return `${parts[0]}/${parts[1]}`;
+}
+
+function stripPackageRoot(filePath: string): string {
+  const root = getPackageRoot(filePath);
+  return root ? filePath.slice(root.length + 1) : filePath;
+}
+
+function extractChangedFileArg(command: string): string | null {
+  const pathMatch = command.match(/\b((?:__tests__|src|test)\/[^\s'"]+)/);
+  if (pathMatch) return pathMatch[1];
+
+  const basenameMatch = command.match(
+    /\b([A-Za-z0-9._-]+\.test\.[jt]sx?|[A-Za-z0-9._-]+)\b$/,
+  );
+  if (!basenameMatch) return null;
+
+  const token = basenameMatch[1];
+  if (token === 'test') return null;
+  return token;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function extractTouchedTestNames(diff: string): string[] {
+  const names = new Set<string>();
+  let currentTestName: string | null = null;
+
+  const testDeclPattern =
+    /(?:^|[=(,\s])(?:it|test)(?:\.(?:only|skip|todo|concurrent|fails|each))?\s*\(\s*(['"`])(.+?)\1/;
+
+  for (const rawLine of diff.split('\n')) {
+    if (rawLine.startsWith('@@')) {
+      currentTestName = null;
+      continue;
+    }
+    if (
+      rawLine.startsWith('diff ') ||
+      rawLine.startsWith('index ') ||
+      rawLine.startsWith('--- ') ||
+      rawLine.startsWith('+++ ')
+    ) {
+      continue;
+    }
+
+    const line = rawLine.replace(/^[ +-]/, '');
+    const declMatch = line.match(testDeclPattern);
+    if (declMatch) {
+      currentTestName = declMatch[2];
+      if (rawLine.startsWith('+')) names.add(currentTestName);
+      continue;
+    }
+
+    if (rawLine.startsWith('+') && currentTestName) {
+      names.add(currentTestName);
+    }
+  }
+
+  return [...names];
+}
+
+async function repairCommandForCandidate(
+  cmd: string,
+  candidate: PrCandidate,
+): Promise<string> {
+  let repaired = normalizeTestCommand(cmd);
+
+  if (repaired.includes('go test')) {
+    return repaired;
+  }
+
+  const filterMatch = repaired.match(/pnpm --filter (\S+)/);
+  if (!filterMatch) return repaired;
+  const pkg = filterMatch[1];
+
+  const packageTests = candidate.changedTestFiles
+    .filter((file) => {
+      const root = getPackageRoot(file);
+      if (!root) return false;
+
+      if (root.startsWith('apps/')) return pkg === `@moltnet/${root.slice(5)}`;
+      if (root.startsWith('libs/')) {
+        const name = root.slice(5);
+        return (
+          pkg === `@moltnet/${name}` ||
+          pkg === `@themoltnet/${name}` ||
+          (name === 'sdk' && pkg === '@themoltnet/sdk') ||
+          (name === 'design-system' && pkg === '@themoltnet/design-system')
+        );
+      }
+      if (root === 'packages/legreffier-cli')
+        return pkg === '@themoltnet/legreffier';
+      if (root === 'packages/github-agent')
+        return pkg === '@themoltnet/github-agent';
+      if (root === 'packages/cli') return pkg === '@themoltnet/cli';
+      return false;
+    })
+    .map((file) => ({
+      fullPath: file,
+      relativePath: stripPackageRoot(file),
+      basename: file.split('/').at(-1) ?? file,
+    }));
+
+  if (packageTests.length === 0) return repaired;
+
+  const currentTarget = extractChangedFileArg(repaired);
+  const matchedTarget =
+    (currentTarget
+      ? packageTests.find(
+          (file) =>
+            file.relativePath === currentTarget ||
+            file.basename === currentTarget ||
+            file.basename.includes(currentTarget) ||
+            file.relativePath.endsWith(currentTarget),
+        )
+      : undefined) ?? (packageTests.length === 1 ? packageTests[0] : undefined);
+
+  if (matchedTarget) {
+    const hasExactPath = repaired.includes(matchedTarget.relativePath);
+    const hasAnyPath = /\b(?:__tests__|src|test)\//.test(repaired);
+
+    if (!hasExactPath) {
+      if (hasAnyPath) {
+        repaired = repaired.replace(
+          /\b(?:__tests__|src|test)\/[^\s'"]+/,
+          matchedTarget.relativePath,
+        );
+      } else {
+        repaired = repaired.replace(
+          /(\bpnpm --filter \S+(?: run)? test\b)/,
+          `$1 ${matchedTarget.relativePath}`,
+        );
+      }
+    }
+
+    // If the original command ended with a basename token like
+    // `diary-service.test` or `setup`, drop it once we have the exact file path.
+    if (
+      currentTarget &&
+      currentTarget !== matchedTarget.relativePath &&
+      currentTarget !== matchedTarget.basename
+    ) {
+      repaired = repaired.replace(
+        new RegExp(`\\s+${escapeRegExp(currentTarget)}(?=\\s|$)`),
+        '',
+      );
+    }
+
+    const basenameWithoutExt = matchedTarget.basename.replace(
+      /\.(test|spec)\.[^.]+$/,
+      '',
+    );
+    if (currentTarget === basenameWithoutExt) {
+      repaired = repaired.replace(
+        new RegExp(`\\s+${escapeRegExp(currentTarget)}(?=\\s|$)`),
+        '',
+      );
+    }
+
+    if (!/(\s-t\s|--testNamePattern)/.test(repaired)) {
+      const existsOnFixture = await gitFileExistsAtRef(
+        candidate.fixtureRef,
+        matchedTarget.fullPath,
+      );
+      if (existsOnFixture) {
+        const diff = await gitDiff(
+          candidate.fixtureRef,
+          candidate.goldFixRef,
+          matchedTarget.fullPath,
+        );
+        const newTestNames = extractTouchedTestNames(diff);
+        if (newTestNames.length > 0) {
+          repaired += ` -t "${newTestNames.join('|')}"`;
+        }
+      }
+    }
+  }
+
+  return normalizeTestCommand(repaired);
+}
+
+export async function repairCommandsForCandidate(
+  commands: string[],
+  candidate: PrCandidate,
+): Promise<string[]> {
+  const repaired: string[] = [];
+  for (const command of commands) {
+    repaired.push(await repairCommandForCandidate(command, candidate));
+  }
+  return repaired;
 }
 
 // ── Assembly ──
@@ -320,8 +546,18 @@ export async function extractTask(
     criteria: result.criteria as CriteriaItem[],
   };
 
+  const task = assembleTasksmithTask(candidate, extraction);
+  task.fail_to_pass = await repairCommandsForCandidate(
+    task.fail_to_pass,
+    candidate,
+  );
+  task.pass_to_pass = await repairCommandsForCandidate(
+    task.pass_to_pass,
+    candidate,
+  );
+
   return {
-    task: assembleTasksmithTask(candidate, extraction),
+    task,
     criteria: extraction.criteria,
   };
 }

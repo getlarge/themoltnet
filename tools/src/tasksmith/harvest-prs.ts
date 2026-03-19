@@ -14,7 +14,11 @@ import {
 } from '@moltnet/context-evals/pipeline-shared';
 
 import { discoverCandidates, saveHarvestState } from './pr-discovery.js';
-import { extractTask, normalizeTestCommand } from './task-extractor.js';
+import {
+  extractTask,
+  normalizeTestCommand,
+  repairCommandsForCandidate,
+} from './task-extractor.js';
 import type {
   CriteriaItem,
   HarvestOptions,
@@ -141,6 +145,25 @@ console.log('╚═════════════════════�
 // ── Verify-only mode ──
 if (options.verifyOnly) {
   const extracted = await loadExtractedTasks(repoRoot, options.prs);
+  const { candidates: candidateMetadata } = await discoverCandidates(repoRoot, {
+    prs: extracted.map(({ pr }) => pr),
+    force: true,
+  });
+  const candidateByPr = new Map(candidateMetadata.map((c) => [c.number, c]));
+
+  for (const item of extracted) {
+    const candidate = candidateByPr.get(item.pr);
+    if (!candidate) continue;
+    item.task.fail_to_pass = await repairCommandsForCandidate(
+      item.task.fail_to_pass,
+      candidate,
+    );
+    item.task.pass_to_pass = await repairCommandsForCandidate(
+      item.task.pass_to_pass,
+      candidate,
+    );
+  }
+
   console.log(
     `[harvest] Verify-only mode: ${extracted.length} tasks loaded from disk`,
   );
@@ -297,7 +320,9 @@ for (const candidate of candidates) {
     console.error(`[extract] PR #${candidate.number}: error — ${msg}`);
     skipped.push({ pr: candidate.number, reason: msg });
   }
-  state.processed_prs.push(candidate.number);
+  if (!state.processed_prs.includes(candidate.number)) {
+    state.processed_prs.push(candidate.number);
+  }
 }
 
 // Phase 3: Verification (two-phase: unit tests first, then Docker batch)
@@ -399,7 +424,7 @@ if (!options.skipVerify && extracted.length > 0) {
   for (const { pr, task, criteria } of extracted) {
     const unverified: VerificationResult = {
       pr,
-      status: 'extraction_not_viable',
+      status: 'extracted_unverified',
     };
     await writeVerifiedTask(repoRoot, task, criteria, unverified);
   }
