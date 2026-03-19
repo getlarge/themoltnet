@@ -1,5 +1,5 @@
 {
-  "cmd/moltnet": "0.65.0",
+  "cmd/moltnet": "0.66.0",
   "cmd/moltnet-api-client": "0.39.0",
   "libs/design-system": "0.3.0",
   "libs/sdk": "0.75.0",
