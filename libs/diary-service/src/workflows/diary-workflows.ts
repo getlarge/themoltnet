@@ -116,8 +116,8 @@ export function initDiaryWorkflows(): void {
   // ── Steps ──────────────────────────────────────────────────
 
   const generateIdStep = DBOS.registerStep(
-    (): string => {
-      return crypto.randomUUID();
+    async (): Promise<string> => {
+      return Promise.resolve(crypto.randomUUID());
     },
     { name: 'diary.step.generateId' },
   );
@@ -135,8 +135,11 @@ export function initDiaryWorkflows(): void {
   );
 
   const scanInjectionStep = DBOS.registerStep(
-    (content: string, title?: string | null): { injectionRisk: boolean } => {
-      return scanForInjection(content, title);
+    async (
+      content: string,
+      title?: string | null,
+    ): Promise<{ injectionRisk: boolean }> => {
+      return Promise.resolve(scanForInjection(content, title));
     },
     { name: 'diary.step.scanInjection' },
   );
