@@ -101,6 +101,7 @@ export interface HarvestOptions {
   prs?: number[];
   force?: boolean;
   skipVerify?: boolean;
+  verifyOnly?: boolean;
   studentProvider?: string;
   studentModel?: string;
   teacherProvider?: string;

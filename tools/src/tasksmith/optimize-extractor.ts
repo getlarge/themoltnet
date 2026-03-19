@@ -23,7 +23,7 @@ import { verifyTask } from './verify.js';
 
 const { values } = parseArgs({
   options: {
-    'student-provider': { type: 'string', default: 'codex-agent-sdk' },
+    'student-provider': { type: 'string', default: 'claude-agent-sdk' },
     'student-model': { type: 'string' },
     'teacher-provider': { type: 'string', default: 'claude-agent-sdk' },
     'teacher-model': { type: 'string', default: 'claude-sonnet-4-6' },

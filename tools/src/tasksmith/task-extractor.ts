@@ -41,16 +41,27 @@ GOAL: Extract test commands that FAIL on the pre-PR code (fixture) and PASS on t
 
 TEST FILE LABELS:
 - Test files are labeled [NEW] or [MODIFIED].
-- [NEW] = file was ADDED by this PR. Full content is shown. These are your primary fail_to_pass candidates — they will error/fail on fixture because the file doesn't exist yet.
-- [MODIFIED] = file existed before the PR. Only the DIFF is shown — lines starting with + are additions by this PR. Use added test() or it() blocks as fail_to_pass candidates with --testNamePattern to target them specifically.
+- [NEW] = file was ADDED by this PR. Full content is shown. The file does not exist on fixture.
+- [MODIFIED] = file existed before the PR. Only the DIFF is shown — lines starting with + are additions.
 - Unchanged test files are pass_to_pass candidates (regression guard).
 
-TEST COMMANDS:
-- Use exact pnpm --filter <package> vitest run <path> commands
-- Add --testNamePattern "<pattern>" to target specific test cases, especially for [MODIFIED] files where only some tests are new
-- fail_to_pass: commands targeting tests from [NEW] files or new test cases in [MODIFIED] files
-- pass_to_pass: commands targeting unchanged tests that should pass on both fixture and gold fix
-- Prefer unit tests over e2e tests. E2e tests often pass on fixture because they test broad behavior.
+TEST COMMANDS — CRITICAL:
+You MUST target the SPECIFIC test file path in every command. NEVER use "pnpm --filter <pkg> test" or "pnpm --filter <pkg> run test" alone — running the full suite passes on fixture because existing tests still pass. Only the NEW or MODIFIED tests fail on fixture.
+
+FORMAT: pnpm --filter <package> vitest run <relative-path-to-test-file>
+
+For [NEW] files — target the exact file:
+  pnpm --filter @moltnet/api-client vitest run __tests__/retry-fetch.test.ts
+
+For [MODIFIED] files — target the file AND specific new test names:
+  pnpm --filter @moltnet/rest-api vitest run __tests__/config.test.ts --testNamePattern "new test name"
+
+The path must be relative to the package root (not the repo root). Look at the test file path in the diff, strip the package prefix.
+Example: if changed_files has "libs/api-client/__tests__/retry-fetch.test.ts" and the package is @moltnet/api-client at libs/api-client/, the path is "__tests__/retry-fetch.test.ts".
+
+fail_to_pass: commands targeting [NEW] test files or new test cases in [MODIFIED] files.
+pass_to_pass: commands targeting unchanged test files as regression guards. Use the same format: pnpm --filter <package> vitest run <path>.
+Prefer unit tests over e2e tests. E2e tests often pass on fixture because they test broad behavior.
 
 PROBLEM STATEMENT:
 - Describe the symptom or requirement, NOT the implementation
@@ -146,7 +157,7 @@ function buildPrBody(candidate: PrCandidate): string {
 export async function extractTask(
   candidate: PrCandidate,
   ai: AxAIService,
-  repoRoot: string,
+  _repoRoot: string,
   instruction?: string,
 ): Promise<
   { task: TasksmithTask; criteria: CriteriaItem[] } | { skipReason: string }

@@ -1,6 +1,7 @@
 #!/usr/bin/env -S npx tsx
 /* eslint-disable no-console */
 
+import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -35,7 +36,8 @@ const { values } = parseArgs({
     prs: { type: 'string', short: 'p' },
     force: { type: 'boolean', default: false },
     'skip-verify': { type: 'boolean', default: false },
-    'student-provider': { type: 'string', default: 'codex-agent-sdk' },
+    'verify-only': { type: 'boolean', default: false },
+    'student-provider': { type: 'string', default: 'claude-agent-sdk' },
     'student-model': { type: 'string' },
     concurrency: { type: 'string', default: '1' },
     debug: { type: 'boolean', default: false },
@@ -52,6 +54,7 @@ Options:
   --prs, -p <numbers>       Comma-separated PR numbers to process
   --force                    Re-process PRs already in state.json
   --skip-verify              Run extraction only, skip verification
+  --verify-only              Verify already-extracted tasks (reads tasksmith/candidates/tasks/)
   --student-provider <name>  AI provider for extraction (default: codex-agent-sdk)
   --student-model <model>    Model for extraction
   --debug                    Preserve worktrees on failure
@@ -69,17 +72,182 @@ const options: HarvestOptions = {
     : undefined,
   force: values.force ?? false,
   skipVerify: values['skip-verify'] ?? false,
-  studentProvider: str(values['student-provider']) || 'codex-agent-sdk',
+  verifyOnly: values['verify-only'] ?? false,
+  studentProvider: str(values['student-provider']) || 'claude-agent-sdk',
   studentModel: values['student-model']
     ? str(values['student-model'])
     : undefined,
   debug: values.debug ?? false,
 };
 
+// ── Helpers ──
+
+async function loadExtractedTasks(
+  root: string,
+  prFilter?: number[],
+): Promise<
+  Array<{ pr: number; task: TasksmithTask; criteria: CriteriaItem[] }>
+> {
+  const tasksDir = resolve(root, 'tasksmith', 'candidates', 'tasks');
+  const files = await readdir(tasksDir);
+  const results: Array<{
+    pr: number;
+    task: TasksmithTask;
+    criteria: CriteriaItem[];
+  }> = [];
+
+  for (const file of files) {
+    if (!file.endsWith('.json')) continue;
+    const pr = parseInt(file.replace('.json', ''), 10);
+    if (isNaN(pr)) continue;
+    if (prFilter?.length && !prFilter.includes(pr)) continue;
+
+    const task = JSON.parse(
+      await readFile(resolve(tasksDir, file), 'utf8'),
+    ) as TasksmithTask;
+
+    let criteria: CriteriaItem[] = [];
+    try {
+      criteria = JSON.parse(
+        await readFile(
+          resolve(root, 'evals', `pr-${pr}`, 'criteria.json'),
+          'utf8',
+        ),
+      ) as CriteriaItem[];
+    } catch {
+      // criteria may not exist for all tasks
+    }
+
+    results.push({ pr, task, criteria });
+  }
+
+  return results.sort((a, b) => b.pr - a.pr);
+}
+
 // ── Main ──
 
 const t0 = performance.now();
 const repoRoot = await resolveRepoRoot();
+
+console.log('\n╔═══════════════════════════════════════════════╗');
+console.log('║     PR-based Tasksmith Harvester              ║');
+console.log('╚═══════════════════════════════════════════════╝\n');
+
+// ── Verify-only mode ──
+if (options.verifyOnly) {
+  const extracted = await loadExtractedTasks(repoRoot, options.prs);
+  console.log(
+    `[harvest] Verify-only mode: ${extracted.length} tasks loaded from disk`,
+  );
+
+  if (extracted.length === 0) {
+    console.log('[harvest] No tasks to verify.');
+    process.exit(0);
+  }
+
+  // Jump directly to Phase 3
+  let verified = 0;
+  let failed = 0;
+  const dockerPending: Array<{
+    pr: number;
+    task: TasksmithTask;
+    criteria: CriteriaItem[];
+    deferred: NonNullable<VerificationResult['deferredDockerCommands']>;
+  }> = [];
+
+  console.log(
+    `\n[harvest] Phase 3a: Unit test verification for ${extracted.length} tasks...`,
+  );
+
+  try {
+    for (const { pr, task, criteria } of extracted) {
+      const verification = await verifyTask(task, pr, {
+        debug: options.debug ?? false,
+        skipDocker: true,
+      });
+
+      if (
+        verification.status === 'unit_verified' &&
+        verification.deferredDockerCommands
+      ) {
+        console.log(
+          `[verify] PR #${pr}: unit tests passed, Docker commands deferred`,
+        );
+        dockerPending.push({
+          pr,
+          task,
+          criteria,
+          deferred: verification.deferredDockerCommands,
+        });
+      } else if (verification.status === 'verified') {
+        verified++;
+        console.log(`[verify] PR #${pr}: VERIFIED (no Docker deps)`);
+        await writeVerifiedTask(repoRoot, task, criteria, verification);
+      } else {
+        failed++;
+        console.log(
+          `[verify] PR #${pr}: ${verification.status} — ${verification.skipReason ?? ''}`,
+        );
+        await writeVerifiedTask(repoRoot, task, criteria, verification);
+      }
+    }
+
+    if (dockerPending.length > 0) {
+      console.log(
+        `\n[harvest] Phase 3b: Docker verification for ${dockerPending.length} tasks...`,
+      );
+      await startE2eStack(repoRoot);
+      try {
+        for (const { pr, task, criteria, deferred } of dockerPending) {
+          console.log(
+            `[verify] PR #${pr}: running Docker-dependent commands...`,
+          );
+          const dockerResult = await verifyDockerCommands(
+            task,
+            deferred,
+            options.debug ?? false,
+          );
+          const finalVerification: VerificationResult = {
+            pr,
+            status: dockerResult.status,
+            redCheck: dockerResult.redCheck,
+            greenCheck: dockerResult.greenCheck,
+            regressionCheck: dockerResult.regressionCheck,
+            skipReason: dockerResult.skipReason,
+          };
+          if (finalVerification.status === 'verified') {
+            verified++;
+            console.log(`[verify] PR #${pr}: VERIFIED (unit + Docker)`);
+          } else {
+            failed++;
+            console.log(
+              `[verify] PR #${pr}: ${finalVerification.status} — ${finalVerification.skipReason ?? ''}`,
+            );
+          }
+          await writeVerifiedTask(repoRoot, task, criteria, finalVerification);
+        }
+      } finally {
+        await stopE2eStack(repoRoot);
+      }
+    }
+  } finally {
+    if (!options.debug) await cleanupAllWorktrees();
+  }
+
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+  console.log('\n═══════════════════════════════════════════════');
+  console.log('  VERIFY-ONLY SUMMARY');
+  console.log('═══════════════════════════════════════════════');
+  console.log(`  Tasks:     ${extracted.length}`);
+  console.log(`  Verified:  ${verified}`);
+  console.log(`  Failed:    ${failed}`);
+  console.log(`  Deferred:  ${dockerPending.length}`);
+  console.log(`  Time:      ${elapsed}s`);
+  console.log('═══════════════════════════════════════════════');
+  process.exit(0);
+}
+
+// ── Normal harvest mode ──
 
 const ai = buildAI({
   provider: options.studentProvider as AIProvider,
@@ -87,10 +255,6 @@ const ai = buildAI({
 });
 
 // Phase 1: Discovery
-console.log('\n╔═══════════════════════════════════════════════╗');
-console.log('║     PR-based Tasksmith Harvester              ║');
-console.log('╚═══════════════════════════════════════════════╝\n');
-
 const { candidates, state } = await discoverCandidates(repoRoot, options);
 
 if (candidates.length === 0) {
