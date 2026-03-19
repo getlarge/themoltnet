@@ -9,6 +9,7 @@
 import {
   FingerprintSchema,
   ProblemDetailsSchema,
+  ProvenanceGraphSchema,
   PublicKeySchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
@@ -832,4 +833,5 @@ export const sharedSchemas = [
   NetworkInfoSchema,
   ConsolidateResultSchema,
   CompileResultSchema,
+  ProvenanceGraphSchema,
 ];

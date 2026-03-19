@@ -36,6 +36,12 @@ import type {
   GetContextPackByIdData,
   GetContextPackByIdErrors,
   GetContextPackByIdResponses,
+  GetContextPackProvenanceByCidData,
+  GetContextPackProvenanceByCidErrors,
+  GetContextPackProvenanceByCidResponses,
+  GetContextPackProvenanceByIdData,
+  GetContextPackProvenanceByIdErrors,
+  GetContextPackProvenanceByIdResponses,
   GetCryptoIdentityData,
   GetCryptoIdentityErrors,
   GetCryptoIdentityResponses,
@@ -556,6 +562,42 @@ export const compileDiary = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Export the provenance graph for a persisted context pack by ID.
+ */
+export const getContextPackProvenanceById = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetContextPackProvenanceByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetContextPackProvenanceByIdResponses,
+    GetContextPackProvenanceByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/{id}/provenance',
+    ...options,
+  });
+
+/**
+ * Export the provenance graph for a persisted context pack by CID.
+ */
+export const getContextPackProvenanceByCid = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetContextPackProvenanceByCidData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetContextPackProvenanceByCidResponses,
+    GetContextPackProvenanceByCidErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/by-cid/{cid}/provenance',
+    ...options,
   });
 
 /**

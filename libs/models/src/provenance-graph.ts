@@ -102,11 +102,14 @@ export const ProvenanceGraphMetadataSchema = Type.Object({
   depth: Type.Number({ minimum: 0 }),
 });
 
-export const ProvenanceGraphSchema = Type.Object({
-  metadata: ProvenanceGraphMetadataSchema,
-  nodes: Type.Array(ProvenanceGraphNodeSchema),
-  edges: Type.Array(ProvenanceGraphEdgeSchema),
-});
+export const ProvenanceGraphSchema = Type.Object(
+  {
+    metadata: ProvenanceGraphMetadataSchema,
+    nodes: Type.Array(ProvenanceGraphNodeSchema),
+    edges: Type.Array(ProvenanceGraphEdgeSchema),
+  },
+  { $id: 'ProvenanceGraph' },
+);
 
 export type ProvenanceGraphNodeKind = Static<
   typeof ProvenanceGraphNodeKindSchema

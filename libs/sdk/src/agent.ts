@@ -5,6 +5,8 @@ import type {
   CompileResult,
   ConsolidateDiaryData,
   ConsolidateResult,
+  ContextPackList,
+  ContextPackResponse,
   CreateDiaryData,
   CreateDiaryEntryData,
   CryptoIdentity,
@@ -19,6 +21,9 @@ import type {
   DiaryShareList,
   Digest,
   EntryVerifyResult,
+  GetContextPackByIdData,
+  GetContextPackProvenanceByCidData,
+  GetContextPackProvenanceByIdData,
   GetLegreffierOnboardingStatusData,
   GetLegreffierOnboardingStatusResponse,
   GetProblemTypeData,
@@ -28,10 +33,12 @@ import type {
   ListDiariesData,
   ListDiaryEntriesData,
   ListDiaryInvitationsData,
+  ListDiaryPacksData,
   ListDiarySharesData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
   NetworkInfo,
+  ProvenanceGraph,
   PublicFeedEntry,
   PublicFeedResponse,
   PublicSearchResponse,
@@ -60,6 +67,7 @@ import { createCryptoNamespace } from './namespaces/crypto.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createEntriesNamespace } from './namespaces/entries.js';
 import { createLegreffierNamespace } from './namespaces/legreffier.js';
+import { createPacksNamespace } from './namespaces/packs.js';
 import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
@@ -157,6 +165,28 @@ export interface EntriesNamespace {
   ): Promise<DiaryEntry>;
 }
 
+export interface PacksNamespace {
+  get(
+    id: string,
+    query?: GetContextPackByIdData['query'],
+  ): Promise<ContextPackResponse>;
+
+  list(
+    diaryId: string,
+    query?: ListDiaryPacksData['query'],
+  ): Promise<ContextPackList>;
+
+  getProvenance(
+    id: string,
+    query?: GetContextPackProvenanceByIdData['query'],
+  ): Promise<ProvenanceGraph>;
+
+  getProvenanceByCid(
+    cid: string,
+    query?: GetContextPackProvenanceByCidData['query'],
+  ): Promise<ProvenanceGraph>;
+}
+
 export interface AgentsNamespace {
   whoami(): Promise<{
     identityId: string;
@@ -252,6 +282,7 @@ export interface ProblemsNamespace {
 
 export interface Agent {
   diaries: DiariesNamespace;
+  packs: PacksNamespace;
   entries: EntriesNamespace;
   agents: AgentsNamespace;
   crypto: CryptoNamespace;
@@ -284,6 +315,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const context: AgentContext = { client, auth };
 
   const diaries = createDiariesNamespace(context);
+  const packs = createPacksNamespace(context);
   const entries = createEntriesNamespace(context);
   const agents = createAgentsNamespace(context);
   const signingRequests = createSigningRequestsNamespace(context);
@@ -297,6 +329,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
 
   return {
     diaries,
+    packs,
     entries,
     agents,
     crypto,
