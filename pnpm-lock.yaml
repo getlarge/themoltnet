@@ -1110,9 +1110,6 @@ importers:
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
-      '@moltnet/api-client':
-        specifier: workspace:*
-        version: link:../libs/api-client
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../libs/bootstrap
