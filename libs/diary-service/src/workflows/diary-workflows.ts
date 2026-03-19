@@ -16,7 +16,6 @@
  */
 
 import { type RelationshipWriter } from '@moltnet/auth';
-import { computeContentCid } from '@moltnet/crypto-service';
 import {
   type DataSource,
   DBOS,
@@ -117,7 +116,7 @@ export function initDiaryWorkflows(): void {
   // ── Steps ──────────────────────────────────────────────────
 
   const generateIdStep = DBOS.registerStep(
-    async (): Promise<string> => {
+    (): string => {
       return crypto.randomUUID();
     },
     { name: 'diary.step.generateId' },
@@ -136,10 +135,7 @@ export function initDiaryWorkflows(): void {
   );
 
   const scanInjectionStep = DBOS.registerStep(
-    async (
-      content: string,
-      title?: string | null,
-    ): Promise<{ injectionRisk: boolean }> => {
+    (content: string, title?: string | null): { injectionRisk: boolean } => {
       return scanForInjection(content, title);
     },
     { name: 'diary.step.scanInjection' },
@@ -170,24 +166,17 @@ export function initDiaryWorkflows(): void {
 
         const entryId = await generateIdStep();
         const resolvedEntryType = input.entryType ?? 'semantic';
-        const contentHash =
-          input.contentHash ??
-          computeContentCid(
-            resolvedEntryType,
-            input.title ?? null,
-            input.content,
-            input.tags ?? null,
-          );
         const embedText = buildEmbeddingTextLocal(
           input.content,
           input.tags,
           input.title,
         );
         const embedding = await embedPassageStep(embedText);
-        const { injectionRisk } = await scanInjectionStep(
+        const scanResult: { injectionRisk: boolean } = await scanInjectionStep(
           input.content,
           input.title,
         );
+        const { injectionRisk } = scanResult;
 
         const entry = await dataSource.runTransaction(
           async () => {
@@ -202,7 +191,7 @@ export function initDiaryWorkflows(): void {
               entryType: resolvedEntryType,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
-              contentHash,
+              contentHash: input.contentHash,
               contentSignature: input.contentSignature,
               signingNonce: input.signingNonce,
             });

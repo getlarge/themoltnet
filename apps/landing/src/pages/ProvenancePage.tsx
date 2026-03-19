@@ -10,12 +10,15 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import type {
-  ChangeEvent,
-  PointerEvent as ReactPointerEvent,
-  WheelEvent,
+import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
+import {
+  Fragment,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
-import { Fragment, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 
 import { buildGraphLayout } from '../provenance/graph-layout';
@@ -52,10 +55,11 @@ export function ProvenancePage() {
   } | null>(null);
   const draggedRef = useRef(false);
   const [rawInput, setRawInput] = useState(sampleJson);
-  const [selectedNodeId, setSelectedNodeId] = useState('pack:compile-2');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [collapsedPackIds, setCollapsedPackIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [isDragging, setIsDragging] = useState(false);
   const [viewport, setViewport] = useState<GraphViewportState>({
     scale: 1,
     offsetX: 0,
@@ -63,7 +67,7 @@ export function ProvenancePage() {
   });
   const deferredInput = useDeferredValue(rawInput);
 
-  const parsed = (() => {
+  const parsed = useMemo(() => {
     try {
       const graph = parseProvenanceGraph(deferredInput);
       return { graph, error: null as string | null };
@@ -73,12 +77,13 @@ export function ProvenancePage() {
         error: error instanceof Error ? error.message : 'Failed to parse graph',
       };
     }
-  })();
+  }, [deferredInput]);
 
   const graph = parsed.graph;
-  const visibleGraph = graph
-    ? filterCollapsedGraph(graph, collapsedPackIds)
-    : null;
+  const visibleGraph = useMemo(
+    () => (graph ? filterCollapsedGraph(graph, collapsedPackIds) : null),
+    [graph, collapsedPackIds],
+  );
   const selectedNode =
     visibleGraph?.nodes.find((node) => node.id === selectedNodeId) ??
     graph?.nodes.find((node) => node.id === selectedNodeId) ??
@@ -86,7 +91,10 @@ export function ProvenancePage() {
     graph?.nodes[0] ??
     null;
   const selectedCreator = extractCreator(selectedNode);
-  const layout = visibleGraph ? buildGraphLayout(visibleGraph) : null;
+  const layout = useMemo(
+    () => (visibleGraph ? buildGraphLayout(visibleGraph) : null),
+    [visibleGraph],
+  );
   layoutRef.current = layout;
 
   useEffect(() => {
@@ -105,7 +113,9 @@ export function ProvenancePage() {
       return next.size === previous.size ? previous : next;
     });
     setSelectedNodeId((previous) => {
-      if (graph.nodes.some((node) => node.id === previous)) return previous;
+      if (previous && graph.nodes.some((node) => node.id === previous)) {
+        return previous;
+      }
       return graph.metadata.rootNodeId;
     });
   }, [graph]);
@@ -165,17 +175,37 @@ export function ProvenancePage() {
     });
   }
 
-  function handleViewportWheel(event: WheelEvent<HTMLDivElement>): void {
-    if (!graphViewportRef.current) return;
+  useEffect(() => {
+    const element = graphViewportRef.current;
+    if (!element) return;
+    const viewportElement = element;
 
-    event.preventDefault();
-    const bounds = graphViewportRef.current.getBoundingClientRect();
-    const anchorX = event.clientX - bounds.left;
-    const anchorY = event.clientY - bounds.top;
-    const multiplier = event.deltaY > 0 ? 0.92 : 1.08;
+    function handleNativeWheel(event: globalThis.WheelEvent): void {
+      event.preventDefault();
+      const bounds = viewportElement.getBoundingClientRect();
+      const anchorX = event.clientX - bounds.left;
+      const anchorY = event.clientY - bounds.top;
+      const multiplier = event.deltaY > 0 ? 0.92 : 1.08;
 
-    handleZoom(multiplier, anchorX, anchorY);
-  }
+      setViewport((previous) => {
+        const nextScale = clampScale(previous.scale * multiplier);
+        const scaleRatio = nextScale / previous.scale;
+
+        return {
+          scale: nextScale,
+          offsetX: anchorX - (anchorX - previous.offsetX) * scaleRatio,
+          offsetY: anchorY - (anchorY - previous.offsetY) * scaleRatio,
+        };
+      });
+    }
+
+    viewportElement.addEventListener('wheel', handleNativeWheel, {
+      passive: false,
+    });
+    return () => {
+      viewportElement.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, []);
 
   function handleViewportPointerDown(
     event: ReactPointerEvent<HTMLDivElement>,
@@ -196,6 +226,7 @@ export function ProvenancePage() {
       moved: false,
     };
     draggedRef.current = false;
+    setIsDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -225,6 +256,7 @@ export function ProvenancePage() {
     if (dragStateRef.current?.pointerId === event.pointerId) {
       dragStateRef.current = null;
     }
+    setIsDragging(false);
   }
 
   function handleNodeClick(node: ProvenanceGraphNode): void {
@@ -408,11 +440,11 @@ export function ProvenancePage() {
                   <div
                     ref={graphViewportRef}
                     data-testid="graph-viewport"
-                    onWheel={handleViewportWheel}
                     onPointerDown={handleViewportPointerDown}
                     onPointerMove={handleViewportPointerMove}
                     onPointerUp={handleViewportPointerUp}
                     onPointerLeave={handleViewportPointerUp}
+                    onPointerCancel={handleViewportPointerUp}
                     style={{
                       height: '72vh',
                       minHeight: '40rem',
@@ -420,8 +452,7 @@ export function ProvenancePage() {
                       overflow: 'hidden',
                       border: '1px solid rgba(255,255,255,0.08)',
                       touchAction: 'none',
-                      cursor:
-                        dragStateRef.current !== null ? 'grabbing' : 'grab',
+                      cursor: isDragging ? 'grabbing' : 'grab',
                     }}
                   >
                     {visibleGraph && layout ? (

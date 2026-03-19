@@ -52,23 +52,33 @@ export const ProvenanceGraphEntryMetaSchema = Type.Object({
   ),
 });
 
-export const ProvenanceGraphNodeSchema = Type.Object({
+export const ProvenanceGraphPackNodeSchema = Type.Object({
   id: Type.String(),
-  kind: ProvenanceGraphNodeKindSchema,
+  kind: Type.Literal('pack'),
   label: Type.String(),
   cid: Type.Union([Type.String(), Type.Null()]),
-  meta: Type.Union([
-    Type.Composite([
-      ProvenanceGraphPackMetaSchema,
-      Type.Object({
-        creator: Type.Optional(
-          Type.Union([ProvenanceGraphCreatorSchema, Type.Null()]),
-        ),
-      }),
-    ]),
-    ProvenanceGraphEntryMetaSchema,
+  meta: Type.Composite([
+    ProvenanceGraphPackMetaSchema,
+    Type.Object({
+      creator: Type.Optional(
+        Type.Union([ProvenanceGraphCreatorSchema, Type.Null()]),
+      ),
+    }),
   ]),
 });
+
+export const ProvenanceGraphEntryNodeSchema = Type.Object({
+  id: Type.String(),
+  kind: Type.Literal('entry'),
+  label: Type.String(),
+  cid: Type.Union([Type.String(), Type.Null()]),
+  meta: ProvenanceGraphEntryMetaSchema,
+});
+
+export const ProvenanceGraphNodeSchema = Type.Union([
+  ProvenanceGraphPackNodeSchema,
+  ProvenanceGraphEntryNodeSchema,
+]);
 
 export const ProvenanceGraphEdgeSchema = Type.Object({
   id: Type.String(),

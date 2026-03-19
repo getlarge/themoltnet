@@ -4,6 +4,8 @@
       "AgentIdentity": {
         "properties": {
           "fingerprint": {
+            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
             "type": "string"
           },
           "identityId": {
@@ -11,6 +13,8 @@
             "type": "string"
           },
           "publicKey": {
+            "description": "Ed25519 public key with prefix",
+            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
             "type": "string"
           }
         },
@@ -1012,6 +1016,162 @@
         ],
         "type": "object"
       },
+      "DiaryEntryWithCreator": {
+        "properties": {
+          "accessCount": {
+            "type": "number"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentHash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentSignature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entryType": {
+            "anyOf": [
+              {
+                "enum": ["episodic"],
+                "type": "string"
+              },
+              {
+                "enum": ["semantic"],
+                "type": "string"
+              },
+              {
+                "enum": ["procedural"],
+                "type": "string"
+              },
+              {
+                "enum": ["reflection"],
+                "type": "string"
+              },
+              {
+                "enum": ["identity"],
+                "type": "string"
+              },
+              {
+                "enum": ["soul"],
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "importance": {
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          },
+          "injectionRisk": {
+            "type": "boolean"
+          },
+          "lastAccessedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supersededBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "diaryId",
+          "title",
+          "content",
+          "tags",
+          "injectionRisk",
+          "importance",
+          "accessCount",
+          "lastAccessedAt",
+          "entryType",
+          "supersededBy",
+          "contentHash",
+          "contentSignature",
+          "createdAt",
+          "updatedAt",
+          "creator"
+        ],
+        "type": "object"
+      },
       "DiaryInvitationList": {
         "properties": {
           "invitations": {
@@ -1330,160 +1490,7 @@
             "type": "string"
           },
           "entry": {
-            "properties": {
-              "accessCount": {
-                "type": "number"
-              },
-              "content": {
-                "type": "string"
-              },
-              "contentHash": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "contentSignature": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "createdAt": {
-                "format": "date-time",
-                "type": "string"
-              },
-              "creator": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/AgentIdentity"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "diaryId": {
-                "format": "uuid",
-                "type": "string"
-              },
-              "entryType": {
-                "anyOf": [
-                  {
-                    "enum": ["episodic"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["semantic"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["procedural"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["reflection"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["identity"],
-                    "type": "string"
-                  },
-                  {
-                    "enum": ["soul"],
-                    "type": "string"
-                  }
-                ]
-              },
-              "id": {
-                "format": "uuid",
-                "type": "string"
-              },
-              "importance": {
-                "maximum": 10,
-                "minimum": 1,
-                "type": "number"
-              },
-              "injectionRisk": {
-                "type": "boolean"
-              },
-              "lastAccessedAt": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "supersededBy": {
-                "anyOf": [
-                  {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "tags": {
-                "anyOf": [
-                  {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "title": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "updatedAt": {
-                "format": "date-time",
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "diaryId",
-              "title",
-              "content",
-              "tags",
-              "injectionRisk",
-              "importance",
-              "accessCount",
-              "lastAccessedAt",
-              "entryType",
-              "supersededBy",
-              "contentHash",
-              "contentSignature",
-              "createdAt",
-              "updatedAt",
-              "creator"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/DiaryEntryWithCreator"
           },
           "entryCidSnapshot": {
             "type": "string"

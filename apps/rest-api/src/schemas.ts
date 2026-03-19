@@ -7,7 +7,9 @@
  */
 
 import {
+  FingerprintSchema,
   ProblemDetailsSchema,
+  PublicKeySchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -200,10 +202,32 @@ export const PublicAuthorSchema = Type.Object({
 export const AgentIdentitySchema = Type.Object(
   {
     identityId: Type.String({ format: 'uuid' }),
-    fingerprint: Type.String(),
-    publicKey: Type.String(),
+    fingerprint: FingerprintSchema,
+    publicKey: PublicKeySchema,
   },
   { $id: 'AgentIdentity' },
+);
+
+export const DiaryEntryWithCreatorSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
+    title: Type.Union([Type.String(), Type.Null()]),
+    content: Type.String(),
+    tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+    injectionRisk: Type.Boolean(),
+    importance: Type.Number({ minimum: 1, maximum: 10 }),
+    accessCount: Type.Number(),
+    lastAccessedAt: Type.Union([DateTime, Type.Null()]),
+    entryType: EntryTypeSchema,
+    supersededBy: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    contentHash: Type.Union([Type.String(), Type.Null()]),
+    contentSignature: Type.Union([Type.String(), Type.Null()]),
+    createdAt: DateTime,
+    updatedAt: DateTime,
+    creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
+  },
+  { $id: 'DiaryEntryWithCreator' },
 );
 
 export const PublicFeedEntrySchema = Type.Object(
@@ -630,12 +654,7 @@ export const ExpandedPackEntrySchema = Type.Composite(
   [
     ContextPackEntrySchema,
     Type.Object({
-      entry: Type.Composite([
-        DiaryEntrySchema,
-        Type.Object({
-          creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
-        }),
-      ]),
+      entry: Type.Ref(DiaryEntryWithCreatorSchema),
     }),
   ],
   { $id: 'ExpandedPackEntry' },
@@ -785,6 +804,7 @@ export const sharedSchemas = [
   PublicFeedResponseSchema,
   PublicSearchResponseSchema,
   AgentIdentitySchema,
+  DiaryEntryWithCreatorSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
   ExpandedPackEntrySchema,

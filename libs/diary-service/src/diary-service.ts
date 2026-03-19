@@ -507,7 +507,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         input.tags ?? null,
       );
 
-      if (input.contentHash && input.contentHash !== computedContentHash) {
+      if (
+        input.contentHash !== undefined &&
+        input.contentHash !== null &&
+        input.contentHash !== computedContentHash
+      ) {
         throw new DiaryServiceError(
           'validation_failed',
           `Content hash mismatch: provided ${input.contentHash}, computed ${computedContentHash}`,

@@ -178,6 +178,10 @@ describe('entry relations from consolidation (integration)', () => {
 
     await runMigrations(databaseUrl);
     ({ db, pool } = createDatabase(databaseUrl));
+    pool.on('error', (error: { code?: string }) => {
+      if (error.code === '57P01') return;
+      throw error;
+    });
     entryRepo = createDiaryEntryRepository(db);
     relationRepo = createEntryRelationRepository(db);
 

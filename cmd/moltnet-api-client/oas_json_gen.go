@@ -6148,6 +6148,415 @@ func (s *DiaryEntryEntryType) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *DiaryEntryWithCreator) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DiaryEntryWithCreator) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("accessCount")
+		e.Float64(s.AccessCount)
+	}
+	{
+		e.FieldStart("content")
+		e.Str(s.Content)
+	}
+	{
+		e.FieldStart("contentHash")
+		s.ContentHash.Encode(e)
+	}
+	{
+		e.FieldStart("contentSignature")
+		s.ContentSignature.Encode(e)
+	}
+	{
+		e.FieldStart("createdAt")
+		json.EncodeDateTime(e, s.CreatedAt)
+	}
+	{
+		e.FieldStart("creator")
+		s.Creator.Encode(e)
+	}
+	{
+		e.FieldStart("diaryId")
+		json.EncodeUUID(e, s.DiaryId)
+	}
+	{
+		e.FieldStart("entryType")
+		s.EntryType.Encode(e)
+	}
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("importance")
+		e.Float64(s.Importance)
+	}
+	{
+		e.FieldStart("injectionRisk")
+		e.Bool(s.InjectionRisk)
+	}
+	{
+		e.FieldStart("lastAccessedAt")
+		s.LastAccessedAt.Encode(e, json.EncodeDateTime)
+	}
+	{
+		e.FieldStart("supersededBy")
+		s.SupersededBy.Encode(e)
+	}
+	{
+		e.FieldStart("tags")
+		if s.Tags == nil {
+			e.Null()
+		} else {
+			e.ArrStart()
+			for _, elem := range s.Tags {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		e.FieldStart("title")
+		s.Title.Encode(e)
+	}
+	{
+		e.FieldStart("updatedAt")
+		json.EncodeDateTime(e, s.UpdatedAt)
+	}
+}
+
+var jsonFieldsNameOfDiaryEntryWithCreator = [16]string{
+	0:  "accessCount",
+	1:  "content",
+	2:  "contentHash",
+	3:  "contentSignature",
+	4:  "createdAt",
+	5:  "creator",
+	6:  "diaryId",
+	7:  "entryType",
+	8:  "id",
+	9:  "importance",
+	10: "injectionRisk",
+	11: "lastAccessedAt",
+	12: "supersededBy",
+	13: "tags",
+	14: "title",
+	15: "updatedAt",
+}
+
+// Decode decodes DiaryEntryWithCreator from json.
+func (s *DiaryEntryWithCreator) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiaryEntryWithCreator to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "accessCount":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.AccessCount = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"accessCount\"")
+			}
+		case "content":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Content = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"content\"")
+			}
+		case "contentHash":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.ContentHash.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentHash\"")
+			}
+		case "contentSignature":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.ContentSignature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentSignature\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAt\"")
+			}
+		case "creator":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Creator.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"creator\"")
+			}
+		case "diaryId":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.DiaryId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"diaryId\"")
+			}
+		case "entryType":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				if err := s.EntryType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryType\"")
+			}
+		case "id":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "importance":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.Importance = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"importance\"")
+			}
+		case "injectionRisk":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.InjectionRisk = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"injectionRisk\"")
+			}
+		case "lastAccessedAt":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.LastAccessedAt.Decode(d, json.DecodeDateTime); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"lastAccessedAt\"")
+			}
+		case "supersededBy":
+			requiredBitSet[1] |= 1 << 4
+			if err := func() error {
+				if err := s.SupersededBy.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"supersededBy\"")
+			}
+		case "tags":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				switch tt := d.Next(); tt {
+				case jx.Null:
+					if err := d.Skip(); err != nil {
+						return err
+					}
+				default:
+					s.Tags = make([]string, 0)
+					if err := d.Arr(func(d *jx.Decoder) error {
+						var elem string
+						v, err := d.Str()
+						elem = string(v)
+						if err != nil {
+							return err
+						}
+						s.Tags = append(s.Tags, elem)
+						return nil
+					}); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tags\"")
+			}
+		case "title":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				if err := s.Title.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "updatedAt":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"updatedAt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DiaryEntryWithCreator")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDiaryEntryWithCreator) {
+					name = jsonFieldsNameOfDiaryEntryWithCreator[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DiaryEntryWithCreator) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiaryEntryWithCreator) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiaryEntryWithCreatorEntryType as json.
+func (s DiaryEntryWithCreatorEntryType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiaryEntryWithCreatorEntryType from json.
+func (s *DiaryEntryWithCreatorEntryType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiaryEntryWithCreatorEntryType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiaryEntryWithCreatorEntryType(v) {
+	case DiaryEntryWithCreatorEntryTypeEpisodic:
+		*s = DiaryEntryWithCreatorEntryTypeEpisodic
+	case DiaryEntryWithCreatorEntryTypeSemantic:
+		*s = DiaryEntryWithCreatorEntryTypeSemantic
+	case DiaryEntryWithCreatorEntryTypeProcedural:
+		*s = DiaryEntryWithCreatorEntryTypeProcedural
+	case DiaryEntryWithCreatorEntryTypeReflection:
+		*s = DiaryEntryWithCreatorEntryTypeReflection
+	case DiaryEntryWithCreatorEntryTypeIdentity:
+		*s = DiaryEntryWithCreatorEntryTypeIdentity
+	case DiaryEntryWithCreatorEntryTypeSoul:
+		*s = DiaryEntryWithCreatorEntryTypeSoul
+	default:
+		*s = DiaryEntryWithCreatorEntryType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiaryEntryWithCreatorEntryType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiaryEntryWithCreatorEntryType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *DiaryInvitationList) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -7777,415 +8186,6 @@ func (s ExpandedPackEntryCompressionLevel) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ExpandedPackEntryCompressionLevel) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *ExpandedPackEntryEntry) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *ExpandedPackEntryEntry) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("accessCount")
-		e.Float64(s.AccessCount)
-	}
-	{
-		e.FieldStart("content")
-		e.Str(s.Content)
-	}
-	{
-		e.FieldStart("contentHash")
-		s.ContentHash.Encode(e)
-	}
-	{
-		e.FieldStart("contentSignature")
-		s.ContentSignature.Encode(e)
-	}
-	{
-		e.FieldStart("createdAt")
-		json.EncodeDateTime(e, s.CreatedAt)
-	}
-	{
-		e.FieldStart("creator")
-		s.Creator.Encode(e)
-	}
-	{
-		e.FieldStart("diaryId")
-		json.EncodeUUID(e, s.DiaryId)
-	}
-	{
-		e.FieldStart("entryType")
-		s.EntryType.Encode(e)
-	}
-	{
-		e.FieldStart("id")
-		json.EncodeUUID(e, s.ID)
-	}
-	{
-		e.FieldStart("importance")
-		e.Float64(s.Importance)
-	}
-	{
-		e.FieldStart("injectionRisk")
-		e.Bool(s.InjectionRisk)
-	}
-	{
-		e.FieldStart("lastAccessedAt")
-		s.LastAccessedAt.Encode(e, json.EncodeDateTime)
-	}
-	{
-		e.FieldStart("supersededBy")
-		s.SupersededBy.Encode(e)
-	}
-	{
-		e.FieldStart("tags")
-		if s.Tags == nil {
-			e.Null()
-		} else {
-			e.ArrStart()
-			for _, elem := range s.Tags {
-				e.Str(elem)
-			}
-			e.ArrEnd()
-		}
-	}
-	{
-		e.FieldStart("title")
-		s.Title.Encode(e)
-	}
-	{
-		e.FieldStart("updatedAt")
-		json.EncodeDateTime(e, s.UpdatedAt)
-	}
-}
-
-var jsonFieldsNameOfExpandedPackEntryEntry = [16]string{
-	0:  "accessCount",
-	1:  "content",
-	2:  "contentHash",
-	3:  "contentSignature",
-	4:  "createdAt",
-	5:  "creator",
-	6:  "diaryId",
-	7:  "entryType",
-	8:  "id",
-	9:  "importance",
-	10: "injectionRisk",
-	11: "lastAccessedAt",
-	12: "supersededBy",
-	13: "tags",
-	14: "title",
-	15: "updatedAt",
-}
-
-// Decode decodes ExpandedPackEntryEntry from json.
-func (s *ExpandedPackEntryEntry) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ExpandedPackEntryEntry to nil")
-	}
-	var requiredBitSet [2]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "accessCount":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := d.Float64()
-				s.AccessCount = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"accessCount\"")
-			}
-		case "content":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.Content = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"content\"")
-			}
-		case "contentHash":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.ContentHash.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"contentHash\"")
-			}
-		case "contentSignature":
-			requiredBitSet[0] |= 1 << 3
-			if err := func() error {
-				if err := s.ContentSignature.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"contentSignature\"")
-			}
-		case "createdAt":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := json.DecodeDateTime(d)
-				s.CreatedAt = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdAt\"")
-			}
-		case "creator":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				if err := s.Creator.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"creator\"")
-			}
-		case "diaryId":
-			requiredBitSet[0] |= 1 << 6
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.DiaryId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"diaryId\"")
-			}
-		case "entryType":
-			requiredBitSet[0] |= 1 << 7
-			if err := func() error {
-				if err := s.EntryType.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"entryType\"")
-			}
-		case "id":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.ID = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "importance":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				v, err := d.Float64()
-				s.Importance = float64(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"importance\"")
-			}
-		case "injectionRisk":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				v, err := d.Bool()
-				s.InjectionRisk = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"injectionRisk\"")
-			}
-		case "lastAccessedAt":
-			requiredBitSet[1] |= 1 << 3
-			if err := func() error {
-				if err := s.LastAccessedAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lastAccessedAt\"")
-			}
-		case "supersededBy":
-			requiredBitSet[1] |= 1 << 4
-			if err := func() error {
-				if err := s.SupersededBy.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"supersededBy\"")
-			}
-		case "tags":
-			requiredBitSet[1] |= 1 << 5
-			if err := func() error {
-				switch tt := d.Next(); tt {
-				case jx.Null:
-					if err := d.Skip(); err != nil {
-						return err
-					}
-				default:
-					s.Tags = make([]string, 0)
-					if err := d.Arr(func(d *jx.Decoder) error {
-						var elem string
-						v, err := d.Str()
-						elem = string(v)
-						if err != nil {
-							return err
-						}
-						s.Tags = append(s.Tags, elem)
-						return nil
-					}); err != nil {
-						return err
-					}
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"tags\"")
-			}
-		case "title":
-			requiredBitSet[1] |= 1 << 6
-			if err := func() error {
-				if err := s.Title.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"title\"")
-			}
-		case "updatedAt":
-			requiredBitSet[1] |= 1 << 7
-			if err := func() error {
-				v, err := json.DecodeDateTime(d)
-				s.UpdatedAt = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"updatedAt\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode ExpandedPackEntryEntry")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
-		0b11111111,
-		0b11111111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfExpandedPackEntryEntry) {
-					name = jsonFieldsNameOfExpandedPackEntryEntry[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ExpandedPackEntryEntry) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ExpandedPackEntryEntry) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes ExpandedPackEntryEntryEntryType as json.
-func (s ExpandedPackEntryEntryEntryType) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes ExpandedPackEntryEntryEntryType from json.
-func (s *ExpandedPackEntryEntryEntryType) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ExpandedPackEntryEntryEntryType to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch ExpandedPackEntryEntryEntryType(v) {
-	case ExpandedPackEntryEntryEntryTypeEpisodic:
-		*s = ExpandedPackEntryEntryEntryTypeEpisodic
-	case ExpandedPackEntryEntryEntryTypeSemantic:
-		*s = ExpandedPackEntryEntryEntryTypeSemantic
-	case ExpandedPackEntryEntryEntryTypeProcedural:
-		*s = ExpandedPackEntryEntryEntryTypeProcedural
-	case ExpandedPackEntryEntryEntryTypeReflection:
-		*s = ExpandedPackEntryEntryEntryTypeReflection
-	case ExpandedPackEntryEntryEntryTypeIdentity:
-		*s = ExpandedPackEntryEntryEntryTypeIdentity
-	case ExpandedPackEntryEntryEntryTypeSoul:
-		*s = ExpandedPackEntryEntryEntryTypeSoul
-	default:
-		*s = ExpandedPackEntryEntryEntryType(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s ExpandedPackEntryEntryEntryType) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ExpandedPackEntryEntryEntryType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

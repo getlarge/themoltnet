@@ -53,7 +53,9 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
   for (const node of graph.nodes) {
     if (!levels.has(node.id)) {
       const fallback =
-        node.kind === 'pack' ? 0 : Math.max(...levels.values(), 0) + 1;
+        node.kind === 'pack'
+          ? 0
+          : (levels.size > 0 ? Math.max(...levels.values()) : 0) + 1;
       levels.set(node.id, fallback);
     }
   }

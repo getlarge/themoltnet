@@ -30,9 +30,11 @@ func (*AcceptDiaryInvitationUnauthorized) acceptDiaryInvitationRes() {}
 
 // Ref: #/components/schemas/AgentIdentity
 type AgentIdentity struct {
+	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
 	Fingerprint string    `json:"fingerprint"`
 	IdentityId  uuid.UUID `json:"identityId"`
-	PublicKey   string    `json:"publicKey"`
+	// Ed25519 public key with prefix.
+	PublicKey string `json:"publicKey"`
 }
 
 // GetFingerprint returns the value of Fingerprint.
@@ -2327,6 +2329,255 @@ func (s *DiaryEntryEntryType) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/DiaryEntryWithCreator
+type DiaryEntryWithCreator struct {
+	AccessCount      float64                        `json:"accessCount"`
+	Content          string                         `json:"content"`
+	ContentHash      NilString                      `json:"contentHash"`
+	ContentSignature NilString                      `json:"contentSignature"`
+	CreatedAt        time.Time                      `json:"createdAt"`
+	Creator          NilAgentIdentity               `json:"creator"`
+	DiaryId          uuid.UUID                      `json:"diaryId"`
+	EntryType        DiaryEntryWithCreatorEntryType `json:"entryType"`
+	ID               uuid.UUID                      `json:"id"`
+	Importance       float64                        `json:"importance"`
+	InjectionRisk    bool                           `json:"injectionRisk"`
+	LastAccessedAt   NilDateTime                    `json:"lastAccessedAt"`
+	SupersededBy     NilUUID                        `json:"supersededBy"`
+	Tags             []string                       `json:"tags"`
+	Title            NilString                      `json:"title"`
+	UpdatedAt        time.Time                      `json:"updatedAt"`
+}
+
+// GetAccessCount returns the value of AccessCount.
+func (s *DiaryEntryWithCreator) GetAccessCount() float64 {
+	return s.AccessCount
+}
+
+// GetContent returns the value of Content.
+func (s *DiaryEntryWithCreator) GetContent() string {
+	return s.Content
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *DiaryEntryWithCreator) GetContentHash() NilString {
+	return s.ContentHash
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *DiaryEntryWithCreator) GetContentSignature() NilString {
+	return s.ContentSignature
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DiaryEntryWithCreator) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreator returns the value of Creator.
+func (s *DiaryEntryWithCreator) GetCreator() NilAgentIdentity {
+	return s.Creator
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *DiaryEntryWithCreator) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetEntryType returns the value of EntryType.
+func (s *DiaryEntryWithCreator) GetEntryType() DiaryEntryWithCreatorEntryType {
+	return s.EntryType
+}
+
+// GetID returns the value of ID.
+func (s *DiaryEntryWithCreator) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetImportance returns the value of Importance.
+func (s *DiaryEntryWithCreator) GetImportance() float64 {
+	return s.Importance
+}
+
+// GetInjectionRisk returns the value of InjectionRisk.
+func (s *DiaryEntryWithCreator) GetInjectionRisk() bool {
+	return s.InjectionRisk
+}
+
+// GetLastAccessedAt returns the value of LastAccessedAt.
+func (s *DiaryEntryWithCreator) GetLastAccessedAt() NilDateTime {
+	return s.LastAccessedAt
+}
+
+// GetSupersededBy returns the value of SupersededBy.
+func (s *DiaryEntryWithCreator) GetSupersededBy() NilUUID {
+	return s.SupersededBy
+}
+
+// GetTags returns the value of Tags.
+func (s *DiaryEntryWithCreator) GetTags() []string {
+	return s.Tags
+}
+
+// GetTitle returns the value of Title.
+func (s *DiaryEntryWithCreator) GetTitle() NilString {
+	return s.Title
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *DiaryEntryWithCreator) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetAccessCount sets the value of AccessCount.
+func (s *DiaryEntryWithCreator) SetAccessCount(val float64) {
+	s.AccessCount = val
+}
+
+// SetContent sets the value of Content.
+func (s *DiaryEntryWithCreator) SetContent(val string) {
+	s.Content = val
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *DiaryEntryWithCreator) SetContentHash(val NilString) {
+	s.ContentHash = val
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *DiaryEntryWithCreator) SetContentSignature(val NilString) {
+	s.ContentSignature = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DiaryEntryWithCreator) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreator sets the value of Creator.
+func (s *DiaryEntryWithCreator) SetCreator(val NilAgentIdentity) {
+	s.Creator = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *DiaryEntryWithCreator) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetEntryType sets the value of EntryType.
+func (s *DiaryEntryWithCreator) SetEntryType(val DiaryEntryWithCreatorEntryType) {
+	s.EntryType = val
+}
+
+// SetID sets the value of ID.
+func (s *DiaryEntryWithCreator) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetImportance sets the value of Importance.
+func (s *DiaryEntryWithCreator) SetImportance(val float64) {
+	s.Importance = val
+}
+
+// SetInjectionRisk sets the value of InjectionRisk.
+func (s *DiaryEntryWithCreator) SetInjectionRisk(val bool) {
+	s.InjectionRisk = val
+}
+
+// SetLastAccessedAt sets the value of LastAccessedAt.
+func (s *DiaryEntryWithCreator) SetLastAccessedAt(val NilDateTime) {
+	s.LastAccessedAt = val
+}
+
+// SetSupersededBy sets the value of SupersededBy.
+func (s *DiaryEntryWithCreator) SetSupersededBy(val NilUUID) {
+	s.SupersededBy = val
+}
+
+// SetTags sets the value of Tags.
+func (s *DiaryEntryWithCreator) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiaryEntryWithCreator) SetTitle(val NilString) {
+	s.Title = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *DiaryEntryWithCreator) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+type DiaryEntryWithCreatorEntryType string
+
+const (
+	DiaryEntryWithCreatorEntryTypeEpisodic   DiaryEntryWithCreatorEntryType = "episodic"
+	DiaryEntryWithCreatorEntryTypeSemantic   DiaryEntryWithCreatorEntryType = "semantic"
+	DiaryEntryWithCreatorEntryTypeProcedural DiaryEntryWithCreatorEntryType = "procedural"
+	DiaryEntryWithCreatorEntryTypeReflection DiaryEntryWithCreatorEntryType = "reflection"
+	DiaryEntryWithCreatorEntryTypeIdentity   DiaryEntryWithCreatorEntryType = "identity"
+	DiaryEntryWithCreatorEntryTypeSoul       DiaryEntryWithCreatorEntryType = "soul"
+)
+
+// AllValues returns all DiaryEntryWithCreatorEntryType values.
+func (DiaryEntryWithCreatorEntryType) AllValues() []DiaryEntryWithCreatorEntryType {
+	return []DiaryEntryWithCreatorEntryType{
+		DiaryEntryWithCreatorEntryTypeEpisodic,
+		DiaryEntryWithCreatorEntryTypeSemantic,
+		DiaryEntryWithCreatorEntryTypeProcedural,
+		DiaryEntryWithCreatorEntryTypeReflection,
+		DiaryEntryWithCreatorEntryTypeIdentity,
+		DiaryEntryWithCreatorEntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiaryEntryWithCreatorEntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiaryEntryWithCreatorEntryTypeEpisodic:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeSemantic:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeProcedural:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeReflection:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeIdentity:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiaryEntryWithCreatorEntryType) UnmarshalText(data []byte) error {
+	switch DiaryEntryWithCreatorEntryType(data) {
+	case DiaryEntryWithCreatorEntryTypeEpisodic:
+		*s = DiaryEntryWithCreatorEntryTypeEpisodic
+		return nil
+	case DiaryEntryWithCreatorEntryTypeSemantic:
+		*s = DiaryEntryWithCreatorEntryTypeSemantic
+		return nil
+	case DiaryEntryWithCreatorEntryTypeProcedural:
+		*s = DiaryEntryWithCreatorEntryTypeProcedural
+		return nil
+	case DiaryEntryWithCreatorEntryTypeReflection:
+		*s = DiaryEntryWithCreatorEntryTypeReflection
+		return nil
+	case DiaryEntryWithCreatorEntryTypeIdentity:
+		*s = DiaryEntryWithCreatorEntryTypeIdentity
+		return nil
+	case DiaryEntryWithCreatorEntryTypeSoul:
+		*s = DiaryEntryWithCreatorEntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/DiaryInvitationList
 type DiaryInvitationList struct {
 	Invitations []DiaryShare `json:"invitations"`
@@ -2884,7 +3135,7 @@ func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
 type ExpandedPackEntry struct {
 	CompressionLevel ExpandedPackEntryCompressionLevel `json:"compressionLevel"`
 	CreatedAt        time.Time                         `json:"createdAt"`
-	Entry            ExpandedPackEntryEntry            `json:"entry"`
+	Entry            DiaryEntryWithCreator             `json:"entry"`
 	EntryCidSnapshot string                            `json:"entryCidSnapshot"`
 	EntryId          uuid.UUID                         `json:"entryId"`
 	ID               uuid.UUID                         `json:"id"`
@@ -2905,7 +3156,7 @@ func (s *ExpandedPackEntry) GetCreatedAt() time.Time {
 }
 
 // GetEntry returns the value of Entry.
-func (s *ExpandedPackEntry) GetEntry() ExpandedPackEntryEntry {
+func (s *ExpandedPackEntry) GetEntry() DiaryEntryWithCreator {
 	return s.Entry
 }
 
@@ -2955,7 +3206,7 @@ func (s *ExpandedPackEntry) SetCreatedAt(val time.Time) {
 }
 
 // SetEntry sets the value of Entry.
-func (s *ExpandedPackEntry) SetEntry(val ExpandedPackEntryEntry) {
+func (s *ExpandedPackEntry) SetEntry(val DiaryEntryWithCreator) {
 	s.Entry = val
 }
 
@@ -3036,254 +3287,6 @@ func (s *ExpandedPackEntryCompressionLevel) UnmarshalText(data []byte) error {
 		return nil
 	case ExpandedPackEntryCompressionLevelKeywords:
 		*s = ExpandedPackEntryCompressionLevelKeywords
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type ExpandedPackEntryEntry struct {
-	AccessCount      float64                         `json:"accessCount"`
-	Content          string                          `json:"content"`
-	ContentHash      NilString                       `json:"contentHash"`
-	ContentSignature NilString                       `json:"contentSignature"`
-	CreatedAt        time.Time                       `json:"createdAt"`
-	Creator          NilAgentIdentity                `json:"creator"`
-	DiaryId          uuid.UUID                       `json:"diaryId"`
-	EntryType        ExpandedPackEntryEntryEntryType `json:"entryType"`
-	ID               uuid.UUID                       `json:"id"`
-	Importance       float64                         `json:"importance"`
-	InjectionRisk    bool                            `json:"injectionRisk"`
-	LastAccessedAt   NilDateTime                     `json:"lastAccessedAt"`
-	SupersededBy     NilUUID                         `json:"supersededBy"`
-	Tags             []string                        `json:"tags"`
-	Title            NilString                       `json:"title"`
-	UpdatedAt        time.Time                       `json:"updatedAt"`
-}
-
-// GetAccessCount returns the value of AccessCount.
-func (s *ExpandedPackEntryEntry) GetAccessCount() float64 {
-	return s.AccessCount
-}
-
-// GetContent returns the value of Content.
-func (s *ExpandedPackEntryEntry) GetContent() string {
-	return s.Content
-}
-
-// GetContentHash returns the value of ContentHash.
-func (s *ExpandedPackEntryEntry) GetContentHash() NilString {
-	return s.ContentHash
-}
-
-// GetContentSignature returns the value of ContentSignature.
-func (s *ExpandedPackEntryEntry) GetContentSignature() NilString {
-	return s.ContentSignature
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *ExpandedPackEntryEntry) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetCreator returns the value of Creator.
-func (s *ExpandedPackEntryEntry) GetCreator() NilAgentIdentity {
-	return s.Creator
-}
-
-// GetDiaryId returns the value of DiaryId.
-func (s *ExpandedPackEntryEntry) GetDiaryId() uuid.UUID {
-	return s.DiaryId
-}
-
-// GetEntryType returns the value of EntryType.
-func (s *ExpandedPackEntryEntry) GetEntryType() ExpandedPackEntryEntryEntryType {
-	return s.EntryType
-}
-
-// GetID returns the value of ID.
-func (s *ExpandedPackEntryEntry) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetImportance returns the value of Importance.
-func (s *ExpandedPackEntryEntry) GetImportance() float64 {
-	return s.Importance
-}
-
-// GetInjectionRisk returns the value of InjectionRisk.
-func (s *ExpandedPackEntryEntry) GetInjectionRisk() bool {
-	return s.InjectionRisk
-}
-
-// GetLastAccessedAt returns the value of LastAccessedAt.
-func (s *ExpandedPackEntryEntry) GetLastAccessedAt() NilDateTime {
-	return s.LastAccessedAt
-}
-
-// GetSupersededBy returns the value of SupersededBy.
-func (s *ExpandedPackEntryEntry) GetSupersededBy() NilUUID {
-	return s.SupersededBy
-}
-
-// GetTags returns the value of Tags.
-func (s *ExpandedPackEntryEntry) GetTags() []string {
-	return s.Tags
-}
-
-// GetTitle returns the value of Title.
-func (s *ExpandedPackEntryEntry) GetTitle() NilString {
-	return s.Title
-}
-
-// GetUpdatedAt returns the value of UpdatedAt.
-func (s *ExpandedPackEntryEntry) GetUpdatedAt() time.Time {
-	return s.UpdatedAt
-}
-
-// SetAccessCount sets the value of AccessCount.
-func (s *ExpandedPackEntryEntry) SetAccessCount(val float64) {
-	s.AccessCount = val
-}
-
-// SetContent sets the value of Content.
-func (s *ExpandedPackEntryEntry) SetContent(val string) {
-	s.Content = val
-}
-
-// SetContentHash sets the value of ContentHash.
-func (s *ExpandedPackEntryEntry) SetContentHash(val NilString) {
-	s.ContentHash = val
-}
-
-// SetContentSignature sets the value of ContentSignature.
-func (s *ExpandedPackEntryEntry) SetContentSignature(val NilString) {
-	s.ContentSignature = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *ExpandedPackEntryEntry) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetCreator sets the value of Creator.
-func (s *ExpandedPackEntryEntry) SetCreator(val NilAgentIdentity) {
-	s.Creator = val
-}
-
-// SetDiaryId sets the value of DiaryId.
-func (s *ExpandedPackEntryEntry) SetDiaryId(val uuid.UUID) {
-	s.DiaryId = val
-}
-
-// SetEntryType sets the value of EntryType.
-func (s *ExpandedPackEntryEntry) SetEntryType(val ExpandedPackEntryEntryEntryType) {
-	s.EntryType = val
-}
-
-// SetID sets the value of ID.
-func (s *ExpandedPackEntryEntry) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetImportance sets the value of Importance.
-func (s *ExpandedPackEntryEntry) SetImportance(val float64) {
-	s.Importance = val
-}
-
-// SetInjectionRisk sets the value of InjectionRisk.
-func (s *ExpandedPackEntryEntry) SetInjectionRisk(val bool) {
-	s.InjectionRisk = val
-}
-
-// SetLastAccessedAt sets the value of LastAccessedAt.
-func (s *ExpandedPackEntryEntry) SetLastAccessedAt(val NilDateTime) {
-	s.LastAccessedAt = val
-}
-
-// SetSupersededBy sets the value of SupersededBy.
-func (s *ExpandedPackEntryEntry) SetSupersededBy(val NilUUID) {
-	s.SupersededBy = val
-}
-
-// SetTags sets the value of Tags.
-func (s *ExpandedPackEntryEntry) SetTags(val []string) {
-	s.Tags = val
-}
-
-// SetTitle sets the value of Title.
-func (s *ExpandedPackEntryEntry) SetTitle(val NilString) {
-	s.Title = val
-}
-
-// SetUpdatedAt sets the value of UpdatedAt.
-func (s *ExpandedPackEntryEntry) SetUpdatedAt(val time.Time) {
-	s.UpdatedAt = val
-}
-
-type ExpandedPackEntryEntryEntryType string
-
-const (
-	ExpandedPackEntryEntryEntryTypeEpisodic   ExpandedPackEntryEntryEntryType = "episodic"
-	ExpandedPackEntryEntryEntryTypeSemantic   ExpandedPackEntryEntryEntryType = "semantic"
-	ExpandedPackEntryEntryEntryTypeProcedural ExpandedPackEntryEntryEntryType = "procedural"
-	ExpandedPackEntryEntryEntryTypeReflection ExpandedPackEntryEntryEntryType = "reflection"
-	ExpandedPackEntryEntryEntryTypeIdentity   ExpandedPackEntryEntryEntryType = "identity"
-	ExpandedPackEntryEntryEntryTypeSoul       ExpandedPackEntryEntryEntryType = "soul"
-)
-
-// AllValues returns all ExpandedPackEntryEntryEntryType values.
-func (ExpandedPackEntryEntryEntryType) AllValues() []ExpandedPackEntryEntryEntryType {
-	return []ExpandedPackEntryEntryEntryType{
-		ExpandedPackEntryEntryEntryTypeEpisodic,
-		ExpandedPackEntryEntryEntryTypeSemantic,
-		ExpandedPackEntryEntryEntryTypeProcedural,
-		ExpandedPackEntryEntryEntryTypeReflection,
-		ExpandedPackEntryEntryEntryTypeIdentity,
-		ExpandedPackEntryEntryEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ExpandedPackEntryEntryEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case ExpandedPackEntryEntryEntryTypeEpisodic:
-		return []byte(s), nil
-	case ExpandedPackEntryEntryEntryTypeSemantic:
-		return []byte(s), nil
-	case ExpandedPackEntryEntryEntryTypeProcedural:
-		return []byte(s), nil
-	case ExpandedPackEntryEntryEntryTypeReflection:
-		return []byte(s), nil
-	case ExpandedPackEntryEntryEntryTypeIdentity:
-		return []byte(s), nil
-	case ExpandedPackEntryEntryEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ExpandedPackEntryEntryEntryType) UnmarshalText(data []byte) error {
-	switch ExpandedPackEntryEntryEntryType(data) {
-	case ExpandedPackEntryEntryEntryTypeEpisodic:
-		*s = ExpandedPackEntryEntryEntryTypeEpisodic
-		return nil
-	case ExpandedPackEntryEntryEntryTypeSemantic:
-		*s = ExpandedPackEntryEntryEntryTypeSemantic
-		return nil
-	case ExpandedPackEntryEntryEntryTypeProcedural:
-		*s = ExpandedPackEntryEntryEntryTypeProcedural
-		return nil
-	case ExpandedPackEntryEntryEntryTypeReflection:
-		*s = ExpandedPackEntryEntryEntryTypeReflection
-		return nil
-	case ExpandedPackEntryEntryEntryTypeIdentity:
-		*s = ExpandedPackEntryEntryEntryTypeIdentity
-		return nil
-	case ExpandedPackEntryEntryEntryTypeSoul:
-		*s = ExpandedPackEntryEntryEntryTypeSoul
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

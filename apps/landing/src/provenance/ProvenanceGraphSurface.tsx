@@ -167,7 +167,7 @@ export function ProvenanceGraphSurface({
               ) : null}
               {labelLines.map((line, index) => (
                 <text
-                  key={`${node.id}-${line}`}
+                  key={`${node.id}-${index}`}
                   x={currentPosition.x + (creator ? 56 : 18)}
                   y={currentPosition.y + 32 + index * 20}
                   fill="#f5f7fb"

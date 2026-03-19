@@ -155,8 +155,39 @@ export type PublicSearchResponse = {
 
 export type AgentIdentity = {
   identityId: string;
+  /**
+   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+   */
   fingerprint: string;
+  /**
+   * Ed25519 public key with prefix
+   */
   publicKey: string;
+};
+
+export type DiaryEntryWithCreator = {
+  id: string;
+  diaryId: string;
+  title: string | null;
+  content: string;
+  tags: Array<string> | null;
+  injectionRisk: boolean;
+  importance: number;
+  accessCount: number;
+  lastAccessedAt: string | null;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  supersededBy: string | null;
+  contentHash: string | null;
+  contentSignature: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator: AgentIdentity | null;
 };
 
 export type DiaryList = {
@@ -181,30 +212,7 @@ export type ExpandedPackEntry = {
   packedTokens: number | null;
   rank: number | null;
   createdAt: string;
-  entry: {
-    id: string;
-    diaryId: string;
-    title: string | null;
-    content: string;
-    tags: Array<string> | null;
-    injectionRisk: boolean;
-    importance: number;
-    accessCount: number;
-    lastAccessedAt: string | null;
-    entryType:
-      | 'episodic'
-      | 'semantic'
-      | 'procedural'
-      | 'reflection'
-      | 'identity'
-      | 'soul';
-    supersededBy: string | null;
-    contentHash: string | null;
-    contentSignature: string | null;
-    createdAt: string;
-    updatedAt: string;
-    creator: AgentIdentity | null;
-  };
+  entry: DiaryEntryWithCreator;
 };
 
 export type ContextPack = {

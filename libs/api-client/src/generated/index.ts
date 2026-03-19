@@ -114,6 +114,7 @@ export type {
   DiaryCatalog,
   DiaryCatalogList,
   DiaryEntry,
+  DiaryEntryWithCreator,
   DiaryInvitationList,
   DiaryList,
   DiarySearchResult,

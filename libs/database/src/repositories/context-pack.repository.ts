@@ -207,14 +207,15 @@ export function createContextPackRepository(db: Database) {
       return row ? normalizePack(row) : null;
     },
 
-    async findByCid(packCid: string): Promise<ContextPack | null> {
-      const [row] = await getExecutor(db)
-        .select()
+    async findByCid(packCid: string): Promise<ContextPackWithCreator | null> {
+      const [row] = (await getExecutor(db)
+        .select(packSelection)
         .from(contextPacks)
+        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
         .where(eq(contextPacks.packCid, packCid))
-        .limit(1);
+        .limit(1)) as PackRow[];
 
-      return row ?? null;
+      return row ? normalizePack(row) : null;
     },
 
     async listEntries(packId: string): Promise<ContextPackEntry[]> {
@@ -274,7 +275,10 @@ export function createContextPackRepository(db: Database) {
       }
 
       for (const row of rows) {
-        grouped.get(row.packId)!.push(normalizeExpandedEntry(row));
+        const entries = grouped.get(row.packId);
+        if (entries) {
+          entries.push(normalizeExpandedEntry(row));
+        }
       }
 
       return grouped;
