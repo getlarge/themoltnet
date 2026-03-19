@@ -28,6 +28,10 @@ export const ServerConfigSchema = Type.Object({
     default: 7_200_000,
     description: 'Idle timeout in ms before auto-shutdown (default: 2h)',
   }),
+  LEGREFFIER_OPTIMIZE_TIMEOUT_MS: Type.Number({
+    default: 120_000,
+    description: 'Optimization timeout in ms (default: 2min)',
+  }),
   LEGREFFIER_TRANSPORT: Type.Union(
     [Type.Literal('sse'), Type.Literal('stdio')],
     { default: 'sse', description: 'Transport mode: sse (HTTP) or stdio' },

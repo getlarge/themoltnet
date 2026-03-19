@@ -212,10 +212,20 @@ export async function handleOptimize(
   deps.lastActivity = Date.now();
   deps.logger.info('Starting optimization...');
 
+  const timeoutMs = deps.config.LEGREFFIER_OPTIMIZE_TIMEOUT_MS;
+
   try {
-    const result = await deps.agent.optimize({
-      budget: args.budget,
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(
+        () => reject(new Error(`Optimization timed out after ${timeoutMs}ms`)),
+        timeoutMs,
+      );
     });
+
+    const result = await Promise.race([
+      deps.agent.optimize({ budget: args.budget }),
+      timeout,
+    ]);
 
     return textResult({
       score: result.score,
