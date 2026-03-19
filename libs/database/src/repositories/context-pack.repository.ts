@@ -17,6 +17,7 @@ import {
 
 import type { Database } from '../db.js';
 import {
+  agentKeys,
   type ContextPack,
   contextPackEntries,
   type ContextPackEntry,
@@ -26,6 +27,149 @@ import {
   type NewContextPackEntry,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
+
+const packSelection = {
+  id: contextPacks.id,
+  diaryId: contextPacks.diaryId,
+  packCid: contextPacks.packCid,
+  packCodec: contextPacks.packCodec,
+  packType: contextPacks.packType,
+  params: contextPacks.params,
+  payload: contextPacks.payload,
+  createdBy: contextPacks.createdBy,
+  creatorIdentityId: agentKeys.identityId,
+  creatorFingerprint: agentKeys.fingerprint,
+  creatorPublicKey: agentKeys.publicKey,
+  supersedesPackId: contextPacks.supersedesPackId,
+  pinned: contextPacks.pinned,
+  expiresAt: contextPacks.expiresAt,
+  createdAt: contextPacks.createdAt,
+} as const;
+
+interface PackRow extends ContextPack {
+  creatorIdentityId: string | null;
+  creatorFingerprint: string | null;
+  creatorPublicKey: string | null;
+}
+
+const expandedEntrySelection = {
+  id: contextPackEntries.id,
+  packId: contextPackEntries.packId,
+  entryId: contextPackEntries.entryId,
+  entryCidSnapshot: contextPackEntries.entryCidSnapshot,
+  compressionLevel: contextPackEntries.compressionLevel,
+  originalTokens: contextPackEntries.originalTokens,
+  packedTokens: contextPackEntries.packedTokens,
+  rank: contextPackEntries.rank,
+  createdAt: contextPackEntries.createdAt,
+  entryIdValue: diaryEntries.id,
+  entryDiaryId: diaryEntries.diaryId,
+  entryTitle: diaryEntries.title,
+  entryContent: diaryEntries.content,
+  entryTags: diaryEntries.tags,
+  entryInjectionRisk: diaryEntries.injectionRisk,
+  entryImportance: diaryEntries.importance,
+  entryAccessCount: diaryEntries.accessCount,
+  entryLastAccessedAt: diaryEntries.lastAccessedAt,
+  entryTypeValue: diaryEntries.entryType,
+  entrySupersededBy: diaryEntries.supersededBy,
+  entryContentHash: diaryEntries.contentHash,
+  entryContentSignature: diaryEntries.contentSignature,
+  entryCreatedAt: diaryEntries.createdAt,
+  entryUpdatedAt: diaryEntries.updatedAt,
+  entryCreatorIdentityId: agentKeys.identityId,
+  entryCreatorFingerprint: agentKeys.fingerprint,
+  entryCreatorPublicKey: agentKeys.publicKey,
+} as const;
+
+function normalizePack(row: PackRow): ContextPackWithCreator {
+  return {
+    id: row.id,
+    diaryId: row.diaryId,
+    packCid: row.packCid,
+    packCodec: row.packCodec,
+    packType: row.packType,
+    params: row.params,
+    payload: row.payload,
+    createdBy: row.createdBy,
+    creator:
+      row.creatorIdentityId && row.creatorFingerprint && row.creatorPublicKey
+        ? {
+            identityId: row.creatorIdentityId,
+            fingerprint: row.creatorFingerprint,
+            publicKey: row.creatorPublicKey,
+          }
+        : null,
+    supersedesPackId: row.supersedesPackId,
+    pinned: row.pinned,
+    expiresAt: row.expiresAt,
+    createdAt: row.createdAt,
+  };
+}
+
+interface ExpandedPackEntryRow extends InferSelectModel<
+  typeof contextPackEntries
+> {
+  entryIdValue: string;
+  entryDiaryId: string;
+  entryTitle: string | null;
+  entryContent: string;
+  entryTags: string[] | null;
+  entryInjectionRisk: boolean;
+  entryImportance: number;
+  entryAccessCount: number;
+  entryLastAccessedAt: Date | null;
+  entryTypeValue: InferSelectModel<typeof diaryEntries>['entryType'];
+  entrySupersededBy: string | null;
+  entryContentHash: string | null;
+  entryContentSignature: string | null;
+  entryCreatedAt: Date;
+  entryUpdatedAt: Date;
+  entryCreatorIdentityId: string | null;
+  entryCreatorFingerprint: string | null;
+  entryCreatorPublicKey: string | null;
+}
+
+function normalizeExpandedEntry(row: ExpandedPackEntryRow): ExpandedPackEntry {
+  return {
+    id: row.id,
+    packId: row.packId,
+    entryId: row.entryId,
+    entryCidSnapshot: row.entryCidSnapshot,
+    compressionLevel: row.compressionLevel,
+    originalTokens: row.originalTokens,
+    packedTokens: row.packedTokens,
+    rank: row.rank,
+    createdAt: row.createdAt,
+    entry: {
+      id: row.entryIdValue,
+      diaryId: row.entryDiaryId,
+      title: row.entryTitle,
+      content: row.entryContent,
+      tags: row.entryTags,
+      injectionRisk: row.entryInjectionRisk,
+      importance: row.entryImportance,
+      accessCount: row.entryAccessCount,
+      lastAccessedAt: row.entryLastAccessedAt,
+      entryType: row.entryTypeValue,
+      supersededBy: row.entrySupersededBy,
+      contentHash: row.entryContentHash,
+      contentSignature: row.entryContentSignature,
+      createdAt: row.entryCreatedAt,
+      updatedAt: row.entryUpdatedAt,
+      creator:
+        row.entryCreatorIdentityId === null ||
+        row.entryCreatorFingerprint === null ||
+        row.entryCreatorPublicKey === null
+          ? null
+          : {
+              identityId: row.entryCreatorIdentityId,
+              fingerprint: row.entryCreatorFingerprint,
+              publicKey: row.entryCreatorPublicKey,
+            },
+    },
+  };
+}
 
 export function createContextPackRepository(db: Database) {
   return {
@@ -52,24 +196,26 @@ export function createContextPackRepository(db: Database) {
         .returning();
     },
 
-    async findById(id: string): Promise<ContextPack | null> {
-      const [row] = await getExecutor(db)
-        .select()
+    async findById(id: string): Promise<ContextPackWithCreator | null> {
+      const [row] = (await getExecutor(db)
+        .select(packSelection)
         .from(contextPacks)
+        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
         .where(eq(contextPacks.id, id))
-        .limit(1);
+        .limit(1)) as PackRow[];
 
-      return row ?? null;
+      return row ? normalizePack(row) : null;
     },
 
-    async findByCid(packCid: string): Promise<ContextPack | null> {
-      const [row] = await getExecutor(db)
-        .select()
+    async findByCid(packCid: string): Promise<ContextPackWithCreator | null> {
+      const [row] = (await getExecutor(db)
+        .select(packSelection)
         .from(contextPacks)
+        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
         .where(eq(contextPacks.packCid, packCid))
-        .limit(1);
+        .limit(1)) as PackRow[];
 
-      return row ?? null;
+      return row ? normalizePack(row) : null;
     },
 
     async listEntries(packId: string): Promise<ContextPackEntry[]> {
@@ -85,46 +231,22 @@ export function createContextPackRepository(db: Database) {
     },
 
     async listEntriesExpanded(packId: string): Promise<ExpandedPackEntry[]> {
-      return getExecutor(db)
-        .select({
-          id: contextPackEntries.id,
-          packId: contextPackEntries.packId,
-          entryId: contextPackEntries.entryId,
-          entryCidSnapshot: contextPackEntries.entryCidSnapshot,
-          compressionLevel: contextPackEntries.compressionLevel,
-          originalTokens: contextPackEntries.originalTokens,
-          packedTokens: contextPackEntries.packedTokens,
-          rank: contextPackEntries.rank,
-          createdAt: contextPackEntries.createdAt,
-          entry: {
-            id: diaryEntries.id,
-            diaryId: diaryEntries.diaryId,
-            title: diaryEntries.title,
-            content: diaryEntries.content,
-            tags: diaryEntries.tags,
-            injectionRisk: diaryEntries.injectionRisk,
-            importance: diaryEntries.importance,
-            accessCount: diaryEntries.accessCount,
-            lastAccessedAt: diaryEntries.lastAccessedAt,
-            entryType: diaryEntries.entryType,
-            supersededBy: diaryEntries.supersededBy,
-            contentHash: diaryEntries.contentHash,
-            contentSignature: diaryEntries.contentSignature,
-            createdAt: diaryEntries.createdAt,
-            updatedAt: diaryEntries.updatedAt,
-          },
-        })
+      const rows = (await getExecutor(db)
+        .select(expandedEntrySelection)
         .from(contextPackEntries)
         .innerJoin(
           diaryEntries,
           eq(contextPackEntries.entryId, diaryEntries.id),
         )
+        .leftJoin(agentKeys, eq(diaryEntries.createdBy, agentKeys.identityId))
         .where(eq(contextPackEntries.packId, packId))
         .orderBy(
           sql`${contextPackEntries.rank} ASC NULLS LAST`,
           asc(contextPackEntries.createdAt),
           asc(contextPackEntries.id),
-        );
+        )) as ExpandedPackEntryRow[];
+
+      return rows.map(normalizeExpandedEntry);
     },
 
     async listEntriesExpandedByPackIds(
@@ -132,46 +254,20 @@ export function createContextPackRepository(db: Database) {
     ): Promise<Map<string, ExpandedPackEntry[]>> {
       if (packIds.length === 0) return new Map();
 
-      const rows = await getExecutor(db)
-        .select({
-          id: contextPackEntries.id,
-          packId: contextPackEntries.packId,
-          entryId: contextPackEntries.entryId,
-          entryCidSnapshot: contextPackEntries.entryCidSnapshot,
-          compressionLevel: contextPackEntries.compressionLevel,
-          originalTokens: contextPackEntries.originalTokens,
-          packedTokens: contextPackEntries.packedTokens,
-          rank: contextPackEntries.rank,
-          createdAt: contextPackEntries.createdAt,
-          entry: {
-            id: diaryEntries.id,
-            diaryId: diaryEntries.diaryId,
-            title: diaryEntries.title,
-            content: diaryEntries.content,
-            tags: diaryEntries.tags,
-            injectionRisk: diaryEntries.injectionRisk,
-            importance: diaryEntries.importance,
-            accessCount: diaryEntries.accessCount,
-            lastAccessedAt: diaryEntries.lastAccessedAt,
-            entryType: diaryEntries.entryType,
-            supersededBy: diaryEntries.supersededBy,
-            contentHash: diaryEntries.contentHash,
-            contentSignature: diaryEntries.contentSignature,
-            createdAt: diaryEntries.createdAt,
-            updatedAt: diaryEntries.updatedAt,
-          },
-        })
+      const rows = (await getExecutor(db)
+        .select(expandedEntrySelection)
         .from(contextPackEntries)
         .innerJoin(
           diaryEntries,
           eq(contextPackEntries.entryId, diaryEntries.id),
         )
+        .leftJoin(agentKeys, eq(diaryEntries.createdBy, agentKeys.identityId))
         .where(inArray(contextPackEntries.packId, packIds))
         .orderBy(
           sql`${contextPackEntries.rank} ASC NULLS LAST`,
           asc(contextPackEntries.createdAt),
           asc(contextPackEntries.id),
-        );
+        )) as ExpandedPackEntryRow[];
 
       const grouped = new Map<string, ExpandedPackEntry[]>();
       for (const packId of packIds) {
@@ -179,7 +275,10 @@ export function createContextPackRepository(db: Database) {
       }
 
       for (const row of rows) {
-        grouped.get(row.packId)!.push(row);
+        const entries = grouped.get(row.packId);
+        if (entries) {
+          entries.push(normalizeExpandedEntry(row));
+        }
       }
 
       return grouped;
@@ -230,13 +329,19 @@ export function createContextPackRepository(db: Database) {
       return rows.length;
     },
 
-    async listByDiary(diaryId: string, limit = 50): Promise<ContextPack[]> {
-      return getExecutor(db)
-        .select()
+    async listByDiary(
+      diaryId: string,
+      limit = 50,
+    ): Promise<ContextPackWithCreator[]> {
+      const rows = (await getExecutor(db)
+        .select(packSelection)
         .from(contextPacks)
+        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
         .where(eq(contextPacks.diaryId, diaryId))
         .orderBy(desc(contextPacks.createdAt))
-        .limit(limit);
+        .limit(limit)) as PackRow[];
+
+      return rows.map(normalizePack);
     },
   };
 }
@@ -251,5 +356,19 @@ export interface ExpandedPackEntry extends InferSelectModel<
   entry: Omit<
     InferSelectModel<typeof diaryEntries>,
     'embedding' | 'createdBy' | 'signingNonce'
-  >;
+  > & {
+    creator: {
+      identityId: string;
+      fingerprint: string;
+      publicKey: string;
+    } | null;
+  };
+}
+
+export interface ContextPackWithCreator extends ContextPack {
+  creator: {
+    identityId: string;
+    fingerprint: string;
+    publicKey: string;
+  } | null;
 }

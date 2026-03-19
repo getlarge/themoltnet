@@ -35,6 +35,7 @@ export {
 } from './repositories/agent.repository.js';
 export {
   type ContextPackRepository,
+  type ContextPackWithCreator,
   createContextPackRepository,
   type ExpandedPackEntry,
 } from './repositories/context-pack.repository.js';

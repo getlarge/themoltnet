@@ -1,3 +1,4 @@
+import { computeContentCid } from '@moltnet/crypto-service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -137,6 +138,12 @@ describe('Diary Workflows', () => {
         diaryId: DIARY_ID,
         createdBy: ENTRY_ID,
         content: 'Test diary entry content',
+        contentHash: computeContentCid(
+          'semantic',
+          null,
+          'Test diary entry content',
+          null,
+        ),
       });
 
       expect(result).toEqual(mockEntry);
@@ -148,6 +155,12 @@ describe('Diary Workflows', () => {
           diaryId: DIARY_ID,
           createdBy: ENTRY_ID,
           content: 'Test diary entry content',
+          contentHash: computeContentCid(
+            'semantic',
+            null,
+            'Test diary entry content',
+            null,
+          ),
           embedding: MOCK_EMBEDDING,
           injectionRisk: false,
         }),
@@ -176,6 +189,12 @@ describe('Diary Workflows', () => {
         content: 'Deployed v3',
         title: 'Deploy Log',
         tags: ['deploy'],
+        contentHash: computeContentCid(
+          'semantic',
+          'Deploy Log',
+          'Deployed v3',
+          ['deploy'],
+        ),
       });
 
       expect(embeddings.embedPassage).toHaveBeenCalledWith(
@@ -201,6 +220,7 @@ describe('Diary Workflows', () => {
         content: 'Core values',
         importance: 9,
         entryType: 'soul',
+        contentHash: computeContentCid('soul', null, 'Core values', null),
       });
 
       expect(repo.create).toHaveBeenCalledWith(
@@ -225,11 +245,20 @@ describe('Diary Workflows', () => {
         diaryId: DIARY_ID,
         createdBy: ENTRY_ID,
         content: 'Test content',
+        contentHash: computeContentCid('semantic', null, 'Test content', null),
       });
 
       expect(result).toEqual(mockEntry);
       expect(repo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ embedding: undefined }),
+        expect.objectContaining({
+          embedding: undefined,
+          contentHash: computeContentCid(
+            'semantic',
+            null,
+            'Test content',
+            null,
+          ),
+        }),
       );
     });
 
@@ -248,6 +277,12 @@ describe('Diary Workflows', () => {
           diaryId: DIARY_ID,
           createdBy: ENTRY_ID,
           content: 'Test content',
+          contentHash: computeContentCid(
+            'semantic',
+            null,
+            'Test content',
+            null,
+          ),
         }),
       ).rejects.toThrow('Failed to link entry to diary after creation');
 

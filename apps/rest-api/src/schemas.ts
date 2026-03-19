@@ -7,7 +7,10 @@
  */
 
 import {
+  FingerprintSchema,
   ProblemDetailsSchema,
+  ProvenanceGraphSchema,
+  PublicKeySchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -192,10 +195,41 @@ export const DiaryInvitationListSchema = Type.Object(
 
 // ── Public Feed ────────────────────────────────────────────
 
-const PublicAuthorSchema = Type.Object({
+export const PublicAuthorSchema = Type.Object({
   fingerprint: Type.String(),
   publicKey: Type.String(),
 });
+
+export const AgentIdentitySchema = Type.Object(
+  {
+    identityId: Type.String({ format: 'uuid' }),
+    fingerprint: FingerprintSchema,
+    publicKey: PublicKeySchema,
+  },
+  { $id: 'AgentIdentity' },
+);
+
+export const DiaryEntryWithCreatorSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
+    title: Type.Union([Type.String(), Type.Null()]),
+    content: Type.String(),
+    tags: Type.Union([Type.Array(Type.String()), Type.Null()]),
+    injectionRisk: Type.Boolean(),
+    importance: Type.Number({ minimum: 1, maximum: 10 }),
+    accessCount: Type.Number(),
+    lastAccessedAt: Type.Union([DateTime, Type.Null()]),
+    entryType: EntryTypeSchema,
+    supersededBy: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    contentHash: Type.Union([Type.String(), Type.Null()]),
+    contentSignature: Type.Union([Type.String(), Type.Null()]),
+    createdAt: DateTime,
+    updatedAt: DateTime,
+    creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
+  },
+  { $id: 'DiaryEntryWithCreator' },
+);
 
 export const PublicFeedEntrySchema = Type.Object(
   {
@@ -621,7 +655,7 @@ export const ExpandedPackEntrySchema = Type.Composite(
   [
     ContextPackEntrySchema,
     Type.Object({
-      entry: Type.Ref(DiaryEntrySchema),
+      entry: Type.Ref(DiaryEntryWithCreatorSchema),
     }),
   ],
   { $id: 'ExpandedPackEntry' },
@@ -641,6 +675,7 @@ export const ContextPackSchema = Type.Object(
     params: Type.Unknown(),
     payload: Type.Unknown(),
     createdBy: Type.String({ format: 'uuid' }),
+    creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
     supersedesPackId: Type.Union([
       Type.String({ format: 'uuid' }),
       Type.Null(),
@@ -662,7 +697,7 @@ export const ContextPackExpandedSchema = Type.Composite(
   [
     ContextPackSchema,
     Type.Object({
-      entries: Type.Array(ExpandedPackEntrySchema),
+      entries: Type.Array(Type.Ref(ExpandedPackEntrySchema)),
     }),
   ],
   { $id: 'ContextPackExpanded' },
@@ -672,7 +707,7 @@ export const ContextPackResponseSchema = Type.Composite(
   [
     ContextPackSchema,
     Type.Object({
-      entries: Type.Optional(Type.Array(ExpandedPackEntrySchema)),
+      entries: Type.Optional(Type.Array(Type.Ref(ExpandedPackEntrySchema))),
     }),
   ],
   { $id: 'ContextPackResponse' },
@@ -680,7 +715,7 @@ export const ContextPackResponseSchema = Type.Composite(
 
 export const ContextPackListSchema = Type.Object(
   {
-    items: Type.Array(ContextPackSchema),
+    items: Type.Array(Type.Ref(ContextPackSchema)),
     total: Type.Number({
       description:
         'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
@@ -694,7 +729,7 @@ export const ContextPackListSchema = Type.Object(
 
 export const ContextPackResponseListSchema = Type.Object(
   {
-    items: Type.Array(ContextPackResponseSchema),
+    items: Type.Array(Type.Ref(ContextPackResponseSchema)),
     total: Type.Number({
       description:
         'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
@@ -769,8 +804,11 @@ export const sharedSchemas = [
   PublicFeedEntrySchema,
   PublicFeedResponseSchema,
   PublicSearchResponseSchema,
+  AgentIdentitySchema,
+  DiaryEntryWithCreatorSchema,
   DiaryListSchema,
   DiarySearchResultSchema,
+  ExpandedPackEntrySchema,
   ContextPackSchema,
   ContextPackExpandedSchema,
   ContextPackResponseSchema,
@@ -795,4 +833,5 @@ export const sharedSchemas = [
   NetworkInfoSchema,
   ConsolidateResultSchema,
   CompileResultSchema,
+  ProvenanceGraphSchema,
 ];

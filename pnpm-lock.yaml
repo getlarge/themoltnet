@@ -327,6 +327,9 @@ importers:
       '@moltnet/discovery':
         specifier: workspace:*
         version: link:../../libs/discovery
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
       '@themoltnet/design-system':
         specifier: workspace:*
         version: link:../../libs/design-system
@@ -1107,9 +1110,6 @@ importers:
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
-      '@moltnet/api-client':
-        specifier: workspace:*
-        version: link:../libs/api-client
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../libs/bootstrap
@@ -1125,6 +1125,9 @@ importers:
       '@moltnet/mcp-server':
         specifier: workspace:*
         version: link:../apps/mcp-server
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../libs/models
       '@moltnet/rest-api':
         specifier: workspace:*
         version: link:../apps/rest-api

@@ -2,8 +2,11 @@
 
 ## Purpose
 
-`gpack` optimizes LeGreffier context packs (`.legreffier/context/session-pack.md`)
-for coding tasks using GEPA.
+`gpack` optimizes LeGreffier task-time context for coding tasks using GEPA.
+
+Today that context is injected through `.legreffier/context/session-pack.md`,
+but that file-based package should be treated as an evaluation/runtime helper,
+not the canonical long-term storage model.
 
 This document is the single source of truth for:
 
@@ -26,6 +29,13 @@ Intentionally deferred:
 - canonical storage model for optimized packs
 - immutable traceability links between packs and source entries
 - promotion/writeback workflow contract
+
+Likely direction:
+
+- persisted `context_packs` become the canonical runtime artifact
+- agents load packs on demand through the API
+- local `.legreffier/context/` files remain a temporary compatibility layer for
+  evals and file-oriented runtimes
 
 Those deferred parts are tracked in:
 
@@ -123,6 +133,7 @@ Per task evaluation (`evaluateTask`) does:
 2. run `setup` commands (captured; setup failure returns score 0 with trace)
 3. write `eval-task.md`
 4. inject candidate pack into `.legreffier/context/session-pack.md` (if non-empty)
+   as temporary runtime scaffolding
 5. run Claude task step (`--permission-mode acceptEdits`)
 6. run `failToPass` and `passToPass` commands
 7. optional eval rubric step using `criteria.json`

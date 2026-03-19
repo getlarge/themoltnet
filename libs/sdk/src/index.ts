@@ -6,6 +6,7 @@ export type {
   DiariesNamespace,
   EntriesNamespace,
   LegreffierNamespace,
+  PacksNamespace,
   ProblemsNamespace,
   PublicNamespace,
   RecoveryNamespace,

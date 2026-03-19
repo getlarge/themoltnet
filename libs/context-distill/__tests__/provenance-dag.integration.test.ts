@@ -213,6 +213,10 @@ describe('compile provenance (integration)', () => {
 
     await runMigrations(databaseUrl);
     ({ db, pool } = createDatabase(databaseUrl));
+    pool.on('error', (error: { code?: string }) => {
+      if (error.code === '57P01') return;
+      throw error;
+    });
     packRepo = createContextPackRepository(db);
     entryRepo = createDiaryEntryRepository(db);
 

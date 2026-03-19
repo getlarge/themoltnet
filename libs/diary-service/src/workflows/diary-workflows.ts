@@ -117,7 +117,7 @@ export function initDiaryWorkflows(): void {
 
   const generateIdStep = DBOS.registerStep(
     async (): Promise<string> => {
-      return crypto.randomUUID();
+      return Promise.resolve(crypto.randomUUID());
     },
     { name: 'diary.step.generateId' },
   );
@@ -139,7 +139,7 @@ export function initDiaryWorkflows(): void {
       content: string,
       title?: string | null,
     ): Promise<{ injectionRisk: boolean }> => {
-      return scanForInjection(content, title);
+      return Promise.resolve(scanForInjection(content, title));
     },
     { name: 'diary.step.scanInjection' },
   );
@@ -168,16 +168,18 @@ export function initDiaryWorkflows(): void {
         const { diaryEntryRepository, dataSource } = getDeps();
 
         const entryId = await generateIdStep();
+        const resolvedEntryType = input.entryType ?? 'semantic';
         const embedText = buildEmbeddingTextLocal(
           input.content,
           input.tags,
           input.title,
         );
         const embedding = await embedPassageStep(embedText);
-        const { injectionRisk } = await scanInjectionStep(
+        const scanResult: { injectionRisk: boolean } = await scanInjectionStep(
           input.content,
           input.title,
         );
+        const { injectionRisk } = scanResult;
 
         const entry = await dataSource.runTransaction(
           async () => {
@@ -189,7 +191,7 @@ export function initDiaryWorkflows(): void {
               title: input.title,
               tags: input.tags,
               importance: input.importance,
-              entryType: input.entryType,
+              entryType: resolvedEntryType,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
               contentHash: input.contentHash,

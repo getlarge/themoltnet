@@ -152,6 +152,8 @@ export interface CreateEntryInput {
 export interface WorkflowCreateEntryInput extends CreateEntryInput {
   /** Strong provenance: authenticated principal creating the entry */
   createdBy: string;
+  /** Service layer precomputes and validates the CID before entering DBOS */
+  contentHash: string;
 }
 
 export interface UpdateEntryInput {

@@ -28,6 +28,45 @@ type AcceptDiaryInvitationUnauthorized ProblemDetails
 
 func (*AcceptDiaryInvitationUnauthorized) acceptDiaryInvitationRes() {}
 
+// Ref: #/components/schemas/AgentIdentity
+type AgentIdentity struct {
+	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
+	Fingerprint string    `json:"fingerprint"`
+	IdentityId  uuid.UUID `json:"identityId"`
+	// Ed25519 public key with prefix.
+	PublicKey string `json:"publicKey"`
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *AgentIdentity) GetFingerprint() string {
+	return s.Fingerprint
+}
+
+// GetIdentityId returns the value of IdentityId.
+func (s *AgentIdentity) GetIdentityId() uuid.UUID {
+	return s.IdentityId
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *AgentIdentity) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *AgentIdentity) SetFingerprint(val string) {
+	s.Fingerprint = val
+}
+
+// SetIdentityId sets the value of IdentityId.
+func (s *AgentIdentity) SetIdentityId(val uuid.UUID) {
+	s.IdentityId = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *AgentIdentity) SetPublicKey(val string) {
+	s.PublicKey = val
+}
+
 // Ref: #/components/schemas/AgentProfile
 type AgentProfile struct {
 	Fingerprint string `json:"fingerprint"`
@@ -1262,19 +1301,20 @@ func (s *ConsolidateResultTraceStrategyUsed) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/ContextPackResponse
 type ContextPackResponse struct {
-	CreatedAt        time.Time                        `json:"createdAt"`
-	CreatedBy        uuid.UUID                        `json:"createdBy"`
-	DiaryId          uuid.UUID                        `json:"diaryId"`
-	Entries          []ContextPackResponseEntriesItem `json:"entries"`
-	ExpiresAt        NilDateTime                      `json:"expiresAt"`
-	ID               uuid.UUID                        `json:"id"`
-	PackCid          string                           `json:"packCid"`
-	PackCodec        string                           `json:"packCodec"`
-	PackType         ContextPackResponsePackType      `json:"packType"`
-	Params           jx.Raw                           `json:"params"`
-	Payload          jx.Raw                           `json:"payload"`
-	Pinned           bool                             `json:"pinned"`
-	SupersedesPackId NilUUID                          `json:"supersedesPackId"`
+	CreatedAt        time.Time                   `json:"createdAt"`
+	CreatedBy        uuid.UUID                   `json:"createdBy"`
+	Creator          NilAgentIdentity            `json:"creator"`
+	DiaryId          uuid.UUID                   `json:"diaryId"`
+	Entries          []ExpandedPackEntry         `json:"entries"`
+	ExpiresAt        NilDateTime                 `json:"expiresAt"`
+	ID               uuid.UUID                   `json:"id"`
+	PackCid          string                      `json:"packCid"`
+	PackCodec        string                      `json:"packCodec"`
+	PackType         ContextPackResponsePackType `json:"packType"`
+	Params           jx.Raw                      `json:"params"`
+	Payload          jx.Raw                      `json:"payload"`
+	Pinned           bool                        `json:"pinned"`
+	SupersedesPackId NilUUID                     `json:"supersedesPackId"`
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -1287,13 +1327,18 @@ func (s *ContextPackResponse) GetCreatedBy() uuid.UUID {
 	return s.CreatedBy
 }
 
+// GetCreator returns the value of Creator.
+func (s *ContextPackResponse) GetCreator() NilAgentIdentity {
+	return s.Creator
+}
+
 // GetDiaryId returns the value of DiaryId.
 func (s *ContextPackResponse) GetDiaryId() uuid.UUID {
 	return s.DiaryId
 }
 
 // GetEntries returns the value of Entries.
-func (s *ContextPackResponse) GetEntries() []ContextPackResponseEntriesItem {
+func (s *ContextPackResponse) GetEntries() []ExpandedPackEntry {
 	return s.Entries
 }
 
@@ -1352,13 +1397,18 @@ func (s *ContextPackResponse) SetCreatedBy(val uuid.UUID) {
 	s.CreatedBy = val
 }
 
+// SetCreator sets the value of Creator.
+func (s *ContextPackResponse) SetCreator(val NilAgentIdentity) {
+	s.Creator = val
+}
+
 // SetDiaryId sets the value of DiaryId.
 func (s *ContextPackResponse) SetDiaryId(val uuid.UUID) {
 	s.DiaryId = val
 }
 
 // SetEntries sets the value of Entries.
-func (s *ContextPackResponse) SetEntries(val []ContextPackResponseEntriesItem) {
+func (s *ContextPackResponse) SetEntries(val []ExpandedPackEntry) {
 	s.Entries = val
 }
 
@@ -1409,170 +1459,9 @@ func (s *ContextPackResponse) SetSupersedesPackId(val NilUUID) {
 
 func (*ContextPackResponse) getContextPackByIdRes() {}
 
-type ContextPackResponseEntriesItem struct {
-	CompressionLevel ContextPackResponseEntriesItemCompressionLevel `json:"compressionLevel"`
-	CreatedAt        time.Time                                      `json:"createdAt"`
-	Entry            DiaryEntry                                     `json:"entry"`
-	EntryCidSnapshot string                                         `json:"entryCidSnapshot"`
-	EntryId          uuid.UUID                                      `json:"entryId"`
-	ID               uuid.UUID                                      `json:"id"`
-	OriginalTokens   NilFloat64                                     `json:"originalTokens"`
-	PackId           uuid.UUID                                      `json:"packId"`
-	PackedTokens     NilFloat64                                     `json:"packedTokens"`
-	Rank             NilInt                                         `json:"rank"`
-}
-
-// GetCompressionLevel returns the value of CompressionLevel.
-func (s *ContextPackResponseEntriesItem) GetCompressionLevel() ContextPackResponseEntriesItemCompressionLevel {
-	return s.CompressionLevel
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *ContextPackResponseEntriesItem) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetEntry returns the value of Entry.
-func (s *ContextPackResponseEntriesItem) GetEntry() DiaryEntry {
-	return s.Entry
-}
-
-// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
-func (s *ContextPackResponseEntriesItem) GetEntryCidSnapshot() string {
-	return s.EntryCidSnapshot
-}
-
-// GetEntryId returns the value of EntryId.
-func (s *ContextPackResponseEntriesItem) GetEntryId() uuid.UUID {
-	return s.EntryId
-}
-
-// GetID returns the value of ID.
-func (s *ContextPackResponseEntriesItem) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetOriginalTokens returns the value of OriginalTokens.
-func (s *ContextPackResponseEntriesItem) GetOriginalTokens() NilFloat64 {
-	return s.OriginalTokens
-}
-
-// GetPackId returns the value of PackId.
-func (s *ContextPackResponseEntriesItem) GetPackId() uuid.UUID {
-	return s.PackId
-}
-
-// GetPackedTokens returns the value of PackedTokens.
-func (s *ContextPackResponseEntriesItem) GetPackedTokens() NilFloat64 {
-	return s.PackedTokens
-}
-
-// GetRank returns the value of Rank.
-func (s *ContextPackResponseEntriesItem) GetRank() NilInt {
-	return s.Rank
-}
-
-// SetCompressionLevel sets the value of CompressionLevel.
-func (s *ContextPackResponseEntriesItem) SetCompressionLevel(val ContextPackResponseEntriesItemCompressionLevel) {
-	s.CompressionLevel = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *ContextPackResponseEntriesItem) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetEntry sets the value of Entry.
-func (s *ContextPackResponseEntriesItem) SetEntry(val DiaryEntry) {
-	s.Entry = val
-}
-
-// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
-func (s *ContextPackResponseEntriesItem) SetEntryCidSnapshot(val string) {
-	s.EntryCidSnapshot = val
-}
-
-// SetEntryId sets the value of EntryId.
-func (s *ContextPackResponseEntriesItem) SetEntryId(val uuid.UUID) {
-	s.EntryId = val
-}
-
-// SetID sets the value of ID.
-func (s *ContextPackResponseEntriesItem) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetOriginalTokens sets the value of OriginalTokens.
-func (s *ContextPackResponseEntriesItem) SetOriginalTokens(val NilFloat64) {
-	s.OriginalTokens = val
-}
-
-// SetPackId sets the value of PackId.
-func (s *ContextPackResponseEntriesItem) SetPackId(val uuid.UUID) {
-	s.PackId = val
-}
-
-// SetPackedTokens sets the value of PackedTokens.
-func (s *ContextPackResponseEntriesItem) SetPackedTokens(val NilFloat64) {
-	s.PackedTokens = val
-}
-
-// SetRank sets the value of Rank.
-func (s *ContextPackResponseEntriesItem) SetRank(val NilInt) {
-	s.Rank = val
-}
-
-type ContextPackResponseEntriesItemCompressionLevel string
-
-const (
-	ContextPackResponseEntriesItemCompressionLevelFull     ContextPackResponseEntriesItemCompressionLevel = "full"
-	ContextPackResponseEntriesItemCompressionLevelSummary  ContextPackResponseEntriesItemCompressionLevel = "summary"
-	ContextPackResponseEntriesItemCompressionLevelKeywords ContextPackResponseEntriesItemCompressionLevel = "keywords"
-)
-
-// AllValues returns all ContextPackResponseEntriesItemCompressionLevel values.
-func (ContextPackResponseEntriesItemCompressionLevel) AllValues() []ContextPackResponseEntriesItemCompressionLevel {
-	return []ContextPackResponseEntriesItemCompressionLevel{
-		ContextPackResponseEntriesItemCompressionLevelFull,
-		ContextPackResponseEntriesItemCompressionLevelSummary,
-		ContextPackResponseEntriesItemCompressionLevelKeywords,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ContextPackResponseEntriesItemCompressionLevel) MarshalText() ([]byte, error) {
-	switch s {
-	case ContextPackResponseEntriesItemCompressionLevelFull:
-		return []byte(s), nil
-	case ContextPackResponseEntriesItemCompressionLevelSummary:
-		return []byte(s), nil
-	case ContextPackResponseEntriesItemCompressionLevelKeywords:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ContextPackResponseEntriesItemCompressionLevel) UnmarshalText(data []byte) error {
-	switch ContextPackResponseEntriesItemCompressionLevel(data) {
-	case ContextPackResponseEntriesItemCompressionLevelFull:
-		*s = ContextPackResponseEntriesItemCompressionLevelFull
-		return nil
-	case ContextPackResponseEntriesItemCompressionLevelSummary:
-		*s = ContextPackResponseEntriesItemCompressionLevelSummary
-		return nil
-	case ContextPackResponseEntriesItemCompressionLevelKeywords:
-		*s = ContextPackResponseEntriesItemCompressionLevelKeywords
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/ContextPackResponseList
 type ContextPackResponseList struct {
-	Items []ContextPackResponseListItemsItem `json:"items"`
+	Items []ContextPackResponse `json:"items"`
 	// Maximum number of items requested for this response.
 	Limit float64 `json:"limit"`
 	// Number of items returned in this response window. This API currently uses returned-count semantics
@@ -1581,7 +1470,7 @@ type ContextPackResponseList struct {
 }
 
 // GetItems returns the value of Items.
-func (s *ContextPackResponseList) GetItems() []ContextPackResponseListItemsItem {
+func (s *ContextPackResponseList) GetItems() []ContextPackResponse {
 	return s.Items
 }
 
@@ -1596,7 +1485,7 @@ func (s *ContextPackResponseList) GetTotal() float64 {
 }
 
 // SetItems sets the value of Items.
-func (s *ContextPackResponseList) SetItems(val []ContextPackResponseListItemsItem) {
+func (s *ContextPackResponseList) SetItems(val []ContextPackResponse) {
 	s.Items = val
 }
 
@@ -1611,361 +1500,6 @@ func (s *ContextPackResponseList) SetTotal(val float64) {
 }
 
 func (*ContextPackResponseList) listDiaryPacksRes() {}
-
-type ContextPackResponseListItemsItem struct {
-	CreatedAt        time.Time                                     `json:"createdAt"`
-	CreatedBy        uuid.UUID                                     `json:"createdBy"`
-	DiaryId          uuid.UUID                                     `json:"diaryId"`
-	Entries          []ContextPackResponseListItemsItemEntriesItem `json:"entries"`
-	ExpiresAt        NilDateTime                                   `json:"expiresAt"`
-	ID               uuid.UUID                                     `json:"id"`
-	PackCid          string                                        `json:"packCid"`
-	PackCodec        string                                        `json:"packCodec"`
-	PackType         ContextPackResponseListItemsItemPackType      `json:"packType"`
-	Params           jx.Raw                                        `json:"params"`
-	Payload          jx.Raw                                        `json:"payload"`
-	Pinned           bool                                          `json:"pinned"`
-	SupersedesPackId NilUUID                                       `json:"supersedesPackId"`
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *ContextPackResponseListItemsItem) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetCreatedBy returns the value of CreatedBy.
-func (s *ContextPackResponseListItemsItem) GetCreatedBy() uuid.UUID {
-	return s.CreatedBy
-}
-
-// GetDiaryId returns the value of DiaryId.
-func (s *ContextPackResponseListItemsItem) GetDiaryId() uuid.UUID {
-	return s.DiaryId
-}
-
-// GetEntries returns the value of Entries.
-func (s *ContextPackResponseListItemsItem) GetEntries() []ContextPackResponseListItemsItemEntriesItem {
-	return s.Entries
-}
-
-// GetExpiresAt returns the value of ExpiresAt.
-func (s *ContextPackResponseListItemsItem) GetExpiresAt() NilDateTime {
-	return s.ExpiresAt
-}
-
-// GetID returns the value of ID.
-func (s *ContextPackResponseListItemsItem) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetPackCid returns the value of PackCid.
-func (s *ContextPackResponseListItemsItem) GetPackCid() string {
-	return s.PackCid
-}
-
-// GetPackCodec returns the value of PackCodec.
-func (s *ContextPackResponseListItemsItem) GetPackCodec() string {
-	return s.PackCodec
-}
-
-// GetPackType returns the value of PackType.
-func (s *ContextPackResponseListItemsItem) GetPackType() ContextPackResponseListItemsItemPackType {
-	return s.PackType
-}
-
-// GetParams returns the value of Params.
-func (s *ContextPackResponseListItemsItem) GetParams() jx.Raw {
-	return s.Params
-}
-
-// GetPayload returns the value of Payload.
-func (s *ContextPackResponseListItemsItem) GetPayload() jx.Raw {
-	return s.Payload
-}
-
-// GetPinned returns the value of Pinned.
-func (s *ContextPackResponseListItemsItem) GetPinned() bool {
-	return s.Pinned
-}
-
-// GetSupersedesPackId returns the value of SupersedesPackId.
-func (s *ContextPackResponseListItemsItem) GetSupersedesPackId() NilUUID {
-	return s.SupersedesPackId
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *ContextPackResponseListItemsItem) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetCreatedBy sets the value of CreatedBy.
-func (s *ContextPackResponseListItemsItem) SetCreatedBy(val uuid.UUID) {
-	s.CreatedBy = val
-}
-
-// SetDiaryId sets the value of DiaryId.
-func (s *ContextPackResponseListItemsItem) SetDiaryId(val uuid.UUID) {
-	s.DiaryId = val
-}
-
-// SetEntries sets the value of Entries.
-func (s *ContextPackResponseListItemsItem) SetEntries(val []ContextPackResponseListItemsItemEntriesItem) {
-	s.Entries = val
-}
-
-// SetExpiresAt sets the value of ExpiresAt.
-func (s *ContextPackResponseListItemsItem) SetExpiresAt(val NilDateTime) {
-	s.ExpiresAt = val
-}
-
-// SetID sets the value of ID.
-func (s *ContextPackResponseListItemsItem) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetPackCid sets the value of PackCid.
-func (s *ContextPackResponseListItemsItem) SetPackCid(val string) {
-	s.PackCid = val
-}
-
-// SetPackCodec sets the value of PackCodec.
-func (s *ContextPackResponseListItemsItem) SetPackCodec(val string) {
-	s.PackCodec = val
-}
-
-// SetPackType sets the value of PackType.
-func (s *ContextPackResponseListItemsItem) SetPackType(val ContextPackResponseListItemsItemPackType) {
-	s.PackType = val
-}
-
-// SetParams sets the value of Params.
-func (s *ContextPackResponseListItemsItem) SetParams(val jx.Raw) {
-	s.Params = val
-}
-
-// SetPayload sets the value of Payload.
-func (s *ContextPackResponseListItemsItem) SetPayload(val jx.Raw) {
-	s.Payload = val
-}
-
-// SetPinned sets the value of Pinned.
-func (s *ContextPackResponseListItemsItem) SetPinned(val bool) {
-	s.Pinned = val
-}
-
-// SetSupersedesPackId sets the value of SupersedesPackId.
-func (s *ContextPackResponseListItemsItem) SetSupersedesPackId(val NilUUID) {
-	s.SupersedesPackId = val
-}
-
-type ContextPackResponseListItemsItemEntriesItem struct {
-	CompressionLevel ContextPackResponseListItemsItemEntriesItemCompressionLevel `json:"compressionLevel"`
-	CreatedAt        time.Time                                                   `json:"createdAt"`
-	Entry            DiaryEntry                                                  `json:"entry"`
-	EntryCidSnapshot string                                                      `json:"entryCidSnapshot"`
-	EntryId          uuid.UUID                                                   `json:"entryId"`
-	ID               uuid.UUID                                                   `json:"id"`
-	OriginalTokens   NilFloat64                                                  `json:"originalTokens"`
-	PackId           uuid.UUID                                                   `json:"packId"`
-	PackedTokens     NilFloat64                                                  `json:"packedTokens"`
-	Rank             NilInt                                                      `json:"rank"`
-}
-
-// GetCompressionLevel returns the value of CompressionLevel.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetCompressionLevel() ContextPackResponseListItemsItemEntriesItemCompressionLevel {
-	return s.CompressionLevel
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetCreatedAt() time.Time {
-	return s.CreatedAt
-}
-
-// GetEntry returns the value of Entry.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetEntry() DiaryEntry {
-	return s.Entry
-}
-
-// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetEntryCidSnapshot() string {
-	return s.EntryCidSnapshot
-}
-
-// GetEntryId returns the value of EntryId.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetEntryId() uuid.UUID {
-	return s.EntryId
-}
-
-// GetID returns the value of ID.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetOriginalTokens returns the value of OriginalTokens.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetOriginalTokens() NilFloat64 {
-	return s.OriginalTokens
-}
-
-// GetPackId returns the value of PackId.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetPackId() uuid.UUID {
-	return s.PackId
-}
-
-// GetPackedTokens returns the value of PackedTokens.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetPackedTokens() NilFloat64 {
-	return s.PackedTokens
-}
-
-// GetRank returns the value of Rank.
-func (s *ContextPackResponseListItemsItemEntriesItem) GetRank() NilInt {
-	return s.Rank
-}
-
-// SetCompressionLevel sets the value of CompressionLevel.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetCompressionLevel(val ContextPackResponseListItemsItemEntriesItemCompressionLevel) {
-	s.CompressionLevel = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetCreatedAt(val time.Time) {
-	s.CreatedAt = val
-}
-
-// SetEntry sets the value of Entry.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetEntry(val DiaryEntry) {
-	s.Entry = val
-}
-
-// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetEntryCidSnapshot(val string) {
-	s.EntryCidSnapshot = val
-}
-
-// SetEntryId sets the value of EntryId.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetEntryId(val uuid.UUID) {
-	s.EntryId = val
-}
-
-// SetID sets the value of ID.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetOriginalTokens sets the value of OriginalTokens.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetOriginalTokens(val NilFloat64) {
-	s.OriginalTokens = val
-}
-
-// SetPackId sets the value of PackId.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetPackId(val uuid.UUID) {
-	s.PackId = val
-}
-
-// SetPackedTokens sets the value of PackedTokens.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetPackedTokens(val NilFloat64) {
-	s.PackedTokens = val
-}
-
-// SetRank sets the value of Rank.
-func (s *ContextPackResponseListItemsItemEntriesItem) SetRank(val NilInt) {
-	s.Rank = val
-}
-
-type ContextPackResponseListItemsItemEntriesItemCompressionLevel string
-
-const (
-	ContextPackResponseListItemsItemEntriesItemCompressionLevelFull     ContextPackResponseListItemsItemEntriesItemCompressionLevel = "full"
-	ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary  ContextPackResponseListItemsItemEntriesItemCompressionLevel = "summary"
-	ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords ContextPackResponseListItemsItemEntriesItemCompressionLevel = "keywords"
-)
-
-// AllValues returns all ContextPackResponseListItemsItemEntriesItemCompressionLevel values.
-func (ContextPackResponseListItemsItemEntriesItemCompressionLevel) AllValues() []ContextPackResponseListItemsItemEntriesItemCompressionLevel {
-	return []ContextPackResponseListItemsItemEntriesItemCompressionLevel{
-		ContextPackResponseListItemsItemEntriesItemCompressionLevelFull,
-		ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary,
-		ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ContextPackResponseListItemsItemEntriesItemCompressionLevel) MarshalText() ([]byte, error) {
-	switch s {
-	case ContextPackResponseListItemsItemEntriesItemCompressionLevelFull:
-		return []byte(s), nil
-	case ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary:
-		return []byte(s), nil
-	case ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ContextPackResponseListItemsItemEntriesItemCompressionLevel) UnmarshalText(data []byte) error {
-	switch ContextPackResponseListItemsItemEntriesItemCompressionLevel(data) {
-	case ContextPackResponseListItemsItemEntriesItemCompressionLevelFull:
-		*s = ContextPackResponseListItemsItemEntriesItemCompressionLevelFull
-		return nil
-	case ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary:
-		*s = ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary
-		return nil
-	case ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords:
-		*s = ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type ContextPackResponseListItemsItemPackType string
-
-const (
-	ContextPackResponseListItemsItemPackTypeCompile   ContextPackResponseListItemsItemPackType = "compile"
-	ContextPackResponseListItemsItemPackTypeOptimized ContextPackResponseListItemsItemPackType = "optimized"
-	ContextPackResponseListItemsItemPackTypeCustom    ContextPackResponseListItemsItemPackType = "custom"
-)
-
-// AllValues returns all ContextPackResponseListItemsItemPackType values.
-func (ContextPackResponseListItemsItemPackType) AllValues() []ContextPackResponseListItemsItemPackType {
-	return []ContextPackResponseListItemsItemPackType{
-		ContextPackResponseListItemsItemPackTypeCompile,
-		ContextPackResponseListItemsItemPackTypeOptimized,
-		ContextPackResponseListItemsItemPackTypeCustom,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ContextPackResponseListItemsItemPackType) MarshalText() ([]byte, error) {
-	switch s {
-	case ContextPackResponseListItemsItemPackTypeCompile:
-		return []byte(s), nil
-	case ContextPackResponseListItemsItemPackTypeOptimized:
-		return []byte(s), nil
-	case ContextPackResponseListItemsItemPackTypeCustom:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ContextPackResponseListItemsItemPackType) UnmarshalText(data []byte) error {
-	switch ContextPackResponseListItemsItemPackType(data) {
-	case ContextPackResponseListItemsItemPackTypeCompile:
-		*s = ContextPackResponseListItemsItemPackTypeCompile
-		return nil
-	case ContextPackResponseListItemsItemPackTypeOptimized:
-		*s = ContextPackResponseListItemsItemPackTypeOptimized
-		return nil
-	case ContextPackResponseListItemsItemPackTypeCustom:
-		*s = ContextPackResponseListItemsItemPackTypeCustom
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 type ContextPackResponsePackType string
 
@@ -2795,6 +2329,255 @@ func (s *DiaryEntryEntryType) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/DiaryEntryWithCreator
+type DiaryEntryWithCreator struct {
+	AccessCount      float64                        `json:"accessCount"`
+	Content          string                         `json:"content"`
+	ContentHash      NilString                      `json:"contentHash"`
+	ContentSignature NilString                      `json:"contentSignature"`
+	CreatedAt        time.Time                      `json:"createdAt"`
+	Creator          NilAgentIdentity               `json:"creator"`
+	DiaryId          uuid.UUID                      `json:"diaryId"`
+	EntryType        DiaryEntryWithCreatorEntryType `json:"entryType"`
+	ID               uuid.UUID                      `json:"id"`
+	Importance       float64                        `json:"importance"`
+	InjectionRisk    bool                           `json:"injectionRisk"`
+	LastAccessedAt   NilDateTime                    `json:"lastAccessedAt"`
+	SupersededBy     NilUUID                        `json:"supersededBy"`
+	Tags             []string                       `json:"tags"`
+	Title            NilString                      `json:"title"`
+	UpdatedAt        time.Time                      `json:"updatedAt"`
+}
+
+// GetAccessCount returns the value of AccessCount.
+func (s *DiaryEntryWithCreator) GetAccessCount() float64 {
+	return s.AccessCount
+}
+
+// GetContent returns the value of Content.
+func (s *DiaryEntryWithCreator) GetContent() string {
+	return s.Content
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *DiaryEntryWithCreator) GetContentHash() NilString {
+	return s.ContentHash
+}
+
+// GetContentSignature returns the value of ContentSignature.
+func (s *DiaryEntryWithCreator) GetContentSignature() NilString {
+	return s.ContentSignature
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *DiaryEntryWithCreator) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreator returns the value of Creator.
+func (s *DiaryEntryWithCreator) GetCreator() NilAgentIdentity {
+	return s.Creator
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *DiaryEntryWithCreator) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetEntryType returns the value of EntryType.
+func (s *DiaryEntryWithCreator) GetEntryType() DiaryEntryWithCreatorEntryType {
+	return s.EntryType
+}
+
+// GetID returns the value of ID.
+func (s *DiaryEntryWithCreator) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetImportance returns the value of Importance.
+func (s *DiaryEntryWithCreator) GetImportance() float64 {
+	return s.Importance
+}
+
+// GetInjectionRisk returns the value of InjectionRisk.
+func (s *DiaryEntryWithCreator) GetInjectionRisk() bool {
+	return s.InjectionRisk
+}
+
+// GetLastAccessedAt returns the value of LastAccessedAt.
+func (s *DiaryEntryWithCreator) GetLastAccessedAt() NilDateTime {
+	return s.LastAccessedAt
+}
+
+// GetSupersededBy returns the value of SupersededBy.
+func (s *DiaryEntryWithCreator) GetSupersededBy() NilUUID {
+	return s.SupersededBy
+}
+
+// GetTags returns the value of Tags.
+func (s *DiaryEntryWithCreator) GetTags() []string {
+	return s.Tags
+}
+
+// GetTitle returns the value of Title.
+func (s *DiaryEntryWithCreator) GetTitle() NilString {
+	return s.Title
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *DiaryEntryWithCreator) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetAccessCount sets the value of AccessCount.
+func (s *DiaryEntryWithCreator) SetAccessCount(val float64) {
+	s.AccessCount = val
+}
+
+// SetContent sets the value of Content.
+func (s *DiaryEntryWithCreator) SetContent(val string) {
+	s.Content = val
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *DiaryEntryWithCreator) SetContentHash(val NilString) {
+	s.ContentHash = val
+}
+
+// SetContentSignature sets the value of ContentSignature.
+func (s *DiaryEntryWithCreator) SetContentSignature(val NilString) {
+	s.ContentSignature = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *DiaryEntryWithCreator) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreator sets the value of Creator.
+func (s *DiaryEntryWithCreator) SetCreator(val NilAgentIdentity) {
+	s.Creator = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *DiaryEntryWithCreator) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetEntryType sets the value of EntryType.
+func (s *DiaryEntryWithCreator) SetEntryType(val DiaryEntryWithCreatorEntryType) {
+	s.EntryType = val
+}
+
+// SetID sets the value of ID.
+func (s *DiaryEntryWithCreator) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetImportance sets the value of Importance.
+func (s *DiaryEntryWithCreator) SetImportance(val float64) {
+	s.Importance = val
+}
+
+// SetInjectionRisk sets the value of InjectionRisk.
+func (s *DiaryEntryWithCreator) SetInjectionRisk(val bool) {
+	s.InjectionRisk = val
+}
+
+// SetLastAccessedAt sets the value of LastAccessedAt.
+func (s *DiaryEntryWithCreator) SetLastAccessedAt(val NilDateTime) {
+	s.LastAccessedAt = val
+}
+
+// SetSupersededBy sets the value of SupersededBy.
+func (s *DiaryEntryWithCreator) SetSupersededBy(val NilUUID) {
+	s.SupersededBy = val
+}
+
+// SetTags sets the value of Tags.
+func (s *DiaryEntryWithCreator) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DiaryEntryWithCreator) SetTitle(val NilString) {
+	s.Title = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *DiaryEntryWithCreator) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+type DiaryEntryWithCreatorEntryType string
+
+const (
+	DiaryEntryWithCreatorEntryTypeEpisodic   DiaryEntryWithCreatorEntryType = "episodic"
+	DiaryEntryWithCreatorEntryTypeSemantic   DiaryEntryWithCreatorEntryType = "semantic"
+	DiaryEntryWithCreatorEntryTypeProcedural DiaryEntryWithCreatorEntryType = "procedural"
+	DiaryEntryWithCreatorEntryTypeReflection DiaryEntryWithCreatorEntryType = "reflection"
+	DiaryEntryWithCreatorEntryTypeIdentity   DiaryEntryWithCreatorEntryType = "identity"
+	DiaryEntryWithCreatorEntryTypeSoul       DiaryEntryWithCreatorEntryType = "soul"
+)
+
+// AllValues returns all DiaryEntryWithCreatorEntryType values.
+func (DiaryEntryWithCreatorEntryType) AllValues() []DiaryEntryWithCreatorEntryType {
+	return []DiaryEntryWithCreatorEntryType{
+		DiaryEntryWithCreatorEntryTypeEpisodic,
+		DiaryEntryWithCreatorEntryTypeSemantic,
+		DiaryEntryWithCreatorEntryTypeProcedural,
+		DiaryEntryWithCreatorEntryTypeReflection,
+		DiaryEntryWithCreatorEntryTypeIdentity,
+		DiaryEntryWithCreatorEntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiaryEntryWithCreatorEntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case DiaryEntryWithCreatorEntryTypeEpisodic:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeSemantic:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeProcedural:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeReflection:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeIdentity:
+		return []byte(s), nil
+	case DiaryEntryWithCreatorEntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiaryEntryWithCreatorEntryType) UnmarshalText(data []byte) error {
+	switch DiaryEntryWithCreatorEntryType(data) {
+	case DiaryEntryWithCreatorEntryTypeEpisodic:
+		*s = DiaryEntryWithCreatorEntryTypeEpisodic
+		return nil
+	case DiaryEntryWithCreatorEntryTypeSemantic:
+		*s = DiaryEntryWithCreatorEntryTypeSemantic
+		return nil
+	case DiaryEntryWithCreatorEntryTypeProcedural:
+		*s = DiaryEntryWithCreatorEntryTypeProcedural
+		return nil
+	case DiaryEntryWithCreatorEntryTypeReflection:
+		*s = DiaryEntryWithCreatorEntryTypeReflection
+		return nil
+	case DiaryEntryWithCreatorEntryTypeIdentity:
+		*s = DiaryEntryWithCreatorEntryTypeIdentity
+		return nil
+	case DiaryEntryWithCreatorEntryTypeSoul:
+		*s = DiaryEntryWithCreatorEntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/DiaryInvitationList
 type DiaryInvitationList struct {
 	Invitations []DiaryShare `json:"invitations"`
@@ -3347,6 +3130,168 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 }
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
+
+// Ref: #/components/schemas/ExpandedPackEntry
+type ExpandedPackEntry struct {
+	CompressionLevel ExpandedPackEntryCompressionLevel `json:"compressionLevel"`
+	CreatedAt        time.Time                         `json:"createdAt"`
+	Entry            DiaryEntryWithCreator             `json:"entry"`
+	EntryCidSnapshot string                            `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                         `json:"entryId"`
+	ID               uuid.UUID                         `json:"id"`
+	OriginalTokens   NilFloat64                        `json:"originalTokens"`
+	PackId           uuid.UUID                         `json:"packId"`
+	PackedTokens     NilFloat64                        `json:"packedTokens"`
+	Rank             NilInt                            `json:"rank"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *ExpandedPackEntry) GetCompressionLevel() ExpandedPackEntryCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ExpandedPackEntry) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetEntry returns the value of Entry.
+func (s *ExpandedPackEntry) GetEntry() DiaryEntryWithCreator {
+	return s.Entry
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *ExpandedPackEntry) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *ExpandedPackEntry) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetID returns the value of ID.
+func (s *ExpandedPackEntry) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetOriginalTokens returns the value of OriginalTokens.
+func (s *ExpandedPackEntry) GetOriginalTokens() NilFloat64 {
+	return s.OriginalTokens
+}
+
+// GetPackId returns the value of PackId.
+func (s *ExpandedPackEntry) GetPackId() uuid.UUID {
+	return s.PackId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *ExpandedPackEntry) GetPackedTokens() NilFloat64 {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *ExpandedPackEntry) GetRank() NilInt {
+	return s.Rank
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *ExpandedPackEntry) SetCompressionLevel(val ExpandedPackEntryCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ExpandedPackEntry) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetEntry sets the value of Entry.
+func (s *ExpandedPackEntry) SetEntry(val DiaryEntryWithCreator) {
+	s.Entry = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *ExpandedPackEntry) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *ExpandedPackEntry) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetID sets the value of ID.
+func (s *ExpandedPackEntry) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetOriginalTokens sets the value of OriginalTokens.
+func (s *ExpandedPackEntry) SetOriginalTokens(val NilFloat64) {
+	s.OriginalTokens = val
+}
+
+// SetPackId sets the value of PackId.
+func (s *ExpandedPackEntry) SetPackId(val uuid.UUID) {
+	s.PackId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *ExpandedPackEntry) SetPackedTokens(val NilFloat64) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *ExpandedPackEntry) SetRank(val NilInt) {
+	s.Rank = val
+}
+
+type ExpandedPackEntryCompressionLevel string
+
+const (
+	ExpandedPackEntryCompressionLevelFull     ExpandedPackEntryCompressionLevel = "full"
+	ExpandedPackEntryCompressionLevelSummary  ExpandedPackEntryCompressionLevel = "summary"
+	ExpandedPackEntryCompressionLevelKeywords ExpandedPackEntryCompressionLevel = "keywords"
+)
+
+// AllValues returns all ExpandedPackEntryCompressionLevel values.
+func (ExpandedPackEntryCompressionLevel) AllValues() []ExpandedPackEntryCompressionLevel {
+	return []ExpandedPackEntryCompressionLevel{
+		ExpandedPackEntryCompressionLevelFull,
+		ExpandedPackEntryCompressionLevelSummary,
+		ExpandedPackEntryCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ExpandedPackEntryCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case ExpandedPackEntryCompressionLevelFull:
+		return []byte(s), nil
+	case ExpandedPackEntryCompressionLevelSummary:
+		return []byte(s), nil
+	case ExpandedPackEntryCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ExpandedPackEntryCompressionLevel) UnmarshalText(data []byte) error {
+	switch ExpandedPackEntryCompressionLevel(data) {
+	case ExpandedPackEntryCompressionLevelFull:
+		*s = ExpandedPackEntryCompressionLevelFull
+		return nil
+	case ExpandedPackEntryCompressionLevelSummary:
+		*s = ExpandedPackEntryCompressionLevelSummary
+		return nil
+	case ExpandedPackEntryCompressionLevelKeywords:
+		*s = ExpandedPackEntryCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type GetAgentProfileInternalServerError ProblemDetails
 
@@ -5527,6 +5472,51 @@ func (s *NetworkInfoTechnical) SetIdentityProvider(val string) {
 // SetMcpLibrary sets the value of McpLibrary.
 func (s *NetworkInfoTechnical) SetMcpLibrary(val string) {
 	s.McpLibrary = val
+}
+
+// NewNilAgentIdentity returns new NilAgentIdentity with value set to v.
+func NewNilAgentIdentity(v AgentIdentity) NilAgentIdentity {
+	return NilAgentIdentity{
+		Value: v,
+	}
+}
+
+// NilAgentIdentity is nullable AgentIdentity.
+type NilAgentIdentity struct {
+	Value AgentIdentity
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilAgentIdentity) SetTo(v AgentIdentity) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilAgentIdentity) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilAgentIdentity) SetToNull() {
+	o.Null = true
+	var v AgentIdentity
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilAgentIdentity) Get() (v AgentIdentity, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilAgentIdentity) Or(d AgentIdentity) AgentIdentity {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
 }
 
 // NewNilBool returns new NilBool with value set to v.

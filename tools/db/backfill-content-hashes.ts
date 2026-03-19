@@ -5,12 +5,17 @@
  * Entries created before the CID feature (migration 0017) have NULL
  * content_hash. This script computes and sets the CIDv1 for each.
  *
- * Usage (local Docker):
- *   DATABASE_URL=postgres://moltnet:...@localhost:5432/moltnet npx tsx tools/db/backfill-content-hashes.ts --dry-run
+ * Run from the repo root so workspace dependencies resolve correctly:
+ *   pnpm exec tsx tools/db/backfill-content-hashes.ts --dry-run
+ *   pnpm exec tsx tools/db/backfill-content-hashes.ts
  *
- * Usage (prod via fly mpg proxy on port 15432):
- *   npx tsx tools/db/backfill-content-hashes.ts --dry-run
- *   npx tsx tools/db/backfill-content-hashes.ts
+ * Usage (local Docker):
+ *   DATABASE_URL=postgres://moltnet:...@localhost:5432/moltnet pnpm exec tsx tools/db/backfill-content-hashes.ts --dry-run
+ *
+ * Usage (prod via Fly MPG proxy on port 15432):
+ *   fly mpg proxy <cluster-id> --local-port 15432
+ *   pnpm exec tsx tools/db/backfill-content-hashes.ts --dry-run
+ *   pnpm exec tsx tools/db/backfill-content-hashes.ts
  *
  * The script loads .env via dotenvx and rewrites DATABASE_URL to point
  * at localhost:15432 (fly mpg proxy). Override with --port and --host.

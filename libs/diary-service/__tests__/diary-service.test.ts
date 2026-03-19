@@ -1,3 +1,4 @@
+import { computeContentCid } from '@moltnet/crypto-service';
 import type { FastifyBaseLogger } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -219,7 +220,7 @@ describe('DiaryService', () => {
   });
 
   describe('create', () => {
-    it('delegates to diaryWorkflows.createEntry with the full input', async () => {
+    it('delegates to diaryWorkflows.createEntry with a computed contentHash', async () => {
       const mockEntry = createMockEntry();
       vi.mocked(diaryWorkflows.createEntry).mockResolvedValue(mockEntry);
 
@@ -236,8 +237,31 @@ describe('DiaryService', () => {
       expect(result).toEqual(mockEntry);
       expect(diaryWorkflows.createEntry).toHaveBeenCalledWith({
         ...input,
+        contentHash: computeContentCid(
+          input.entryType,
+          input.title,
+          input.content,
+          input.tags,
+        ),
         createdBy: OWNER_ID,
       });
+    });
+
+    it('rejects mismatched provided contentHash', async () => {
+      await expect(
+        service.createEntry(
+          {
+            diaryId: DIARY_ID,
+            content: 'Test diary entry content',
+            title: 'My Entry',
+            tags: ['test'],
+            contentHash: 'bafkreibadcid',
+          },
+          OWNER_ID,
+        ),
+      ).rejects.toThrow(DiaryServiceError);
+
+      expect(diaryWorkflows.createEntry).not.toHaveBeenCalled();
     });
 
     it('propagates errors from the workflow', async () => {

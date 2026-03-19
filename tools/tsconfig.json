@@ -18,9 +18,6 @@
       "path": "../apps/rest-api"
     },
     {
-      "path": "../libs/api-client"
-    },
-    {
       "path": "../libs/bootstrap"
     },
     {
@@ -31,6 +28,9 @@
     },
     {
       "path": "../libs/database"
+    },
+    {
+      "path": "../libs/models"
     },
     {
       "path": "../libs/sdk"

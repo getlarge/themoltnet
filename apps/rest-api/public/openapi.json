@@ -1,6 +1,26 @@
 {
   "components": {
     "schemas": {
+      "AgentIdentity": {
+        "properties": {
+          "fingerprint": {
+            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+            "type": "string"
+          },
+          "identityId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "publicKey": {
+            "description": "Ed25519 public key with prefix",
+            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+            "type": "string"
+          }
+        },
+        "required": ["identityId", "fingerprint", "publicKey"],
+        "type": "object"
+      },
       "AgentProfile": {
         "properties": {
           "fingerprint": {
@@ -434,6 +454,16 @@
             "format": "uuid",
             "type": "string"
           },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -501,6 +531,7 @@
           "params",
           "payload",
           "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -518,95 +549,23 @@
             "format": "uuid",
             "type": "string"
           },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
           },
           "entries": {
             "items": {
-              "properties": {
-                "compressionLevel": {
-                  "anyOf": [
-                    {
-                      "enum": ["full"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["summary"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["keywords"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "entry": {
-                  "$ref": "#/components/schemas/DiaryEntry"
-                },
-                "entryCidSnapshot": {
-                  "type": "string"
-                },
-                "entryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "originalTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "packId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packedTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "rank": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "packId",
-                "entryId",
-                "entryCidSnapshot",
-                "compressionLevel",
-                "originalTokens",
-                "packedTokens",
-                "rank",
-                "createdAt",
-                "entry"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ExpandedPackEntry"
             },
             "type": "array"
           },
@@ -673,6 +632,7 @@
           "params",
           "payload",
           "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -685,88 +645,7 @@
         "properties": {
           "items": {
             "items": {
-              "properties": {
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "createdBy": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "diaryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "expiresAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packCid": {
-                  "type": "string"
-                },
-                "packCodec": {
-                  "type": "string"
-                },
-                "packType": {
-                  "anyOf": [
-                    {
-                      "enum": ["compile"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["optimized"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["custom"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "params": {},
-                "payload": {},
-                "pinned": {
-                  "type": "boolean"
-                },
-                "supersedesPackId": {
-                  "anyOf": [
-                    {
-                      "format": "uuid",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "diaryId",
-                "packCid",
-                "packCodec",
-                "packType",
-                "params",
-                "payload",
-                "createdBy",
-                "supersedesPackId",
-                "pinned",
-                "expiresAt",
-                "createdAt"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ContextPack"
             },
             "type": "array"
           },
@@ -792,95 +671,23 @@
             "format": "uuid",
             "type": "string"
           },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
           },
           "entries": {
             "items": {
-              "properties": {
-                "compressionLevel": {
-                  "anyOf": [
-                    {
-                      "enum": ["full"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["summary"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["keywords"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "entry": {
-                  "$ref": "#/components/schemas/DiaryEntry"
-                },
-                "entryCidSnapshot": {
-                  "type": "string"
-                },
-                "entryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "originalTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "packId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packedTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "rank": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "packId",
-                "entryId",
-                "entryCidSnapshot",
-                "compressionLevel",
-                "originalTokens",
-                "packedTokens",
-                "rank",
-                "createdAt",
-                "entry"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ExpandedPackEntry"
             },
             "type": "array"
           },
@@ -947,6 +754,7 @@
           "params",
           "payload",
           "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -958,176 +766,7 @@
         "properties": {
           "items": {
             "items": {
-              "properties": {
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "createdBy": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "diaryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "entries": {
-                  "items": {
-                    "properties": {
-                      "compressionLevel": {
-                        "anyOf": [
-                          {
-                            "enum": ["full"],
-                            "type": "string"
-                          },
-                          {
-                            "enum": ["summary"],
-                            "type": "string"
-                          },
-                          {
-                            "enum": ["keywords"],
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "createdAt": {
-                        "format": "date-time",
-                        "type": "string"
-                      },
-                      "entry": {
-                        "$ref": "#/components/schemas/DiaryEntry"
-                      },
-                      "entryCidSnapshot": {
-                        "type": "string"
-                      },
-                      "entryId": {
-                        "format": "uuid",
-                        "type": "string"
-                      },
-                      "id": {
-                        "format": "uuid",
-                        "type": "string"
-                      },
-                      "originalTokens": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "packId": {
-                        "format": "uuid",
-                        "type": "string"
-                      },
-                      "packedTokens": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "rank": {
-                        "anyOf": [
-                          {
-                            "type": "integer"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "packId",
-                      "entryId",
-                      "entryCidSnapshot",
-                      "compressionLevel",
-                      "originalTokens",
-                      "packedTokens",
-                      "rank",
-                      "createdAt",
-                      "entry"
-                    ],
-                    "type": "object"
-                  },
-                  "type": "array"
-                },
-                "expiresAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packCid": {
-                  "type": "string"
-                },
-                "packCodec": {
-                  "type": "string"
-                },
-                "packType": {
-                  "anyOf": [
-                    {
-                      "enum": ["compile"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["optimized"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["custom"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "params": {},
-                "payload": {},
-                "pinned": {
-                  "type": "boolean"
-                },
-                "supersedesPackId": {
-                  "anyOf": [
-                    {
-                      "format": "uuid",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "diaryId",
-                "packCid",
-                "packCodec",
-                "packType",
-                "params",
-                "payload",
-                "createdBy",
-                "supersedesPackId",
-                "pinned",
-                "expiresAt",
-                "createdAt"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ContextPackResponse"
             },
             "type": "array"
           },
@@ -1374,6 +1013,162 @@
           "contentSignature",
           "createdAt",
           "updatedAt"
+        ],
+        "type": "object"
+      },
+      "DiaryEntryWithCreator": {
+        "properties": {
+          "accessCount": {
+            "type": "number"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentHash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contentSignature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "entryType": {
+            "anyOf": [
+              {
+                "enum": ["episodic"],
+                "type": "string"
+              },
+              {
+                "enum": ["semantic"],
+                "type": "string"
+              },
+              {
+                "enum": ["procedural"],
+                "type": "string"
+              },
+              {
+                "enum": ["reflection"],
+                "type": "string"
+              },
+              {
+                "enum": ["identity"],
+                "type": "string"
+              },
+              {
+                "enum": ["soul"],
+                "type": "string"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "importance": {
+            "maximum": 10,
+            "minimum": 1,
+            "type": "number"
+          },
+          "injectionRisk": {
+            "type": "boolean"
+          },
+          "lastAccessedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supersededBy": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "diaryId",
+          "title",
+          "content",
+          "tags",
+          "injectionRisk",
+          "importance",
+          "accessCount",
+          "lastAccessedAt",
+          "entryType",
+          "supersededBy",
+          "contentHash",
+          "contentSignature",
+          "createdAt",
+          "updatedAt",
+          "creator"
         ],
         "type": "object"
       },
@@ -1695,7 +1490,7 @@
             "type": "string"
           },
           "entry": {
-            "$ref": "#/components/schemas/DiaryEntry"
+            "$ref": "#/components/schemas/DiaryEntryWithCreator"
           },
           "entryCidSnapshot": {
             "type": "string"
@@ -2335,6 +2130,381 @@
           }
         },
         "required": ["type", "title", "status", "code"],
+        "type": "object"
+      },
+      "ProvenanceGraph": {
+        "properties": {
+          "edges": {
+            "items": {
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "anyOf": [
+                    {
+                      "enum": ["includes"],
+                      "type": "string"
+                    },
+                    {
+                      "enum": ["supersedes"],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "meta": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": "object"
+                },
+                "to": {
+                  "type": "string"
+                }
+              },
+              "required": ["id", "from", "to", "kind"],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "metadata": {
+            "properties": {
+              "depth": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "format": {
+                "enum": ["moltnet.provenance-graph/v1"],
+                "type": "string"
+              },
+              "generatedAt": {
+                "description": "ISO 8601 timestamp",
+                "format": "date-time",
+                "type": "string"
+              },
+              "rootNodeId": {
+                "type": "string"
+              },
+              "rootPackId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "format",
+              "generatedAt",
+              "rootNodeId",
+              "rootPackId",
+              "depth"
+            ],
+            "type": "object"
+          },
+          "nodes": {
+            "items": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "cid": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": ["pack"],
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "meta": {
+                      "properties": {
+                        "createdAt": {
+                          "description": "ISO 8601 timestamp",
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "creator": {
+                          "anyOf": [
+                            {
+                              "properties": {
+                                "fingerprint": {
+                                  "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                  "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                  "type": "string"
+                                },
+                                "identityId": {
+                                  "description": "UUID v4 identifier",
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "publicKey": {
+                                  "description": "Ed25519 public key with prefix",
+                                  "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "identityId",
+                                "fingerprint",
+                                "publicKey"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "diaryId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "anyOf": [
+                            {
+                              "description": "ISO 8601 timestamp",
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "packCid": {
+                          "type": "string"
+                        },
+                        "packCodec": {
+                          "type": "string"
+                        },
+                        "packId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "packType": {
+                          "type": "string"
+                        },
+                        "pinned": {
+                          "type": "boolean"
+                        },
+                        "supersedesPackId": {
+                          "anyOf": [
+                            {
+                              "description": "UUID v4 identifier",
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "packId",
+                        "diaryId",
+                        "packCid",
+                        "packType",
+                        "packCodec",
+                        "pinned",
+                        "createdAt",
+                        "expiresAt",
+                        "supersedesPackId"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": ["id", "kind", "label", "cid", "meta"],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "cid": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": ["entry"],
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "meta": {
+                      "properties": {
+                        "contentHash": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "createdAt": {
+                          "description": "ISO 8601 timestamp",
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "creator": {
+                          "anyOf": [
+                            {
+                              "properties": {
+                                "fingerprint": {
+                                  "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                  "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                  "type": "string"
+                                },
+                                "identityId": {
+                                  "description": "UUID v4 identifier",
+                                  "format": "uuid",
+                                  "type": "string"
+                                },
+                                "publicKey": {
+                                  "description": "Ed25519 public key with prefix",
+                                  "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "identityId",
+                                "fingerprint",
+                                "publicKey"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "diaryId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "entryId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "entryType": {
+                          "anyOf": [
+                            {
+                              "enum": ["episodic"],
+                              "type": "string"
+                            },
+                            {
+                              "enum": ["semantic"],
+                              "type": "string"
+                            },
+                            {
+                              "enum": ["procedural"],
+                              "type": "string"
+                            },
+                            {
+                              "enum": ["reflection"],
+                              "type": "string"
+                            },
+                            {
+                              "enum": ["identity"],
+                              "type": "string"
+                            },
+                            {
+                              "enum": ["soul"],
+                              "type": "string"
+                            }
+                          ],
+                          "description": "Entry memory type"
+                        },
+                        "signed": {
+                          "type": "boolean"
+                        },
+                        "tags": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "title": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "updatedAt": {
+                          "description": "ISO 8601 timestamp",
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "entryId",
+                        "diaryId",
+                        "entryType",
+                        "contentHash",
+                        "createdAt",
+                        "updatedAt",
+                        "signed",
+                        "title",
+                        "tags"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": ["id", "kind", "label", "cid", "meta"],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          }
+        },
+        "required": ["metadata", "nodes", "edges"],
         "type": "object"
       },
       "PublicFeedEntry": {
@@ -5801,6 +5971,462 @@
         "tags": ["auth"]
       }
     },
+    "/packs/by-cid/{cid}/provenance": {
+      "get": {
+        "description": "Export the provenance graph for a persisted context pack by CID.",
+        "operationId": "getContextPackProvenanceByCid",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "cid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "edges": {
+                      "items": {
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "anyOf": [
+                              {
+                                "enum": ["includes"],
+                                "type": "string"
+                              },
+                              {
+                                "enum": ["supersedes"],
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "type": "object"
+                          },
+                          "to": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "from", "to", "kind"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "metadata": {
+                      "properties": {
+                        "depth": {
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "format": {
+                          "enum": ["moltnet.provenance-graph/v1"],
+                          "type": "string"
+                        },
+                        "generatedAt": {
+                          "description": "ISO 8601 timestamp",
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "rootNodeId": {
+                          "type": "string"
+                        },
+                        "rootPackId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "format",
+                        "generatedAt",
+                        "rootNodeId",
+                        "rootPackId",
+                        "depth"
+                      ],
+                      "type": "object"
+                    },
+                    "nodes": {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "properties": {
+                              "cid": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "enum": ["pack"],
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "meta": {
+                                "properties": {
+                                  "createdAt": {
+                                    "description": "ISO 8601 timestamp",
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "creator": {
+                                    "anyOf": [
+                                      {
+                                        "properties": {
+                                          "fingerprint": {
+                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                            "type": "string"
+                                          },
+                                          "identityId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
+                                          "publicKey": {
+                                            "description": "Ed25519 public key with prefix",
+                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "identityId",
+                                          "fingerprint",
+                                          "publicKey"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "diaryId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "expiresAt": {
+                                    "anyOf": [
+                                      {
+                                        "description": "ISO 8601 timestamp",
+                                        "format": "date-time",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "packCid": {
+                                    "type": "string"
+                                  },
+                                  "packCodec": {
+                                    "type": "string"
+                                  },
+                                  "packId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "packType": {
+                                    "type": "string"
+                                  },
+                                  "pinned": {
+                                    "type": "boolean"
+                                  },
+                                  "supersedesPackId": {
+                                    "anyOf": [
+                                      {
+                                        "description": "UUID v4 identifier",
+                                        "format": "uuid",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "packId",
+                                  "diaryId",
+                                  "packCid",
+                                  "packType",
+                                  "packCodec",
+                                  "pinned",
+                                  "createdAt",
+                                  "expiresAt",
+                                  "supersedesPackId"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "required": ["id", "kind", "label", "cid", "meta"],
+                            "type": "object"
+                          },
+                          {
+                            "properties": {
+                              "cid": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "enum": ["entry"],
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "meta": {
+                                "properties": {
+                                  "contentHash": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "createdAt": {
+                                    "description": "ISO 8601 timestamp",
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "creator": {
+                                    "anyOf": [
+                                      {
+                                        "properties": {
+                                          "fingerprint": {
+                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                            "type": "string"
+                                          },
+                                          "identityId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
+                                          "publicKey": {
+                                            "description": "Ed25519 public key with prefix",
+                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "identityId",
+                                          "fingerprint",
+                                          "publicKey"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "diaryId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "entryId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "entryType": {
+                                    "anyOf": [
+                                      {
+                                        "enum": ["episodic"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["semantic"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["procedural"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["reflection"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["identity"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["soul"],
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "description": "Entry memory type"
+                                  },
+                                  "signed": {
+                                    "type": "boolean"
+                                  },
+                                  "tags": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "type": "array"
+                                  },
+                                  "title": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "updatedAt": {
+                                    "description": "ISO 8601 timestamp",
+                                    "format": "date-time",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "entryId",
+                                  "diaryId",
+                                  "entryType",
+                                  "contentHash",
+                                  "createdAt",
+                                  "updatedAt",
+                                  "signed",
+                                  "title",
+                                  "tags"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "required": ["id", "kind", "label", "cid", "meta"],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["metadata", "nodes", "edges"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
     "/packs/{id}": {
       "get": {
         "description": "Get a persisted context pack by ID. Use `expand=entries` to include entry content.",
@@ -5831,6 +6457,463 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ContextPackResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/packs/{id}/provenance": {
+      "get": {
+        "description": "Export the provenance graph for a persisted context pack by ID.",
+        "operationId": "getContextPackProvenanceById",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "maximum": 10,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "edges": {
+                      "items": {
+                        "properties": {
+                          "from": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "anyOf": [
+                              {
+                                "enum": ["includes"],
+                                "type": "string"
+                              },
+                              {
+                                "enum": ["supersedes"],
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "meta": {
+                            "additionalProperties": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "boolean"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "type": "object"
+                          },
+                          "to": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "from", "to", "kind"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "metadata": {
+                      "properties": {
+                        "depth": {
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "format": {
+                          "enum": ["moltnet.provenance-graph/v1"],
+                          "type": "string"
+                        },
+                        "generatedAt": {
+                          "description": "ISO 8601 timestamp",
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "rootNodeId": {
+                          "type": "string"
+                        },
+                        "rootPackId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "format",
+                        "generatedAt",
+                        "rootNodeId",
+                        "rootPackId",
+                        "depth"
+                      ],
+                      "type": "object"
+                    },
+                    "nodes": {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "properties": {
+                              "cid": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "enum": ["pack"],
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "meta": {
+                                "properties": {
+                                  "createdAt": {
+                                    "description": "ISO 8601 timestamp",
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "creator": {
+                                    "anyOf": [
+                                      {
+                                        "properties": {
+                                          "fingerprint": {
+                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                            "type": "string"
+                                          },
+                                          "identityId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
+                                          "publicKey": {
+                                            "description": "Ed25519 public key with prefix",
+                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "identityId",
+                                          "fingerprint",
+                                          "publicKey"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "diaryId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "expiresAt": {
+                                    "anyOf": [
+                                      {
+                                        "description": "ISO 8601 timestamp",
+                                        "format": "date-time",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "packCid": {
+                                    "type": "string"
+                                  },
+                                  "packCodec": {
+                                    "type": "string"
+                                  },
+                                  "packId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "packType": {
+                                    "type": "string"
+                                  },
+                                  "pinned": {
+                                    "type": "boolean"
+                                  },
+                                  "supersedesPackId": {
+                                    "anyOf": [
+                                      {
+                                        "description": "UUID v4 identifier",
+                                        "format": "uuid",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "packId",
+                                  "diaryId",
+                                  "packCid",
+                                  "packType",
+                                  "packCodec",
+                                  "pinned",
+                                  "createdAt",
+                                  "expiresAt",
+                                  "supersedesPackId"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "required": ["id", "kind", "label", "cid", "meta"],
+                            "type": "object"
+                          },
+                          {
+                            "properties": {
+                              "cid": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "enum": ["entry"],
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "meta": {
+                                "properties": {
+                                  "contentHash": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "createdAt": {
+                                    "description": "ISO 8601 timestamp",
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "creator": {
+                                    "anyOf": [
+                                      {
+                                        "properties": {
+                                          "fingerprint": {
+                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                                            "type": "string"
+                                          },
+                                          "identityId": {
+                                            "description": "UUID v4 identifier",
+                                            "format": "uuid",
+                                            "type": "string"
+                                          },
+                                          "publicKey": {
+                                            "description": "Ed25519 public key with prefix",
+                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "identityId",
+                                          "fingerprint",
+                                          "publicKey"
+                                        ],
+                                        "type": "object"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "diaryId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "entryId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "entryType": {
+                                    "anyOf": [
+                                      {
+                                        "enum": ["episodic"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["semantic"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["procedural"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["reflection"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["identity"],
+                                        "type": "string"
+                                      },
+                                      {
+                                        "enum": ["soul"],
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "description": "Entry memory type"
+                                  },
+                                  "signed": {
+                                    "type": "boolean"
+                                  },
+                                  "tags": {
+                                    "items": {
+                                      "type": "string"
+                                    },
+                                    "type": "array"
+                                  },
+                                  "title": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "updatedAt": {
+                                    "description": "ISO 8601 timestamp",
+                                    "format": "date-time",
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "entryId",
+                                  "diaryId",
+                                  "entryType",
+                                  "contentHash",
+                                  "createdAt",
+                                  "updatedAt",
+                                  "signed",
+                                  "title",
+                                  "tags"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "required": ["id", "kind", "label", "cid", "meta"],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["metadata", "nodes", "edges"],
+                  "type": "object"
                 }
               }
             },

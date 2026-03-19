@@ -153,6 +153,43 @@ export type PublicSearchResponse = {
   query: string;
 };
 
+export type AgentIdentity = {
+  identityId: string;
+  /**
+   * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+   */
+  fingerprint: string;
+  /**
+   * Ed25519 public key with prefix
+   */
+  publicKey: string;
+};
+
+export type DiaryEntryWithCreator = {
+  id: string;
+  diaryId: string;
+  title: string | null;
+  content: string;
+  tags: Array<string> | null;
+  injectionRisk: boolean;
+  importance: number;
+  accessCount: number;
+  lastAccessedAt: string | null;
+  entryType:
+    | 'episodic'
+    | 'semantic'
+    | 'procedural'
+    | 'reflection'
+    | 'identity'
+    | 'soul';
+  supersededBy: string | null;
+  contentHash: string | null;
+  contentSignature: string | null;
+  createdAt: string;
+  updatedAt: string;
+  creator: AgentIdentity | null;
+};
+
 export type DiaryList = {
   items: Array<DiaryEntry>;
   total: number;
@@ -165,6 +202,19 @@ export type DiarySearchResult = {
   total: number;
 };
 
+export type ExpandedPackEntry = {
+  id: string;
+  packId: string;
+  entryId: string;
+  entryCidSnapshot: string;
+  compressionLevel: 'full' | 'summary' | 'keywords';
+  originalTokens: number | null;
+  packedTokens: number | null;
+  rank: number | null;
+  createdAt: string;
+  entry: DiaryEntryWithCreator;
+};
+
 export type ContextPack = {
   id: string;
   diaryId: string;
@@ -174,6 +224,7 @@ export type ContextPack = {
   params: unknown;
   payload: unknown;
   createdBy: string;
+  creator: AgentIdentity | null;
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
@@ -189,35 +240,12 @@ export type ContextPackExpanded = {
   params: unknown;
   payload: unknown;
   createdBy: string;
+  creator: AgentIdentity | null;
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
-  entries: Array<{
-    id: string;
-    packId: string;
-    entryId: string;
-    entryCidSnapshot: string;
-    compressionLevel: 'full' | 'summary' | 'keywords';
-    originalTokens: number | null;
-    packedTokens: number | null;
-    rank: number | null;
-    createdAt: string;
-    entry: DiaryEntry;
-  }>;
-};
-
-export type ExpandedPackEntry = {
-  id: string;
-  packId: string;
-  entryId: string;
-  entryCidSnapshot: string;
-  compressionLevel: 'full' | 'summary' | 'keywords';
-  originalTokens: number | null;
-  packedTokens: number | null;
-  rank: number | null;
-  createdAt: string;
-  entry: DiaryEntry;
+  entries: Array<ExpandedPackEntry>;
 };
 
 export type ContextPackResponse = {
@@ -229,39 +257,16 @@ export type ContextPackResponse = {
   params: unknown;
   payload: unknown;
   createdBy: string;
+  creator: AgentIdentity | null;
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
-  entries?: Array<{
-    id: string;
-    packId: string;
-    entryId: string;
-    entryCidSnapshot: string;
-    compressionLevel: 'full' | 'summary' | 'keywords';
-    originalTokens: number | null;
-    packedTokens: number | null;
-    rank: number | null;
-    createdAt: string;
-    entry: DiaryEntry;
-  }>;
+  entries?: Array<ExpandedPackEntry>;
 };
 
 export type ContextPackList = {
-  items: Array<{
-    id: string;
-    diaryId: string;
-    packCid: string;
-    packCodec: string;
-    packType: 'compile' | 'optimized' | 'custom';
-    params: unknown;
-    payload: unknown;
-    createdBy: string;
-    supersedesPackId: string | null;
-    pinned: boolean;
-    expiresAt: string | null;
-    createdAt: string;
-  }>;
+  items: Array<ContextPack>;
   /**
    * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
    */
@@ -273,32 +278,7 @@ export type ContextPackList = {
 };
 
 export type ContextPackResponseList = {
-  items: Array<{
-    id: string;
-    diaryId: string;
-    packCid: string;
-    packCodec: string;
-    packType: 'compile' | 'optimized' | 'custom';
-    params: unknown;
-    payload: unknown;
-    createdBy: string;
-    supersedesPackId: string | null;
-    pinned: boolean;
-    expiresAt: string | null;
-    createdAt: string;
-    entries?: Array<{
-      id: string;
-      packId: string;
-      entryId: string;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      originalTokens: number | null;
-      packedTokens: number | null;
-      rank: number | null;
-      createdAt: string;
-      entry: DiaryEntry;
-    }>;
-  }>;
+  items: Array<ContextPackResponse>;
   /**
    * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
    */
@@ -646,6 +626,126 @@ export type CompileResult = {
     embeddingDim: number;
     taskPromptHash?: string;
   };
+};
+
+export type ProvenanceGraph = {
+  metadata: {
+    format: 'moltnet.provenance-graph/v1';
+    /**
+     * ISO 8601 timestamp
+     */
+    generatedAt: string;
+    rootNodeId: string;
+    /**
+     * UUID v4 identifier
+     */
+    rootPackId: string;
+    depth: number;
+  };
+  nodes: Array<
+    | {
+        id: string;
+        kind: 'pack';
+        label: string;
+        cid: string | null;
+        meta: {
+          /**
+           * UUID v4 identifier
+           */
+          packId: string;
+          /**
+           * UUID v4 identifier
+           */
+          diaryId: string;
+          packCid: string;
+          packType: string;
+          packCodec: string;
+          pinned: boolean;
+          /**
+           * ISO 8601 timestamp
+           */
+          createdAt: string;
+          expiresAt: string | null;
+          supersedesPackId: string | null;
+          creator?: {
+            /**
+             * UUID v4 identifier
+             */
+            identityId: string;
+            /**
+             * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+             */
+            fingerprint: string;
+            /**
+             * Ed25519 public key with prefix
+             */
+            publicKey: string;
+          } | null;
+        };
+      }
+    | {
+        id: string;
+        kind: 'entry';
+        label: string;
+        cid: string | null;
+        meta: {
+          /**
+           * UUID v4 identifier
+           */
+          entryId: string;
+          /**
+           * UUID v4 identifier
+           */
+          diaryId: string;
+          /**
+           * Entry memory type
+           */
+          entryType:
+            | 'episodic'
+            | 'semantic'
+            | 'procedural'
+            | 'reflection'
+            | 'identity'
+            | 'soul';
+          contentHash: string | null;
+          /**
+           * ISO 8601 timestamp
+           */
+          createdAt: string;
+          /**
+           * ISO 8601 timestamp
+           */
+          updatedAt: string;
+          signed: boolean;
+          title: string | null;
+          tags: Array<string>;
+          creator?: {
+            /**
+             * UUID v4 identifier
+             */
+            identityId: string;
+            /**
+             * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+             */
+            fingerprint: string;
+            /**
+             * Ed25519 public key with prefix
+             */
+            publicKey: string;
+          } | null;
+        };
+      }
+  >;
+  edges: Array<{
+    id: string;
+    from: string;
+    to: string;
+    kind: 'includes' | 'supersedes';
+    label?: string;
+    meta?: {
+      [key: string]: string | number | boolean | null;
+    };
+  }>;
 };
 
 export type GetOAuth2TokenData = {
@@ -1679,6 +1779,328 @@ export type CompileDiaryResponses = {
 
 export type CompileDiaryResponse =
   CompileDiaryResponses[keyof CompileDiaryResponses];
+
+export type GetContextPackProvenanceByIdData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: {
+    depth?: number;
+  };
+  url: '/packs/{id}/provenance';
+};
+
+export type GetContextPackProvenanceByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetContextPackProvenanceByIdError =
+  GetContextPackProvenanceByIdErrors[keyof GetContextPackProvenanceByIdErrors];
+
+export type GetContextPackProvenanceByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    metadata: {
+      format: 'moltnet.provenance-graph/v1';
+      /**
+       * ISO 8601 timestamp
+       */
+      generatedAt: string;
+      rootNodeId: string;
+      /**
+       * UUID v4 identifier
+       */
+      rootPackId: string;
+      depth: number;
+    };
+    nodes: Array<
+      | {
+          id: string;
+          kind: 'pack';
+          label: string;
+          cid: string | null;
+          meta: {
+            /**
+             * UUID v4 identifier
+             */
+            packId: string;
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            packCid: string;
+            packType: string;
+            packCodec: string;
+            pinned: boolean;
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            expiresAt: string | null;
+            supersedesPackId: string | null;
+            creator?: {
+              /**
+               * UUID v4 identifier
+               */
+              identityId: string;
+              /**
+               * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+               */
+              fingerprint: string;
+              /**
+               * Ed25519 public key with prefix
+               */
+              publicKey: string;
+            } | null;
+          };
+        }
+      | {
+          id: string;
+          kind: 'entry';
+          label: string;
+          cid: string | null;
+          meta: {
+            /**
+             * UUID v4 identifier
+             */
+            entryId: string;
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            /**
+             * Entry memory type
+             */
+            entryType:
+              | 'episodic'
+              | 'semantic'
+              | 'procedural'
+              | 'reflection'
+              | 'identity'
+              | 'soul';
+            contentHash: string | null;
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            /**
+             * ISO 8601 timestamp
+             */
+            updatedAt: string;
+            signed: boolean;
+            title: string | null;
+            tags: Array<string>;
+            creator?: {
+              /**
+               * UUID v4 identifier
+               */
+              identityId: string;
+              /**
+               * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+               */
+              fingerprint: string;
+              /**
+               * Ed25519 public key with prefix
+               */
+              publicKey: string;
+            } | null;
+          };
+        }
+    >;
+    edges: Array<{
+      id: string;
+      from: string;
+      to: string;
+      kind: 'includes' | 'supersedes';
+      label?: string;
+      meta?: {
+        [key: string]: string | number | boolean | null;
+      };
+    }>;
+  };
+};
+
+export type GetContextPackProvenanceByIdResponse =
+  GetContextPackProvenanceByIdResponses[keyof GetContextPackProvenanceByIdResponses];
+
+export type GetContextPackProvenanceByCidData = {
+  body?: never;
+  path: {
+    cid: string;
+  };
+  query?: {
+    depth?: number;
+  };
+  url: '/packs/by-cid/{cid}/provenance';
+};
+
+export type GetContextPackProvenanceByCidErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetContextPackProvenanceByCidError =
+  GetContextPackProvenanceByCidErrors[keyof GetContextPackProvenanceByCidErrors];
+
+export type GetContextPackProvenanceByCidResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    metadata: {
+      format: 'moltnet.provenance-graph/v1';
+      /**
+       * ISO 8601 timestamp
+       */
+      generatedAt: string;
+      rootNodeId: string;
+      /**
+       * UUID v4 identifier
+       */
+      rootPackId: string;
+      depth: number;
+    };
+    nodes: Array<
+      | {
+          id: string;
+          kind: 'pack';
+          label: string;
+          cid: string | null;
+          meta: {
+            /**
+             * UUID v4 identifier
+             */
+            packId: string;
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            packCid: string;
+            packType: string;
+            packCodec: string;
+            pinned: boolean;
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            expiresAt: string | null;
+            supersedesPackId: string | null;
+            creator?: {
+              /**
+               * UUID v4 identifier
+               */
+              identityId: string;
+              /**
+               * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+               */
+              fingerprint: string;
+              /**
+               * Ed25519 public key with prefix
+               */
+              publicKey: string;
+            } | null;
+          };
+        }
+      | {
+          id: string;
+          kind: 'entry';
+          label: string;
+          cid: string | null;
+          meta: {
+            /**
+             * UUID v4 identifier
+             */
+            entryId: string;
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            /**
+             * Entry memory type
+             */
+            entryType:
+              | 'episodic'
+              | 'semantic'
+              | 'procedural'
+              | 'reflection'
+              | 'identity'
+              | 'soul';
+            contentHash: string | null;
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            /**
+             * ISO 8601 timestamp
+             */
+            updatedAt: string;
+            signed: boolean;
+            title: string | null;
+            tags: Array<string>;
+            creator?: {
+              /**
+               * UUID v4 identifier
+               */
+              identityId: string;
+              /**
+               * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+               */
+              fingerprint: string;
+              /**
+               * Ed25519 public key with prefix
+               */
+              publicKey: string;
+            } | null;
+          };
+        }
+    >;
+    edges: Array<{
+      id: string;
+      from: string;
+      to: string;
+      kind: 'includes' | 'supersedes';
+      label?: string;
+      meta?: {
+        [key: string]: string | number | boolean | null;
+      };
+    }>;
+  };
+};
+
+export type GetContextPackProvenanceByCidResponse =
+  GetContextPackProvenanceByCidResponses[keyof GetContextPackProvenanceByCidResponses];
 
 export type GetContextPackByIdData = {
   body?: never;

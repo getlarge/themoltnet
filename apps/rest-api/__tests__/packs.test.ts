@@ -15,17 +15,24 @@ import {
 const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 const PACK_ID = '990e8400-e29b-41d4-a716-446655440000';
 const PACK_ID_2 = '990e8400-e29b-41d4-a716-446655440001';
+const PACK_CID = 'bafytestpack';
+const MOCK_CREATOR = {
+  identityId: OWNER_ID,
+  fingerprint: VALID_AUTH_CONTEXT.fingerprint,
+  publicKey: VALID_AUTH_CONTEXT.publicKey,
+};
 
 const MOCK_PACK = {
   id: PACK_ID,
   diaryId: DIARY_ID,
-  packCid: 'bafytestpack',
+  packCid: PACK_CID,
   packCodec: 'dag-cbor',
   packType: 'compile' as const,
   params: { tokenBudget: 4000 },
   payload: { entries: [] },
   createdBy: OWNER_ID,
-  supersedesPackId: null,
+  creator: MOCK_CREATOR,
+  supersedesPackId: PACK_ID_2,
   pinned: false,
   expiresAt: new Date('2026-03-31T10:00:00Z'),
   createdAt: new Date('2026-03-24T10:00:00Z'),
@@ -53,7 +60,12 @@ describe('Pack routes', () => {
       createdAt: new Date('2026-03-24T10:00:00Z'),
       updatedAt: new Date('2026-03-24T10:00:00Z'),
     });
-    mocks.contextPackRepository.findById.mockResolvedValue(MOCK_PACK);
+    mocks.contextPackRepository.findById.mockImplementation(async (id) => {
+      if (id === PACK_ID) return MOCK_PACK;
+      if (id === PACK_ID_2) return MOCK_PACK_2;
+      return null;
+    });
+    mocks.contextPackRepository.findByCid.mockResolvedValue(MOCK_PACK);
     mocks.contextPackRepository.listByDiary.mockResolvedValue([
       MOCK_PACK,
       MOCK_PACK_2,
@@ -69,7 +81,10 @@ describe('Pack routes', () => {
         packedTokens: 120,
         rank: 1,
         createdAt: new Date('2026-03-24T10:00:00Z'),
-        entry: createMockEntry(),
+        entry: {
+          ...createMockEntry(),
+          creator: MOCK_CREATOR,
+        },
       },
     ]);
     mocks.contextPackRepository.listEntriesExpandedByPackIds.mockResolvedValue(
@@ -87,7 +102,10 @@ describe('Pack routes', () => {
               packedTokens: 120,
               rank: 1,
               createdAt: new Date('2026-03-24T10:00:00Z'),
-              entry: createMockEntry(),
+              entry: {
+                ...createMockEntry(),
+                creator: MOCK_CREATOR,
+              },
             },
           ],
         ],
@@ -112,6 +130,10 @@ describe('Pack routes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toHaveProperty('packCid', 'bafytestpack');
+    expect(response.json()).toHaveProperty(
+      'creator.fingerprint',
+      VALID_AUTH_CONTEXT.fingerprint,
+    );
     expect(mocks.permissionChecker.canReadPack).toHaveBeenCalledWith(
       PACK_ID,
       OWNER_ID,
@@ -129,6 +151,9 @@ describe('Pack routes', () => {
     expect(response.json().entries[0].entry.content).toBe(
       'Test diary entry content',
     );
+    expect(response.json().entries[0].entry.creator.fingerprint).toBe(
+      VALID_AUTH_CONTEXT.fingerprint,
+    );
   });
 
   it('returns 403 when the caller cannot read the pack', async () => {
@@ -141,6 +166,43 @@ describe('Pack routes', () => {
     });
 
     expect(response.statusCode).toBe(403);
+  });
+
+  it('returns a pack provenance graph by id', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/packs/${PACK_ID}/provenance?depth=1`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().metadata.rootPackId).toBe(PACK_ID);
+    expect(response.json().nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: `pack:${PACK_ID}`, kind: 'pack' }),
+        expect.objectContaining({
+          id: `entry:${createMockEntry().id}`,
+          kind: 'entry',
+        }),
+      ]),
+    );
+    expect(
+      mocks.contextPackRepository.listEntriesExpandedByPackIds,
+    ).toHaveBeenCalledWith([PACK_ID, PACK_ID_2]);
+  });
+
+  it('returns a pack provenance graph by cid', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/packs/by-cid/${PACK_CID}/provenance`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.contextPackRepository.findByCid).toHaveBeenCalledWith(
+      PACK_CID,
+    );
+    expect(response.json().metadata.rootPackId).toBe(PACK_ID);
   });
 
   it('lists packs for an accessible diary', async () => {

@@ -499,12 +499,37 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         );
       }
 
+      const resolvedEntryType = input.entryType ?? 'semantic';
+      const computedContentHash = computeContentCid(
+        resolvedEntryType,
+        input.title ?? null,
+        input.content,
+        input.tags ?? null,
+      );
+
+      if (
+        input.contentHash !== undefined &&
+        input.contentHash !== null &&
+        input.contentHash !== computedContentHash
+      ) {
+        throw new DiaryServiceError(
+          'validation_failed',
+          `Content hash mismatch: provided ${input.contentHash}, computed ${computedContentHash}`,
+        );
+      }
+
       const entry = await diaryWorkflows.createEntry({
         ...input,
+        contentHash: computedContentHash,
+        entryType: resolvedEntryType,
         createdBy: agentId,
       });
       logger.info(
-        { entryId: entry.id, diaryId: input.diaryId, type: input.entryType },
+        {
+          entryId: entry.id,
+          diaryId: input.diaryId,
+          type: resolvedEntryType,
+        },
         'entry.created',
       );
       return entry;
