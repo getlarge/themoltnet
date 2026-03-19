@@ -1,4 +1,4 @@
-import { copyFile, mkdir, writeFile } from 'node:fs/promises';
+import { appendFile, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type { TasksmithTask } from '@moltnet/context-evals';
@@ -163,6 +163,8 @@ export async function verifyTask(
         console.log(
           `[verify] PR #${pr}: FIXTURE_ALREADY_GREEN — "${cmd}" passed on fixture`,
         );
+        // eslint-disable-next-line no-console
+        console.log(`[verify]   output: ${check.output.slice(0, 500)}`);
         return {
           pr,
           status: 'fixture_already_green',
@@ -198,6 +200,8 @@ export async function verifyTask(
         console.log(
           `[verify] PR #${pr}: FIX_DOESNT_PASS — "${cmd}" failed on gold fix`,
         );
+        // eslint-disable-next-line no-console
+        console.log(`[verify]   error: ${check.output.slice(0, 500)}`);
         return {
           pr,
           status: 'fix_doesnt_pass',
@@ -290,6 +294,10 @@ export async function verifyDockerCommands(
       const check = await runTestCommand(cmd, fixtureWorktree);
       redChecks.push(check);
       if (check.passed) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[verify] Docker FIXTURE_ALREADY_GREEN — "${cmd}"\n  output: ${check.output.slice(0, 500)}`,
+        );
         return {
           status: 'fixture_already_green',
           redCheck: {
@@ -318,6 +326,10 @@ export async function verifyDockerCommands(
       const check = await runTestCommand(cmd, goldWorktree);
       greenChecks.push(check);
       if (!check.passed) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[verify] Docker FIX_DOESNT_PASS — "${cmd}"\n  error: ${check.output.slice(0, 500)}`,
+        );
         return {
           status: 'fix_doesnt_pass',
           redCheck: {
@@ -390,6 +402,31 @@ export async function writeVerifiedTask(
 
   if (verification.status === 'verified') {
     await copyFile(taskFile, resolve(verifiedDir, `${verification.pr}.json`));
+  }
+
+  // Append failure details to a JSONL summary for GEPA analysis
+  if (
+    verification.status === 'fixture_already_green' ||
+    verification.status === 'fix_doesnt_pass'
+  ) {
+    const failedCommands = [
+      ...(verification.redCheck?.commands ?? []),
+      ...(verification.greenCheck?.commands ?? []),
+    ].filter((c) =>
+      verification.status === 'fixture_already_green' ? c.passed : !c.passed,
+    );
+    const summary = {
+      pr: verification.pr,
+      status: verification.status,
+      taskId: task.task_id,
+      failedCommands: failedCommands.map((c) => ({
+        command: c.command,
+        output: c.output,
+      })),
+      skipReason: verification.skipReason,
+    };
+    const failuresFile = resolve(statusDir, 'failures.jsonl');
+    await appendFile(failuresFile, JSON.stringify(summary) + '\n');
   }
 }
 
