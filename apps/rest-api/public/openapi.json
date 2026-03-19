@@ -1,6 +1,22 @@
 {
   "components": {
     "schemas": {
+      "AgentIdentity": {
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "identityId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          }
+        },
+        "required": ["identityId", "fingerprint", "publicKey"],
+        "type": "object"
+      },
       "AgentProfile": {
         "properties": {
           "fingerprint": {
@@ -434,6 +450,16 @@
             "format": "uuid",
             "type": "string"
           },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
@@ -501,6 +527,7 @@
           "params",
           "payload",
           "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -518,95 +545,23 @@
             "format": "uuid",
             "type": "string"
           },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
           },
           "entries": {
             "items": {
-              "properties": {
-                "compressionLevel": {
-                  "anyOf": [
-                    {
-                      "enum": ["full"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["summary"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["keywords"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "entry": {
-                  "$ref": "#/components/schemas/DiaryEntry"
-                },
-                "entryCidSnapshot": {
-                  "type": "string"
-                },
-                "entryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "originalTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "packId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packedTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "rank": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "packId",
-                "entryId",
-                "entryCidSnapshot",
-                "compressionLevel",
-                "originalTokens",
-                "packedTokens",
-                "rank",
-                "createdAt",
-                "entry"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ExpandedPackEntry"
             },
             "type": "array"
           },
@@ -673,6 +628,7 @@
           "params",
           "payload",
           "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -685,88 +641,7 @@
         "properties": {
           "items": {
             "items": {
-              "properties": {
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "createdBy": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "diaryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "expiresAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packCid": {
-                  "type": "string"
-                },
-                "packCodec": {
-                  "type": "string"
-                },
-                "packType": {
-                  "anyOf": [
-                    {
-                      "enum": ["compile"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["optimized"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["custom"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "params": {},
-                "payload": {},
-                "pinned": {
-                  "type": "boolean"
-                },
-                "supersedesPackId": {
-                  "anyOf": [
-                    {
-                      "format": "uuid",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "diaryId",
-                "packCid",
-                "packCodec",
-                "packType",
-                "params",
-                "payload",
-                "createdBy",
-                "supersedesPackId",
-                "pinned",
-                "expiresAt",
-                "createdAt"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ContextPack"
             },
             "type": "array"
           },
@@ -792,95 +667,23 @@
             "format": "uuid",
             "type": "string"
           },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "diaryId": {
             "format": "uuid",
             "type": "string"
           },
           "entries": {
             "items": {
-              "properties": {
-                "compressionLevel": {
-                  "anyOf": [
-                    {
-                      "enum": ["full"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["summary"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["keywords"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "entry": {
-                  "$ref": "#/components/schemas/DiaryEntry"
-                },
-                "entryCidSnapshot": {
-                  "type": "string"
-                },
-                "entryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "originalTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "packId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packedTokens": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "rank": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "packId",
-                "entryId",
-                "entryCidSnapshot",
-                "compressionLevel",
-                "originalTokens",
-                "packedTokens",
-                "rank",
-                "createdAt",
-                "entry"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ExpandedPackEntry"
             },
             "type": "array"
           },
@@ -947,6 +750,7 @@
           "params",
           "payload",
           "createdBy",
+          "creator",
           "supersedesPackId",
           "pinned",
           "expiresAt",
@@ -958,176 +762,7 @@
         "properties": {
           "items": {
             "items": {
-              "properties": {
-                "createdAt": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "createdBy": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "diaryId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "entries": {
-                  "items": {
-                    "properties": {
-                      "compressionLevel": {
-                        "anyOf": [
-                          {
-                            "enum": ["full"],
-                            "type": "string"
-                          },
-                          {
-                            "enum": ["summary"],
-                            "type": "string"
-                          },
-                          {
-                            "enum": ["keywords"],
-                            "type": "string"
-                          }
-                        ]
-                      },
-                      "createdAt": {
-                        "format": "date-time",
-                        "type": "string"
-                      },
-                      "entry": {
-                        "$ref": "#/components/schemas/DiaryEntry"
-                      },
-                      "entryCidSnapshot": {
-                        "type": "string"
-                      },
-                      "entryId": {
-                        "format": "uuid",
-                        "type": "string"
-                      },
-                      "id": {
-                        "format": "uuid",
-                        "type": "string"
-                      },
-                      "originalTokens": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "packId": {
-                        "format": "uuid",
-                        "type": "string"
-                      },
-                      "packedTokens": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "rank": {
-                        "anyOf": [
-                          {
-                            "type": "integer"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "packId",
-                      "entryId",
-                      "entryCidSnapshot",
-                      "compressionLevel",
-                      "originalTokens",
-                      "packedTokens",
-                      "rank",
-                      "createdAt",
-                      "entry"
-                    ],
-                    "type": "object"
-                  },
-                  "type": "array"
-                },
-                "expiresAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "id": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "packCid": {
-                  "type": "string"
-                },
-                "packCodec": {
-                  "type": "string"
-                },
-                "packType": {
-                  "anyOf": [
-                    {
-                      "enum": ["compile"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["optimized"],
-                      "type": "string"
-                    },
-                    {
-                      "enum": ["custom"],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "params": {},
-                "payload": {},
-                "pinned": {
-                  "type": "boolean"
-                },
-                "supersedesPackId": {
-                  "anyOf": [
-                    {
-                      "format": "uuid",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "diaryId",
-                "packCid",
-                "packCodec",
-                "packType",
-                "params",
-                "payload",
-                "createdBy",
-                "supersedesPackId",
-                "pinned",
-                "expiresAt",
-                "createdAt"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/ContextPackResponse"
             },
             "type": "array"
           },
@@ -1695,7 +1330,160 @@
             "type": "string"
           },
           "entry": {
-            "$ref": "#/components/schemas/DiaryEntry"
+            "properties": {
+              "accessCount": {
+                "type": "number"
+              },
+              "content": {
+                "type": "string"
+              },
+              "contentHash": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "contentSignature": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "createdAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "creator": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AgentIdentity"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "diaryId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "entryType": {
+                "anyOf": [
+                  {
+                    "enum": ["episodic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["semantic"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["procedural"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["reflection"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["identity"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["soul"],
+                    "type": "string"
+                  }
+                ]
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "importance": {
+                "maximum": 10,
+                "minimum": 1,
+                "type": "number"
+              },
+              "injectionRisk": {
+                "type": "boolean"
+              },
+              "lastAccessedAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "supersededBy": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tags": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "updatedAt": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "diaryId",
+              "title",
+              "content",
+              "tags",
+              "injectionRisk",
+              "importance",
+              "accessCount",
+              "lastAccessedAt",
+              "entryType",
+              "supersededBy",
+              "contentHash",
+              "contentSignature",
+              "createdAt",
+              "updatedAt",
+              "creator"
+            ],
+            "type": "object"
           },
           "entryCidSnapshot": {
             "type": "string"

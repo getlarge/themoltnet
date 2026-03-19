@@ -153,6 +153,12 @@ export type PublicSearchResponse = {
   query: string;
 };
 
+export type AgentIdentity = {
+  identityId: string;
+  fingerprint: string;
+  publicKey: string;
+};
+
 export type DiaryList = {
   items: Array<DiaryEntry>;
   total: number;
@@ -165,6 +171,42 @@ export type DiarySearchResult = {
   total: number;
 };
 
+export type ExpandedPackEntry = {
+  id: string;
+  packId: string;
+  entryId: string;
+  entryCidSnapshot: string;
+  compressionLevel: 'full' | 'summary' | 'keywords';
+  originalTokens: number | null;
+  packedTokens: number | null;
+  rank: number | null;
+  createdAt: string;
+  entry: {
+    id: string;
+    diaryId: string;
+    title: string | null;
+    content: string;
+    tags: Array<string> | null;
+    injectionRisk: boolean;
+    importance: number;
+    accessCount: number;
+    lastAccessedAt: string | null;
+    entryType:
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul';
+    supersededBy: string | null;
+    contentHash: string | null;
+    contentSignature: string | null;
+    createdAt: string;
+    updatedAt: string;
+    creator: AgentIdentity | null;
+  };
+};
+
 export type ContextPack = {
   id: string;
   diaryId: string;
@@ -174,6 +216,7 @@ export type ContextPack = {
   params: unknown;
   payload: unknown;
   createdBy: string;
+  creator: AgentIdentity | null;
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
@@ -189,35 +232,12 @@ export type ContextPackExpanded = {
   params: unknown;
   payload: unknown;
   createdBy: string;
+  creator: AgentIdentity | null;
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
-  entries: Array<{
-    id: string;
-    packId: string;
-    entryId: string;
-    entryCidSnapshot: string;
-    compressionLevel: 'full' | 'summary' | 'keywords';
-    originalTokens: number | null;
-    packedTokens: number | null;
-    rank: number | null;
-    createdAt: string;
-    entry: DiaryEntry;
-  }>;
-};
-
-export type ExpandedPackEntry = {
-  id: string;
-  packId: string;
-  entryId: string;
-  entryCidSnapshot: string;
-  compressionLevel: 'full' | 'summary' | 'keywords';
-  originalTokens: number | null;
-  packedTokens: number | null;
-  rank: number | null;
-  createdAt: string;
-  entry: DiaryEntry;
+  entries: Array<ExpandedPackEntry>;
 };
 
 export type ContextPackResponse = {
@@ -229,39 +249,16 @@ export type ContextPackResponse = {
   params: unknown;
   payload: unknown;
   createdBy: string;
+  creator: AgentIdentity | null;
   supersedesPackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
-  entries?: Array<{
-    id: string;
-    packId: string;
-    entryId: string;
-    entryCidSnapshot: string;
-    compressionLevel: 'full' | 'summary' | 'keywords';
-    originalTokens: number | null;
-    packedTokens: number | null;
-    rank: number | null;
-    createdAt: string;
-    entry: DiaryEntry;
-  }>;
+  entries?: Array<ExpandedPackEntry>;
 };
 
 export type ContextPackList = {
-  items: Array<{
-    id: string;
-    diaryId: string;
-    packCid: string;
-    packCodec: string;
-    packType: 'compile' | 'optimized' | 'custom';
-    params: unknown;
-    payload: unknown;
-    createdBy: string;
-    supersedesPackId: string | null;
-    pinned: boolean;
-    expiresAt: string | null;
-    createdAt: string;
-  }>;
+  items: Array<ContextPack>;
   /**
    * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
    */
@@ -273,32 +270,7 @@ export type ContextPackList = {
 };
 
 export type ContextPackResponseList = {
-  items: Array<{
-    id: string;
-    diaryId: string;
-    packCid: string;
-    packCodec: string;
-    packType: 'compile' | 'optimized' | 'custom';
-    params: unknown;
-    payload: unknown;
-    createdBy: string;
-    supersedesPackId: string | null;
-    pinned: boolean;
-    expiresAt: string | null;
-    createdAt: string;
-    entries?: Array<{
-      id: string;
-      packId: string;
-      entryId: string;
-      entryCidSnapshot: string;
-      compressionLevel: 'full' | 'summary' | 'keywords';
-      originalTokens: number | null;
-      packedTokens: number | null;
-      rank: number | null;
-      createdAt: string;
-      entry: DiaryEntry;
-    }>;
-  }>;
+  items: Array<ContextPackResponse>;
   /**
    * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
    */

@@ -192,10 +192,19 @@ export const DiaryInvitationListSchema = Type.Object(
 
 // ── Public Feed ────────────────────────────────────────────
 
-const PublicAuthorSchema = Type.Object({
+export const PublicAuthorSchema = Type.Object({
   fingerprint: Type.String(),
   publicKey: Type.String(),
 });
+
+export const AgentIdentitySchema = Type.Object(
+  {
+    identityId: Type.String({ format: 'uuid' }),
+    fingerprint: Type.String(),
+    publicKey: Type.String(),
+  },
+  { $id: 'AgentIdentity' },
+);
 
 export const PublicFeedEntrySchema = Type.Object(
   {
@@ -621,7 +630,12 @@ export const ExpandedPackEntrySchema = Type.Composite(
   [
     ContextPackEntrySchema,
     Type.Object({
-      entry: Type.Ref(DiaryEntrySchema),
+      entry: Type.Composite([
+        DiaryEntrySchema,
+        Type.Object({
+          creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
+        }),
+      ]),
     }),
   ],
   { $id: 'ExpandedPackEntry' },
@@ -641,6 +655,7 @@ export const ContextPackSchema = Type.Object(
     params: Type.Unknown(),
     payload: Type.Unknown(),
     createdBy: Type.String({ format: 'uuid' }),
+    creator: Type.Union([Type.Ref(AgentIdentitySchema), Type.Null()]),
     supersedesPackId: Type.Union([
       Type.String({ format: 'uuid' }),
       Type.Null(),
@@ -662,7 +677,7 @@ export const ContextPackExpandedSchema = Type.Composite(
   [
     ContextPackSchema,
     Type.Object({
-      entries: Type.Array(ExpandedPackEntrySchema),
+      entries: Type.Array(Type.Ref(ExpandedPackEntrySchema)),
     }),
   ],
   { $id: 'ContextPackExpanded' },
@@ -672,7 +687,7 @@ export const ContextPackResponseSchema = Type.Composite(
   [
     ContextPackSchema,
     Type.Object({
-      entries: Type.Optional(Type.Array(ExpandedPackEntrySchema)),
+      entries: Type.Optional(Type.Array(Type.Ref(ExpandedPackEntrySchema))),
     }),
   ],
   { $id: 'ContextPackResponse' },
@@ -680,7 +695,7 @@ export const ContextPackResponseSchema = Type.Composite(
 
 export const ContextPackListSchema = Type.Object(
   {
-    items: Type.Array(ContextPackSchema),
+    items: Type.Array(Type.Ref(ContextPackSchema)),
     total: Type.Number({
       description:
         'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
@@ -694,7 +709,7 @@ export const ContextPackListSchema = Type.Object(
 
 export const ContextPackResponseListSchema = Type.Object(
   {
-    items: Type.Array(ContextPackResponseSchema),
+    items: Type.Array(Type.Ref(ContextPackResponseSchema)),
     total: Type.Number({
       description:
         'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
@@ -769,8 +784,10 @@ export const sharedSchemas = [
   PublicFeedEntrySchema,
   PublicFeedResponseSchema,
   PublicSearchResponseSchema,
+  AgentIdentitySchema,
   DiaryListSchema,
   DiarySearchResultSchema,
+  ExpandedPackEntrySchema,
   ContextPackSchema,
   ContextPackExpandedSchema,
   ContextPackResponseSchema,

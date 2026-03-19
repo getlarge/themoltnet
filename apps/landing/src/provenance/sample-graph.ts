@@ -23,6 +23,11 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         pinned: false,
         createdAt: '2026-03-19T10:00:00.000Z',
         expiresAt: '2026-03-26T10:00:00.000Z',
+        creator: {
+          identityId: '99999999-9999-4999-8999-999999999999',
+          fingerprint: 'C212-DAFA-27C5-6C57',
+          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+        },
         supersedesPackId: '22222222-2222-4222-8222-222222222222',
       },
     },
@@ -40,6 +45,11 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         pinned: false,
         createdAt: '2026-03-18T08:30:00.000Z',
         expiresAt: '2026-03-25T08:30:00.000Z',
+        creator: {
+          identityId: '99999999-9999-4999-8999-999999999998',
+          fingerprint: '7D0B-897A-FA22-1060',
+          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
+        },
         supersedesPackId: null,
       },
     },
@@ -58,6 +68,11 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         signed: true,
         title: 'Identity bootstrap',
         tags: ['identity', 'bootstrap'],
+        creator: {
+          identityId: '99999999-9999-4999-8999-999999999999',
+          fingerprint: 'C212-DAFA-27C5-6C57',
+          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+        },
       },
     },
     {
@@ -75,6 +90,11 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         signed: false,
         title: 'MCP server notes',
         tags: ['mcp', 'context'],
+        creator: {
+          identityId: '99999999-9999-4999-8999-999999999997',
+          fingerprint: 'FE47-2735-4849-3810',
+          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0zLWZvci11bml0LXRlc3Q=',
+        },
       },
     },
     {
@@ -92,6 +112,11 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         signed: true,
         title: 'Trust graph summary',
         tags: ['trust', 'reflection'],
+        creator: {
+          identityId: '99999999-9999-4999-8999-999999999998',
+          fingerprint: '7D0B-897A-FA22-1060',
+          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
+        },
       },
     },
   ],

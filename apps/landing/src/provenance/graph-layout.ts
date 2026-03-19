@@ -12,10 +12,10 @@ export interface GraphLayout {
   height: number;
 }
 
-const COLUMN_WIDTH = 320;
-const ROW_HEIGHT = 144;
-const PADDING_X = 80;
-const PADDING_Y = 80;
+const COLUMN_WIDTH = 392;
+const ROW_HEIGHT = 184;
+const PADDING_X = 96;
+const PADDING_Y = 96;
 
 function compareIds(a: string, b: string): number {
   return a.localeCompare(b);

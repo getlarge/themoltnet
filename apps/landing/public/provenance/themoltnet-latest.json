@@ -1,0 +1,332 @@
+{
+  "edges": [
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:0daf2038-e6c6-42ad-9a67-e62a6c176d01:includes",
+      "kind": "includes",
+      "label": "rank 5",
+      "meta": {
+        "compressionLevel": "keywords",
+        "entryCidSnapshot": "bafkreifv6issgqnjqf7bdyn3nqav5tqy7ncjtvxbgbsvqfgplxw2m652si",
+        "originalTokens": 276,
+        "packedTokens": 30,
+        "rank": 5
+      },
+      "to": "entry:0daf2038-e6c6-42ad-9a67-e62a6c176d01"
+    },
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:289170a5-7b6f-4d29-a573-bf6d494cbedf:includes",
+      "kind": "includes",
+      "label": "rank 6",
+      "meta": {
+        "compressionLevel": "keywords",
+        "entryCidSnapshot": "bafkreic32lh4hor767w5mo72du4iuob3apfcho6lvat3duuj7lc65zsbjq",
+        "originalTokens": 348,
+        "packedTokens": 30,
+        "rank": 6
+      },
+      "to": "entry:289170a5-7b6f-4d29-a573-bf6d494cbedf"
+    },
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:38abf72a-332c-449a-9ac6-fcf8dc3d1894:includes",
+      "kind": "includes",
+      "label": "rank 1",
+      "meta": {
+        "compressionLevel": "full",
+        "entryCidSnapshot": "bafkreiewmw6gt67ydavakjo3tbg5jg5k4c7jlwvc6fxnchuyri3q7zbxli",
+        "originalTokens": 215,
+        "packedTokens": 215,
+        "rank": 1
+      },
+      "to": "entry:38abf72a-332c-449a-9ac6-fcf8dc3d1894"
+    },
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:3b1c1072-e71c-406f-9c7b-63ac3b5b278f:includes",
+      "kind": "includes",
+      "label": "rank 7",
+      "meta": {
+        "compressionLevel": "keywords",
+        "entryCidSnapshot": "bafkreieqjbj3qj3qu7jqlwdhm3vmxli5nxbl6ccfkbmuuvby7udwypyghm",
+        "originalTokens": 436,
+        "packedTokens": 30,
+        "rank": 7
+      },
+      "to": "entry:3b1c1072-e71c-406f-9c7b-63ac3b5b278f"
+    },
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:6fcd5eb9-04c1-4c2e-a59d-d3baabdaf92e:includes",
+      "kind": "includes",
+      "label": "rank 2",
+      "meta": {
+        "compressionLevel": "full",
+        "entryCidSnapshot": "bafkreieyanxvqx5h647pmytfck4ga43xdzlhby52mtgcvzfe3w57ymgrgm",
+        "originalTokens": 579,
+        "packedTokens": 579,
+        "rank": 2
+      },
+      "to": "entry:6fcd5eb9-04c1-4c2e-a59d-d3baabdaf92e"
+    },
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:8bac5ccd-8f7c-4d9b-9968-24289765a9da:includes",
+      "kind": "includes",
+      "label": "rank 4",
+      "meta": {
+        "compressionLevel": "summary",
+        "entryCidSnapshot": "bafkreibprcu2pckgodix2autw2luchwjkt3x5fesxyh7dp4fzfo6bmnsgi",
+        "originalTokens": 431,
+        "packedTokens": 251,
+        "rank": 4
+      },
+      "to": "entry:8bac5ccd-8f7c-4d9b-9968-24289765a9da"
+    },
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:9a1588e3-edfe-475a-9668-48e2a5fb61cd:includes",
+      "kind": "includes",
+      "label": "rank 3",
+      "meta": {
+        "compressionLevel": "keywords",
+        "entryCidSnapshot": "bafkreibqabp7jwb6si52c5jihellavdredblua6wfuysngxzupfcdi3oh4",
+        "originalTokens": 1020,
+        "packedTokens": 30,
+        "rank": 3
+      },
+      "to": "entry:9a1588e3-edfe-475a-9668-48e2a5fb61cd"
+    },
+    {
+      "from": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606->entry:b8d81343-430f-4524-b0ad-2d9e4f698f28:includes",
+      "kind": "includes",
+      "label": "rank 8",
+      "meta": {
+        "compressionLevel": "keywords",
+        "entryCidSnapshot": "bafkreibns5kumrsjk2ml3yjimyh643vdt5nrb2ld2iwf667mc6iobtzrqy",
+        "originalTokens": 116,
+        "packedTokens": 30,
+        "rank": 8
+      },
+      "to": "entry:b8d81343-430f-4524-b0ad-2d9e4f698f28"
+    }
+  ],
+  "metadata": {
+    "depth": 2,
+    "format": "moltnet.provenance-graph/v1",
+    "generatedAt": "2026-03-19T16:22:26.169Z",
+    "rootNodeId": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+    "rootPackId": "019e820b-16b0-493f-8df9-cbbab1162606"
+  },
+  "nodes": [
+    {
+      "cid": "bafkreifv6issgqnjqf7bdyn3nqav5tqy7ncjtvxbgbsvqfgplxw2m652si",
+      "id": "entry:0daf2038-e6c6-42ad-9a67-e62a6c176d01",
+      "kind": "entry",
+      "label": "Accountable commit: fix GEPA bestScore:0 — metricFn return type + test mock",
+      "meta": {
+        "contentHash": "bafkreifv6issgqnjqf7bdyn3nqav5tqy7ncjtvxbgbsvqfgplxw2m652si",
+        "createdAt": "2026-03-15T17:48:54.705Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "0daf2038-e6c6-42ad-9a67-e62a6c176d01",
+        "entryType": "procedural",
+        "signed": false,
+        "tags": [
+          "accountable-commit",
+          "risk:high",
+          "branch:fix/skill-eval-pipeline-training-examples",
+          "scope:context-evals"
+        ],
+        "title": "Accountable commit: fix GEPA bestScore:0 — metricFn return type + test mock",
+        "updatedAt": "2026-03-15T17:48:54.705Z"
+      }
+    },
+    {
+      "cid": "bafkreic32lh4hor767w5mo72du4iuob3apfcho6lvat3duuj7lc65zsbjq",
+      "id": "entry:289170a5-7b6f-4d29-a573-bf6d494cbedf",
+      "kind": "entry",
+      "label": "Tile: project/overview — MoltNet identity, stack, and workspace structure",
+      "meta": {
+        "contentHash": "bafkreic32lh4hor767w5mo72du4iuob3apfcho6lvat3duuj7lc65zsbjq",
+        "createdAt": "2026-03-08T19:22:04.505Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "289170a5-7b6f-4d29-a573-bf6d494cbedf",
+        "entryType": "semantic",
+        "signed": false,
+        "tags": [
+          "source:tile",
+          "tile-session:2026-03-08T19:00:00Z",
+          "tile-scope:project",
+          "tile-id:project/overview",
+          "model:claude-sonnet-4.6"
+        ],
+        "title": "Tile: project/overview — MoltNet identity, stack, and workspace structure",
+        "updatedAt": "2026-03-08T19:22:04.505Z"
+      }
+    },
+    {
+      "cid": "bafkreiewmw6gt67ydavakjo3tbg5jg5k4c7jlwvc6fxnchuyri3q7zbxli",
+      "id": "entry:38abf72a-332c-449a-9ac6-fcf8dc3d1894",
+      "kind": "entry",
+      "label": "Accountable commit: add official Codex SDK Ax adapter",
+      "meta": {
+        "contentHash": "bafkreiewmw6gt67ydavakjo3tbg5jg5k4c7jlwvc6fxnchuyri3q7zbxli",
+        "createdAt": "2026-03-16T16:03:18.348Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "38abf72a-332c-449a-9ac6-fcf8dc3d1894",
+        "entryType": "procedural",
+        "signed": false,
+        "tags": [
+          "accountable-commit",
+          "risk:high",
+          "branch:fix/skill-eval-pipeline-training-examples",
+          "scope:context-evals",
+          "scope:tools"
+        ],
+        "title": "Accountable commit: add official Codex SDK Ax adapter",
+        "updatedAt": "2026-03-16T16:03:18.348Z"
+      }
+    },
+    {
+      "cid": "bafkreieqjbj3qj3qu7jqlwdhm3vmxli5nxbl6ccfkbmuuvby7udwypyghm",
+      "id": "entry:3b1c1072-e71c-406f-9c7b-63ac3b5b278f",
+      "kind": "entry",
+      "label": "Tile: auth/flow — OAuth2 client_credentials, JWT enrichment, Keto permissions, MCP auth proxy",
+      "meta": {
+        "contentHash": "bafkreieqjbj3qj3qu7jqlwdhm3vmxli5nxbl6ccfkbmuuvby7udwypyghm",
+        "createdAt": "2026-03-08T19:22:53.216Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "3b1c1072-e71c-406f-9c7b-63ac3b5b278f",
+        "entryType": "semantic",
+        "signed": false,
+        "tags": [
+          "source:tile",
+          "tile-session:2026-03-08T19:00:00Z",
+          "tile-scope:auth",
+          "tile-id:auth/flow",
+          "model:claude-sonnet-4.6"
+        ],
+        "title": "Tile: auth/flow — OAuth2 client_credentials, JWT enrichment, Keto permissions, MCP auth proxy",
+        "updatedAt": "2026-03-08T19:22:53.216Z"
+      }
+    },
+    {
+      "cid": "bafkreieyanxvqx5h647pmytfck4ga43xdzlhby52mtgcvzfe3w57ymgrgm",
+      "id": "entry:6fcd5eb9-04c1-4c2e-a59d-d3baabdaf92e",
+      "kind": "entry",
+      "label": "Nuggets: security domain — secrets, auth guards, crypto, mission integrity",
+      "meta": {
+        "contentHash": "bafkreieyanxvqx5h647pmytfck4ga43xdzlhby52mtgcvzfe3w57ymgrgm",
+        "createdAt": "2026-03-08T19:31:13.863Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "6fcd5eb9-04c1-4c2e-a59d-d3baabdaf92e",
+        "entryType": "semantic",
+        "signed": false,
+        "tags": [
+          "source:nugget",
+          "nugget-session:2026-03-08T19:00:00Z",
+          "nugget-domain:security",
+          "model:claude-sonnet-4.6"
+        ],
+        "title": "Nuggets: security domain — secrets, auth guards, crypto, mission integrity",
+        "updatedAt": "2026-03-08T19:31:13.863Z"
+      }
+    },
+    {
+      "cid": "bafkreibprcu2pckgodix2autw2luchwjkt3x5fesxyh7dp4fzfo6bmnsgi",
+      "id": "entry:8bac5ccd-8f7c-4d9b-9968-24289765a9da",
+      "kind": "entry",
+      "label": "Tile: diary/service — data model, DBOS workflows, signing, and service patterns",
+      "meta": {
+        "contentHash": "bafkreibprcu2pckgodix2autw2luchwjkt3x5fesxyh7dp4fzfo6bmnsgi",
+        "createdAt": "2026-03-08T19:23:40.528Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "8bac5ccd-8f7c-4d9b-9968-24289765a9da",
+        "entryType": "semantic",
+        "signed": false,
+        "tags": [
+          "source:tile",
+          "tile-session:2026-03-08T19:00:00Z",
+          "tile-scope:diary",
+          "tile-id:diary/service",
+          "model:claude-sonnet-4.6"
+        ],
+        "title": "Tile: diary/service — data model, DBOS workflows, signing, and service patterns",
+        "updatedAt": "2026-03-08T19:23:40.528Z"
+      }
+    },
+    {
+      "cid": "bafkreibqabp7jwb6si52c5jihellavdredblua6wfuysngxzupfcdi3oh4",
+      "id": "entry:9a1588e3-edfe-475a-9668-48e2a5fb61cd",
+      "kind": "entry",
+      "label": "Scan: security — Mission Integrity",
+      "meta": {
+        "contentHash": "bafkreibqabp7jwb6si52c5jihellavdredblua6wfuysngxzupfcdi3oh4",
+        "createdAt": "2026-03-08T18:27:15.344Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "9a1588e3-edfe-475a-9668-48e2a5fb61cd",
+        "entryType": "semantic",
+        "signed": false,
+        "tags": [
+          "source:scan",
+          "scan-session:2026-03-08T09:00:00Z",
+          "scan-category:security",
+          "scan-batch:phase1-b3",
+          "scope:security"
+        ],
+        "title": "Scan: security — Mission Integrity",
+        "updatedAt": "2026-03-08T18:27:15.344Z"
+      }
+    },
+    {
+      "cid": "bafkreibns5kumrsjk2ml3yjimyh643vdt5nrb2ld2iwf667mc6iobtzrqy",
+      "id": "entry:b8d81343-430f-4524-b0ad-2d9e4f698f28",
+      "kind": "entry",
+      "label": "Bug fix: contentHash not computed for unsigned entries at creation",
+      "meta": {
+        "contentHash": "bafkreibns5kumrsjk2ml3yjimyh643vdt5nrb2ld2iwf667mc6iobtzrqy",
+        "createdAt": "2026-03-17T09:42:55.259Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "entryId": "b8d81343-430f-4524-b0ad-2d9e4f698f28",
+        "entryType": "episodic",
+        "signed": false,
+        "tags": [
+          "incident",
+          "branch:feat/compile-pack-persistence",
+          "scope:rest-api",
+          "scope:provenance"
+        ],
+        "title": "Bug fix: contentHash not computed for unsigned entries at creation",
+        "updatedAt": "2026-03-17T09:42:55.259Z"
+      }
+    },
+    {
+      "cid": "bafyreiahb7zv63ets3gepvlzfdhxpn7opu7o5zbg6zajejo2ywfm5mmnom",
+      "id": "pack:019e820b-16b0-493f-8df9-cbbab1162606",
+      "kind": "pack",
+      "label": "compile pack 019e820b",
+      "meta": {
+        "createdAt": "2026-03-19T15:26:58.069Z",
+        "creator": null,
+        "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+        "expiresAt": "2026-03-26T15:26:58.069Z",
+        "packCid": "bafyreiahb7zv63ets3gepvlzfdhxpn7opu7o5zbg6zajejo2ywfm5mmnom",
+        "packCodec": "dag-cbor",
+        "packId": "019e820b-16b0-493f-8df9-cbbab1162606",
+        "packType": "compile",
+        "pinned": false,
+        "supersedesPackId": null
+      }
+    }
+  ]
+}

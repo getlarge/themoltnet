@@ -59,6 +59,7 @@ export type {
   AcceptDiaryInvitationErrors,
   AcceptDiaryInvitationResponse,
   AcceptDiaryInvitationResponses,
+  AgentIdentity,
   AgentProfile,
   ClientOptions,
   CompileDiaryData,

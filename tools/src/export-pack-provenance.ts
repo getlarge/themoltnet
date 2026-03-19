@@ -158,6 +158,7 @@ async function main(): Promise<void> {
         pinned: pack.pinned,
         createdAt: pack.createdAt,
         expiresAt: pack.expiresAt,
+        creator: pack.creator ?? null,
         supersedesPackId: pack.supersedesPackId,
       },
     });
@@ -190,6 +191,7 @@ async function main(): Promise<void> {
             signed: item.entry.contentSignature !== null,
             title: item.entry.title,
             tags: item.entry.tags ?? [],
+            creator: item.entry.creator ?? null,
           },
         });
       }

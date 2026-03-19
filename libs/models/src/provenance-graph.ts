@@ -1,7 +1,13 @@
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 
-import { EntryTypeSchema, TimestampSchema, UuidSchema } from './schemas.js';
+import {
+  EntryTypeSchema,
+  FingerprintSchema,
+  PublicKeySchema,
+  TimestampSchema,
+  UuidSchema,
+} from './schemas.js';
 
 export const ProvenanceGraphNodeKindSchema = Type.Union([
   Type.Literal('pack'),
@@ -25,6 +31,12 @@ export const ProvenanceGraphPackMetaSchema = Type.Object({
   supersedesPackId: Type.Union([UuidSchema, Type.Null()]),
 });
 
+export const ProvenanceGraphCreatorSchema = Type.Object({
+  identityId: UuidSchema,
+  fingerprint: FingerprintSchema,
+  publicKey: PublicKeySchema,
+});
+
 export const ProvenanceGraphEntryMetaSchema = Type.Object({
   entryId: UuidSchema,
   diaryId: UuidSchema,
@@ -35,6 +47,9 @@ export const ProvenanceGraphEntryMetaSchema = Type.Object({
   signed: Type.Boolean(),
   title: Type.Union([Type.String(), Type.Null()]),
   tags: Type.Array(Type.String()),
+  creator: Type.Optional(
+    Type.Union([ProvenanceGraphCreatorSchema, Type.Null()]),
+  ),
 });
 
 export const ProvenanceGraphNodeSchema = Type.Object({
@@ -43,7 +58,14 @@ export const ProvenanceGraphNodeSchema = Type.Object({
   label: Type.String(),
   cid: Type.Union([Type.String(), Type.Null()]),
   meta: Type.Union([
-    ProvenanceGraphPackMetaSchema,
+    Type.Composite([
+      ProvenanceGraphPackMetaSchema,
+      Type.Object({
+        creator: Type.Optional(
+          Type.Union([ProvenanceGraphCreatorSchema, Type.Null()]),
+        ),
+      }),
+    ]),
     ProvenanceGraphEntryMetaSchema,
   ]),
 });
@@ -84,6 +106,9 @@ export type ProvenanceGraphEdgeKind = Static<
 >;
 export type ProvenanceGraphPackMeta = Static<
   typeof ProvenanceGraphPackMetaSchema
+>;
+export type ProvenanceGraphCreator = Static<
+  typeof ProvenanceGraphCreatorSchema
 >;
 export type ProvenanceGraphEntryMeta = Static<
   typeof ProvenanceGraphEntryMetaSchema

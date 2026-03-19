@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it } from 'vitest';
 import { Router } from 'wouter';
@@ -49,6 +49,32 @@ describe('provenance viewer route', () => {
 
     expect(screen.getByText('Provenance Graph Viewer')).toBeInTheDocument();
     expect(screen.getByText('Load Sample')).toBeInTheDocument();
+    expect(screen.getByText('Graph Surface')).toBeInTheDocument();
+    expect(screen.getByText('Fit View')).toBeInTheDocument();
+    expect(screen.getByText('C212-DAFA-27C5-6C57')).toBeInTheDocument();
     expect(screen.getAllByText('compile pack v2').length).toBeGreaterThan(0);
+  });
+
+  it('collapses a selected pack entry fanout', () => {
+    const { hook } = memoryLocation({
+      path: '/labs/provenance',
+      record: true,
+    });
+
+    render(
+      <MoltThemeProvider mode="dark">
+        <Router hook={hook}>
+          <App />
+        </Router>
+      </MoltThemeProvider>,
+    );
+
+    expect(screen.getByText('MCP server notes')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText('compile pack v2')[0]!);
+
+    expect(screen.queryByText('MCP server notes')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand Entries' }),
+    ).toBeInTheDocument();
   });
 });
