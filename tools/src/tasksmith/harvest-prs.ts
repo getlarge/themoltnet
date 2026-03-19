@@ -14,7 +14,7 @@ import {
 } from '@moltnet/context-evals/pipeline-shared';
 
 import { discoverCandidates, saveHarvestState } from './pr-discovery.js';
-import { extractTask } from './task-extractor.js';
+import { extractTask, normalizeTestCommand } from './task-extractor.js';
 import type {
   CriteriaItem,
   HarvestOptions,
@@ -102,9 +102,14 @@ async function loadExtractedTasks(
     if (isNaN(pr)) continue;
     if (prFilter?.length && !prFilter.includes(pr)) continue;
 
-    const task = JSON.parse(
+    const raw = JSON.parse(
       await readFile(resolve(tasksDir, file), 'utf8'),
     ) as TasksmithTask;
+    const task: TasksmithTask = {
+      ...raw,
+      fail_to_pass: raw.fail_to_pass.map(normalizeTestCommand),
+      pass_to_pass: raw.pass_to_pass.map(normalizeTestCommand),
+    };
 
     let criteria: CriteriaItem[] = [];
     try {

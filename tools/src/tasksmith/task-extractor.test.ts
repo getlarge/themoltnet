@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assembleTasksmithTask,
+  normalizeTestCommand,
   truncateToTokenBudget,
 } from './task-extractor.js';
 import type { ExtractionResult, PrCandidate } from './types.js';
@@ -43,6 +44,59 @@ describe('assembleTasksmithTask', () => {
     expect(task.problem_statement).toBe(extraction.problemStatement);
     expect(task.family).toBe('bugfix');
     expect(task.confidence).toBe('high');
+  });
+});
+
+describe('normalizeTestCommand', () => {
+  it('replaces --testPathPattern with -- separator', () => {
+    expect(
+      normalizeTestCommand(
+        "pnpm --filter @moltnet/diary-service test --testPathPattern='diary-service.test'",
+      ),
+    ).toBe('pnpm --filter @moltnet/diary-service test -- diary-service.test');
+  });
+
+  it('strips repo-root path prefixes', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @moltnet/auth test libs/auth/__tests__/relationship-reader.test.ts',
+      ),
+    ).toBe(
+      'pnpm --filter @moltnet/auth test __tests__/relationship-reader.test.ts',
+    );
+  });
+
+  it('fixes exec vitest → vitest', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @moltnet/mcp-server exec vitest run __tests__/diary-tools.test.ts',
+      ),
+    ).toBe(
+      'pnpm --filter @moltnet/mcp-server vitest run __tests__/diary-tools.test.ts',
+    );
+  });
+
+  it('adds run subcommand to vitest', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @moltnet/api-client vitest __tests__/retry.test.ts',
+      ),
+    ).toBe(
+      'pnpm --filter @moltnet/api-client vitest run __tests__/retry.test.ts',
+    );
+  });
+
+  it('removes --reporter=verbose', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @moltnet/crypto-service run test --reporter=verbose',
+      ),
+    ).toBe('pnpm --filter @moltnet/crypto-service run test');
+  });
+
+  it('leaves Go test commands untouched', () => {
+    const goCmd = 'go test ./cmd/moltnet/ -run TestSign';
+    expect(normalizeTestCommand(goCmd)).toBe(goCmd);
   });
 });
 

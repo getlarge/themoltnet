@@ -80,6 +80,65 @@ CRITERIA:
 
 FAMILIES: bugfix (fixes broken behavior), feature (adds new capability), refactor (changes structure, same behavior), test (adds test coverage), infra (build/CI/tooling)`;
 
+// ── Command normalization ──
+
+/**
+ * Fix common LLM mistakes in test commands:
+ * - Replace jest flags (--testPathPattern) with `-- <pattern>` for vitest
+ * - Fix `pnpm --filter <pkg> exec vitest` → `pnpm --filter <pkg> vitest`
+ * - Remove `--reporter=verbose` (noise, sometimes breaks)
+ * - Ensure `run` subcommand is present for vitest
+ * - Strip repo-root path prefixes from test file paths
+ */
+export function normalizeTestCommand(cmd: string): string {
+  // Skip Go test commands — different ecosystem
+  if (cmd.includes('go test')) return cmd;
+
+  let normalized = cmd;
+
+  // Fix: --testPathPattern is jest, not vitest. Convert to `-- <pattern>`.
+  const testPathMatch = normalized.match(/--testPathPattern[= ]+'?([^' ]+)'?/);
+  if (testPathMatch) {
+    normalized = normalized.replace(/--testPathPattern[= ]+'?[^' ]+'?/, '');
+    const pattern = testPathMatch[1];
+    // If there's already a `--`, append after it; otherwise add `-- <pattern>`
+    if (normalized.includes(' -- ')) {
+      normalized = normalized.trimEnd() + ' ' + pattern;
+    } else {
+      normalized = normalized.trimEnd() + ' -- ' + pattern;
+    }
+  }
+
+  // Fix: `exec vitest run` → `vitest run` (exec is unnecessary with pnpm filter)
+  normalized = normalized.replace(
+    /(\bpnpm --filter [^ ]+) exec vitest/,
+    '$1 vitest',
+  );
+
+  // Fix: ensure vitest has `run` subcommand when used directly
+  // `pnpm --filter @pkg vitest __tests__/foo.test.ts` → add `run`
+  normalized = normalized.replace(
+    /(\bpnpm --filter [^ ]+ vitest) (?!run\b)/,
+    '$1 run ',
+  );
+
+  // Remove --reporter=verbose (sometimes causes issues, not needed for pass/fail)
+  normalized = normalized.replace(/\s*--reporter[= ]?verbose\s*/g, ' ');
+
+  // Strip repo-root path prefixes from test file paths.
+  // e.g. `libs/auth/__tests__/foo.test.ts` → `__tests__/foo.test.ts`
+  // `apps/rest-api/__tests__/foo.test.ts` → `__tests__/foo.test.ts`
+  normalized = normalized.replace(
+    /\b(?:libs|apps)\/[^/ ]+\/((?:__tests__|src|test)\/[^ ]+)/g,
+    '$1',
+  );
+
+  // Collapse multiple spaces
+  normalized = normalized.replace(/\s{2,}/g, ' ').trim();
+
+  return normalized;
+}
+
 // ── Assembly ──
 
 export function assembleTasksmithTask(
@@ -95,8 +154,8 @@ export function assembleTasksmithTask(
     family: extraction.family,
     subsystems: extraction.subsystems,
     changed_files: candidate.changedFiles,
-    fail_to_pass: extraction.failToPass,
-    pass_to_pass: extraction.passToPass,
+    fail_to_pass: extraction.failToPass.map(normalizeTestCommand),
+    pass_to_pass: extraction.passToPass.map(normalizeTestCommand),
     confidence: 'high',
   };
 }
