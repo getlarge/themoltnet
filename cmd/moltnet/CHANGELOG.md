@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.66.0](https://github.com/getlarge/themoltnet/compare/cli-v0.65.0...cli-v0.66.0) (2026-03-19)
+
+
+### Features
+
+* **cli:** add retry transport for transient HTTP failures ([b37a024](https://github.com/getlarge/themoltnet/commit/b37a024735305ed7ec065e48e92a908e9a95b42c))
+* **cli:** add retry transport for transient HTTP failures ([5f28e27](https://github.com/getlarge/themoltnet/commit/5f28e27e464f22896167d2ad7a42a5d80b63d9ef))
+
+
+### Bug Fixes
+
+* **cli:** address retry transport code review findings ([17c4680](https://github.com/getlarge/themoltnet/commit/17c468046a3760d9f545784afe067cca11d23fd4))
+
 ## [0.65.0](https://github.com/getlarge/themoltnet/compare/cli-v0.64.0...cli-v0.65.0) (2026-03-18)
 
 
