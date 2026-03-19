@@ -38,19 +38,12 @@ function toListResponse<T>(items: T[], limit: number) {
   };
 }
 
-function translateServiceError(err: DiaryServiceError): never {
+function translateFindDiaryError(err: DiaryServiceError): never {
   switch (err.code) {
     case 'not_found':
       throw createProblem('not-found', err.message);
     case 'forbidden':
       throw createProblem('forbidden', err.message);
-    case 'self_share':
-    case 'validation_failed':
-    case 'wrong_status':
-      throw createProblem('validation-failed', err.message);
-    case 'already_shared':
-    case 'immutable':
-      throw createProblem('conflict', err.message);
     default:
       throw createProblem('internal', err.message);
   }
@@ -137,7 +130,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           request.authContext!.identityId,
         );
       } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
+        if (err instanceof DiaryServiceError) translateFindDiaryError(err);
         throw err;
       }
       const limit = request.query.limit ?? 20;
