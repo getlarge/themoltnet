@@ -110,8 +110,6 @@ export function createContextPackRepository(db: Database) {
             supersededBy: diaryEntries.supersededBy,
             contentHash: diaryEntries.contentHash,
             contentSignature: diaryEntries.contentSignature,
-            signingNonce: diaryEntries.signingNonce,
-            createdBy: diaryEntries.createdBy,
             createdAt: diaryEntries.createdAt,
             updatedAt: diaryEntries.updatedAt,
           },
@@ -159,8 +157,6 @@ export function createContextPackRepository(db: Database) {
             supersededBy: diaryEntries.supersededBy,
             contentHash: diaryEntries.contentHash,
             contentSignature: diaryEntries.contentSignature,
-            signingNonce: diaryEntries.signingNonce,
-            createdBy: diaryEntries.createdBy,
             createdAt: diaryEntries.createdAt,
             updatedAt: diaryEntries.updatedAt,
           },
@@ -252,5 +248,8 @@ export type ContextPackRepository = ReturnType<
 export interface ExpandedPackEntry extends InferSelectModel<
   typeof contextPackEntries
 > {
-  entry: Omit<InferSelectModel<typeof diaryEntries>, 'embedding'>;
+  entry: Omit<
+    InferSelectModel<typeof diaryEntries>,
+    'embedding' | 'createdBy' | 'signingNonce'
+  >;
 }

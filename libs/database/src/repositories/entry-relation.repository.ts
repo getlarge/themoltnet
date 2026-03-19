@@ -15,6 +15,12 @@ import {
 import { getExecutor } from '../transaction-context.js';
 
 export function createEntryRelationRepository(db: Database) {
+  function relationKey(
+    input: Pick<EntryRelation, 'sourceId' | 'targetId' | 'relation'>,
+  ) {
+    return `${input.sourceId}:${input.targetId}:${input.relation}`;
+  }
+
   async function createOne(input: NewEntryRelation): Promise<EntryRelation> {
     const [row] = await getExecutor(db)
       .insert(entryRelations)
@@ -73,10 +79,44 @@ export function createEntryRelationRepository(db: Database) {
         return inserted;
       }
 
-      const existing = await Promise.all(
-        inputs.map((input) => createOne(input)),
+      const insertedKeys = new Set(inserted.map((row) => relationKey(row)));
+      const missingInputs = inputs.filter(
+        (input) => !insertedKeys.has(relationKey(input)),
       );
-      return existing;
+
+      const existing =
+        missingInputs.length === 0
+          ? []
+          : await getExecutor(db)
+              .select()
+              .from(entryRelations)
+              .where(
+                or(
+                  ...missingInputs.map((input) =>
+                    and(
+                      eq(entryRelations.sourceId, input.sourceId),
+                      eq(entryRelations.targetId, input.targetId),
+                      eq(entryRelations.relation, input.relation),
+                    ),
+                  ),
+                ),
+              );
+
+      const byKey = new Map<string, EntryRelation>();
+      for (const row of inserted) {
+        byKey.set(relationKey(row), row);
+      }
+      for (const row of existing) {
+        byKey.set(relationKey(row), row);
+      }
+
+      return inputs.map((input) => {
+        const row = byKey.get(relationKey(input));
+        if (!row) {
+          throw new Error('entry relation bulk upsert failed unexpectedly');
+        }
+        return row;
+      });
     },
 
     async listByEntry(

@@ -313,7 +313,11 @@ export function initContextDistillWorkflows(): void {
 
       const proposals = clusterToRelationProposals(
         result.clusters,
-        new Map(entries.map((entry) => [entry.id, entry.contentHash ?? ''])),
+        new Map(
+          entries.flatMap((entry) =>
+            entry.contentHash ? [[entry.id, entry.contentHash] as const] : [],
+          ),
+        ),
         DBOS.workflowID ?? '',
       );
 
