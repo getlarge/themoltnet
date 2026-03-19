@@ -83,18 +83,74 @@ FAMILIES: bugfix (fixes broken behavior), feature (adds new capability), refacto
 // ── Command normalization ──
 
 /**
+ * Known package name aliases → correct pnpm filter names.
+ * The LLM often confuses @moltnet/ (internal) with @themoltnet/ (published)
+ * or omits the scope entirely.
+ */
+const PACKAGE_ALIASES: Record<string, string> = {
+  // Wrong scope (LLM uses @themoltnet/ for internal packages)
+  '@themoltnet/landing': '@moltnet/landing',
+  '@themoltnet/rest-api': '@moltnet/rest-api',
+  '@themoltnet/mcp-server': '@moltnet/mcp-server',
+  '@themoltnet/api-client': '@moltnet/api-client',
+  '@themoltnet/diary-service': '@moltnet/diary-service',
+  '@themoltnet/database': '@moltnet/database',
+  '@themoltnet/crypto-service': '@moltnet/crypto-service',
+  '@themoltnet/observability': '@moltnet/observability',
+  '@themoltnet/auth': '@moltnet/auth',
+  // Wrong name for legreffier (dir name vs package name)
+  '@moltnet/legreffier-cli': '@themoltnet/legreffier',
+  '@themoltnet/legreffier-cli': '@themoltnet/legreffier',
+  'legreffier-cli': '@themoltnet/legreffier',
+  // Missing scope entirely
+  'rest-api': '@moltnet/rest-api',
+  'mcp-server': '@moltnet/mcp-server',
+  landing: '@moltnet/landing',
+  'api-client': '@moltnet/api-client',
+  'crypto-service': '@moltnet/crypto-service',
+  database: '@moltnet/database',
+  'diary-service': '@moltnet/diary-service',
+  observability: '@moltnet/observability',
+  'context-evals': '@moltnet/context-evals',
+  'context-distill': '@moltnet/context-distill',
+};
+
+/**
  * Fix common LLM mistakes in test commands:
  * - Replace jest flags (--testPathPattern) with `-- <pattern>` for vitest
  * - Fix `pnpm --filter <pkg> exec vitest` → `pnpm --filter <pkg> vitest`
  * - Remove `--reporter=verbose` (noise, sometimes breaks)
  * - Ensure `run` subcommand is present for vitest
  * - Strip repo-root path prefixes from test file paths
+ * - Fix wrong package names in --filter (scope confusion, missing scope)
+ * - Rewrite `vitest run` to `test` when packages don't have a vitest script
+ * - Escape shell pipe `|` inside test name patterns
+ * - Fix Go test commands missing `cd` prefix
  */
 export function normalizeTestCommand(cmd: string): string {
-  // Skip Go test commands — different ecosystem
-  if (cmd.includes('go test')) return cmd;
+  // Go test commands: ensure they run from the correct directory
+  if (cmd.includes('go test')) {
+    // If command doesn't already have `cd`, prefix with `cd cmd/moltnet &&`
+    if (!cmd.startsWith('cd ')) {
+      return `cd cmd/moltnet && ${cmd}`;
+    }
+    return cmd;
+  }
 
   let normalized = cmd;
+
+  // Fix: wrong package names in --filter
+  const filterMatch = normalized.match(/pnpm --filter (\S+)/);
+  if (filterMatch) {
+    const pkg = filterMatch[1];
+    const corrected = PACKAGE_ALIASES[pkg];
+    if (corrected) {
+      normalized = normalized.replace(
+        `pnpm --filter ${pkg}`,
+        `pnpm --filter ${corrected}`,
+      );
+    }
+  }
 
   // Fix: --testPathPattern is jest, not vitest. Convert to `-- <pattern>`.
   const testPathMatch = normalized.match(/--testPathPattern[= ]+'?([^' ]+)'?/);
@@ -115,21 +171,29 @@ export function normalizeTestCommand(cmd: string): string {
     '$1 vitest',
   );
 
-  // Fix: ensure vitest has `run` subcommand when used directly
-  // `pnpm --filter @pkg vitest __tests__/foo.test.ts` → add `run`
+  // Fix: `pnpm --filter <pkg> vitest run ...` → `pnpm --filter <pkg> test ...`
+  // Packages have a `test` script (wrapping vitest), not a `vitest` script.
   normalized = normalized.replace(
-    /(\bpnpm --filter [^ ]+ vitest) (?!run\b)/,
-    '$1 run ',
+    /(\bpnpm --filter [^ ]+) vitest run\b/,
+    '$1 test',
   );
 
   // Remove --reporter=verbose (sometimes causes issues, not needed for pass/fail)
   normalized = normalized.replace(/\s*--reporter[= ]?verbose\s*/g, ' ');
 
+  // Fix: unescaped shell pipe `|` in test name patterns.
+  // e.g. `run test pack-cid|provenance` → shell interprets `|` as pipe.
+  // Wrap the pattern argument in quotes if it contains `|`.
+  normalized = normalized.replace(
+    /(\brun test(?:\s+--\s+)?)\s+(\S*\|[^\s'"]+)/,
+    (_, prefix, pattern) => `${prefix} '${pattern}'`,
+  );
+
   // Strip repo-root path prefixes from test file paths.
   // e.g. `libs/auth/__tests__/foo.test.ts` → `__tests__/foo.test.ts`
   // `apps/rest-api/__tests__/foo.test.ts` → `__tests__/foo.test.ts`
   normalized = normalized.replace(
-    /\b(?:libs|apps)\/[^/ ]+\/((?:__tests__|src|test)\/[^ ]+)/g,
+    /\b(?:libs|apps|packages)\/[^/ ]+\/((?:__tests__|src|test)\/[^ ]+)/g,
     '$1',
   );
 
