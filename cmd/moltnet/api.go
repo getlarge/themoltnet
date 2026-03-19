@@ -24,10 +24,12 @@ func (s *tokenSecuritySource) BearerAuth(_ context.Context, _ moltnetapi.Operati
 }
 
 // newAuthedClient builds a moltnetapi.Client authenticated via the TokenManager.
+// The underlying HTTP client uses a retry transport for transient failures (429, 5xx).
 func newAuthedClient(apiURL string, tm *TokenManager) (*moltnetapi.Client, error) {
 	return moltnetapi.NewClient(
 		strings.TrimRight(apiURL, "/"),
 		&tokenSecuritySource{tm: tm},
+		moltnetapi.WithClient(tm.httpClient),
 	)
 }
 
