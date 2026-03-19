@@ -1,3 +1,4 @@
+import { computeContentCid } from '@moltnet/crypto-service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -148,6 +149,12 @@ describe('Diary Workflows', () => {
           diaryId: DIARY_ID,
           createdBy: ENTRY_ID,
           content: 'Test diary entry content',
+          contentHash: computeContentCid(
+            'semantic',
+            null,
+            'Test diary entry content',
+            null,
+          ),
           embedding: MOCK_EMBEDDING,
           injectionRisk: false,
         }),
@@ -229,7 +236,15 @@ describe('Diary Workflows', () => {
 
       expect(result).toEqual(mockEntry);
       expect(repo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ embedding: undefined }),
+        expect.objectContaining({
+          embedding: undefined,
+          contentHash: computeContentCid(
+            'semantic',
+            null,
+            'Test content',
+            null,
+          ),
+        }),
       );
     });
 

@@ -16,6 +16,7 @@
  */
 
 import { type RelationshipWriter } from '@moltnet/auth';
+import { computeContentCid } from '@moltnet/crypto-service';
 import {
   type DataSource,
   DBOS,
@@ -168,6 +169,15 @@ export function initDiaryWorkflows(): void {
         const { diaryEntryRepository, dataSource } = getDeps();
 
         const entryId = await generateIdStep();
+        const resolvedEntryType = input.entryType ?? 'semantic';
+        const contentHash =
+          input.contentHash ??
+          computeContentCid(
+            resolvedEntryType,
+            input.title ?? null,
+            input.content,
+            input.tags ?? null,
+          );
         const embedText = buildEmbeddingTextLocal(
           input.content,
           input.tags,
@@ -189,10 +199,10 @@ export function initDiaryWorkflows(): void {
               title: input.title,
               tags: input.tags,
               importance: input.importance,
-              entryType: input.entryType,
+              entryType: resolvedEntryType,
               embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
-              contentHash: input.contentHash,
+              contentHash,
               contentSignature: input.contentSignature,
               signingNonce: input.signingNonce,
             });
