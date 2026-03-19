@@ -33,6 +33,9 @@
       "path": "../libs/database"
     },
     {
+      "path": "../libs/models"
+    },
+    {
       "path": "../libs/sdk"
     },
     {

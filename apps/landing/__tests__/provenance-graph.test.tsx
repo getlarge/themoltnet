@@ -1,0 +1,54 @@
+import { render, screen } from '@testing-library/react';
+import { MoltThemeProvider } from '@themoltnet/design-system';
+import { describe, expect, it } from 'vitest';
+import { Router } from 'wouter';
+import { memoryLocation } from 'wouter/memory-location';
+
+import { App } from '../src/App';
+import { buildGraphLayout } from '../src/provenance/graph-layout';
+import { parseProvenanceGraph } from '../src/provenance/parse-graph';
+import { sampleProvenanceGraph } from '../src/provenance/sample-graph';
+
+describe('provenance graph utilities', () => {
+  it('parses the bundled sample graph', () => {
+    const parsed = parseProvenanceGraph(
+      JSON.stringify(sampleProvenanceGraph, null, 2),
+    );
+
+    expect(parsed.metadata.rootNodeId).toBe('pack:compile-2');
+    expect(parsed.nodes).toHaveLength(5);
+    expect(parsed.edges).toHaveLength(5);
+  });
+
+  it('builds a layered layout with the root pack on the left', () => {
+    const layout = buildGraphLayout(sampleProvenanceGraph);
+
+    expect(layout.positions['pack:compile-2'].x).toBeLessThan(
+      layout.positions['pack:compile-1'].x,
+    );
+    expect(layout.positions['pack:compile-1'].x).toBeLessThan(
+      layout.positions['entry:identity'].x,
+    );
+  });
+});
+
+describe('provenance viewer route', () => {
+  it('renders the provenance viewer with sample content', () => {
+    const { hook } = memoryLocation({
+      path: '/labs/provenance',
+      record: true,
+    });
+
+    render(
+      <MoltThemeProvider mode="dark">
+        <Router hook={hook}>
+          <App />
+        </Router>
+      </MoltThemeProvider>,
+    );
+
+    expect(screen.getByText('Provenance Graph Viewer')).toBeInTheDocument();
+    expect(screen.getByText('Load Sample')).toBeInTheDocument();
+    expect(screen.getAllByText('compile pack v2').length).toBeGreaterThan(0);
+  });
+});

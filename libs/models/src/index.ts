@@ -5,4 +5,5 @@
  */
 
 export * from './problem-details.js';
+export * from './provenance-graph.js';
 export * from './schemas.js';

@@ -20,6 +20,9 @@
     },
     {
       "path": "../../libs/discovery"
+    },
+    {
+      "path": "../../libs/models"
     }
   ]
 }
