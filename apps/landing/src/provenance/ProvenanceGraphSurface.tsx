@@ -9,18 +9,29 @@ const NODE_WIDTH = 280;
 const NODE_HEIGHT = 116;
 const NODE_LABEL_MAX = 30;
 
-function nodeFill(kind: ProvenanceGraphNode['kind']): string {
+function nodeFill(
+  theme: ReturnType<typeof useTheme>,
+  kind: ProvenanceGraphNode['kind'],
+): string {
+  return kind === 'pack' ? theme.color.accent.muted : theme.color.primary.muted;
+}
+
+function nodeStroke(
+  theme: ReturnType<typeof useTheme>,
+  kind: ProvenanceGraphNode['kind'],
+): string {
   return kind === 'pack'
-    ? 'rgba(230, 168, 23, 0.14)'
-    : 'rgba(97, 201, 168, 0.14)';
+    ? theme.color.accent.DEFAULT
+    : theme.color.primary.DEFAULT;
 }
 
-function nodeStroke(kind: ProvenanceGraphNode['kind']): string {
-  return kind === 'pack' ? '#e6a817' : '#61c9a8';
-}
-
-function edgeStroke(kind: 'includes' | 'supersedes'): string {
-  return kind === 'supersedes' ? '#e6a817' : '#7dd3fc';
+function edgeStroke(
+  theme: ReturnType<typeof useTheme>,
+  kind: 'includes' | 'supersedes',
+): string {
+  return kind === 'supersedes'
+    ? theme.color.accent.DEFAULT
+    : theme.color.primary.DEFAULT;
 }
 
 interface ProvenanceGraphSurfaceProps {
@@ -55,8 +66,7 @@ export function ProvenanceGraphSurface({
         width: '100%',
         height: '100%',
         display: 'block',
-        background:
-          'radial-gradient(circle at top left, rgba(230, 168, 23, 0.1), transparent 28%), linear-gradient(180deg, rgba(11, 17, 32, 0.96), rgba(7, 10, 18, 1))',
+        background: `radial-gradient(circle at top left, ${theme.color.accent.muted}, transparent 28%), linear-gradient(180deg, ${theme.color.bg.elevated}, ${theme.color.bg.void})`,
       }}
     >
       <g
@@ -78,7 +88,7 @@ export function ProvenanceGraphSurface({
               <path
                 d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
                 fill="none"
-                stroke={edgeStroke(edge.kind)}
+                stroke={edgeStroke(theme, edge.kind)}
                 strokeDasharray={edge.kind === 'supersedes' ? '8 6' : undefined}
                 strokeOpacity={0.8}
                 strokeWidth={2.5}
@@ -87,7 +97,7 @@ export function ProvenanceGraphSurface({
                 <text
                   x={midX}
                   y={(y1 + y2) / 2 - 8}
-                  fill="rgba(255,255,255,0.72)"
+                  fill={theme.color.text.secondary}
                   fontFamily={theme.font.family.mono}
                   fontSize={12}
                   textAnchor="middle"
@@ -122,8 +132,8 @@ export function ProvenanceGraphSurface({
                 width={NODE_WIDTH}
                 height={NODE_HEIGHT}
                 rx={24}
-                fill={nodeFill(node.kind)}
-                stroke={nodeStroke(node.kind)}
+                fill={nodeFill(theme, node.kind)}
+                stroke={nodeStroke(theme, node.kind)}
                 strokeOpacity={selected ? 1 : 0.7}
                 strokeWidth={selected ? 3 : 2}
               />
@@ -135,13 +145,13 @@ export function ProvenanceGraphSurface({
                     width={28}
                     height={28}
                     rx={14}
-                    fill="rgba(255,255,255,0.08)"
-                    stroke="rgba(255,255,255,0.18)"
+                    fill={theme.color.bg.overlay}
+                    stroke={theme.color.border.DEFAULT}
                   />
                   <text
                     x={currentPosition.x + NODE_WIDTH - 30}
                     y={currentPosition.y + 33}
-                    fill="#f5f7fb"
+                    fill={theme.color.text.DEFAULT}
                     fontFamily={theme.font.family.mono}
                     fontSize={18}
                     textAnchor="middle"
@@ -170,7 +180,7 @@ export function ProvenanceGraphSurface({
                   key={`${node.id}-${index}`}
                   x={currentPosition.x + (creator ? 56 : 18)}
                   y={currentPosition.y + 32 + index * 20}
-                  fill="#f5f7fb"
+                  fill={theme.color.text.DEFAULT}
                   fontFamily={theme.font.family.sans}
                   fontSize={16}
                   fontWeight={600}
@@ -181,7 +191,7 @@ export function ProvenanceGraphSurface({
               <text
                 x={currentPosition.x + 18}
                 y={currentPosition.y + 76}
-                fill="rgba(255,255,255,0.72)"
+                fill={theme.color.text.secondary}
                 fontFamily={theme.font.family.mono}
                 fontSize={12}
               >
@@ -190,7 +200,7 @@ export function ProvenanceGraphSurface({
               <text
                 x={currentPosition.x + 18}
                 y={currentPosition.y + 96}
-                fill="rgba(255,255,255,0.58)"
+                fill={theme.color.text.muted}
                 fontFamily={theme.font.family.mono}
                 fontSize={11}
               >

@@ -29,7 +29,6 @@ import {
 } from '../provenance/graph-viewport';
 import { parseProvenanceGraph } from '../provenance/parse-graph';
 import { ProvenanceGraphSurface } from '../provenance/ProvenanceGraphSurface';
-import { sampleProvenanceGraph } from '../provenance/sample-graph';
 import {
   countEdges,
   extractCreator,
@@ -38,8 +37,6 @@ import {
   summarizeValue,
   toggleCollapsedPack,
 } from '../provenance/viewer-utils';
-
-const sampleJson = JSON.stringify(sampleProvenanceGraph, null, 2);
 
 export function ProvenancePage() {
   const theme = useTheme();
@@ -54,7 +51,7 @@ export function ProvenancePage() {
     moved: boolean;
   } | null>(null);
   const draggedRef = useRef(false);
-  const [rawInput, setRawInput] = useState(sampleJson);
+  const [rawInput, setRawInput] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [collapsedPackIds, setCollapsedPackIds] = useState<Set<string>>(
     () => new Set(),
@@ -68,6 +65,10 @@ export function ProvenancePage() {
   const deferredInput = useDeferredValue(rawInput);
 
   const parsed = useMemo(() => {
+    if (deferredInput.trim() === '') {
+      return { graph: null, error: null as string | null };
+    }
+
     try {
       const graph = parseProvenanceGraph(deferredInput);
       return { graph, error: null as string | null };
@@ -278,8 +279,7 @@ export function ProvenancePage() {
       style={{
         paddingTop: '5rem',
         minHeight: '100vh',
-        background:
-          'linear-gradient(180deg, #0b1120 0%, #0e1528 52%, #060811 100%)',
+        background: `linear-gradient(180deg, ${theme.color.bg.elevated} 0%, ${theme.color.bg.surface} 52%, ${theme.color.bg.void} 100%)`,
       }}
     >
       <Container maxWidth="xl">
@@ -325,7 +325,7 @@ export function ProvenancePage() {
                 <Card
                   style={{
                     padding: theme.spacing[4],
-                    background: 'rgba(9, 14, 27, 0.88)',
+                    background: theme.color.bg.elevated,
                     minWidth: 0,
                   }}
                 >
@@ -345,7 +345,7 @@ export function ProvenancePage() {
                 <Card
                   style={{
                     padding: theme.spacing[4],
-                    background: 'rgba(9, 14, 27, 0.88)',
+                    background: theme.color.bg.elevated,
                   }}
                 >
                   <Text variant="overline" color="accent">
@@ -356,7 +356,7 @@ export function ProvenancePage() {
                 <Card
                   style={{
                     padding: theme.spacing[4],
-                    background: 'rgba(9, 14, 27, 0.88)',
+                    background: theme.color.bg.elevated,
                   }}
                 >
                   <Text variant="overline" color="accent">
@@ -367,7 +367,7 @@ export function ProvenancePage() {
                 <Card
                   style={{
                     padding: theme.spacing[4],
-                    background: 'rgba(9, 14, 27, 0.88)',
+                    background: theme.color.bg.elevated,
                   }}
                 >
                   <Text variant="overline" color="accent">
@@ -380,8 +380,8 @@ export function ProvenancePage() {
               <Card
                 style={{
                   padding: theme.spacing[4],
-                  background: 'rgba(9, 14, 27, 0.88)',
-                  border: '1px solid rgba(97, 201, 168, 0.18)',
+                  background: theme.color.bg.elevated,
+                  border: `1px solid ${theme.color.primary.muted}`,
                 }}
               >
                 <Stack gap={3}>
@@ -450,7 +450,7 @@ export function ProvenancePage() {
                       minHeight: '40rem',
                       borderRadius: theme.radius.xl,
                       overflow: 'hidden',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: `1px solid ${theme.color.border.DEFAULT}`,
                       touchAction: 'none',
                       cursor: isDragging ? 'grabbing' : 'grab',
                     }}
@@ -481,15 +481,16 @@ export function ProvenancePage() {
               <Card
                 style={{
                   padding: theme.spacing[5],
-                  background: 'rgba(9, 14, 27, 0.88)',
-                  border: '1px solid rgba(230, 168, 23, 0.18)',
+                  background: theme.color.bg.elevated,
+                  border: `1px solid ${theme.color.accent.muted}`,
                 }}
               >
                 <Stack gap={3}>
                   <Text variant="h4">Graph Input</Text>
                   <Text variant="caption" color="secondary">
-                    Start with the bundled sample or export a real pack graph
-                    with `pnpm --filter @moltnet/tools graph:provenance`.
+                    Paste a `moltnet.provenance-graph/v1` payload or export a
+                    real pack graph with `pnpm --filter @moltnet/tools
+                    graph:provenance`.
                   </Text>
                   <div
                     style={{
@@ -498,12 +499,6 @@ export function ProvenancePage() {
                       flexWrap: 'wrap',
                     }}
                   >
-                    <Button
-                      onClick={() => setRawInput(sampleJson)}
-                      variant="accent"
-                    >
-                      Load Sample
-                    </Button>
                     <label
                       style={{
                         display: 'inline-flex',
@@ -530,13 +525,14 @@ export function ProvenancePage() {
                     value={rawInput}
                     onChange={(event) => setRawInput(event.target.value)}
                     spellCheck={false}
+                    placeholder={`{\n  "metadata": { ... },\n  "nodes": [],\n  "edges": []\n}`}
                     style={{
                       minHeight: '18rem',
                       width: '100%',
                       resize: 'vertical',
                       borderRadius: theme.radius.lg,
                       border: `1px solid ${theme.color.border.DEFAULT}`,
-                      background: 'rgba(4, 8, 15, 0.94)',
+                      background: theme.color.bg.void,
                       color: theme.color.text.DEFAULT,
                       padding: theme.spacing[4],
                       fontFamily: theme.font.family.mono,
@@ -544,7 +540,10 @@ export function ProvenancePage() {
                     }}
                   />
                   {parsed.error ? (
-                    <Text variant="caption" style={{ color: '#f87171' }}>
+                    <Text
+                      variant="caption"
+                      style={{ color: theme.color.error.DEFAULT }}
+                    >
                       {parsed.error}
                     </Text>
                   ) : null}
@@ -555,7 +554,7 @@ export function ProvenancePage() {
                 <Card
                   style={{
                     padding: theme.spacing[5],
-                    background: 'rgba(9, 14, 27, 0.88)',
+                    background: theme.color.bg.elevated,
                     minWidth: 0,
                   }}
                 >

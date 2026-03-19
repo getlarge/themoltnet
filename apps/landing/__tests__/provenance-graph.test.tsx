@@ -7,7 +7,7 @@ import { memoryLocation } from 'wouter/memory-location';
 import { App } from '../src/App';
 import { buildGraphLayout } from '../src/provenance/graph-layout';
 import { parseProvenanceGraph } from '../src/provenance/parse-graph';
-import { sampleProvenanceGraph } from '../src/provenance/sample-graph';
+import { sampleProvenanceGraph } from './fixtures/sample-provenance-graph';
 
 describe('provenance graph utilities', () => {
   it('parses the bundled sample graph', () => {
@@ -45,7 +45,7 @@ describe('provenance graph utilities', () => {
 });
 
 describe('provenance viewer route', () => {
-  it('renders the provenance viewer with sample content', () => {
+  it('renders the provenance viewer and accepts pasted graph JSON', () => {
     const { hook } = memoryLocation({
       path: '/labs/provenance',
       record: true,
@@ -60,9 +60,13 @@ describe('provenance viewer route', () => {
     );
 
     expect(screen.getByText('Provenance Graph Viewer')).toBeInTheDocument();
-    expect(screen.getByText('Load Sample')).toBeInTheDocument();
     expect(screen.getByText('Graph Surface')).toBeInTheDocument();
     expect(screen.getByText('Fit View')).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: {
+        value: JSON.stringify(sampleProvenanceGraph, null, 2),
+      },
+    });
     expect(screen.getByText('C212-DAFA-27C5-6C57')).toBeInTheDocument();
     expect(screen.getAllByText('compile pack v2').length).toBeGreaterThan(0);
   });
@@ -81,6 +85,11 @@ describe('provenance viewer route', () => {
       </MoltThemeProvider>,
     );
 
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: {
+        value: JSON.stringify(sampleProvenanceGraph, null, 2),
+      },
+    });
     expect(screen.getByText('MCP server notes')).toBeInTheDocument();
     fireEvent.click(screen.getAllByText('compile pack v2')[0]!);
 
