@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.39.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.38.0...moltnet-api-client-v0.39.0) (2026-03-19)
+
+
+### Features
+
+* **api,sdk:** entry-centric routes + distill SDK methods ([d69b68e](https://github.com/getlarge/themoltnet/commit/d69b68e4f711778b89c97c71065ee8963dbc931b))
+* **api:** add entry-centric entry routes and distill sdk facade ([2e93622](https://github.com/getlarge/themoltnet/commit/2e9362245fc9606321f0c19ced84c8b69b5d6c57))
+* **api:** add persisted context pack read routes ([1343f49](https://github.com/getlarge/themoltnet/commit/1343f493d47d678d43b694f2f0d39eb58b84d237))
+* compile workflow persists context packs with DAG-CBOR provenance ([d935491](https://github.com/getlarge/themoltnet/commit/d9354919960b799c482ed78068e9f83d304a7bfd))
+* content-signed immutable diary entries ([0c765bb](https://github.com/getlarge/themoltnet/commit/0c765bb8cf6fe8d57e5179c7cba1e468431c78c1))
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* **legreffier-cli:** add setup subcommand and Codex adapter ([#324](https://github.com/getlarge/themoltnet/issues/324)) ([7e50e04](https://github.com/getlarge/themoltnet/commit/7e50e04458a6da8b2dcf61dcef51720f27aa8733))
+* **legreffier-cli:** LeGreffier init CLI — full onboarding flow ([57caf23](https://github.com/getlarge/themoltnet/commit/57caf23273fe37bd2363746803da2f5157707631))
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+* retry fetch + simplify content-signed entries ([#144](https://github.com/getlarge/themoltnet/issues/144), [#407](https://github.com/getlarge/themoltnet/issues/407)) ([afb3139](https://github.com/getlarge/themoltnet/commit/afb3139650198a50bb1b7da337746ff7ec1fe485))
+* **search:** add excludeTags filtering for distill and entries ([675f9c6](https://github.com/getlarge/themoltnet/commit/675f9c67944ae480cdf55a6061967812a9da4caf))
+
+
+### Bug Fixes
+
+* address Copilot review feedback ([202b875](https://github.com/getlarge/themoltnet/commit/202b8754f06f77c02340bcbdd17bc548d3425870))
+* **api-client:** regenerate Go client with ogen v1.20.0 ([4ca9f34](https://github.com/getlarge/themoltnet/commit/4ca9f347928618f3440ed25bf26666185c0238b3))
+* **go-api-client:** regenerate from updated OpenAPI spec (includeSuspicious param) ([3c7fe1a](https://github.com/getlarge/themoltnet/commit/3c7fe1a4bc0f1a57d5fdadb43cd2f70800daaffd))
+* **legreffier-cli:** fix CI test failures — update error message + vitest SDK alias ([7247f51](https://github.com/getlarge/themoltnet/commit/7247f511552c7ab76a413ba4bd5745eceb247f7c))
+* **observability:** BigInt crash fix + Axiom edge endpoint for EU ([4b8bb67](https://github.com/getlarge/themoltnet/commit/4b8bb6778bb7e3e56ada81f0d19f1ebf056b8b50))
+* regenerate Go API client and fix CodeQL shell injection ([9a23e70](https://github.com/getlarge/themoltnet/commit/9a23e703c77f7a23d584165e8d62e4e3c3bf8c26))
+
 ## [0.38.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.37.0...moltnet-api-client-v0.38.0) (2026-03-19)
 
 
