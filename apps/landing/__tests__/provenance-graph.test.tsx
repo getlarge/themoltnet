@@ -20,6 +20,18 @@ describe('provenance graph utilities', () => {
     expect(parsed.edges).toHaveLength(5);
   });
 
+  it('rejects malformed graph payloads before render time', () => {
+    expect(() =>
+      parseProvenanceGraph(
+        JSON.stringify({
+          metadata: sampleProvenanceGraph.metadata,
+          nodes: [{ id: 'pack:oops' }],
+          edges: [],
+        }),
+      ),
+    ).toThrow('Invalid provenance graph payload');
+  });
+
   it('builds a layered layout with the root pack on the left', () => {
     const layout = buildGraphLayout(sampleProvenanceGraph);
 

@@ -521,7 +521,11 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         createdBy: agentId,
       });
       logger.info(
-        { entryId: entry.id, diaryId: input.diaryId, type: input.entryType },
+        {
+          entryId: entry.id,
+          diaryId: input.diaryId,
+          type: resolvedEntryType,
+        },
         'entry.created',
       );
       return entry;

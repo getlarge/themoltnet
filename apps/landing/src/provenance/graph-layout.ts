@@ -24,16 +24,7 @@ function compareIds(a: string, b: string): number {
 export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
   const rootId = graph.metadata.rootNodeId;
   const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
-  const incoming = new Map<string, number>();
   const levels = new Map<string, number>();
-
-  for (const node of graph.nodes) {
-    incoming.set(node.id, 0);
-  }
-
-  for (const edge of graph.edges) {
-    incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
-  }
 
   const queue: string[] = [];
   if (nodeMap.has(rootId)) {
