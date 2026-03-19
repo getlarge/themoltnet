@@ -71,6 +71,7 @@ describe('context-distill compile workflow', () => {
   const fetchEmbeddings = vi.fn();
   const embedQuery = vi.fn();
   const createRelation = vi.fn();
+  const createRelations = vi.fn();
 
   beforeAll(() => {
     initContextDistillWorkflows();
@@ -84,6 +85,7 @@ describe('context-distill compile workflow', () => {
       { id: 'entry-1', embedding: [0.1, 0.2, 0.3] },
     ]);
     embedQuery.mockResolvedValue([0.3, 0.2, 0.1]);
+    createRelations.mockResolvedValue([]);
 
     const diaryEntryRepository = {
       search,
@@ -113,6 +115,7 @@ describe('context-distill compile workflow', () => {
       contextPackRepository,
       entryRelationRepository: {
         create: createRelation,
+        createMany: createRelations,
       } as unknown as EntryRelationRepository,
       dataSource: {
         runTransaction: vi
@@ -221,6 +224,7 @@ describe('context-distill compile workflow', () => {
       } as unknown as ContextPackRepository,
       entryRelationRepository: {
         create: createRelation,
+        createMany: createRelations,
       } as unknown as EntryRelationRepository,
       dataSource: {
         runTransaction: vi
@@ -246,13 +250,13 @@ describe('context-distill compile workflow', () => {
     });
 
     expect(result.clusters).toHaveLength(1);
-    expect(createRelation).toHaveBeenCalledWith(
+    expect(createRelations).toHaveBeenCalledWith([
       expect.objectContaining({
         sourceId: 'entry-1',
         targetId: 'entry-2',
         relation: 'supports',
         workflowId: 'wf-test-id',
       }),
-    );
+    ]);
   });
 });

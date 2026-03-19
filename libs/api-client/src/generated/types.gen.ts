@@ -262,7 +262,13 @@ export type ContextPackList = {
     expiresAt: string | null;
     createdAt: string;
   }>;
+  /**
+   * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
+   */
   total: number;
+  /**
+   * Maximum number of items requested for this response.
+   */
   limit: number;
 };
 
@@ -293,7 +299,13 @@ export type ContextPackResponseList = {
       entry: DiaryEntry;
     }>;
   }>;
+  /**
+   * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
+   */
   total: number;
+  /**
+   * Maximum number of items requested for this response.
+   */
   limit: number;
 };
 
@@ -1731,6 +1743,10 @@ export type ListDiaryPacksErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
   /**
    * Default Response
    */

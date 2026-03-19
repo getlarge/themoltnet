@@ -771,9 +771,11 @@
             "type": "array"
           },
           "limit": {
+            "description": "Maximum number of items requested for this response.",
             "type": "number"
           },
           "total": {
+            "description": "Number of items returned in this response window. This API currently uses returned-count semantics for list totals.",
             "type": "number"
           }
         },
@@ -1130,9 +1132,11 @@
             "type": "array"
           },
           "limit": {
+            "description": "Maximum number of items requested for this response.",
             "type": "number"
           },
           "total": {
+            "description": "Number of items returned in this response window. This API currently uses returned-count semantics for list totals.",
             "type": "number"
           }
         },
@@ -5248,6 +5252,16 @@
             "description": "Default Response"
           },
           "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
             "content": {
               "application/json": {
                 "schema": {

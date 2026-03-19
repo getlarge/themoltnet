@@ -1260,6 +1260,761 @@ func (s *ConsolidateResultTraceStrategyUsed) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/ContextPackResponse
+type ContextPackResponse struct {
+	CreatedAt        time.Time                        `json:"createdAt"`
+	CreatedBy        uuid.UUID                        `json:"createdBy"`
+	DiaryId          uuid.UUID                        `json:"diaryId"`
+	Entries          []ContextPackResponseEntriesItem `json:"entries"`
+	ExpiresAt        NilDateTime                      `json:"expiresAt"`
+	ID               uuid.UUID                        `json:"id"`
+	PackCid          string                           `json:"packCid"`
+	PackCodec        string                           `json:"packCodec"`
+	PackType         ContextPackResponsePackType      `json:"packType"`
+	Params           jx.Raw                           `json:"params"`
+	Payload          jx.Raw                           `json:"payload"`
+	Pinned           bool                             `json:"pinned"`
+	SupersedesPackId NilUUID                          `json:"supersedesPackId"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ContextPackResponse) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *ContextPackResponse) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *ContextPackResponse) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetEntries returns the value of Entries.
+func (s *ContextPackResponse) GetEntries() []ContextPackResponseEntriesItem {
+	return s.Entries
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ContextPackResponse) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *ContextPackResponse) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *ContextPackResponse) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackCodec returns the value of PackCodec.
+func (s *ContextPackResponse) GetPackCodec() string {
+	return s.PackCodec
+}
+
+// GetPackType returns the value of PackType.
+func (s *ContextPackResponse) GetPackType() ContextPackResponsePackType {
+	return s.PackType
+}
+
+// GetParams returns the value of Params.
+func (s *ContextPackResponse) GetParams() jx.Raw {
+	return s.Params
+}
+
+// GetPayload returns the value of Payload.
+func (s *ContextPackResponse) GetPayload() jx.Raw {
+	return s.Payload
+}
+
+// GetPinned returns the value of Pinned.
+func (s *ContextPackResponse) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetSupersedesPackId returns the value of SupersedesPackId.
+func (s *ContextPackResponse) GetSupersedesPackId() NilUUID {
+	return s.SupersedesPackId
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ContextPackResponse) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *ContextPackResponse) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *ContextPackResponse) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetEntries sets the value of Entries.
+func (s *ContextPackResponse) SetEntries(val []ContextPackResponseEntriesItem) {
+	s.Entries = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ContextPackResponse) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *ContextPackResponse) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *ContextPackResponse) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackCodec sets the value of PackCodec.
+func (s *ContextPackResponse) SetPackCodec(val string) {
+	s.PackCodec = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *ContextPackResponse) SetPackType(val ContextPackResponsePackType) {
+	s.PackType = val
+}
+
+// SetParams sets the value of Params.
+func (s *ContextPackResponse) SetParams(val jx.Raw) {
+	s.Params = val
+}
+
+// SetPayload sets the value of Payload.
+func (s *ContextPackResponse) SetPayload(val jx.Raw) {
+	s.Payload = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *ContextPackResponse) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetSupersedesPackId sets the value of SupersedesPackId.
+func (s *ContextPackResponse) SetSupersedesPackId(val NilUUID) {
+	s.SupersedesPackId = val
+}
+
+func (*ContextPackResponse) getContextPackByIdRes() {}
+
+type ContextPackResponseEntriesItem struct {
+	CompressionLevel ContextPackResponseEntriesItemCompressionLevel `json:"compressionLevel"`
+	CreatedAt        time.Time                                      `json:"createdAt"`
+	Entry            DiaryEntry                                     `json:"entry"`
+	EntryCidSnapshot string                                         `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                      `json:"entryId"`
+	ID               uuid.UUID                                      `json:"id"`
+	OriginalTokens   NilFloat64                                     `json:"originalTokens"`
+	PackId           uuid.UUID                                      `json:"packId"`
+	PackedTokens     NilFloat64                                     `json:"packedTokens"`
+	Rank             NilInt                                         `json:"rank"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *ContextPackResponseEntriesItem) GetCompressionLevel() ContextPackResponseEntriesItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ContextPackResponseEntriesItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetEntry returns the value of Entry.
+func (s *ContextPackResponseEntriesItem) GetEntry() DiaryEntry {
+	return s.Entry
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *ContextPackResponseEntriesItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *ContextPackResponseEntriesItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetID returns the value of ID.
+func (s *ContextPackResponseEntriesItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetOriginalTokens returns the value of OriginalTokens.
+func (s *ContextPackResponseEntriesItem) GetOriginalTokens() NilFloat64 {
+	return s.OriginalTokens
+}
+
+// GetPackId returns the value of PackId.
+func (s *ContextPackResponseEntriesItem) GetPackId() uuid.UUID {
+	return s.PackId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *ContextPackResponseEntriesItem) GetPackedTokens() NilFloat64 {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *ContextPackResponseEntriesItem) GetRank() NilInt {
+	return s.Rank
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *ContextPackResponseEntriesItem) SetCompressionLevel(val ContextPackResponseEntriesItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ContextPackResponseEntriesItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetEntry sets the value of Entry.
+func (s *ContextPackResponseEntriesItem) SetEntry(val DiaryEntry) {
+	s.Entry = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *ContextPackResponseEntriesItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *ContextPackResponseEntriesItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetID sets the value of ID.
+func (s *ContextPackResponseEntriesItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetOriginalTokens sets the value of OriginalTokens.
+func (s *ContextPackResponseEntriesItem) SetOriginalTokens(val NilFloat64) {
+	s.OriginalTokens = val
+}
+
+// SetPackId sets the value of PackId.
+func (s *ContextPackResponseEntriesItem) SetPackId(val uuid.UUID) {
+	s.PackId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *ContextPackResponseEntriesItem) SetPackedTokens(val NilFloat64) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *ContextPackResponseEntriesItem) SetRank(val NilInt) {
+	s.Rank = val
+}
+
+type ContextPackResponseEntriesItemCompressionLevel string
+
+const (
+	ContextPackResponseEntriesItemCompressionLevelFull     ContextPackResponseEntriesItemCompressionLevel = "full"
+	ContextPackResponseEntriesItemCompressionLevelSummary  ContextPackResponseEntriesItemCompressionLevel = "summary"
+	ContextPackResponseEntriesItemCompressionLevelKeywords ContextPackResponseEntriesItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all ContextPackResponseEntriesItemCompressionLevel values.
+func (ContextPackResponseEntriesItemCompressionLevel) AllValues() []ContextPackResponseEntriesItemCompressionLevel {
+	return []ContextPackResponseEntriesItemCompressionLevel{
+		ContextPackResponseEntriesItemCompressionLevelFull,
+		ContextPackResponseEntriesItemCompressionLevelSummary,
+		ContextPackResponseEntriesItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ContextPackResponseEntriesItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case ContextPackResponseEntriesItemCompressionLevelFull:
+		return []byte(s), nil
+	case ContextPackResponseEntriesItemCompressionLevelSummary:
+		return []byte(s), nil
+	case ContextPackResponseEntriesItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ContextPackResponseEntriesItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch ContextPackResponseEntriesItemCompressionLevel(data) {
+	case ContextPackResponseEntriesItemCompressionLevelFull:
+		*s = ContextPackResponseEntriesItemCompressionLevelFull
+		return nil
+	case ContextPackResponseEntriesItemCompressionLevelSummary:
+		*s = ContextPackResponseEntriesItemCompressionLevelSummary
+		return nil
+	case ContextPackResponseEntriesItemCompressionLevelKeywords:
+		*s = ContextPackResponseEntriesItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ContextPackResponseList
+type ContextPackResponseList struct {
+	Items []ContextPackResponseListItemsItem `json:"items"`
+	// Maximum number of items requested for this response.
+	Limit float64 `json:"limit"`
+	// Number of items returned in this response window. This API currently uses returned-count semantics
+	// for list totals.
+	Total float64 `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *ContextPackResponseList) GetItems() []ContextPackResponseListItemsItem {
+	return s.Items
+}
+
+// GetLimit returns the value of Limit.
+func (s *ContextPackResponseList) GetLimit() float64 {
+	return s.Limit
+}
+
+// GetTotal returns the value of Total.
+func (s *ContextPackResponseList) GetTotal() float64 {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *ContextPackResponseList) SetItems(val []ContextPackResponseListItemsItem) {
+	s.Items = val
+}
+
+// SetLimit sets the value of Limit.
+func (s *ContextPackResponseList) SetLimit(val float64) {
+	s.Limit = val
+}
+
+// SetTotal sets the value of Total.
+func (s *ContextPackResponseList) SetTotal(val float64) {
+	s.Total = val
+}
+
+func (*ContextPackResponseList) listDiaryPacksRes() {}
+
+type ContextPackResponseListItemsItem struct {
+	CreatedAt        time.Time                                     `json:"createdAt"`
+	CreatedBy        uuid.UUID                                     `json:"createdBy"`
+	DiaryId          uuid.UUID                                     `json:"diaryId"`
+	Entries          []ContextPackResponseListItemsItemEntriesItem `json:"entries"`
+	ExpiresAt        NilDateTime                                   `json:"expiresAt"`
+	ID               uuid.UUID                                     `json:"id"`
+	PackCid          string                                        `json:"packCid"`
+	PackCodec        string                                        `json:"packCodec"`
+	PackType         ContextPackResponseListItemsItemPackType      `json:"packType"`
+	Params           jx.Raw                                        `json:"params"`
+	Payload          jx.Raw                                        `json:"payload"`
+	Pinned           bool                                          `json:"pinned"`
+	SupersedesPackId NilUUID                                       `json:"supersedesPackId"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ContextPackResponseListItemsItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *ContextPackResponseListItemsItem) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *ContextPackResponseListItemsItem) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetEntries returns the value of Entries.
+func (s *ContextPackResponseListItemsItem) GetEntries() []ContextPackResponseListItemsItemEntriesItem {
+	return s.Entries
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ContextPackResponseListItemsItem) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *ContextPackResponseListItemsItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *ContextPackResponseListItemsItem) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackCodec returns the value of PackCodec.
+func (s *ContextPackResponseListItemsItem) GetPackCodec() string {
+	return s.PackCodec
+}
+
+// GetPackType returns the value of PackType.
+func (s *ContextPackResponseListItemsItem) GetPackType() ContextPackResponseListItemsItemPackType {
+	return s.PackType
+}
+
+// GetParams returns the value of Params.
+func (s *ContextPackResponseListItemsItem) GetParams() jx.Raw {
+	return s.Params
+}
+
+// GetPayload returns the value of Payload.
+func (s *ContextPackResponseListItemsItem) GetPayload() jx.Raw {
+	return s.Payload
+}
+
+// GetPinned returns the value of Pinned.
+func (s *ContextPackResponseListItemsItem) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetSupersedesPackId returns the value of SupersedesPackId.
+func (s *ContextPackResponseListItemsItem) GetSupersedesPackId() NilUUID {
+	return s.SupersedesPackId
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ContextPackResponseListItemsItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *ContextPackResponseListItemsItem) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *ContextPackResponseListItemsItem) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetEntries sets the value of Entries.
+func (s *ContextPackResponseListItemsItem) SetEntries(val []ContextPackResponseListItemsItemEntriesItem) {
+	s.Entries = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ContextPackResponseListItemsItem) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *ContextPackResponseListItemsItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *ContextPackResponseListItemsItem) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackCodec sets the value of PackCodec.
+func (s *ContextPackResponseListItemsItem) SetPackCodec(val string) {
+	s.PackCodec = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *ContextPackResponseListItemsItem) SetPackType(val ContextPackResponseListItemsItemPackType) {
+	s.PackType = val
+}
+
+// SetParams sets the value of Params.
+func (s *ContextPackResponseListItemsItem) SetParams(val jx.Raw) {
+	s.Params = val
+}
+
+// SetPayload sets the value of Payload.
+func (s *ContextPackResponseListItemsItem) SetPayload(val jx.Raw) {
+	s.Payload = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *ContextPackResponseListItemsItem) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetSupersedesPackId sets the value of SupersedesPackId.
+func (s *ContextPackResponseListItemsItem) SetSupersedesPackId(val NilUUID) {
+	s.SupersedesPackId = val
+}
+
+type ContextPackResponseListItemsItemEntriesItem struct {
+	CompressionLevel ContextPackResponseListItemsItemEntriesItemCompressionLevel `json:"compressionLevel"`
+	CreatedAt        time.Time                                                   `json:"createdAt"`
+	Entry            DiaryEntry                                                  `json:"entry"`
+	EntryCidSnapshot string                                                      `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                                                   `json:"entryId"`
+	ID               uuid.UUID                                                   `json:"id"`
+	OriginalTokens   NilFloat64                                                  `json:"originalTokens"`
+	PackId           uuid.UUID                                                   `json:"packId"`
+	PackedTokens     NilFloat64                                                  `json:"packedTokens"`
+	Rank             NilInt                                                      `json:"rank"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetCompressionLevel() ContextPackResponseListItemsItemEntriesItemCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetEntry returns the value of Entry.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetEntry() DiaryEntry {
+	return s.Entry
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetID returns the value of ID.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetOriginalTokens returns the value of OriginalTokens.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetOriginalTokens() NilFloat64 {
+	return s.OriginalTokens
+}
+
+// GetPackId returns the value of PackId.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetPackId() uuid.UUID {
+	return s.PackId
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetPackedTokens() NilFloat64 {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *ContextPackResponseListItemsItemEntriesItem) GetRank() NilInt {
+	return s.Rank
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetCompressionLevel(val ContextPackResponseListItemsItemEntriesItemCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetEntry sets the value of Entry.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetEntry(val DiaryEntry) {
+	s.Entry = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetID sets the value of ID.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetOriginalTokens sets the value of OriginalTokens.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetOriginalTokens(val NilFloat64) {
+	s.OriginalTokens = val
+}
+
+// SetPackId sets the value of PackId.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetPackId(val uuid.UUID) {
+	s.PackId = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetPackedTokens(val NilFloat64) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *ContextPackResponseListItemsItemEntriesItem) SetRank(val NilInt) {
+	s.Rank = val
+}
+
+type ContextPackResponseListItemsItemEntriesItemCompressionLevel string
+
+const (
+	ContextPackResponseListItemsItemEntriesItemCompressionLevelFull     ContextPackResponseListItemsItemEntriesItemCompressionLevel = "full"
+	ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary  ContextPackResponseListItemsItemEntriesItemCompressionLevel = "summary"
+	ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords ContextPackResponseListItemsItemEntriesItemCompressionLevel = "keywords"
+)
+
+// AllValues returns all ContextPackResponseListItemsItemEntriesItemCompressionLevel values.
+func (ContextPackResponseListItemsItemEntriesItemCompressionLevel) AllValues() []ContextPackResponseListItemsItemEntriesItemCompressionLevel {
+	return []ContextPackResponseListItemsItemEntriesItemCompressionLevel{
+		ContextPackResponseListItemsItemEntriesItemCompressionLevelFull,
+		ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary,
+		ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ContextPackResponseListItemsItemEntriesItemCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case ContextPackResponseListItemsItemEntriesItemCompressionLevelFull:
+		return []byte(s), nil
+	case ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary:
+		return []byte(s), nil
+	case ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ContextPackResponseListItemsItemEntriesItemCompressionLevel) UnmarshalText(data []byte) error {
+	switch ContextPackResponseListItemsItemEntriesItemCompressionLevel(data) {
+	case ContextPackResponseListItemsItemEntriesItemCompressionLevelFull:
+		*s = ContextPackResponseListItemsItemEntriesItemCompressionLevelFull
+		return nil
+	case ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary:
+		*s = ContextPackResponseListItemsItemEntriesItemCompressionLevelSummary
+		return nil
+	case ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords:
+		*s = ContextPackResponseListItemsItemEntriesItemCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ContextPackResponseListItemsItemPackType string
+
+const (
+	ContextPackResponseListItemsItemPackTypeCompile   ContextPackResponseListItemsItemPackType = "compile"
+	ContextPackResponseListItemsItemPackTypeOptimized ContextPackResponseListItemsItemPackType = "optimized"
+	ContextPackResponseListItemsItemPackTypeCustom    ContextPackResponseListItemsItemPackType = "custom"
+)
+
+// AllValues returns all ContextPackResponseListItemsItemPackType values.
+func (ContextPackResponseListItemsItemPackType) AllValues() []ContextPackResponseListItemsItemPackType {
+	return []ContextPackResponseListItemsItemPackType{
+		ContextPackResponseListItemsItemPackTypeCompile,
+		ContextPackResponseListItemsItemPackTypeOptimized,
+		ContextPackResponseListItemsItemPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ContextPackResponseListItemsItemPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case ContextPackResponseListItemsItemPackTypeCompile:
+		return []byte(s), nil
+	case ContextPackResponseListItemsItemPackTypeOptimized:
+		return []byte(s), nil
+	case ContextPackResponseListItemsItemPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ContextPackResponseListItemsItemPackType) UnmarshalText(data []byte) error {
+	switch ContextPackResponseListItemsItemPackType(data) {
+	case ContextPackResponseListItemsItemPackTypeCompile:
+		*s = ContextPackResponseListItemsItemPackTypeCompile
+		return nil
+	case ContextPackResponseListItemsItemPackTypeOptimized:
+		*s = ContextPackResponseListItemsItemPackTypeOptimized
+		return nil
+	case ContextPackResponseListItemsItemPackTypeCustom:
+		*s = ContextPackResponseListItemsItemPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ContextPackResponsePackType string
+
+const (
+	ContextPackResponsePackTypeCompile   ContextPackResponsePackType = "compile"
+	ContextPackResponsePackTypeOptimized ContextPackResponsePackType = "optimized"
+	ContextPackResponsePackTypeCustom    ContextPackResponsePackType = "custom"
+)
+
+// AllValues returns all ContextPackResponsePackType values.
+func (ContextPackResponsePackType) AllValues() []ContextPackResponsePackType {
+	return []ContextPackResponsePackType{
+		ContextPackResponsePackTypeCompile,
+		ContextPackResponsePackTypeOptimized,
+		ContextPackResponsePackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ContextPackResponsePackType) MarshalText() ([]byte, error) {
+	switch s {
+	case ContextPackResponsePackTypeCompile:
+		return []byte(s), nil
+	case ContextPackResponsePackTypeOptimized:
+		return []byte(s), nil
+	case ContextPackResponsePackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ContextPackResponsePackType) UnmarshalText(data []byte) error {
+	switch ContextPackResponsePackType(data) {
+	case ContextPackResponsePackTypeCompile:
+		*s = ContextPackResponsePackTypeCompile
+		return nil
+	case ContextPackResponsePackTypeOptimized:
+		*s = ContextPackResponsePackTypeOptimized
+		return nil
+	case ContextPackResponsePackTypeCustom:
+		*s = ContextPackResponsePackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type CreateDiaryBadRequest ProblemDetails
 
 func (*CreateDiaryBadRequest) createDiaryRes() {}
@@ -2601,6 +3356,56 @@ type GetAgentProfileNotFound ProblemDetails
 
 func (*GetAgentProfileNotFound) getAgentProfileRes() {}
 
+type GetContextPackByIdExpand string
+
+const (
+	GetContextPackByIdExpandEntries GetContextPackByIdExpand = "entries"
+)
+
+// AllValues returns all GetContextPackByIdExpand values.
+func (GetContextPackByIdExpand) AllValues() []GetContextPackByIdExpand {
+	return []GetContextPackByIdExpand{
+		GetContextPackByIdExpandEntries,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetContextPackByIdExpand) MarshalText() ([]byte, error) {
+	switch s {
+	case GetContextPackByIdExpandEntries:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetContextPackByIdExpand) UnmarshalText(data []byte) error {
+	switch GetContextPackByIdExpand(data) {
+	case GetContextPackByIdExpandEntries:
+		*s = GetContextPackByIdExpandEntries
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetContextPackByIdForbidden ProblemDetails
+
+func (*GetContextPackByIdForbidden) getContextPackByIdRes() {}
+
+type GetContextPackByIdInternalServerError ProblemDetails
+
+func (*GetContextPackByIdInternalServerError) getContextPackByIdRes() {}
+
+type GetContextPackByIdNotFound ProblemDetails
+
+func (*GetContextPackByIdNotFound) getContextPackByIdRes() {}
+
+type GetContextPackByIdUnauthorized ProblemDetails
+
+func (*GetContextPackByIdUnauthorized) getContextPackByIdRes() {}
+
 type GetCryptoIdentityInternalServerError ProblemDetails
 
 func (*GetCryptoIdentityInternalServerError) getCryptoIdentityRes() {}
@@ -3385,6 +4190,56 @@ func (*ListDiaryInvitationsInternalServerError) listDiaryInvitationsRes() {}
 type ListDiaryInvitationsUnauthorized ProblemDetails
 
 func (*ListDiaryInvitationsUnauthorized) listDiaryInvitationsRes() {}
+
+type ListDiaryPacksExpand string
+
+const (
+	ListDiaryPacksExpandEntries ListDiaryPacksExpand = "entries"
+)
+
+// AllValues returns all ListDiaryPacksExpand values.
+func (ListDiaryPacksExpand) AllValues() []ListDiaryPacksExpand {
+	return []ListDiaryPacksExpand{
+		ListDiaryPacksExpandEntries,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListDiaryPacksExpand) MarshalText() ([]byte, error) {
+	switch s {
+	case ListDiaryPacksExpandEntries:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListDiaryPacksExpand) UnmarshalText(data []byte) error {
+	switch ListDiaryPacksExpand(data) {
+	case ListDiaryPacksExpandEntries:
+		*s = ListDiaryPacksExpandEntries
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListDiaryPacksForbidden ProblemDetails
+
+func (*ListDiaryPacksForbidden) listDiaryPacksRes() {}
+
+type ListDiaryPacksInternalServerError ProblemDetails
+
+func (*ListDiaryPacksInternalServerError) listDiaryPacksRes() {}
+
+type ListDiaryPacksNotFound ProblemDetails
+
+func (*ListDiaryPacksNotFound) listDiaryPacksRes() {}
+
+type ListDiaryPacksUnauthorized ProblemDetails
+
+func (*ListDiaryPacksUnauthorized) listDiaryPacksRes() {}
 
 type ListDiarySharesInternalServerError ProblemDetails
 
@@ -5220,6 +6075,52 @@ func (o OptFloat64) Or(d float64) float64 {
 	return d
 }
 
+// NewOptGetContextPackByIdExpand returns new OptGetContextPackByIdExpand with value set to v.
+func NewOptGetContextPackByIdExpand(v GetContextPackByIdExpand) OptGetContextPackByIdExpand {
+	return OptGetContextPackByIdExpand{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptGetContextPackByIdExpand is optional GetContextPackByIdExpand.
+type OptGetContextPackByIdExpand struct {
+	Value GetContextPackByIdExpand
+	Set   bool
+}
+
+// IsSet returns true if OptGetContextPackByIdExpand was set.
+func (o OptGetContextPackByIdExpand) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptGetContextPackByIdExpand) Reset() {
+	var v GetContextPackByIdExpand
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptGetContextPackByIdExpand) SetTo(v GetContextPackByIdExpand) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptGetContextPackByIdExpand) Get() (v GetContextPackByIdExpand, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptGetContextPackByIdExpand) Or(d GetContextPackByIdExpand) GetContextPackByIdExpand {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
 	return OptInt{
@@ -5306,6 +6207,52 @@ func (o OptListDiaryEntriesEntryType) Get() (v ListDiaryEntriesEntryType, ok boo
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListDiaryEntriesEntryType) Or(d ListDiaryEntriesEntryType) ListDiaryEntriesEntryType {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListDiaryPacksExpand returns new OptListDiaryPacksExpand with value set to v.
+func NewOptListDiaryPacksExpand(v ListDiaryPacksExpand) OptListDiaryPacksExpand {
+	return OptListDiaryPacksExpand{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListDiaryPacksExpand is optional ListDiaryPacksExpand.
+type OptListDiaryPacksExpand struct {
+	Value ListDiaryPacksExpand
+	Set   bool
+}
+
+// IsSet returns true if OptListDiaryPacksExpand was set.
+func (o OptListDiaryPacksExpand) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListDiaryPacksExpand) Reset() {
+	var v ListDiaryPacksExpand
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListDiaryPacksExpand) SetTo(v ListDiaryPacksExpand) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListDiaryPacksExpand) Get() (v ListDiaryPacksExpand, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListDiaryPacksExpand) Or(d ListDiaryPacksExpand) ListDiaryPacksExpand {
 	if v, ok := o.Get(); ok {
 		return v
 	}

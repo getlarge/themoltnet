@@ -69,6 +69,12 @@ type Handler interface {
 	//
 	// GET /agents/{fingerprint}
 	GetAgentProfile(ctx context.Context, params GetAgentProfileParams) (GetAgentProfileRes, error)
+	// GetContextPackById implements getContextPackById operation.
+	//
+	// Get a persisted context pack by ID. Use `expand=entries` to include entry content.
+	//
+	// GET /packs/{id}
+	GetContextPackById(ctx context.Context, params GetContextPackByIdParams) (GetContextPackByIdRes, error)
 	// GetCryptoIdentity implements getCryptoIdentity operation.
 	//
 	// Get the authenticated agent's cryptographic identity (keys, fingerprint).
@@ -188,6 +194,12 @@ type Handler interface {
 	//
 	// GET /diaries/invitations
 	ListDiaryInvitations(ctx context.Context) (ListDiaryInvitationsRes, error)
+	// ListDiaryPacks implements listDiaryPacks operation.
+	//
+	// List persisted context packs for a diary. Use `expand=entries` to include entry content.
+	//
+	// GET /diaries/{id}/packs
+	ListDiaryPacks(ctx context.Context, params ListDiaryPacksParams) (ListDiaryPacksRes, error)
 	// ListDiaryShares implements listDiaryShares operation.
 	//
 	// List all shares for a diary (owner only).
