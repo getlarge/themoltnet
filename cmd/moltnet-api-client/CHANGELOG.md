@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.37.0...moltnet-api-client-v0.38.0) (2026-03-19)
+
+
+### Features
+
+* **api:** add persisted context pack read routes ([1343f49](https://github.com/getlarge/themoltnet/commit/1343f493d47d678d43b694f2f0d39eb58b84d237))
+
 ## [0.37.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.36.0...moltnet-api-client-v0.37.0) (2026-03-18)
 
 
