@@ -24,13 +24,18 @@ type TokenManager struct {
 }
 
 // NewTokenManager creates a TokenManager with a 30-second early-expiry buffer.
+// The HTTP client uses a retry transport: 429 on all methods,
+// 408/5xx on idempotent methods only (GET, HEAD, OPTIONS, PUT).
 func NewTokenManager(apiURL, clientID, clientSecret string) *TokenManager {
 	return &TokenManager{
 		apiURL:             apiURL,
 		clientID:           clientID,
 		clientSecret:       clientSecret,
 		earlyExpirySeconds: 30,
-		httpClient:         &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{
+			Timeout:   30 * time.Second,
+			Transport: NewRetryTransport(nil, nil),
+		},
 	}
 }
 
