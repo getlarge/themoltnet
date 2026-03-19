@@ -291,6 +291,7 @@ export function createMockServices(): MockServices {
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
       canReadPack: vi.fn(),
+      canReadPacks: vi.fn().mockResolvedValue(new Map()),
       canManagePack: vi.fn(),
     },
     relationshipWriter: {

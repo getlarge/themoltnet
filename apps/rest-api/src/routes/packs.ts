@@ -145,18 +145,22 @@ export async function packRoutes(fastify: FastifyInstance) {
         diary.id,
         limit,
       );
-      const visibility = await Promise.all(
-        packs.map(async (pack) => ({
-          pack,
-          allowed: await fastify.permissionChecker.canReadPack(
-            pack.id,
-            request.authContext!.identityId,
-          ),
-        })),
+      let allowedPackIds: Map<string, boolean>;
+      try {
+        allowedPackIds = await fastify.permissionChecker.canReadPacks(
+          packs.map((pack) => pack.id),
+          request.authContext!.identityId,
+        );
+      } catch (error) {
+        request.log.error(
+          { err: error, diaryId: diary.id },
+          'Failed to batch-check pack permissions',
+        );
+        throw createProblem('internal', 'Failed to verify pack permissions');
+      }
+      const visiblePacks = packs.filter(
+        (pack) => allowedPackIds.get(pack.id) ?? false,
       );
-      const visiblePacks = visibility
-        .filter((result) => result.allowed)
-        .map((result) => result.pack);
 
       if (!wantsExpandedEntries(request.query.expand)) {
         return toListResponse(visiblePacks, limit);

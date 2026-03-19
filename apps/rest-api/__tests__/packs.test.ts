@@ -95,6 +95,12 @@ describe('Pack routes', () => {
       ]),
     );
     mocks.permissionChecker.canReadPack.mockResolvedValue(true);
+    mocks.permissionChecker.canReadPacks.mockResolvedValue(
+      new Map([
+        [PACK_ID, true],
+        [PACK_ID_2, true],
+      ]),
+    );
   });
 
   it('gets a pack by id with Keto authorization', async () => {
@@ -147,7 +153,10 @@ describe('Pack routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().items).toHaveLength(2);
     expect(response.json().total).toBe(2);
-    expect(mocks.permissionChecker.canReadPack).toHaveBeenCalledTimes(2);
+    expect(mocks.permissionChecker.canReadPacks).toHaveBeenCalledWith(
+      [PACK_ID, PACK_ID_2],
+      OWNER_ID,
+    );
   });
 
   it('lists expanded packs when requested without N+1 pack entry queries', async () => {
@@ -170,9 +179,12 @@ describe('Pack routes', () => {
   });
 
   it('filters unauthorized packs from diary pack listings', async () => {
-    mocks.permissionChecker.canReadPack.mockImplementation(async (packId) => {
-      return packId === PACK_ID;
-    });
+    mocks.permissionChecker.canReadPacks.mockResolvedValue(
+      new Map([
+        [PACK_ID, true],
+        [PACK_ID_2, false],
+      ]),
+    );
 
     const response = await app.inject({
       method: 'GET',
@@ -184,5 +196,19 @@ describe('Pack routes', () => {
     expect(response.json().items).toHaveLength(1);
     expect(response.json().items[0].id).toBe(PACK_ID);
     expect(response.json().total).toBe(1);
+  });
+
+  it('returns 500 when batch pack authorization fails', async () => {
+    mocks.permissionChecker.canReadPacks.mockRejectedValue(
+      new Error('Keto unavailable'),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/diaries/${DIARY_ID}/packs`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(500);
   });
 });
