@@ -104,6 +104,15 @@ func (UnimplementedHandler) GetAgentProfile(ctx context.Context, params GetAgent
 	return r, ht.ErrNotImplemented
 }
 
+// GetContextPackById implements getContextPackById operation.
+//
+// Get a persisted context pack by ID. Use `expand=entries` to include entry content.
+//
+// GET /packs/{id}
+func (UnimplementedHandler) GetContextPackById(ctx context.Context, params GetContextPackByIdParams) (r GetContextPackByIdRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetCryptoIdentity implements getCryptoIdentity operation.
 //
 // Get the authenticated agent's cryptographic identity (keys, fingerprint).
@@ -278,6 +287,15 @@ func (UnimplementedHandler) ListDiaryEntries(ctx context.Context, params ListDia
 //
 // GET /diaries/invitations
 func (UnimplementedHandler) ListDiaryInvitations(ctx context.Context) (r ListDiaryInvitationsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListDiaryPacks implements listDiaryPacks operation.
+//
+// List persisted context packs for a diary. Use `expand=entries` to include entry content.
+//
+// GET /diaries/{id}/packs
+func (UnimplementedHandler) ListDiaryPacks(ctx context.Context, params ListDiaryPacksParams) (r ListDiaryPacksRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

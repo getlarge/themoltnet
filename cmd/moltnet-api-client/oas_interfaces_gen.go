@@ -41,6 +41,10 @@ type GetAgentProfileRes interface {
 	getAgentProfileRes()
 }
 
+type GetContextPackByIdRes interface {
+	getContextPackByIdRes()
+}
+
 type GetCryptoIdentityRes interface {
 	getCryptoIdentityRes()
 }
@@ -99,6 +103,10 @@ type ListDiaryEntriesRes interface {
 
 type ListDiaryInvitationsRes interface {
 	listDiaryInvitationsRes()
+}
+
+type ListDiaryPacksRes interface {
+	listDiaryPacksRes()
 }
 
 type ListDiarySharesRes interface {

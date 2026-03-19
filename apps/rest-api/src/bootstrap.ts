@@ -25,6 +25,7 @@ import {
   createDiaryEntryRepository,
   createDiaryRepository,
   createDiaryShareRepository,
+  createEntryRelationRepository,
   createNonceRepository,
   createSigningRequestRepository,
   createVoucherRepository,
@@ -170,6 +171,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const contextPackRepository = createContextPackRepository(dbConnection.db);
+  const entryRelationRepository = createEntryRelationRepository(
+    dbConnection.db,
+  );
   const diaryShareRepository = createDiaryShareRepository(dbConnection.db);
   const nonceRepository = createNonceRepository(dbConnection.db);
 
@@ -246,6 +250,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         setContextDistillDeps({
           diaryEntryRepository,
           contextPackRepository,
+          entryRelationRepository,
           dataSource: getDataSource(),
           relationshipWriter,
           embeddingService,
@@ -282,6 +287,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   await registerApiRoutes(app, {
     diaryService,
     diaryEntryRepository,
+    contextPackRepository,
+    entryRelationRepository,
     embeddingService,
     agentRepository,
     cryptoService,

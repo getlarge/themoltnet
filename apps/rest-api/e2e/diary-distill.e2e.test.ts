@@ -16,6 +16,8 @@ import {
   consolidateDiary,
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
+  getContextPackById,
+  listDiaryPacks,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -305,6 +307,7 @@ describe('Diary distill — consolidate + compile', () => {
 
   describe('POST /diaries/:id/compile', () => {
     let promptRelevantOldEntryId: string;
+    let compiledPackId: string;
 
     beforeAll(async () => {
       // Create an older, highly prompt-specific entry.
@@ -429,6 +432,61 @@ describe('Diary distill — consolidate + compile', () => {
       expect(data!.compileStats.totalTokens).toBeLessThanOrEqual(2000);
       expect(data!.compileStats.budgetUtilization).toBeLessThanOrEqual(1);
       expect(data!.compileStats.entriesIncluded).toBeGreaterThan(0);
+      compiledPackId = data!.id;
+    }, 120_000);
+
+    it('fetches a persisted pack by id with expanded entries', async () => {
+      const { data, error, response } = await getContextPackById({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: compiledPackId },
+        query: { expand: 'entries' },
+      });
+
+      expect(
+        error,
+        `getContextPackById failed: ${JSON.stringify(error)}`,
+      ).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data!.id).toBe(compiledPackId);
+      expect(data!.entries).toBeDefined();
+      expect(data!.entries!.length).toBeGreaterThan(0);
+      expect(data!.entries![0]!.entry.content.length).toBeGreaterThan(0);
+    }, 120_000);
+
+    it('returns 403 when another agent requests a pack they cannot read', async () => {
+      const { error, response } = await getContextPackById({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: compiledPackId },
+      });
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(403);
+    }, 120_000);
+
+    it('lists persisted packs for the diary with expanded entries', async () => {
+      const { data, error, response } = await listDiaryPacks({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        query: { expand: 'entries', limit: 10 },
+      });
+
+      expect(
+        error,
+        `listDiaryPacks failed: ${JSON.stringify(error)}`,
+      ).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      expect(data!.items.length).toBeGreaterThan(0);
+      expect(data!.items.some((pack) => pack.id === compiledPackId)).toBe(true);
+      const compiledPack = data!.items.find(
+        (pack) => pack.id === compiledPackId,
+      );
+      expect(compiledPack?.entries?.length).toBeGreaterThan(0);
+      expect(compiledPack?.entries?.[0]?.entry.entryType).toBeTruthy();
     }, 120_000);
 
     it('uses taskPrompt semantics during candidate retrieval (not only MMR)', async () => {

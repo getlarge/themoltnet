@@ -7,10 +7,11 @@ import {
 
 interface MockPermissionApi {
   checkPermission: ReturnType<typeof vi.fn>;
+  batchCheckPermission: ReturnType<typeof vi.fn>;
 }
 
 function createMockPermissionApi(): MockPermissionApi {
-  return { checkPermission: vi.fn() };
+  return { checkPermission: vi.fn(), batchCheckPermission: vi.fn() };
 }
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -158,6 +159,66 @@ describe('PermissionChecker', () => {
         relation: 'delete',
         subjectId: AGENT_ID,
       });
+    });
+  });
+
+  describe('canReadPacks', () => {
+    it('checks pack permissions in one batch request', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [{ allowed: true }, { allowed: false }],
+      });
+
+      const result = await checker.canReadPacks([DIARY_ID, ENTRY_ID], AGENT_ID);
+
+      expect(result).toEqual(
+        new Map([
+          [DIARY_ID, true],
+          [ENTRY_ID, false],
+        ]),
+      );
+      expect(mockPermissionApi.batchCheckPermission).toHaveBeenCalledWith({
+        batchCheckPermissionBody: {
+          tuples: [
+            {
+              namespace: 'ContextPack',
+              object: DIARY_ID,
+              relation: 'read',
+              subject_id: AGENT_ID,
+            },
+            {
+              namespace: 'ContextPack',
+              object: ENTRY_ID,
+              relation: 'read',
+              subject_id: AGENT_ID,
+            },
+          ],
+        },
+      });
+    });
+
+    it('throws when the batch API errors', async () => {
+      mockPermissionApi.batchCheckPermission.mockRejectedValue(
+        new Error('Keto unavailable'),
+      );
+
+      await expect(
+        checker.canReadPacks([DIARY_ID, ENTRY_ID], AGENT_ID),
+      ).rejects.toThrow('Keto unavailable');
+    });
+
+    it('throws when Keto returns per-item errors in the batch result', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [
+          { allowed: true },
+          { allowed: false, error: 'resolution failed' },
+        ],
+      });
+
+      await expect(
+        checker.canReadPacks([DIARY_ID, ENTRY_ID], AGENT_ID),
+      ).rejects.toThrow(
+        `batch permission check failed for ${ENTRY_ID}: resolution failed`,
+      );
     });
   });
 });

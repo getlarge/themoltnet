@@ -33,6 +33,7 @@ import type {
   ContextPackRepository,
   DiaryEntry,
   DiaryEntryRepository,
+  EntryRelationRepository,
 } from '@moltnet/database';
 
 import {
@@ -69,6 +70,8 @@ describe('context-distill compile workflow', () => {
   const search = vi.fn();
   const fetchEmbeddings = vi.fn();
   const embedQuery = vi.fn();
+  const createRelation = vi.fn();
+  const createRelations = vi.fn();
 
   beforeAll(() => {
     initContextDistillWorkflows();
@@ -82,6 +85,7 @@ describe('context-distill compile workflow', () => {
       { id: 'entry-1', embedding: [0.1, 0.2, 0.3] },
     ]);
     embedQuery.mockResolvedValue([0.3, 0.2, 0.1]);
+    createRelations.mockResolvedValue([]);
 
     const diaryEntryRepository = {
       search,
@@ -109,6 +113,10 @@ describe('context-distill compile workflow', () => {
     setContextDistillDeps({
       diaryEntryRepository,
       contextPackRepository,
+      entryRelationRepository: {
+        create: createRelation,
+        createMany: createRelations,
+      } as unknown as EntryRelationRepository,
       dataSource: {
         runTransaction: vi
           .fn()
@@ -194,5 +202,61 @@ describe('context-distill compile workflow', () => {
     expect(
       result.compileResult.entries.some((entry) => entry.id === 'entry-keep'),
     ).toBe(true);
+  });
+
+  it('persists proposed entry relations from consolidation clusters', async () => {
+    const list = vi
+      .fn()
+      .mockResolvedValue([createEntry('entry-1'), createEntry('entry-2')]);
+    fetchEmbeddings.mockResolvedValue([
+      { id: 'entry-1', embedding: [1, 0, 0] },
+      { id: 'entry-2', embedding: [0.99, 0.01, 0] },
+    ]);
+
+    setContextDistillDeps({
+      diaryEntryRepository: {
+        list,
+        fetchEmbeddings,
+      } as unknown as DiaryEntryRepository,
+      contextPackRepository: {
+        createPack: vi.fn(),
+        addEntries: vi.fn(),
+      } as unknown as ContextPackRepository,
+      entryRelationRepository: {
+        create: createRelation,
+        createMany: createRelations,
+      } as unknown as EntryRelationRepository,
+      dataSource: {
+        runTransaction: vi
+          .fn()
+          .mockImplementation(async (fn: () => Promise<unknown>) => fn()),
+      } as never,
+      relationshipWriter: {
+        grantPackParent: vi.fn().mockResolvedValue(undefined),
+      } as never,
+      embeddingService: {
+        embedQuery,
+      } as never,
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    });
+
+    const result = await contextDistillWorkflows.consolidate({
+      diaryId: '00000000-0000-0000-0000-000000000001',
+      identityId: '00000000-0000-0000-0000-000000000002',
+    });
+
+    expect(result.clusters).toHaveLength(1);
+    expect(createRelations).toHaveBeenCalledWith([
+      expect.objectContaining({
+        sourceId: 'entry-1',
+        targetId: 'entry-2',
+        relation: 'supports',
+        workflowId: 'wf-test-id',
+      }),
+    ]);
   });
 });

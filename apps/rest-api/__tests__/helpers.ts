@@ -150,6 +150,27 @@ export interface MockServices {
     findPublicById: ReturnType<typeof vi.fn>;
     fetchEmbeddings: ReturnType<typeof vi.fn>;
   };
+  contextPackRepository: {
+    createPack: ReturnType<typeof vi.fn>;
+    addEntries: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
+    findByCid: ReturnType<typeof vi.fn>;
+    listEntries: ReturnType<typeof vi.fn>;
+    listEntriesExpanded: ReturnType<typeof vi.fn>;
+    listEntriesExpandedByPackIds: ReturnType<typeof vi.fn>;
+    listExpiredUnpinned: ReturnType<typeof vi.fn>;
+    pin: ReturnType<typeof vi.fn>;
+    unpin: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+    listByDiary: ReturnType<typeof vi.fn>;
+  };
+  entryRelationRepository: {
+    create: ReturnType<typeof vi.fn>;
+    createMany: ReturnType<typeof vi.fn>;
+    listByEntry: ReturnType<typeof vi.fn>;
+    updateStatus: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+  };
 }
 
 export function createMockServices(): MockServices {
@@ -193,6 +214,27 @@ export function createMockServices(): MockServices {
       searchPublic: vi.fn(),
       findPublicById: vi.fn(),
       fetchEmbeddings: vi.fn().mockResolvedValue([]),
+    },
+    contextPackRepository: {
+      createPack: vi.fn(),
+      addEntries: vi.fn(),
+      findById: vi.fn(),
+      findByCid: vi.fn(),
+      listEntries: vi.fn().mockResolvedValue([]),
+      listEntriesExpanded: vi.fn().mockResolvedValue([]),
+      listEntriesExpandedByPackIds: vi.fn().mockResolvedValue(new Map()),
+      listExpiredUnpinned: vi.fn().mockResolvedValue([]),
+      pin: vi.fn(),
+      unpin: vi.fn(),
+      deleteMany: vi.fn(),
+      listByDiary: vi.fn().mockResolvedValue([]),
+    },
+    entryRelationRepository: {
+      create: vi.fn(),
+      createMany: vi.fn().mockResolvedValue([]),
+      listByEntry: vi.fn().mockResolvedValue([]),
+      updateStatus: vi.fn(),
+      delete: vi.fn(),
     },
     agentRepository: {
       findByFingerprint: vi.fn(),
@@ -248,6 +290,9 @@ export function createMockServices(): MockServices {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
+      canReadPack: vi.fn(),
+      canReadPacks: vi.fn().mockResolvedValue(new Map()),
+      canManagePack: vi.fn(),
     },
     relationshipWriter: {
       grantDiaryOwner: vi.fn(),
@@ -256,8 +301,10 @@ export function createMockServices(): MockServices {
       removeDiaryRelations: vi.fn(),
       removeDiaryRelationForAgent: vi.fn(),
       grantEntryParent: vi.fn(),
+      grantPackParent: vi.fn(),
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
+      removePackRelations: vi.fn(),
     },
     dataSource: {
       client: { __mock: 'transactionalClient' },
@@ -304,6 +351,8 @@ export async function createTestApp(
     diaryService: mocks.diaryService as unknown as DiaryService,
     diaryEntryRepository:
       mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
+    contextPackRepository: mocks.contextPackRepository as never,
+    entryRelationRepository: mocks.entryRelationRepository as never,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,

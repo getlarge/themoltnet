@@ -22,6 +22,10 @@ export interface PermissionChecker {
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
   canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
   canReadPack(packId: string, agentId: string): Promise<boolean>;
+  canReadPacks(
+    packIds: string[],
+    agentId: string,
+  ): Promise<Map<string, boolean>>;
   canManagePack(packId: string, agentId: string): Promise<boolean>;
 }
 
@@ -43,6 +47,40 @@ async function checkPermission(
   } catch {
     return false;
   }
+}
+
+async function batchCheckPermissions(
+  permissionApi: PermissionApi,
+  tuples: Array<{
+    namespace: string;
+    object: string;
+    relation: string;
+    subject_id: string;
+  }>,
+): Promise<boolean[]> {
+  if (tuples.length === 0) return [];
+
+  const data = await permissionApi.batchCheckPermission({
+    batchCheckPermissionBody: {
+      tuples,
+    },
+  });
+
+  const resultErrors = data.results
+    .map((result, index) =>
+      result.error
+        ? `${tuples[index]?.object ?? index}: ${result.error}`
+        : null,
+    )
+    .filter((error): error is string => error !== null);
+
+  if (resultErrors.length > 0) {
+    throw new Error(
+      `batch permission check failed for ${resultErrors.join(', ')}`,
+    );
+  }
+
+  return data.results.map((result) => result.allowed);
 }
 
 export function createPermissionChecker(
@@ -116,6 +154,25 @@ export function createPermissionChecker(
         packId,
         ContextPackPermission.Read,
         agentId,
+      );
+    },
+
+    async canReadPacks(
+      packIds: string[],
+      agentId: string,
+    ): Promise<Map<string, boolean>> {
+      const results = await batchCheckPermissions(
+        permissionApi,
+        packIds.map((packId) => ({
+          namespace: KetoNamespace.ContextPack,
+          object: packId,
+          relation: ContextPackPermission.Read,
+          subject_id: agentId,
+        })),
+      );
+
+      return new Map(
+        packIds.map((packId, index) => [packId, results[index] ?? false]),
       );
     },
 

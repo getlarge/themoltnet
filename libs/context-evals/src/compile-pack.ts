@@ -1,7 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, resolve } from 'node:path';
 
-import { compileDiary, type CompileResult } from '@moltnet/api-client';
+import {
+  compileDiary,
+  type ContextPackResponse,
+  getContextPackById,
+} from '@moltnet/api-client';
 
 import { createAuthedClient, getRepoRoot } from './client.js';
 
@@ -35,15 +39,13 @@ export interface WriteCompiledPackOptions {
   metadataPath?: string;
 }
 
-// TODO: renderCompiledPack needs entry content from a pack expansion endpoint.
-// Currently pack entries only have metadata (entryId, CID, compression, rank).
-// This function will be updated when GET /packs/:id?expand=entries is available.
 function renderCompiledPack(
-  result: CompileResult,
+  result: ContextPackResponse,
   metadata: CompiledPackMetadata,
 ): string {
-  const sections = result.entries.map((entry, index) => {
-    const title = `Entry ${index + 1} — ${entry.entryId.slice(0, 8)}`;
+  const sections = (result.entries ?? []).map((entry, index) => {
+    const title =
+      entry.entry.title ?? `Entry ${index + 1} — ${entry.entryId.slice(0, 8)}`;
     return [
       `### ${title}`,
       '',
@@ -52,7 +54,7 @@ function renderCompiledPack(
       `- Compression: \`${entry.compressionLevel}\``,
       `- Tokens: ${entry.packedTokens ?? '?'}/${entry.originalTokens ?? '?'}`,
       '',
-      `<!-- content not available in pack response — use expand=entries -->`,
+      entry.entry.content,
     ].join('\n');
   });
 
@@ -125,6 +127,17 @@ export async function writeCompiledPack(
     throw new Error(`compileDiary failed: ${JSON.stringify(error)}`);
   }
 
+  const expanded = await getContextPackById({
+    client,
+    path: { id: data.id },
+    query: { expand: 'entries' },
+  });
+  if (expanded.error || !expanded.data || !expanded.data.entries) {
+    throw new Error(
+      `getContextPackById failed: ${JSON.stringify(expanded.error)}`,
+    );
+  }
+
   const compileSession = new Date().toISOString();
   const metadata: CompiledPackMetadata = {
     compile_session: compileSession,
@@ -158,7 +171,11 @@ export async function writeCompiledPack(
 
   await mkdir(dirname(outputPath), { recursive: true });
   await mkdir(dirname(metadataPath), { recursive: true });
-  await writeFile(outputPath, renderCompiledPack(data, metadata), 'utf8');
+  await writeFile(
+    outputPath,
+    renderCompiledPack(expanded.data, metadata),
+    'utf8',
+  );
   await writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf8');
 
   return { outputPath, metadataPath, metadata };

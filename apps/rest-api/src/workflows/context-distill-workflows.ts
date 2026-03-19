@@ -15,6 +15,7 @@
 
 import type { RelationshipWriter } from '@moltnet/auth';
 import {
+  clusterToRelationProposals,
   compile,
   type CompileOptions,
   type CompileResult,
@@ -35,6 +36,7 @@ import {
   type DataSource,
   DBOS,
   type DiaryEntryRepository,
+  type EntryRelationRepository,
   type NewContextPack,
   type NewContextPackEntry,
   WorkflowQueue,
@@ -81,6 +83,7 @@ export interface ContextDistillDeps {
   contextPackRepository: ContextPackRepository;
   dataSource: DataSource;
   relationshipWriter: RelationshipWriter;
+  entryRelationRepository: EntryRelationRepository;
   embeddingService: EmbeddingService;
   logger: Logger;
 }
@@ -307,6 +310,36 @@ export function initContextDistillWorkflows(): void {
         threshold: input.threshold,
         strategy: input.strategy,
       });
+
+      const proposals = clusterToRelationProposals(
+        result.clusters,
+        new Map(
+          entries.flatMap((entry) =>
+            entry.contentHash ? [[entry.id, entry.contentHash] as const] : [],
+          ),
+        ),
+        DBOS.workflowID ?? '',
+      );
+
+      if (proposals.length > 0) {
+        const { dataSource, entryRelationRepository } = getDeps();
+        await dataSource.runTransaction(
+          async () => {
+            await entryRelationRepository.createMany(
+              proposals.map((proposal) => ({
+                sourceId: proposal.sourceId,
+                targetId: proposal.targetId,
+                relation: proposal.relation,
+                sourceCidSnapshot: proposal.sourceCidSnapshot,
+                targetCidSnapshot: proposal.targetCidSnapshot,
+                workflowId: DBOS.workflowID ?? '',
+                metadata: proposal.metadata,
+              })),
+            );
+          },
+          { name: 'context-distill.tx.persistConsolidationRelations' },
+        );
+      }
 
       return { workflowId: DBOS.workflowID ?? '', ...result };
     },
