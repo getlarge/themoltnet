@@ -84,6 +84,10 @@ export function createEntryRelationRepository(db: Database) {
         (input) => !insertedKeys.has(relationKey(input)),
       );
 
+      // Consolidation currently produces small batches, so a single OR query
+      // is cheaper than N follow-up selects. This keeps the same race window
+      // as createOne: if a conflicting row is deleted after the insert and
+      // before this read, we still fail loudly instead of silently masking it.
       const existing =
         missingInputs.length === 0
           ? []
