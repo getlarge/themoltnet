@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -337,6 +340,92 @@ func TestRetryTransport_DoesNotRetry4xx(t *testing.T) {
 				t.Errorf("expected 1 call (no retry), got %d", got)
 			}
 		})
+	}
+}
+
+func TestRetryTransport_RetriesPostBodyOn429(t *testing.T) {
+	// Arrange — POST with body should be replayed on 429
+	var calls int32
+	var bodies []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		bodies = append(bodies, string(b))
+		n := atomic.AddInt32(&calls, 1)
+		if n == 1 {
+			w.WriteHeader(429)
+			return
+		}
+		w.WriteHeader(200)
+	}))
+	defer srv.Close()
+
+	client := &http.Client{
+		Transport: NewRetryTransport(nil, &RetryConfig{
+			BaseDelay: time.Millisecond,
+			MaxDelay:  10 * time.Millisecond,
+			Jitter:    false,
+		}),
+	}
+
+	// Act
+	resp, err := client.Post(srv.URL, "application/json", strings.NewReader(`{"key":"value"}`))
+
+	// Assert
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+	if got := atomic.LoadInt32(&calls); got != 2 {
+		t.Errorf("expected 2 calls, got %d", got)
+	}
+	// Both attempts should receive the full body
+	for i, body := range bodies {
+		if body != `{"key":"value"}` {
+			t.Errorf("attempt %d: body = %q, want %q", i, body, `{"key":"value"}`)
+		}
+	}
+}
+
+func TestRetryTransport_ContextCancellation(t *testing.T) {
+	// Arrange — cancel context during retry backoff
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.WriteHeader(429)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	client := &http.Client{
+		Transport: NewRetryTransport(nil, &RetryConfig{
+			BaseDelay: 5 * time.Second, // Long enough that cancellation fires first
+			MaxDelay:  5 * time.Second,
+			Jitter:    false,
+			OnRetry: func(attempt int, delay time.Duration, reason string) {
+				// Cancel context right as we enter the sleep
+				cancel()
+			},
+		}),
+	}
+
+	req, _ := http.NewRequestWithContext(ctx, "GET", srv.URL, nil)
+
+	// Act
+	start := time.Now()
+	_, err := client.Do(req)
+	elapsed := time.Since(start)
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected error from cancelled context")
+	}
+	// Should return quickly, not wait the full 5s backoff
+	if elapsed > 2*time.Second {
+		t.Errorf("expected fast cancellation, took %v", elapsed)
 	}
 }
 

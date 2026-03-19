@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"io"
 	"math"
 	"math/rand/v2"
 	"net/http"
@@ -37,7 +40,7 @@ type RetryConfig struct {
 }
 
 func (c *RetryConfig) maxRetries() int {
-	if c == nil || c.MaxRetries == 0 {
+	if c == nil || c.MaxRetries <= 0 {
 		return 3
 	}
 	return c.MaxRetries
@@ -89,10 +92,23 @@ func NewRetryTransport(base http.RoundTripper, cfg *RetryConfig) http.RoundTripp
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	maxRetries := t.cfg.maxRetries()
 
-	var lastResp *http.Response
+	// If the request has a body but no GetBody, we can't replay it.
+	// Only attempt the first request; skip retries for non-idempotent methods.
+	canReplay := req.Body == nil || req.GetBody != nil
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {
-		resp, err := t.base.RoundTrip(req)
+		// Clone the request to get a fresh body for each attempt.
+		attemptReq := req
+		if attempt > 0 && req.GetBody != nil {
+			body, err := req.GetBody()
+			if err != nil {
+				return nil, fmt.Errorf("retry: reset request body: %w", err)
+			}
+			attemptReq = req.Clone(req.Context())
+			attemptReq.Body = body
+		}
+
+		resp, err := t.base.RoundTrip(attemptReq)
 		if err != nil {
 			return nil, err
 		}
@@ -106,20 +122,37 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			return resp, nil
 		}
 
-		// Drain body to allow connection reuse.
+		// Non-idempotent methods with non-replayable bodies: return as-is.
+		if !canReplay && !idempotentMethods[req.Method] {
+			return resp, nil
+		}
+
+		// Drain and close body to allow TCP connection reuse.
+		io.Copy(io.Discard, resp.Body) //nolint:errcheck
 		resp.Body.Close()
-		lastResp = resp
 
 		delay := computeRetryDelay(attempt, t.cfg.baseDelay(), t.cfg.maxDelay(), t.cfg.jitter(), resp)
 		t.cfg.onRetry(attempt, delay, "status "+strconv.Itoa(resp.StatusCode))
-		time.Sleep(delay)
+
+		if err := retrySleep(req.Context(), delay); err != nil {
+			return nil, err
+		}
 	}
 
-	// Should not reach here.
-	if lastResp != nil {
-		return lastResp, nil
+	// Unreachable: the loop always returns on attempt == maxRetries.
+	return nil, fmt.Errorf("retry: unreachable")
+}
+
+// retrySleep waits for the given duration or until the context is cancelled.
+func retrySleep(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
-	return nil, nil
 }
 
 func computeRetryDelay(attempt int, baseDelay, maxDelay time.Duration, jitter bool, resp *http.Response) time.Duration {
