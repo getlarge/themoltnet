@@ -113,6 +113,10 @@ const t0 = performance.now();
 
 const result = await runGepaOptimization({
   tasks,
+  // Note: only `evaluate` is implemented. GEPA also calls `make_reflective_dataset`
+  // and `propose_new_texts` on the adapter for guided reflection, but wraps those in
+  // try/catch and falls back to generic reflectInstruction when they're missing.
+  // TODO: implement full AxGEPAAdapter for better reflection quality.
   adapter: {
     evaluate: async (
       batch: TaskWithId[],

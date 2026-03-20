@@ -59,7 +59,7 @@ Options:
   --force                    Re-process PRs already in state.json
   --skip-verify              Run extraction only, skip verification
   --verify-only              Verify already-extracted tasks (reads tasksmith/candidates/tasks/)
-  --student-provider <name>  AI provider for extraction (default: codex-agent-sdk)
+  --student-provider <name>  AI provider for extraction (default: claude-agent-sdk)
   --student-model <model>    Model for extraction
   --debug                    Preserve worktrees on failure
   -h, --help                 Show this help

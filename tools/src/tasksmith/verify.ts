@@ -140,9 +140,11 @@ export async function verifyTask(
     console.log(
       `[verify] PR #${pr}: all fail_to_pass are Docker-dependent, deferring`,
     );
+    // Nothing was actually verified — all checks are Docker-dependent.
+    // Use extracted_unverified (not unit_verified) to avoid implying unit tests passed.
     return {
       pr,
-      status: 'unit_verified',
+      status: 'extracted_unverified',
       deferredDockerCommands: {
         failToPass: failToPass.docker,
         passToPass: passToPass.docker,
