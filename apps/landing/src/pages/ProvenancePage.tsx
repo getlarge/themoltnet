@@ -99,12 +99,15 @@ export function ProvenancePage() {
   // Pre-compute the shareable URL so the click handler stays synchronous
   // (Safari drops clipboard access if there's an async gap after the gesture)
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!rawInput.trim()) {
       setShareUrl(null);
       return;
     }
+    let cancelled = false;
     void compressGraphToParam(rawInput).then((param) => {
+      if (cancelled) return;
       if (!param) {
         setShareUrl(null);
         return;
@@ -113,20 +116,28 @@ export function ProvenancePage() {
       url.search = `?graph=${param}`;
       setShareUrl(url.toString());
     });
+    return () => {
+      cancelled = true;
+    };
   }, [rawInput]);
 
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
   const handleCopyLink = useCallback(() => {
-    const text = shareUrl ?? rawInput;
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl).then(
       () => {
         setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2000);
+        copyTimerRef.current = setTimeout(() => setLinkCopied(false), 2000);
       },
       () => {
         // Fallback for restrictive browsers
         const textarea = document.createElement('textarea');
-        textarea.value = text;
+        textarea.value = shareUrl;
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
         document.body.appendChild(textarea);
@@ -134,10 +145,10 @@ export function ProvenancePage() {
         document.execCommand('copy');
         document.body.removeChild(textarea);
         setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2000);
+        copyTimerRef.current = setTimeout(() => setLinkCopied(false), 2000);
       },
     );
-  }, [shareUrl, rawInput]);
+  }, [shareUrl]);
 
   const parsed = useMemo(() => {
     if (deferredInput.trim() === '') {
@@ -595,7 +606,7 @@ export function ProvenancePage() {
                         style={{ display: 'none' }}
                       />
                     </label>
-                    {graph ? (
+                    {shareUrl ? (
                       <Button variant="secondary" onClick={handleCopyLink}>
                         {linkCopied ? 'Copied!' : 'Copy Link'}
                       </Button>
