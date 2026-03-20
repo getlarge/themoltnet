@@ -43,12 +43,16 @@ Scan produces entries tagged `source:scan` with categories like
 `scan-category:security`. These are typically `semantic` entries with
 importance 6-8.
 
-### LeGreffier consolidate (tiles + nuggets)
+### LeGreffier consolidate (tiles)
 
 After scanning, `legreffier-consolidate` clusters related scan entries into
-**tiles** (subsystem summaries, ~200-400 tokens) and **nuggets** (atomic
-constraint rules, ~120 tokens). These are tagged `source:tile` and
-`source:nugget`.
+**tiles** — subsystem-level summaries (~200-400 tokens) containing constraints,
+anti-patterns, and code patterns. These are tagged `source:tile` with
+`tile-id:*` and `tile-scope:*` for precise filtering.
+
+Note: `source:nugget` entries (atomic constraint rules) were previously
+created from compile output but this approach is deprecated. Tiles now carry
+constraints directly.
 
 ### Accountable commits (procedural entries)
 
