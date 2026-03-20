@@ -345,6 +345,19 @@ export function normalizeTestCommand(cmd: string): string {
     '$1',
   );
 
+  // Fix: escape regex special chars in -t / --testNamePattern values.
+  // vitest interprets -t as a regex, so chars like ( ) [ ] need escaping.
+  // e.g. `-t "Bash(echo"` → `-t "Bash\(echo"`
+  normalized = normalized.replace(
+    /(\s-t\s+)(['"]?)(.+?)\2(\s|$)/,
+    (_, prefix, quote, pattern, suffix) => {
+      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return escaped !== pattern
+        ? `${prefix}"${escaped}"${suffix}`
+        : `${prefix}${quote}${pattern}${quote}${suffix}`;
+    },
+  );
+
   // Collapse multiple spaces
   normalized = normalized.replace(/\s{2,}/g, ' ').trim();
 
@@ -529,7 +542,10 @@ async function repairCommandForCandidate(
         );
         const newTestNames = extractTouchedTestNames(diff);
         if (newTestNames.length > 0) {
-          repaired += ` -t "${newTestNames.join('|')}"`;
+          // Escape regex special chars in test names — vitest -t uses
+          // them as regex patterns, so ( ) [ ] etc. must be escaped.
+          const escaped = newTestNames.map(escapeRegExp);
+          repaired += ` -t "${escaped.join('|')}"`;
         }
       }
     }

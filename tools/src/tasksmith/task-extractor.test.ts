@@ -196,6 +196,32 @@ describe('normalizeTestCommand', () => {
       ),
     ).toBe('pnpm --filter @themoltnet/legreffier test src/setup.test.ts');
   });
+
+  // ── regex escaping in -t patterns ──
+
+  it('escapes parentheses in -t test name patterns', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @themoltnet/legreffier test -t "Bash(echo"',
+      ),
+    ).toBe('pnpm --filter @themoltnet/legreffier test -t "Bash\\(echo"');
+  });
+
+  it('escapes square brackets in -t test name patterns', () => {
+    expect(
+      normalizeTestCommand(
+        "pnpm --filter @moltnet/rest-api test -t 'handles [NEW] files'",
+      ),
+    ).toBe('pnpm --filter @moltnet/rest-api test -t "handles \\[NEW\\] files"');
+  });
+
+  it('leaves -t patterns without regex chars unchanged', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @moltnet/auth test -t "validates JWT tokens"',
+      ),
+    ).toBe('pnpm --filter @moltnet/auth test -t "validates JWT tokens"');
+  });
 });
 
 describe('truncateToTokenBudget', () => {
