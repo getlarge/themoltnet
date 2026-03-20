@@ -1,5 +1,5 @@
 import type { AxAIService } from '@ax-llm/ax';
-import { ax } from '@ax-llm/ax';
+import { ax, f } from '@ax-llm/ax';
 import type { TasksmithTask } from '@moltnet/context-evals';
 
 import { gitDiff, gitFileExistsAtRef, gitShowFileAtRef } from './gh-client.js';
@@ -15,23 +15,66 @@ export function truncateToTokenBudget(text: string, maxTokens: number): string {
   return text.slice(0, maxChars);
 }
 
-// ── ax() program ──
+// ── ax() program (structured output via fluent API) ──
 
-const extractorProgram = ax(`
-  pr_diff:string "unified diff of the PR",
-  pr_body:string "PR title, body, and linked issue text",
-  test_file_contents:string "test files labeled [NEW] (added by PR) or [MODIFIED] (existed before PR)",
-  changed_files:string "list of all changed file paths"
-  ->
-  is_viable:boolean "true if this PR can produce a verifiable task",
-  fail_to_pass:json "array of test commands that should fail on fixture and pass on fix",
-  pass_to_pass:json "array of test commands that should pass on both fixture and fix",
-  problem_statement:string "SWE-bench-style problem description without leaking the solution",
-  family:class "bugfix, feature, refactor, test, infra",
-  subsystems:json "array of affected workspace packages",
-  criteria:json "array of behavioral success criteria checkable without the gold solution",
-  skip_reason:string "reason if not viable, empty otherwise"
-`);
+const extractorSig = f()
+  .input('pr_diff', f.string('unified diff of the PR'))
+  .input('pr_body', f.string('PR title, body, and linked issue text'))
+  .input(
+    'test_file_contents',
+    f.string(
+      'test files labeled [NEW] (added by PR) or [MODIFIED] (existed before PR)',
+    ),
+  )
+  .input('changed_files', f.string('list of all changed file paths'))
+  .output(
+    'extraction',
+    f.object({
+      results: f
+        .object({
+          viable: f.boolean(
+            'true if this sub-task can produce a verifiable task',
+          ),
+          fail_to_pass: f
+            .string('test command that should fail on fixture and pass on fix')
+            .array(),
+          pass_to_pass: f
+            .string('test command that should pass on both fixture and fix')
+            .array(),
+          problem_statement: f.string(
+            'SWE-bench-style problem description without leaking the solution',
+          ),
+          family: f.class([
+            'bugfix',
+            'feature',
+            'refactor',
+            'test',
+            'infra',
+          ] as const),
+          subsystems: f.string('affected workspace package name').array(),
+          criteria: f
+            .object({
+              description: f.string('behavioral success criterion'),
+              check_type: f.class([
+                'test_passes',
+                'file_exists',
+                'export_exists',
+                'pattern_present',
+                'type_checks',
+                'behavioral',
+              ] as const),
+              weight: f.number('importance weight 0-1').min(0).max(1),
+            })
+            .array(),
+          skip_reason: f
+            .string('reason if not viable, empty otherwise')
+            .optional(),
+        })
+        .array(),
+    }),
+  );
+
+const extractorProgram = ax(extractorSig.build());
 
 // ── Seed instruction ──
 
@@ -45,18 +88,33 @@ GOAL: Extract test commands that FAIL on the pre-PR code (fixture) and PASS on t
 ═══════════════════════════════════════════════
 OUTPUT FORMAT (required JSON structure):
 ═══════════════════════════════════════════════
-{
-  "task_id": "<pr-id>",
-  "viable": true | false,
-  "evalScore": <integer 0-100>,
-  "family": "bugfix" | "feature" | "refactor" | "test" | "infra",
-  "problem_statement": "<describe symptom/requirement, NO implementation details>",
-  "fail_to_pass": ["<command1>", "<command2>"],
-  "pass_to_pass": ["<command1>"],
-  "criteria": [
-    { "description": "...", "check_type": "test_passes|file_exists|export_exists|pattern_present|type_checks|behavioral", "weight": 0.X }
-  ]
-}
+Return a JSON ARRAY of tasks. Each PR may yield 1 or more independent tasks.
+Split into multiple tasks ONLY when the PR contains independent test suites
+testing unrelated behaviors (e.g., a feature PR that adds auth tests AND
+pagination tests for different modules).
+
+[
+  {
+    "task_id": "<pr-id>-0",
+    "viable": true | false,
+    "evalScore": <integer 0-100>,
+    "family": "bugfix" | "feature" | "refactor" | "test" | "infra",
+    "problem_statement": "<describe symptom/requirement, NO implementation details>",
+    "fail_to_pass": ["<command1>", "<command2>"],
+    "pass_to_pass": ["<command1>"],
+    "criteria": [
+      { "description": "...", "check_type": "test_passes|file_exists|export_exists|pattern_present|type_checks|behavioral", "weight": 0.X }
+    ]
+  }
+]
+
+SPLITTING RULES:
+- Default: return a SINGLE-element array (most PRs are one coherent change)
+- Split ONLY when fail_to_pass commands target DIFFERENT test files testing INDEPENDENT behaviors
+- Each sub-task must have its own fail_to_pass commands — never duplicate commands across tasks
+- Each sub-task gets its own problem_statement describing that specific behavior
+- pass_to_pass can be shared across tasks (regression guards apply to all)
+- Increment the suffix: -0, -1, -2, etc.
 
 ═══════════════════════════════════════════════
 VIABILITY — ASSESS THIS FIRST, CAREFULLY
@@ -498,9 +556,10 @@ export async function repairCommandsForCandidate(
 export function assembleTasksmithTask(
   candidate: PrCandidate,
   extraction: ExtractionResult,
+  index: number,
 ): TasksmithTask {
   return {
-    task_id: `pr-${candidate.number}`,
+    task_id: `pr-${candidate.number}-${index}`,
     fixture_ref: candidate.fixtureRef,
     gold_fix_ref: candidate.goldFixRef,
     source_commit_ref: candidate.goldFixRef,
@@ -565,16 +624,43 @@ function buildPrBody(candidate: PrCandidate): string {
   return truncateToTokenBudget(parts.join('\n\n'), 2000);
 }
 
+// ── Raw LLM task shape ──
+
+interface RawLlmTask {
+  task_id?: string;
+  viable: boolean;
+  evalScore?: number;
+  family?: string;
+  problem_statement?: string;
+  fail_to_pass?: string[];
+  pass_to_pass?: string[];
+  criteria?: CriteriaItem[];
+  skip_reason?: string;
+  subsystems?: string[];
+}
+
+function parseRawTasks(tasks: unknown): RawLlmTask[] {
+  if (Array.isArray(tasks)) return tasks as RawLlmTask[];
+  // LLM might still return a single object despite array instruction
+  if (tasks && typeof tasks === 'object' && 'viable' in tasks) {
+    return [tasks as RawLlmTask];
+  }
+  return [];
+}
+
 // ── Extraction ──
 
-export async function extractTask(
+export type ExtractedTask = {
+  task: TasksmithTask;
+  criteria: CriteriaItem[];
+};
+
+export async function extractTasks(
   candidate: PrCandidate,
   ai: AxAIService,
   _repoRoot: string,
   instruction?: string,
-): Promise<
-  { task: TasksmithTask; criteria: CriteriaItem[] } | { skipReason: string }
-> {
+): Promise<{ tasks: ExtractedTask[] } | { skipReason: string }> {
   const diff = truncateToTokenBudget(
     await gitDiff(candidate.fixtureRef, candidate.goldFixRef),
     8000,
@@ -596,34 +682,63 @@ export async function extractTask(
     changed_files: candidate.changedFiles.join('\n'),
   });
 
-  if (!result.is_viable) {
-    return { skipReason: (result.skip_reason as string) || 'not viable' };
+  const rawTasks = parseRawTasks(
+    (result.extraction as { results?: unknown })?.results,
+  );
+
+  if (rawTasks.length === 0) {
+    return { skipReason: 'LLM returned no tasks' };
   }
 
-  const extraction: ExtractionResult = {
-    isViable: true,
-    failToPass: result.fail_to_pass as string[],
-    passToPass: result.pass_to_pass as string[],
-    problemStatement: result.problem_statement as string,
-    family: result.family as ExtractionResult['family'],
-    subsystems: result.subsystems as string[],
-    criteria: result.criteria as CriteriaItem[],
-  };
+  const viableTasks = rawTasks.filter((t) => t.viable);
 
-  const task = assembleTasksmithTask(candidate, extraction);
-  task.fail_to_pass = await repairCommandsForCandidate(
-    task.fail_to_pass,
-    candidate,
-  );
-  task.pass_to_pass = await repairCommandsForCandidate(
-    task.pass_to_pass,
-    candidate,
-  );
+  if (viableTasks.length === 0) {
+    const reason = rawTasks[0]?.skip_reason || 'not viable';
+    return { skipReason: reason };
+  }
 
-  return {
-    task,
-    criteria: extraction.criteria,
-  };
+  const extracted: ExtractedTask[] = [];
+
+  for (let i = 0; i < viableTasks.length; i++) {
+    const raw = viableTasks[i];
+    const extraction: ExtractionResult = {
+      isViable: true,
+      failToPass: raw.fail_to_pass ?? [],
+      passToPass: raw.pass_to_pass ?? [],
+      problemStatement: raw.problem_statement ?? '',
+      family: (raw.family as ExtractionResult['family']) ?? 'feature',
+      subsystems: raw.subsystems ?? [],
+      criteria: raw.criteria ?? [],
+    };
+
+    const task = assembleTasksmithTask(candidate, extraction, i);
+    task.fail_to_pass = await repairCommandsForCandidate(
+      task.fail_to_pass,
+      candidate,
+    );
+    task.pass_to_pass = await repairCommandsForCandidate(
+      task.pass_to_pass,
+      candidate,
+    );
+
+    extracted.push({ task, criteria: extraction.criteria });
+  }
+
+  return { tasks: extracted };
+}
+
+/** @deprecated Use extractTasks instead — kept for GEPA optimizer compatibility */
+export async function extractTask(
+  candidate: PrCandidate,
+  ai: AxAIService,
+  repoRoot: string,
+  instruction?: string,
+): Promise<
+  { task: TasksmithTask; criteria: CriteriaItem[] } | { skipReason: string }
+> {
+  const result = await extractTasks(candidate, ai, repoRoot, instruction);
+  if ('skipReason' in result) return result;
+  return result.tasks[0];
 }
 
 export { SEED_INSTRUCTION };

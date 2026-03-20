@@ -15,6 +15,7 @@ import type { AxAIFeatures, AxInternalChatRequest } from '@ax-llm/ax';
  */
 export const AGENT_FEATURES: AxAIFeatures = {
   functions: false,
+  structuredOutputs: true,
   streaming: true,
   thinking: false,
   multiTurn: false,

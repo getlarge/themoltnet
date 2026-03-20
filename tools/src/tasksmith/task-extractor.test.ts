@@ -36,8 +36,8 @@ describe('assembleTasksmithTask', () => {
       ],
     };
 
-    const task = assembleTasksmithTask(candidate, extraction);
-    expect(task.task_id).toBe('pr-408');
+    const task = assembleTasksmithTask(candidate, extraction, 0);
+    expect(task.task_id).toBe('pr-408-0');
     expect(task.fixture_ref).toBe('base111');
     expect(task.gold_fix_ref).toBe('def');
     expect(task.source_commit_ref).toBe('def');

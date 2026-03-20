@@ -404,8 +404,10 @@ export async function writeVerifiedTask(
   await mkdir(verifiedDir, { recursive: true });
   await mkdir(evalsDir, { recursive: true });
 
-  const taskFile = resolve(tasksDir, `${verification.pr}.json`);
-  const statusFile = resolve(statusDir, `${verification.pr}.json`);
+  // File key: strip "pr-" prefix from task_id (e.g., "pr-279-0" → "279-0")
+  const fileKey = task.task_id.replace(/^pr-/, '');
+  const taskFile = resolve(tasksDir, `${fileKey}.json`);
+  const statusFile = resolve(statusDir, `${fileKey}.json`);
 
   await writeFile(taskFile, JSON.stringify(task, null, 2));
   await writeFile(statusFile, JSON.stringify(verification, null, 2));
@@ -415,7 +417,7 @@ export async function writeVerifiedTask(
   );
 
   if (verification.status === 'verified') {
-    await copyFile(taskFile, resolve(verifiedDir, `${verification.pr}.json`));
+    await copyFile(taskFile, resolve(verifiedDir, `${fileKey}.json`));
   }
 
   // Append failure details to a JSONL summary for GEPA analysis

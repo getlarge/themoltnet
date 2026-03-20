@@ -15,7 +15,7 @@ import {
 
 import { discoverCandidates, saveHarvestState } from './pr-discovery.js';
 import {
-  extractTask,
+  extractTasks,
   normalizeTestCommand,
   repairCommandsForCandidate,
 } from './task-extractor.js';
@@ -86,6 +86,18 @@ const options: HarvestOptions = {
 
 // ── Helpers ──
 
+/** Parse PR number from task filenames like "279-0.json" or legacy "279.json" */
+function parsePrFromFilename(filename: string): number | null {
+  const base = filename.replace('.json', '');
+  // New format: "279-0", "279-1" — extract the PR number before the dash-index
+  const multiMatch = base.match(/^(\d+)-\d+$/);
+  if (multiMatch) return parseInt(multiMatch[1], 10);
+  // Legacy format: "279"
+  const legacyMatch = base.match(/^(\d+)$/);
+  if (legacyMatch) return parseInt(legacyMatch[1], 10);
+  return null;
+}
+
 async function loadExtractedTasks(
   root: string,
   prFilter?: number[],
@@ -102,8 +114,8 @@ async function loadExtractedTasks(
 
   for (const file of files) {
     if (!file.endsWith('.json')) continue;
-    const pr = parseInt(file.replace('.json', ''), 10);
-    if (isNaN(pr)) continue;
+    const pr = parsePrFromFilename(file);
+    if (pr === null) continue;
     if (prFilter?.length && !prFilter.includes(pr)) continue;
 
     const raw = JSON.parse(
@@ -115,16 +127,27 @@ async function loadExtractedTasks(
       pass_to_pass: raw.pass_to_pass.map(normalizeTestCommand),
     };
 
+    // Criteria dir uses task_id (e.g., "pr-279-0") not just PR number
     let criteria: CriteriaItem[] = [];
     try {
       criteria = JSON.parse(
         await readFile(
-          resolve(root, 'evals', `pr-${pr}`, 'criteria.json'),
+          resolve(root, 'evals', task.task_id, 'criteria.json'),
           'utf8',
         ),
       ) as CriteriaItem[];
     } catch {
-      // criteria may not exist for all tasks
+      // Also try legacy path (evals/pr-279/)
+      try {
+        criteria = JSON.parse(
+          await readFile(
+            resolve(root, 'evals', `pr-${pr}`, 'criteria.json'),
+            'utf8',
+          ),
+        ) as CriteriaItem[];
+      } catch {
+        // criteria may not exist for all tasks
+      }
     }
 
     results.push({ pr, task, criteria });
@@ -303,17 +326,24 @@ const skipped: Array<{ pr: number; reason: string }> = [];
 for (const candidate of candidates) {
   console.log(`[extract] PR #${candidate.number}: ${candidate.title}`);
   try {
-    const result = await extractTask(candidate, ai, repoRoot);
+    const result = await extractTasks(candidate, ai, repoRoot);
     if ('skipReason' in result) {
       console.log(
         `[extract] PR #${candidate.number}: skipped — ${result.skipReason}`,
       );
       skipped.push({ pr: candidate.number, reason: result.skipReason });
     } else {
-      console.log(
-        `[extract] PR #${candidate.number}: viable (${result.task.fail_to_pass.length} fail_to_pass, ${result.criteria.length} criteria)`,
+      const count = result.tasks.length;
+      const ftpTotal = result.tasks.reduce(
+        (sum, t) => sum + t.task.fail_to_pass.length,
+        0,
       );
-      extracted.push({ pr: candidate.number, ...result });
+      console.log(
+        `[extract] PR #${candidate.number}: viable (${count} task${count > 1 ? 's' : ''}, ${ftpTotal} fail_to_pass)`,
+      );
+      for (const item of result.tasks) {
+        extracted.push({ pr: candidate.number, ...item });
+      }
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

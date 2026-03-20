@@ -92,6 +92,8 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
   private maxTurns: number;
+  /** Set to true when the current request expects a JSON-only response */
+  expectsJsonResponse = false;
 
   constructor(maxTurns: number) {
     this.maxTurns = maxTurns;
@@ -102,10 +104,31 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   createChatReq(
     req: Readonly<AxInternalChatRequest<AgentModel>>,
   ): [AxAPI, AgentRequest] {
-    const prompt = flattenChatPrompt(req.chatPrompt);
+    let prompt = flattenChatPrompt(req.chatPrompt);
     const model = req.model ?? 'claude-sonnet-4-6';
     const maxTurns = this.maxTurns;
     const stream = req.modelConfig?.stream ?? false;
+
+    // When ax() uses structured output (f() API with complex fields),
+    // it sends responseFormat with a JSON schema. Since the Claude Agent
+    // SDK takes a plain text prompt, we inject the schema as instructions.
+    if (
+      req.responseFormat?.type === 'json_schema' &&
+      req.responseFormat.schema
+    ) {
+      const rawSchema = req.responseFormat.schema as Record<string, unknown>;
+      const schema =
+        typeof rawSchema === 'object' && 'schema' in rawSchema
+          ? rawSchema.schema
+          : rawSchema;
+      prompt +=
+        '\n\nIMPORTANT: You MUST respond with ONLY a valid JSON object ' +
+        'matching this schema. No markdown, no explanation, no wrapping:\n' +
+        JSON.stringify(schema, null, 2);
+      this.expectsJsonResponse = true;
+    } else {
+      this.expectsJsonResponse = false;
+    }
 
     const localCall = async (
       data: AgentRequest,
@@ -129,6 +152,29 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   createChatResp(resp: Readonly<AgentResponse>): AxChatResponse {
     const tokens = toTokenUsage(resp.usage);
     this.lastTokenUsage = tokens;
+
+    // When structured output was requested, try to parse the response as
+    // JSON. ax() expects the raw JSON object as the result content —
+    // it will extract fields from it using its own parser.
+    if (this.expectsJsonResponse) {
+      const json = extractJsonFromText(resp.resultText);
+      if (json !== null) {
+        return {
+          results: [
+            {
+              content: JSON.stringify(json),
+              finishReason: 'stop' as const,
+              index: 0,
+            },
+          ],
+          modelUsage: {
+            ai: 'claude-agent-sdk',
+            model: 'claude-agent-sdk',
+            tokens,
+          },
+        };
+      }
+    }
 
     return {
       results: [
@@ -276,13 +322,23 @@ function buildQueryOptions(model: string, maxTurns: number) {
   };
 }
 
-function extractAssistantText(message: SDKMessage): string | null {
-  if (message.type !== 'assistant') return null;
-  const content = (
-    message as unknown as {
-      message: { content: Array<{ type: string; text?: string }> };
-    }
+interface AssistantContentBlock {
+  type: string;
+  text?: string;
+  id?: string;
+  name?: string;
+  input?: unknown;
+}
+
+function getAssistantContent(message: SDKMessage): AssistantContentBlock[] {
+  if (message.type !== 'assistant') return [];
+  return (
+    message as unknown as { message: { content: AssistantContentBlock[] } }
   ).message.content;
+}
+
+function extractAssistantText(message: SDKMessage): string | null {
+  const content = getAssistantContent(message);
   const textBlocks = content.filter(
     (b): b is { type: 'text'; text: string } =>
       b.type === 'text' && typeof b.text === 'string',
@@ -290,6 +346,46 @@ function extractAssistantText(message: SDKMessage): string | null {
   return textBlocks.length > 0
     ? textBlocks.map((b) => b.text).join('\n')
     : null;
+}
+
+/**
+ * Extract a JSON object from LLM text that may contain markdown fences
+ * or surrounding prose.
+ */
+function extractJsonFromText(text: string): object | null {
+  const trimmed = text.trim();
+
+  // Case 1: raw JSON object
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      return JSON.parse(trimmed) as object;
+    } catch {
+      // not valid JSON
+    }
+  }
+
+  // Case 2: markdown code block
+  const codeBlock = trimmed.match(/```(?:json)?\s*\n([\s\S]+?)\n```/);
+  if (codeBlock) {
+    try {
+      return JSON.parse(codeBlock[1]) as object;
+    } catch {
+      // not valid JSON inside code block
+    }
+  }
+
+  // Case 3: JSON embedded in prose — find first { and last }
+  const first = trimmed.indexOf('{');
+  const last = trimmed.lastIndexOf('}');
+  if (first >= 0 && last > first) {
+    try {
+      return JSON.parse(trimmed.slice(first, last + 1)) as object;
+    } catch {
+      // not valid JSON
+    }
+  }
+
+  return null;
 }
 
 function buildAgentResponse(
