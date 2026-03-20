@@ -13,6 +13,7 @@ import {
   eq,
   getTableColumns,
   gt,
+  gte,
   inArray,
   isNotNull,
   lt,
@@ -31,6 +32,54 @@ import {
 import { getExecutor } from '../transaction-context.js';
 
 type EntryType = DiaryEntry['entryType'];
+type Condition = ReturnType<typeof eq>;
+
+/** Collect non-undefined Drizzle conditions into an array. */
+function filterConditions(
+  ...maybeConditions: (Condition | undefined)[]
+): Condition[] {
+  return maybeConditions.filter((c): c is Condition => c !== undefined);
+}
+
+/** Common entry filter conditions shared by list() and embedding-only search. */
+function entryFilterConditions(opts: {
+  tags?: string[];
+  excludeTags?: string[];
+  entryType?: string;
+  entryTypes?: string[];
+  excludeSuperseded?: boolean;
+  createdBefore?: Date;
+  createdAfter?: Date;
+}): Condition[] {
+  return filterConditions(
+    opts.tags && opts.tags.length > 0
+      ? sql`${diaryEntries.tags} @> ARRAY[${sql.join(
+          opts.tags.map((t) => sql`${t}`),
+          sql`, `,
+        )}]::text[]`
+      : undefined,
+    opts.excludeTags && opts.excludeTags.length > 0
+      ? sql`(${diaryEntries.tags} IS NULL OR NOT (${diaryEntries.tags} && ARRAY[${sql.join(
+          opts.excludeTags.map((t) => sql`${t}`),
+          sql`, `,
+        )}]::text[]))`
+      : undefined,
+    opts.entryType
+      ? eq(diaryEntries.entryType, opts.entryType as EntryType)
+      : opts.entryTypes && opts.entryTypes.length > 0
+        ? inArray(diaryEntries.entryType, opts.entryTypes as EntryType[])
+        : undefined,
+    opts.excludeSuperseded
+      ? sql`${diaryEntries.supersededBy} IS NULL`
+      : undefined,
+    opts.createdBefore
+      ? lt(diaryEntries.createdAt, opts.createdBefore)
+      : undefined,
+    opts.createdAfter
+      ? gte(diaryEntries.createdAt, opts.createdAfter)
+      : undefined,
+  );
+}
 
 // Exclude embedding from read queries — the 384-dim vector is only needed
 // internally for search ordering, never returned to callers.
@@ -51,6 +100,8 @@ export interface DiarySearchOptions {
   wImportance?: number;
   entryTypes?: string[];
   excludeSuperseded?: boolean;
+  createdBefore?: Date;
+  createdAfter?: Date;
 }
 
 export interface DiaryListOptions {
@@ -64,6 +115,8 @@ export interface DiaryListOptions {
   entryType?: string;
   entryTypes?: string[];
   excludeSuperseded?: boolean;
+  createdBefore?: Date;
+  createdAfter?: Date;
 }
 
 export interface PublicFeedCursor {
@@ -217,6 +270,8 @@ export function createDiaryEntryRepository(db: Database) {
         entryType,
         entryTypes,
         excludeSuperseded,
+        createdBefore,
+        createdAfter,
       } = options;
 
       const conditions = [];
@@ -233,33 +288,17 @@ export function createDiaryEntryRepository(db: Database) {
         conditions.push(eq(diaryEntries.diaryId, diaryId));
       }
 
-      if (tags && tags.length > 0) {
-        conditions.push(
-          sql`${diaryEntries.tags} @> ARRAY[${sql.join(
-            tags.map((t) => sql`${t}`),
-            sql`, `,
-          )}]::text[]`,
-        );
-      }
-      if (excludeTags && excludeTags.length > 0) {
-        conditions.push(
-          sql`(${diaryEntries.tags} IS NULL OR NOT (${diaryEntries.tags} && ARRAY[${sql.join(
-            excludeTags.map((t) => sql`${t}`),
-            sql`, `,
-          )}]::text[]))`,
-        );
-      }
-      if (entryType) {
-        conditions.push(eq(diaryEntries.entryType, entryType as EntryType));
-      } else if (entryTypes && entryTypes.length > 0) {
-        conditions.push(
-          inArray(diaryEntries.entryType, entryTypes as EntryType[]),
-        );
-      }
-
-      if (excludeSuperseded) {
-        conditions.push(sql`${diaryEntries.supersededBy} IS NULL`);
-      }
+      conditions.push(
+        ...entryFilterConditions({
+          tags,
+          excludeTags,
+          entryType,
+          entryTypes,
+          excludeSuperseded,
+          createdBefore,
+          createdAfter,
+        }),
+      );
 
       const rows = await db
         .select(publicColumns)
@@ -325,6 +364,8 @@ export function createDiaryEntryRepository(db: Database) {
         wImportance,
         entryTypes,
         excludeSuperseded,
+        createdBefore,
+        createdAfter,
       } = options;
 
       // Build diary_ids param: explicit array > single id > NULL (public mode)
@@ -360,6 +401,13 @@ export function createDiaryEntryRepository(db: Database) {
             )}]::text[]`
           : sql`NULL::text[]`;
 
+      const createdBeforeParam = createdBefore
+        ? sql`${createdBefore}::timestamptz`
+        : sql`NULL::timestamptz`;
+      const createdAfterParam = createdAfter
+        ? sql`${createdAfter}::timestamptz`
+        : sql`NULL::timestamptz`;
+
       const trackAccess = (ids: string[]) => {
         if (ids.length > 0) {
           db.update(diaryEntries)
@@ -389,7 +437,10 @@ export function createDiaryEntryRepository(db: Database) {
                 ${wImportance ?? 0.0},
                 ${entryTypesParam},
                 ${excludeTagsParam},
-                ${excludeSuperseded ?? false}
+                ${excludeSuperseded ?? false},
+                false, /* p_exclude_suspicious — only used by public search */
+                ${createdBeforeParam},
+                ${createdAfterParam}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -414,7 +465,10 @@ export function createDiaryEntryRepository(db: Database) {
                 ${wImportance ?? 0.0},
                 ${entryTypesParam},
                 ${excludeTagsParam},
-                ${excludeSuperseded ?? false}
+                ${excludeSuperseded ?? false},
+                false, /* p_exclude_suspicious — only used by public search */
+                ${createdBeforeParam},
+                ${createdAfterParam}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -431,30 +485,16 @@ export function createDiaryEntryRepository(db: Database) {
           resolvedIds && resolvedIds.length > 0
             ? [inArray(diaryEntries.diaryId, resolvedIds)]
             : [];
-        if (tags && tags.length > 0) {
-          conditions.push(
-            sql`${diaryEntries.tags} @> ARRAY[${sql.join(
-              tags.map((t) => sql`${t}`),
-              sql`, `,
-            )}]::text[]`,
-          );
-        }
-        if (excludeTags && excludeTags.length > 0) {
-          conditions.push(
-            sql`(${diaryEntries.tags} IS NULL OR NOT (${diaryEntries.tags} && ARRAY[${sql.join(
-              excludeTags.map((t) => sql`${t}`),
-              sql`, `,
-            )}]::text[]))`,
-          );
-        }
-        if (entryTypes && entryTypes.length > 0) {
-          conditions.push(
-            inArray(diaryEntries.entryType, entryTypes as EntryType[]),
-          );
-        }
-        if (excludeSuperseded) {
-          conditions.push(sql`${diaryEntries.supersededBy} IS NULL`);
-        }
+        conditions.push(
+          ...entryFilterConditions({
+            tags,
+            excludeTags,
+            entryTypes,
+            excludeSuperseded,
+            createdBefore: options.createdBefore,
+            createdAfter: options.createdAfter,
+          }),
+        );
         const rows = await db
           .select(publicColumns)
           .from(diaryEntries)
@@ -470,7 +510,7 @@ export function createDiaryEntryRepository(db: Database) {
       }
 
       // No query/embedding → fall back to list (pass all filters)
-      const entries = await this.list({
+      return this.list({
         diaryId,
         diaryIds,
         tags,
@@ -479,8 +519,9 @@ export function createDiaryEntryRepository(db: Database) {
         offset,
         entryTypes,
         excludeSuperseded,
+        createdBefore,
+        createdAfter,
       });
-      return entries;
     },
 
     /**

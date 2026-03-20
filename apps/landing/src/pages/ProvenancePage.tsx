@@ -13,6 +13,7 @@ import {
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import {
   Fragment,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -22,6 +23,10 @@ import {
 import { Link } from 'wouter';
 
 import { buildGraphLayout } from '../provenance/graph-layout';
+import {
+  compressGraphToParam,
+  decompressGraphFromParam,
+} from '../provenance/graph-sharing';
 import {
   clampScale,
   computeFitViewport,
@@ -52,6 +57,7 @@ export function ProvenancePage() {
   } | null>(null);
   const draggedRef = useRef(false);
   const [rawInput, setRawInput] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [collapsedPackIds, setCollapsedPackIds] = useState<Set<string>>(
     () => new Set(),
@@ -63,6 +69,86 @@ export function ProvenancePage() {
     offsetY: 0,
   });
   const deferredInput = useDeferredValue(rawInput);
+
+  // Load graph from ?graph= URL parameter on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const graphParam = params.get('graph');
+    if (!graphParam) return;
+
+    decompressGraphFromParam(graphParam)
+      .then((json) => setRawInput(json))
+      .catch((err) => {
+        // Fallback: try plain base64url (no compression)
+        try {
+          const base64 = graphParam.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+          const json = atob(padded);
+          if (json.startsWith('{')) {
+            setRawInput(json);
+            return;
+          }
+        } catch {
+          // not base64 either
+        }
+        // eslint-disable-next-line no-console
+        console.error('[provenance] failed to decode ?graph= param:', err);
+      });
+  }, []);
+
+  // Pre-compute the shareable URL so the click handler stays synchronous
+  // (Safari drops clipboard access if there's an async gap after the gesture)
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!rawInput.trim()) {
+      setShareUrl(null);
+      return;
+    }
+    let cancelled = false;
+    void compressGraphToParam(rawInput).then((param) => {
+      if (cancelled) return;
+      if (!param) {
+        setShareUrl(null);
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.search = `?graph=${param}`;
+      setShareUrl(url.toString());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [rawInput]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
+  const handleCopyLink = useCallback(() => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl).then(
+      () => {
+        setLinkCopied(true);
+        copyTimerRef.current = setTimeout(() => setLinkCopied(false), 2000);
+      },
+      () => {
+        // Fallback for restrictive browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setLinkCopied(true);
+        copyTimerRef.current = setTimeout(() => setLinkCopied(false), 2000);
+      },
+    );
+  }, [shareUrl]);
 
   const parsed = useMemo(() => {
     if (deferredInput.trim() === '') {
@@ -520,6 +606,11 @@ export function ProvenancePage() {
                         style={{ display: 'none' }}
                       />
                     </label>
+                    {shareUrl ? (
+                      <Button variant="secondary" onClick={handleCopyLink}>
+                        {linkCopied ? 'Copied!' : 'Copy Link'}
+                      </Button>
+                    ) : null}
                   </div>
                   <textarea
                     value={rawInput}

@@ -518,6 +518,106 @@ describe('Diary distill — consolidate + compile', () => {
       expect(data!.entries[0]?.entryId).not.toBe(promptRelevantOldEntryId);
     }, 120_000);
 
+    it('createdBefore excludes entries created after the cutoff', async () => {
+      // Create entry first, then derive cutoff from its server-assigned timestamp
+      const { data: lateEntry } = await apiCreateDiaryEntry({
+        client,
+        auth: () => agentA.accessToken,
+        path: { diaryId: agentA.moltnetDiaryId },
+        body: {
+          content:
+            'LATE_ENTRY_MARKER: this entry was created after the temporal cutoff and should be excluded.',
+          tags: ['temporal-test'],
+          importance: 10,
+        },
+      });
+      expect(lateEntry).toBeDefined();
+
+      // Use 1 second before the entry's server timestamp as cutoff
+      const entryCreatedAt = new Date(lateEntry!.createdAt);
+      const cutoff = new Date(entryCreatedAt.getTime() - 1000).toISOString();
+
+      const { data, error } = await compileDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          tokenBudget: 8000,
+          createdBefore: cutoff,
+        },
+      });
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
+      expect(data).toBeDefined();
+      expect(data!.entries.length).toBeGreaterThan(0);
+
+      // The late entry must not appear in the pack
+      const lateEntryInPack = data!.entries.find(
+        (e) => e.entryId === lateEntry!.id,
+      );
+      expect(lateEntryInPack).toBeUndefined();
+    }, 120_000);
+
+    it('createdAfter with future cutoff yields empty or rejected compile', async () => {
+      // Future cutoff — no entries exist after it
+      const futureCutoff = new Date(
+        Date.now() + 24 * 60 * 60 * 1000,
+      ).toISOString();
+
+      const { data, response } = await compileDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          tokenBudget: 8000,
+          createdAfter: futureCutoff,
+        },
+      });
+
+      // Either 200 with 0 entries (empty pack persisted) or 400 (workflow
+      // rejects empty input). Both prove the filter excluded everything.
+      if (response.status === 200) {
+        expect(data!.entries).toHaveLength(0);
+      } else {
+        expect(response.status).toBe(400);
+      }
+    }, 120_000);
+
+    it('entryTypes filters compile candidates by entry type', async () => {
+      // Create entries with specific types
+      const { data: proceduralEntry } = await apiCreateDiaryEntry({
+        client,
+        auth: () => agentA.accessToken,
+        path: { diaryId: agentA.moltnetDiaryId },
+        body: {
+          content:
+            'PROCEDURAL_MARKER: step-by-step runbook for temporal filter testing.',
+          tags: ['temporal-test'],
+          entryType: 'procedural',
+          importance: 10,
+        },
+      });
+      expect(proceduralEntry).toBeDefined();
+
+      const { data, error } = await compileDiary({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          tokenBudget: 8000,
+          entryTypes: ['procedural'],
+        },
+      });
+      expect(error, `compile failed: ${JSON.stringify(error)}`).toBeUndefined();
+      expect(data).toBeDefined();
+      expect(data!.entries.length).toBeGreaterThan(0);
+
+      // The procedural entry should be in the pack
+      const found = data!.entries.find(
+        (e) => e.entryId === proceduralEntry!.id,
+      );
+      expect(found).toBeDefined();
+    }, 120_000);
+
     it('each compile produces a unique pack CID (createdAt is part of envelope)', async () => {
       const body = { tokenBudget: 800 };
       const { data: data1 } = await compileDiary({

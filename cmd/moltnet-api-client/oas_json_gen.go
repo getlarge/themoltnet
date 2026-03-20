@@ -571,6 +571,28 @@ func (s *CompileDiaryReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *CompileDiaryReq) encodeFields(e *jx.Encoder) {
 	{
+		if s.CreatedAfter.Set {
+			e.FieldStart("createdAfter")
+			s.CreatedAfter.Encode(e, json.EncodeDateTime)
+		}
+	}
+	{
+		if s.CreatedBefore.Set {
+			e.FieldStart("createdBefore")
+			s.CreatedBefore.Encode(e, json.EncodeDateTime)
+		}
+	}
+	{
+		if s.EntryTypes != nil {
+			e.FieldStart("entryTypes")
+			e.ArrStart()
+			for _, elem := range s.EntryTypes {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.ExcludeTags != nil {
 			e.FieldStart("excludeTags")
 			e.ArrStart()
@@ -620,14 +642,17 @@ func (s *CompileDiaryReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCompileDiaryReq = [7]string{
-	0: "excludeTags",
-	1: "includeTags",
-	2: "lambda",
-	3: "taskPrompt",
-	4: "tokenBudget",
-	5: "wImportance",
-	6: "wRecency",
+var jsonFieldsNameOfCompileDiaryReq = [10]string{
+	0: "createdAfter",
+	1: "createdBefore",
+	2: "entryTypes",
+	3: "excludeTags",
+	4: "includeTags",
+	5: "lambda",
+	6: "taskPrompt",
+	7: "tokenBudget",
+	8: "wImportance",
+	9: "wRecency",
 }
 
 // Decode decodes CompileDiaryReq from json.
@@ -635,10 +660,47 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode CompileDiaryReq to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "createdAfter":
+			if err := func() error {
+				s.CreatedAfter.Reset()
+				if err := s.CreatedAfter.Decode(d, json.DecodeDateTime); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdAfter\"")
+			}
+		case "createdBefore":
+			if err := func() error {
+				s.CreatedBefore.Reset()
+				if err := s.CreatedBefore.Decode(d, json.DecodeDateTime); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"createdBefore\"")
+			}
+		case "entryTypes":
+			if err := func() error {
+				s.EntryTypes = make([]CompileDiaryReqEntryTypesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem CompileDiaryReqEntryTypesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.EntryTypes = append(s.EntryTypes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryTypes\"")
+			}
 		case "excludeTags":
 			if err := func() error {
 				s.ExcludeTags = make([]string, 0)
@@ -698,7 +760,7 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskPrompt\"")
 			}
 		case "tokenBudget":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.TokenBudget = int(v)
@@ -738,8 +800,9 @@ func (s *CompileDiaryReq) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00010000,
+	for i, mask := range [2]uint8{
+		0b10000000,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -781,6 +844,54 @@ func (s *CompileDiaryReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CompileDiaryReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CompileDiaryReqEntryTypesItem as json.
+func (s CompileDiaryReqEntryTypesItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CompileDiaryReqEntryTypesItem from json.
+func (s *CompileDiaryReqEntryTypesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CompileDiaryReqEntryTypesItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CompileDiaryReqEntryTypesItem(v) {
+	case CompileDiaryReqEntryTypesItemEpisodic:
+		*s = CompileDiaryReqEntryTypesItemEpisodic
+	case CompileDiaryReqEntryTypesItemSemantic:
+		*s = CompileDiaryReqEntryTypesItemSemantic
+	case CompileDiaryReqEntryTypesItemProcedural:
+		*s = CompileDiaryReqEntryTypesItemProcedural
+	case CompileDiaryReqEntryTypesItemReflection:
+		*s = CompileDiaryReqEntryTypesItemReflection
+	case CompileDiaryReqEntryTypesItemIdentity:
+		*s = CompileDiaryReqEntryTypesItemIdentity
+	case CompileDiaryReqEntryTypesItemSoul:
+		*s = CompileDiaryReqEntryTypesItemSoul
+	default:
+		*s = CompileDiaryReqEntryTypesItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CompileDiaryReqEntryTypesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CompileDiaryReqEntryTypesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -15968,6 +16079,41 @@ func (s OptCreateDiaryReqVisibility) MarshalJSON() ([]byte, error) {
 func (s *OptCreateDiaryReqVisibility) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
+}
+
+// Encode encodes time.Time as json.
+func (o OptDateTime) Encode(e *jx.Encoder, format func(*jx.Encoder, time.Time)) {
+	if !o.Set {
+		return
+	}
+	format(e, o.Value)
+}
+
+// Decode decodes time.Time from json.
+func (o *OptDateTime) Decode(d *jx.Decoder, format func(*jx.Decoder) (time.Time, error)) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDateTime to nil")
+	}
+	o.Set = true
+	v, err := format(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDateTime) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e, json.EncodeDateTime)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDateTime) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d, json.DecodeDateTime)
 }
 
 // Encode encodes float64 as json.

@@ -7,7 +7,11 @@ import { extractCreator, splitIntoLines } from './viewer-utils';
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 116;
-const NODE_LABEL_MAX = 30;
+const NODE_LABEL_MAX = 28;
+const LABEL_X_WITH_AVATAR = 56;
+const LABEL_X_NO_AVATAR = 18;
+const LABEL_MAX_WIDTH_WITH_AVATAR = NODE_WIDTH - LABEL_X_WITH_AVATAR - 14;
+const LABEL_MAX_WIDTH_NO_AVATAR = NODE_WIDTH - LABEL_X_NO_AVATAR - 14;
 
 function nodeFill(
   theme: ReturnType<typeof useTheme>,
@@ -175,19 +179,42 @@ export function ProvenanceGraphSurface({
                   </div>
                 </foreignObject>
               ) : null}
-              {labelLines.map((line, index) => (
-                <text
-                  key={`${node.id}-${index}`}
-                  x={currentPosition.x + (creator ? 56 : 18)}
-                  y={currentPosition.y + 32 + index * 20}
-                  fill={theme.color.text.DEFAULT}
-                  fontFamily={theme.font.family.sans}
-                  fontSize={16}
-                  fontWeight={600}
-                >
-                  {line}
-                </text>
-              ))}
+              {/* Clip label text to prevent overflow */}
+              <clipPath id={`clip-${node.id.replace(/[^a-zA-Z0-9-]/g, '_')}`}>
+                <rect
+                  x={
+                    currentPosition.x +
+                    (creator ? LABEL_X_WITH_AVATAR : LABEL_X_NO_AVATAR)
+                  }
+                  y={currentPosition.y + 8}
+                  width={
+                    creator
+                      ? LABEL_MAX_WIDTH_WITH_AVATAR
+                      : LABEL_MAX_WIDTH_NO_AVATAR
+                  }
+                  height={52}
+                />
+              </clipPath>
+              <g
+                clipPath={`url(#clip-${node.id.replace(/[^a-zA-Z0-9-]/g, '_')})`}
+              >
+                {labelLines.map((line, index) => (
+                  <text
+                    key={`${node.id}-${index}`}
+                    x={
+                      currentPosition.x +
+                      (creator ? LABEL_X_WITH_AVATAR : LABEL_X_NO_AVATAR)
+                    }
+                    y={currentPosition.y + 32 + index * 20}
+                    fill={theme.color.text.DEFAULT}
+                    fontFamily={theme.font.family.sans}
+                    fontSize={15}
+                    fontWeight={600}
+                  >
+                    {line}
+                  </text>
+                ))}
+              </g>
               <text
                 x={currentPosition.x + 18}
                 y={currentPosition.y + 76}
@@ -196,6 +223,9 @@ export function ProvenanceGraphSurface({
                 fontSize={12}
               >
                 {node.kind}
+                {node.kind === 'pack' && 'packType' in node.meta
+                  ? ` · ${node.meta.packType}`
+                  : ''}
               </text>
               <text
                 x={currentPosition.x + 18}

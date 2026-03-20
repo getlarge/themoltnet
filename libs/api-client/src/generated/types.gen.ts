@@ -1734,6 +1734,16 @@ export type CompileDiaryData = {
     excludeTags?: Array<string>;
     wRecency?: number;
     wImportance?: number;
+    createdBefore?: string;
+    createdAfter?: string;
+    entryTypes?: Array<
+      | 'episodic'
+      | 'semantic'
+      | 'procedural'
+      | 'reflection'
+      | 'identity'
+      | 'soul'
+    >;
   };
   path: {
     /**

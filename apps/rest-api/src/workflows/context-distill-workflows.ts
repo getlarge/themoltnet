@@ -35,6 +35,7 @@ import {
   type ContextPackRepository,
   type DataSource,
   DBOS,
+  type DiaryEntry,
   type DiaryEntryRepository,
   type EntryRelationRepository,
   type NewContextPack,
@@ -116,6 +117,9 @@ export interface CompileWorkflowInput {
   wRecency?: number;
   wImportance?: number;
   limit?: number;
+  createdBefore?: string;
+  createdAfter?: string;
+  entryTypes?: DiaryEntry['entryType'][];
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -209,27 +213,33 @@ export function initContextDistillWorkflows(): void {
   );
 
   const searchEntriesStep = DBOS.registerStep(
-    async (
-      diaryId: string,
-      query: string | undefined,
-      embedding: number[] | undefined,
-      tags: string[] | undefined,
-      excludeTags: string[] | undefined,
-      wRecency: number,
-      wImportance: number,
-      limit: number,
-    ) => {
+    async (options: {
+      diaryId: string;
+      query: string | undefined;
+      embedding: number[] | undefined;
+      tags: string[] | undefined;
+      excludeTags: string[] | undefined;
+      wRecency: number;
+      wImportance: number;
+      limit: number;
+      entryTypes: string[] | undefined;
+      createdBefore: Date | undefined;
+      createdAfter: Date | undefined;
+    }) => {
       const { diaryEntryRepository } = getDeps();
       return diaryEntryRepository.search({
-        diaryId,
-        query,
-        embedding,
-        tags,
-        excludeTags,
-        wRecency,
-        wImportance,
-        limit,
+        diaryId: options.diaryId,
+        query: options.query,
+        embedding: options.embedding,
+        tags: options.tags,
+        excludeTags: options.excludeTags,
+        wRecency: options.wRecency,
+        wImportance: options.wImportance,
+        limit: options.limit,
         excludeSuperseded: true,
+        entryTypes: options.entryTypes,
+        createdBefore: options.createdBefore,
+        createdAfter: options.createdAfter,
       });
     },
     { name: 'context-distill.step.searchEntries' },
@@ -353,16 +363,25 @@ export function initContextDistillWorkflows(): void {
         : undefined;
 
       const limit = input.limit ?? 200;
-      const entries = await searchEntriesStep(
-        input.diaryId,
-        input.taskPrompt,
-        taskPromptEmbedding?.length ? taskPromptEmbedding : undefined,
-        input.includeTags,
-        input.excludeTags,
-        input.wRecency ?? 0,
-        input.wImportance ?? 0,
+      const entries = await searchEntriesStep({
+        diaryId: input.diaryId,
+        query: input.taskPrompt,
+        embedding: taskPromptEmbedding?.length
+          ? taskPromptEmbedding
+          : undefined,
+        tags: input.includeTags,
+        excludeTags: input.excludeTags,
+        wRecency: input.wRecency ?? 0,
+        wImportance: input.wImportance ?? 0,
         limit,
-      );
+        entryTypes: input.entryTypes,
+        createdBefore: input.createdBefore
+          ? new Date(input.createdBefore)
+          : undefined,
+        createdAfter: input.createdAfter
+          ? new Date(input.createdAfter)
+          : undefined,
+      });
       const ids = entries.map((e) => e.id);
       const embeddingRows =
         ids.length > 0 ? await fetchEmbeddingsStep(ids) : [];
