@@ -1,4 +1,11 @@
-import { appendFile, copyFile, mkdir, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  copyFile,
+  mkdir,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type { TasksmithTask } from '@moltnet/context-evals';
@@ -119,162 +126,241 @@ export interface VerifyTaskOptions {
   skipDocker: boolean;
 }
 
-export async function verifyTask(
-  task: TasksmithTask,
+// ── Grouped verification (shared worktrees per PR) ──
+
+export interface TaskGroupItem {
+  task: TasksmithTask;
+  criteria: CriteriaItem[];
+}
+
+export interface GroupVerificationResult {
+  pr: number;
+  results: Array<{
+    task: TasksmithTask;
+    criteria: CriteriaItem[];
+    verification: VerificationResult;
+  }>;
+}
+
+/**
+ * Verify all sub-tasks for a single PR using shared worktrees.
+ * Creates fixture + gold worktrees once, then runs checks for each sub-task.
+ */
+export async function verifyTaskGroup(
   pr: number,
+  items: TaskGroupItem[],
   options: VerifyTaskOptions,
-): Promise<VerificationResult> {
+): Promise<GroupVerificationResult> {
   const { debug, skipDocker } = options;
-  let fixtureWorktree: string | undefined;
-  let goldWorktree: string | undefined;
+  const results: GroupVerificationResult['results'] = [];
 
-  const failToPass = skipDocker
-    ? partitionCommands(task.fail_to_pass)
-    : { unit: task.fail_to_pass, docker: [] as string[] };
-  const passToPass = skipDocker
-    ? partitionCommands(task.pass_to_pass)
-    : { unit: task.pass_to_pass, docker: [] as string[] };
-
-  if (failToPass.unit.length === 0 && skipDocker) {
-    // eslint-disable-next-line no-console
-    console.log(
-      `[verify] PR #${pr}: all fail_to_pass are Docker-dependent, deferring`,
-    );
-    // Nothing was actually verified — all checks are Docker-dependent.
-    // Use extracted_unverified (not unit_verified) to avoid implying unit tests passed.
-    return {
-      pr,
-      status: 'extracted_unverified',
-      deferredDockerCommands: {
-        failToPass: failToPass.docker,
-        passToPass: passToPass.docker,
-      },
-    };
+  if (items.length === 0) {
+    return { pr, results };
   }
 
-  try {
-    // ── Red check ──
-    // eslint-disable-next-line no-console
-    console.log(
-      `[verify] PR #${pr}: red check at ${task.fixture_ref.slice(0, 8)}...`,
-    );
-    fixtureWorktree = await createWorktree(
-      task.fixture_ref,
-      `pr-${pr}-fixture`,
-    );
-    await runShellCommand(
-      'pnpm install --frozen-lockfile',
-      fixtureWorktree,
-      INSTALL_TIMEOUT_MS,
-    );
+  // All sub-tasks of a PR share the same refs
+  const fixtureRef = items[0].task.fixture_ref;
+  const goldFixRef = items[0].task.gold_fix_ref;
 
-    const redChecks: CommandCheck[] = [];
-    for (const cmd of failToPass.unit) {
-      const check = await runTestCommand(cmd, fixtureWorktree);
-      redChecks.push(check);
-      if (check.passed) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[verify] PR #${pr}: FIXTURE_ALREADY_GREEN — "${cmd}" passed on fixture`,
-        );
-        // eslint-disable-next-line no-console
-        console.log(`[verify]   output: ${check.output.slice(0, 500)}`);
-        return {
-          pr,
-          status: 'fixture_already_green',
-          redCheck: {
-            passed: false,
-            commands: redChecks,
-            durationMs: redChecks.reduce((s, c) => s + c.durationMs, 0),
-          },
-          skipReason: `fail_to_pass command passed on fixture: ${cmd}`,
-        };
-      }
+  for (const { task } of items) {
+    if (task.fixture_ref !== fixtureRef || task.gold_fix_ref !== goldFixRef) {
+      throw new Error(
+        `PR #${pr}: sub-tasks have mismatched refs — cannot share worktrees`,
+      );
     }
-    const redDuration = redChecks.reduce((s, c) => s + c.durationMs, 0);
+  }
 
-    // ── Green check ──
-    // eslint-disable-next-line no-console
-    console.log(
-      `[verify] PR #${pr}: green check at ${task.gold_fix_ref.slice(0, 8)}...`,
-    );
-    goldWorktree = await createWorktree(task.gold_fix_ref, `pr-${pr}-gold`);
-    await runShellCommand(
-      'pnpm install --frozen-lockfile',
-      goldWorktree,
-      INSTALL_TIMEOUT_MS,
-    );
+  let fixtureWorktree: string | undefined;
+  let goldWorktree: string | undefined;
+  let fixtureInstalled = false;
+  let goldInstalled = false;
 
-    const greenChecks: CommandCheck[] = [];
-    for (const cmd of failToPass.unit) {
-      const check = await runTestCommand(cmd, goldWorktree);
-      greenChecks.push(check);
-      if (!check.passed) {
+  try {
+    for (const { task, criteria } of items) {
+      const failToPass = skipDocker
+        ? partitionCommands(task.fail_to_pass)
+        : { unit: task.fail_to_pass, docker: [] as string[] };
+      const passToPass = skipDocker
+        ? partitionCommands(task.pass_to_pass)
+        : { unit: task.pass_to_pass, docker: [] as string[] };
+
+      if (failToPass.unit.length === 0 && skipDocker) {
+        results.push({
+          task,
+          criteria,
+          verification: {
+            pr,
+            status: 'extracted_unverified',
+            deferredDockerCommands: {
+              failToPass: failToPass.docker,
+              passToPass: passToPass.docker,
+            },
+          },
+        });
+        continue;
+      }
+
+      // ── Red check (lazy init fixture worktree) ──
+      if (!fixtureWorktree) {
         // eslint-disable-next-line no-console
         console.log(
-          `[verify] PR #${pr}: FIX_DOESNT_PASS — "${cmd}" failed on gold fix`,
+          `[verify] PR #${pr}: creating fixture worktree at ${fixtureRef.slice(0, 8)}...`,
         );
+        fixtureWorktree = await createWorktree(fixtureRef, `pr-${pr}-fixture`);
+      }
+      if (!fixtureInstalled) {
+        await runShellCommand(
+          'pnpm install --frozen-lockfile',
+          fixtureWorktree,
+          INSTALL_TIMEOUT_MS,
+        );
+        fixtureInstalled = true;
+      }
+
+      const redChecks: CommandCheck[] = [];
+      let fixtureGreen = false;
+      for (const cmd of failToPass.unit) {
+        const check = await runTestCommand(cmd, fixtureWorktree);
+        redChecks.push(check);
+        if (check.passed) {
+          fixtureGreen = true;
+          // eslint-disable-next-line no-console
+          console.log(
+            `[verify] ${task.task_id}: FIXTURE_ALREADY_GREEN — "${cmd}"`,
+          );
+          break;
+        }
+      }
+      if (fixtureGreen) {
+        results.push({
+          task,
+          criteria,
+          verification: {
+            pr,
+            status: 'fixture_already_green',
+            redCheck: {
+              passed: false,
+              commands: redChecks,
+              durationMs: redChecks.reduce((s, c) => s + c.durationMs, 0),
+            },
+            skipReason: `fail_to_pass passed on fixture`,
+          },
+        });
+        continue;
+      }
+      const redDuration = redChecks.reduce((s, c) => s + c.durationMs, 0);
+
+      // ── Green check (lazy init gold worktree) ──
+      if (!goldWorktree) {
         // eslint-disable-next-line no-console
-        console.log(`[verify]   error: ${check.output.slice(0, 500)}`);
-        return {
+        console.log(
+          `[verify] PR #${pr}: creating gold worktree at ${goldFixRef.slice(0, 8)}...`,
+        );
+        goldWorktree = await createWorktree(goldFixRef, `pr-${pr}-gold`);
+      }
+      if (!goldInstalled) {
+        await runShellCommand(
+          'pnpm install --frozen-lockfile',
+          goldWorktree,
+          INSTALL_TIMEOUT_MS,
+        );
+        goldInstalled = true;
+      }
+
+      const greenChecks: CommandCheck[] = [];
+      let fixFails = false;
+      for (const cmd of failToPass.unit) {
+        const check = await runTestCommand(cmd, goldWorktree);
+        greenChecks.push(check);
+        if (!check.passed) {
+          fixFails = true;
+          // eslint-disable-next-line no-console
+          console.log(`[verify] ${task.task_id}: FIX_DOESNT_PASS — "${cmd}"`);
+          break;
+        }
+      }
+      if (fixFails) {
+        results.push({
+          task,
+          criteria,
+          verification: {
+            pr,
+            status: 'fix_doesnt_pass',
+            redCheck: {
+              passed: true,
+              commands: redChecks,
+              durationMs: redDuration,
+            },
+            greenCheck: {
+              passed: false,
+              commands: greenChecks,
+              durationMs: greenChecks.reduce((s, c) => s + c.durationMs, 0),
+            },
+            skipReason: `fail_to_pass failed on gold fix`,
+          },
+        });
+        continue;
+      }
+      const greenDuration = greenChecks.reduce((s, c) => s + c.durationMs, 0);
+
+      // ── Regression check ──
+      const removed: string[] = [];
+      for (const cmd of passToPass.unit) {
+        const check = await runTestCommand(cmd, fixtureWorktree);
+        if (!check.passed) removed.push(cmd);
+      }
+
+      const hasDeferred =
+        failToPass.docker.length > 0 || passToPass.docker.length > 0;
+      const deferredDockerCommands = hasDeferred
+        ? { failToPass: failToPass.docker, passToPass: passToPass.docker }
+        : undefined;
+      const status = deferredDockerCommands ? 'unit_verified' : 'verified';
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `[verify] ${task.task_id}: ${status === 'verified' ? 'VERIFIED' : status}`,
+      );
+
+      results.push({
+        task,
+        criteria,
+        verification: {
           pr,
-          status: 'fix_doesnt_pass',
+          status,
           redCheck: {
             passed: true,
             commands: redChecks,
             durationMs: redDuration,
           },
           greenCheck: {
-            passed: false,
+            passed: true,
             commands: greenChecks,
-            durationMs: greenChecks.reduce((s, c) => s + c.durationMs, 0),
+            durationMs: greenDuration,
           },
-          skipReason: `fail_to_pass command failed on gold fix: ${cmd}`,
-        };
-      }
+          regressionCheck: { passed: removed.length === 0, removed },
+          deferredDockerCommands,
+        },
+      });
     }
-    const greenDuration = greenChecks.reduce((s, c) => s + c.durationMs, 0);
-
-    // ── Regression check ──
-    // eslint-disable-next-line no-console
-    console.log(`[verify] PR #${pr}: regression check...`);
-    const removed: string[] = [];
-    for (const cmd of passToPass.unit) {
-      const check = await runTestCommand(cmd, fixtureWorktree);
-      if (!check.passed) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[verify] PR #${pr}: removing pass_to_pass "${cmd}" (fails on fixture)`,
-        );
-        removed.push(cmd);
-      }
-    }
-
-    const hasDeferred =
-      failToPass.docker.length > 0 || passToPass.docker.length > 0;
-    const deferredDockerCommands = hasDeferred
-      ? { failToPass: failToPass.docker, passToPass: passToPass.docker }
-      : undefined;
-    const status = deferredDockerCommands ? 'unit_verified' : 'verified';
-
-    return {
-      pr,
-      status,
-      redCheck: { passed: true, commands: redChecks, durationMs: redDuration },
-      greenCheck: {
-        passed: true,
-        commands: greenChecks,
-        durationMs: greenDuration,
-      },
-      regressionCheck: { passed: removed.length === 0, removed },
-      deferredDockerCommands,
-    };
   } finally {
     if (!debug) {
       if (fixtureWorktree) await removeWorktree(fixtureWorktree);
       if (goldWorktree) await removeWorktree(goldWorktree);
     }
   }
+
+  return { pr, results };
+}
+
+/** Verify a single task. Delegates to verifyTaskGroup with a one-item group. */
+export async function verifyTask(
+  task: TasksmithTask,
+  pr: number,
+  options: VerifyTaskOptions,
+): Promise<VerificationResult> {
+  const group = await verifyTaskGroup(pr, [{ task, criteria: [] }], options);
+  return group.results[0]?.verification ?? { pr, status: 'discovery_error' };
 }
 
 // ── Docker verification phase ──
@@ -386,6 +472,50 @@ export async function verifyDockerCommands(
   }
 }
 
+// ── Stale artifact cleanup ──
+
+/**
+ * Remove old task/status/verified/evals files for a PR before writing new ones.
+ * Prevents stale artifacts when a re-extraction produces fewer sub-tasks.
+ */
+export async function cleanupPrArtifacts(
+  repoRoot: string,
+  pr: number,
+): Promise<void> {
+  const dirs = [
+    resolve(repoRoot, 'tasksmith', 'candidates', 'tasks'),
+    resolve(repoRoot, 'tasksmith', 'candidates', 'status'),
+    resolve(repoRoot, 'tasksmith', 'verified'),
+  ];
+  const prefix = `${pr}-`;
+
+  for (const dir of dirs) {
+    try {
+      const files = await readdir(dir);
+      for (const file of files) {
+        if (file.startsWith(prefix) && file.endsWith('.json')) {
+          await rm(resolve(dir, file), { force: true });
+        }
+      }
+    } catch {
+      // dir may not exist yet
+    }
+  }
+
+  // Clean evals dirs (pr-{number}-{index}/)
+  const evalsDir = resolve(repoRoot, 'evals');
+  try {
+    const evalDirs = await readdir(evalsDir);
+    for (const dir of evalDirs) {
+      if (dir.startsWith(`pr-${pr}-`)) {
+        await rm(resolve(evalsDir, dir), { recursive: true, force: true });
+      }
+    }
+  } catch {
+    // evals dir may not exist
+  }
+}
+
 // ── Output writing ──
 
 export async function writeVerifiedTask(
@@ -404,8 +534,10 @@ export async function writeVerifiedTask(
   await mkdir(verifiedDir, { recursive: true });
   await mkdir(evalsDir, { recursive: true });
 
-  const taskFile = resolve(tasksDir, `${verification.pr}.json`);
-  const statusFile = resolve(statusDir, `${verification.pr}.json`);
+  // File key: strip "pr-" prefix from task_id (e.g., "pr-279-0" → "279-0")
+  const fileKey = task.task_id.replace(/^pr-/, '');
+  const taskFile = resolve(tasksDir, `${fileKey}.json`);
+  const statusFile = resolve(statusDir, `${fileKey}.json`);
 
   await writeFile(taskFile, JSON.stringify(task, null, 2));
   await writeFile(statusFile, JSON.stringify(verification, null, 2));
@@ -415,7 +547,7 @@ export async function writeVerifiedTask(
   );
 
   if (verification.status === 'verified') {
-    await copyFile(taskFile, resolve(verifiedDir, `${verification.pr}.json`));
+    await copyFile(taskFile, resolve(verifiedDir, `${fileKey}.json`));
   }
 
   // Append failure details to a JSONL summary for GEPA analysis

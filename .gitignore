@@ -171,6 +171,7 @@ test-results/
 tasksmith/state.json
 tasksmith/candidates/
 tasksmith/instructions/
+tasksmith/baselines/
 evals/pr-*/
 
 # Demo agent credentials (contain private keys and secrets)
