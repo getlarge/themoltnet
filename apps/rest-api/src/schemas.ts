@@ -632,6 +632,60 @@ export const ConsolidateResultSchema = Type.Object(
   { $id: 'ConsolidateResult' },
 );
 
+// ── Entry Relations ────────────────────────────────────────
+
+export const RelationTypeSchema = Type.Union(
+  [
+    Type.Literal('supersedes'),
+    Type.Literal('elaborates'),
+    Type.Literal('contradicts'),
+    Type.Literal('supports'),
+    Type.Literal('caused_by'),
+    Type.Literal('references'),
+  ],
+  { $id: 'RelationType' },
+);
+
+export const RelationStatusSchema = Type.Union(
+  [
+    Type.Literal('proposed'),
+    Type.Literal('accepted'),
+    Type.Literal('rejected'),
+  ],
+  { $id: 'RelationStatus' },
+);
+
+export const EntryRelationSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    sourceId: Type.String({ format: 'uuid' }),
+    targetId: Type.String({ format: 'uuid' }),
+    relation: Type.Ref(RelationTypeSchema),
+    status: Type.Ref(RelationStatusSchema),
+    sourceCidSnapshot: Type.Union([Type.String(), Type.Null()]),
+    targetCidSnapshot: Type.Union([Type.String(), Type.Null()]),
+    workflowId: Type.Union([Type.String(), Type.Null()]),
+    confidence: Type.Union([Type.Number(), Type.Null()]),
+    similarity: Type.Union([Type.Number(), Type.Null()]),
+    createdAt: DateTime,
+    updatedAt: DateTime,
+  },
+  { $id: 'EntryRelation' },
+);
+
+export const EntryRelationListSchema = Type.Object(
+  {
+    items: Type.Array(Type.Ref(EntryRelationSchema)),
+    total: Type.Number({
+      description: 'Number of items returned in this response window.',
+    }),
+    limit: Type.Number({
+      description: 'Maximum number of items requested.',
+    }),
+  },
+  { $id: 'EntryRelationList' },
+);
+
 export const ContextPackEntrySchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   packId: Type.String({ format: 'uuid' }),
@@ -834,4 +888,8 @@ export const sharedSchemas = [
   ConsolidateResultSchema,
   CompileResultSchema,
   ProvenanceGraphSchema,
+  RelationTypeSchema,
+  RelationStatusSchema,
+  EntryRelationSchema,
+  EntryRelationListSchema,
 ];
