@@ -71,7 +71,6 @@ export function createMockEntry(
     accessCount: 0,
     lastAccessedAt: null,
     entryType: 'semantic' as const,
-    supersededBy: null,
     contentHash: null,
     contentSignature: null,
     createdAt: new Date('2026-01-30T10:00:00Z'),

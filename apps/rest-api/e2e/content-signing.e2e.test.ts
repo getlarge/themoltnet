@@ -227,61 +227,6 @@ describe('Content-signed entries', () => {
     expect(response.status).toBe(409);
   });
 
-  it('allows supersededBy on signed entry', async () => {
-    const content = 'Will be superseded';
-    const entryType = 'semantic';
-    const contentCid = computeContentCid(entryType, null, content, null);
-
-    // Sign and create
-    const { data: signingRequest } = await createSigningRequest({
-      client,
-      auth: () => agent.accessToken,
-      body: { message: contentCid },
-    });
-    const signature = await cryptoService.signWithNonce(
-      contentCid,
-      signingRequest!.nonce,
-      agent.keyPair.privateKey,
-    );
-    await submitSignature({
-      client,
-      auth: () => agent.accessToken,
-      path: { id: signingRequest!.id },
-      body: { signature },
-    });
-
-    const { data: entry } = await createDiaryEntry({
-      client,
-      auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId },
-      body: {
-        content,
-        entryType,
-        contentHash: contentCid,
-        signingRequestId: signingRequest!.id,
-      },
-    });
-
-    // Create a newer entry to supersede with
-    const { data: newer } = await createDiaryEntry({
-      client,
-      auth: () => agent.accessToken,
-      path: { diaryId: agent.privateDiaryId },
-      body: { content: 'Newer version' },
-    });
-
-    // supersededBy should succeed on signed entry
-    const { data: updated, error } = await updateDiaryEntryById({
-      client,
-      auth: () => agent.accessToken,
-      path: { entryId: entry!.id },
-      body: { supersededBy: newer!.id },
-    });
-
-    expect(error).toBeUndefined();
-    expect(updated!.supersededBy).toBe(newer!.id);
-  });
-
   // ── Unsigned entries remain mutable ──────────────────────────
 
   it('allows content update on unsigned entry', async () => {
