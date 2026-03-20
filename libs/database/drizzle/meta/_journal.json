@@ -217,6 +217,13 @@
       "tag": "0030_compile-temporal-filters",
       "version": "7",
       "when": 1774560400015
+    },
+    {
+      "breakpoints": true,
+      "idx": 31,
+      "tag": "0031_migrate-superseded-by",
+      "version": "7",
+      "when": 1774035861935
     }
   ],
   "version": "7"

@@ -70,7 +70,12 @@ function entryFilterConditions(opts: {
         ? inArray(diaryEntries.entryType, opts.entryTypes as EntryType[])
         : undefined,
     opts.excludeSuperseded
-      ? sql`${diaryEntries.supersededBy} IS NULL`
+      ? sql`NOT EXISTS (
+          SELECT 1 FROM entry_relations er
+          WHERE er.target_id = ${diaryEntries.id}
+            AND er.relation = 'supersedes'
+            AND er.status = 'accepted'
+        )`
       : undefined,
     opts.createdBefore
       ? lt(diaryEntries.createdAt, opts.createdBefore)
@@ -189,7 +194,6 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
       ? new Date(row.last_accessed_at as string)
       : null,
     entryType: (row.entry_type as DiaryEntry['entryType']) ?? 'semantic',
-    supersededBy: (row.superseded_by as string) ?? null,
     contentHash: (row.content_hash as string) ?? null,
     contentSignature: (row.content_signature as string) ?? null,
     signingNonce: (row.signing_nonce as string) ?? null,
@@ -587,7 +591,6 @@ export function createDiaryEntryRepository(db: Database) {
           | 'accessCount'
           | 'lastAccessedAt'
           | 'entryType'
-          | 'supersededBy'
           | 'contentHash'
           | 'contentSignature'
         >
