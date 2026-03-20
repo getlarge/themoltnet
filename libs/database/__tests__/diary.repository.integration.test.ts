@@ -469,4 +469,145 @@ describe('DiaryEntryRepository (integration)', () => {
       expect(results.length).toBe(2);
     });
   });
+
+  // ── Temporal filters ──────────────────────────────────────────────
+
+  describe('temporal filters (createdBefore / createdAfter)', () => {
+    it('list() with createdBefore excludes newer entries', async () => {
+      const old = await createEntry({ content: 'Old entry.' });
+      const recent = await createEntry({ content: 'Recent entry.' });
+
+      // Backdate the "old" entry via raw SQL
+      const pastDate = new Date('2025-01-01T00:00:00Z');
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: pastDate })
+        .where(eq(diaryEntries.id, old.id));
+
+      const results = await repo.list({
+        diaryId: DIARY_ID,
+        createdBefore: new Date('2025-06-01T00:00:00Z'),
+      });
+
+      expect(results.map((e) => e.id)).toContain(old.id);
+      expect(results.map((e) => e.id)).not.toContain(recent.id);
+    });
+
+    it('list() with createdAfter excludes older entries', async () => {
+      const old = await createEntry({ content: 'Old entry.' });
+      const recent = await createEntry({ content: 'Recent entry.' });
+
+      const pastDate = new Date('2025-01-01T00:00:00Z');
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: pastDate })
+        .where(eq(diaryEntries.id, old.id));
+
+      const results = await repo.list({
+        diaryId: DIARY_ID,
+        createdAfter: new Date('2025-06-01T00:00:00Z'),
+      });
+
+      expect(results.map((e) => e.id)).toContain(recent.id);
+      expect(results.map((e) => e.id)).not.toContain(old.id);
+    });
+
+    it('list() with both bounds returns entries in the window', async () => {
+      const e1 = await createEntry({ content: 'Jan entry.' });
+      const e2 = await createEntry({ content: 'Jul entry.' });
+      const e3 = await createEntry({ content: 'Dec entry.' });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: new Date('2025-01-15T00:00:00Z') })
+        .where(eq(diaryEntries.id, e1.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: new Date('2025-07-15T00:00:00Z') })
+        .where(eq(diaryEntries.id, e2.id));
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: new Date('2025-12-15T00:00:00Z') })
+        .where(eq(diaryEntries.id, e3.id));
+
+      const results = await repo.list({
+        diaryId: DIARY_ID,
+        createdAfter: new Date('2025-03-01T00:00:00Z'),
+        createdBefore: new Date('2025-10-01T00:00:00Z'),
+      });
+
+      const ids = results.map((e) => e.id);
+      expect(ids).toContain(e2.id);
+      expect(ids).not.toContain(e1.id);
+      expect(ids).not.toContain(e3.id);
+    });
+
+    it('search() with createdBefore excludes newer entries (list fallback)', async () => {
+      const old = await createEntry({ content: 'Temporal old search.' });
+      const recent = await createEntry({ content: 'Temporal recent search.' });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: new Date('2025-01-01T00:00:00Z') })
+        .where(eq(diaryEntries.id, old.id));
+
+      // No query/embedding → list fallback path
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        createdBefore: new Date('2025-06-01T00:00:00Z'),
+      });
+
+      expect(results.map((e) => e.id)).toContain(old.id);
+      expect(results.map((e) => e.id)).not.toContain(recent.id);
+    });
+
+    it('search() with createdBefore via FTS path excludes newer entries', async () => {
+      const old = await createEntry({
+        content: 'Temporal cryptography old entry for FTS.',
+      });
+      const recent = await createEntry({
+        content: 'Temporal cryptography recent entry for FTS.',
+      });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: new Date('2025-01-01T00:00:00Z') })
+        .where(eq(diaryEntries.id, old.id));
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        query: 'temporal cryptography',
+        createdBefore: new Date('2025-06-01T00:00:00Z'),
+      });
+
+      expect(results.map((e) => e.id)).toContain(old.id);
+      expect(results.map((e) => e.id)).not.toContain(recent.id);
+    });
+
+    it('search() with createdBefore via embedding path excludes newer entries', async () => {
+      const emb = Array.from({ length: 384 }, () => 0.5);
+      const old = await createEntry({
+        content: 'Temporal embedding old.',
+        embedding: emb,
+      });
+      const recent = await createEntry({
+        content: 'Temporal embedding recent.',
+        embedding: emb,
+      });
+
+      await sharedDb
+        .update(diaryEntries)
+        .set({ createdAt: new Date('2025-01-01T00:00:00Z') })
+        .where(eq(diaryEntries.id, old.id));
+
+      const results = await repo.search({
+        diaryId: DIARY_ID,
+        embedding: emb,
+        createdBefore: new Date('2025-06-01T00:00:00Z'),
+      });
+
+      expect(results.map((e) => e.id)).toContain(old.id);
+      expect(results.map((e) => e.id)).not.toContain(recent.id);
+    });
+  });
 });
