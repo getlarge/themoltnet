@@ -86,7 +86,7 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 26 registered tools', async () => {
+    it('lists all 33 registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
@@ -124,8 +124,17 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('public_feed_search');
       // Network Info (1)
       expect(toolNames).toContain('moltnet_info');
+      // Relations (4)
+      expect(toolNames).toContain('relations_create');
+      expect(toolNames).toContain('relations_list');
+      expect(toolNames).toContain('relations_update');
+      expect(toolNames).toContain('relations_delete');
+      // Packs (3)
+      expect(toolNames).toContain('packs_get');
+      expect(toolNames).toContain('packs_list');
+      expect(toolNames).toContain('packs_provenance');
 
-      expect(tools).toHaveLength(26);
+      expect(tools).toHaveLength(33);
     });
 
     it('lists all registered resources', async () => {
@@ -1068,6 +1077,321 @@ describe('MCP Server E2E', () => {
       ).text;
       expect(promptText).toContain('Whoami (established)');
       expect(promptText).toContain('Soul (established)');
+    });
+
+    // ── Relation tools ──
+
+    it('relations_create creates a relation and relations_list retrieves it', async () => {
+      requireSetup();
+
+      // Create two entries in the private diary to relate
+      const createA = await client.callTool({
+        name: 'entries_create',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          content: 'Relation source entry',
+        },
+      });
+      const contentA = createA.content as Array<{ type: string; text: string }>;
+      expect(
+        createA.isError,
+        `entries_create A error: ${contentA[0].text}`,
+      ).toBeUndefined();
+      const entryA = JSON.parse(contentA[0].text).entry as { id: string };
+
+      const createB = await client.callTool({
+        name: 'entries_create',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          content: 'Relation target entry',
+        },
+      });
+      const contentB = createB.content as Array<{ type: string; text: string }>;
+      expect(
+        createB.isError,
+        `entries_create B error: ${contentB[0].text}`,
+      ).toBeUndefined();
+      const entryB = JSON.parse(contentB[0].text).entry as { id: string };
+
+      // Create relation
+      const createRelResult = await client.callTool({
+        name: 'relations_create',
+        arguments: {
+          entry_id: entryA.id,
+          target_id: entryB.id,
+          relation: 'elaborates',
+        },
+      });
+      const createRelContent = createRelResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        createRelResult.isError,
+        `relations_create error: ${createRelContent[0].text}`,
+      ).toBeUndefined();
+      const createRelParsed = JSON.parse(createRelContent[0].text);
+      expect(createRelParsed.success).toBe(true);
+      expect(createRelParsed.relation).toBeDefined();
+      const relation = createRelParsed.relation as {
+        id: string;
+        sourceId: string;
+        targetId: string;
+        relation: string;
+        status: string;
+      };
+      expect(relation.id).toBeDefined();
+      expect(relation.sourceId).toBe(entryA.id);
+      expect(relation.targetId).toBe(entryB.id);
+      expect(relation.relation).toBe('elaborates');
+      expect(relation.status).toBe('proposed');
+
+      // List relations
+      const listRelResult = await client.callTool({
+        name: 'relations_list',
+        arguments: { entry_id: entryA.id },
+      });
+      const listRelContent = listRelResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        listRelResult.isError,
+        `relations_list error: ${listRelContent[0].text}`,
+      ).toBeUndefined();
+      const listRelParsed = JSON.parse(listRelContent[0].text);
+      expect(Array.isArray(listRelParsed.items)).toBe(true);
+      const found = listRelParsed.items.find(
+        (r: { id: string }) => r.id === relation.id,
+      );
+      expect(found, `Relation ${relation.id} not found in list`).toBeDefined();
+    });
+
+    it('relations_update accepts a proposed relation', async () => {
+      requireSetup();
+
+      // Create two entries
+      const createA = await client.callTool({
+        name: 'entries_create',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          content: 'Update-test source entry',
+        },
+      });
+      const entryA = JSON.parse(
+        (createA.content as Array<{ type: string; text: string }>)[0].text,
+      ).entry as { id: string };
+
+      const createB = await client.callTool({
+        name: 'entries_create',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          content: 'Update-test target entry',
+        },
+      });
+      const entryB = JSON.parse(
+        (createB.content as Array<{ type: string; text: string }>)[0].text,
+      ).entry as { id: string };
+
+      // Create a proposed relation
+      const createRelResult = await client.callTool({
+        name: 'relations_create',
+        arguments: {
+          entry_id: entryA.id,
+          target_id: entryB.id,
+          relation: 'supports',
+        },
+      });
+      const relation = JSON.parse(
+        (createRelResult.content as Array<{ type: string; text: string }>)[0]
+          .text,
+      ).relation as { id: string; status: string };
+      expect(relation.status).toBe('proposed');
+
+      // Accept it
+      const updateResult = await client.callTool({
+        name: 'relations_update',
+        arguments: { relation_id: relation.id, status: 'accepted' },
+      });
+      const updateContent = updateResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        updateResult.isError,
+        `relations_update error: ${updateContent[0].text}`,
+      ).toBeUndefined();
+      const updateParsed = JSON.parse(updateContent[0].text);
+      expect(updateParsed.success).toBe(true);
+      expect(updateParsed.relation.status).toBe('accepted');
+    });
+
+    it('relations_delete removes a relation', async () => {
+      requireSetup();
+
+      // Create two entries
+      const createA = await client.callTool({
+        name: 'entries_create',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          content: 'Delete-test source entry',
+        },
+      });
+      const entryA = JSON.parse(
+        (createA.content as Array<{ type: string; text: string }>)[0].text,
+      ).entry as { id: string };
+
+      const createB = await client.callTool({
+        name: 'entries_create',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          content: 'Delete-test target entry',
+        },
+      });
+      const entryB = JSON.parse(
+        (createB.content as Array<{ type: string; text: string }>)[0].text,
+      ).entry as { id: string };
+
+      // Create relation
+      const createRelResult = await client.callTool({
+        name: 'relations_create',
+        arguments: {
+          entry_id: entryA.id,
+          target_id: entryB.id,
+          relation: 'references',
+        },
+      });
+      const relation = JSON.parse(
+        (createRelResult.content as Array<{ type: string; text: string }>)[0]
+          .text,
+      ).relation as { id: string };
+
+      // Delete it
+      const deleteResult = await client.callTool({
+        name: 'relations_delete',
+        arguments: { relation_id: relation.id },
+      });
+      const deleteContent = deleteResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        deleteResult.isError,
+        `relations_delete error: ${deleteContent[0].text}`,
+      ).toBeUndefined();
+      const deleteParsed = JSON.parse(deleteContent[0].text);
+      expect(deleteParsed.success).toBe(true);
+
+      // Verify it's gone from list
+      const listResult = await client.callTool({
+        name: 'relations_list',
+        arguments: { entry_id: entryA.id },
+      });
+      const listParsed = JSON.parse(
+        (listResult.content as Array<{ type: string; text: string }>)[0].text,
+      );
+      const stillPresent = listParsed.items.find(
+        (r: { id: string }) => r.id === relation.id,
+      );
+      expect(stillPresent).toBeUndefined();
+    });
+
+    // ── Pack tools ──
+
+    it('packs_list returns packs for a diary and packs_get returns pack details', async () => {
+      requireSetup();
+
+      // Compile the diary to create a pack
+      const compileResult = await client.callTool({
+        name: 'diaries_compile',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          token_budget: 2000,
+        },
+      });
+      const compileContent = compileResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        compileResult.isError,
+        `diaries_compile error: ${compileContent[0].text}`,
+      ).toBeUndefined();
+      const compileParsed = JSON.parse(compileContent[0].text);
+      expect(compileParsed.id).toBeDefined();
+      const packId = compileParsed.id as string;
+
+      // packs_list
+      const listResult = await client.callTool({
+        name: 'packs_list',
+        arguments: { diary_id: harness.privateDiaryId },
+      });
+      const listContent = listResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        listResult.isError,
+        `packs_list error: ${listContent[0].text}`,
+      ).toBeUndefined();
+      const listParsed = JSON.parse(listContent[0].text);
+      expect(Array.isArray(listParsed.items)).toBe(true);
+      expect(
+        listParsed.items.some((p: { id: string }) => p.id === packId),
+      ).toBe(true);
+
+      // packs_get
+      const getResult = await client.callTool({
+        name: 'packs_get',
+        arguments: { pack_id: packId },
+      });
+      const getContent = getResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        getResult.isError,
+        `packs_get error: ${getContent[0].text}`,
+      ).toBeUndefined();
+      const getParsed = JSON.parse(getContent[0].text);
+      expect(getParsed.pack).toBeDefined();
+      expect(getParsed.pack.id).toBe(packId);
+      expect(getParsed.pack.packCid).toBeDefined();
+    });
+
+    it('packs_provenance returns provenance graph with nodes and edges', async () => {
+      requireSetup();
+
+      // Compile to get a fresh pack
+      const compileResult = await client.callTool({
+        name: 'diaries_compile',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          token_budget: 2000,
+        },
+      });
+      const compileParsed = JSON.parse(
+        (compileResult.content as Array<{ type: string; text: string }>)[0]
+          .text,
+      );
+      const packId = compileParsed.id as string;
+
+      // packs_provenance by pack_id
+      const provResult = await client.callTool({
+        name: 'packs_provenance',
+        arguments: { pack_id: packId },
+      });
+      const provContent = provResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+      expect(
+        provResult.isError,
+        `packs_provenance error: ${provContent[0].text}`,
+      ).toBeUndefined();
+      const provParsed = JSON.parse(provContent[0].text);
+      expect(Array.isArray(provParsed.nodes)).toBe(true);
+      expect(Array.isArray(provParsed.edges)).toBe(true);
     });
 
     // ── Resources ──
