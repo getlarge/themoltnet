@@ -35,7 +35,7 @@ type EntryType = DiaryEntry['entryType'];
 type Condition = ReturnType<typeof eq>;
 
 /** Collect non-undefined Drizzle conditions into an array. */
-function conditions(
+function filterConditions(
   ...maybeConditions: (Condition | undefined)[]
 ): Condition[] {
   return maybeConditions.filter((c): c is Condition => c !== undefined);
@@ -51,7 +51,7 @@ function entryFilterConditions(opts: {
   createdBefore?: Date;
   createdAfter?: Date;
 }): Condition[] {
-  return conditions(
+  return filterConditions(
     opts.tags && opts.tags.length > 0
       ? sql`${diaryEntries.tags} @> ARRAY[${sql.join(
           opts.tags.map((t) => sql`${t}`),
@@ -424,7 +424,7 @@ export function createDiaryEntryRepository(db: Database) {
                 ${entryTypesParam},
                 ${excludeTagsParam},
                 ${excludeSuperseded ?? false},
-                false,
+                false, /* p_exclude_suspicious — only used by public search */
                 ${createdBeforeParam},
                 ${createdAfterParam}
               )`,
@@ -452,7 +452,7 @@ export function createDiaryEntryRepository(db: Database) {
                 ${entryTypesParam},
                 ${excludeTagsParam},
                 ${excludeSuperseded ?? false},
-                false,
+                false, /* p_exclude_suspicious — only used by public search */
                 ${createdBeforeParam},
                 ${createdAfterParam}
               )`,

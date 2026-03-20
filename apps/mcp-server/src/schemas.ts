@@ -342,6 +342,10 @@ export const DiariesCompileSchema = Type.Object({
         Type.Literal('identity'),
         Type.Literal('soul'),
       ]),
+      {
+        description:
+          'Filter entries by type. episodic=incidents, semantic=decisions/knowledge, procedural=how-to/commits, reflection=observations, identity=whoami, soul=values.',
+      },
     ),
   ),
 });

@@ -560,13 +560,13 @@ describe('Diary distill — consolidate + compile', () => {
       expect(lateEntryInPack).toBeUndefined();
     }, 120_000);
 
-    it('createdAfter excludes entries created before the cutoff', async () => {
-      // Use a future cutoff — no entries should exist after it
+    it('createdAfter with future cutoff yields empty or rejected compile', async () => {
+      // Future cutoff — no entries exist after it
       const futureCutoff = new Date(
         Date.now() + 24 * 60 * 60 * 1000,
       ).toISOString();
 
-      const { data, error } = await compileDiary({
+      const { data, response } = await compileDiary({
         client,
         auth: () => agentA.accessToken,
         path: { id: agentA.moltnetDiaryId },
@@ -576,12 +576,12 @@ describe('Diary distill — consolidate + compile', () => {
         },
       });
 
-      // Should succeed but with no entries (all entries are before the cutoff)
-      if (error) {
-        // Some implementations may return an error for empty compile
-        expect(error).toBeDefined();
-      } else {
+      // Either 200 with 0 entries (empty pack persisted) or 400 (workflow
+      // rejects empty input). Both prove the filter excluded everything.
+      if (response.status === 200) {
         expect(data!.entries).toHaveLength(0);
+      } else {
+        expect(response.status).toBe(400);
       }
     }, 120_000);
 
