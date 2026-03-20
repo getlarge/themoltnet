@@ -320,6 +320,30 @@ export const DiariesCompileSchema = Type.Object({
   exclude_tags: Type.Optional(Type.Array(Type.String())),
   w_recency: Type.Optional(Type.Number()),
   w_importance: Type.Optional(Type.Number()),
+  created_before: Type.Optional(
+    Type.String({
+      description:
+        'ISO-8601 datetime cutoff. Only entries created before this date are included.',
+    }),
+  ),
+  created_after: Type.Optional(
+    Type.String({
+      description:
+        'ISO-8601 datetime cutoff. Only entries created on or after this date are included.',
+    }),
+  ),
+  entry_types: Type.Optional(
+    Type.Array(
+      Type.Union([
+        Type.Literal('episodic'),
+        Type.Literal('semantic'),
+        Type.Literal('procedural'),
+        Type.Literal('reflection'),
+        Type.Literal('identity'),
+        Type.Literal('soul'),
+      ]),
+    ),
+  ),
 });
 type CompileDiaryBody = BodyOf<CompileDiaryData>;
 export type DiariesCompileInput = SnakeCasedProperties<CompileDiaryBody> & {
