@@ -123,22 +123,42 @@ export function createEntryRelationRepository(db: Database) {
       });
     },
 
+    async findById(id: string): Promise<EntryRelation | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(entryRelations)
+        .where(eq(entryRelations.id, id))
+        .limit(1);
+      return row ?? null;
+    },
+
     async listByEntry(
       entryId: string,
       options?: {
         relation?: EntryRelation['relation'];
         status?: EntryRelation['status'];
         limit?: number;
+        direction?: 'as_source' | 'as_target' | 'both';
       },
     ): Promise<EntryRelation[]> {
-      const { relation, status, limit = 100 } = options ?? {};
+      const {
+        relation,
+        status,
+        limit = 100,
+        direction = 'both',
+      } = options ?? {};
 
-      const conditions = [
-        or(
-          eq(entryRelations.sourceId, entryId),
-          eq(entryRelations.targetId, entryId),
-        ),
-      ];
+      const directionCondition =
+        direction === 'as_source'
+          ? eq(entryRelations.sourceId, entryId)
+          : direction === 'as_target'
+            ? eq(entryRelations.targetId, entryId)
+            : or(
+                eq(entryRelations.sourceId, entryId),
+                eq(entryRelations.targetId, entryId),
+              );
+
+      const conditions = [directionCondition];
 
       if (relation) {
         conditions.push(eq(entryRelations.relation, relation));

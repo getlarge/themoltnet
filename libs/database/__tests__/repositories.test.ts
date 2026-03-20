@@ -4,6 +4,7 @@ import type { Database } from '../src/db.js';
 import { createAgentRepository } from '../src/repositories/agent.repository.js';
 import { createContextPackRepository } from '../src/repositories/context-pack.repository.js';
 import { createDiaryRepository } from '../src/repositories/diary.repository.js';
+import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
 import { createEntryRelationRepository } from '../src/repositories/entry-relation.repository.js';
 import type { AgentKey, DiaryEntry } from '../src/schema.js';
 
@@ -256,6 +257,23 @@ describe('createEntryRelationRepository', () => {
     expect(result).toEqual(mockRelation);
   });
 
+  it('findById returns the relation when found', async () => {
+    db._chain.limit.mockResolvedValue([mockRelation]);
+
+    const result = await repo.findById(RELATION_ID);
+
+    expect(db.select).toHaveBeenCalled();
+    expect(result).toEqual(mockRelation);
+  });
+
+  it('findById returns null when relation not found', async () => {
+    db._chain.limit.mockResolvedValue([]);
+
+    const result = await repo.findById('nonexistent');
+
+    expect(result).toBeNull();
+  });
+
   it('listByEntry returns matching relations', async () => {
     db._chain.limit.mockResolvedValue([mockRelation]);
 
@@ -263,6 +281,25 @@ describe('createEntryRelationRepository', () => {
 
     expect(db.select).toHaveBeenCalled();
     expect(result).toEqual([mockRelation]);
+  });
+
+  it('listByEntry with direction as_source only returns relations where entry is source', async () => {
+    const targetOnlyRelation = {
+      ...mockRelation,
+      id: '991e8400-e29b-41d4-a716-446655440004',
+      sourceId: '990e8400-e29b-41d4-a716-446655440004',
+      targetId: ENTRY_ID,
+    };
+    // as_source: only mockRelation (where sourceId === ENTRY_ID) should appear
+    db._chain.limit.mockResolvedValue([mockRelation]);
+
+    const result = await repo.listByEntry(ENTRY_ID, {
+      direction: 'as_source',
+    });
+
+    expect(db.select).toHaveBeenCalled();
+    expect(result).toEqual([mockRelation]);
+    expect(result).not.toContainEqual(targetOnlyRelation);
   });
 
   it('updateStatus returns the updated relation', async () => {
@@ -273,6 +310,43 @@ describe('createEntryRelationRepository', () => {
 
     expect(db.update).toHaveBeenCalled();
     expect(result).toEqual(updated);
+  });
+});
+
+describe('createDiaryEntryRepository — findByIds', () => {
+  let db: ReturnType<typeof createMockDb>;
+  let repo: ReturnType<typeof createDiaryEntryRepository>;
+
+  const DIARY_ID_A = '770e8400-e29b-41d4-a716-446655440003';
+
+  beforeEach(() => {
+    db = createMockDb();
+    repo = createDiaryEntryRepository(db);
+  });
+
+  it('findByIds returns matching entries with id and diaryId', async () => {
+    const rows = [{ id: ENTRY_ID, diaryId: DIARY_ID_A }];
+    db._chain.where.mockResolvedValue(rows);
+
+    const result = await repo.findByIds([ENTRY_ID]);
+
+    expect(db.select).toHaveBeenCalled();
+    expect(result).toEqual(rows);
+  });
+
+  it('findByIds returns empty array when ids list is empty', async () => {
+    const result = await repo.findByIds([]);
+
+    expect(db.select).not.toHaveBeenCalled();
+    expect(result).toEqual([]);
+  });
+
+  it('findByIds returns empty array when no entries match', async () => {
+    db._chain.where.mockResolvedValue([]);
+
+    const result = await repo.findByIds(['nonexistent-id']);
+
+    expect(result).toEqual([]);
   });
 });
 
