@@ -19,6 +19,7 @@
     "mirror:experiment": "tsx src/mirror-experiment/experiment.ts",
     "mirror:gepa-smoke": "tsx src/mirror-experiment/gepa-smoke-test.ts",
     "tasksmith:harvest": "tsx src/tasksmith/harvest-prs.ts",
+    "tasksmith:snapshot": "tsx src/tasksmith/snapshot.ts",
     "tasksmith:optimize": "tsx src/tasksmith/optimize-extractor.ts",
     "tasksmith:triage-fixture-green": "tsx src/tasksmith/triage-fixture-green.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
