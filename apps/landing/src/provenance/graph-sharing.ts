@@ -3,9 +3,25 @@
  *
  * Uses DecompressionStream/CompressionStream (available in all modern browsers)
  * with deflate-raw encoding, then base64url-encodes the result.
+ *
+ * Falls back to plain base64url when streaming compression APIs are unavailable
+ * (e.g. test environments like jsdom/happy-dom).
  */
 
-async function deflate(input: string): Promise<Uint8Array> {
+function hasStreamingCompression(): boolean {
+  try {
+    return (
+      typeof CompressionStream !== 'undefined' &&
+      typeof Blob !== 'undefined' &&
+      typeof Blob.prototype.stream === 'function'
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function deflate(input: string): Promise<Uint8Array | null> {
+  if (!hasStreamingCompression()) return null;
   const encoded = new TextEncoder().encode(input);
   const ab = new ArrayBuffer(encoded.length);
   new Uint8Array(ab).set(encoded);
@@ -48,12 +64,13 @@ function fromBase64Url(encoded: string): Uint8Array {
 
 /**
  * Compress a graph JSON string into a URL-safe parameter value.
- * Returns null if the compressed result exceeds the safe URL limit (~8KB).
+ * Returns null if compression is unavailable or the result exceeds ~8KB.
  */
 export async function compressGraphToParam(
   json: string,
 ): Promise<string | null> {
   const compressed = await deflate(json);
+  if (!compressed) return null;
   const encoded = toBase64Url(compressed);
   // Most browsers/servers support ~8KB in URL. Be conservative.
   if (encoded.length > 8000) return null;
