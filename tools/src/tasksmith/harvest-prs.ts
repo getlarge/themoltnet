@@ -24,12 +24,13 @@ import type {
   HarvestOptions,
   VerificationResult,
 } from './types.js';
+import type { TaskGroupItem } from './verify.js';
 import {
   cleanupAllWorktrees,
   startE2eStack,
   stopE2eStack,
   verifyDockerCommands,
-  verifyTask,
+  verifyTaskGroup,
   writeVerifiedTask,
 } from './verify.js';
 
@@ -43,7 +44,7 @@ const { values } = parseArgs({
     'verify-only': { type: 'boolean', default: false },
     'student-provider': { type: 'string', default: 'claude-agent-sdk' },
     'student-model': { type: 'string' },
-    concurrency: { type: 'string', default: '1' },
+    concurrency: { type: 'string', default: '3' },
     debug: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
@@ -81,6 +82,7 @@ const options: HarvestOptions = {
   studentModel: values['student-model']
     ? str(values['student-model'])
     : undefined,
+  concurrency: parseInt(str(values.concurrency) || '3', 10),
   debug: values.debug ?? false,
 };
 
@@ -156,6 +158,45 @@ async function loadExtractedTasks(
   return results.sort((a, b) => b.pr - a.pr);
 }
 
+// ── Concurrency helper ──
+
+async function mapConcurrent<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const idx = nextIndex++;
+      results[idx] = await fn(items[idx]);
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+  return results;
+}
+
+// ── Group tasks by PR ──
+
+function groupByPr(
+  tasks: Array<{ pr: number; task: TasksmithTask; criteria: CriteriaItem[] }>,
+): Map<number, TaskGroupItem[]> {
+  const groups = new Map<number, TaskGroupItem[]>();
+  for (const { pr, task, criteria } of tasks) {
+    const group = groups.get(pr) ?? [];
+    group.push({ task, criteria });
+    groups.set(pr, group);
+  }
+  return groups;
+}
+
 // ── Main ──
 
 const t0 = performance.now();
@@ -196,7 +237,7 @@ if (options.verifyOnly) {
     process.exit(0);
   }
 
-  // Jump directly to Phase 3
+  // Jump directly to Phase 3 — grouped by PR, concurrent across PRs
   let verified = 0;
   let failed = 0;
   const dockerPending: Array<{
@@ -206,40 +247,47 @@ if (options.verifyOnly) {
     deferred: NonNullable<VerificationResult['deferredDockerCommands']>;
   }> = [];
 
+  const groups = groupByPr(extracted);
+  const concurrency = parseInt(str(values.concurrency) || '3', 10);
   console.log(
-    `\n[harvest] Phase 3a: Unit test verification for ${extracted.length} tasks...`,
+    `\n[harvest] Phase 3a: Unit test verification for ${extracted.length} tasks ` +
+      `(${groups.size} PRs, concurrency=${concurrency})...`,
   );
 
   try {
-    for (const { pr, task, criteria } of extracted) {
-      const verification = await verifyTask(task, pr, {
-        debug: options.debug ?? false,
-        skipDocker: true,
-      });
+    const prEntries = [...groups.entries()];
 
-      if (
-        verification.status === 'unit_verified' &&
-        verification.deferredDockerCommands
-      ) {
-        console.log(
-          `[verify] PR #${pr}: unit tests passed, Docker commands deferred`,
-        );
-        dockerPending.push({
-          pr,
-          task,
-          criteria,
-          deferred: verification.deferredDockerCommands,
+    const groupResults = await mapConcurrent(
+      prEntries,
+      concurrency,
+      async ([pr, items]) => {
+        console.log(`[verify] PR #${pr}: verifying ${items.length} task(s)...`);
+        return verifyTaskGroup(pr, items, {
+          debug: options.debug ?? false,
+          skipDocker: true,
         });
-      } else if (verification.status === 'verified') {
-        verified++;
-        console.log(`[verify] PR #${pr}: VERIFIED (no Docker deps)`);
-        await writeVerifiedTask(repoRoot, task, criteria, verification);
-      } else {
-        failed++;
-        console.log(
-          `[verify] PR #${pr}: ${verification.status} — ${verification.skipReason ?? ''}`,
-        );
-        await writeVerifiedTask(repoRoot, task, criteria, verification);
+      },
+    );
+
+    for (const groupResult of groupResults) {
+      for (const { task, criteria, verification } of groupResult.results) {
+        if (
+          verification.status === 'unit_verified' &&
+          verification.deferredDockerCommands
+        ) {
+          dockerPending.push({
+            pr: groupResult.pr,
+            task,
+            criteria,
+            deferred: verification.deferredDockerCommands,
+          });
+        } else if (verification.status === 'verified') {
+          verified++;
+          await writeVerifiedTask(repoRoot, task, criteria, verification);
+        } else {
+          failed++;
+          await writeVerifiedTask(repoRoot, task, criteria, verification);
+        }
       }
     }
 
@@ -268,12 +316,8 @@ if (options.verifyOnly) {
           };
           if (finalVerification.status === 'verified') {
             verified++;
-            console.log(`[verify] PR #${pr}: VERIFIED (unit + Docker)`);
           } else {
             failed++;
-            console.log(
-              `[verify] PR #${pr}: ${finalVerification.status} — ${finalVerification.skipReason ?? ''}`,
-            );
           }
           await writeVerifiedTask(repoRoot, task, criteria, finalVerification);
         }
@@ -290,6 +334,7 @@ if (options.verifyOnly) {
   console.log('  VERIFY-ONLY SUMMARY');
   console.log('═══════════════════════════════════════════════');
   console.log(`  Tasks:     ${extracted.length}`);
+  console.log(`  PRs:       ${groups.size}`);
   console.log(`  Verified:  ${verified}`);
   console.log(`  Failed:    ${failed}`);
   console.log(`  Deferred:  ${dockerPending.length}`);
@@ -355,13 +400,16 @@ for (const candidate of candidates) {
   }
 }
 
-// Phase 3: Verification (two-phase: unit tests first, then Docker batch)
+// Phase 3: Verification (grouped by PR, concurrent across PRs)
 let verified = 0;
 let failed = 0;
 
 if (!options.skipVerify && extracted.length > 0) {
+  const groups = groupByPr(extracted);
+  const concurrency = options.concurrency ?? 3;
   console.log(
-    `\n[harvest] Phase 3a: Unit test verification for ${extracted.length} tasks...`,
+    `\n[harvest] Phase 3a: Unit test verification for ${extracted.length} tasks ` +
+      `(${groups.size} PRs, concurrency=${concurrency})...`,
   );
 
   const dockerPending: Array<{
@@ -372,35 +420,39 @@ if (!options.skipVerify && extracted.length > 0) {
   }> = [];
 
   try {
-    for (const { pr, task, criteria } of extracted) {
-      const verification = await verifyTask(task, pr, {
-        debug: options.debug ?? false,
-        skipDocker: true,
-      });
+    const prEntries = [...groups.entries()];
 
-      if (
-        verification.status === 'unit_verified' &&
-        verification.deferredDockerCommands
-      ) {
-        console.log(
-          `[verify] PR #${pr}: unit tests passed, Docker commands deferred`,
-        );
-        dockerPending.push({
-          pr,
-          task,
-          criteria,
-          deferred: verification.deferredDockerCommands,
+    const groupResults = await mapConcurrent(
+      prEntries,
+      concurrency,
+      async ([pr, items]) => {
+        console.log(`[verify] PR #${pr}: verifying ${items.length} task(s)...`);
+        return verifyTaskGroup(pr, items, {
+          debug: options.debug ?? false,
+          skipDocker: true,
         });
-      } else if (verification.status === 'verified') {
-        verified++;
-        console.log(`[verify] PR #${pr}: VERIFIED (no Docker deps)`);
-        await writeVerifiedTask(repoRoot, task, criteria, verification);
-      } else {
-        failed++;
-        console.log(
-          `[verify] PR #${pr}: ${verification.status} — ${verification.skipReason ?? ''}`,
-        );
-        await writeVerifiedTask(repoRoot, task, criteria, verification);
+      },
+    );
+
+    for (const groupResult of groupResults) {
+      for (const { task, criteria, verification } of groupResult.results) {
+        if (
+          verification.status === 'unit_verified' &&
+          verification.deferredDockerCommands
+        ) {
+          dockerPending.push({
+            pr: groupResult.pr,
+            task,
+            criteria,
+            deferred: verification.deferredDockerCommands,
+          });
+        } else if (verification.status === 'verified') {
+          verified++;
+          await writeVerifiedTask(repoRoot, task, criteria, verification);
+        } else {
+          failed++;
+          await writeVerifiedTask(repoRoot, task, criteria, verification);
+        }
       }
     }
 
@@ -433,12 +485,8 @@ if (!options.skipVerify && extracted.length > 0) {
 
           if (finalVerification.status === 'verified') {
             verified++;
-            console.log(`[verify] PR #${pr}: VERIFIED (unit + Docker)`);
           } else {
             failed++;
-            console.log(
-              `[verify] PR #${pr}: ${finalVerification.status} — ${finalVerification.skipReason ?? ''}`,
-            );
           }
           await writeVerifiedTask(repoRoot, task, criteria, finalVerification);
         }

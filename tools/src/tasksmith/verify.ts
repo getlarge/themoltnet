@@ -119,6 +119,221 @@ export interface VerifyTaskOptions {
   skipDocker: boolean;
 }
 
+// ── Grouped verification (shared worktrees per PR) ──
+
+export interface TaskGroupItem {
+  task: TasksmithTask;
+  criteria: CriteriaItem[];
+}
+
+export interface GroupVerificationResult {
+  pr: number;
+  results: Array<{
+    task: TasksmithTask;
+    criteria: CriteriaItem[];
+    verification: VerificationResult;
+  }>;
+}
+
+/**
+ * Verify all sub-tasks for a single PR using shared worktrees.
+ * Creates fixture + gold worktrees once, then runs checks for each sub-task.
+ */
+export async function verifyTaskGroup(
+  pr: number,
+  items: TaskGroupItem[],
+  options: VerifyTaskOptions,
+): Promise<GroupVerificationResult> {
+  const { debug, skipDocker } = options;
+  const results: GroupVerificationResult['results'] = [];
+
+  // Find the shared refs (all sub-tasks of a PR share the same refs)
+  const fixtureRef = items[0].task.fixture_ref;
+  const goldFixRef = items[0].task.gold_fix_ref;
+
+  let fixtureWorktree: string | undefined;
+  let goldWorktree: string | undefined;
+  let fixtureInstalled = false;
+  let goldInstalled = false;
+
+  try {
+    for (const { task, criteria } of items) {
+      const failToPass = skipDocker
+        ? partitionCommands(task.fail_to_pass)
+        : { unit: task.fail_to_pass, docker: [] as string[] };
+      const passToPass = skipDocker
+        ? partitionCommands(task.pass_to_pass)
+        : { unit: task.pass_to_pass, docker: [] as string[] };
+
+      if (failToPass.unit.length === 0 && skipDocker) {
+        results.push({
+          task,
+          criteria,
+          verification: {
+            pr,
+            status: 'extracted_unverified',
+            deferredDockerCommands: {
+              failToPass: failToPass.docker,
+              passToPass: passToPass.docker,
+            },
+          },
+        });
+        continue;
+      }
+
+      // ── Red check (lazy init fixture worktree) ──
+      if (!fixtureWorktree) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[verify] PR #${pr}: creating fixture worktree at ${fixtureRef.slice(0, 8)}...`,
+        );
+        fixtureWorktree = await createWorktree(fixtureRef, `pr-${pr}-fixture`);
+      }
+      if (!fixtureInstalled) {
+        await runShellCommand(
+          'pnpm install --frozen-lockfile',
+          fixtureWorktree,
+          INSTALL_TIMEOUT_MS,
+        );
+        fixtureInstalled = true;
+      }
+
+      const redChecks: CommandCheck[] = [];
+      let fixtureGreen = false;
+      for (const cmd of failToPass.unit) {
+        const check = await runTestCommand(cmd, fixtureWorktree);
+        redChecks.push(check);
+        if (check.passed) {
+          fixtureGreen = true;
+          // eslint-disable-next-line no-console
+          console.log(
+            `[verify] ${task.task_id}: FIXTURE_ALREADY_GREEN — "${cmd}"`,
+          );
+          break;
+        }
+      }
+      if (fixtureGreen) {
+        results.push({
+          task,
+          criteria,
+          verification: {
+            pr,
+            status: 'fixture_already_green',
+            redCheck: {
+              passed: false,
+              commands: redChecks,
+              durationMs: redChecks.reduce((s, c) => s + c.durationMs, 0),
+            },
+            skipReason: `fail_to_pass passed on fixture`,
+          },
+        });
+        continue;
+      }
+      const redDuration = redChecks.reduce((s, c) => s + c.durationMs, 0);
+
+      // ── Green check (lazy init gold worktree) ──
+      if (!goldWorktree) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[verify] PR #${pr}: creating gold worktree at ${goldFixRef.slice(0, 8)}...`,
+        );
+        goldWorktree = await createWorktree(goldFixRef, `pr-${pr}-gold`);
+      }
+      if (!goldInstalled) {
+        await runShellCommand(
+          'pnpm install --frozen-lockfile',
+          goldWorktree,
+          INSTALL_TIMEOUT_MS,
+        );
+        goldInstalled = true;
+      }
+
+      const greenChecks: CommandCheck[] = [];
+      let fixFails = false;
+      for (const cmd of failToPass.unit) {
+        const check = await runTestCommand(cmd, goldWorktree);
+        greenChecks.push(check);
+        if (!check.passed) {
+          fixFails = true;
+          // eslint-disable-next-line no-console
+          console.log(`[verify] ${task.task_id}: FIX_DOESNT_PASS — "${cmd}"`);
+          break;
+        }
+      }
+      if (fixFails) {
+        results.push({
+          task,
+          criteria,
+          verification: {
+            pr,
+            status: 'fix_doesnt_pass',
+            redCheck: {
+              passed: true,
+              commands: redChecks,
+              durationMs: redDuration,
+            },
+            greenCheck: {
+              passed: false,
+              commands: greenChecks,
+              durationMs: greenChecks.reduce((s, c) => s + c.durationMs, 0),
+            },
+            skipReason: `fail_to_pass failed on gold fix`,
+          },
+        });
+        continue;
+      }
+      const greenDuration = greenChecks.reduce((s, c) => s + c.durationMs, 0);
+
+      // ── Regression check ──
+      const removed: string[] = [];
+      for (const cmd of passToPass.unit) {
+        const check = await runTestCommand(cmd, fixtureWorktree);
+        if (!check.passed) removed.push(cmd);
+      }
+
+      const hasDeferred =
+        failToPass.docker.length > 0 || passToPass.docker.length > 0;
+      const deferredDockerCommands = hasDeferred
+        ? { failToPass: failToPass.docker, passToPass: passToPass.docker }
+        : undefined;
+      const status = deferredDockerCommands ? 'unit_verified' : 'verified';
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `[verify] ${task.task_id}: ${status === 'verified' ? 'VERIFIED' : status}`,
+      );
+
+      results.push({
+        task,
+        criteria,
+        verification: {
+          pr,
+          status,
+          redCheck: {
+            passed: true,
+            commands: redChecks,
+            durationMs: redDuration,
+          },
+          greenCheck: {
+            passed: true,
+            commands: greenChecks,
+            durationMs: greenDuration,
+          },
+          regressionCheck: { passed: removed.length === 0, removed },
+          deferredDockerCommands,
+        },
+      });
+    }
+  } finally {
+    if (!debug) {
+      if (fixtureWorktree) await removeWorktree(fixtureWorktree);
+      if (goldWorktree) await removeWorktree(goldWorktree);
+    }
+  }
+
+  return { pr, results };
+}
+
 export async function verifyTask(
   task: TasksmithTask,
   pr: number,
