@@ -155,17 +155,15 @@ export async function runGepaOptimization<
   );
   program.setInstruction(seedInstruction);
 
-  // Instrument setInstruction to debug GEPA instruction propagation
+  // Workaround: ax-llm v19's AxGen.getInstruction() returns null even after
+  // setInstruction() is called — the AxPromptTemplate stores the value in
+  // `customInstruction` but getInstruction() doesn't read it back correctly.
+  // We intercept setInstruction() to track the current instruction ourselves.
+  // TODO: remove when ax-llm fixes getInstruction() (tested on v19.0.13).
   const origSetInstruction = program.setInstruction.bind(program);
   let lastSetInstruction = seedInstruction;
   program.setInstruction = (instruction: string) => {
     lastSetInstruction = instruction;
-    if (verbose && instruction.length !== seedInstruction.length) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[GEPA-debug] setInstruction called: len=${instruction.length} (seed=${seedInstruction.length})`,
-      );
-    }
     return origSetInstruction(instruction);
   };
 
@@ -199,14 +197,6 @@ export async function runGepaOptimization<
   );
 
   const getCurrentInstruction = (): string => {
-    const fromGetter = program.getInstruction();
-    if (verbose && fromGetter !== lastSetInstruction) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[GEPA-debug] MISMATCH: getInstruction()=${fromGetter?.length ?? 'null'} vs lastSetInstruction=${lastSetInstruction.length}`,
-      );
-    }
-    // Use lastSetInstruction as the authoritative source, since we intercept setInstruction
     return lastSetInstruction;
   };
 

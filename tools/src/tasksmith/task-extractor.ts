@@ -35,50 +35,114 @@ const extractorProgram = ax(`
 
 // ── Seed instruction ──
 
+// GEPA-optimized instruction (v2, 2026-03-19, score 0.667 on 14 verified tasks).
+// Previous seed was 2723 chars and scored 0.180. This version (5268 chars) adds
+// structured sections, explicit viability gates, and a self-check step.
 const SEED_INSTRUCTION = `You are analyzing a merged GitHub PR to extract a SWE-bench-style benchmark task.
 
 GOAL: Extract test commands that FAIL on the pre-PR code (fixture) and PASS on the post-PR code (gold fix).
 
-TEST FILE LABELS:
-- Test files are labeled [NEW] or [MODIFIED].
-- [NEW] = file was ADDED by this PR. Full content is shown. The file does not exist on fixture.
-- [MODIFIED] = file existed before the PR. Only the DIFF is shown — lines starting with + are additions.
-- Unchanged test files are pass_to_pass candidates (regression guard).
+═══════════════════════════════════════════════
+OUTPUT FORMAT (required JSON structure):
+═══════════════════════════════════════════════
+{
+  "task_id": "<pr-id>",
+  "viable": true | false,
+  "evalScore": <integer 0-100>,
+  "family": "bugfix" | "feature" | "refactor" | "test" | "infra",
+  "problem_statement": "<describe symptom/requirement, NO implementation details>",
+  "fail_to_pass": ["<command1>", "<command2>"],
+  "pass_to_pass": ["<command1>"],
+  "criteria": [
+    { "description": "...", "check_type": "test_passes|file_exists|export_exists|pattern_present|type_checks|behavioral", "weight": 0.X }
+  ]
+}
 
-TEST COMMANDS — CRITICAL:
-You MUST target the SPECIFIC test file path in every command. NEVER use "pnpm --filter <pkg> test" or "pnpm --filter <pkg> run test" alone — running the full suite passes on fixture because existing tests still pass. Only the NEW or MODIFIED tests fail on fixture.
+═══════════════════════════════════════════════
+VIABILITY — ASSESS THIS FIRST, CAREFULLY
+═══════════════════════════════════════════════
+Mark viable=false and evalScore<20 if ANY of these apply:
+- No [NEW] test files AND no new test cases in [MODIFIED] files
+- Tests only assert on snapshots, formatting, or generated output (not behavior)
+- Pure config/CI/tooling changes with no logic
+- Changes only affect external service configuration
+- Only type annotation changes with no runtime behavior change
+- Only import reorganization or code style changes
+- The PR adds test infrastructure but no actual behavioral test assertions
+- [MODIFIED] test files only have minor wording/description changes, not new test cases
+- The only changes in test files are in \`describe()\` or \`it()\` description strings, not in assertions
 
-FORMAT: pnpm --filter <package> vitest run <relative-path-to-test-file>
+Mark viable=true only when:
+- There is at least one [NEW] test file with concrete behavioral assertions, OR
+- There is at least one [MODIFIED] test file with genuinely NEW test cases (new \`it()\` or \`test()\` blocks with new assertions)
+
+═══════════════════════════════════════════════
+TEST FILE LABELS
+═══════════════════════════════════════════════
+- [NEW] = file ADDED by this PR. Full content shown. Does NOT exist on fixture branch.
+- [MODIFIED] = file existed before PR. Only diff shown. Lines starting with + are additions.
+- Unchanged test files = pass_to_pass candidates only.
+
+═══════════════════════════════════════════════
+TEST COMMANDS — CRITICAL RULES
+═══════════════════════════════════════════════
+FORMAT: pnpm --filter <package-name> vitest run <relative-path-to-test-file>
+
+NEVER use bare "pnpm --filter <pkg> test" or "pnpm --filter <pkg> run test" — these run the full suite which passes on fixture because existing tests still pass.
+
+Path calculation:
+- Find the test file path in changed_files (e.g., "libs/api-client/__tests__/retry-fetch.test.ts")
+- Find the package root (e.g., libs/api-client/ for @moltnet/api-client)
+- Strip the package root prefix to get the relative path (e.g., "__tests__/retry-fetch.test.ts")
 
 For [NEW] files — target the exact file:
   pnpm --filter @moltnet/api-client vitest run __tests__/retry-fetch.test.ts
 
-For [MODIFIED] files — target the file AND specific new test names:
-  pnpm --filter @moltnet/rest-api vitest run __tests__/config.test.ts --testNamePattern "new test name"
+For [MODIFIED] files — target the file AND specific new test names using --testNamePattern:
+  pnpm --filter @moltnet/rest-api vitest run __tests__/config.test.ts --testNamePattern "new test name here"
 
-The path must be relative to the package root (not the repo root). Look at the test file path in the diff, strip the package prefix.
-Example: if changed_files has "libs/api-client/__tests__/retry-fetch.test.ts" and the package is @moltnet/api-client at libs/api-client/, the path is "__tests__/retry-fetch.test.ts".
+The --testNamePattern value must match the EXACT describe/it string from the new test cases.
+Do NOT add --testNamePattern for [NEW] files (the whole file is new).
 
 fail_to_pass: commands targeting [NEW] test files or new test cases in [MODIFIED] files.
-pass_to_pass: commands targeting unchanged test files as regression guards. Use the same format: pnpm --filter <package> vitest run <path>.
-Prefer unit tests over e2e tests. E2e tests often pass on fixture because they test broad behavior.
+pass_to_pass: commands targeting UNCHANGED test files as regression guards (same format).
 
-PROBLEM STATEMENT:
-- Describe the symptom or requirement, NOT the implementation
-- Do not leak function names, variable names, or implementation details from the diff
-- Write as if filing a bug report or feature request
+Prefer unit tests over e2e tests — e2e tests often pass on fixture because they test broad behavior.
 
-VIABILITY:
-- Mark NOT viable if: no testable behavioral change, pure config/CI, only affects external services
-- Mark NOT viable if: tests only assert on snapshot/formatting changes
-- Mark NOT viable if: no [NEW] test files and no new test cases in [MODIFIED] files
+═══════════════════════════════════════════════
+PROBLEM STATEMENT
+═══════════════════════════════════════════════
+- Describe the symptom or requirement as a bug report or feature request
+- Do NOT leak: function names, variable names, class names, or implementation details from the diff
+- Focus on observable behavior: what fails or what capability is missing
+- Keep it to 2-4 sentences
 
-CRITERIA:
-- 3-5 behavioral expectations an evaluator can check without the gold solution
+═══════════════════════════════════════════════
+CRITERIA
+═══════════════════════════════════════════════
+- 3-5 behavioral expectations an evaluator can verify WITHOUT the gold solution
 - Use check_types: test_passes, file_exists, export_exists, pattern_present, type_checks, behavioral
-- Weights should sum to approximately 1.0
+- Weights must sum to approximately 1.0
+- Focus on what the tests ASSERT, not how they're implemented
 
-FAMILIES: bugfix (fixes broken behavior), feature (adds new capability), refactor (changes structure, same behavior), test (adds test coverage), infra (build/CI/tooling)`;
+═══════════════════════════════════════════════
+FAMILIES
+═══════════════════════════════════════════════
+- bugfix: fixes broken behavior
+- feature: adds new capability
+- refactor: changes structure, same behavior
+- test: adds test coverage only
+- infra: build/CI/tooling
+
+═══════════════════════════════════════════════
+SELF-CHECK BEFORE OUTPUT
+═══════════════════════════════════════════════
+Before finalizing, verify:
+1. If viable=true: can you point to specific NEW it()/test() blocks with assertions? If not, set viable=false.
+2. Are all test command paths relative to the package root (not repo root)?
+3. Do fail_to_pass commands target ONLY new/modified test content, not the full suite?
+4. Does the problem statement avoid leaking implementation details?
+5. For MODIFIED files: does --testNamePattern exactly match a new test description in the diff?`;
 
 // ── Command normalization ──
 
