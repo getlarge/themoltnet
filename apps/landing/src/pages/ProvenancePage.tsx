@@ -13,6 +13,7 @@ import {
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from 'react';
 import {
   Fragment,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -22,6 +23,10 @@ import {
 import { Link } from 'wouter';
 
 import { buildGraphLayout } from '../provenance/graph-layout';
+import {
+  compressGraphToParam,
+  decompressGraphFromParam,
+} from '../provenance/graph-sharing';
 import {
   clampScale,
   computeFitViewport,
@@ -52,6 +57,7 @@ export function ProvenancePage() {
   } | null>(null);
   const draggedRef = useRef(false);
   const [rawInput, setRawInput] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [collapsedPackIds, setCollapsedPackIds] = useState<Set<string>>(
     () => new Set(),
@@ -63,6 +69,36 @@ export function ProvenancePage() {
     offsetY: 0,
   });
   const deferredInput = useDeferredValue(rawInput);
+
+  // Load graph from ?graph= URL parameter on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const graphParam = params.get('graph');
+    if (!graphParam) return;
+
+    decompressGraphFromParam(graphParam)
+      .then((json) => setRawInput(json))
+      .catch(() => {
+        // Ignore decompression errors — user may have pasted a bad URL
+      });
+  }, []);
+
+  const handleCopyLink = useCallback(async () => {
+    if (!rawInput.trim()) return;
+    const param = await compressGraphToParam(rawInput);
+    if (!param) {
+      // Graph too large for URL — fall back to copy JSON
+      await navigator.clipboard.writeText(rawInput);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.search = `?graph=${param}`;
+    await navigator.clipboard.writeText(url.toString());
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }, [rawInput]);
 
   const parsed = useMemo(() => {
     if (deferredInput.trim() === '') {
@@ -520,6 +556,11 @@ export function ProvenancePage() {
                         style={{ display: 'none' }}
                       />
                     </label>
+                    {graph ? (
+                      <Button variant="secondary" onClick={handleCopyLink}>
+                        {linkCopied ? 'Copied!' : 'Copy Link'}
+                      </Button>
+                    ) : null}
                   </div>
                   <textarea
                     value={rawInput}
