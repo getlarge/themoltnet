@@ -650,12 +650,19 @@ interface RawLlmTask {
   subsystems?: string[];
 }
 
+function isRawLlmTask(v: unknown): v is RawLlmTask {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    'viable' in v &&
+    typeof (v as Record<string, unknown>).viable === 'boolean'
+  );
+}
+
 function parseRawTasks(tasks: unknown): RawLlmTask[] {
-  if (Array.isArray(tasks)) return tasks as RawLlmTask[];
+  if (Array.isArray(tasks)) return tasks.filter(isRawLlmTask);
   // LLM might still return a single object despite array instruction
-  if (tasks && typeof tasks === 'object' && 'viable' in tasks) {
-    return [tasks as RawLlmTask];
-  }
+  if (isRawLlmTask(tasks)) return [tasks];
   return [];
 }
 

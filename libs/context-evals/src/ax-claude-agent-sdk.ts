@@ -96,7 +96,8 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
   private maxTurns: number;
-  /** Set to true when the current request expects a JSON-only response */
+  // WARNING: not concurrency-safe — assumes requests and responses are
+  // strictly interleaved (one at a time per adapter instance).
   expectsJsonResponse = false;
 
   constructor(maxTurns: number) {
