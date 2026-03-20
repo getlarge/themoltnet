@@ -203,6 +203,21 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
           ),
           wRecency: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
           wImportance: Type.Optional(Type.Number({ minimum: 0, maximum: 1 })),
+          createdBefore: Type.Optional(Type.String({ format: 'date-time' })),
+          createdAfter: Type.Optional(Type.String({ format: 'date-time' })),
+          entryTypes: Type.Optional(
+            Type.Array(
+              Type.Union([
+                Type.Literal('episodic'),
+                Type.Literal('semantic'),
+                Type.Literal('procedural'),
+                Type.Literal('reflection'),
+                Type.Literal('identity'),
+                Type.Literal('soul'),
+              ]),
+              { maxItems: 6 },
+            ),
+          ),
         }),
         response: {
           200: Type.Ref(CompileResultSchema),
@@ -225,6 +240,9 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
         excludeTags,
         wRecency,
         wImportance,
+        createdBefore,
+        createdAfter,
+        entryTypes,
       } = request.body;
 
       try {
@@ -254,6 +272,9 @@ export async function diaryDistillRoutes(fastify: FastifyInstance) {
             excludeTags,
             wRecency,
             wImportance,
+            createdBefore,
+            createdAfter,
+            entryTypes,
           },
         );
       } catch (err) {

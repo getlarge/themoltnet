@@ -407,6 +407,9 @@ export async function handleDiariesCompile(
     exclude_tags,
     w_recency,
     w_importance,
+    created_before,
+    created_after,
+    entry_types,
   } = args;
   const { data, error } = await compileDiary({
     client: deps.client,
@@ -420,6 +423,9 @@ export async function handleDiariesCompile(
       excludeTags: exclude_tags,
       wRecency: w_recency,
       wImportance: w_importance,
+      createdBefore: created_before,
+      createdAfter: created_after,
+      entryTypes: entry_types,
     },
   });
 

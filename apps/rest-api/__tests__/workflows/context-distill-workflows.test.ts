@@ -204,6 +204,38 @@ describe('context-distill compile workflow', () => {
     ).toBe(true);
   });
 
+  it('passes createdBefore and createdAfter to search', async () => {
+    await contextDistillWorkflows.compile({
+      diaryId: '00000000-0000-0000-0000-000000000001',
+      identityId: '00000000-0000-0000-0000-000000000002',
+      tokenBudget: 2000,
+      createdBefore: '2026-03-01T00:00:00Z',
+      createdAfter: '2025-12-01T00:00:00Z',
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createdBefore: new Date('2026-03-01T00:00:00Z'),
+        createdAfter: new Date('2025-12-01T00:00:00Z'),
+      }),
+    );
+  });
+
+  it('passes entryTypes to search', async () => {
+    await contextDistillWorkflows.compile({
+      diaryId: '00000000-0000-0000-0000-000000000001',
+      identityId: '00000000-0000-0000-0000-000000000002',
+      tokenBudget: 2000,
+      entryTypes: ['semantic', 'procedural'],
+    });
+
+    expect(search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entryTypes: ['semantic', 'procedural'],
+      }),
+    );
+  });
+
   it('persists proposed entry relations from consolidation clusters', async () => {
     const list = vi
       .fn()
