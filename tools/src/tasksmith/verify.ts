@@ -1,4 +1,11 @@
-import { appendFile, copyFile, mkdir, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  copyFile,
+  mkdir,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type { TasksmithTask } from '@moltnet/context-evals';
@@ -462,6 +469,50 @@ export async function verifyDockerCommands(
       if (fixtureWorktree) await removeWorktree(fixtureWorktree);
       if (goldWorktree) await removeWorktree(goldWorktree);
     }
+  }
+}
+
+// ── Stale artifact cleanup ──
+
+/**
+ * Remove old task/status/verified/evals files for a PR before writing new ones.
+ * Prevents stale artifacts when a re-extraction produces fewer sub-tasks.
+ */
+export async function cleanupPrArtifacts(
+  repoRoot: string,
+  pr: number,
+): Promise<void> {
+  const dirs = [
+    resolve(repoRoot, 'tasksmith', 'candidates', 'tasks'),
+    resolve(repoRoot, 'tasksmith', 'candidates', 'status'),
+    resolve(repoRoot, 'tasksmith', 'verified'),
+  ];
+  const prefix = `${pr}-`;
+
+  for (const dir of dirs) {
+    try {
+      const files = await readdir(dir);
+      for (const file of files) {
+        if (file.startsWith(prefix) && file.endsWith('.json')) {
+          await rm(resolve(dir, file), { force: true });
+        }
+      }
+    } catch {
+      // dir may not exist yet
+    }
+  }
+
+  // Clean evals dirs (pr-{number}-{index}/)
+  const evalsDir = resolve(repoRoot, 'evals');
+  try {
+    const evalDirs = await readdir(evalsDir);
+    for (const dir of evalDirs) {
+      if (dir.startsWith(`pr-${pr}-`)) {
+        await rm(resolve(evalsDir, dir), { recursive: true, force: true });
+      }
+    }
+  } catch {
+    // evals dir may not exist
   }
 }
 

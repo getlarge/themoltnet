@@ -27,6 +27,7 @@ import type {
 import type { TaskGroupItem } from './verify.js';
 import {
   cleanupAllWorktrees,
+  cleanupPrArtifacts,
   startE2eStack,
   stopE2eStack,
   verifyDockerCommands,
@@ -386,6 +387,9 @@ for (const candidate of candidates) {
       console.log(
         `[extract] PR #${candidate.number}: viable (${count} task${count > 1 ? 's' : ''}, ${ftpTotal} fail_to_pass)`,
       );
+      // Clean up stale artifacts from previous extractions (e.g., PR went
+      // from 5 sub-tasks to 3 — remove old 279-3.json, 279-4.json).
+      await cleanupPrArtifacts(repoRoot, candidate.number);
       for (const item of result.tasks) {
         extracted.push({ pr: candidate.number, ...item });
       }

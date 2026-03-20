@@ -96,9 +96,6 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
   private maxTurns: number;
-  // WARNING: not concurrency-safe — assumes requests and responses are
-  // strictly interleaved (one at a time per adapter instance).
-  expectsJsonResponse = false;
 
   constructor(maxTurns: number) {
     this.maxTurns = maxTurns;
@@ -127,12 +124,9 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
           ? rawSchema.schema
           : rawSchema;
       prompt +=
-        '\n\nIMPORTANT: You MUST respond with ONLY a valid JSON object ' +
-        'matching this schema. No markdown, no explanation, no wrapping:\n' +
+        '\n\nIMPORTANT: You MUST respond with ONLY valid JSON matching ' +
+        'this schema. No markdown, no explanation, no wrapping:\n' +
         JSON.stringify(schema, null, 2);
-      this.expectsJsonResponse = true;
-    } else {
-      this.expectsJsonResponse = false;
     }
 
     const localCall = async (
@@ -158,27 +152,25 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
     const tokens = toTokenUsage(resp.usage);
     this.lastTokenUsage = tokens;
 
-    // When structured output was requested, try to parse the response as
-    // JSON. ax() expects the raw JSON object as the result content —
-    // it will extract fields from it using its own parser.
-    if (this.expectsJsonResponse) {
-      const json = extractJsonFromText(resp.resultText);
-      if (json !== null) {
-        return {
-          results: [
-            {
-              content: JSON.stringify(json),
-              finishReason: 'stop' as const,
-              index: 0,
-            },
-          ],
-          modelUsage: {
-            ai: 'claude-agent-sdk',
-            model: 'claude-agent-sdk',
-            tokens,
+    // Try to parse as JSON — when structured output was requested via
+    // prompt injection, the LLM returns JSON as text. This is stateless
+    // (no mutable flag) so it's safe under concurrency.
+    const json = extractJsonFromText(resp.resultText);
+    if (json !== null) {
+      return {
+        results: [
+          {
+            content: JSON.stringify(json),
+            finishReason: 'stop' as const,
+            index: 0,
           },
-        };
-      }
+        ],
+        modelUsage: {
+          ai: 'claude-agent-sdk',
+          model: 'claude-agent-sdk',
+          tokens,
+        },
+      };
     }
 
     return {

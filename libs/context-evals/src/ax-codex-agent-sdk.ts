@@ -79,9 +79,6 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
   private maxTurns: number;
-  // WARNING: not concurrency-safe — assumes requests and responses are
-  // strictly interleaved (one at a time per adapter instance).
-  expectsJsonResponse = false;
 
   constructor(maxTurns: number) {
     this.maxTurns = maxTurns;
@@ -107,9 +104,6 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
         typeof rawSchema === 'object' && 'schema' in rawSchema
           ? rawSchema.schema
           : rawSchema;
-      this.expectsJsonResponse = true;
-    } else {
-      this.expectsJsonResponse = false;
     }
 
     const localCall = async (
@@ -138,26 +132,24 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
     const tokens = toTokenUsage(resp.usage);
     this.lastTokenUsage = tokens;
 
-    // When structured output was requested, try to parse the response as
-    // JSON. Codex with outputSchema should already return valid JSON.
-    if (this.expectsJsonResponse) {
-      const json = extractJsonFromText(resp.resultText);
-      if (json !== null) {
-        return {
-          results: [
-            {
-              content: JSON.stringify(json),
-              finishReason: 'stop' as const,
-              index: 0,
-            },
-          ],
-          modelUsage: {
-            ai: 'codex-agent-sdk',
-            model: 'codex-agent-sdk',
-            tokens,
+    // Try to parse as JSON — Codex with outputSchema returns valid JSON.
+    // Stateless (no mutable flag) so safe under concurrency.
+    const json = extractJsonFromText(resp.resultText);
+    if (json !== null) {
+      return {
+        results: [
+          {
+            content: JSON.stringify(json),
+            finishReason: 'stop' as const,
+            index: 0,
           },
-        };
-      }
+        ],
+        modelUsage: {
+          ai: 'codex-agent-sdk',
+          model: 'codex-agent-sdk',
+          tokens,
+        },
+      };
     }
 
     return {
