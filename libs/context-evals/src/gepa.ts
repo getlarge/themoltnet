@@ -92,6 +92,7 @@ export interface GepaRunnerOptions<
   teacherAI?: AxAIService;
   numTrials: number;
   maxMetricCalls: number;
+  minibatchSize?: number;
   verbose?: boolean;
   /** ax() program signature. Default: 'task_id:string -> evalScore:number'. */
   axSignature?: string;
@@ -106,10 +107,17 @@ export interface GepaRunnerOptions<
   onEvalComplete?: (entry: EvalTraceEntry<TTrace>) => void | Promise<void>;
 }
 
+export interface ParetoCandidate {
+  instruction: string;
+  scores: Record<string, number>;
+  dominatedSolutions: number;
+}
+
 export interface GepaRunnerResult<TTrace> {
   bestScore: number;
   bestInstruction: string;
   traces: EvalTraceEntry<TTrace>[];
+  paretoFront: ParetoCandidate[];
 }
 
 // ── Full GEPA compile loop ────────────────────────────────────────────────────
@@ -130,6 +138,7 @@ export async function runGepaOptimization<
     teacherAI,
     numTrials,
     maxMetricCalls,
+    minibatchSize,
     verbose,
     axSignature,
     buildExamples,
@@ -146,10 +155,23 @@ export async function runGepaOptimization<
   );
   program.setInstruction(seedInstruction);
 
+  // Workaround: ax-llm v19's AxGen.getInstruction() returns null even after
+  // setInstruction() is called — the AxPromptTemplate stores the value in
+  // `customInstruction` but getInstruction() doesn't read it back correctly.
+  // We intercept setInstruction() to track the current instruction ourselves.
+  // TODO: remove when ax-llm fixes getInstruction() (tested on v19.0.13).
+  const origSetInstruction = program.setInstruction.bind(program);
+  let lastSetInstruction = seedInstruction;
+  program.setInstruction = (instruction: string) => {
+    lastSetInstruction = instruction;
+    return origSetInstruction(instruction);
+  };
+
   const optimizer = new AxGEPA({
     studentAI,
     ...(teacherAI ? { teacherAI } : {}),
     numTrials,
+    ...(minibatchSize ? { minibatchSize } : {}),
     verbose,
     seed: 42,
   });
@@ -175,14 +197,7 @@ export async function runGepaOptimization<
   );
 
   const getCurrentInstruction = (): string => {
-    const inst = (program as unknown as { instruction?: string }).instruction;
-    if (inst === undefined && verbose) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[GEPA] program.instruction not found — using seedInstruction (ax internals may have changed)',
-      );
-    }
-    return inst ?? seedInstruction;
+    return lastSetInstruction;
   };
 
   // metricFn: called by GEPA for each training example.
@@ -205,6 +220,15 @@ export async function runGepaOptimization<
           : '';
     const taskId = rawTaskId.replace(/-replica$/, '');
     const instruction = getCurrentInstruction();
+
+    if (verbose) {
+      // buildCacheKey returns "taskId:sha256prefix" — extract just the hash part
+      const instHash = buildCacheKey('_', instruction).split(':')[1];
+      // eslint-disable-next-line no-console
+      console.log(
+        `[GEPA-metric] eval #${evalCount} task=${taskId} len=${instruction.length} sha=${instHash}`,
+      );
+    }
 
     const evalResult = await cachedEvaluate(taskId, instruction);
 
@@ -249,10 +273,30 @@ export async function runGepaOptimization<
     },
   );
 
+  const rawFront = (
+    result as unknown as {
+      paretoFront?: Array<{
+        scores: Record<string, number>;
+        configuration?: { instruction?: string };
+        dominatedSolutions?: number;
+      }>;
+    }
+  ).paretoFront;
+
+  const paretoFront: ParetoCandidate[] =
+    rawFront
+      ?.map((p) => ({
+        instruction: p.configuration?.instruction ?? '',
+        scores: p.scores,
+        dominatedSolutions: p.dominatedSolutions ?? 0,
+      }))
+      .filter((p) => p.instruction.length > 0) ?? [];
+
   return {
     bestScore: result.bestScore,
     bestInstruction: result.optimizedProgram?.instruction ?? seedInstruction,
     traces: allTraces,
+    paretoFront,
   };
 }
 

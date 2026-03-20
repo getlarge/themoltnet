@@ -18,6 +18,9 @@
     "gpack:skill-eval": "tsx src/skill-evals/skill-eval-pipeline.ts",
     "mirror:experiment": "tsx src/mirror-experiment/experiment.ts",
     "mirror:gepa-smoke": "tsx src/mirror-experiment/gepa-smoke-test.ts",
+    "tasksmith:harvest": "tsx src/tasksmith/harvest-prs.ts",
+    "tasksmith:optimize": "tsx src/tasksmith/optimize-extractor.ts",
+    "tasksmith:triage-fixture-green": "tsx src/tasksmith/triage-fixture-green.ts",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint src/",
     "test": "vitest run --passWithNoTests"
