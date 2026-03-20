@@ -748,6 +748,43 @@ export type ProvenanceGraph = {
   }>;
 };
 
+export type RelationType =
+  | 'supersedes'
+  | 'elaborates'
+  | 'contradicts'
+  | 'supports'
+  | 'caused_by'
+  | 'references';
+
+export type RelationStatus = 'proposed' | 'accepted' | 'rejected';
+
+export type EntryRelation = {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  relation: RelationType;
+  status: RelationStatus;
+  sourceCidSnapshot: string | null;
+  targetCidSnapshot: string | null;
+  workflowId: string | null;
+  confidence: number | null;
+  similarity: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EntryRelationList = {
+  items: Array<EntryRelation>;
+  /**
+   * Number of items returned in this response window.
+   */
+  total: number;
+  /**
+   * Maximum number of items requested.
+   */
+  limit: number;
+};
+
 export type GetOAuth2TokenData = {
   body?: never;
   path?: never;
@@ -2201,6 +2238,195 @@ export type ListDiaryPacksResponses = {
 
 export type ListDiaryPacksResponse =
   ListDiaryPacksResponses[keyof ListDiaryPacksResponses];
+
+export type ListEntryRelationsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: {
+    relation?: RelationType;
+    status?: RelationStatus;
+    direction?: 'as_source' | 'as_target' | 'both';
+    limit?: number;
+  };
+  url: '/entries/{entryId}/relations';
+};
+
+export type ListEntryRelationsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListEntryRelationsError =
+  ListEntryRelationsErrors[keyof ListEntryRelationsErrors];
+
+export type ListEntryRelationsResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryRelationList;
+};
+
+export type ListEntryRelationsResponse =
+  ListEntryRelationsResponses[keyof ListEntryRelationsResponses];
+
+export type CreateEntryRelationData = {
+  body: {
+    targetId: string;
+    relation: RelationType;
+    status?: 'proposed' | 'accepted';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    entryId: string;
+  };
+  query?: never;
+  url: '/entries/{entryId}/relations';
+};
+
+export type CreateEntryRelationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateEntryRelationError =
+  CreateEntryRelationErrors[keyof CreateEntryRelationErrors];
+
+export type CreateEntryRelationResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryRelation;
+  /**
+   * Default Response
+   */
+  201: EntryRelation;
+};
+
+export type CreateEntryRelationResponse =
+  CreateEntryRelationResponses[keyof CreateEntryRelationResponses];
+
+export type DeleteEntryRelationData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/relations/{id}';
+};
+
+export type DeleteEntryRelationErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type DeleteEntryRelationError =
+  DeleteEntryRelationErrors[keyof DeleteEntryRelationErrors];
+
+export type DeleteEntryRelationResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type DeleteEntryRelationResponse =
+  DeleteEntryRelationResponses[keyof DeleteEntryRelationResponses];
+
+export type UpdateEntryRelationStatusData = {
+  body: {
+    status: RelationStatus;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/relations/{id}';
+};
+
+export type UpdateEntryRelationStatusErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateEntryRelationStatusError =
+  UpdateEntryRelationStatusErrors[keyof UpdateEntryRelationStatusErrors];
+
+export type UpdateEntryRelationStatusResponses = {
+  /**
+   * Default Response
+   */
+  200: EntryRelation;
+};
+
+export type UpdateEntryRelationStatusResponse =
+  UpdateEntryRelationStatusResponses[keyof UpdateEntryRelationStatusResponses];
 
 export type GetAgentProfileData = {
   body?: never;
