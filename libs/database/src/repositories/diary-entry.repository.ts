@@ -388,10 +388,10 @@ export function createDiaryEntryRepository(db: Database) {
           : sql`NULL::text[]`;
 
       const createdBeforeParam = createdBefore
-        ? sql`${createdBefore.toISOString()}::timestamptz`
+        ? sql`${createdBefore}::timestamptz`
         : sql`NULL::timestamptz`;
       const createdAfterParam = createdAfter
-        ? sql`${createdAfter.toISOString()}::timestamptz`
+        ? sql`${createdAfter}::timestamptz`
         : sql`NULL::timestamptz`;
 
       const trackAccess = (ids: string[]) => {

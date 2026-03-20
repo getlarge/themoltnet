@@ -322,12 +322,14 @@ export const DiariesCompileSchema = Type.Object({
   w_importance: Type.Optional(Type.Number()),
   created_before: Type.Optional(
     Type.String({
+      format: 'date-time',
       description:
         'ISO-8601 datetime cutoff. Only entries created before this date are included.',
     }),
   ),
   created_after: Type.Optional(
     Type.String({
+      format: 'date-time',
       description:
         'ISO-8601 datetime cutoff. Only entries created on or after this date are included.',
     }),

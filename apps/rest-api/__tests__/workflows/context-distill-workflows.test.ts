@@ -226,12 +226,12 @@ describe('context-distill compile workflow', () => {
       diaryId: '00000000-0000-0000-0000-000000000001',
       identityId: '00000000-0000-0000-0000-000000000002',
       tokenBudget: 2000,
-      entryTypes: ['decision', 'procedural'],
+      entryTypes: ['semantic', 'procedural'],
     });
 
     expect(search).toHaveBeenCalledWith(
       expect.objectContaining({
-        entryTypes: ['decision', 'procedural'],
+        entryTypes: ['semantic', 'procedural'],
       }),
     );
   });

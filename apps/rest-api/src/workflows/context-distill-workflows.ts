@@ -35,6 +35,7 @@ import {
   type ContextPackRepository,
   type DataSource,
   DBOS,
+  type DiaryEntry,
   type DiaryEntryRepository,
   type EntryRelationRepository,
   type NewContextPack,
@@ -118,7 +119,7 @@ export interface CompileWorkflowInput {
   limit?: number;
   createdBefore?: string;
   createdAfter?: string;
-  entryTypes?: string[];
+  entryTypes?: DiaryEntry['entryType'][];
 }
 
 // ── Dependency Injection ───────────────────────────────────────

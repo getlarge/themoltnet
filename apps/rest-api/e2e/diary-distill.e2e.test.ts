@@ -519,14 +519,7 @@ describe('Diary distill — consolidate + compile', () => {
     }, 120_000);
 
     it('createdBefore excludes entries created after the cutoff', async () => {
-      // Record the cutoff before creating a new entry
-      const cutoff = new Date().toISOString();
-
-      // Wait a moment to ensure server timestamp is after cutoff
-      await new Promise<void>((r) => {
-        setTimeout(r, 500);
-      });
-
+      // Create entry first, then derive cutoff from its server-assigned timestamp
       const { data: lateEntry } = await apiCreateDiaryEntry({
         client,
         auth: () => agentA.accessToken,
@@ -539,6 +532,10 @@ describe('Diary distill — consolidate + compile', () => {
         },
       });
       expect(lateEntry).toBeDefined();
+
+      // Use 1 second before the entry's server timestamp as cutoff
+      const entryCreatedAt = new Date(lateEntry!.createdAt);
+      const cutoff = new Date(entryCreatedAt.getTime() - 1000).toISOString();
 
       const { data, error } = await compileDiary({
         client,
