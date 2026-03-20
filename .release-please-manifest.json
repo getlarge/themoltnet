@@ -1,8 +1,8 @@
 {
   "cmd/moltnet": "0.69.0",
-  "cmd/moltnet-api-client": "0.39.0",
+  "cmd/moltnet-api-client": "0.40.0",
   "libs/design-system": "0.3.0",
-  "libs/sdk": "0.75.0",
+  "libs/sdk": "0.76.0",
   "packages/github-agent": "0.22.0",
   "packages/legreffier-cli": "0.24.0",
   "packages/openclaw-skill": "0.24.0"

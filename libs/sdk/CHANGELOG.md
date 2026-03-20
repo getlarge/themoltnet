@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.76.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.75.0...sdk-v0.76.0) (2026-03-20)
+
+
+### Features
+
+* add provenance viewer ergonomics and creator attribution ([863fe25](https://github.com/getlarge/themoltnet/commit/863fe250c14e6d60e21439362b8ede8ce7fd90a0))
+* **api:** expose pack provenance graphs ([23bfb7b](https://github.com/getlarge/themoltnet/commit/23bfb7b5fcfac22937228b58ef9002b1974eed42))
+
 ## [0.75.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.74.0...sdk-v0.75.0) (2026-03-18)
 
 
