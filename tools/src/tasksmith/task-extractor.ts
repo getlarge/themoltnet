@@ -84,27 +84,23 @@ const SEED_INSTRUCTION = `You are analyzing a merged GitHub PR to extract a SWE-
 GOAL: Extract test commands that FAIL on the pre-PR code (fixture) and PASS on the post-PR code (gold fix).
 
 ═══════════════════════════════════════════════
-OUTPUT FORMAT (required JSON structure):
+OUTPUT FORMAT
 ═══════════════════════════════════════════════
-Return a JSON ARRAY of tasks. Each PR may yield 1 or more independent tasks.
+The output schema is enforced — you must populate the "results" array with one
+or more task objects. Each PR may yield 1 or more independent tasks.
 Split into multiple tasks ONLY when the PR contains independent test suites
 testing unrelated behaviors (e.g., a feature PR that adds auth tests AND
 pagination tests for different modules).
 
-[
-  {
-    "task_id": "<pr-id>-0",
-    "viable": true | false,
-    "evalScore": <integer 0-100>,
-    "family": "bugfix" | "feature" | "refactor" | "test" | "infra",
-    "problem_statement": "<describe symptom/requirement, NO implementation details>",
-    "fail_to_pass": ["<command1>", "<command2>"],
-    "pass_to_pass": ["<command1>"],
-    "criteria": [
-      { "description": "...", "check_type": "test_passes|file_exists|export_exists|pattern_present|type_checks|behavioral", "weight": 0.X }
-    ]
-  }
-]
+Each task object in the results array has these fields:
+  viable: boolean — true if this sub-task can produce a verifiable task
+  fail_to_pass: string[] — test commands that should fail on fixture and pass on fix
+  pass_to_pass: string[] — test commands that should pass on both fixture and fix
+  problem_statement: string — SWE-bench-style problem description (no implementation details)
+  family: "bugfix" | "feature" | "refactor" | "test" | "infra"
+  subsystems: string[] — affected workspace package names
+  criteria: array of {description, check_type, weight} objects
+  skip_reason: string — reason if not viable, empty string otherwise
 
 SPLITTING RULES:
 - Default: return a SINGLE-element array (most PRs are one coherent change)
@@ -351,7 +347,8 @@ export function normalizeTestCommand(cmd: string): string {
   normalized = normalized.replace(
     /(\s-t\s+)(['"]?)(.+?)\2(\s|$)/,
     (_, prefix, quote, pattern, suffix) => {
-      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Escape regex chars but preserve | (used as alternation in multi-test patterns)
+      const escaped = pattern.replace(/[.*+?^${}()[\]\\]/g, '\\$&');
       return escaped !== pattern
         ? `${prefix}"${escaped}"${suffix}`
         : `${prefix}${quote}${pattern}${quote}${suffix}`;

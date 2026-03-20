@@ -72,15 +72,18 @@ export function flattenChatPrompt(
 // ── JSON extraction ──────────────────────────────────────────────────────────
 
 /**
- * Extract a JSON object from LLM text that may contain markdown fences
- * or surrounding prose. Used by adapters when structuredOutputs is enabled
- * and the LLM returns JSON as text.
+ * Extract a JSON value (object or array) from LLM text that may contain
+ * markdown fences or surrounding prose. Used by adapters when
+ * structuredOutputs is enabled and the LLM returns JSON as text.
  */
 export function extractJsonFromText(text: string): object | null {
   const trimmed = text.trim();
 
-  // Case 1: raw JSON object
-  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+  // Case 1: raw JSON value (object or array)
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  ) {
     try {
       return JSON.parse(trimmed) as object;
     } catch {
@@ -92,20 +95,28 @@ export function extractJsonFromText(text: string): object | null {
   const codeBlock = trimmed.match(/```(?:json)?\s*\n([\s\S]+?)\n```/);
   if (codeBlock) {
     try {
-      return JSON.parse(codeBlock[1]) as object;
+      const parsed: unknown = JSON.parse(codeBlock[1]);
+      if (parsed !== null && typeof parsed === 'object') {
+        return parsed;
+      }
     } catch {
       // not valid JSON inside code block
     }
   }
 
-  // Case 3: JSON embedded in prose — find first { and last }
-  const first = trimmed.indexOf('{');
-  const last = trimmed.lastIndexOf('}');
-  if (first >= 0 && last > first) {
-    try {
-      return JSON.parse(trimmed.slice(first, last + 1)) as object;
-    } catch {
-      // not valid JSON
+  // Case 3: JSON embedded in prose — try object then array delimiters
+  for (const [open, close] of [
+    ['{', '}'],
+    ['[', ']'],
+  ] as const) {
+    const first = trimmed.indexOf(open);
+    const last = trimmed.lastIndexOf(close);
+    if (first >= 0 && last > first) {
+      try {
+        return JSON.parse(trimmed.slice(first, last + 1)) as object;
+      } catch {
+        // not valid JSON
+      }
     }
   }
 

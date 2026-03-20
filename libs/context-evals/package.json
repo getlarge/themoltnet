@@ -53,6 +53,6 @@
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "zod": "^4.3.6"
+    "zod": "catalog:"
   }
 }

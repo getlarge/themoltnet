@@ -147,9 +147,21 @@ export async function verifyTaskGroup(
   const { debug, skipDocker } = options;
   const results: GroupVerificationResult['results'] = [];
 
-  // Find the shared refs (all sub-tasks of a PR share the same refs)
+  if (items.length === 0) {
+    return { pr, results };
+  }
+
+  // All sub-tasks of a PR share the same refs
   const fixtureRef = items[0].task.fixture_ref;
   const goldFixRef = items[0].task.gold_fix_ref;
+
+  for (const { task } of items) {
+    if (task.fixture_ref !== fixtureRef || task.gold_fix_ref !== goldFixRef) {
+      throw new Error(
+        `PR #${pr}: sub-tasks have mismatched refs — cannot share worktrees`,
+      );
+    }
+  }
 
   let fixtureWorktree: string | undefined;
   let goldWorktree: string | undefined;
