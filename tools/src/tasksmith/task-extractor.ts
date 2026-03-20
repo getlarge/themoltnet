@@ -66,9 +66,7 @@ const extractorSig = f()
               weight: f.number('importance weight 0-1').min(0).max(1),
             })
             .array(),
-          skip_reason: f
-            .string('reason if not viable, empty otherwise')
-            .optional(),
+          skip_reason: f.string('reason if not viable, empty string otherwise'),
         })
         .array(),
     }),

@@ -68,3 +68,46 @@ export function flattenChatPrompt(
 
   return parts.join('\n\n');
 }
+
+// ── JSON extraction ──────────────────────────────────────────────────────────
+
+/**
+ * Extract a JSON object from LLM text that may contain markdown fences
+ * or surrounding prose. Used by adapters when structuredOutputs is enabled
+ * and the LLM returns JSON as text.
+ */
+export function extractJsonFromText(text: string): object | null {
+  const trimmed = text.trim();
+
+  // Case 1: raw JSON object
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      return JSON.parse(trimmed) as object;
+    } catch {
+      // not valid JSON
+    }
+  }
+
+  // Case 2: markdown code block
+  const codeBlock = trimmed.match(/```(?:json)?\s*\n([\s\S]+?)\n```/);
+  if (codeBlock) {
+    try {
+      return JSON.parse(codeBlock[1]) as object;
+    } catch {
+      // not valid JSON inside code block
+    }
+  }
+
+  // Case 3: JSON embedded in prose — find first { and last }
+  const first = trimmed.indexOf('{');
+  const last = trimmed.lastIndexOf('}');
+  if (first >= 0 && last > first) {
+    try {
+      return JSON.parse(trimmed.slice(first, last + 1)) as object;
+    } catch {
+      // not valid JSON
+    }
+  }
+
+  return null;
+}

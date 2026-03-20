@@ -25,7 +25,11 @@ import {
   type Usage,
 } from '@openai/codex-sdk';
 
-import { AGENT_FEATURES, flattenChatPrompt } from './ax-shared.js';
+import {
+  AGENT_FEATURES,
+  extractJsonFromText,
+  flattenChatPrompt,
+} from './ax-shared.js';
 import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
 
 const DEBUG = getRuntimeEnv().AX_AGENT_SDK_DEBUG === '1';
@@ -39,6 +43,8 @@ type AgentModel = string;
 interface AgentRequest {
   prompt: string;
   model: AgentModel;
+  /** JSON schema for structured output (passed to Codex outputSchema) */
+  outputSchema?: unknown;
 }
 
 interface AgentResponse {
@@ -73,6 +79,8 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
   private maxTurns: number;
+  /** Set to true when the current request expects a JSON-only response */
+  expectsJsonResponse = false;
 
   constructor(maxTurns: number) {
     this.maxTurns = maxTurns;
@@ -86,13 +94,35 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
     const maxTurns = this.maxTurns;
     const stream = req.modelConfig?.stream ?? false;
 
+    // When ax() uses structured output, extract the JSON schema to pass
+    // to Codex's native outputSchema on TurnOptions.
+    let outputSchema: unknown;
+    if (
+      req.responseFormat?.type === 'json_schema' &&
+      req.responseFormat.schema
+    ) {
+      const rawSchema = req.responseFormat.schema as Record<string, unknown>;
+      outputSchema =
+        typeof rawSchema === 'object' && 'schema' in rawSchema
+          ? rawSchema.schema
+          : rawSchema;
+      this.expectsJsonResponse = true;
+    } else {
+      this.expectsJsonResponse = false;
+    }
+
     const localCall = async (
       data: AgentRequest,
     ): Promise<AgentResponse | ReadableStream<AgentStreamDelta>> => {
       if (stream) {
         return runAgentQueryStream(data.prompt, data.model, maxTurns);
       }
-      return runAgentQuery(data.prompt, data.model, maxTurns);
+      return runAgentQuery(
+        data.prompt,
+        data.model,
+        maxTurns,
+        data.outputSchema,
+      );
     };
 
     const api: AxAPI = {
@@ -100,12 +130,34 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
       localCall: localCall as AxAPI['localCall'],
     };
 
-    return [api, { prompt, model }];
+    return [api, { prompt, model, outputSchema }];
   }
 
   createChatResp(resp: Readonly<AgentResponse>): AxChatResponse {
     const tokens = toTokenUsage(resp.usage);
     this.lastTokenUsage = tokens;
+
+    // When structured output was requested, try to parse the response as
+    // JSON. Codex with outputSchema should already return valid JSON.
+    if (this.expectsJsonResponse) {
+      const json = extractJsonFromText(resp.resultText);
+      if (json !== null) {
+        return {
+          results: [
+            {
+              content: JSON.stringify(json),
+              finishReason: 'stop' as const,
+              index: 0,
+            },
+          ],
+          modelUsage: {
+            ai: 'codex-agent-sdk',
+            model: 'codex-agent-sdk',
+            tokens,
+          },
+        };
+      }
+    }
 
     return {
       results: [
@@ -254,10 +306,13 @@ async function runAgentQuery(
   prompt: string,
   model: string,
   maxTurns: number,
+  outputSchema?: unknown,
 ): Promise<AgentResponse> {
   dbg(`run model=${model} prompt=${prompt.length}chars`);
   const thread = buildCodex().startThread(buildThreadOptions(model));
-  const turn = await thread.run(buildInstructionPrompt(prompt, maxTurns));
+  const turn = await thread.run(buildInstructionPrompt(prompt, maxTurns), {
+    ...(outputSchema ? { outputSchema } : {}),
+  });
 
   return {
     resultText:

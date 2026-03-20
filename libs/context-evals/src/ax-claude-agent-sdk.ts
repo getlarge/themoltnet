@@ -27,7 +27,11 @@ import {
   type AxTokenUsage,
 } from '@ax-llm/ax';
 
-import { AGENT_FEATURES, flattenChatPrompt } from './ax-shared.js';
+import {
+  AGENT_FEATURES,
+  extractJsonFromText,
+  flattenChatPrompt,
+} from './ax-shared.js';
 import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
 import type { ResultPayload } from './sdk-types.js';
 
@@ -346,46 +350,6 @@ function extractAssistantText(message: SDKMessage): string | null {
   return textBlocks.length > 0
     ? textBlocks.map((b) => b.text).join('\n')
     : null;
-}
-
-/**
- * Extract a JSON object from LLM text that may contain markdown fences
- * or surrounding prose.
- */
-function extractJsonFromText(text: string): object | null {
-  const trimmed = text.trim();
-
-  // Case 1: raw JSON object
-  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-    try {
-      return JSON.parse(trimmed) as object;
-    } catch {
-      // not valid JSON
-    }
-  }
-
-  // Case 2: markdown code block
-  const codeBlock = trimmed.match(/```(?:json)?\s*\n([\s\S]+?)\n```/);
-  if (codeBlock) {
-    try {
-      return JSON.parse(codeBlock[1]) as object;
-    } catch {
-      // not valid JSON inside code block
-    }
-  }
-
-  // Case 3: JSON embedded in prose — find first { and last }
-  const first = trimmed.indexOf('{');
-  const last = trimmed.lastIndexOf('}');
-  if (first >= 0 && last > first) {
-    try {
-      return JSON.parse(trimmed.slice(first, last + 1)) as object;
-    } catch {
-      // not valid JSON
-    }
-  }
-
-  return null;
 }
 
 function buildAgentResponse(
