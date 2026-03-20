@@ -21,7 +21,9 @@ export async function loadHarvestState(
 ): Promise<HarvestState> {
   try {
     await access(stateFile);
-    return JSON.parse(await readFile(stateFile, 'utf8')) as HarvestState;
+    const raw = JSON.parse(await readFile(stateFile, 'utf8')) as HarvestState;
+    raw.processed_prs = [...new Set(raw.processed_prs)];
+    return raw;
   } catch {
     return { processed_prs: [], last_run: new Date().toISOString() };
   }
