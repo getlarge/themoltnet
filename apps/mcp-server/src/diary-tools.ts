@@ -190,7 +190,7 @@ export async function handleEntryUpdate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { entry_id, entry_type, superseded_by, ...updates } = args;
+  const { entry_id, entry_type, ...updates } = args;
   delete (updates as { diary_id?: string }).diary_id;
   const { data, error } = await updateDiaryEntryById({
     client: deps.client,
@@ -199,7 +199,6 @@ export async function handleEntryUpdate(
     body: {
       ...updates,
       entryType: entry_type,
-      supersededBy: superseded_by,
     },
   });
 
