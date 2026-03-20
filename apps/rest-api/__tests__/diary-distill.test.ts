@@ -224,5 +224,49 @@ describe('Diary distill routes', () => {
 
       expect(response.statusCode).toBe(404);
     });
+
+    it('accepts createdBefore, createdAfter, and entryTypes params', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/compile`,
+        headers: authHeaders,
+        payload: {
+          tokenBudget: 4000,
+          createdBefore: '2026-03-01T00:00:00Z',
+          createdAfter: '2025-12-01T00:00:00Z',
+          entryTypes: ['semantic', 'procedural'],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('rejects invalid createdBefore format', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/compile`,
+        headers: authHeaders,
+        payload: {
+          tokenBudget: 4000,
+          createdBefore: 'not-a-date',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('rejects invalid entryType values', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/compile`,
+        headers: authHeaders,
+        payload: {
+          tokenBudget: 4000,
+          entryTypes: ['invalid_type'],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
   });
 });
