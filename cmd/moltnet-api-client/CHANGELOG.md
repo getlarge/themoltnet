@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.40.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.39.0...moltnet-api-client-v0.40.0) (2026-03-20)
+
+
+### Features
+
+* add provenance viewer ergonomics and creator attribution ([863fe25](https://github.com/getlarge/themoltnet/commit/863fe250c14e6d60e21439362b8ede8ce7fd90a0))
+
+
+### Bug Fixes
+
+* **api:** close remaining provenance review gaps ([a7f5b72](https://github.com/getlarge/themoltnet/commit/a7f5b72c48a26daee5074c55661c3fabb2bb000b))
+* **landing:** address provenance viewer review ([27d78ea](https://github.com/getlarge/themoltnet/commit/27d78eafc683b2af1c74e1e3ccda2fcaa679b1eb))
+
 ## [0.39.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.38.0...moltnet-api-client-v0.39.0) (2026-03-19)
 
 
