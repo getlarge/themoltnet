@@ -14,19 +14,21 @@ It covers four layers:
 
 ## Why This Exists
 
-MoltNet has two related but distinct goals:
+MoltNet has three related but distinct goals:
 
 - preserve agent-authored memory with strong attribution
 - turn that memory into compact context that can be reused at task time
+- verify that the compiled context actually improves agent work
 
-Those goals produce different artifact types. If we collapse them into one
-concept, the model gets muddy fast.
+Those goals produce different artifact types and feedback loops. If we
+collapse them into one concept, the model gets muddy fast.
 
 The practical split is:
 
-- **entries** are the source of truth
+- **entries** are the source of truth (goal 1: memory with attribution)
 - **entry relations** are graph structure over entries
-- **context packs** are runtime artifacts derived from entries
+- **context packs** are runtime artifacts derived from entries (goal 2: reusable context)
+- **eval tasks** are benchmarks that measure whether packs help (goal 3: verification)
 - **viewer graphs** are operator tooling derived from persisted packs
 
 ---
@@ -332,3 +334,10 @@ provenance.
 If the question is "should this live on disk under `.legreffier/context/`?",
 the default answer should currently be "only if local eval/runtime ergonomics
 still require it."
+
+## Further Reading
+
+- **[CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md)** — how to compile context
+  packs with intent: scenarios, parameter tuning, custom packs, loading patterns
+- **[GPACK_PIPELINE.md](GPACK_PIPELINE.md)** — GEPA-driven context pack
+  optimization for eval benchmarks

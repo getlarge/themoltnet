@@ -1,5 +1,11 @@
 # gpack Pipeline
 
+**Related docs:**
+
+- [CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md) — how to compile context packs with intent (scenarios, parameter tuning, loading)
+- [GEPA.md](GEPA.md) — how GEPA works, the three optimization modes, known pitfalls
+- [PROVENANCE.md](PROVENANCE.md) — the four-layer provenance model
+
 ## Purpose
 
 `gpack` optimizes LeGreffier task-time context for coding tasks using GEPA.
