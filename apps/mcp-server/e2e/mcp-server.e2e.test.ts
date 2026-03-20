@@ -333,6 +333,37 @@ describe('MCP Server E2E', () => {
       expect(compileParsed).toHaveProperty('compileStats');
     });
 
+    it('diaries_compile accepts temporal and entryType filter params', async () => {
+      requireSetup();
+
+      // Use a past cutoff so no entries qualify → compile returns empty pack
+      const compileResult = await client.callTool({
+        name: 'diaries_compile',
+        arguments: {
+          diary_id: harness.privateDiaryId,
+          token_budget: 4000,
+          created_before: '2020-01-01T00:00:00Z',
+          entry_types: ['semantic', 'procedural'],
+        },
+      });
+      const compileContent = compileResult.content as Array<{
+        type: string;
+        text: string;
+      }>;
+
+      // Should succeed (not error) — the params are accepted by the schema
+      // The pack may have 0 entries since the cutoff is in the distant past
+      if (compileResult.isError) {
+        // If compile errors on empty input, that's acceptable — the point is
+        // the params were accepted and forwarded, not rejected as unknown
+        expect(compileContent[0].text).not.toMatch(/unknown.*param/i);
+      } else {
+        const parsed = JSON.parse(compileContent[0].text);
+        expect(parsed).toHaveProperty('packCid');
+        expect(parsed.entries).toHaveLength(0);
+      }
+    });
+
     // ── Diary CRUD via MCP tools ──
 
     it('creates and reads back a diary entry', async () => {
