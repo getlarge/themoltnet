@@ -294,6 +294,7 @@ export function createMockServices(): MockServices {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
+      canEditAnyEntry: vi.fn(),
       canReadPack: vi.fn(),
       canReadPacks: vi.fn().mockResolvedValue(new Map()),
       canManagePack: vi.fn(),
