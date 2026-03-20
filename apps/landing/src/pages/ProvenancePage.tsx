@@ -78,27 +78,66 @@ export function ProvenancePage() {
 
     decompressGraphFromParam(graphParam)
       .then((json) => setRawInput(json))
-      .catch(() => {
-        // Ignore decompression errors — user may have pasted a bad URL
+      .catch((err) => {
+        // Fallback: try plain base64url (no compression)
+        try {
+          const base64 = graphParam.replace(/-/g, '+').replace(/_/g, '/');
+          const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+          const json = atob(padded);
+          if (json.startsWith('{')) {
+            setRawInput(json);
+            return;
+          }
+        } catch {
+          // not base64 either
+        }
+        // eslint-disable-next-line no-console
+        console.error('[provenance] failed to decode ?graph= param:', err);
       });
   }, []);
 
-  const handleCopyLink = useCallback(async () => {
-    if (!rawInput.trim()) return;
-    const param = await compressGraphToParam(rawInput);
-    if (!param) {
-      // Graph too large for URL — fall back to copy JSON
-      await navigator.clipboard.writeText(rawInput);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+  // Pre-compute the shareable URL so the click handler stays synchronous
+  // (Safari drops clipboard access if there's an async gap after the gesture)
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!rawInput.trim()) {
+      setShareUrl(null);
       return;
     }
-    const url = new URL(window.location.href);
-    url.search = `?graph=${param}`;
-    await navigator.clipboard.writeText(url.toString());
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
+    void compressGraphToParam(rawInput).then((param) => {
+      if (!param) {
+        setShareUrl(null);
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.search = `?graph=${param}`;
+      setShareUrl(url.toString());
+    });
   }, [rawInput]);
+
+  const handleCopyLink = useCallback(() => {
+    const text = shareUrl ?? rawInput;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      },
+      () => {
+        // Fallback for restrictive browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      },
+    );
+  }, [shareUrl, rawInput]);
 
   const parsed = useMemo(() => {
     if (deferredInput.trim() === '') {
