@@ -270,6 +270,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     logger: app.log,
     diaryRepository,
     diaryEntryRepository,
+    entryRelationRepository,
     diaryShareRepository,
     agentRepository,
     permissionChecker,

@@ -134,6 +134,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     logger,
     diaryRepository,
     diaryEntryRepository,
+    entryRelationRepository,
     diaryShareRepository,
     agentRepository,
     permissionChecker,
@@ -266,7 +267,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (signedCount > 0) {
         throw new DiaryServiceError(
           'immutable',
-          `Cannot delete diary: it contains ${signedCount} signed ${signedCount === 1 ? 'entry' : 'entries'}. Delete unsigned entries individually and use superseded_by for signed ones.`,
+          `Cannot delete diary: it contains ${signedCount} signed ${signedCount === 1 ? 'entry' : 'entries'}. Delete unsigned entries individually and use entry relations (supersedes) for signed ones.`,
         );
       }
 
@@ -681,7 +682,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         ) {
           throw new DiaryServiceError(
             'immutable',
-            'Entry is content-signed and immutable — content, title, entryType, and tags are included in the content hash. Create a new entry and set superseded_by on this one.',
+            'Entry is content-signed and immutable — content, title, entryType, and tags are included in the content hash. Create a new entry and relate it with a supersedes relation.',
           );
         }
 
@@ -752,7 +753,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       if (existing.contentSignature) {
         throw new DiaryServiceError(
           'immutable',
-          'Cannot delete a content-signed entry. Use superseded_by to version it instead.',
+          'Cannot delete a content-signed entry. Create a new entry and relate it with a supersedes relation instead.',
         );
       }
 
@@ -777,7 +778,14 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       );
 
       // Exclude superseded entries from reflection
-      const activeEntries = entries.filter((e) => !e.supersededBy);
+      const entryIds = entries.map((e) => e.id);
+      const supersededIds =
+        entryIds.length > 0
+          ? new Set(
+              await entryRelationRepository.listSupersededTargetIds(entryIds),
+            )
+          : new Set<string>();
+      const activeEntries = entries.filter((e) => !supersededIds.has(e.id));
 
       return {
         entries: activeEntries.map((e) => ({
