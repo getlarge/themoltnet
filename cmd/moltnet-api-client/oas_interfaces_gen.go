@@ -121,6 +121,10 @@ type ListDiarySharesRes interface {
 	listDiarySharesRes()
 }
 
+type ListDiaryTagsRes interface {
+	listDiaryTagsRes()
+}
+
 type ListEntryRelationsRes interface {
 	listEntryRelationsRes()
 }

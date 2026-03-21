@@ -455,9 +455,9 @@ export async function handleDiaryTags(
     auth: () => token,
     path: { diaryId: args.diary_id },
     query: {
-      ...(args.prefix && { prefix: args.prefix }),
-      ...(args.min_count && { minCount: args.min_count }),
-      ...(args.entry_types && {
+      ...(args.prefix !== undefined && { prefix: args.prefix }),
+      ...(args.min_count !== undefined && { minCount: args.min_count }),
+      ...(args.entry_types !== undefined && {
         entryTypes: args.entry_types.join(','),
       }),
     },

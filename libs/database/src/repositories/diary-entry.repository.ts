@@ -621,7 +621,9 @@ export function createDiaryEntryRepository(db: Database) {
       const havingClause = minCount
         ? sql`HAVING COUNT(*) >= ${minCount}`
         : sql``;
-      const prefixClause = prefix ? sql`AND tag LIKE ${prefix + '%'}` : sql``;
+      const prefixClause = prefix
+        ? sql`AND tag LIKE ${prefix.replace(/[%_\\]/g, '\\$&') + '%'} ESCAPE '\\'`
+        : sql``;
 
       const result = await db.execute(
         sql`SELECT tag, COUNT(*)::int AS count

@@ -18,13 +18,14 @@ import (
 )
 
 var regexMap = map[string]ogenregex.Regexp{
-	"^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$": ogenregex.MustCompile("^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"),
-	"^(pending|completed|expired)(,(pending|completed|expired))*$":                                                         ogenregex.MustCompile("^(pending|completed|expired)(,(pending|completed|expired))*$"),
-	"^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$":                                                        ogenregex.MustCompile("^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"),
-	"^[^,]{1,50}(,[^,]{1,50}){0,19}$":                                                                                      ogenregex.MustCompile("^[^,]{1,50}(,[^,]{1,50}){0,19}$"),
-	"^[a-f0-9]{64}$":                                                                                                       ogenregex.MustCompile("^[a-f0-9]{64}$"),
-	"^bafk[a-z2-7]+$":                                                                                                      ogenregex.MustCompile("^bafk[a-z2-7]+$"),
-	"^ed25519:[A-Za-z0-9+/=]+$":                                                                                            ogenregex.MustCompile("^ed25519:[A-Za-z0-9+/=]+$"),
+	"^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$":     ogenregex.MustCompile("^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"),
+	"^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$": ogenregex.MustCompile("^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"),
+	"^(pending|completed|expired)(,(pending|completed|expired))*$":                                                             ogenregex.MustCompile("^(pending|completed|expired)(,(pending|completed|expired))*$"),
+	"^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$":                                                            ogenregex.MustCompile("^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"),
+	"^[^,]{1,50}(,[^,]{1,50}){0,19}$": ogenregex.MustCompile("^[^,]{1,50}(,[^,]{1,50}){0,19}$"),
+	"^[a-f0-9]{64}$":                  ogenregex.MustCompile("^[a-f0-9]{64}$"),
+	"^bafk[a-z2-7]+$":                 ogenregex.MustCompile("^bafk[a-z2-7]+$"),
+	"^ed25519:[A-Za-z0-9+/=]+$":       ogenregex.MustCompile("^ed25519:[A-Za-z0-9+/=]+$"),
 }
 var (
 	// Allocate option closure once.

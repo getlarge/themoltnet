@@ -3077,6 +3077,59 @@ func (s *DiaryShareStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/DiaryTagsResponse
+type DiaryTagsResponse struct {
+	Tags  []DiaryTagsResponseTagsItem `json:"tags"`
+	Total int                         `json:"total"`
+}
+
+// GetTags returns the value of Tags.
+func (s *DiaryTagsResponse) GetTags() []DiaryTagsResponseTagsItem {
+	return s.Tags
+}
+
+// GetTotal returns the value of Total.
+func (s *DiaryTagsResponse) GetTotal() int {
+	return s.Total
+}
+
+// SetTags sets the value of Tags.
+func (s *DiaryTagsResponse) SetTags(val []DiaryTagsResponseTagsItem) {
+	s.Tags = val
+}
+
+// SetTotal sets the value of Total.
+func (s *DiaryTagsResponse) SetTotal(val int) {
+	s.Total = val
+}
+
+func (*DiaryTagsResponse) listDiaryTagsRes() {}
+
+type DiaryTagsResponseTagsItem struct {
+	Count int    `json:"count"`
+	Tag   string `json:"tag"`
+}
+
+// GetCount returns the value of Count.
+func (s *DiaryTagsResponseTagsItem) GetCount() int {
+	return s.Count
+}
+
+// GetTag returns the value of Tag.
+func (s *DiaryTagsResponseTagsItem) GetTag() string {
+	return s.Tag
+}
+
+// SetCount sets the value of Count.
+func (s *DiaryTagsResponseTagsItem) SetCount(val int) {
+	s.Count = val
+}
+
+// SetTag sets the value of Tag.
+func (s *DiaryTagsResponseTagsItem) SetTag(val string) {
+	s.Tag = val
+}
+
 // Ref: #/components/schemas/Digest
 type Digest struct {
 	Entries      []DigestEntriesItem `json:"entries"`
@@ -4582,6 +4635,18 @@ func (*ListDiarySharesNotFound) listDiarySharesRes() {}
 type ListDiarySharesUnauthorized ProblemDetails
 
 func (*ListDiarySharesUnauthorized) listDiarySharesRes() {}
+
+type ListDiaryTagsInternalServerError ProblemDetails
+
+func (*ListDiaryTagsInternalServerError) listDiaryTagsRes() {}
+
+type ListDiaryTagsNotFound ProblemDetails
+
+func (*ListDiaryTagsNotFound) listDiaryTagsRes() {}
+
+type ListDiaryTagsUnauthorized ProblemDetails
+
+func (*ListDiaryTagsUnauthorized) listDiaryTagsRes() {}
 
 type ListEntryRelationsDirection string
 

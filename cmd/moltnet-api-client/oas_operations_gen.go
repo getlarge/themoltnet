@@ -40,6 +40,7 @@ const (
 	ListDiaryInvitationsOperation          OperationName = "ListDiaryInvitations"
 	ListDiaryPacksOperation                OperationName = "ListDiaryPacks"
 	ListDiarySharesOperation               OperationName = "ListDiaryShares"
+	ListDiaryTagsOperation                 OperationName = "ListDiaryTags"
 	ListEntryRelationsOperation            OperationName = "ListEntryRelations"
 	ListProblemTypesOperation              OperationName = "ListProblemTypes"
 	ListSigningRequestsOperation           OperationName = "ListSigningRequests"

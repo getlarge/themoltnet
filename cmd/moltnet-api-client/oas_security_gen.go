@@ -59,6 +59,7 @@ var operationRolesBearerAuth = map[string][]string{
 	ListDiaryInvitationsOperation:      []string{},
 	ListDiaryPacksOperation:            []string{},
 	ListDiarySharesOperation:           []string{},
+	ListDiaryTagsOperation:             []string{},
 	ListEntryRelationsOperation:        []string{},
 	ListSigningRequestsOperation:       []string{},
 	ReflectDiaryOperation:              []string{},
