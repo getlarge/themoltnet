@@ -5918,10 +5918,6 @@ func (s *DiaryEntry) encodeFields(e *jx.Encoder) {
 		s.LastAccessedAt.Encode(e, json.EncodeDateTime)
 	}
 	{
-		e.FieldStart("supersededBy")
-		s.SupersededBy.Encode(e)
-	}
-	{
 		e.FieldStart("tags")
 		if s.Tags == nil {
 			e.Null()
@@ -5943,7 +5939,7 @@ func (s *DiaryEntry) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDiaryEntry = [15]string{
+var jsonFieldsNameOfDiaryEntry = [14]string{
 	0:  "accessCount",
 	1:  "content",
 	2:  "contentHash",
@@ -5955,10 +5951,9 @@ var jsonFieldsNameOfDiaryEntry = [15]string{
 	8:  "importance",
 	9:  "injectionRisk",
 	10: "lastAccessedAt",
-	11: "supersededBy",
-	12: "tags",
-	13: "title",
-	14: "updatedAt",
+	11: "tags",
+	12: "title",
+	13: "updatedAt",
 }
 
 // Decode decodes DiaryEntry from json.
@@ -6094,18 +6089,8 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"lastAccessedAt\"")
 			}
-		case "supersededBy":
-			requiredBitSet[1] |= 1 << 3
-			if err := func() error {
-				if err := s.SupersededBy.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"supersededBy\"")
-			}
 		case "tags":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				switch tt := d.Next(); tt {
 				case jx.Null:
@@ -6132,7 +6117,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -6142,7 +6127,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -6164,7 +6149,7 @@ func (s *DiaryEntry) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b01111111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -6316,10 +6301,6 @@ func (s *DiaryEntryWithCreator) encodeFields(e *jx.Encoder) {
 		s.LastAccessedAt.Encode(e, json.EncodeDateTime)
 	}
 	{
-		e.FieldStart("supersededBy")
-		s.SupersededBy.Encode(e)
-	}
-	{
 		e.FieldStart("tags")
 		if s.Tags == nil {
 			e.Null()
@@ -6341,7 +6322,7 @@ func (s *DiaryEntryWithCreator) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDiaryEntryWithCreator = [16]string{
+var jsonFieldsNameOfDiaryEntryWithCreator = [15]string{
 	0:  "accessCount",
 	1:  "content",
 	2:  "contentHash",
@@ -6354,10 +6335,9 @@ var jsonFieldsNameOfDiaryEntryWithCreator = [16]string{
 	9:  "importance",
 	10: "injectionRisk",
 	11: "lastAccessedAt",
-	12: "supersededBy",
-	13: "tags",
-	14: "title",
-	15: "updatedAt",
+	12: "tags",
+	13: "title",
+	14: "updatedAt",
 }
 
 // Decode decodes DiaryEntryWithCreator from json.
@@ -6503,18 +6483,8 @@ func (s *DiaryEntryWithCreator) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"lastAccessedAt\"")
 			}
-		case "supersededBy":
-			requiredBitSet[1] |= 1 << 4
-			if err := func() error {
-				if err := s.SupersededBy.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"supersededBy\"")
-			}
 		case "tags":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				switch tt := d.Next(); tt {
 				case jx.Null:
@@ -6541,7 +6511,7 @@ func (s *DiaryEntryWithCreator) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tags\"")
 			}
 		case "title":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.Title.Decode(d); err != nil {
 					return err
@@ -6551,7 +6521,7 @@ func (s *DiaryEntryWithCreator) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -6573,7 +6543,7 @@ func (s *DiaryEntryWithCreator) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b11111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -20794,12 +20764,6 @@ func (s *UpdateDiaryEntryByIdReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.SupersededBy.Set {
-			e.FieldStart("supersededBy")
-			s.SupersededBy.Encode(e)
-		}
-	}
-	{
 		if s.Tags != nil {
 			e.FieldStart("tags")
 			e.ArrStart()
@@ -20817,13 +20781,12 @@ func (s *UpdateDiaryEntryByIdReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateDiaryEntryByIdReq = [6]string{
+var jsonFieldsNameOfUpdateDiaryEntryByIdReq = [5]string{
 	0: "content",
 	1: "entryType",
 	2: "importance",
-	3: "supersededBy",
-	4: "tags",
-	5: "title",
+	3: "tags",
+	4: "title",
 }
 
 // Decode decodes UpdateDiaryEntryByIdReq from json.
@@ -20863,16 +20826,6 @@ func (s *UpdateDiaryEntryByIdReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"importance\"")
-			}
-		case "supersededBy":
-			if err := func() error {
-				s.SupersededBy.Reset()
-				if err := s.SupersededBy.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"supersededBy\"")
 			}
 		case "tags":
 			if err := func() error {
