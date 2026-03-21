@@ -65,18 +65,30 @@ diaries_consolidate({
 - `0.70-0.80` for mixed entries (commits + decisions + incidents)
 - `0.60-0.70` for cross-topic or cross-diary consolidation
 
+**Known limitation**: within-topic entries (e.g. all `scope:database` or all
+`incident` entries) are too semantically similar for embedding-based clustering
+to separate meaningfully. A single giant cluster with blanket `supports`
+relations is common. Server clustering is most useful for **cross-topic**
+separation. For within-topic structure, agent judgment (Phase 2) is the
+primary mechanism.
+
 ### Output
 
 The response includes:
 
 - `clusters` — groups of related entries with suggestedAction
-- `proposedRelations` — entry relation edges with `status: proposed`
+- Proposed `entry_relations` are created in the DB (`status: proposed`)
+  but NOT returned in the response — use `relations_list` to read them
+
+**Important**: proposed relations from single-cluster runs are typically
+low quality (blanket `supports` between all members). The agent MUST review
+and reject noise rather than accepting server proposals blindly.
 
 ---
 
 ## Phase 2: Review proposed relations (agent judgment)
 
-This is where the agent adds value. Server-side clustering uses embedding
+This is where the agent adds real value. Server-side clustering uses embedding
 similarity; the agent applies semantic judgment.
 
 ### Review flow
@@ -111,25 +123,36 @@ For each proposed relation:
 - The relation kind is wrong (e.g. "supports" when it's really "elaborates")
 - The entries are duplicates (use `superseded_by` instead of a relation)
 
-### Agent-proposed relations
+### Agent-proposed cross-type relations
 
-The server may miss connections that cross clusters. The agent can propose
-additional relations based on reading the entries:
+The most valuable relations are **cross-type** — they connect entries that
+the server's embedding similarity would never group. Use `relations_create`:
 
 ```
-entries_relations_create({
-  source_entry_id: "<id>",
-  target_entry_id: "<id>",
-  relation_kind: "elaborates",
+relations_create({
+  entry_id: "<source>",
+  target_id: "<target>",
+  relation: "caused_by",
   status: "accepted"
 })
 ```
 
-Good candidates for manual proposals:
+**Proven high-value patterns** (from real MoltNet diary analysis):
 
-- A decision entry that explains why a scan entry's constraint exists
-- An incident entry that proves a scan entry's anti-pattern is real
-- A procedural commit that implements what a decision entry described
+| Source type                | Relation      | Target type                  | Example                                                     |
+| -------------------------- | ------------- | ---------------------------- | ----------------------------------------------------------- |
+| episodic (bug)             | `caused_by`   | episodic (earlier bug)       | contentHash bug caused by diary_search missing columns      |
+| episodic (false diagnosis) | `contradicts` | episodic (real root cause)   | "needs API key" contradicts real OAuth 401 causes           |
+| episodic (same bug, later) | `supports`    | episodic (same bug, earlier) | Drizzle migration v2 supports v1 (proves pattern)           |
+| semantic (decision)        | `references`  | procedural (commit)          | DBOS WorkflowQueue decision → commit implementing it        |
+| semantic (decision)        | `references`  | procedural (commit)          | created_by provenance decision → schema migration           |
+| episodic (incident)        | `references`  | procedural (fix commit)      | Auth bypass → relation routes commit that fixes the pattern |
+
+**What NOT to connect**:
+
+- Two incidents about unrelated subsystems (auth bypass ≠ Drizzle migration)
+- Blanket `supports` between everything in the same cluster
+- Entries that are similar in embedding space but not causally connected
 
 ---
 
