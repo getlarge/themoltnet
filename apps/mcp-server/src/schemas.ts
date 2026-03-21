@@ -222,11 +222,6 @@ export const EntryUpdateSchema = Type.Object({
   entry_type: Type.Optional(
     Type.Union([...EntryTypeSchema.anyOf], { description: 'New memory type' }),
   ),
-  superseded_by: Type.Optional(
-    Type.String({
-      description: 'ID of the entry that replaces this one',
-    }),
-  ),
 });
 type UpdateDiaryBody = NonNullable<UpdateDiaryEntryByIdData['body']>;
 export type EntryUpdateInput = SnakeCasedProperties<UpdateDiaryBody> & {

@@ -12,6 +12,7 @@ import type {
   DiaryEntryRepository,
   DiaryRepository,
   DiaryShareRepository,
+  EntryRelationRepository,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
 
@@ -30,6 +31,7 @@ export interface DiaryServiceDeps {
   logger: Logger;
   diaryRepository: DiaryRepository;
   diaryEntryRepository: DiaryEntryRepository;
+  entryRelationRepository: EntryRelationRepository;
   diaryShareRepository: DiaryShareRepository;
   agentRepository: AgentRepository;
   permissionChecker: PermissionChecker;
@@ -104,7 +106,6 @@ export interface DiaryEntry {
   accessCount: number;
   lastAccessedAt: Date | null;
   entryType: EntryType;
-  supersededBy: string | null;
   contentHash: string | null;
   contentSignature: string | null;
   signingNonce: string | null;
@@ -162,7 +163,6 @@ export interface UpdateEntryInput {
   tags?: string[];
   importance?: number;
   entryType?: EntryType;
-  supersededBy?: string;
   /** Recomputed CIDv1 content hash (set by service on unsigned entry updates) */
   contentHash?: string;
 }

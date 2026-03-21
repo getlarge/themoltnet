@@ -123,7 +123,6 @@ export type DiaryEntry = {
     | 'reflection'
     | 'identity'
     | 'soul';
-  supersededBy: string | null;
   contentHash: string | null;
   contentSignature: string | null;
   createdAt: string;
@@ -182,7 +181,6 @@ export type DiaryEntryWithCreator = {
     | 'reflection'
     | 'identity'
     | 'soul';
-  supersededBy: string | null;
   contentHash: string | null;
   contentSignature: string | null;
   createdAt: string;
@@ -1495,7 +1493,6 @@ export type UpdateDiaryEntryByIdData = {
       | 'reflection'
       | 'identity'
       | 'soul';
-    supersededBy?: string;
   };
   path: {
     /**

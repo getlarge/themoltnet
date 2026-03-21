@@ -321,7 +321,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         Type.Literal('soul'),
       ]),
     ),
-    supersededBy: Type.Optional(Type.String({ format: 'uuid' })),
   });
 
   const getEntry = async (
@@ -414,7 +413,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         | 'reflection'
         | 'identity'
         | 'soul';
-      supersededBy?: string;
     },
   ) => {
     try {

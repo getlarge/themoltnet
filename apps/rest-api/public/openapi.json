@@ -958,17 +958,6 @@
               }
             ]
           },
-          "supersededBy": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "tags": {
             "anyOf": [
               {
@@ -1008,7 +997,6 @@
           "accessCount",
           "lastAccessedAt",
           "entryType",
-          "supersededBy",
           "contentHash",
           "contentSignature",
           "createdAt",
@@ -1113,17 +1101,6 @@
               }
             ]
           },
-          "supersededBy": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "tags": {
             "anyOf": [
               {
@@ -1163,7 +1140,6 @@
           "accessCount",
           "lastAccessedAt",
           "entryType",
-          "supersededBy",
           "contentHash",
           "contentSignature",
           "createdAt",
@@ -5716,10 +5692,6 @@
                     "maximum": 10,
                     "minimum": 1,
                     "type": "integer"
-                  },
-                  "supersededBy": {
-                    "format": "uuid",
-                    "type": "string"
                   },
                   "tags": {
                     "items": {
