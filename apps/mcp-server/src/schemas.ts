@@ -126,6 +126,29 @@ export type EntryListInput = Pick<ListDiaryQuery, 'limit' | 'offset'> & {
   exclude_tags?: string[];
 };
 
+export const DiaryTagsSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary identifier (UUID).',
+  }),
+  prefix: Type.Optional(
+    Type.String({
+      description: 'Filter to tags starting with this prefix (e.g. "source:")',
+    }),
+  ),
+  min_count: Type.Optional(
+    Type.Number({
+      description: 'Exclude tags with fewer than this many entries',
+      minimum: 1,
+    }),
+  ),
+  entry_types: Type.Optional(
+    Type.Array(Type.Union([...EntryTypeSchema.anyOf]), {
+      description: 'Scope tag counts to specific entry types',
+    }),
+  ),
+});
+export type DiaryTagsInput = Static<typeof DiaryTagsSchema>;
+
 export const EntrySearchSchema = Type.Object({
   diary_id: Type.Optional(
     Type.String({
