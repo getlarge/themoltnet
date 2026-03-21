@@ -59,8 +59,6 @@ $$ LANGUAGE plpgsql;
 --> statement-breakpoint
 
 -- 4. Rewrite diary_search() to use entry_relations instead of superseded_by column
-DROP FUNCTION IF EXISTS diary_search(TEXT, vector(384), INT, UUID[], TEXT[], INT, FLOAT, FLOAT, FLOAT, entry_type[], TEXT[], BOOLEAN, BOOLEAN, TIMESTAMPTZ, TIMESTAMPTZ);
---> statement-breakpoint
 CREATE OR REPLACE FUNCTION diary_search(
     p_query TEXT,
     p_embedding vector(384),

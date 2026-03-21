@@ -36,6 +36,7 @@ describe('Diary hybrid search', () => {
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
+  let supersededEntryId: string;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -125,7 +126,9 @@ describe('Diary hybrid search', () => {
       },
     });
     // Mark the first as superseded via entry_relations
+    // TODO(#446): replace with REST API call once relation-creation endpoint lands
     if (supersededEntry && newEntry) {
+      supersededEntryId = supersededEntry.id;
       const relRepo = createEntryRelationRepository(harness.db);
       await relRepo.create({
         sourceId: newEntry.id,
@@ -382,8 +385,10 @@ describe('Diary hybrid search', () => {
       // Without filter: both the superseded and new entries appear
       expect(allResults.length).toBeGreaterThanOrEqual(2);
 
-      // With filter: the superseded entry is excluded — fewer results
+      // With filter: the superseded entry is excluded
       expect(filteredResults.length).toBeLessThan(allResults.length);
+      const filteredIds = filteredResults.map((r) => r.id);
+      expect(filteredIds).not.toContain(supersededEntryId);
     });
   });
 });
