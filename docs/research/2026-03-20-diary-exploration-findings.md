@@ -195,10 +195,59 @@ tag groups. This recipe requires two compiles or a custom pack.
    "tiles OR nuggets" in one call; requires two compiles or custom pack
 5. **No pack diff** — can't compare two packs to see what changed
 
+## Consolidation Experiment Results (2026-03-21)
+
+Ran 4 consolidation experiments to test clustering quality and relation proposals.
+
+### Universal finding: single mega-cluster
+
+| Experiment                | Entries | Clusters | Threshold | Similarity |
+| ------------------------- | ------- | -------- | --------- | ---------- |
+| Incidents only            | 20      | 1        | 0.75      | 0.854      |
+| Two branches (procedural) | 14      | 1        | 0.82/0.90 | 0.914      |
+| Scan + decisions          | 16      | 1        | 0.78      | 0.876      |
+| Database-scoped           | 28      | 1        | 0.80      | 0.885      |
+
+The e5-small-v2 embeddings (384-dim) place all MoltNet entries in a dense
+region. Same-repo entries are always >0.85 cosine similar regardless of
+entry type, subsystem, or branch.
+
+### Consolidation limitations discovered
+
+1. **Only `supports` proposed** — `clusterToRelationProposals` generates
+   only `supports` from representative→members. No `caused_by`, `elaborates`,
+   `contradicts`, `references` are ever auto-proposed.
+
+2. **Direction is inverted** — highest-importance entry becomes source:
+   "principle supports incident" when semantically it should be "incident
+   elaborates principle"
+
+3. **Relations accumulate** — multiple consolidation runs add duplicate
+   `supports` to the same entries. No cross-workflow dedup.
+
+4. **Threshold cannot separate** — even at 0.90, two different branches
+   (compile-pack-persistence + issue-396-pack-routes) collapsed into one
+   cluster (internal similarity 0.914). Separation needs >0.95.
+
+### Recommendations for consolidation usage
+
+- **Pre-filter by tag** before consolidating — don't mix all entries
+- **Skip server clustering** for within-topic entries — go straight to
+  agent-proposed relations
+- **Use consolidation for cross-topic separation** only when entries span
+  genuinely different domains (not yet tested — needs entries from
+  multiple repos or very different subsystems)
+- **Always agent-review** — never accept server proposals blindly
+- **Agent creates the valuable relations** — specific kinds, correct
+  direction, cross-type connections
+
 ## Next Steps
 
 - Create dedicated entries for coverage gaps (vouch, e2e config, auth plugin)
 - Fix `scope:scope:*` double-prefix bug in accountable commit workflow
 - Build explore-and-compose script once #454 (tags endpoint) lands
 - Add entry_types filter to compile API
-- Implement custom pack creation endpoint (Phase 3 of #396)
+- Implement custom pack creation endpoint (#456)
+- Improve `clusterToRelationProposals` to propose varied relation kinds
+- Add cross-workflow dedup for proposed relations
+- Consider upgrading embedding model for better intra-domain separation
