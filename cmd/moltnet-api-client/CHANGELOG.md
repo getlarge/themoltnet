@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.70.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.69.1...moltnet-api-client-v0.70.0) (2026-03-21)
+
+
+### Features
+
+* **api:** diary tag discovery endpoint ([acd532f](https://github.com/getlarge/themoltnet/commit/acd532fc44430254c2fff7cc69bfb3f6b191720f))
+
+
+### Bug Fixes
+
+* address PR review — escape LIKE wildcards, fix falsy checks, regen Go client ([6192659](https://github.com/getlarge/themoltnet/commit/6192659b831f2db6a578437cac9e8a24b18f2704))
+
 ## [0.69.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.45.0...moltnet-api-client-v0.69.1) (2026-03-21)
 
 
