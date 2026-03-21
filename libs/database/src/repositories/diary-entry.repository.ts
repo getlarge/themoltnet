@@ -91,6 +91,18 @@ function entryFilterConditions(opts: {
 const { embedding: _embedding, ...publicColumns } =
   getTableColumns(diaryEntries);
 
+export interface DiaryTagCount {
+  tag: string;
+  count: number;
+}
+
+export interface DiaryTagsOptions {
+  diaryId: string;
+  prefix?: string;
+  minCount?: number;
+  entryTypes?: string[];
+}
+
 export interface DiarySearchOptions {
   diaryId?: string;
   diaryIds?: string[];
@@ -573,6 +585,45 @@ export function createDiaryEntryRepository(db: Database) {
       const rows = (result as unknown as { rows: Record<string, unknown>[] })
         .rows;
       return rows.map(mapRowToPublicSearchResult);
+    },
+
+    /**
+     * List distinct tags used across entries in a diary, with counts.
+     */
+    async listTags(options: DiaryTagsOptions): Promise<DiaryTagCount[]> {
+      const { diaryId, prefix, minCount, entryTypes } = options;
+
+      const conditions = [
+        eq(diaryEntries.diaryId, diaryId),
+        isNotNull(diaryEntries.tags),
+      ];
+
+      if (entryTypes && entryTypes.length > 0) {
+        conditions.push(
+          inArray(diaryEntries.entryType, entryTypes as EntryType[]),
+        );
+      }
+
+      const havingClause = minCount
+        ? sql`HAVING COUNT(*) >= ${minCount}`
+        : sql``;
+      const prefixClause = prefix ? sql`AND tag LIKE ${prefix + '%'}` : sql``;
+
+      const result = await db.execute(
+        sql`SELECT tag, COUNT(*)::int AS count
+            FROM (
+              SELECT unnest(${diaryEntries.tags}) AS tag
+              FROM ${diaryEntries}
+              WHERE ${and(...conditions)}
+            ) AS expanded
+            WHERE true ${prefixClause}
+            GROUP BY tag
+            ${havingClause}
+            ORDER BY count DESC, tag ASC`,
+      );
+
+      const rows = (result as unknown as { rows: DiaryTagCount[] }).rows;
+      return rows;
     },
 
     /**
