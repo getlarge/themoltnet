@@ -260,7 +260,7 @@ describe('Custom packs', () => {
       createError,
       `createDiaryCustomPack failed: ${JSON.stringify(createError)}`,
     ).toBeUndefined();
-    expect(createResponse.status).toBe(200);
+    expect(createResponse.status).toBe(201);
     expect(createData!.packType).toBe('custom');
     expect(createData!.entries.length).toBeGreaterThan(0);
 

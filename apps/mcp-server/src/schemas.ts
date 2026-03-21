@@ -681,8 +681,9 @@ export const CustomPackEntrySelectionSchema = Type.Object({
   entry_id: Type.String({
     description: 'Entry identifier (UUID) selected by the caller.',
   }),
-  rank: Type.Number({
+  rank: Type.Integer({
     description: 'Caller-defined rank. Lower numbers are kept first.',
+    minimum: 1,
   }),
 });
 type PreviewCustomPackBody = BodyOf<PreviewDiaryCustomPackData>;
@@ -702,10 +703,14 @@ export const PackPreviewSchema = Type.Object({
   }),
   entries: Type.Array(CustomPackEntrySelectionSchema, {
     description: 'Explicit entry selections with caller-defined ranking.',
+    minItems: 1,
+    maxItems: 500,
   }),
   token_budget: Type.Optional(
-    Type.Number({
+    Type.Integer({
       description: 'Optional token budget used for server-side compression.',
+      minimum: 1,
+      maximum: 100000,
     }),
   ),
   pinned: Type.Optional(
@@ -725,7 +730,32 @@ export type PackPreviewInput = {
   pinned?: PreviewCustomPackBody['pinned'];
 };
 
-export const PackCreateSchema = PackPreviewSchema;
+export const PackCreateSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary ID (UUID) that owns the selected entries.',
+  }),
+  params: Type.Record(Type.String(), Type.Unknown(), {
+    description:
+      'Arbitrary client-side retrieval metadata to persist in the pack.',
+  }),
+  entries: Type.Array(CustomPackEntrySelectionSchema, {
+    description: 'Explicit entry selections with caller-defined ranking.',
+    minItems: 1,
+    maxItems: 500,
+  }),
+  token_budget: Type.Optional(
+    Type.Integer({
+      description: 'Optional token budget used for server-side compression.',
+      minimum: 1,
+      maximum: 100000,
+    }),
+  ),
+  pinned: Type.Optional(
+    Type.Boolean({
+      description: 'Whether the persisted pack should be pinned.',
+    }),
+  ),
+});
 export type PackCreateInput = {
   diary_id: PathOf<CreateDiaryCustomPackData>['id'];
   params: CustomPackParams;

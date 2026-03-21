@@ -304,8 +304,8 @@ func encodeCreateDiaryCustomPackResponse(response CreateDiaryCustomPackRes, w ht
 	switch response := response.(type) {
 	case *CustomPackResult:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(200)
-		span.SetStatus(codes.Ok, http.StatusText(200))
+		w.WriteHeader(201)
+		span.SetStatus(codes.Ok, http.StatusText(201))
 
 		e := new(jx.Encoder)
 		response.Encode(e)

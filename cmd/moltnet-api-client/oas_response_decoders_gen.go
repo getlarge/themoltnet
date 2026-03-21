@@ -920,8 +920,8 @@ func decodeCreateDiaryResponse(resp *http.Response) (res CreateDiaryRes, _ error
 
 func decodeCreateDiaryCustomPackResponse(resp *http.Response) (res CreateDiaryCustomPackRes, _ error) {
 	switch resp.StatusCode {
-	case 200:
-		// Code 200.
+	case 201:
+		// Code 201.
 		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 		if err != nil {
 			return res, errors.Wrap(err, "parse media type")

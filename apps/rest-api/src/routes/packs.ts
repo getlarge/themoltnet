@@ -370,8 +370,6 @@ export async function packRoutes(fastify: FastifyInstance) {
     };
     const packCid = computePackCid({
       diaryId: diary.id,
-      createdBy: request.authContext.identityId,
-      createdAt,
       packType: 'custom',
       params: request.body.params,
       entries: payload.entries,
@@ -384,6 +382,10 @@ export async function packRoutes(fastify: FastifyInstance) {
         ? null
         : new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
+      // TODO(issue-456): Move custom pack persistence + Keto parent grant into
+      // a DBOS workflow with retry/compensation semantics, matching the compile
+      // flow. Keto is an external side effect and cannot be made atomic with
+      // the Postgres transaction in this route handler.
       const pack = await fastify.dataSource.runTransaction(async () => {
         const createdPack = await fastify.contextPackRepository.createPack({
           diaryId: diary.id,
@@ -412,7 +414,33 @@ export async function packRoutes(fastify: FastifyInstance) {
         return createdPack;
       });
 
-      await fastify.relationshipWriter.grantPackParent(pack.id, diary.id);
+      try {
+        await fastify.relationshipWriter.grantPackParent(pack.id, diary.id);
+      } catch (error) {
+        fastify.log.error(
+          { err: error, packId: pack.id, diaryId: diary.id },
+          'Failed to grant ContextPack#parent relation for custom pack',
+        );
+
+        try {
+          await fastify.relationshipWriter.removePackRelations(pack.id);
+          await fastify.contextPackRepository.deleteMany([pack.id]);
+        } catch (cleanupError) {
+          fastify.log.error(
+            {
+              err: cleanupError,
+              packId: pack.id,
+              diaryId: diary.id,
+            },
+            'Failed to clean up custom pack after authorization grant failure',
+          );
+        }
+
+        throw createProblem(
+          'internal',
+          'Failed to finalize custom pack authorization',
+        );
+      }
     }
 
     return {
@@ -623,7 +651,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         params: DiaryParamsSchema,
         body: CustomPackBodySchema,
         response: {
-          200: Type.Ref(CustomPackResultSchema),
+          201: Type.Ref(CustomPackResultSchema),
           400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
@@ -632,15 +660,18 @@ export async function packRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) =>
-      materializeCustomPack(
+    async (request, reply) => {
+      const pack = await materializeCustomPack(
         {
           params: request.params,
           body: request.body,
           authContext: request.authContext!,
         },
         true,
-      ),
+      );
+
+      return reply.code(201).send(pack);
+    },
   );
 
   server.get(

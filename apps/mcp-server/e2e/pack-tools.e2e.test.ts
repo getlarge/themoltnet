@@ -123,15 +123,21 @@ describe('Pack Tools E2E', () => {
         token_budget: 2000,
       },
     });
-    const compileParsed = JSON.parse(
-      (compileResult.content as Array<{ type: string; text: string }>)[0].text,
-    );
-    const packId = compileParsed.id as string;
+    const compileContent = compileResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      compileResult.isError,
+      `diaries_compile error: ${compileContent[0].text}`,
+    ).toBeUndefined();
+    const compileParsed = JSON.parse(compileContent[0].text);
+    const packCid = compileParsed.packCid as string;
 
-    // packs_provenance by pack_id
+    // packs_provenance by pack_cid
     const provResult = await client.callTool({
       name: 'packs_provenance',
-      arguments: { pack_id: packId },
+      arguments: { pack_cid: packCid },
     });
     const provContent = provResult.content as Array<{
       type: string;

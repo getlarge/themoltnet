@@ -27,8 +27,6 @@ const ENTRY_CIDS = [
 
 type CompileInputOverrides = {
   diaryId?: string;
-  createdBy?: string;
-  createdAt?: string;
   params?: CompileParams;
   entries?: PackEntryRef[];
 };
@@ -38,8 +36,6 @@ function makeCompileInput(
 ): PackEnvelopeInput {
   return {
     diaryId: overrides?.diaryId ?? '550e8400-e29b-41d4-a716-446655440000',
-    createdBy: overrides?.createdBy ?? '660e8400-e29b-41d4-a716-446655440001',
-    createdAt: overrides?.createdAt ?? '2026-03-15T12:00:00.000Z',
     packType: 'compile',
     params: overrides?.params ?? {
       tokenBudget: 4000,
@@ -109,8 +105,6 @@ describe('buildPackEnvelope', () => {
 
     expect(decoded).toHaveProperty('v', 'moltnet:pack:v1');
     expect(decoded).toHaveProperty('diaryId', input.diaryId);
-    expect(decoded).toHaveProperty('createdBy', input.createdBy);
-    expect(decoded).toHaveProperty('createdAt', input.createdAt);
     expect(decoded).toHaveProperty('packType', 'compile');
     expect(decoded).toHaveProperty('params');
     expect(decoded).toHaveProperty('entries');
@@ -192,20 +186,10 @@ describe('computePackCid', () => {
     expect(computePackCid(input1)).not.toBe(computePackCid(input2));
   });
 
-  it('changes when createdBy changes', () => {
+  it('does not change when producer identity metadata changes', () => {
     const input1 = makeCompileInput();
-    const input2 = makeCompileInput({
-      createdBy: '880e8400-e29b-41d4-a716-446655440099',
-    });
-    expect(computePackCid(input1)).not.toBe(computePackCid(input2));
-  });
-
-  it('changes when createdAt changes', () => {
-    const input1 = makeCompileInput();
-    const input2 = makeCompileInput({
-      createdAt: '2026-03-16T00:00:00.000Z',
-    });
-    expect(computePackCid(input1)).not.toBe(computePackCid(input2));
+    const input2 = { ...input1 };
+    expect(computePackCid(input1)).toBe(computePackCid(input2));
   });
 
   it('is stable across entry reordering (sorted by rank)', () => {
@@ -230,8 +214,6 @@ describe('computePackCid', () => {
     const sourcePackCid = computePackCid(makeCompileInput());
     const input: PackEnvelopeInput = {
       diaryId: '550e8400-e29b-41d4-a716-446655440000',
-      createdBy: '660e8400-e29b-41d4-a716-446655440001',
-      createdAt: '2026-03-15T13:00:00.000Z',
       packType: 'optimized',
       params: {
         sourcePackCid,
@@ -255,8 +237,6 @@ describe('decodePackEnvelope', () => {
 
     expect(decoded['v']).toBe('moltnet:pack:v1');
     expect(decoded['diaryId']).toBe(input.diaryId);
-    expect(decoded['createdBy']).toBe(input.createdBy);
-    expect(decoded['createdAt']).toBe(input.createdAt);
     expect(decoded['packType']).toBe('compile');
 
     const params = decoded['params'] as Record<string, unknown>;
@@ -285,8 +265,6 @@ describe('decodePackEnvelope', () => {
 
     const reconstructedInput: PackEnvelopeInput = {
       diaryId: decoded['diaryId'] as string,
-      createdBy: decoded['createdBy'] as string,
-      createdAt: decoded['createdAt'] as string,
       packType: decoded['packType'] as 'compile',
       params: decoded['params'] as CompileParams,
       entries: entries.map((entry) => ({
@@ -368,8 +346,6 @@ describe('entry CID → pack CID provenance chain', () => {
     // Step 2: GEPA optimizes it → new pack
     const optimizedInput: PackEnvelopeInput = {
       diaryId: compileInput.diaryId,
-      createdBy: compileInput.createdBy,
-      createdAt: '2026-03-15T13:00:00.000Z',
       packType: 'optimized',
       params: {
         sourcePackCid: compileCid,
@@ -380,7 +356,7 @@ describe('entry CID → pack CID provenance chain', () => {
     };
     const optimizedCid = computePackCid(optimizedInput);
 
-    // Different CIDs (different createdAt, packType, params)
+    // Different CIDs (different packType and params)
     expect(optimizedCid).not.toBe(compileCid);
 
     // Can trace back: decode optimized → params.sourcePackCid → compile pack

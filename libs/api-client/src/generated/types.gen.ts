@@ -2205,7 +2205,7 @@ export type PreviewDiaryCustomPackResponses = {
   /**
    * Default Response
    */
-  200: CustomPackResult;
+  201: CustomPackResult;
 };
 
 export type PreviewDiaryCustomPackResponse =

@@ -452,8 +452,6 @@ export function initContextDistillWorkflows(): void {
       );
       const packCid = computePackCid({
         diaryId: input.diaryId,
-        createdBy: input.identityId,
-        createdAt,
         packType: 'compile',
         params,
         entries: packEntryRefs,
@@ -493,10 +491,19 @@ export function initContextDistillWorkflows(): void {
         }),
       );
 
+      const { contextPackRepository, dataSource } = getDeps();
+      const existingPack = await contextPackRepository.findByCid(packCid);
+      if (existingPack) {
+        const packEntries = await contextPackRepository.listEntries(
+          existingPack.id,
+        );
+        await grantPackParentStep(existingPack.id, input.diaryId);
+        return { pack: existingPack, packEntries, compileResult };
+      }
+
       // Persist atomically (pack + entries in one transaction).
       // Called directly from workflow body — DBOS doesn't allow
       // dataSource.runTransaction inside a step.
-      const { contextPackRepository, dataSource } = getDeps();
       const { pack, packEntries } = await dataSource.runTransaction(
         async () => {
           const p = await contextPackRepository.createPack(packInput);

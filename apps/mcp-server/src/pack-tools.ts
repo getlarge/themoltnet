@@ -59,7 +59,7 @@ export async function handlePacksGet(
 
   if (error) {
     deps.logger.error({ tool: 'packs_get', err: error }, 'tool.error');
-    return errorResult('Pack not found');
+    return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
   return textResult({ pack: data });
@@ -86,7 +86,7 @@ export async function handlePacksList(
 
   if (error) {
     deps.logger.error({ tool: 'packs_list', err: error }, 'tool.error');
-    return errorResult('Failed to list packs');
+    return errorResult(extractApiErrorMessage(error, 'Failed to list packs'));
   }
 
   return textResult(data);
@@ -171,18 +171,33 @@ export async function handlePacksProvenance(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  if (!args.pack_id && !args.pack_cid) {
+  const rawArgs = args as PackProvenanceInput & {
+    packId?: unknown;
+    packCid?: unknown;
+  };
+  const packIdValue = rawArgs.pack_id ?? rawArgs.packId;
+  const packCidValue = rawArgs.pack_cid ?? rawArgs.packCid;
+  const packId =
+    typeof packIdValue === 'string' && packIdValue.trim() !== ''
+      ? packIdValue
+      : undefined;
+  const packCid =
+    typeof packCidValue === 'string' && packCidValue.trim() !== ''
+      ? packCidValue
+      : undefined;
+
+  if (!packId && !packCid) {
     return errorResult('Exactly one of pack_id or pack_cid must be provided');
   }
-  if (args.pack_id && args.pack_cid) {
+  if (packId && packCid) {
     return errorResult('Exactly one of pack_id or pack_cid must be provided');
   }
 
-  if (args.pack_id) {
+  if (packId) {
     const { data, error } = await getContextPackProvenanceById({
       client: deps.client,
       auth: () => token,
-      path: { id: args.pack_id },
+      path: { id: packId },
       query: {
         ...(args.depth !== undefined && { depth: args.depth }),
       },
@@ -190,7 +205,7 @@ export async function handlePacksProvenance(
 
     if (error) {
       deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
-      return errorResult('Pack not found');
+      return errorResult(extractApiErrorMessage(error, 'Pack not found'));
     }
 
     return textResult(data);
@@ -200,7 +215,7 @@ export async function handlePacksProvenance(
   const { data, error } = await getContextPackProvenanceByCid({
     client: deps.client,
     auth: () => token,
-    path: { cid: args.pack_cid as string },
+    path: { cid: packCid as string },
     query: {
       ...(args.depth !== undefined && { depth: args.depth }),
     },
@@ -208,7 +223,7 @@ export async function handlePacksProvenance(
 
   if (error) {
     deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
-    return errorResult('Pack not found');
+    return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
   return textResult(data);

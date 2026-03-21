@@ -1,6 +1,6 @@
 import { computeContentCid } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createMockEntry,
@@ -371,7 +371,7 @@ describe('Pack routes', () => {
       },
     });
 
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBe(201);
     expect(mocks.contextPackRepository.createPack).toHaveBeenCalledWith(
       expect.objectContaining({
         diaryId: DIARY_ID,
@@ -403,6 +403,40 @@ describe('Pack routes', () => {
       PACK_ID,
       DIARY_ID,
     );
+  });
+
+  it('cleans up a persisted custom pack if Keto parent grant fails', async () => {
+    mocks.relationshipWriter.grantPackParent.mockRejectedValue(
+      new Error('Keto unavailable'),
+    );
+    mocks.contextPackRepository.deleteMany = vi.fn().mockResolvedValue(1);
+    mocks.diaryEntryRepository.list.mockResolvedValue([
+      createMockEntry({
+        id: '11111111-1111-4111-8111-111111111111',
+        contentHash: ENTRY_1_HASH,
+      }),
+    ]);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/diaries/${DIARY_ID}/packs`,
+      headers: authHeaders,
+      payload: {
+        packType: 'custom',
+        params: {
+          recipe: 'ax-agent-selected',
+        },
+        entries: [{ entryId: '11111111-1111-4111-8111-111111111111', rank: 1 }],
+      },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(mocks.relationshipWriter.removePackRelations).toHaveBeenCalledWith(
+      PACK_ID,
+    );
+    expect(mocks.contextPackRepository.deleteMany).toHaveBeenCalledWith([
+      PACK_ID,
+    ]);
   });
 
   it('rejects custom pack selections that include entries outside the diary', async () => {

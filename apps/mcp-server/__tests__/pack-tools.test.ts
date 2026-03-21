@@ -61,23 +61,31 @@ const mockCustomPack = {
     taskPrompt: 'Keto authorization debugging',
   },
   compileStats: {
-    originalEntries: 3,
-    includedEntries: 2,
     totalTokens: 240,
-    tokensSaved: 180,
+    entriesIncluded: 2,
+    entriesCompressed: 1,
+    compressionRatio: 0.5,
+    budgetUtilization: 0.92,
+    elapsedMs: 3.4,
   },
   entries: [
     {
       entryId: '770e8400-e29b-41d4-a716-446655440002',
+      entryCidSnapshot:
+        'bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku',
       rank: 1,
       compressionLevel: 'full',
-      tokenCount: 120,
+      originalTokens: 120,
+      packedTokens: 120,
     },
     {
       entryId: '770e8400-e29b-41d4-a716-446655440003',
+      entryCidSnapshot:
+        'bafkreigh2akiscaildcj46w6j3q2y5xwz3lrn7v6v7d4f6x3clwq5m5h4e',
       rank: 2,
       compressionLevel: 'summary',
-      tokenCount: 120,
+      originalTokens: 120,
+      packedTokens: 60,
     },
   ],
 };
@@ -125,8 +133,9 @@ describe('Pack tools', () => {
       vi.mocked(getContextPackById).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
-          message: 'Pack not found',
+          message: 'Not Found',
           statusCode: 404,
+          detail: 'Pack not found',
         }) as never,
       );
 
@@ -182,8 +191,9 @@ describe('Pack tools', () => {
       vi.mocked(listDiaryPacks).mockResolvedValue(
         sdkErr({
           error: 'Internal Server Error',
-          message: 'Server error',
+          message: 'Internal Server Error',
           statusCode: 500,
+          detail: 'Server error',
         }) as never,
       );
 
@@ -194,7 +204,7 @@ describe('Pack tools', () => {
       );
 
       expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('Failed to list packs');
+      expect(getTextContent(result)).toContain('Server error');
     });
   });
 
@@ -301,8 +311,9 @@ describe('Pack tools', () => {
       vi.mocked(getContextPackProvenanceById).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
-          message: 'Pack not found',
+          message: 'Not Found',
           statusCode: 404,
+          detail: 'Pack not found',
         }) as never,
       );
 
@@ -320,8 +331,9 @@ describe('Pack tools', () => {
       vi.mocked(getContextPackProvenanceByCid).mockResolvedValue(
         sdkErr({
           error: 'Not Found',
-          message: 'Pack not found',
+          message: 'Not Found',
           statusCode: 404,
+          detail: 'Pack not found',
         }) as never,
       );
 

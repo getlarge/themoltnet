@@ -380,7 +380,7 @@ describe('Custom pack tools E2E', () => {
     });
     const getContent = getResult.content as ToolTextContent;
     expect(getResult.isError).toBe(true);
-    expect(getContent[0].text).toMatch(/not found|forbidden/i);
+    expect(getContent[0].text).toMatch(/not found|forbidden|not authorized/i);
   });
 
   it('rejects selections that include entries outside the target diary', async () => {
