@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.69.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.45.0...moltnet-api-client-v0.69.1) (2026-03-21)
+
+
+### Miscellaneous Chores
+
+* **moltnet-api-client:** Synchronize go-cli versions
+
 ## [0.45.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.44.0...moltnet-api-client-v0.45.0) (2026-03-21)
 
 
