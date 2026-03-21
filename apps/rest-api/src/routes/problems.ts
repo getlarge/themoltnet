@@ -82,9 +82,14 @@ export async function problemRoutes(fastify: FastifyInstance) {
       const problemType = problemTypes[type];
 
       if (!problemType) {
+        const accept = request.headers.accept ?? '';
+        const contentType = accept.includes('application/problem+json')
+          ? 'application/problem+json'
+          : 'application/json';
+
         return reply
           .status(404)
-          .header('content-type', 'application/problem+json')
+          .header('content-type', contentType)
           .send({
             type: getTypeUri('not-found'),
             title: 'Not Found',

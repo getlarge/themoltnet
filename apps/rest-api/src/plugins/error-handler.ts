@@ -110,9 +110,17 @@ async function errorHandler(fastify: FastifyInstance) {
         body.retryAfter = error.retryAfter;
       }
 
+      // RFC 9457 recommends application/problem+json, but many HTTP clients
+      // (including ogen-generated Go clients) only accept application/json.
+      // Content-negotiate: use problem+json only if the client explicitly accepts it.
+      const accept = request.headers.accept ?? '';
+      const contentType = accept.includes('application/problem+json')
+        ? 'application/problem+json'
+        : 'application/json';
+
       return reply
         .status(isValidationError ? 400 : status)
-        .header('content-type', 'application/problem+json')
+        .header('content-type', contentType)
         .send(body);
     },
   );
