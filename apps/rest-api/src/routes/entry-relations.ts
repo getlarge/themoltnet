@@ -120,7 +120,10 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         targetId,
       ]);
       if (entries.length < 2) {
-        throw createProblem('not-found', 'One or both entries not found');
+        throw createProblem(
+          'validation-failed',
+          'One or both entries not found',
+        );
       }
 
       const [source, target] = [
@@ -129,7 +132,10 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       ];
 
       if (!source || !target) {
-        throw createProblem('not-found', 'One or both entries not found');
+        throw createProblem(
+          'validation-failed',
+          'One or both entries not found',
+        );
       }
 
       if (source.diaryId !== target.diaryId) {
@@ -148,9 +154,8 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         status,
       });
 
-      const isNew =
-        created.createdAt >= timestampBefore ||
-        created.createdAt.getTime() >= timestampBefore.getTime();
+      // If createdAt predates our request, the row already existed (idempotent)
+      const isNew = created.createdAt.getTime() >= timestampBefore.getTime();
 
       reply.status(isNew ? 201 : 200);
       return toRelationResponse(created);
@@ -297,8 +302,12 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         );
       }
 
-      await fastify.entryRelationRepository.delete(id);
-      reply.status(204);
+      const deleted = await fastify.entryRelationRepository.delete(id);
+      if (!deleted) {
+        throw createProblem('not-found', 'Entry relation not found');
+      }
+
+      return reply.status(204).send(null);
     },
   );
 }

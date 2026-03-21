@@ -166,9 +166,15 @@ describe('Pack tools', () => {
 
   describe('packs_provenance', () => {
     const mockProvenance = {
-      pack: mockPack,
-      ancestors: [],
-      depth: 1,
+      metadata: {
+        format: 'moltnet.provenance-graph/v1',
+        generatedAt: '2026-01-01T00:00:00Z',
+        rootNodeId: 'pack:mock-pack-id',
+        rootPackId: PACK_ID,
+        depth: 2,
+      },
+      nodes: [{ id: 'pack:mock-pack-id', kind: 'pack', label: 'test pack' }],
+      edges: [],
     };
 
     it('returns provenance when pack_id provided', async () => {
@@ -190,7 +196,9 @@ describe('Pack tools', () => {
       );
       expect(getContextPackProvenanceByCid).not.toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('pack');
+      expect(parsed).toHaveProperty('metadata');
+      expect(parsed).toHaveProperty('nodes');
+      expect(parsed).toHaveProperty('edges');
     });
 
     it('returns provenance when pack_cid provided', async () => {
@@ -212,7 +220,9 @@ describe('Pack tools', () => {
       );
       expect(getContextPackProvenanceById).not.toHaveBeenCalled();
       const parsed = parseResult<Record<string, unknown>>(result);
-      expect(parsed).toHaveProperty('pack');
+      expect(parsed).toHaveProperty('metadata');
+      expect(parsed).toHaveProperty('nodes');
+      expect(parsed).toHaveProperty('edges');
     });
 
     it('returns error when neither pack_id nor pack_cid provided', async () => {

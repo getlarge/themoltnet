@@ -107,7 +107,11 @@ export async function handleRelationsUpdate(
 
   if (error) {
     deps.logger.error({ tool: 'relations_update', err: error }, 'tool.error');
-    return errorResult('Relation not found');
+    return errorResult(
+      (error as { detail?: string })?.detail ??
+        (error as { message?: string })?.message ??
+        'Failed to update relation',
+    );
   }
 
   return textResult({ success: true, relation: data });
@@ -130,7 +134,11 @@ export async function handleRelationsDelete(
 
   if (error) {
     deps.logger.error({ tool: 'relations_delete', err: error }, 'tool.error');
-    return errorResult('Relation not found');
+    return errorResult(
+      (error as { detail?: string })?.detail ??
+        (error as { message?: string })?.message ??
+        'Failed to delete relation',
+    );
   }
 
   return textResult({ success: true, message: 'Relation deleted' });

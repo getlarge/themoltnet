@@ -123,7 +123,7 @@ describe('Entry relation routes', () => {
       expect(response.statusCode).toBe(403);
     });
 
-    it('returns 404 when findByIds returns fewer than 2 entries', async () => {
+    it('returns 400 when findByIds returns fewer than 2 entries', async () => {
       // Arrange
       mocks.permissionChecker.canEditEntry.mockResolvedValue(true);
       mocks.diaryEntryRepository.findByIds.mockResolvedValue([
@@ -142,7 +142,7 @@ describe('Entry relation routes', () => {
       });
 
       // Assert
-      expect(response.statusCode).toBe(404);
+      expect(response.statusCode).toBe(400);
     });
 
     it('returns 400 when entries belong to different diaries', async () => {
@@ -331,7 +331,7 @@ describe('Entry relation routes', () => {
       // Arrange
       mocks.entryRelationRepository.findById.mockResolvedValue(MOCK_RELATION);
       mocks.permissionChecker.canEditAnyEntry.mockResolvedValue(true);
-      mocks.entryRelationRepository.delete.mockResolvedValue(undefined);
+      mocks.entryRelationRepository.delete.mockResolvedValue(true);
 
       // Act
       const response = await app.inject({
