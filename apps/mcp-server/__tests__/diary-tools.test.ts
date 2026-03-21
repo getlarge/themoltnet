@@ -871,6 +871,9 @@ describe('Diary tools', () => {
             excludeTags: undefined,
             wRecency: undefined,
             wImportance: undefined,
+            createdBefore: undefined,
+            createdAfter: undefined,
+            entryTypes: undefined,
           },
         }),
       );
@@ -921,6 +924,57 @@ describe('Diary tools', () => {
           body: expect.objectContaining({
             includeTags: ['context'],
             excludeTags: ['incident'],
+          }),
+        }),
+      );
+    });
+
+    it('passes temporal and entryType filters to compile API', async () => {
+      vi.mocked(compileDiary).mockResolvedValue(
+        sdkOk({
+          id: 'pack-001',
+          diaryId: DIARY_ID,
+          packCid: 'bafytest',
+          packCodec: 'dag-cbor',
+          packType: 'compile',
+          params: {},
+          payload: {},
+          createdBy: 'agent-001',
+          supersedesPackId: null,
+          pinned: false,
+          expiresAt: null,
+          createdAt: new Date().toISOString(),
+          entries: [],
+          compileStats: {
+            totalTokens: 0,
+            entriesIncluded: 0,
+            entriesCompressed: 0,
+            compressionRatio: 1,
+            budgetUtilization: 0,
+            elapsedMs: 1,
+          },
+          compileTrace: { lambdaUsed: 0.5, embeddingDim: 0 },
+        }) as never,
+      );
+
+      await handleDiariesCompile(
+        {
+          diary_id: DIARY_ID,
+          token_budget: 1024,
+          created_before: '2026-03-01T00:00:00Z',
+          created_after: '2025-12-01T00:00:00Z',
+          entry_types: ['semantic', 'procedural'],
+        },
+        deps,
+        context,
+      );
+
+      expect(compileDiary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            createdBefore: '2026-03-01T00:00:00Z',
+            createdAfter: '2025-12-01T00:00:00Z',
+            entryTypes: ['semantic', 'procedural'],
           }),
         }),
       );

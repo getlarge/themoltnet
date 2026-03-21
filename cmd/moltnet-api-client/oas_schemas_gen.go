@@ -137,13 +137,31 @@ type CompileDiaryNotFound ProblemDetails
 func (*CompileDiaryNotFound) compileDiaryRes() {}
 
 type CompileDiaryReq struct {
-	ExcludeTags []string   `json:"excludeTags"`
-	IncludeTags []string   `json:"includeTags"`
-	Lambda      OptFloat64 `json:"lambda"`
-	TaskPrompt  OptString  `json:"taskPrompt"`
-	TokenBudget int        `json:"tokenBudget"`
-	WImportance OptFloat64 `json:"wImportance"`
-	WRecency    OptFloat64 `json:"wRecency"`
+	CreatedAfter  OptDateTime                     `json:"createdAfter"`
+	CreatedBefore OptDateTime                     `json:"createdBefore"`
+	EntryTypes    []CompileDiaryReqEntryTypesItem `json:"entryTypes"`
+	ExcludeTags   []string                        `json:"excludeTags"`
+	IncludeTags   []string                        `json:"includeTags"`
+	Lambda        OptFloat64                      `json:"lambda"`
+	TaskPrompt    OptString                       `json:"taskPrompt"`
+	TokenBudget   int                             `json:"tokenBudget"`
+	WImportance   OptFloat64                      `json:"wImportance"`
+	WRecency      OptFloat64                      `json:"wRecency"`
+}
+
+// GetCreatedAfter returns the value of CreatedAfter.
+func (s *CompileDiaryReq) GetCreatedAfter() OptDateTime {
+	return s.CreatedAfter
+}
+
+// GetCreatedBefore returns the value of CreatedBefore.
+func (s *CompileDiaryReq) GetCreatedBefore() OptDateTime {
+	return s.CreatedBefore
+}
+
+// GetEntryTypes returns the value of EntryTypes.
+func (s *CompileDiaryReq) GetEntryTypes() []CompileDiaryReqEntryTypesItem {
+	return s.EntryTypes
 }
 
 // GetExcludeTags returns the value of ExcludeTags.
@@ -181,6 +199,21 @@ func (s *CompileDiaryReq) GetWRecency() OptFloat64 {
 	return s.WRecency
 }
 
+// SetCreatedAfter sets the value of CreatedAfter.
+func (s *CompileDiaryReq) SetCreatedAfter(val OptDateTime) {
+	s.CreatedAfter = val
+}
+
+// SetCreatedBefore sets the value of CreatedBefore.
+func (s *CompileDiaryReq) SetCreatedBefore(val OptDateTime) {
+	s.CreatedBefore = val
+}
+
+// SetEntryTypes sets the value of EntryTypes.
+func (s *CompileDiaryReq) SetEntryTypes(val []CompileDiaryReqEntryTypesItem) {
+	s.EntryTypes = val
+}
+
 // SetExcludeTags sets the value of ExcludeTags.
 func (s *CompileDiaryReq) SetExcludeTags(val []string) {
 	s.ExcludeTags = val
@@ -214,6 +247,75 @@ func (s *CompileDiaryReq) SetWImportance(val OptFloat64) {
 // SetWRecency sets the value of WRecency.
 func (s *CompileDiaryReq) SetWRecency(val OptFloat64) {
 	s.WRecency = val
+}
+
+type CompileDiaryReqEntryTypesItem string
+
+const (
+	CompileDiaryReqEntryTypesItemEpisodic   CompileDiaryReqEntryTypesItem = "episodic"
+	CompileDiaryReqEntryTypesItemSemantic   CompileDiaryReqEntryTypesItem = "semantic"
+	CompileDiaryReqEntryTypesItemProcedural CompileDiaryReqEntryTypesItem = "procedural"
+	CompileDiaryReqEntryTypesItemReflection CompileDiaryReqEntryTypesItem = "reflection"
+	CompileDiaryReqEntryTypesItemIdentity   CompileDiaryReqEntryTypesItem = "identity"
+	CompileDiaryReqEntryTypesItemSoul       CompileDiaryReqEntryTypesItem = "soul"
+)
+
+// AllValues returns all CompileDiaryReqEntryTypesItem values.
+func (CompileDiaryReqEntryTypesItem) AllValues() []CompileDiaryReqEntryTypesItem {
+	return []CompileDiaryReqEntryTypesItem{
+		CompileDiaryReqEntryTypesItemEpisodic,
+		CompileDiaryReqEntryTypesItemSemantic,
+		CompileDiaryReqEntryTypesItemProcedural,
+		CompileDiaryReqEntryTypesItemReflection,
+		CompileDiaryReqEntryTypesItemIdentity,
+		CompileDiaryReqEntryTypesItemSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CompileDiaryReqEntryTypesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case CompileDiaryReqEntryTypesItemEpisodic:
+		return []byte(s), nil
+	case CompileDiaryReqEntryTypesItemSemantic:
+		return []byte(s), nil
+	case CompileDiaryReqEntryTypesItemProcedural:
+		return []byte(s), nil
+	case CompileDiaryReqEntryTypesItemReflection:
+		return []byte(s), nil
+	case CompileDiaryReqEntryTypesItemIdentity:
+		return []byte(s), nil
+	case CompileDiaryReqEntryTypesItemSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CompileDiaryReqEntryTypesItem) UnmarshalText(data []byte) error {
+	switch CompileDiaryReqEntryTypesItem(data) {
+	case CompileDiaryReqEntryTypesItemEpisodic:
+		*s = CompileDiaryReqEntryTypesItemEpisodic
+		return nil
+	case CompileDiaryReqEntryTypesItemSemantic:
+		*s = CompileDiaryReqEntryTypesItemSemantic
+		return nil
+	case CompileDiaryReqEntryTypesItemProcedural:
+		*s = CompileDiaryReqEntryTypesItemProcedural
+		return nil
+	case CompileDiaryReqEntryTypesItemReflection:
+		*s = CompileDiaryReqEntryTypesItemReflection
+		return nil
+	case CompileDiaryReqEntryTypesItemIdentity:
+		*s = CompileDiaryReqEntryTypesItemIdentity
+		return nil
+	case CompileDiaryReqEntryTypesItemSoul:
+		*s = CompileDiaryReqEntryTypesItemSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type CompileDiaryUnauthorized ProblemDetails
@@ -6013,6 +6115,52 @@ func (o OptCreateDiaryReqVisibility) Get() (v CreateDiaryReqVisibility, ok bool)
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateDiaryReqVisibility) Or(d CreateDiaryReqVisibility) CreateDiaryReqVisibility {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDateTime returns new OptDateTime with value set to v.
+func NewOptDateTime(v time.Time) OptDateTime {
+	return OptDateTime{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDateTime is optional time.Time.
+type OptDateTime struct {
+	Value time.Time
+	Set   bool
+}
+
+// IsSet returns true if OptDateTime was set.
+func (o OptDateTime) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDateTime) Reset() {
+	var v time.Time
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDateTime) SetTo(v time.Time) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDateTime) Get() (v time.Time, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDateTime) Or(d time.Time) time.Time {
 	if v, ok := o.Get(); ok {
 		return v
 	}
