@@ -511,11 +511,9 @@ export type PublicFeedSearchInput = {
 
 export const RelationCreateSchema = Type.Object({
   entry_id: Type.String({
-    format: 'uuid',
     description: 'Source entry ID (UUID).',
   }),
   target_id: Type.String({
-    format: 'uuid',
     description: 'Target entry ID (UUID).',
   }),
   relation: Type.Union(
@@ -545,7 +543,6 @@ export type RelationCreateInput = {
 
 export const RelationListSchema = Type.Object({
   entry_id: Type.String({
-    format: 'uuid',
     description: 'Entry ID (UUID) to list relations for.',
   }),
   relation: Type.Optional(
@@ -596,7 +593,6 @@ export type RelationListInput = {
 
 export const RelationUpdateSchema = Type.Object({
   relation_id: Type.String({
-    format: 'uuid',
     description: 'Relation ID to update.',
   }),
   status: Type.Union(
@@ -616,7 +612,6 @@ export type RelationUpdateInput = {
 
 export const RelationDeleteSchema = Type.Object({
   relation_id: Type.String({
-    format: 'uuid',
     description: 'Relation ID to delete.',
   }),
 });
@@ -628,7 +623,6 @@ export type RelationDeleteInput = {
 
 export const PackGetSchema = Type.Object({
   pack_id: Type.String({
-    format: 'uuid',
     description: 'Context pack ID (UUID).',
   }),
   expand: Type.Optional(
@@ -645,7 +639,6 @@ export type PackGetInput = {
 
 export const PackListSchema = Type.Object({
   diary_id: Type.String({
-    format: 'uuid',
     description: 'Diary ID (UUID) to list packs for.',
   }),
   limit: Type.Optional(
