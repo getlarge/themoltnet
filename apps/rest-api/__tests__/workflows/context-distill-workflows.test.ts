@@ -92,6 +92,7 @@ describe('context-distill compile workflow', () => {
     } as unknown as DiaryEntryRepository;
 
     const contextPackRepository = {
+      findByCid: vi.fn().mockResolvedValue(null),
       createPack: vi.fn().mockResolvedValue({
         id: 'pack-001',
         diaryId: '00000000-0000-0000-0000-000000000001',
