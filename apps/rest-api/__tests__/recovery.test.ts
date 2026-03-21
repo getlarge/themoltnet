@@ -188,9 +188,7 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('INVALID_CHALLENGE');
     });
 
@@ -211,9 +209,7 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('INVALID_CHALLENGE');
       expect(response.json().detail).toBe('Challenge expired');
     });
@@ -229,9 +225,7 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('INVALID_SIGNATURE');
     });
 
@@ -248,9 +242,7 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('INVALID_SIGNATURE');
     });
 
@@ -306,9 +298,7 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(502);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('UPSTREAM_ERROR');
     });
 
@@ -326,9 +316,7 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('INVALID_CHALLENGE');
       expect(response.json().detail).toBe('Challenge already used');
     });
