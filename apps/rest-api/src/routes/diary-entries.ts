@@ -5,6 +5,7 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
+import type { ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   EntryParamsSchema,
@@ -19,6 +20,7 @@ import {
   DiaryEntrySchema,
   DiaryListSchema,
   DiarySearchResultSchema,
+  DiaryTagsResponseSchema,
   EntryVerifyResultSchema,
   SuccessSchema,
 } from '../schemas.js';
@@ -301,6 +303,74 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         limit: limit ?? 20,
         offset: offset ?? 0,
       };
+    },
+  );
+
+  // ── List Tags ──────────────────────────────────────────────
+  server.get(
+    '/diaries/:diaryId/tags',
+    {
+      schema: {
+        operationId: 'listDiaryTags',
+        tags: ['diary'],
+        description:
+          'List distinct tags used across all entries in a diary, with counts.',
+        security: [{ bearerAuth: [] }],
+        params: NestedDiaryParamsSchema,
+        querystring: Type.Object({
+          prefix: Type.Optional(
+            Type.String({
+              maxLength: 50,
+              description: 'Filter to tags starting with this prefix',
+            }),
+          ),
+          minCount: Type.Optional(
+            Type.Integer({
+              minimum: 1,
+              description: 'Exclude tags with fewer than this many entries',
+            }),
+          ),
+          entryTypes: Type.Optional(
+            Type.String({
+              pattern:
+                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$',
+              maxLength: 100,
+              description: 'Comma-separated entry types to scope the tag count',
+            }),
+          ),
+        }),
+        response: {
+          200: Type.Ref(DiaryTagsResponseSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const { diaryId } = request.params;
+      const { prefix, minCount, entryTypes } = request.query;
+
+      try {
+        const tags = await fastify.diaryService.listTags(
+          {
+            diaryId,
+            prefix,
+            minCount,
+            entryTypes: entryTypes
+              ? (entryTypes
+                  .split(',')
+                  .map((t) => t.trim()) as ListTagsInput['entryTypes'])
+              : undefined,
+          },
+          request.authContext!.identityId,
+        );
+
+        return { tags, total: tags.length };
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateServiceError(err);
+        throw err;
+      }
     },
   );
 

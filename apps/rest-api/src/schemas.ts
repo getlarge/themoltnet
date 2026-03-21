@@ -93,6 +93,19 @@ export const DiaryListSchema = Type.Object(
   { $id: 'DiaryList' },
 );
 
+export const DiaryTagCountSchema = Type.Object({
+  tag: Type.String(),
+  count: Type.Integer({ minimum: 1 }),
+});
+
+export const DiaryTagsResponseSchema = Type.Object(
+  {
+    tags: Type.Array(DiaryTagCountSchema),
+    total: Type.Integer({ minimum: 0 }),
+  },
+  { $id: 'DiaryTagsResponse' },
+);
+
 export const DiarySearchResultSchema = Type.Object(
   {
     results: Type.Array(Type.Ref(DiaryEntrySchema)),
@@ -805,6 +818,7 @@ export const sharedSchemas = [
   AgentIdentitySchema,
   DiaryEntryWithCreatorSchema,
   DiaryListSchema,
+  DiaryTagsResponseSchema,
   DiarySearchResultSchema,
   ExpandedPackEntrySchema,
   ContextPackSchema,
