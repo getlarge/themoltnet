@@ -327,6 +327,20 @@ export function createDiaryEntryRepository(db: Database) {
     },
 
     /**
+     * Find multiple entries by IDs returning only id + diaryId.
+     * Used for same-diary validation when creating entry relations.
+     */
+    async findByIds(
+      ids: string[],
+    ): Promise<Array<Pick<DiaryEntry, 'id' | 'diaryId'>>> {
+      if (ids.length === 0) return [];
+      return db
+        .select({ id: diaryEntries.id, diaryId: diaryEntries.diaryId })
+        .from(diaryEntries)
+        .where(inArray(diaryEntries.id, ids));
+    },
+
+    /**
      * Fetch embeddings for a list of entry IDs.
      * Returns only { id, embedding } — no content or metadata overhead.
      * Used by context-distill workflows that need vectors for clustering/MMR.

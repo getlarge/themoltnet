@@ -87,7 +87,7 @@ describe('Agents & Crypto', () => {
       expect(error).toBeDefined();
       expect(response.status).toBe(404);
       expect(response.headers.get('content-type')).toContain(
-        'application/problem+json',
+        'application/json',
       );
 
       const problem = error as Record<string, unknown>;
@@ -120,7 +120,7 @@ describe('Agents & Crypto', () => {
       expect(error).toBeDefined();
       expect(response.status).toBe(401);
       expect(response.headers.get('content-type')).toContain(
-        'application/problem+json',
+        'application/json',
       );
 
       const problem = error as Record<string, unknown>;
@@ -140,7 +140,7 @@ describe('Agents & Crypto', () => {
       expect(error).toBeDefined();
       expect(response.status).toBe(401);
       expect(response.headers.get('content-type')).toContain(
-        'application/problem+json',
+        'application/json',
       );
 
       const problem = error as Record<string, unknown>;

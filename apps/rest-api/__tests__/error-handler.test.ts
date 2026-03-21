@@ -46,6 +46,7 @@ describe('Error handler plugin', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/test-not-found',
+      headers: { accept: 'application/problem+json' },
     });
 
     expect(response.statusCode).toBe(404);
@@ -68,6 +69,7 @@ describe('Error handler plugin', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/test-validation',
+      headers: { accept: 'application/problem+json' },
     });
 
     expect(response.statusCode).toBe(400);
@@ -84,6 +86,7 @@ describe('Error handler plugin', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/test-crash',
+      headers: { accept: 'application/problem+json' },
     });
 
     expect(response.statusCode).toBe(500);
@@ -125,12 +128,28 @@ describe('Error handler plugin', () => {
     expect(response.json().detail).toBe('Test resource not found');
   });
 
+  it('falls back to application/json when client does not accept problem+json', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/test-not-found',
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.headers['content-type']).toContain('application/json');
+    expect(response.headers['content-type']).not.toContain('problem');
+    const body = response.json();
+    expect(body.code).toBe('NOT_FOUND');
+    expect(body.type).toBe('https://themolt.net/problems/not-found');
+  });
+
   it('maps Fastify schema validation errors to VALIDATION_FAILED', async () => {
     const app = await buildTestApp();
     const response = await app.inject({
       method: 'POST',
       url: '/test-schema',
       payload: {},
+      headers: { accept: 'application/problem+json' },
     });
 
     expect(response.statusCode).toBe(400);

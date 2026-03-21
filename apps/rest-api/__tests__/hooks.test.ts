@@ -302,9 +302,7 @@ describe('Hook routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
       expect(body.code).toBe('UNAUTHORIZED');
       expect(body.detail).toBe('Missing webhook API key');
@@ -328,9 +326,7 @@ describe('Hook routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
       expect(body.code).toBe('UNAUTHORIZED');
       expect(body.detail).toBe('Invalid webhook API key');

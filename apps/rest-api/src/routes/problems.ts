@@ -9,6 +9,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
+import { acceptsProblemJson } from '../problems/helpers.js';
 import {
   getTypeUri,
   type ProblemType,
@@ -82,9 +83,13 @@ export async function problemRoutes(fastify: FastifyInstance) {
       const problemType = problemTypes[type];
 
       if (!problemType) {
+        const contentType = acceptsProblemJson(request.headers.accept)
+          ? 'application/problem+json'
+          : 'application/json';
+
         return reply
           .status(404)
-          .header('content-type', 'application/problem+json')
+          .header('content-type', contentType)
           .send({
             type: getTypeUri('not-found'),
             title: 'Not Found',

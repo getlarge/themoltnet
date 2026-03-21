@@ -26,6 +26,7 @@ import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
 import { diaryDistillRoutes } from './routes/diary-distill.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
+import { entryRelationRoutes } from './routes/entry-relations.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { oauth2Routes } from './routes/oauth2.js';
@@ -240,6 +241,7 @@ export async function registerApiRoutes(
   await app.register(diaryEntryRoutes);
   await app.register(diaryDistillRoutes);
   await app.register(packRoutes);
+  await app.register(entryRelationRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
   await app.register(signingRequestRoutes);

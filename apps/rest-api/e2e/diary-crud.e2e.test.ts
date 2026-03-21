@@ -92,9 +92,7 @@ describe('Diary CRUD', () => {
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
     expect(response.status).toBe(401);
-    expect(response.headers.get('content-type')).toContain(
-      'application/problem+json',
-    );
+    expect(response.headers.get('content-type')).toContain('application/json');
 
     const problem = error as Record<string, unknown>;
     expect(problem.type).toBe('https://themolt.net/problems/unauthorized');

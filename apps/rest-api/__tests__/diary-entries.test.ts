@@ -106,9 +106,7 @@ describe('Diary entry routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('UNAUTHORIZED');
     });
 
@@ -405,9 +403,7 @@ describe('Diary entry routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       expect(response.json().code).toBe('NOT_FOUND');
     });
   });

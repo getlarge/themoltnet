@@ -12,10 +12,10 @@ import {
   type Client,
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
+  createEntryRelation,
   reflectDiary,
   searchDiary,
 } from '@moltnet/api-client';
-import { createEntryRelationRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
@@ -125,16 +125,18 @@ describe('Diary hybrid search', () => {
         tags: ['architecture'],
       },
     });
-    // Mark the first as superseded via entry_relations
-    // TODO(#446): replace with REST API call once relation-creation endpoint lands
+    // Mark the first as superseded via the relations REST API
     if (supersededEntry && newEntry) {
       supersededEntryId = supersededEntry.id;
-      const relRepo = createEntryRelationRepository(harness.db);
-      await relRepo.create({
-        sourceId: newEntry.id,
-        targetId: supersededEntry.id,
-        relation: 'supersedes',
-        status: 'accepted',
+      await createEntryRelation({
+        client,
+        auth: () => agent.accessToken,
+        path: { entryId: newEntry.id },
+        body: {
+          targetId: supersededEntry.id,
+          relation: 'supersedes',
+          status: 'accepted',
+        },
       });
     }
   });
