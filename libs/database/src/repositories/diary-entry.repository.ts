@@ -100,7 +100,7 @@ export interface DiaryTagsOptions {
   diaryId: string;
   prefix?: string;
   minCount?: number;
-  entryTypes?: string[];
+  entryTypes?: EntryType[];
 }
 
 export interface DiarySearchOptions {
@@ -613,16 +613,14 @@ export function createDiaryEntryRepository(db: Database) {
       ];
 
       if (entryTypes && entryTypes.length > 0) {
-        conditions.push(
-          inArray(diaryEntries.entryType, entryTypes as EntryType[]),
-        );
+        conditions.push(inArray(diaryEntries.entryType, entryTypes));
       }
 
       const havingClause = minCount
         ? sql`HAVING COUNT(*) >= ${minCount}`
         : sql``;
       const prefixClause = prefix
-        ? sql`AND tag LIKE ${prefix.replace(/[%_\\]/g, '\\$&') + '%'} ESCAPE '\\'`
+        ? sql`AND starts_with(tag, ${prefix})`
         : sql``;
 
       const result = await db.execute(

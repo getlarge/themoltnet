@@ -144,7 +144,7 @@ export const DiaryTagsSchema = Type.Object({
     }),
   ),
   min_count: Type.Optional(
-    Type.Number({
+    Type.Integer({
       description: 'Exclude tags with fewer than this many entries',
       minimum: 1,
     }),
