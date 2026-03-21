@@ -52,6 +52,12 @@ type Invoker interface {
 	//
 	// POST /diaries
 	CreateDiary(ctx context.Context, request *CreateDiaryReq) (CreateDiaryRes, error)
+	// CreateDiaryCustomPack invokes createDiaryCustomPack operation.
+	//
+	// Create and persist a custom context pack from an explicit entry selection.
+	//
+	// POST /diaries/{id}/packs
+	CreateDiaryCustomPack(ctx context.Context, request *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (CreateDiaryCustomPackRes, error)
 	// CreateDiaryEntry invokes createDiaryEntry operation.
 	//
 	// Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
@@ -263,6 +269,12 @@ type Invoker interface {
 	//
 	// GET /crypto/signing-requests
 	ListSigningRequests(ctx context.Context, params ListSigningRequestsParams) (ListSigningRequestsRes, error)
+	// PreviewDiaryCustomPack invokes previewDiaryCustomPack operation.
+	//
+	// Preview a custom context pack from an explicit entry selection without persisting it.
+	//
+	// POST /diaries/{id}/packs/preview
+	PreviewDiaryCustomPack(ctx context.Context, request *PreviewDiaryCustomPackReq, params PreviewDiaryCustomPackParams) (PreviewDiaryCustomPackRes, error)
 	// ReflectDiary invokes reflectDiary operation.
 	//
 	// Get a digest of recent diary entries.
@@ -901,6 +913,135 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq) (
 
 	stage = "DecodeResponse"
 	result, err := decodeCreateDiaryResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// CreateDiaryCustomPack invokes createDiaryCustomPack operation.
+//
+// Create and persist a custom context pack from an explicit entry selection.
+//
+// POST /diaries/{id}/packs
+func (c *Client) CreateDiaryCustomPack(ctx context.Context, request *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (CreateDiaryCustomPackRes, error) {
+	res, err := c.sendCreateDiaryCustomPack(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendCreateDiaryCustomPack(ctx context.Context, request *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (res CreateDiaryCustomPackRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("createDiaryCustomPack"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/diaries/{id}/packs"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, CreateDiaryCustomPackOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/diaries/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/packs"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeCreateDiaryCustomPackRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, CreateDiaryCustomPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeCreateDiaryCustomPackResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -4983,6 +5124,135 @@ func (c *Client) sendListSigningRequests(ctx context.Context, params ListSigning
 
 	stage = "DecodeResponse"
 	result, err := decodeListSigningRequestsResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// PreviewDiaryCustomPack invokes previewDiaryCustomPack operation.
+//
+// Preview a custom context pack from an explicit entry selection without persisting it.
+//
+// POST /diaries/{id}/packs/preview
+func (c *Client) PreviewDiaryCustomPack(ctx context.Context, request *PreviewDiaryCustomPackReq, params PreviewDiaryCustomPackParams) (PreviewDiaryCustomPackRes, error) {
+	res, err := c.sendPreviewDiaryCustomPack(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendPreviewDiaryCustomPack(ctx context.Context, request *PreviewDiaryCustomPackReq, params PreviewDiaryCustomPackParams) (res PreviewDiaryCustomPackRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("previewDiaryCustomPack"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/diaries/{id}/packs/preview"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PreviewDiaryCustomPackOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/diaries/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/packs/preview"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodePreviewDiaryCustomPackRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, PreviewDiaryCustomPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodePreviewDiaryCustomPackResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

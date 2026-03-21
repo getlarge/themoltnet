@@ -145,8 +145,6 @@ function buildCompilePackInput(
   sourceEntries: MockEntry[],
   overrides?: {
     diaryId?: string;
-    createdBy?: string;
-    createdAt?: string;
     entries?: PackEntryRef[];
   },
 ): PackEnvelopeInput {
@@ -164,8 +162,6 @@ function buildCompilePackInput(
 
   return {
     diaryId: overrides?.diaryId ?? 'diary-001',
-    createdBy: overrides?.createdBy ?? 'agent-001',
-    createdAt: overrides?.createdAt ?? '2026-03-15T14:00:00.000Z',
     packType: 'compile',
     params: {
       tokenBudget: 4000,
@@ -295,8 +291,6 @@ describe('provenance lifecycle: entries → compile → optimize', () => {
     // GEPA optimizes: same entries, potentially rewritten/reordered content
     const optimizedInput: PackEnvelopeInput = {
       diaryId: compileInput.diaryId,
-      createdBy: compileInput.createdBy,
-      createdAt: '2026-03-15T15:30:00.000Z',
       packType: 'optimized',
       params: {
         sourcePackCid: compileCid,
@@ -309,7 +303,7 @@ describe('provenance lifecycle: entries → compile → optimize', () => {
     };
     const optimizedCid = computePackCid(optimizedInput);
 
-    // Different pack CID (different type, params, timestamp)
+    // Different pack CID (different type and params)
     expect(optimizedCid).not.toBe(compileCid);
 
     // Trace: optimized → source compile pack
@@ -330,8 +324,6 @@ describe('provenance lifecycle: entries → compile → optimize', () => {
     // Build optimized pack
     const optimizedInput: PackEnvelopeInput = {
       diaryId: compileInput.diaryId,
-      createdBy: compileInput.createdBy,
-      createdAt: '2026-03-15T16:00:00.000Z',
       packType: 'optimized',
       params: {
         sourcePackCid: compileCid,
@@ -368,8 +360,7 @@ describe('provenance lifecycle: entries → compile → optimize', () => {
       expect(knownCids.has(cid)).toBe(true);
     }
 
-    // Verify provenance metadata is preserved
-    expect(compileDecoded['createdBy']).toBe('agent-001');
+    // Verify diary scoping and pack typing metadata is preserved
     expect(compileDecoded['diaryId']).toBe('diary-001');
     expect(optDecoded['packType']).toBe('optimized');
   });

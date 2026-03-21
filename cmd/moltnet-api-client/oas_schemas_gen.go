@@ -324,7 +324,7 @@ func (*CompileDiaryUnauthorized) compileDiaryRes() {}
 
 // Ref: #/components/schemas/CompileResult
 type CompileResult struct {
-	CompileStats     CompileResultCompileStats  `json:"compileStats"`
+	CompileStats     CompileStats               `json:"compileStats"`
 	CompileTrace     CompileResultCompileTrace  `json:"compileTrace"`
 	CreatedAt        time.Time                  `json:"createdAt"`
 	CreatedBy        uuid.UUID                  `json:"createdBy"`
@@ -342,7 +342,7 @@ type CompileResult struct {
 }
 
 // GetCompileStats returns the value of CompileStats.
-func (s *CompileResult) GetCompileStats() CompileResultCompileStats {
+func (s *CompileResult) GetCompileStats() CompileStats {
 	return s.CompileStats
 }
 
@@ -417,7 +417,7 @@ func (s *CompileResult) GetSupersedesPackId() NilUUID {
 }
 
 // SetCompileStats sets the value of CompileStats.
-func (s *CompileResult) SetCompileStats(val CompileResultCompileStats) {
+func (s *CompileResult) SetCompileStats(val CompileStats) {
 	s.CompileStats = val
 }
 
@@ -492,75 +492,6 @@ func (s *CompileResult) SetSupersedesPackId(val NilUUID) {
 }
 
 func (*CompileResult) compileDiaryRes() {}
-
-type CompileResultCompileStats struct {
-	BudgetUtilization float64 `json:"budgetUtilization"`
-	CompressionRatio  float64 `json:"compressionRatio"`
-	ElapsedMs         float64 `json:"elapsedMs"`
-	EntriesCompressed float64 `json:"entriesCompressed"`
-	EntriesIncluded   float64 `json:"entriesIncluded"`
-	TotalTokens       float64 `json:"totalTokens"`
-}
-
-// GetBudgetUtilization returns the value of BudgetUtilization.
-func (s *CompileResultCompileStats) GetBudgetUtilization() float64 {
-	return s.BudgetUtilization
-}
-
-// GetCompressionRatio returns the value of CompressionRatio.
-func (s *CompileResultCompileStats) GetCompressionRatio() float64 {
-	return s.CompressionRatio
-}
-
-// GetElapsedMs returns the value of ElapsedMs.
-func (s *CompileResultCompileStats) GetElapsedMs() float64 {
-	return s.ElapsedMs
-}
-
-// GetEntriesCompressed returns the value of EntriesCompressed.
-func (s *CompileResultCompileStats) GetEntriesCompressed() float64 {
-	return s.EntriesCompressed
-}
-
-// GetEntriesIncluded returns the value of EntriesIncluded.
-func (s *CompileResultCompileStats) GetEntriesIncluded() float64 {
-	return s.EntriesIncluded
-}
-
-// GetTotalTokens returns the value of TotalTokens.
-func (s *CompileResultCompileStats) GetTotalTokens() float64 {
-	return s.TotalTokens
-}
-
-// SetBudgetUtilization sets the value of BudgetUtilization.
-func (s *CompileResultCompileStats) SetBudgetUtilization(val float64) {
-	s.BudgetUtilization = val
-}
-
-// SetCompressionRatio sets the value of CompressionRatio.
-func (s *CompileResultCompileStats) SetCompressionRatio(val float64) {
-	s.CompressionRatio = val
-}
-
-// SetElapsedMs sets the value of ElapsedMs.
-func (s *CompileResultCompileStats) SetElapsedMs(val float64) {
-	s.ElapsedMs = val
-}
-
-// SetEntriesCompressed sets the value of EntriesCompressed.
-func (s *CompileResultCompileStats) SetEntriesCompressed(val float64) {
-	s.EntriesCompressed = val
-}
-
-// SetEntriesIncluded sets the value of EntriesIncluded.
-func (s *CompileResultCompileStats) SetEntriesIncluded(val float64) {
-	s.EntriesIncluded = val
-}
-
-// SetTotalTokens sets the value of TotalTokens.
-func (s *CompileResultCompileStats) SetTotalTokens(val float64) {
-	s.TotalTokens = val
-}
 
 type CompileResultCompileTrace struct {
 	EmbeddingDim   float64   `json:"embeddingDim"`
@@ -794,6 +725,76 @@ func (s *CompileResultPackType) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
+}
+
+// Ref: #/components/schemas/CompileStats
+type CompileStats struct {
+	BudgetUtilization float64 `json:"budgetUtilization"`
+	CompressionRatio  float64 `json:"compressionRatio"`
+	ElapsedMs         float64 `json:"elapsedMs"`
+	EntriesCompressed float64 `json:"entriesCompressed"`
+	EntriesIncluded   float64 `json:"entriesIncluded"`
+	TotalTokens       float64 `json:"totalTokens"`
+}
+
+// GetBudgetUtilization returns the value of BudgetUtilization.
+func (s *CompileStats) GetBudgetUtilization() float64 {
+	return s.BudgetUtilization
+}
+
+// GetCompressionRatio returns the value of CompressionRatio.
+func (s *CompileStats) GetCompressionRatio() float64 {
+	return s.CompressionRatio
+}
+
+// GetElapsedMs returns the value of ElapsedMs.
+func (s *CompileStats) GetElapsedMs() float64 {
+	return s.ElapsedMs
+}
+
+// GetEntriesCompressed returns the value of EntriesCompressed.
+func (s *CompileStats) GetEntriesCompressed() float64 {
+	return s.EntriesCompressed
+}
+
+// GetEntriesIncluded returns the value of EntriesIncluded.
+func (s *CompileStats) GetEntriesIncluded() float64 {
+	return s.EntriesIncluded
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *CompileStats) GetTotalTokens() float64 {
+	return s.TotalTokens
+}
+
+// SetBudgetUtilization sets the value of BudgetUtilization.
+func (s *CompileStats) SetBudgetUtilization(val float64) {
+	s.BudgetUtilization = val
+}
+
+// SetCompressionRatio sets the value of CompressionRatio.
+func (s *CompileStats) SetCompressionRatio(val float64) {
+	s.CompressionRatio = val
+}
+
+// SetElapsedMs sets the value of ElapsedMs.
+func (s *CompileStats) SetElapsedMs(val float64) {
+	s.ElapsedMs = val
+}
+
+// SetEntriesCompressed sets the value of EntriesCompressed.
+func (s *CompileStats) SetEntriesCompressed(val float64) {
+	s.EntriesCompressed = val
+}
+
+// SetEntriesIncluded sets the value of EntriesIncluded.
+func (s *CompileStats) SetEntriesIncluded(val float64) {
+	s.EntriesIncluded = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *CompileStats) SetTotalTokens(val float64) {
+	s.TotalTokens = val
 }
 
 type ConsolidateDiaryForbidden ProblemDetails
@@ -1655,6 +1656,154 @@ type CreateDiaryBadRequest ProblemDetails
 
 func (*CreateDiaryBadRequest) createDiaryRes() {}
 
+type CreateDiaryCustomPackBadRequest ProblemDetails
+
+func (*CreateDiaryCustomPackBadRequest) createDiaryCustomPackRes() {}
+
+type CreateDiaryCustomPackForbidden ProblemDetails
+
+func (*CreateDiaryCustomPackForbidden) createDiaryCustomPackRes() {}
+
+type CreateDiaryCustomPackInternalServerError ProblemDetails
+
+func (*CreateDiaryCustomPackInternalServerError) createDiaryCustomPackRes() {}
+
+type CreateDiaryCustomPackNotFound ProblemDetails
+
+func (*CreateDiaryCustomPackNotFound) createDiaryCustomPackRes() {}
+
+type CreateDiaryCustomPackReq struct {
+	Entries     []CreateDiaryCustomPackReqEntriesItem `json:"entries"`
+	PackType    CreateDiaryCustomPackReqPackType      `json:"packType"`
+	Params      CreateDiaryCustomPackReqParams        `json:"params"`
+	Pinned      OptBool                               `json:"pinned"`
+	TokenBudget OptInt                                `json:"tokenBudget"`
+}
+
+// GetEntries returns the value of Entries.
+func (s *CreateDiaryCustomPackReq) GetEntries() []CreateDiaryCustomPackReqEntriesItem {
+	return s.Entries
+}
+
+// GetPackType returns the value of PackType.
+func (s *CreateDiaryCustomPackReq) GetPackType() CreateDiaryCustomPackReqPackType {
+	return s.PackType
+}
+
+// GetParams returns the value of Params.
+func (s *CreateDiaryCustomPackReq) GetParams() CreateDiaryCustomPackReqParams {
+	return s.Params
+}
+
+// GetPinned returns the value of Pinned.
+func (s *CreateDiaryCustomPackReq) GetPinned() OptBool {
+	return s.Pinned
+}
+
+// GetTokenBudget returns the value of TokenBudget.
+func (s *CreateDiaryCustomPackReq) GetTokenBudget() OptInt {
+	return s.TokenBudget
+}
+
+// SetEntries sets the value of Entries.
+func (s *CreateDiaryCustomPackReq) SetEntries(val []CreateDiaryCustomPackReqEntriesItem) {
+	s.Entries = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *CreateDiaryCustomPackReq) SetPackType(val CreateDiaryCustomPackReqPackType) {
+	s.PackType = val
+}
+
+// SetParams sets the value of Params.
+func (s *CreateDiaryCustomPackReq) SetParams(val CreateDiaryCustomPackReqParams) {
+	s.Params = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *CreateDiaryCustomPackReq) SetPinned(val OptBool) {
+	s.Pinned = val
+}
+
+// SetTokenBudget sets the value of TokenBudget.
+func (s *CreateDiaryCustomPackReq) SetTokenBudget(val OptInt) {
+	s.TokenBudget = val
+}
+
+type CreateDiaryCustomPackReqEntriesItem struct {
+	EntryId uuid.UUID `json:"entryId"`
+	Rank    int       `json:"rank"`
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *CreateDiaryCustomPackReqEntriesItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetRank returns the value of Rank.
+func (s *CreateDiaryCustomPackReqEntriesItem) GetRank() int {
+	return s.Rank
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *CreateDiaryCustomPackReqEntriesItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetRank sets the value of Rank.
+func (s *CreateDiaryCustomPackReqEntriesItem) SetRank(val int) {
+	s.Rank = val
+}
+
+type CreateDiaryCustomPackReqPackType string
+
+const (
+	CreateDiaryCustomPackReqPackTypeCustom CreateDiaryCustomPackReqPackType = "custom"
+)
+
+// AllValues returns all CreateDiaryCustomPackReqPackType values.
+func (CreateDiaryCustomPackReqPackType) AllValues() []CreateDiaryCustomPackReqPackType {
+	return []CreateDiaryCustomPackReqPackType{
+		CreateDiaryCustomPackReqPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateDiaryCustomPackReqPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateDiaryCustomPackReqPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateDiaryCustomPackReqPackType) UnmarshalText(data []byte) error {
+	switch CreateDiaryCustomPackReqPackType(data) {
+	case CreateDiaryCustomPackReqPackTypeCustom:
+		*s = CreateDiaryCustomPackReqPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateDiaryCustomPackReqParams map[string]jx.Raw
+
+func (s *CreateDiaryCustomPackReqParams) init() CreateDiaryCustomPackReqParams {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type CreateDiaryCustomPackUnauthorized ProblemDetails
+
+func (*CreateDiaryCustomPackUnauthorized) createDiaryCustomPackRes() {}
+
 type CreateDiaryEntryBadRequest ProblemDetails
 
 func (*CreateDiaryEntryBadRequest) createDiaryEntryRes() {}
@@ -2091,6 +2240,231 @@ func (s *CryptoVerifyResult) SetValid(val bool) {
 }
 
 func (*CryptoVerifyResult) verifyCryptoSignatureRes() {}
+
+// Ref: #/components/schemas/CustomPackEntryResult
+type CustomPackEntryResult struct {
+	CompressionLevel CustomPackEntryResultCompressionLevel `json:"compressionLevel"`
+	EntryCidSnapshot string                                `json:"entryCidSnapshot"`
+	EntryId          uuid.UUID                             `json:"entryId"`
+	OriginalTokens   float64                               `json:"originalTokens"`
+	PackedTokens     float64                               `json:"packedTokens"`
+	Rank             int                                   `json:"rank"`
+}
+
+// GetCompressionLevel returns the value of CompressionLevel.
+func (s *CustomPackEntryResult) GetCompressionLevel() CustomPackEntryResultCompressionLevel {
+	return s.CompressionLevel
+}
+
+// GetEntryCidSnapshot returns the value of EntryCidSnapshot.
+func (s *CustomPackEntryResult) GetEntryCidSnapshot() string {
+	return s.EntryCidSnapshot
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *CustomPackEntryResult) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetOriginalTokens returns the value of OriginalTokens.
+func (s *CustomPackEntryResult) GetOriginalTokens() float64 {
+	return s.OriginalTokens
+}
+
+// GetPackedTokens returns the value of PackedTokens.
+func (s *CustomPackEntryResult) GetPackedTokens() float64 {
+	return s.PackedTokens
+}
+
+// GetRank returns the value of Rank.
+func (s *CustomPackEntryResult) GetRank() int {
+	return s.Rank
+}
+
+// SetCompressionLevel sets the value of CompressionLevel.
+func (s *CustomPackEntryResult) SetCompressionLevel(val CustomPackEntryResultCompressionLevel) {
+	s.CompressionLevel = val
+}
+
+// SetEntryCidSnapshot sets the value of EntryCidSnapshot.
+func (s *CustomPackEntryResult) SetEntryCidSnapshot(val string) {
+	s.EntryCidSnapshot = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *CustomPackEntryResult) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetOriginalTokens sets the value of OriginalTokens.
+func (s *CustomPackEntryResult) SetOriginalTokens(val float64) {
+	s.OriginalTokens = val
+}
+
+// SetPackedTokens sets the value of PackedTokens.
+func (s *CustomPackEntryResult) SetPackedTokens(val float64) {
+	s.PackedTokens = val
+}
+
+// SetRank sets the value of Rank.
+func (s *CustomPackEntryResult) SetRank(val int) {
+	s.Rank = val
+}
+
+type CustomPackEntryResultCompressionLevel string
+
+const (
+	CustomPackEntryResultCompressionLevelFull     CustomPackEntryResultCompressionLevel = "full"
+	CustomPackEntryResultCompressionLevelSummary  CustomPackEntryResultCompressionLevel = "summary"
+	CustomPackEntryResultCompressionLevelKeywords CustomPackEntryResultCompressionLevel = "keywords"
+)
+
+// AllValues returns all CustomPackEntryResultCompressionLevel values.
+func (CustomPackEntryResultCompressionLevel) AllValues() []CustomPackEntryResultCompressionLevel {
+	return []CustomPackEntryResultCompressionLevel{
+		CustomPackEntryResultCompressionLevelFull,
+		CustomPackEntryResultCompressionLevelSummary,
+		CustomPackEntryResultCompressionLevelKeywords,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CustomPackEntryResultCompressionLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case CustomPackEntryResultCompressionLevelFull:
+		return []byte(s), nil
+	case CustomPackEntryResultCompressionLevelSummary:
+		return []byte(s), nil
+	case CustomPackEntryResultCompressionLevelKeywords:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CustomPackEntryResultCompressionLevel) UnmarshalText(data []byte) error {
+	switch CustomPackEntryResultCompressionLevel(data) {
+	case CustomPackEntryResultCompressionLevelFull:
+		*s = CustomPackEntryResultCompressionLevelFull
+		return nil
+	case CustomPackEntryResultCompressionLevelSummary:
+		*s = CustomPackEntryResultCompressionLevelSummary
+		return nil
+	case CustomPackEntryResultCompressionLevelKeywords:
+		*s = CustomPackEntryResultCompressionLevelKeywords
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/CustomPackResult
+type CustomPackResult struct {
+	CompileStats CompileStats             `json:"compileStats"`
+	Entries      []CustomPackEntryResult  `json:"entries"`
+	PackCid      string                   `json:"packCid"`
+	PackType     CustomPackResultPackType `json:"packType"`
+	Params       CustomPackResultParams   `json:"params"`
+}
+
+// GetCompileStats returns the value of CompileStats.
+func (s *CustomPackResult) GetCompileStats() CompileStats {
+	return s.CompileStats
+}
+
+// GetEntries returns the value of Entries.
+func (s *CustomPackResult) GetEntries() []CustomPackEntryResult {
+	return s.Entries
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *CustomPackResult) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackType returns the value of PackType.
+func (s *CustomPackResult) GetPackType() CustomPackResultPackType {
+	return s.PackType
+}
+
+// GetParams returns the value of Params.
+func (s *CustomPackResult) GetParams() CustomPackResultParams {
+	return s.Params
+}
+
+// SetCompileStats sets the value of CompileStats.
+func (s *CustomPackResult) SetCompileStats(val CompileStats) {
+	s.CompileStats = val
+}
+
+// SetEntries sets the value of Entries.
+func (s *CustomPackResult) SetEntries(val []CustomPackEntryResult) {
+	s.Entries = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *CustomPackResult) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *CustomPackResult) SetPackType(val CustomPackResultPackType) {
+	s.PackType = val
+}
+
+// SetParams sets the value of Params.
+func (s *CustomPackResult) SetParams(val CustomPackResultParams) {
+	s.Params = val
+}
+
+func (*CustomPackResult) createDiaryCustomPackRes()  {}
+func (*CustomPackResult) previewDiaryCustomPackRes() {}
+
+type CustomPackResultPackType string
+
+const (
+	CustomPackResultPackTypeCustom CustomPackResultPackType = "custom"
+)
+
+// AllValues returns all CustomPackResultPackType values.
+func (CustomPackResultPackType) AllValues() []CustomPackResultPackType {
+	return []CustomPackResultPackType{
+		CustomPackResultPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CustomPackResultPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case CustomPackResultPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CustomPackResultPackType) UnmarshalText(data []byte) error {
+	switch CustomPackResultPackType(data) {
+	case CustomPackResultPackTypeCustom:
+		*s = CustomPackResultPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CustomPackResultParams map[string]jx.Raw
+
+func (s *CustomPackResultParams) init() CustomPackResultParams {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
 
 type DeclineDiaryInvitationBadRequest ProblemDetails
 
@@ -7452,6 +7826,154 @@ func (o OptVerifyResultSigner) Or(d VerifyResultSigner) VerifyResultSigner {
 	}
 	return d
 }
+
+type PreviewDiaryCustomPackBadRequest ProblemDetails
+
+func (*PreviewDiaryCustomPackBadRequest) previewDiaryCustomPackRes() {}
+
+type PreviewDiaryCustomPackForbidden ProblemDetails
+
+func (*PreviewDiaryCustomPackForbidden) previewDiaryCustomPackRes() {}
+
+type PreviewDiaryCustomPackInternalServerError ProblemDetails
+
+func (*PreviewDiaryCustomPackInternalServerError) previewDiaryCustomPackRes() {}
+
+type PreviewDiaryCustomPackNotFound ProblemDetails
+
+func (*PreviewDiaryCustomPackNotFound) previewDiaryCustomPackRes() {}
+
+type PreviewDiaryCustomPackReq struct {
+	Entries     []PreviewDiaryCustomPackReqEntriesItem `json:"entries"`
+	PackType    PreviewDiaryCustomPackReqPackType      `json:"packType"`
+	Params      PreviewDiaryCustomPackReqParams        `json:"params"`
+	Pinned      OptBool                                `json:"pinned"`
+	TokenBudget OptInt                                 `json:"tokenBudget"`
+}
+
+// GetEntries returns the value of Entries.
+func (s *PreviewDiaryCustomPackReq) GetEntries() []PreviewDiaryCustomPackReqEntriesItem {
+	return s.Entries
+}
+
+// GetPackType returns the value of PackType.
+func (s *PreviewDiaryCustomPackReq) GetPackType() PreviewDiaryCustomPackReqPackType {
+	return s.PackType
+}
+
+// GetParams returns the value of Params.
+func (s *PreviewDiaryCustomPackReq) GetParams() PreviewDiaryCustomPackReqParams {
+	return s.Params
+}
+
+// GetPinned returns the value of Pinned.
+func (s *PreviewDiaryCustomPackReq) GetPinned() OptBool {
+	return s.Pinned
+}
+
+// GetTokenBudget returns the value of TokenBudget.
+func (s *PreviewDiaryCustomPackReq) GetTokenBudget() OptInt {
+	return s.TokenBudget
+}
+
+// SetEntries sets the value of Entries.
+func (s *PreviewDiaryCustomPackReq) SetEntries(val []PreviewDiaryCustomPackReqEntriesItem) {
+	s.Entries = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *PreviewDiaryCustomPackReq) SetPackType(val PreviewDiaryCustomPackReqPackType) {
+	s.PackType = val
+}
+
+// SetParams sets the value of Params.
+func (s *PreviewDiaryCustomPackReq) SetParams(val PreviewDiaryCustomPackReqParams) {
+	s.Params = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *PreviewDiaryCustomPackReq) SetPinned(val OptBool) {
+	s.Pinned = val
+}
+
+// SetTokenBudget sets the value of TokenBudget.
+func (s *PreviewDiaryCustomPackReq) SetTokenBudget(val OptInt) {
+	s.TokenBudget = val
+}
+
+type PreviewDiaryCustomPackReqEntriesItem struct {
+	EntryId uuid.UUID `json:"entryId"`
+	Rank    int       `json:"rank"`
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *PreviewDiaryCustomPackReqEntriesItem) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetRank returns the value of Rank.
+func (s *PreviewDiaryCustomPackReqEntriesItem) GetRank() int {
+	return s.Rank
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *PreviewDiaryCustomPackReqEntriesItem) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetRank sets the value of Rank.
+func (s *PreviewDiaryCustomPackReqEntriesItem) SetRank(val int) {
+	s.Rank = val
+}
+
+type PreviewDiaryCustomPackReqPackType string
+
+const (
+	PreviewDiaryCustomPackReqPackTypeCustom PreviewDiaryCustomPackReqPackType = "custom"
+)
+
+// AllValues returns all PreviewDiaryCustomPackReqPackType values.
+func (PreviewDiaryCustomPackReqPackType) AllValues() []PreviewDiaryCustomPackReqPackType {
+	return []PreviewDiaryCustomPackReqPackType{
+		PreviewDiaryCustomPackReqPackTypeCustom,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewDiaryCustomPackReqPackType) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewDiaryCustomPackReqPackTypeCustom:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewDiaryCustomPackReqPackType) UnmarshalText(data []byte) error {
+	switch PreviewDiaryCustomPackReqPackType(data) {
+	case PreviewDiaryCustomPackReqPackTypeCustom:
+		*s = PreviewDiaryCustomPackReqPackTypeCustom
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PreviewDiaryCustomPackReqParams map[string]jx.Raw
+
+func (s *PreviewDiaryCustomPackReqParams) init() PreviewDiaryCustomPackReqParams {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type PreviewDiaryCustomPackUnauthorized ProblemDetails
+
+func (*PreviewDiaryCustomPackUnauthorized) previewDiaryCustomPackRes() {}
 
 // Ref: #/components/schemas/ProblemDetails
 type ProblemDetails struct {

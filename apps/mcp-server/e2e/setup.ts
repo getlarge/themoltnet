@@ -39,6 +39,12 @@ const KRATOS_ADMIN_URL =
 
 const DEFAULT_SCOPES = 'diary:read diary:write crypto:sign agent:profile';
 
+interface HarnessAgent {
+  agent: GenesisAgent;
+  privateDiaryId: string;
+  publicDiaryId: string;
+}
+
 // ── Test Harness ──
 
 export interface McpTestHarness {
@@ -47,6 +53,7 @@ export interface McpTestHarness {
   agent: GenesisAgent;
   privateDiaryId: string;
   publicDiaryId: string;
+  createAgent(name: string): Promise<HarnessAgent>;
   teardown(): Promise<void>;
 }
 
@@ -57,74 +64,76 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   // DB connection for bootstrap (inserts into agent_keys)
   const { db, pool } = createDatabase(DATABASE_URL);
 
-  const result = await bootstrapGenesisAgents({
-    config: {
-      databaseUrl: DATABASE_URL,
-      ory: {
-        mode: 'split',
-        kratosAdminUrl: KRATOS_ADMIN_URL,
-        hydraAdminUrl: HYDRA_ADMIN_URL,
-        hydraPublicUrl: HYDRA_PUBLIC_URL,
-        ketoReadUrl: KETO_READ_URL,
-        ketoWriteUrl: KETO_WRITE_URL,
+  async function createDiaryForAgent(
+    agent: GenesisAgent,
+    name: string,
+    visibility: 'private' | 'public',
+  ): Promise<string> {
+    const response = await fetch(`${REST_API_URL}/diaries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${agent.accessToken}`,
       },
-    },
-    db,
-    names: ['e2e-mcp-test-agent'],
-    scopes: DEFAULT_SCOPES,
-    // eslint-disable-next-line no-console
-    log: (msg) => console.log(`[MCP E2E] ${msg}`),
-  });
+      body: JSON.stringify({ name, visibility }),
+    });
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(
+        `Failed to create ${visibility} diary: ${response.status} ${body}`,
+      );
+    }
 
-  if (result.errors.length > 0) {
-    await pool.end();
-    throw new Error(
-      `Failed to bootstrap test agent: ${result.errors[0].error}`,
-    );
+    const data = (await response.json()) as { id: string };
+    return data.id;
   }
 
-  const agent = result.agents[0];
+  async function createAgent(name: string): Promise<HarnessAgent> {
+    const result = await bootstrapGenesisAgents({
+      config: {
+        databaseUrl: DATABASE_URL,
+        ory: {
+          mode: 'split',
+          kratosAdminUrl: KRATOS_ADMIN_URL,
+          hydraAdminUrl: HYDRA_ADMIN_URL,
+          hydraPublicUrl: HYDRA_PUBLIC_URL,
+          ketoReadUrl: KETO_READ_URL,
+          ketoWriteUrl: KETO_WRITE_URL,
+        },
+      },
+      db,
+      names: [name],
+      scopes: DEFAULT_SCOPES,
+      // eslint-disable-next-line no-console
+      log: (msg) => console.log(`[MCP E2E] ${msg}`),
+    });
 
-  // Genesis agents bypass the registration webhook, so no private diary exists yet.
-  // Create it explicitly via the REST API (which also grants Keto ownership).
-  const createDiaryResponse = await fetch(`${REST_API_URL}/diaries`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${agent.accessToken}`,
-    },
-    body: JSON.stringify({ name: 'Private', visibility: 'private' }),
-  });
-  if (!createDiaryResponse.ok) {
-    const body = await createDiaryResponse.text();
-    await pool.end();
-    throw new Error(
-      `Failed to create private diary: ${createDiaryResponse.status} ${body}`,
-    );
-  }
-  const diaryData = (await createDiaryResponse.json()) as { id: string };
-  const privateDiaryId = diaryData.id;
+    if (result.errors.length > 0) {
+      throw new Error(
+        `Failed to bootstrap test agent: ${result.errors[0].error}`,
+      );
+    }
 
-  // Create a public diary for entries that should appear in the public feed
-  const createPublicDiaryResponse = await fetch(`${REST_API_URL}/diaries`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${agent.accessToken}`,
-    },
-    body: JSON.stringify({ name: 'Public', visibility: 'public' }),
-  });
-  if (!createPublicDiaryResponse.ok) {
-    const body = await createPublicDiaryResponse.text();
-    await pool.end();
-    throw new Error(
-      `Failed to create public diary: ${createPublicDiaryResponse.status} ${body}`,
+    const agent = result.agents[0];
+    const privateDiaryId = await createDiaryForAgent(
+      agent,
+      'Private',
+      'private',
     );
+    const publicDiaryId = await createDiaryForAgent(agent, 'Public', 'public');
+
+    return { agent, privateDiaryId, publicDiaryId };
   }
-  const publicDiaryData = (await createPublicDiaryResponse.json()) as {
-    id: string;
-  };
-  const publicDiaryId = publicDiaryData.id;
+
+  let initialAgent: HarnessAgent;
+  try {
+    initialAgent = await createAgent('e2e-mcp-test-agent');
+  } catch (error) {
+    await pool.end();
+    throw error;
+  }
+
+  const { agent, privateDiaryId, publicDiaryId } = initialAgent;
 
   // eslint-disable-next-line no-console
   console.log(
@@ -137,6 +146,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     agent,
     privateDiaryId,
     publicDiaryId,
+    createAgent,
     async teardown() {
       await pool.end();
     },

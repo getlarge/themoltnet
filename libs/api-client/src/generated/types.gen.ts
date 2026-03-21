@@ -295,6 +295,15 @@ export type ContextPackResponseList = {
   limit: number;
 };
 
+export type CompileStats = {
+  totalTokens: number;
+  entriesIncluded: number;
+  entriesCompressed: number;
+  compressionRatio: number;
+  budgetUtilization: number;
+  elapsedMs: number;
+};
+
 export type Digest = {
   entries: Array<{
     id: string;
@@ -619,19 +628,31 @@ export type CompileResult = {
     rank: number | null;
     createdAt: string;
   }>;
-  compileStats: {
-    totalTokens: number;
-    entriesIncluded: number;
-    entriesCompressed: number;
-    compressionRatio: number;
-    budgetUtilization: number;
-    elapsedMs: number;
-  };
+  compileStats: CompileStats;
   compileTrace: {
     lambdaUsed: number;
     embeddingDim: number;
     taskPromptHash?: string;
   };
+};
+
+export type CustomPackEntryResult = {
+  entryId: string;
+  entryCidSnapshot: string;
+  rank: number;
+  compressionLevel: 'full' | 'summary' | 'keywords';
+  originalTokens: number;
+  packedTokens: number;
+};
+
+export type CustomPackResult = {
+  packCid: string;
+  packType: 'custom';
+  params: {
+    [key: string]: unknown;
+  };
+  entries: Array<CustomPackEntryResult>;
+  compileStats: CompileStats;
 };
 
 export type ProvenanceGraph = {
@@ -2131,6 +2152,65 @@ export type GetContextPackByIdResponses = {
 export type GetContextPackByIdResponse =
   GetContextPackByIdResponses[keyof GetContextPackByIdResponses];
 
+export type PreviewDiaryCustomPackData = {
+  body: {
+    packType: 'custom';
+    params: {
+      [key: string]: unknown;
+    };
+    entries: Array<{
+      entryId: string;
+      rank: number;
+    }>;
+    tokenBudget?: number;
+    pinned?: boolean;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/packs/preview';
+};
+
+export type PreviewDiaryCustomPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type PreviewDiaryCustomPackError =
+  PreviewDiaryCustomPackErrors[keyof PreviewDiaryCustomPackErrors];
+
+export type PreviewDiaryCustomPackResponses = {
+  /**
+   * Default Response
+   */
+  200: CustomPackResult;
+};
+
+export type PreviewDiaryCustomPackResponse =
+  PreviewDiaryCustomPackResponses[keyof PreviewDiaryCustomPackResponses];
+
 export type ListDiaryPacksData = {
   body?: never;
   path: {
@@ -2177,6 +2257,65 @@ export type ListDiaryPacksResponses = {
 
 export type ListDiaryPacksResponse =
   ListDiaryPacksResponses[keyof ListDiaryPacksResponses];
+
+export type CreateDiaryCustomPackData = {
+  body: {
+    packType: 'custom';
+    params: {
+      [key: string]: unknown;
+    };
+    entries: Array<{
+      entryId: string;
+      rank: number;
+    }>;
+    tokenBudget?: number;
+    pinned?: boolean;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/diaries/{id}/packs';
+};
+
+export type CreateDiaryCustomPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateDiaryCustomPackError =
+  CreateDiaryCustomPackErrors[keyof CreateDiaryCustomPackErrors];
+
+export type CreateDiaryCustomPackResponses = {
+  /**
+   * Default Response
+   */
+  201: CustomPackResult;
+};
+
+export type CreateDiaryCustomPackResponse =
+  CreateDiaryCustomPackResponses[keyof CreateDiaryCustomPackResponses];
 
 export type ListEntryRelationsData = {
   body?: never;

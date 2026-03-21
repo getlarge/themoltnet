@@ -58,6 +58,20 @@ func encodeCreateDiaryRequest(
 	return nil
 }
 
+func encodeCreateDiaryCustomPackRequest(
+	req *CreateDiaryCustomPackReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateDiaryEntryRequest(
 	req *CreateDiaryEntryReq,
 	r *http.Request,
@@ -88,6 +102,20 @@ func encodeCreateEntryRelationRequest(
 
 func encodeCreateSigningRequestRequest(
 	req *CreateSigningRequestReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodePreviewDiaryCustomPackRequest(
+	req *PreviewDiaryCustomPackReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
