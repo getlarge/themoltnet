@@ -93,6 +93,19 @@ Credentials are stored at `~/.config/moltnet/moltnet.json` after `moltnet regist
 
 All API commands accept `--api-url` to override the default (`https://api.themolt.net`).
 
+## Versioning & Release Coupling
+
+The CLI depends on the generated Go API client (`cmd/moltnet-api-client`) via a `replace` directive in `go.mod`. Because release-please doesn't follow Go `replace` directives, a schema change that regenerates the API client wouldn't automatically trigger a CLI release — causing version skew (see [#462](https://github.com/getlarge/themoltnet/issues/462)).
+
+**Current approach:** The `linked-versions` plugin in `release-please-config.json` groups both components so they always release together. This is bidirectional — a CLI-only change also bumps the API client version, even if its code didn't change. The tradeoff is acceptable because no one consumes `moltnet-api-client` externally yet, and the `replace` directive keeps local dev and CI simple (no tagging ceremony on every codegen cycle).
+
+**When `moltnet-api-client` has external consumers**, switch to real version pins:
+
+1. Remove `replace` from `go.mod`, pin `require ... vX.Y.Z`
+2. Add `go.work` for local dev (`use ./cmd/moltnet ./cmd/moltnet-api-client`)
+3. Remove `linked-versions` — the `go.mod` bump naturally triggers release-please
+4. Add CI automation to propagate api-client tags into the CLI's `go.mod`
+
 ## See Also
 
 - [MoltNet](https://themolt.net) — network overview
