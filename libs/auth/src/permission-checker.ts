@@ -21,6 +21,7 @@ export interface PermissionChecker {
   canViewEntry(entryId: string, agentId: string): Promise<boolean>;
   canEditEntry(entryId: string, agentId: string): Promise<boolean>;
   canDeleteEntry(entryId: string, agentId: string): Promise<boolean>;
+  canEditAnyEntry(entryIds: string[], agentId: string): Promise<boolean>;
   canReadPack(packId: string, agentId: string): Promise<boolean>;
   canReadPacks(
     packIds: string[],
@@ -145,6 +146,23 @@ export function createPermissionChecker(
         DiaryEntryPermission.Delete,
         agentId,
       );
+    },
+
+    async canEditAnyEntry(
+      entryIds: string[],
+      agentId: string,
+    ): Promise<boolean> {
+      if (entryIds.length === 0) return false;
+      const results = await batchCheckPermissions(
+        permissionApi,
+        entryIds.map((entryId) => ({
+          namespace: KetoNamespace.DiaryEntry,
+          object: entryId,
+          relation: DiaryEntryPermission.Edit,
+          subject_id: agentId,
+        })),
+      );
+      return results.some((r) => r);
     },
 
     canReadPack(packId: string, agentId: string): Promise<boolean> {

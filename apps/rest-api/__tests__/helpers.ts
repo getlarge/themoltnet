@@ -138,6 +138,7 @@ export interface MockServices {
   diaryEntryRepository: {
     create: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
+    findByIds: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
     search: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -166,6 +167,7 @@ export interface MockServices {
   entryRelationRepository: {
     create: ReturnType<typeof vi.fn>;
     createMany: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
     listByEntry: ReturnType<typeof vi.fn>;
     updateStatus: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
@@ -203,6 +205,7 @@ export function createMockServices(): MockServices {
     diaryEntryRepository: {
       create: vi.fn(),
       findById: vi.fn(),
+      findByIds: vi.fn().mockResolvedValue([]),
       list: vi.fn(),
       search: vi.fn(),
       update: vi.fn(),
@@ -231,6 +234,7 @@ export function createMockServices(): MockServices {
     entryRelationRepository: {
       create: vi.fn(),
       createMany: vi.fn().mockResolvedValue([]),
+      findById: vi.fn(),
       listByEntry: vi.fn().mockResolvedValue([]),
       updateStatus: vi.fn(),
       delete: vi.fn(),
@@ -289,6 +293,7 @@ export function createMockServices(): MockServices {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
+      canEditAnyEntry: vi.fn(),
       canReadPack: vi.fn(),
       canReadPacks: vi.fn().mockResolvedValue(new Map()),
       canManagePack: vi.fn(),

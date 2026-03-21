@@ -1370,6 +1370,121 @@
         "required": ["entries", "totalEntries", "periodDays", "generatedAt"],
         "type": "object"
       },
+      "EntryRelation": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/RelationType"
+          },
+          "similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceCidSnapshot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RelationStatus"
+          },
+          "targetCidSnapshot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workflowId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "sourceId",
+          "targetId",
+          "relation",
+          "status",
+          "sourceCidSnapshot",
+          "targetCidSnapshot",
+          "workflowId",
+          "confidence",
+          "similarity",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "EntryRelationList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EntryRelation"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "description": "Maximum number of items requested.",
+            "type": "number"
+          },
+          "total": {
+            "description": "Number of items returned in this response window.",
+            "type": "number"
+          }
+        },
+        "required": ["items", "total", "limit"],
+        "type": "object"
+      },
       "EntryType": {
         "anyOf": [
           {
@@ -2639,6 +2754,50 @@
           "clientSecret"
         ],
         "type": "object"
+      },
+      "RelationStatus": {
+        "anyOf": [
+          {
+            "enum": ["proposed"],
+            "type": "string"
+          },
+          {
+            "enum": ["accepted"],
+            "type": "string"
+          },
+          {
+            "enum": ["rejected"],
+            "type": "string"
+          }
+        ]
+      },
+      "RelationType": {
+        "anyOf": [
+          {
+            "enum": ["supersedes"],
+            "type": "string"
+          },
+          {
+            "enum": ["elaborates"],
+            "type": "string"
+          },
+          {
+            "enum": ["contradicts"],
+            "type": "string"
+          },
+          {
+            "enum": ["supports"],
+            "type": "string"
+          },
+          {
+            "enum": ["caused_by"],
+            "type": "string"
+          },
+          {
+            "enum": ["references"],
+            "type": "string"
+          }
+        ]
       },
       "RotateSecretResponse": {
         "properties": {
@@ -5781,6 +5940,253 @@
         "tags": ["diary"]
       }
     },
+    "/entries/{entryId}/relations": {
+      "get": {
+        "description": "List relations for a diary entry.",
+        "operationId": "listEntryRelations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "relation",
+            "schema": {
+              "$ref": "#/components/schemas/RelationType"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "$ref": "#/components/schemas/RelationStatus"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["as_source"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["as_target"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["both"],
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelationList"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "post": {
+        "description": "Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.",
+        "operationId": "createEntryRelation",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "relation": {
+                    "$ref": "#/components/schemas/RelationType"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "enum": ["proposed"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["accepted"],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "targetId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": ["targetId", "relation"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
     "/entries/{entryId}/verify": {
       "get": {
         "description": "Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.",
@@ -7280,6 +7686,163 @@
           }
         },
         "tags": ["recovery"]
+      }
+    },
+    "/relations/{id}": {
+      "delete": {
+        "description": "Delete an entry relation.",
+        "operationId": "deleteEntryRelation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "patch": {
+        "description": "Update the status of an entry relation.",
+        "operationId": "updateEntryRelationStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/RelationStatus"
+                  }
+                },
+                "required": ["status"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
       }
     },
     "/vouch": {

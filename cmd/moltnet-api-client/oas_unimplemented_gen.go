@@ -58,6 +58,16 @@ func (UnimplementedHandler) CreateDiaryEntry(ctx context.Context, req *CreateDia
 	return r, ht.ErrNotImplemented
 }
 
+// CreateEntryRelation implements createEntryRelation operation.
+//
+// Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) —
+// returns 200 if the relation already exists.
+//
+// POST /entries/{entryId}/relations
+func (UnimplementedHandler) CreateEntryRelation(ctx context.Context, req *CreateEntryRelationReq, params CreateEntryRelationParams) (r CreateEntryRelationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateSigningRequest implements createSigningRequest operation.
 //
 // Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for
@@ -92,6 +102,15 @@ func (UnimplementedHandler) DeleteDiary(ctx context.Context, params DeleteDiaryP
 //
 // DELETE /entries/{entryId}
 func (UnimplementedHandler) DeleteDiaryEntryById(ctx context.Context, params DeleteDiaryEntryByIdParams) (r DeleteDiaryEntryByIdRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteEntryRelation implements deleteEntryRelation operation.
+//
+// Delete an entry relation.
+//
+// DELETE /relations/{id}
+func (UnimplementedHandler) DeleteEntryRelation(ctx context.Context, params DeleteEntryRelationParams) (r DeleteEntryRelationRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -308,6 +327,15 @@ func (UnimplementedHandler) ListDiaryShares(ctx context.Context, params ListDiar
 	return r, ht.ErrNotImplemented
 }
 
+// ListEntryRelations implements listEntryRelations operation.
+//
+// List relations for a diary entry.
+//
+// GET /entries/{entryId}/relations
+func (UnimplementedHandler) ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (r ListEntryRelationsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListProblemTypes implements listProblemTypes operation.
 //
 // List all problem types used in API error responses (RFC 9457).
@@ -436,6 +464,15 @@ func (UnimplementedHandler) UpdateDiary(ctx context.Context, req OptUpdateDiaryR
 //
 // PATCH /entries/{entryId}
 func (UnimplementedHandler) UpdateDiaryEntryById(ctx context.Context, req OptUpdateDiaryEntryByIdReq, params UpdateDiaryEntryByIdParams) (r UpdateDiaryEntryByIdRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateEntryRelationStatus implements updateEntryRelationStatus operation.
+//
+// Update the status of an entry relation.
+//
+// PATCH /relations/{id}
+func (UnimplementedHandler) UpdateEntryRelationStatus(ctx context.Context, req *UpdateEntryRelationStatusReq, params UpdateEntryRelationStatusParams) (r UpdateEntryRelationStatusRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
