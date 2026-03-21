@@ -618,7 +618,7 @@ describe('Diary distill — consolidate + compile', () => {
       expect(found).toBeDefined();
     }, 120_000);
 
-    it('each compile produces a unique pack CID (createdAt is part of envelope)', async () => {
+    it('reuses the same pack CID for identical compile inputs', async () => {
       const body = { tokenBudget: 800 };
       const { data: data1 } = await compileDiary({
         client,
@@ -632,11 +632,11 @@ describe('Diary distill — consolidate + compile', () => {
         path: { id: agentA.moltnetDiaryId },
         body,
       });
-      // Different packs (different createdAt), but both have valid CIDs
+      // Deterministic content-addressed pack identity.
       expect(data1!.packCid).toMatch(/^bafy/);
       expect(data2!.packCid).toMatch(/^bafy/);
-      // CIDs differ because createdAt is part of the envelope
-      expect(data1!.packCid).not.toBe(data2!.packCid);
+      expect(data1!.packCid).toBe(data2!.packCid);
+      expect(data1!.id).toBe(data2!.id);
     }, 120_000);
   });
 });
