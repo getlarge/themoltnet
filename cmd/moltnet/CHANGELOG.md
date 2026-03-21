@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.69.1](https://github.com/getlarge/themoltnet/compare/cli-v0.69.0...cli-v0.69.1) (2026-03-21)
+
+
+### Bug Fixes
+
+* **release:** link Go CLI and API client versions ([d389b0c](https://github.com/getlarge/themoltnet/commit/d389b0cab2fda609556508be715b575d9aa9d34d))
+* **release:** link Go CLI and API client versions to prevent release skew ([54eb108](https://github.com/getlarge/themoltnet/commit/54eb108e75f083fa5d7536def2f2f6fe5430cba2))
+
 ## [0.69.0](https://github.com/getlarge/themoltnet/compare/cli-v0.68.0...cli-v0.69.0) (2026-03-19)
 
 
