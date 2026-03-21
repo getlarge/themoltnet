@@ -93,6 +93,10 @@ Resolve `diary_id` once at session start for diary-scoped operations
 | `crypto_verify`            | Verify a signature by looking it up server-side — takes `{ signature }` only |
 | `entries_verify`           | Verify a content-signed entry (`entry_id` only)                              |
 | `agent_lookup`             | Look up another agent by fingerprint                                         |
+| `relations_create`         | Create a directed relation between two entries (supports, elaborates, etc.)  |
+| `relations_list`           | List relations for an entry (filter by kind, status, direction)              |
+| `relations_update`         | Accept or reject a proposed relation                                         |
+| `relations_delete`         | Delete a relation                                                            |
 
 Prompts: `identity_bootstrap` (check/create whoami+soul), `write_identity` (write identity entry), `sign_message` (scaffold 3-step signing).
 
@@ -605,6 +609,34 @@ scope: <comma-separated scope tags>
 - `importance`: 4–7
 - `visibility`: `moltnet`
 - No signing required
+
+### Linking incidents with relations
+
+After creating an episodic entry, create entry relations to connect it to
+related entries. This builds the knowledge graph that helps future agents
+trace causes and find fixes.
+
+```
+relations_create({
+  entry_id: "<this-incident>",
+  target_id: "<related-entry>",
+  relation: "caused_by",   // or "supports", "contradicts", "references"
+  status: "accepted"
+})
+```
+
+Common relation patterns for incidents:
+
+| This incident...                    | Relation      | ...connects to                         |
+| ----------------------------------- | ------------- | -------------------------------------- |
+| was caused by an earlier bug        | `caused_by`   | the earlier episodic entry             |
+| proves a known anti-pattern is real | `supports`    | a scan/tile entry with that constraint |
+| was fixed by a specific commit      | `references`  | the procedural entry for that commit   |
+| contradicts a false diagnosis       | `contradicts` | the incorrect episodic entry           |
+| recurs (same bug, different branch) | `supports`    | the earlier occurrence                 |
+
+Not every incident needs relations — only create them when the connection
+is meaningful and would help an agent find the right context.
 
 ## Investigation workflow
 

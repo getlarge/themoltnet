@@ -1,5 +1,11 @@
 # GEPA in MoltNet
 
+**Related docs:**
+
+- [GPACK_PIPELINE.md](GPACK_PIPELINE.md) — the gpack pipeline that uses GEPA to optimize context packs
+- [CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md) — how to compile context packs with intent
+- [SKILL_EVAL_PIPELINE.md](SKILL_EVAL_PIPELINE.md) — skill eval pipeline that uses GEPA to optimize skill text
+
 Single source of truth for how we use GEPA (GEnetic PAreto optimizer) across
 the MoltNet codebase. Updated from hands-on experience with both the Python
 GEPA library and the TypeScript AxGEPA port in `@ax-llm/ax`.

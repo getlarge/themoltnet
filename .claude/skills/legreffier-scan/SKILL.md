@@ -944,21 +944,18 @@ with 15 packages might add 8-12 Phase 2 entries (thin packages are skipped).
 More than 60 entries suggests the scan is too granular. Consolidate at the
 scan level — don't create entries per file or per function.
 
-## Consolidation: tiles and rule nuggets
+## Consolidation
 
-After a scan is complete, the consolidation step transforms raw evidence entries
-into two outputs: **context tiles** (~200-400 tokens each) and **rule nuggets**
-(~120 tokens each). This is the second stage of the context flywheel
-(Generate → **Consolidate** → Load → Eval).
+After a scan is complete, the consolidation step transforms raw scan entries
+into **context tiles** (~200-400 tokens each) — synthesized knowledge units
+scoped to subsystems, with constraints and code patterns.
 
-For the full consolidation protocol — tile/nugget tagging, multi-model
-evaluation dimensions, scorecard format, and retrieval queries — see
-`references/consolidation-reference.md`.
+The `legreffier-consolidate` skill handles the consolidation execution. It
+uses server-side clustering (`diaries_consolidate`) to identify merge groups,
+then creates tiles from merged scan entries.
 
-For tile/nugget design principles, merge rules, quality gates, and execution
-sequence, see `references/consolidation-reference.md`.
-
-The `legreffier-consolidate` skill handles the actual consolidation execution.
+See also [CONTEXT_PACK_GUIDE.md](../../../docs/CONTEXT_PACK_GUIDE.md) for
+how tiles feed into compiled context packs.
 
 ## Permissions
 

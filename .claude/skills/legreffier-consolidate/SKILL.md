@@ -1,555 +1,270 @@
 ---
 name: legreffier-consolidate
-description: 'Consolidate scan entries into context tiles and rule nuggets. Runs after legreffier-scan. Requires LeGreffier MCP tools. Supports multi-model evaluation.'
+description: 'Consolidate diary entries by proposing and reviewing entry relations using server-side clustering. Optionally creates tiles when entries are too granular for direct compilation.'
 ---
 
 # LeGreffier Consolidate Skill
 
-Synthesize raw scan entries into two outputs:
-
-1. **Context tiles** — self-contained knowledge units (~200-400 tokens),
-   organized by subsystem, loadable at task time
-2. **Rule nuggets** — atomic constraint statements (~120 tokens) with triggers,
-   scopes, and verification methods
+Structure diary entries by creating **entry relations** (supports, elaborates,
+contradicts, derived_from) through server-side clustering + agent review.
+Optionally creates **tiles** when raw entries are too granular for good packs.
 
 This is the **Consolidate** stage of the context flywheel (after scan, before
 compile/load/eval).
 
 ## Prerequisites
 
-- A completed `legreffier-scan` run with entries tagged
-  `source:scan, scan-session:<timestamp>`
-- LeGreffier MCP tools available (`entries_search`, `entries_create`,
-  `diaries_consolidate`, etc.)
+- Diary entries to consolidate (scan entries, commits, decisions, incidents)
+- LeGreffier MCP tools available (`diaries_consolidate`, `entries_search`,
+  `entries_create`, etc.)
 - Agent identity active (`moltnet_whoami` returns valid identity)
-- Know your `DIARY_ID` and `SCAN_SESSION` timestamp
+- Know your `DIARY_ID`
 - **CRITICAL: The diary MUST have `moltnet` visibility (not `private`).** Private
-  diaries do not index entries for vector search — `entries_search` falls back
-  to full-text only, which severely degrades retrieval quality. Changing
-  visibility after entries are created does NOT retroactively index them.
-  The diary must be `moltnet` visibility BEFORE the scan entries are created.
+  diaries do not index entries for vector search.
 
 ### Internal references
 
 - `consolidation-approach.md` (in this skill folder) — design rationale,
-  merge group identification algorithm, nugget acceptance gate, multi-model
-  evaluation methodology. Read this file for the "why" behind every design choice.
+  merge group identification algorithm, tile quality gate.
 
 ---
 
 ## Configuration
 
-Set these variables before starting. All are required.
-
 ```
 DIARY_ID       = "<diary UUID>"
-SCAN_SESSION   = "<ISO timestamp of the scan run>"
-MODEL_TAG      = "<your-model-short-tag>"   # e.g. "claude-sonnet-4.6", "gpt-5.2"
-TILE_SESSION   = "<current ISO timestamp>"  # must be unique per run
+```
+
+Optional scoping (narrow what gets consolidated):
+
+```
+SCOPE_TAGS     = ["source:scan", "scan-session:<timestamp>"]
+EXCLUDE_TAGS   = ["scan-category:summary", "learn:trace"]
 ```
 
 ---
 
-## Preflight: run server-side clustering
+## Phase 1: Server-side clustering + relation proposals
 
-Before manual tile synthesis, call the distill endpoint to get candidate
-clusters. Use the output to drive Phase 2 merge group identification instead
-of doing it manually.
+Call the consolidation endpoint to cluster entries and propose relations:
 
 ```
 diaries_consolidate({
   diary_id: "<DIARY_ID>",
-  tags: ["source:scan", "scan-session:<SCAN_SESSION>"],
-  exclude_tags: ["scan-category:plan", "scan-category:summary"],
+  tags: <SCOPE_TAGS>,
+  exclude_tags: <EXCLUDE_TAGS>,
   strategy: "hybrid",
-  threshold: 0.75
+  threshold: 0.85
 })
 ```
 
-Use `tags: ["source:scan", "scan-session:<SCAN_SESSION>"]` to scope to one
-scan session, or `entry_ids` to pass an explicit list (bypasses tag filter).
-`strategy: "hybrid"` is best for general use.
+### Threshold guidance
 
-For **threshold**: scan entries about the same repo are all semantically
-similar, so `0.75` will collapse everything into one cluster — not useful.
-Use `0.85`–`0.88` for scan sessions to get subsystem-level clusters. Lower
-thresholds (`0.6`–`0.75`) are better for cross-repo or mixed-topic diaries.
+- `0.85-0.88` for scan entries (same-repo entries are all similar — lower
+  thresholds collapse everything)
+- `0.70-0.80` for mixed entries (commits + decisions + incidents)
+- `0.60-0.70` for cross-topic or cross-diary consolidation
 
-### Reading the output
+**Known limitation**: within-topic entries (e.g. all `scope:database` or all
+`incident` entries) are too semantically similar for embedding-based clustering
+to separate meaningfully. A single giant cluster with blanket `supports`
+relations is common. Server clustering is most useful for **cross-topic**
+separation. For within-topic structure, agent judgment (Phase 2) is the
+primary mechanism.
 
-The response has `workflowId` + `clusters`. Each cluster has:
+### Output
 
-- `representative` — the entry that best represents the cluster (by score or centroid proximity)
-- `members` — semantically similar entries grouped with the representative
-- `similarity` / `confidence` — cluster cohesion score (0–1)
-- `suggestedAction` — `merge` (high confidence, safe to combine), `review` (similar but check manually), `keep-separate` (low similarity, don't merge)
+The response includes:
 
-**How to use clusters for merge group identification:**
+- `clusters` — groups of related entries with suggestedAction
+- Proposed `entry_relations` are created in the DB (`status: proposed`)
+  but NOT returned in the response — use `relations_list` to read them
 
-1. `suggestedAction: merge` clusters with members sharing the same `scan-category` → one tile.
-2. `suggestedAction: review` clusters → inspect members manually. A single giant cluster means threshold is too low; raise it and re-run.
-3. `suggestedAction: merge/review` clusters with members from different `scan-category` tags → cross-cutting tile (e.g., auth docs + auth code).
-4. Entries not in any cluster → standalone tiles directly.
-5. The `representative` entry is your starting point for tile content.
-
-The cluster output does not replace the tile quality gate or merge rules below.
-It accelerates the grouping step. You still apply the quality gate to every
-tile before creating it.
+**Important**: proposed relations from single-cluster runs are typically
+low quality (blanket `supports` between all members). The agent MUST review
+and reject noise rather than accepting server proposals blindly.
 
 ---
 
-## Phase 1: Fetch scan entries
+## Phase 2: Review proposed relations (agent judgment)
+
+This is where the agent adds real value. Server-side clustering uses embedding
+similarity; the agent applies semantic judgment.
+
+### Review flow
+
+For each proposed relation:
+
+1. Read both entries (source and target)
+2. Evaluate the relation kind:
+   - `supports` — does the target genuinely support the source's claim?
+   - `elaborates` — does the target add meaningful detail to the source?
+   - `contradicts` — is there a real tension, or just different phrasing?
+   - `derived_from` — is the target actually derived from the source?
+3. Accept or reject:
+   ```
+   entries_relations_update({
+     relation_id: "<id>",
+     status: "accepted"   // or "rejected"
+   })
+   ```
+
+### Review criteria
+
+**Accept** when:
+
+- The relation captures a real semantic connection
+- Following the edge would help an agent find related context
+- The relation kind accurately describes the relationship
+
+**Reject** when:
+
+- Entries are similar in topic but unrelated in substance
+- The relation kind is wrong (e.g. "supports" when it's really "elaborates")
+- The entries are duplicates (use `superseded_by` instead of a relation)
+
+### Agent-proposed cross-type relations
+
+The most valuable relations are **cross-type** — they connect entries that
+the server's embedding similarity would never group. Use `relations_create`:
 
 ```
-entries_search({
-  query: "scan",
-  tags: ["source:scan", "scan-session:<SCAN_SESSION>"],
-  exclude_tags: ["scan-category:plan", "scan-category:summary"],
+relations_create({
+  entry_id: "<source>",
+  target_id: "<target>",
+  relation: "caused_by",
+  status: "accepted"
+})
+```
+
+**Proven high-value patterns** (from real MoltNet diary analysis):
+
+| Source type                | Relation      | Target type                  | Example                                                     |
+| -------------------------- | ------------- | ---------------------------- | ----------------------------------------------------------- |
+| episodic (bug)             | `caused_by`   | episodic (earlier bug)       | contentHash bug caused by diary_search missing columns      |
+| episodic (false diagnosis) | `contradicts` | episodic (real root cause)   | "needs API key" contradicts real OAuth 401 causes           |
+| episodic (same bug, later) | `supports`    | episodic (same bug, earlier) | Drizzle migration v2 supports v1 (proves pattern)           |
+| semantic (decision)        | `references`  | procedural (commit)          | DBOS WorkflowQueue decision → commit implementing it        |
+| semantic (decision)        | `references`  | procedural (commit)          | created_by provenance decision → schema migration           |
+| episodic (incident)        | `references`  | procedural (fix commit)      | Auth bypass → relation routes commit that fixes the pattern |
+
+**What NOT to connect**:
+
+- Two incidents about unrelated subsystems (auth bypass ≠ Drizzle migration)
+- Blanket `supports` between everything in the same cluster
+- Entries that are similar in embedding space but not causally connected
+
+---
+
+## Phase 3: Optional tile creation
+
+Tiles are **not always needed**. Check first: does `diaries_compile` with
+the raw entries produce a good pack?
+
+```
+diaries_compile({
   diary_id: "<DIARY_ID>",
-  limit: 20
+  token_budget: 4000,
+  task_prompt: "<representative task>",
+  include_tags: <SCOPE_TAGS>,
+  exclude_tags: ["learn:trace"],
+  lambda: 0.7,
+  w_importance: 0.5
 })
 ```
 
-The remaining entries are your source material. Keep a final sanity check for
-plan/summary tags in case historical runs used different tag conventions.
+**If the pack is good** (relevant entries, no noise, right ranking): skip
+tile creation. The raw entries + accepted relations are sufficient.
 
----
+**If the pack is noisy** (too many similar entries, important constraints
+diluted): create tiles to compress related entries into single units.
 
-## Phase 2: Create tiles
+### When to create tiles
 
-### Identifying merge groups
-
-Group scan entries by subsystem. Entries covering the same subsystem from
-different scan phases (docs vs code) must be merged into a single tile.
-
-Principles:
-
-- One tile per subsystem — not one per source entry
-- If two entries cover the same area (e.g. Phase 1 docs + Phase 2 code
-  for the same lib), merge them
-- Standalone entries (only one entry for that subsystem) become tiles directly
-- Target: fewer tiles than source entries
-
-See `consolidation-approach.md` § "How to identify merge groups" for the
-merge algorithm and rationale.
+- 3+ scan entries about the same subsystem that all get pulled into packs
+- Entries that individually are too small to be useful but together form
+  coherent knowledge
+- When the compile budget is tight and you need higher token density
 
 ### Tile format
 
-Every tile MUST follow this exact structure:
-
 ```
 tile_id: <scope>/<topic>
-applies_to: <file glob or "**" for project-wide>
-token_budget: 200-400 tokens
+applies_to: <file glob>
 
 ## <Topic heading>
 
-[Synthesized content — what an agent needs to work correctly in this area.
- Concrete patterns, real function names, actual constraints found in code.]
+[Synthesized content from merged entries]
 
 ### Constraints
-- MUST: <concrete, verifiable constraint>
-- NEVER: <concrete, verifiable anti-pattern>
+- MUST: <concrete constraint>
+- NEVER: <anti-pattern>
 
 ### When this matters
-[1-2 sentence trigger: what task types make this tile relevant]
+[1-2 sentence trigger]
 
-Sources: [source entry short IDs]
+Sources: [entry short IDs]
 ```
-
-### Merge rules
-
-When merging docs-derived and code-derived entries for the same subsystem:
-
-1. **Code wins on specifics** — function names, actual patterns, real
-   constraints found in source
-2. **Docs win on rationale** — architecture decisions, design context,
-   cross-cutting concerns
-3. **Deduplicate constraints** — if both say the same thing, keep one
-4. **Prefer concrete over abstract** — `getExecutor(db)` beats "uses
-   repository pattern"
-
-### Tile quality gate
-
-Before creating each tile, verify ALL of these:
-
-- [ ] Under 400 tokens of core content
-- [ ] Contains at least one MUST or NEVER constraint
-- [ ] Has a clear `applies_to` scope
-- [ ] Does NOT restate CLAUDE.md verbatim
-- [ ] Synthesizes from sources, not just copies
-- [ ] Includes source entry IDs for provenance
 
 ### Tile tags
 
 ```
-["source:tile", "tile-session:<TILE_SESSION>", "tile-scope:<scope>", "tile-id:<scope>/<topic>", "model:<MODEL_TAG>"]
+["source:tile", "tile-session:<timestamp>", "tile-scope:<scope>", "tile-id:<scope>/<topic>"]
 ```
 
-### Tile creation
+See `consolidation-approach.md` for merge rules and quality gate.
+
+---
+
+## Phase 4: Verify with compile
+
+After consolidation (relations accepted, optional tiles created), verify
+the improvement:
 
 ```
-entries_create({
+diaries_compile({
   diary_id: "<DIARY_ID>",
-  title: "Tile: <tile-id> — <short description>",
-  entry_type: "semantic",
-  importance: <6-9>,
-  tags: <tile tags above>,
-  content: "<tile content>"
+  token_budget: 4000,
+  task_prompt: "<same representative task as before>",
+  lambda: 0.7,
+  w_importance: 0.5
 })
 ```
 
-Record each tile's entry ID.
+Compare with the pre-consolidation pack:
+
+- Are the right entries selected?
+- Is the ranking sensible?
+- Are related entries grouped together?
+
+See [CONTEXT_PACK_GUIDE.md](../../../docs/CONTEXT_PACK_GUIDE.md) for compile
+recipes and parameter tuning.
 
 ---
 
-## Phase 3: Extract rule nuggets
-
-After all tiles are created, extract rule nuggets from the scan entries.
-
-### Priority domains
-
-| Domain   | Why first                        | Expected nuggets |
-| -------- | -------------------------------- | ---------------- |
-| testing  | Highest follow-through           | 4-6              |
-| security | Highest value, lowest prevalence | 5-8              |
-| workflow | High follow-through              | 3-5              |
-| database | Error-prone domain               | 3-4              |
-
-Target: **15-23 nuggets** total.
-
-### Extraction strategy
-
-Do NOT scan entries linearly. Use a constraint-first approach:
-
-1. Collect all Constraints/Anti-patterns sections from the scan entries
-2. Deduplicate — many constraints appear in both Phase 1 and Phase 2
-3. Apply the acceptance gate — reject vague candidates
-4. Group by trigger domain
-5. Assign nugget IDs: `<domain>.<subsystem>.<constraint-slug>`
-
-### Nugget acceptance gate
-
-Reject any candidate that fails ANY of these 5 criteria:
-
-1. **Triggerable** — clear when the rule applies
-2. **Specific** — refers to a real repo convention or invariant
-3. **Bounded** — fits one task family or subsystem
-4. **Grounded** — links to concrete files or evidence
-5. **Actionable** — an agent can follow it or a validator can check it
-
-### Nugget format
-
-Every nugget MUST follow this exact YAML structure:
-
-```yaml
-nugget_id: <domain>.<subsystem>.<constraint-slug>
-statement: <1-2 sentence rule>
-rule_kind: hard | soft | heuristic
-trigger:
-  task_classes: [<matching task classes>]
-  file_paths: [<glob patterns>]
-scope:
-  subsystem: <subsystem name>
-  applies_to: <file glob>
-verification:
-  mode: command | checklist | visual
-  check: <how to verify>
-sources:
-  - <entry short IDs>
-confidence: high | medium | low
-```
-
-### Nugget tags
-
-```
-["source:nugget", "nugget-session:<TILE_SESSION>", "nugget-domain:<domain>", "model:<MODEL_TAG>"]
-```
-
-### Nugget storage
-
-Group nuggets by domain — **one diary entry per domain**, not per nugget.
-Separate nuggets with `---` dividers.
-
-```
-entries_create({
-  diary_id: "<DIARY_ID>",
-  title: "Nuggets: <domain> domain — <short description>",
-  entry_type: "semantic",
-  importance: <7-9>,
-  tags: <nugget tags above>,
-  content: "Domain: <domain>\nModel: <MODEL_TAG>\nNugget count: <N>\n\n---\n\n<nugget YAML>\n\n---\n\n<nugget YAML>\n..."
-})
-```
-
-Record each nugget entry's ID.
-
-### Compile handoff contract
-
-The compile step should be able to consume consolidation outputs without
-guessing hidden conventions.
-
-For that reason, every consolidation run MUST leave behind compile-ready
-artifacts with these properties:
-
-1. **Tiles remain one entry per tile**
-   - tagged with:
-     - `source:tile`
-     - `tile-session:<TILE_SESSION>`
-     - `model:<MODEL_TAG>`
-     - `tile-id:<tile-id>`
-2. **Nuggets remain grouped by domain**
-   - tagged with:
-     - `source:nugget`
-     - `nugget-session:<TILE_SESSION>`
-     - `model:<MODEL_TAG>`
-     - `nugget-domain:<domain>`
-3. **Every nugget block inside a domain entry must be valid YAML**
-   - separated by `---`
-   - one block per nugget
-4. **Every nugget block must include compileable core fields**
-   - `nugget_id`
-   - `statement`
-   - `rule_kind`
-   - `trigger`
-   - `scope`
-   - `verification`
-   - `sources`
-   - `confidence`
-5. **Results file must include a compilation handoff section**
-   - enough information for another agent to find the tile entries, nugget
-     entries, scorecard entry, and current run identity
-
-The consolidate skill is not responsible for writing `.legreffier/context/`.
-Its responsibility is to leave behind outputs that the compile skill can read
-deterministically.
-
-### Load budget constraint
-
-For any single task at runtime, load at most:
-
-- 3-7 primary nuggets
-- 1-2 optional caveat nuggets
-
-If a task would trigger more than 9 nuggets, the trigger design is too noisy.
-
----
-
-## Phase 4: Self-evaluation scorecard
-
-After all tiles and nuggets are created, score your own output.
-
-### Evaluation dimensions
-
-| Dimension          | What it measures                    | How to score                                |
-| ------------------ | ----------------------------------- | ------------------------------------------- |
-| Constraint yield   | Nuggets accepted vs candidates      | `accepted / total_candidates`               |
-| Specificity        | Concrete vs vague constraints       | 1-5 per nugget, averaged                    |
-| Non-redundancy     | Avoids restating obvious things     | Count redundant nuggets                     |
-| Trigger precision  | Triggers fire for right tasks only  | low / med / high                            |
-| Merge quality      | Phase 1 + Phase 2 synthesis         | 1-5 per merged tile, averaged               |
-| Token efficiency   | Content density                     | `total_constraints / total_tokens * 1000`   |
-| Hallucination rate | Constraints not grounded in sources | Count ungrounded nuggets                    |
-| Coverage           | Important constraints captured      | constraints found / constraints in sources  |
-| Consistency        | Agreement with other runs           | Jaccard similarity (compute after all runs) |
-
-### Scorecard format
-
-Scorecard content MUST use this exact YAML structure:
-
-```yaml
-model: <MODEL_TAG>
-tile_session: '<TILE_SESSION>'
-tiles_created: <N>
-tiles_avg_tokens: <N>
-tiles_avg_merge_quality: <1-5>
-nuggets_total_candidates: <N>
-nuggets_accepted: <N>
-nuggets_rejected: <N>
-nuggets_acceptance_rate: <ratio>
-nuggets_avg_specificity: <1-5>
-nuggets_redundant: <N>
-nuggets_hallucinated: <N>
-nuggets_trigger_precision: <low|med|high>
-token_efficiency: <constraints_per_1k_tokens>
-coverage_estimate: <ratio>
-notes: |
-  <observations about tile merge quality, nugget specificity,
-   coverage gaps, rejected candidates and why, etc.>
-```
-
-### Scorecard tags
-
-```
-["source:scorecard", "tile-session:<TILE_SESSION>", "scan-session:<SCAN_SESSION>", "model:<MODEL_TAG>"]
-```
-
-### Scorecard creation
-
-```
-entries_create({
-  diary_id: "<DIARY_ID>",
-  title: "Scorecard: <MODEL_TAG> consolidation run — <TILE_SESSION>",
-  entry_type: "reflection",
-  importance: 8,
-  tags: <scorecard tags above>,
-  content: "<scorecard YAML>"
-})
-```
-
----
-
-## Phase 5: Write results file
-
-Write a human-readable results file to:
-
-```
-docs/research/consolidation-results-<model-short-tag>.md
-```
-
-The results file MUST use this structure:
-
-````markdown
-# Consolidation Results — <Model Name>
-
-Date: <YYYY-MM-DD>
-Tile session: `<TILE_SESSION>`
-Source: <N> scan entries from `scan-session:<SCAN_SESSION>`
-Diary: `<DIARY_ID>`
-
----
-
-## Tiles: <N> created (from <M> scan entries, <K> merges)
-
-| #   | Tile ID   | Entry ID     | Sources merged     | Importance |
-| --- | --------- | ------------ | ------------------ | ---------- |
-| 1   | <tile-id> | `<short-id>` | <source short IDs> | <N>        |
-| ... | ...       | ...          | ...                | ...        |
-
-Average ~<N> tokens per tile.
-
----
-
-## Nuggets: <N> accepted across <K> domains
-
-| Domain   | Entry ID     | Count | Rule kinds |
-| -------- | ------------ | ----- | ---------- |
-| <domain> | `<short-id>` | <N>   | <summary>  |
-| ...      | ...          | ...   | ...        |
-
-### Nugget inventory
-
-**<Domain> (<count>)**
-
-- `<nugget_id>` — <one-line description>
-- ...
-
----
-
-## Key metrics
-
-| Metric             | Value                                 |
-| ------------------ | ------------------------------------- |
-| Acceptance rate    | <N>/<M> (<ratio>)                     |
-| Hallucination rate | <N>                                   |
-| Redundancy         | <N> nuggets (<details>)               |
-| Token efficiency   | <N> constraints per 1K tokens         |
-| Compression        | ~<N>K source → ~<N>K tokens (<ratio>) |
-| Coverage estimate  | <ratio>                               |
-| Trigger precision  | <low/med/high>                        |
-| Avg specificity    | <N>/5                                 |
-| Avg merge quality  | <N>/5                                 |
-
----
-
-## Observations
-
-### Tile quality
-
-<bullet points>
-
-### Nugget quality
-
-<bullet points>
-
-### Coverage gaps
-
-<bullet points>
-
----
-
-## Scorecard entry
-
-Entry ID: `<short-id>`
-
----
-
-## Compilation handoff
-
-```yaml
-scan_session: '<SCAN_SESSION>'
-tile_session: '<TILE_SESSION>'
-model_tag: '<MODEL_TAG>'
-tile_entry_query:
-  tags:
-    - 'source:tile'
-    - 'tile-session:<TILE_SESSION>'
-    - 'model:<MODEL_TAG>'
-nugget_entry_query:
-  tags:
-    - 'source:nugget'
-    - 'nugget-session:<TILE_SESSION>'
-    - 'model:<MODEL_TAG>'
-scorecard_entry_id: '<short-id>'
-results_file: 'docs/research/consolidation-results-<model-short-tag>.md'
-compile_ready:
-  tiles: true
-  nuggets: true
-  scorecard: true
-```
-````
-
----
-
-## Retrieval queries
-
-```
-# All tiles from this run
-entries_search({
-  query: "tile",
-  tags: ["source:tile", "tile-session:<TILE_SESSION>", "model:<MODEL_TAG>"],
-  diary_id: "<DIARY_ID>"
-})
-
-# All nuggets from a specific model run
-entries_search({
-  query: "nugget",
-  tags: ["source:nugget", "nugget-session:<TILE_SESSION>", "model:<MODEL_TAG>"],
-  diary_id: "<DIARY_ID>"
-})
-
-# All scorecards for cross-model comparison
-entries_search({
-  query: "scorecard",
-  tags: ["source:scorecard", "scan-session:<SCAN_SESSION>"],
-  diary_id: "<DIARY_ID>"
-})
-```
+## When to trigger consolidation
+
+- After a scan session completes (30+ new scan entries)
+- After a feature branch merges (10+ commit entries on one topic)
+- When compile packs feel noisy (too many loosely related entries)
+- When the same question keeps pulling different entries on each compile
+- Periodically (e.g. weekly) for active diaries with >100 entries
 
 ---
 
 ## Recovery after context compression
 
-If context is compressed mid-run:
-
 1. Read this skill file
-2. Read `consolidation-approach.md` in this skill folder for the methodology
-3. Run the retrieval queries above to find completed tiles/nuggets
-4. Compare completed work against scan entries to find where to resume
+2. Read `consolidation-approach.md` for methodology
+3. Query completed work:
+   - `entries_relations_list({ diary_id, status: "accepted" })` — see what's done
+   - `entries_search({ tags: ["source:tile", "tile-session:<session>"] })` — find tiles
+4. Resume from where relations are still `proposed`
 
 ---
 
 ## Permissions
 
-This skill only needs LeGreffier MCP tools (entries_search, entries_create,
-entries_get) and file write access for the results file.
+This skill needs LeGreffier MCP tools (diaries_consolidate, entries_search,
+entries_create, entries_relations_list, entries_relations_update) and diary
+write access.
