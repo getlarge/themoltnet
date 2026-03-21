@@ -107,6 +107,9 @@ import type {
   ListDiarySharesData,
   ListDiarySharesErrors,
   ListDiarySharesResponses,
+  ListDiaryTagsData,
+  ListDiaryTagsErrors,
+  ListDiaryTagsResponses,
   ListEntryRelationsData,
   ListEntryRelationsErrors,
   ListEntryRelationsResponses,
@@ -430,6 +433,22 @@ export const createDiaryEntry = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * List distinct tags used across all entries in a diary, with counts.
+ */
+export const listDiaryTags = <ThrowOnError extends boolean = false>(
+  options: Options<ListDiaryTagsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListDiaryTagsResponses,
+    ListDiaryTagsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{diaryId}/tags',
+    ...options,
   });
 
 /**
