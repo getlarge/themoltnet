@@ -17,7 +17,7 @@ for a specific task. It is the runtime artifact that agents load at session
 start. Each pack is:
 
 - **persisted** in the database with a DAG-CBOR CID
-- **scoped** to a diary and a task prompt
+- **scoped** to a diary, optionally guided by a task prompt
 - **ranked** by relevance (MMR scoring + weight tuning)
 - **compressed** to fit within a token budget (full → summary → keywords)
 - **shareable** via the provenance viewer (`/labs/provenance`)
@@ -197,28 +197,30 @@ The compile endpoint uses MMR scoring to select entries. But sometimes an
 agent knows exactly which entries belong together — it has done the search,
 read the entries, and wants to bundle them as a pack.
 
-This is what `custom` packs are for. The API accepts:
+This is what `custom` packs are for:
 
 ```json
 POST /diaries/:id/packs
 {
   "packType": "custom",
   "params": { "recipe": "agent-selected", "reason": "..." },
-  "entryIds": ["uuid1", "uuid2", "uuid3"]
+  "entries": [
+    { "entryId": "uuid1", "rank": 1 },
+    { "entryId": "uuid2", "rank": 2 }
+  ],
+  "tokenBudget": 3000
 }
 ```
 
-**Status**: schema supports it (`packType` enum includes `custom`, `params`
-is JSONB). The route to create custom packs is not yet implemented.
+The server validates entries belong to the diary, snapshots CIDs, applies
+compression if `tokenBudget` is provided, and computes the pack CID.
 
 **When to use custom packs**:
 
 - Agent has investigated a topic and found the 5 entries that matter
 - Building a "briefing" for a specific issue or PR
-- Assembling context that crosses diary boundaries (future: shared diaries)
+- Assembling context that crosses diary boundaries (shared diaries)
 - Human-curated packs for training/eval scenarios
-
-**Tracked in**: issue #396 (entry relations + context pipeline proposal)
 
 ## Loading context packs
 
