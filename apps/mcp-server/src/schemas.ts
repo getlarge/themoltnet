@@ -655,7 +655,6 @@ export type PackListInput = {
 export const PackProvenanceSchema = Type.Object({
   pack_id: Type.Optional(
     Type.String({
-      format: 'uuid',
       description:
         'Pack ID (UUID). Provide exactly one of pack_id or pack_cid.',
     }),
