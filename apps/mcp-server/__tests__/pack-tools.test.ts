@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  handlePacksCreate,
   handlePacksGet,
   handlePacksList,
+  handlePacksPreview,
   handlePacksProvenance,
 } from '../src/pack-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
@@ -17,17 +19,21 @@ import {
 } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
+  createDiaryCustomPack: vi.fn(),
   getContextPackById: vi.fn(),
   listDiaryPacks: vi.fn(),
+  previewDiaryCustomPack: vi.fn(),
   getContextPackProvenanceById: vi.fn(),
   getContextPackProvenanceByCid: vi.fn(),
 }));
 
 import {
+  createDiaryCustomPack,
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
   listDiaryPacks,
+  previewDiaryCustomPack,
 } from '@moltnet/api-client';
 
 const PACK_ID = '110e8400-e29b-41d4-a716-446655440005';
@@ -46,6 +52,34 @@ const mockPack = {
   pinned: false,
   expiresAt: null,
   createdAt: new Date().toISOString(),
+};
+const mockCustomPack = {
+  ...mockPack,
+  packType: 'custom',
+  params: {
+    recipe: 'ax-agent-selected',
+    taskPrompt: 'Keto authorization debugging',
+  },
+  compileStats: {
+    originalEntries: 3,
+    includedEntries: 2,
+    totalTokens: 240,
+    tokensSaved: 180,
+  },
+  entries: [
+    {
+      entryId: '770e8400-e29b-41d4-a716-446655440002',
+      rank: 1,
+      compressionLevel: 'full',
+      tokenCount: 120,
+    },
+    {
+      entryId: '770e8400-e29b-41d4-a716-446655440003',
+      rank: 2,
+      compressionLevel: 'summary',
+      tokenCount: 120,
+    },
+  ],
 };
 
 describe('Pack tools', () => {
@@ -299,6 +333,173 @@ describe('Pack tools', () => {
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('Pack not found');
+    });
+  });
+
+  describe('packs_preview', () => {
+    it('returns a preview for an explicit custom pack selection', async () => {
+      vi.mocked(previewDiaryCustomPack).mockResolvedValue(
+        sdkOk(mockCustomPack) as never,
+      );
+
+      const result = await handlePacksPreview(
+        {
+          diary_id: DIARY_ID,
+          params: { recipe: 'ax-agent-selected' },
+          entries: [
+            { entry_id: 'entry-1', rank: 1 },
+            { entry_id: 'entry-2', rank: 2 },
+          ],
+          token_budget: 260,
+        },
+        deps,
+        context,
+      );
+
+      expect(previewDiaryCustomPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: DIARY_ID },
+          body: {
+            packType: 'custom',
+            params: { recipe: 'ax-agent-selected' },
+            entries: [
+              { entryId: 'entry-1', rank: 1 },
+              { entryId: 'entry-2', rank: 2 },
+            ],
+            tokenBudget: 260,
+            pinned: undefined,
+          },
+        }),
+      );
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('packType', 'custom');
+      expect(parsed).toHaveProperty('entries');
+    });
+
+    it('returns error when preview request is unauthenticated', async () => {
+      const unauthContext = createMockContext(null);
+
+      const result = await handlePacksPreview(
+        {
+          diary_id: DIARY_ID,
+          params: { recipe: 'ax-agent-selected' },
+          entries: [{ entry_id: 'entry-1', rank: 1 }],
+        },
+        deps,
+        unauthContext,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Not authenticated');
+    });
+
+    it('returns API error message when preview fails', async () => {
+      vi.mocked(previewDiaryCustomPack).mockResolvedValue(
+        sdkErr({
+          error: 'Bad Request',
+          message: 'Validation failed',
+          statusCode: 400,
+          detail: 'Selected entry does not belong to the diary',
+        }) as never,
+      );
+
+      const result = await handlePacksPreview(
+        {
+          diary_id: DIARY_ID,
+          params: { recipe: 'ax-agent-selected' },
+          entries: [{ entry_id: 'entry-1', rank: 1 }],
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Selected entry does not belong to the diary',
+      );
+    });
+  });
+
+  describe('packs_create', () => {
+    it('creates a persisted custom pack for an explicit selection', async () => {
+      vi.mocked(createDiaryCustomPack).mockResolvedValue(
+        sdkOk({ ...mockCustomPack, pinned: true }) as never,
+      );
+
+      const result = await handlePacksCreate(
+        {
+          diary_id: DIARY_ID,
+          params: { recipe: 'ax-agent-selected' },
+          entries: [
+            { entry_id: 'entry-1', rank: 1 },
+            { entry_id: 'entry-2', rank: 2 },
+          ],
+          token_budget: 260,
+          pinned: true,
+        },
+        deps,
+        context,
+      );
+
+      expect(createDiaryCustomPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: DIARY_ID },
+          body: {
+            packType: 'custom',
+            params: { recipe: 'ax-agent-selected' },
+            entries: [
+              { entryId: 'entry-1', rank: 1 },
+              { entryId: 'entry-2', rank: 2 },
+            ],
+            tokenBudget: 260,
+            pinned: true,
+          },
+        }),
+      );
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('packType', 'custom');
+      expect(parsed).toHaveProperty('pinned', true);
+    });
+
+    it('returns error when create request is unauthenticated', async () => {
+      const unauthContext = createMockContext(null);
+
+      const result = await handlePacksCreate(
+        {
+          diary_id: DIARY_ID,
+          params: { recipe: 'ax-agent-selected' },
+          entries: [{ entry_id: 'entry-1', rank: 1 }],
+        },
+        deps,
+        unauthContext,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Not authenticated');
+    });
+
+    it('returns API error message when create fails', async () => {
+      vi.mocked(createDiaryCustomPack).mockResolvedValue(
+        sdkErr({
+          error: 'Forbidden',
+          message: 'Forbidden',
+          statusCode: 403,
+          detail: 'Diary not accessible',
+        }) as never,
+      );
+
+      const result = await handlePacksCreate(
+        {
+          diary_id: DIARY_ID,
+          params: { recipe: 'ax-agent-selected' },
+          entries: [{ entry_id: 'entry-1', rank: 1 }],
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Diary not accessible');
     });
   });
 });

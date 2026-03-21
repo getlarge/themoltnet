@@ -36,35 +36,7 @@
       "CompileResult": {
         "properties": {
           "compileStats": {
-            "properties": {
-              "budgetUtilization": {
-                "type": "number"
-              },
-              "compressionRatio": {
-                "type": "number"
-              },
-              "elapsedMs": {
-                "type": "number"
-              },
-              "entriesCompressed": {
-                "type": "number"
-              },
-              "entriesIncluded": {
-                "type": "number"
-              },
-              "totalTokens": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "totalTokens",
-              "entriesIncluded",
-              "entriesCompressed",
-              "compressionRatio",
-              "budgetUtilization",
-              "elapsedMs"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/CompileStats"
           },
           "compileTrace": {
             "properties": {
@@ -247,6 +219,37 @@
           "entries",
           "compileStats",
           "compileTrace"
+        ],
+        "type": "object"
+      },
+      "CompileStats": {
+        "properties": {
+          "budgetUtilization": {
+            "type": "number"
+          },
+          "compressionRatio": {
+            "type": "number"
+          },
+          "elapsedMs": {
+            "type": "number"
+          },
+          "entriesCompressed": {
+            "type": "number"
+          },
+          "entriesIncluded": {
+            "type": "number"
+          },
+          "totalTokens": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalTokens",
+          "entriesIncluded",
+          "entriesCompressed",
+          "compressionRatio",
+          "budgetUtilization",
+          "elapsedMs"
         ],
         "type": "object"
       },
@@ -805,6 +808,84 @@
           }
         },
         "required": ["valid"],
+        "type": "object"
+      },
+      "CustomPackEntryResult": {
+        "properties": {
+          "compressionLevel": {
+            "anyOf": [
+              {
+                "enum": ["full"],
+                "type": "string"
+              },
+              {
+                "enum": ["summary"],
+                "type": "string"
+              },
+              {
+                "enum": ["keywords"],
+                "type": "string"
+              }
+            ]
+          },
+          "entryCidSnapshot": {
+            "type": "string"
+          },
+          "entryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "originalTokens": {
+            "type": "number"
+          },
+          "packedTokens": {
+            "type": "number"
+          },
+          "rank": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entryId",
+          "entryCidSnapshot",
+          "rank",
+          "compressionLevel",
+          "originalTokens",
+          "packedTokens"
+        ],
+        "type": "object"
+      },
+      "CustomPackResult": {
+        "properties": {
+          "compileStats": {
+            "$ref": "#/components/schemas/CompileStats"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/CustomPackEntryResult"
+            },
+            "type": "array"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "packType": {
+            "enum": ["custom"],
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {},
+            "type": "object"
+          }
+        },
+        "required": [
+          "packCid",
+          "packType",
+          "params",
+          "entries",
+          "compileStats"
+        ],
         "type": "object"
       },
       "DiaryCatalog": {
@@ -5714,6 +5795,272 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ContextPackResponseList"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "post": {
+        "description": "Create and persist a custom context pack from an explicit entry selection.",
+        "operationId": "createDiaryCustomPack",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "entries": {
+                    "items": {
+                      "properties": {
+                        "entryId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "rank": {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      },
+                      "required": ["entryId", "rank"],
+                      "type": "object"
+                    },
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "packType": {
+                    "enum": ["custom"],
+                    "type": "string"
+                  },
+                  "params": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "tokenBudget": {
+                    "maximum": 100000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": ["packType", "params", "entries"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomPackResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/diaries/{id}/packs/preview": {
+      "post": {
+        "description": "Preview a custom context pack from an explicit entry selection without persisting it.",
+        "operationId": "previewDiaryCustomPack",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "entries": {
+                    "items": {
+                      "properties": {
+                        "entryId": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "rank": {
+                          "minimum": 1,
+                          "type": "integer"
+                        }
+                      },
+                      "required": ["entryId", "rank"],
+                      "type": "object"
+                    },
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "packType": {
+                    "enum": ["custom"],
+                    "type": "string"
+                  },
+                  "params": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "tokenBudget": {
+                    "maximum": 100000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": ["packType", "params", "entries"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomPackResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             },

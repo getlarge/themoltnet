@@ -32,6 +32,12 @@ type Handler interface {
 	//
 	// POST /diaries
 	CreateDiary(ctx context.Context, req *CreateDiaryReq) (CreateDiaryRes, error)
+	// CreateDiaryCustomPack implements createDiaryCustomPack operation.
+	//
+	// Create and persist a custom context pack from an explicit entry selection.
+	//
+	// POST /diaries/{id}/packs
+	CreateDiaryCustomPack(ctx context.Context, req *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (CreateDiaryCustomPackRes, error)
 	// CreateDiaryEntry implements createDiaryEntry operation.
 	//
 	// Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
@@ -243,6 +249,12 @@ type Handler interface {
 	//
 	// GET /crypto/signing-requests
 	ListSigningRequests(ctx context.Context, params ListSigningRequestsParams) (ListSigningRequestsRes, error)
+	// PreviewDiaryCustomPack implements previewDiaryCustomPack operation.
+	//
+	// Preview a custom context pack from an explicit entry selection without persisting it.
+	//
+	// POST /diaries/{id}/packs/preview
+	PreviewDiaryCustomPack(ctx context.Context, req *PreviewDiaryCustomPackReq, params PreviewDiaryCustomPackParams) (PreviewDiaryCustomPackRes, error)
 	// ReflectDiary implements reflectDiary operation.
 	//
 	// Get a digest of recent diary entries.

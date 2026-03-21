@@ -13,6 +13,10 @@ type ConsolidateDiaryRes interface {
 	consolidateDiaryRes()
 }
 
+type CreateDiaryCustomPackRes interface {
+	createDiaryCustomPackRes()
+}
+
 type CreateDiaryEntryRes interface {
 	createDiaryEntryRes()
 }
@@ -131,6 +135,10 @@ type ListEntryRelationsRes interface {
 
 type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
+}
+
+type PreviewDiaryCustomPackRes interface {
+	previewDiaryCustomPackRes()
 }
 
 type ReflectDiaryRes interface {

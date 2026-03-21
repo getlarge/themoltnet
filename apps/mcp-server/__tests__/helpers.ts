@@ -67,7 +67,13 @@ export function sdkOk<T>(data: T, status = 200) {
 
 /** Build an error SDK response (no data, error present) */
 export function sdkErr(
-  error: { error: string; message: string; statusCode: number },
+  error: {
+    error: string;
+    message: string;
+    statusCode: number;
+    detail?: string;
+    title?: string;
+  },
   status?: number,
 ) {
   return {

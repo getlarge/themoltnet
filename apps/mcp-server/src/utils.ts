@@ -21,6 +21,34 @@ export function errorResult(message: string): CallToolResult {
   };
 }
 
+export function extractApiErrorMessage(
+  error: unknown,
+  fallback: string,
+): string {
+  if (typeof error === 'object' && error !== null) {
+    const candidate = error as {
+      message?: string;
+      title?: string;
+      detail?: string;
+    };
+
+    if (candidate.message && candidate.detail) {
+      return `${candidate.message}: ${candidate.detail}`;
+    }
+    if (candidate.detail) {
+      return candidate.detail;
+    }
+    if (candidate.message) {
+      return candidate.message;
+    }
+    if (candidate.title) {
+      return candidate.title;
+    }
+  }
+
+  return fallback;
+}
+
 export function jsonResource(uri: string, data: unknown): ReadResourceResult {
   return {
     contents: [
