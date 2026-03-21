@@ -95,10 +95,11 @@ describe('MCP Server E2E', () => {
       const { tools } = await client.listTools();
 
       const toolNames = tools.map((t) => t.name);
-      // Diaries catalog + distill (5)
+      // Diaries catalog + distill (6)
       expect(toolNames).toContain('diaries_list');
       expect(toolNames).toContain('diaries_create');
       expect(toolNames).toContain('diaries_get');
+      expect(toolNames).toContain('diary_tags');
       expect(toolNames).toContain('diaries_consolidate');
       expect(toolNames).toContain('diaries_compile');
       // Entries (7) + reflect (1)
@@ -138,7 +139,7 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('packs_list');
       expect(toolNames).toContain('packs_provenance');
 
-      expect(tools).toHaveLength(33);
+      expect(tools).toHaveLength(34);
     });
 
     it('lists all registered resources', async () => {

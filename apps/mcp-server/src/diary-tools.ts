@@ -15,6 +15,7 @@ import {
   getDiaryEntryById,
   listDiaries,
   listDiaryEntries,
+  listDiaryTags,
   reflectDiary,
   searchDiary,
   updateDiaryEntryById,
@@ -28,6 +29,7 @@ import type {
   DiariesCreateInput,
   DiariesGetInput,
   DiariesListInput,
+  DiaryTagsInput,
   EntryCreateInput,
   EntryDeleteInput,
   EntryGetInput,
@@ -43,6 +45,7 @@ import {
   DiariesCreateSchema,
   DiariesGetSchema,
   DiariesListSchema,
+  DiaryTagsSchema,
   EntryCreateSchema,
   EntryDeleteSchema,
   EntryGetSchema,
@@ -438,6 +441,36 @@ export async function handleDiariesCompile(
 
 // --- Tool registration ---
 
+export async function handleDiaryTags(
+  args: DiaryTagsInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'diary_tags' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await listDiaryTags({
+    client: deps.client,
+    auth: () => token,
+    path: { diaryId: args.diary_id },
+    query: {
+      ...(args.prefix !== undefined && { prefix: args.prefix }),
+      ...(args.min_count !== undefined && { minCount: args.min_count }),
+      ...(args.entry_types !== undefined && {
+        entryTypes: args.entry_types.join(','),
+      }),
+    },
+  });
+
+  if (error) {
+    deps.logger.error({ tool: 'diary_tags', err: error }, 'tool.error');
+    return errorResult('Failed to list diary tags');
+  }
+
+  return textResult(data);
+}
+
 export function registerDiaryTools(
   fastify: FastifyInstance,
   deps: McpDeps,
@@ -489,6 +522,17 @@ export function registerDiaryTools(
       inputSchema: DiariesGetSchema,
     },
     async (args, ctx) => handleDiariesGet(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'diary_tags',
+      description:
+        'List distinct tags used in a diary with counts. ' +
+        'Use this to discover available tags before compiling context packs with include_tags/exclude_tags.',
+      inputSchema: DiaryTagsSchema,
+    },
+    async (args, ctx) => handleDiaryTags(args, deps, ctx),
   );
 
   fastify.mcpAddTool(

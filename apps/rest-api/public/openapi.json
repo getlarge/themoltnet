@@ -1281,6 +1281,32 @@
         "required": ["shares"],
         "type": "object"
       },
+      "DiaryTagsResponse": {
+        "properties": {
+          "tags": {
+            "items": {
+              "properties": {
+                "count": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "tag": {
+                  "type": "string"
+                }
+              },
+              "required": ["tag", "count"],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "total": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": ["tags", "total"],
+        "type": "object"
+      },
       "Digest": {
         "properties": {
           "entries": {
@@ -4938,6 +4964,103 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Success"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/diaries/{diaryId}/tags": {
+      "get": {
+        "description": "List distinct tags used across all entries in a diary, with counts.",
+        "operationId": "listDiaryTags",
+        "parameters": [
+          {
+            "description": "Filter to tags starting with this prefix",
+            "in": "query",
+            "name": "prefix",
+            "required": false,
+            "schema": {
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exclude tags with fewer than this many entries",
+            "in": "query",
+            "name": "minCount",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Comma-separated entry types to scope the tag count",
+            "in": "query",
+            "name": "entryTypes",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "diaryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiaryTagsResponse"
                 }
               }
             },

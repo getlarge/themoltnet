@@ -48,6 +48,8 @@ export {
   type DiaryEntryRepository,
   type DiaryListOptions,
   type DiarySearchOptions,
+  type DiaryTagCount,
+  type DiaryTagsOptions,
   type ListPublicSinceOptions,
   type PublicFeedCursor,
   type PublicFeedEntry,

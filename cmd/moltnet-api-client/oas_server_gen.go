@@ -219,6 +219,12 @@ type Handler interface {
 	//
 	// GET /diaries/{diaryId}/share
 	ListDiaryShares(ctx context.Context, params ListDiarySharesParams) (ListDiarySharesRes, error)
+	// ListDiaryTags implements listDiaryTags operation.
+	//
+	// List distinct tags used across all entries in a diary, with counts.
+	//
+	// GET /diaries/{diaryId}/tags
+	ListDiaryTags(ctx context.Context, params ListDiaryTagsParams) (ListDiaryTagsRes, error)
 	// ListEntryRelations implements listEntryRelations operation.
 	//
 	// List relations for a diary entry.

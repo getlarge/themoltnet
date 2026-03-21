@@ -258,6 +258,125 @@ describe('Diary entry routes', () => {
     });
   });
 
+  describe(`GET /diaries/${DIARY_ID}/tags`, () => {
+    const MOCK_TAGS = [
+      { tag: 'source:scan', count: 30 },
+      { tag: 'accountable-commit', count: 20 },
+      { tag: 'decision', count: 10 },
+    ];
+
+    it('returns tags with counts', async () => {
+      mocks.diaryService.listTags.mockResolvedValue(MOCK_TAGS);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.tags).toEqual(MOCK_TAGS);
+      expect(body.total).toBe(3);
+    });
+
+    it('passes prefix filter', async () => {
+      mocks.diaryService.listTags.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags?prefix=source:`,
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.listTags).toHaveBeenCalledWith(
+        expect.objectContaining({ diaryId: DIARY_ID, prefix: 'source:' }),
+        OWNER_ID,
+      );
+    });
+
+    it('passes minCount filter', async () => {
+      mocks.diaryService.listTags.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags?minCount=5`,
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.listTags).toHaveBeenCalledWith(
+        expect.objectContaining({ diaryId: DIARY_ID, minCount: 5 }),
+        OWNER_ID,
+      );
+    });
+
+    it('passes entryTypes filter', async () => {
+      mocks.diaryService.listTags.mockResolvedValue([]);
+
+      await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags?entryTypes=semantic,episodic`,
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.listTags).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diaryId: DIARY_ID,
+          entryTypes: ['semantic', 'episodic'],
+        }),
+        OWNER_ID,
+      );
+    });
+
+    it('returns 404 when diary not found', async () => {
+      mocks.diaryService.listTags.mockRejectedValue(
+        new DiaryServiceError('not_found', 'Diary not found'),
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('returns empty array when no tags exist', async () => {
+      mocks.diaryService.listTags.mockResolvedValue([]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.tags).toEqual([]);
+      expect(body.total).toBe(0);
+    });
+
+    it('rejects invalid entryTypes', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags?entryTypes=invalid`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('requires authentication', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/tags`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+  });
+
   describe('GET /entries/:id', () => {
     it('returns entry when found', async () => {
       mocks.diaryService.getEntryById.mockResolvedValue(createMockEntry());

@@ -327,6 +327,15 @@ func (UnimplementedHandler) ListDiaryShares(ctx context.Context, params ListDiar
 	return r, ht.ErrNotImplemented
 }
 
+// ListDiaryTags implements listDiaryTags operation.
+//
+// List distinct tags used across all entries in a diary, with counts.
+//
+// GET /diaries/{diaryId}/tags
+func (UnimplementedHandler) ListDiaryTags(ctx context.Context, params ListDiaryTagsParams) (r ListDiaryTagsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListEntryRelations implements listEntryRelations operation.
 //
 // List relations for a diary entry.

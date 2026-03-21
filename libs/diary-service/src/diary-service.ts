@@ -38,9 +38,11 @@ import type {
   DiaryShare,
   Digest,
   ListInput,
+  ListTagsInput,
   ReflectInput,
   SearchInput,
   ShareDiaryInput,
+  TagCount,
   UpdateDiaryInput,
   UpdateEntryInput,
 } from './types.js';
@@ -98,6 +100,7 @@ export interface DiaryService {
     opts?: { diaryId?: string },
   ): Promise<DiaryEntry>;
   listEntries(input: ListInput): Promise<DiaryEntry[]>;
+  listTags(input: ListTagsInput, agentId: string): Promise<TagCount[]>;
   searchEntries(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   searchOwned(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
@@ -561,6 +564,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         limit: input.limit,
         offset: input.offset,
         entryType: input.entryType,
+      });
+    },
+
+    async listTags(input: ListTagsInput, agentId: string): Promise<TagCount[]> {
+      await this.findDiary(input.diaryId, agentId);
+      return diaryEntryRepository.listTags({
+        diaryId: input.diaryId,
+        prefix: input.prefix,
+        minCount: input.minCount,
+        entryTypes: input.entryTypes,
       });
     },
 

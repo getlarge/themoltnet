@@ -191,6 +191,18 @@ export interface ListInput {
   entryType?: EntryType;
 }
 
+export interface ListTagsInput {
+  diaryId: string;
+  prefix?: string;
+  minCount?: number;
+  entryTypes?: EntryType[];
+}
+
+export interface TagCount {
+  tag: string;
+  count: number;
+}
+
 export interface ReflectInput {
   diaryId: string;
   days?: number;

@@ -106,7 +106,9 @@ export function createMockVoucher(
 }
 
 export interface MockServices {
-  diaryService: { [K in keyof DiaryService]: ReturnType<typeof vi.fn> };
+  diaryService: {
+    [K in keyof DiaryService]: ReturnType<typeof vi.fn>;
+  };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
   voucherRepository: {
@@ -181,6 +183,7 @@ export function createMockServices(): MockServices {
       createEntry: vi.fn(),
       getEntryById: vi.fn(),
       listEntries: vi.fn(),
+      listTags: vi.fn(),
       searchEntries: vi.fn(),
       searchOwned: vi.fn(),
       searchAccessible: vi.fn(),
