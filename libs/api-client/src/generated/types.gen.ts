@@ -195,6 +195,14 @@ export type DiaryList = {
   offset: number;
 };
 
+export type DiaryTagsResponse = {
+  tags: Array<{
+    tag: string;
+    count: number;
+  }>;
+  total: number;
+};
+
 export type DiarySearchResult = {
   results: Array<DiaryEntry>;
   total: number;
@@ -1391,6 +1399,58 @@ export type CreateDiaryEntryResponses = {
 
 export type CreateDiaryEntryResponse =
   CreateDiaryEntryResponses[keyof CreateDiaryEntryResponses];
+
+export type ListDiaryTagsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    diaryId: string;
+  };
+  query?: {
+    /**
+     * Filter to tags starting with this prefix
+     */
+    prefix?: string;
+    /**
+     * Exclude tags with fewer than this many entries
+     */
+    minCount?: number;
+    /**
+     * Comma-separated entry types to scope the tag count
+     */
+    entryTypes?: string;
+  };
+  url: '/diaries/{diaryId}/tags';
+};
+
+export type ListDiaryTagsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type ListDiaryTagsError = ListDiaryTagsErrors[keyof ListDiaryTagsErrors];
+
+export type ListDiaryTagsResponses = {
+  /**
+   * Default Response
+   */
+  200: DiaryTagsResponse;
+};
+
+export type ListDiaryTagsResponse =
+  ListDiaryTagsResponses[keyof ListDiaryTagsResponses];
 
 export type DeleteDiaryEntryByIdData = {
   body?: never;
