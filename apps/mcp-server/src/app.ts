@@ -16,8 +16,10 @@ import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
 import { registerIdentityTools } from './identity-tools.js';
 import { registerInfoTools } from './info-tools.js';
+import { registerPackTools } from './pack-tools.js';
 import { registerPrompts } from './prompts.js';
 import { registerPublicFeedTools } from './public-feed-tools.js';
+import { registerRelationTools } from './relation-tools.js';
 import { requestContextPlugin } from './request-context-plugin.js';
 import { registerResources } from './resources.js';
 import type { McpDeps } from './types.js';
@@ -176,6 +178,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerVouchTools(app, deps);
   registerPublicFeedTools(app, deps);
   registerInfoTools(app, deps);
+  registerRelationTools(app, deps);
+  registerPackTools(app, deps);
   registerResources(app, deps);
   registerPrompts(app, deps);
 

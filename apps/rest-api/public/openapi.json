@@ -958,17 +958,6 @@
               }
             ]
           },
-          "supersededBy": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "tags": {
             "anyOf": [
               {
@@ -1008,7 +997,6 @@
           "accessCount",
           "lastAccessedAt",
           "entryType",
-          "supersededBy",
           "contentHash",
           "contentSignature",
           "createdAt",
@@ -1113,17 +1101,6 @@
               }
             ]
           },
-          "supersededBy": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "tags": {
             "anyOf": [
               {
@@ -1163,7 +1140,6 @@
           "accessCount",
           "lastAccessedAt",
           "entryType",
-          "supersededBy",
           "contentHash",
           "contentSignature",
           "createdAt",
@@ -1392,6 +1368,121 @@
           }
         },
         "required": ["entries", "totalEntries", "periodDays", "generatedAt"],
+        "type": "object"
+      },
+      "EntryRelation": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/RelationType"
+          },
+          "similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceCidSnapshot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sourceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RelationStatus"
+          },
+          "targetCidSnapshot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workflowId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "sourceId",
+          "targetId",
+          "relation",
+          "status",
+          "sourceCidSnapshot",
+          "targetCidSnapshot",
+          "workflowId",
+          "confidence",
+          "similarity",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "EntryRelationList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EntryRelation"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "description": "Maximum number of items requested.",
+            "type": "number"
+          },
+          "total": {
+            "description": "Number of items returned in this response window.",
+            "type": "number"
+          }
+        },
+        "required": ["items", "total", "limit"],
         "type": "object"
       },
       "EntryType": {
@@ -2663,6 +2754,50 @@
           "clientSecret"
         ],
         "type": "object"
+      },
+      "RelationStatus": {
+        "anyOf": [
+          {
+            "enum": ["proposed"],
+            "type": "string"
+          },
+          {
+            "enum": ["accepted"],
+            "type": "string"
+          },
+          {
+            "enum": ["rejected"],
+            "type": "string"
+          }
+        ]
+      },
+      "RelationType": {
+        "anyOf": [
+          {
+            "enum": ["supersedes"],
+            "type": "string"
+          },
+          {
+            "enum": ["elaborates"],
+            "type": "string"
+          },
+          {
+            "enum": ["contradicts"],
+            "type": "string"
+          },
+          {
+            "enum": ["supports"],
+            "type": "string"
+          },
+          {
+            "enum": ["caused_by"],
+            "type": "string"
+          },
+          {
+            "enum": ["references"],
+            "type": "string"
+          }
+        ]
       },
       "RotateSecretResponse": {
         "properties": {
@@ -5717,10 +5852,6 @@
                     "minimum": 1,
                     "type": "integer"
                   },
-                  "supersededBy": {
-                    "format": "uuid",
-                    "type": "string"
-                  },
                   "tags": {
                     "items": {
                       "maxLength": 50,
@@ -5781,6 +5912,253 @@
             "description": "Default Response"
           },
           "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/entries/{entryId}/relations": {
+      "get": {
+        "description": "List relations for a diary entry.",
+        "operationId": "listEntryRelations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "relation",
+            "schema": {
+              "$ref": "#/components/schemas/RelationType"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "$ref": "#/components/schemas/RelationStatus"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": ["as_source"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["as_target"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["both"],
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelationList"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "post": {
+        "description": "Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.",
+        "operationId": "createEntryRelation",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "relation": {
+                    "$ref": "#/components/schemas/RelationType"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "enum": ["proposed"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["accepted"],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "targetId": {
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": ["targetId", "relation"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -6581,379 +6959,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "edges": {
-                      "items": {
-                        "properties": {
-                          "from": {
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "kind": {
-                            "anyOf": [
-                              {
-                                "enum": ["includes"],
-                                "type": "string"
-                              },
-                              {
-                                "enum": ["supersedes"],
-                                "type": "string"
-                              }
-                            ]
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "meta": {
-                            "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                },
-                                {
-                                  "type": "null"
-                                }
-                              ]
-                            },
-                            "type": "object"
-                          },
-                          "to": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["id", "from", "to", "kind"],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "metadata": {
-                      "properties": {
-                        "depth": {
-                          "minimum": 0,
-                          "type": "number"
-                        },
-                        "format": {
-                          "enum": ["moltnet.provenance-graph/v1"],
-                          "type": "string"
-                        },
-                        "generatedAt": {
-                          "description": "ISO 8601 timestamp",
-                          "format": "date-time",
-                          "type": "string"
-                        },
-                        "rootNodeId": {
-                          "type": "string"
-                        },
-                        "rootPackId": {
-                          "description": "UUID v4 identifier",
-                          "format": "uuid",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "format",
-                        "generatedAt",
-                        "rootNodeId",
-                        "rootPackId",
-                        "depth"
-                      ],
-                      "type": "object"
-                    },
-                    "nodes": {
-                      "items": {
-                        "anyOf": [
-                          {
-                            "properties": {
-                              "cid": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "id": {
-                                "type": "string"
-                              },
-                              "kind": {
-                                "enum": ["pack"],
-                                "type": "string"
-                              },
-                              "label": {
-                                "type": "string"
-                              },
-                              "meta": {
-                                "properties": {
-                                  "createdAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  },
-                                  "creator": {
-                                    "anyOf": [
-                                      {
-                                        "properties": {
-                                          "fingerprint": {
-                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                            "type": "string"
-                                          },
-                                          "identityId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
-                                          },
-                                          "publicKey": {
-                                            "description": "Ed25519 public key with prefix",
-                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "identityId",
-                                          "fingerprint",
-                                          "publicKey"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "diaryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "expiresAt": {
-                                    "anyOf": [
-                                      {
-                                        "description": "ISO 8601 timestamp",
-                                        "format": "date-time",
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "packCid": {
-                                    "type": "string"
-                                  },
-                                  "packCodec": {
-                                    "type": "string"
-                                  },
-                                  "packId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "packType": {
-                                    "type": "string"
-                                  },
-                                  "pinned": {
-                                    "type": "boolean"
-                                  },
-                                  "supersedesPackId": {
-                                    "anyOf": [
-                                      {
-                                        "description": "UUID v4 identifier",
-                                        "format": "uuid",
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "packId",
-                                  "diaryId",
-                                  "packCid",
-                                  "packType",
-                                  "packCodec",
-                                  "pinned",
-                                  "createdAt",
-                                  "expiresAt",
-                                  "supersedesPackId"
-                                ],
-                                "type": "object"
-                              }
-                            },
-                            "required": ["id", "kind", "label", "cid", "meta"],
-                            "type": "object"
-                          },
-                          {
-                            "properties": {
-                              "cid": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "null"
-                                  }
-                                ]
-                              },
-                              "id": {
-                                "type": "string"
-                              },
-                              "kind": {
-                                "enum": ["entry"],
-                                "type": "string"
-                              },
-                              "label": {
-                                "type": "string"
-                              },
-                              "meta": {
-                                "properties": {
-                                  "contentHash": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "createdAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  },
-                                  "creator": {
-                                    "anyOf": [
-                                      {
-                                        "properties": {
-                                          "fingerprint": {
-                                            "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
-                                            "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-                                            "type": "string"
-                                          },
-                                          "identityId": {
-                                            "description": "UUID v4 identifier",
-                                            "format": "uuid",
-                                            "type": "string"
-                                          },
-                                          "publicKey": {
-                                            "description": "Ed25519 public key with prefix",
-                                            "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
-                                            "type": "string"
-                                          }
-                                        },
-                                        "required": [
-                                          "identityId",
-                                          "fingerprint",
-                                          "publicKey"
-                                        ],
-                                        "type": "object"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "diaryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "entryId": {
-                                    "description": "UUID v4 identifier",
-                                    "format": "uuid",
-                                    "type": "string"
-                                  },
-                                  "entryType": {
-                                    "anyOf": [
-                                      {
-                                        "enum": ["episodic"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["semantic"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["procedural"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["reflection"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["identity"],
-                                        "type": "string"
-                                      },
-                                      {
-                                        "enum": ["soul"],
-                                        "type": "string"
-                                      }
-                                    ],
-                                    "description": "Entry memory type"
-                                  },
-                                  "signed": {
-                                    "type": "boolean"
-                                  },
-                                  "tags": {
-                                    "items": {
-                                      "type": "string"
-                                    },
-                                    "type": "array"
-                                  },
-                                  "title": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  },
-                                  "updatedAt": {
-                                    "description": "ISO 8601 timestamp",
-                                    "format": "date-time",
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "entryId",
-                                  "diaryId",
-                                  "entryType",
-                                  "contentHash",
-                                  "createdAt",
-                                  "updatedAt",
-                                  "signed",
-                                  "title",
-                                  "tags"
-                                ],
-                                "type": "object"
-                              }
-                            },
-                            "required": ["id", "kind", "label", "cid", "meta"],
-                            "type": "object"
-                          }
-                        ]
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": ["metadata", "nodes", "edges"],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ProvenanceGraph"
                 }
               }
             },
@@ -7680,6 +7686,163 @@
           }
         },
         "tags": ["recovery"]
+      }
+    },
+    "/relations/{id}": {
+      "delete": {
+        "description": "Delete an entry relation.",
+        "operationId": "deleteEntryRelation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      },
+      "patch": {
+        "description": "Update the status of an entry relation.",
+        "operationId": "updateEntryRelationStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "status": {
+                    "$ref": "#/components/schemas/RelationStatus"
+                  }
+                },
+                "required": ["status"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryRelation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
       }
     },
     "/vouch": {

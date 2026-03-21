@@ -18,6 +18,8 @@ vi.mock('../src/workflows/diary-workflows.js', () => ({
   },
 }));
 
+import type { EntryRelationRepository } from '@moltnet/database';
+
 import {
   buildEmbeddingText,
   createDiaryService,
@@ -59,7 +61,6 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     accessCount: 0,
     lastAccessedAt: null,
     entryType: 'semantic' as const,
-    supersededBy: null,
     contentHash: null,
     contentSignature: null,
     signingNonce: null,
@@ -165,6 +166,19 @@ function createMockAgentLookupRepository(): {
   };
 }
 
+function createMockEntryRelationRepository(): {
+  [K in keyof EntryRelationRepository]: ReturnType<typeof vi.fn>;
+} {
+  return {
+    create: vi.fn(),
+    createMany: vi.fn(),
+    listByEntry: vi.fn(),
+    updateStatus: vi.fn(),
+    delete: vi.fn(),
+    listSupersededTargetIds: vi.fn().mockResolvedValue([]),
+  };
+}
+
 const MOCK_DIARY = {
   id: DIARY_ID,
   ownerId: OWNER_ID,
@@ -183,6 +197,7 @@ describe('DiaryService', () => {
   let reader: ReturnType<typeof createMockRelationshipReader>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
+  let entryRelationRepo: ReturnType<typeof createMockEntryRelationRepository>;
   let transactionRunner: {
     runInTransaction: ReturnType<typeof vi.fn>;
   };
@@ -199,6 +214,7 @@ describe('DiaryService', () => {
     reader = createMockRelationshipReader();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
+    entryRelationRepo = createMockEntryRelationRepository();
     transactionRunner = {
       runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
     };
@@ -211,6 +227,8 @@ describe('DiaryService', () => {
       agentRepository:
         createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
+      entryRelationRepository:
+        entryRelationRepo as unknown as EntryRelationRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
       relationshipReader: reader as unknown as RelationshipReader,
       relationshipWriter: writer as unknown as RelationshipWriter,
@@ -581,7 +599,6 @@ describe('DiaryService', () => {
       await service.updateEntry(ENTRY_ID, OWNER_ID, {
         importance: 9,
         entryType: 'soul',
-        supersededBy: 'some-entry-id',
       });
 
       expect(repo.findById).toHaveBeenCalledWith(ENTRY_ID);
@@ -590,7 +607,6 @@ describe('DiaryService', () => {
         expect.objectContaining({
           importance: 9,
           entryType: 'soul',
-          supersededBy: 'some-entry-id',
           contentHash: expect.any(String),
         }),
         existing.content,
@@ -612,24 +628,6 @@ describe('DiaryService', () => {
           content: 'New content',
         }),
       ).rejects.toThrow(DiaryServiceError);
-    });
-
-    it('allows supersededBy on signed entries', async () => {
-      const signed = createMockEntry({
-        contentHash: 'bafkreitest',
-        contentSignature: 'sig123',
-      });
-      permissions.canEditEntry.mockResolvedValue(true);
-      repo.findById.mockResolvedValue(signed);
-      vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(
-        createMockEntry({ supersededBy: 'new-entry-id' }),
-      );
-
-      await service.updateEntry(ENTRY_ID, OWNER_ID, {
-        supersededBy: 'new-entry-id',
-      });
-
-      expect(diaryWorkflows.updateEntry).toHaveBeenCalled();
     });
 
     it('rejects tags/importance changes on signed identity entries', async () => {
@@ -729,20 +727,6 @@ describe('DiaryService', () => {
       ).rejects.toThrow(DiaryServiceError);
     });
 
-    it('skips findById for supersededBy-only updates', async () => {
-      permissions.canEditEntry.mockResolvedValue(true);
-      vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue(
-        createMockEntry({ supersededBy: 'new-entry-id' }),
-      );
-
-      await service.updateEntry(ENTRY_ID, OWNER_ID, {
-        supersededBy: 'new-entry-id',
-      });
-
-      expect(repo.findById).not.toHaveBeenCalled();
-      expect(diaryWorkflows.updateEntry).toHaveBeenCalled();
-    });
-
     it('recomputes contentHash when content changes on unsigned entry', async () => {
       const unsigned = createMockEntry({
         contentHash: 'bafkreiold',
@@ -797,6 +781,7 @@ describe('DiaryService', () => {
 
     it('does not recompute contentHash on signed entry updates', async () => {
       const signed = createMockEntry({
+        entryType: 'semantic',
         contentHash: 'bafkreisigned',
         contentSignature: 'sig123',
       });
@@ -804,11 +789,11 @@ describe('DiaryService', () => {
       repo.findById.mockResolvedValue(signed);
       vi.mocked(diaryWorkflows.updateEntry).mockResolvedValue({
         ...signed,
-        supersededBy: 'some-uuid',
+        importance: 8,
       });
 
       await service.updateEntry(ENTRY_ID, OWNER_ID, {
-        supersededBy: 'some-uuid',
+        importance: 8,
       });
 
       const updateCall = vi.mocked(diaryWorkflows.updateEntry).mock.calls[0]!;
@@ -989,15 +974,17 @@ describe('DiaryService', () => {
         createMockEntry({
           id: 'active-entry',
           content: 'Current knowledge',
-          supersededBy: null,
         }),
         createMockEntry({
           id: 'old-entry',
           content: 'Outdated knowledge',
-          supersededBy: 'active-entry',
         }),
       ];
       repo.getRecentForDigest.mockResolvedValue(entries);
+      // 'old-entry' is the target of a 'supersedes' relation — it is superseded
+      entryRelationRepo.listSupersededTargetIds.mockResolvedValue([
+        'old-entry',
+      ]);
 
       const result = await service.reflect({ diaryId: DIARY_ID });
 
@@ -1102,6 +1089,8 @@ describe('DiaryService — tags filter', () => {
       agentRepository:
         createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
+      entryRelationRepository:
+        createMockEntryRelationRepository() as unknown as EntryRelationRepository,
       permissionChecker: permissions as unknown as PermissionChecker,
       relationshipReader: reader as unknown as RelationshipReader,
       relationshipWriter: writer as unknown as RelationshipWriter,

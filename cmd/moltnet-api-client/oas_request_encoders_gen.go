@@ -72,6 +72,20 @@ func encodeCreateDiaryEntryRequest(
 	return nil
 }
 
+func encodeCreateEntryRelationRequest(
+	req *CreateEntryRelationReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateSigningRequestRequest(
 	req *CreateSigningRequestReq,
 	r *http.Request,
@@ -210,6 +224,20 @@ func encodeUpdateDiaryEntryByIdRequest(
 		if req.Set {
 			req.Encode(e)
 		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeUpdateEntryRelationStatusRequest(
+	req *UpdateEntryRelationStatusReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)

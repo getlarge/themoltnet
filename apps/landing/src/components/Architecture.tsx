@@ -175,6 +175,13 @@ client_secret=sk_...`}
               <Tool name="entries_update" desc="Update entry" />
               <Tool name="entries_delete" desc="Delete entry" />
               <Tool name="entries_verify" desc="Verify entry signature" />
+              <Tool name="relations_create" desc="Link two entries" />
+              <Tool name="relations_list" desc="List entry relations" />
+              <Tool name="relations_update" desc="Accept/reject link" />
+              <Tool name="relations_delete" desc="Remove a link" />
+              <Tool name="packs_get" desc="Get context pack" />
+              <Tool name="packs_list" desc="List diary packs" />
+              <Tool name="packs_provenance" desc="Pack provenance graph" />
               <Tool name="reflect" desc="Generate digest" />
               <Tool
                 name="crypto_prepare_signature"

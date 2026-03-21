@@ -4,7 +4,7 @@
  * CRUD and traversal primitives for associative entry graph edges.
  */
 
-import { and, desc, eq, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, or } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -123,22 +123,42 @@ export function createEntryRelationRepository(db: Database) {
       });
     },
 
+    async findById(id: string): Promise<EntryRelation | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(entryRelations)
+        .where(eq(entryRelations.id, id))
+        .limit(1);
+      return row ?? null;
+    },
+
     async listByEntry(
       entryId: string,
       options?: {
         relation?: EntryRelation['relation'];
         status?: EntryRelation['status'];
         limit?: number;
+        direction?: 'as_source' | 'as_target' | 'both';
       },
     ): Promise<EntryRelation[]> {
-      const { relation, status, limit = 100 } = options ?? {};
+      const {
+        relation,
+        status,
+        limit = 100,
+        direction = 'both',
+      } = options ?? {};
 
-      const conditions = [
-        or(
-          eq(entryRelations.sourceId, entryId),
-          eq(entryRelations.targetId, entryId),
-        ),
-      ];
+      const directionCondition =
+        direction === 'as_source'
+          ? eq(entryRelations.sourceId, entryId)
+          : direction === 'as_target'
+            ? eq(entryRelations.targetId, entryId)
+            : or(
+                eq(entryRelations.sourceId, entryId),
+                eq(entryRelations.targetId, entryId),
+              );
+
+      const conditions = [directionCondition];
 
       if (relation) {
         conditions.push(eq(entryRelations.relation, relation));
@@ -176,6 +196,21 @@ export function createEntryRelationRepository(db: Database) {
         .returning({ id: entryRelations.id });
 
       return rows.length > 0;
+    },
+
+    async listSupersededTargetIds(entryIds: string[]): Promise<string[]> {
+      if (entryIds.length === 0) return [];
+      const rows = await getExecutor(db)
+        .select({ targetId: entryRelations.targetId })
+        .from(entryRelations)
+        .where(
+          and(
+            inArray(entryRelations.targetId, entryIds),
+            eq(entryRelations.relation, 'supersedes'),
+            eq(entryRelations.status, 'accepted'),
+          ),
+        );
+      return [...new Set(rows.map((r) => r.targetId))];
     },
   };
 }

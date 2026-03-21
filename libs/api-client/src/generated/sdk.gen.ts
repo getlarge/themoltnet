@@ -18,6 +18,9 @@ import type {
   CreateDiaryEntryResponses,
   CreateDiaryErrors,
   CreateDiaryResponses,
+  CreateEntryRelationData,
+  CreateEntryRelationErrors,
+  CreateEntryRelationResponses,
   CreateSigningRequestData,
   CreateSigningRequestErrors,
   CreateSigningRequestResponses,
@@ -30,6 +33,9 @@ import type {
   DeleteDiaryEntryByIdResponses,
   DeleteDiaryErrors,
   DeleteDiaryResponses,
+  DeleteEntryRelationData,
+  DeleteEntryRelationErrors,
+  DeleteEntryRelationResponses,
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
@@ -101,6 +107,9 @@ import type {
   ListDiarySharesData,
   ListDiarySharesErrors,
   ListDiarySharesResponses,
+  ListEntryRelationsData,
+  ListEntryRelationsErrors,
+  ListEntryRelationsResponses,
   ListProblemTypesData,
   ListProblemTypesResponses,
   ListSigningRequestsData,
@@ -142,6 +151,9 @@ import type {
   UpdateDiaryEntryByIdResponses,
   UpdateDiaryErrors,
   UpdateDiaryResponses,
+  UpdateEntryRelationStatusData,
+  UpdateEntryRelationStatusErrors,
+  UpdateEntryRelationStatusResponses,
   VerifyAgentSignatureData,
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
@@ -630,6 +642,78 @@ export const listDiaryPacks = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/diaries/{id}/packs',
     ...options,
+  });
+
+/**
+ * List relations for a diary entry.
+ */
+export const listEntryRelations = <ThrowOnError extends boolean = false>(
+  options: Options<ListEntryRelationsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListEntryRelationsResponses,
+    ListEntryRelationsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}/relations',
+    ...options,
+  });
+
+/**
+ * Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.
+ */
+export const createEntryRelation = <ThrowOnError extends boolean = false>(
+  options: Options<CreateEntryRelationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateEntryRelationResponses,
+    CreateEntryRelationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/entries/{entryId}/relations',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete an entry relation.
+ */
+export const deleteEntryRelation = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteEntryRelationData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteEntryRelationResponses,
+    DeleteEntryRelationErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/relations/{id}',
+    ...options,
+  });
+
+/**
+ * Update the status of an entry relation.
+ */
+export const updateEntryRelationStatus = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateEntryRelationStatusData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateEntryRelationStatusResponses,
+    UpdateEntryRelationStatusErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/relations/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

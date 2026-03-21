@@ -10,21 +10,29 @@ import type {
   ConsolidateDiaryData,
   CreateDiaryData,
   CreateDiaryEntryData,
+  CreateEntryRelationData,
   CreateSigningRequestData,
   DeleteDiaryEntryByIdData,
+  DeleteEntryRelationData,
   EntryType,
   GetAgentProfileData,
+  GetContextPackByIdData,
+  GetContextPackProvenanceByCidData,
+  GetContextPackProvenanceByIdData,
   GetDiaryData,
   GetDiaryEntryByIdData,
   GetPublicEntryData,
   GetPublicFeedData,
   GetSigningRequestData,
   ListDiaryEntriesData,
+  ListDiaryPacksData,
+  ListEntryRelationsData,
   ReflectDiaryData,
   SearchDiaryData,
   SearchPublicFeedData,
   SubmitSignatureData,
   UpdateDiaryEntryByIdData,
+  UpdateEntryRelationStatusData,
   VerifyCryptoSignatureData,
   VerifyDiaryEntryByIdData,
 } from '@moltnet/api-client';
@@ -221,11 +229,6 @@ export const EntryUpdateSchema = Type.Object({
   ),
   entry_type: Type.Optional(
     Type.Union([...EntryTypeSchema.anyOf], { description: 'New memory type' }),
-  ),
-  superseded_by: Type.Optional(
-    Type.String({
-      description: 'ID of the entry that replaces this one',
-    }),
   ),
 });
 type UpdateDiaryBody = NonNullable<UpdateDiaryEntryByIdData['body']>;
@@ -499,6 +502,181 @@ export type PublicFeedSearchInput = {
   include_suspicious?: boolean;
 };
 
+// --- Relation schemas ---
+
+export const RelationCreateSchema = Type.Object({
+  entry_id: Type.String({
+    description: 'Source entry ID (UUID).',
+  }),
+  target_id: Type.String({
+    description: 'Target entry ID (UUID).',
+  }),
+  relation: Type.Union(
+    [
+      Type.Literal('supersedes'),
+      Type.Literal('elaborates'),
+      Type.Literal('contradicts'),
+      Type.Literal('supports'),
+      Type.Literal('caused_by'),
+      Type.Literal('references'),
+    ],
+    { description: 'Relation type.' },
+  ),
+  status: Type.Optional(
+    Type.Union([Type.Literal('proposed'), Type.Literal('accepted')], {
+      description: 'Initial status. Default proposed.',
+    }),
+  ),
+});
+type CreateRelationBody = BodyOf<CreateEntryRelationData>;
+export type RelationCreateInput = {
+  entry_id: PathOf<CreateEntryRelationData>['entryId'];
+  target_id: CreateRelationBody['targetId'];
+  relation: CreateRelationBody['relation'];
+  status?: CreateRelationBody['status'];
+};
+
+export const RelationListSchema = Type.Object({
+  entry_id: Type.String({
+    description: 'Entry ID (UUID) to list relations for.',
+  }),
+  relation: Type.Optional(
+    Type.Union(
+      [
+        Type.Literal('supersedes'),
+        Type.Literal('elaborates'),
+        Type.Literal('contradicts'),
+        Type.Literal('supports'),
+        Type.Literal('caused_by'),
+        Type.Literal('references'),
+      ],
+      { description: 'Filter by relation type.' },
+    ),
+  ),
+  status: Type.Optional(
+    Type.Union(
+      [
+        Type.Literal('proposed'),
+        Type.Literal('accepted'),
+        Type.Literal('rejected'),
+      ],
+      { description: 'Filter by status.' },
+    ),
+  ),
+  direction: Type.Optional(
+    Type.Union(
+      [
+        Type.Literal('as_source'),
+        Type.Literal('as_target'),
+        Type.Literal('both'),
+      ],
+      { description: 'Direction filter. Default both.' },
+    ),
+  ),
+  limit: Type.Optional(
+    Type.Number({ description: 'Max results (default 20)' }),
+  ),
+});
+type ListRelationsQuery = NonNullable<ListEntryRelationsData['query']>;
+export type RelationListInput = {
+  entry_id: PathOf<ListEntryRelationsData>['entryId'];
+  relation?: ListRelationsQuery['relation'];
+  status?: ListRelationsQuery['status'];
+  direction?: ListRelationsQuery['direction'];
+  limit?: ListRelationsQuery['limit'];
+};
+
+export const RelationUpdateSchema = Type.Object({
+  relation_id: Type.String({
+    description: 'Relation ID to update.',
+  }),
+  status: Type.Union(
+    [
+      Type.Literal('proposed'),
+      Type.Literal('accepted'),
+      Type.Literal('rejected'),
+    ],
+    { description: 'New status for the relation.' },
+  ),
+});
+type UpdateRelationBody = BodyOf<UpdateEntryRelationStatusData>;
+export type RelationUpdateInput = {
+  relation_id: PathOf<UpdateEntryRelationStatusData>['id'];
+  status: UpdateRelationBody['status'];
+};
+
+export const RelationDeleteSchema = Type.Object({
+  relation_id: Type.String({
+    description: 'Relation ID to delete.',
+  }),
+});
+export type RelationDeleteInput = {
+  relation_id: PathOf<DeleteEntryRelationData>['id'];
+};
+
+// --- Pack schemas ---
+
+export const PackGetSchema = Type.Object({
+  pack_id: Type.String({
+    description: 'Context pack ID (UUID).',
+  }),
+  expand: Type.Optional(
+    Type.Literal('entries', {
+      description: 'Pass entries to include the full entry list.',
+    }),
+  ),
+});
+type GetPackQuery = NonNullable<GetContextPackByIdData['query']>;
+export type PackGetInput = {
+  pack_id: PathOf<GetContextPackByIdData>['id'];
+  expand?: GetPackQuery['expand'];
+};
+
+export const PackListSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary ID (UUID) to list packs for.',
+  }),
+  limit: Type.Optional(
+    Type.Number({ description: 'Max results (default 20)' }),
+  ),
+  expand: Type.Optional(
+    Type.Literal('entries', {
+      description: 'Pass entries to include the full entry list in each pack.',
+    }),
+  ),
+});
+type ListPacksQuery = NonNullable<ListDiaryPacksData['query']>;
+export type PackListInput = {
+  diary_id: PathOf<ListDiaryPacksData>['id'];
+  limit?: ListPacksQuery['limit'];
+  expand?: ListPacksQuery['expand'];
+};
+
+export const PackProvenanceSchema = Type.Object({
+  pack_id: Type.Optional(
+    Type.String({
+      description:
+        'Pack ID (UUID). Provide exactly one of pack_id or pack_cid.',
+    }),
+  ),
+  pack_cid: Type.Optional(
+    Type.String({
+      description:
+        'Pack CID string. Provide exactly one of pack_id or pack_cid.',
+    }),
+  ),
+  depth: Type.Optional(
+    Type.Number({
+      description: 'Number of ancestor layers to traverse (default 1).',
+    }),
+  ),
+});
+export type PackProvenanceInput = {
+  pack_id?: PathOf<GetContextPackProvenanceByIdData>['id'];
+  pack_cid?: PathOf<GetContextPackProvenanceByCidData>['cid'];
+  depth?: NonNullable<GetContextPackProvenanceByIdData['query']>['depth'];
+};
+
 // --- Compile-time drift checks ---
 
 type _EntryCreateInputMatchesSchema = AssertSchemaToApi<
@@ -600,4 +778,32 @@ type _PublicFeedReadInputMatchesSchema = AssertSchemaToApi<
 type _PublicFeedSearchInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PublicFeedSearchSchema>,
   PublicFeedSearchInput
+>;
+type _RelationCreateInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof RelationCreateSchema>,
+  RelationCreateInput
+>;
+type _RelationListInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof RelationListSchema>,
+  RelationListInput
+>;
+type _RelationUpdateInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof RelationUpdateSchema>,
+  RelationUpdateInput
+>;
+type _RelationDeleteInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof RelationDeleteSchema>,
+  RelationDeleteInput
+>;
+type _PackGetInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackGetSchema>,
+  PackGetInput
+>;
+type _PackListInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackListSchema>,
+  PackListInput
+>;
+type _PackProvenanceInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackProvenanceSchema>,
+  PackProvenanceInput
 >;

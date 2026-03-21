@@ -15,6 +15,7 @@ import type { AxAIFeatures, AxInternalChatRequest } from '@ax-llm/ax';
  */
 export const AGENT_FEATURES: AxAIFeatures = {
   functions: false,
+  structuredOutputs: true,
   streaming: true,
   thinking: false,
   multiTurn: false,
@@ -66,4 +67,58 @@ export function flattenChatPrompt(
   }
 
   return parts.join('\n\n');
+}
+
+// ── JSON extraction ──────────────────────────────────────────────────────────
+
+/**
+ * Extract a JSON value (object or array) from LLM text that may contain
+ * markdown fences or surrounding prose. Used by adapters when
+ * structuredOutputs is enabled and the LLM returns JSON as text.
+ */
+export function extractJsonFromText(text: string): object | null {
+  const trimmed = text.trim();
+
+  // Case 1: raw JSON value (object or array)
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  ) {
+    try {
+      return JSON.parse(trimmed) as object;
+    } catch {
+      // not valid JSON
+    }
+  }
+
+  // Case 2: markdown code block
+  const codeBlock = trimmed.match(/```(?:json)?\s*\n([\s\S]+?)\n```/);
+  if (codeBlock) {
+    try {
+      const parsed: unknown = JSON.parse(codeBlock[1]);
+      if (parsed !== null && typeof parsed === 'object') {
+        return parsed;
+      }
+    } catch {
+      // not valid JSON inside code block
+    }
+  }
+
+  // Case 3: JSON embedded in prose — try object then array delimiters
+  for (const [open, close] of [
+    ['{', '}'],
+    ['[', ']'],
+  ] as const) {
+    const first = trimmed.indexOf(open);
+    const last = trimmed.lastIndexOf(close);
+    if (first >= 0 && last > first) {
+      try {
+        return JSON.parse(trimmed.slice(first, last + 1)) as object;
+      } catch {
+        // not valid JSON
+      }
+    }
+  }
+
+  return null;
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.44.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.43.0...moltnet-api-client-v0.44.0) (2026-03-21)
+
+
+### Features
+
+* add temporal filters and entryTypes to diaries_compile ([a9587dd](https://github.com/getlarge/themoltnet/commit/a9587dd63463121f06cb88b38c4e0129f3a94c1b))
+* entry relation REST routes + MCP relation & pack tools ([b0007be](https://github.com/getlarge/themoltnet/commit/b0007be931452215284c93a3c776f1e9714999f2))
+
 ## [0.43.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.42.0...moltnet-api-client-v0.43.0) (2026-03-20)
 
 

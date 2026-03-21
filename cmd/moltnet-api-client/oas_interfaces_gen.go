@@ -21,6 +21,10 @@ type CreateDiaryRes interface {
 	createDiaryRes()
 }
 
+type CreateEntryRelationRes interface {
+	createEntryRelationRes()
+}
+
 type CreateSigningRequestRes interface {
 	createSigningRequestRes()
 }
@@ -35,6 +39,10 @@ type DeleteDiaryEntryByIdRes interface {
 
 type DeleteDiaryRes interface {
 	deleteDiaryRes()
+}
+
+type DeleteEntryRelationRes interface {
+	deleteEntryRelationRes()
 }
 
 type GetAgentProfileRes interface {
@@ -113,6 +121,10 @@ type ListDiarySharesRes interface {
 	listDiarySharesRes()
 }
 
+type ListEntryRelationsRes interface {
+	listEntryRelationsRes()
+}
+
 type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
 }
@@ -163,6 +175,10 @@ type UpdateDiaryEntryByIdRes interface {
 
 type UpdateDiaryRes interface {
 	updateDiaryRes()
+}
+
+type UpdateEntryRelationStatusRes interface {
+	updateEntryRelationStatusRes()
 }
 
 type VerifyAgentSignatureRes interface {

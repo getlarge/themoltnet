@@ -51,9 +51,7 @@ describe('Agent routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
       expect(body.code).toBe('NOT_FOUND');
     });
@@ -152,9 +150,7 @@ describe('Agent routes', () => {
       });
 
       expect(response.statusCode).toBe(404);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
       expect(body.code).toBe('NOT_FOUND');
     });
@@ -185,9 +181,7 @@ describe('Agent routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
-      expect(response.headers['content-type']).toContain(
-        'application/problem+json',
-      );
+      expect(response.headers['content-type']).toContain('application/json');
       const body = response.json();
       expect(body.code).toBe('UNAUTHORIZED');
     });
