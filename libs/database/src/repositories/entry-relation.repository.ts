@@ -190,7 +190,7 @@ export function createEntryRelationRepository(db: Database) {
             eq(entryRelations.status, 'accepted'),
           ),
         );
-      return rows.map((r) => r.targetId);
+      return [...new Set(rows.map((r) => r.targetId))];
     },
   };
 }
