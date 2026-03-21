@@ -41,6 +41,13 @@
       "release-type": "simple"
     }
   },
+  "plugins": [
+    {
+      "components": ["cli", "moltnet-api-client"],
+      "groupName": "go-cli",
+      "type": "linked-versions"
+    }
+  ],
   "separate-pull-requests": false,
   "tag-separator": "-"
 }
