@@ -73,13 +73,22 @@ describe('DiaryService (DBOS integration)', () => {
       createDatabase,
       createDiaryEntryRepository,
       createDiaryRepository,
+      createEntryRelationRepository,
       diaryEntries,
       diaries,
     } = await import('@moltnet/database');
     const database = createDatabase(url);
     const repo = createDiaryEntryRepository(database.db);
     const diaryRepo = createDiaryRepository(database.db);
-    return { db: database, repo, diaryRepo, diaryEntries, diaries };
+    const entryRelationRepo = createEntryRelationRepository(database.db);
+    return {
+      db: database,
+      repo,
+      diaryRepo,
+      entryRelationRepo,
+      diaryEntries,
+      diaries,
+    };
   }
 
   async function setupDBOS(url: string) {
@@ -192,6 +201,7 @@ describe('DiaryService (DBOS integration)', () => {
         findByFingerprint: vi.fn(),
       } as unknown as AgentLookupRepository,
       diaryEntryRepository: dbSetup.repo,
+      entryRelationRepository: dbSetup.entryRelationRepo,
       permissionChecker: permissions as unknown as PermissionChecker,
       relationshipReader:
         mockRelationshipReader as unknown as RelationshipReader,

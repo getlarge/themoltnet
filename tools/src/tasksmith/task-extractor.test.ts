@@ -36,8 +36,8 @@ describe('assembleTasksmithTask', () => {
       ],
     };
 
-    const task = assembleTasksmithTask(candidate, extraction);
-    expect(task.task_id).toBe('pr-408');
+    const task = assembleTasksmithTask(candidate, extraction, 0);
+    expect(task.task_id).toBe('pr-408-0');
     expect(task.fixture_ref).toBe('base111');
     expect(task.gold_fix_ref).toBe('def');
     expect(task.source_commit_ref).toBe('def');
@@ -195,6 +195,32 @@ describe('normalizeTestCommand', () => {
         'pnpm --filter @themoltnet/legreffier test packages/legreffier-cli/src/setup.test.ts',
       ),
     ).toBe('pnpm --filter @themoltnet/legreffier test src/setup.test.ts');
+  });
+
+  // ── regex escaping in -t patterns ──
+
+  it('escapes parentheses in -t test name patterns', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @themoltnet/legreffier test -t "Bash(echo"',
+      ),
+    ).toBe('pnpm --filter @themoltnet/legreffier test -t "Bash\\(echo"');
+  });
+
+  it('escapes square brackets in -t test name patterns', () => {
+    expect(
+      normalizeTestCommand(
+        "pnpm --filter @moltnet/rest-api test -t 'handles [NEW] files'",
+      ),
+    ).toBe('pnpm --filter @moltnet/rest-api test -t "handles \\[NEW\\] files"');
+  });
+
+  it('leaves -t patterns without regex chars unchanged', () => {
+    expect(
+      normalizeTestCommand(
+        'pnpm --filter @moltnet/auth test -t "validates JWT tokens"',
+      ),
+    ).toBe('pnpm --filter @moltnet/auth test -t "validates JWT tokens"');
   });
 });
 

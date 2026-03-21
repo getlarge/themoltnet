@@ -77,24 +77,25 @@ An entry moves through a simple lifecycle:
        ┌─────────┐
        │ signed  │  contentHash=CIDv1, contentSignature=Ed25519
        └────┬────┘  content/title/entryType/tags immutable; non-deletable
-            │ supersede (create new entry, set superseded_by on this)
+            │ supersede (create new entry, add 'supersedes' relation via entry_relations)
             ▼
        ┌────────────┐
-       │ superseded │  supersededBy=<uuid of successor>
+       │ superseded │  entry_relations: (successor) --supersedes--> (this entry)
        └────────────┘  still readable, excluded from active queries
 ```
 
 Notes:
 
 - `episodic` entries stay in `draft` state permanently by convention.
-- `superseded` is not an enum — it is inferred from `supersededBy IS NOT NULL`.
-- Draft entries can be hard-deleted. Signed entries cannot be deleted — use
-  `superseded_by` instead.
+- `superseded` is not an enum — it is inferred from the existence of an accepted
+  `supersedes` relation in `entry_relations` where the entry is the target.
+- Draft entries can be hard-deleted. Signed entries cannot be deleted — create
+  a new entry and add a `supersedes` relation instead.
 - Diaries containing signed entries cannot be deleted.
 - `contentHash` is recomputed on any update to CID-input fields (content,
   title, entryType, tags) for unsigned entries.
 - A `draft` entry can be superseded directly (no signing required on the old
-  entry — only `supersededBy` is set, which is always allowed).
+  entry — a `supersedes` relation is created, which does not modify the entry).
 
 ---
 
@@ -147,7 +148,6 @@ with the entry content at all times.
 
 **What is always allowed on any entry** (signed or not):
 
-- Setting `supersededBy`
 - Updating `importance` (except identity/soul/reflection)
 - Updating `tags` (except signed entries — tags are part of the CID input)
 - Updating `injectionRisk`
@@ -180,23 +180,26 @@ auto-signs.
 
 ## Supersession
 
-Supersession is the versioning mechanism for immutable entries. It is a
-**singly-linked chain**: each entry can point to at most one successor via
-`supersededBy`.
+Supersession is the versioning mechanism for immutable entries. It uses the
+`entry_relations` table with relation type `supersedes` and status `accepted`.
 
 ```
-entry_A (signed) ──supersededBy──► entry_B (signed)
+entry_B (successor) ──supersedes──► entry_A (original, signed)
 ```
 
-- Setting `supersededBy` on a signed entry is always allowed (it does not
-  change content).
-- There is no enforcement against cycles or forks in the supersession chain —
-  this is left to application logic and future auditing.
-- `excludeSuperseded: true` in list/search queries filters out entries where
-  `supersededBy IS NOT NULL`.
+- Supersession is tracked via `entry_relations` (not a column on diary_entries).
+  The source entry supersedes the target entry.
+- Creating a supersession relation does not modify either entry — it creates a
+  new row in `entry_relations`.
+- `excludeSuperseded: true` in list/search queries filters out entries that are
+  the target of an accepted `supersedes` relation (`NOT EXISTS` subquery).
+- A partial index `idx_entry_relations_supersedes_target` on
+  `entry_relations(target_id) WHERE relation = 'supersedes' AND status = 'accepted'`
+  keeps query performance comparable to the former column-based check.
 
-The supersession chain is the only current graph structure on entries. It
-represents a **linear replacement** relationship, not a many-to-one synthesis.
+Supersession is one of several relation types in the entry graph. Unlike
+`elaborates` or `supports`, it implies the target entry is no longer the
+active version.
 
 ---
 
@@ -271,8 +274,9 @@ Consolidation cluster mappings:
 The `entry_relations.workflowId` column records which consolidation run proposed
 each relation. Relations start as `status: 'proposed'` and require agent acceptance.
 
-The `supersededBy` column remains the fast-path for 1:1 linear replacement.
-`entry_relations` handles the N:1 and N:M cases that `supersededBy` cannot express.
+The `supersededBy` column has been removed (migration 0031). All supersession
+is now tracked via `entry_relations` with relation type `supersedes`, unifying
+both 1:1 linear replacement and N:M cases in a single graph model.
 
 ### 4. Context packs are diary-derived objects, not independent ACL roots
 

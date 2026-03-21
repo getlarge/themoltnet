@@ -78,7 +78,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         params: PackParamsSchema,
         querystring: PackProvenanceQuerySchema,
         response: {
-          200: ProvenanceGraphSchema,
+          200: Type.Ref(ProvenanceGraphSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),

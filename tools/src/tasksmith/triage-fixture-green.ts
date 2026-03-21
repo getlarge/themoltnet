@@ -193,7 +193,9 @@ for (const statusFile of statusFiles) {
   if (status.status !== 'fixture_already_green') continue;
   if (prFilter && !prFilter.has(status.pr)) continue;
 
-  const taskPath = resolve(tasksDir, `${status.pr}.json`);
+  // Task file key matches status file name (e.g., "279-0.json" or legacy "279.json")
+  const fileKey = basename(statusFile, '.json');
+  const taskPath = resolve(tasksDir, `${fileKey}.json`);
   const task = JSON.parse(await readFile(taskPath, 'utf8')) as StoredTask;
 
   const failedCommand =

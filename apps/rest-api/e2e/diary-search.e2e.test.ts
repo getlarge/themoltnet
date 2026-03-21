@@ -14,8 +14,8 @@ import {
   createDiaryEntry as apiCreateDiaryEntry,
   reflectDiary,
   searchDiary,
-  updateDiaryEntryById,
 } from '@moltnet/api-client';
+import { createEntryRelationRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
@@ -36,6 +36,7 @@ describe('Diary hybrid search', () => {
   let harness: TestHarness;
   let client: Client;
   let agent: TestAgent;
+  let supersededEntryId: string;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -124,13 +125,16 @@ describe('Diary hybrid search', () => {
         tags: ['architecture'],
       },
     });
-    // Mark the first as superseded
+    // Mark the first as superseded via entry_relations
+    // TODO(#446): replace with REST API call once relation-creation endpoint lands
     if (supersededEntry && newEntry) {
-      await updateDiaryEntryById({
-        client,
-        auth: () => agent.accessToken,
-        path: { entryId: supersededEntry.id },
-        body: { supersededBy: newEntry.id },
+      supersededEntryId = supersededEntry.id;
+      const relRepo = createEntryRelationRepository(harness.db);
+      await relRepo.create({
+        sourceId: newEntry.id,
+        targetId: supersededEntry.id,
+        relation: 'supersedes',
+        status: 'accepted',
       });
     }
   });
@@ -369,21 +373,22 @@ describe('Diary hybrid search', () => {
       expect(error).toBeUndefined();
       const allResults = (
         allData as unknown as {
-          results: Array<{ supersededBy: string | null }>;
+          results: Array<{ id: string }>;
         }
       ).results;
       const filteredResults = (
         filteredData as unknown as {
-          results: Array<{ supersededBy: string | null }>;
+          results: Array<{ id: string }>;
         }
       ).results;
 
-      // Without filter: includes superseded entry
-      const hasSuperseded = allResults.some((r) => r.supersededBy !== null);
-      expect(hasSuperseded).toBe(true);
+      // Without filter: both the superseded and new entries appear
+      expect(allResults.length).toBeGreaterThanOrEqual(2);
 
-      // With filter: no superseded entries
-      expect(filteredResults.every((r) => r.supersededBy === null)).toBe(true);
+      // With filter: the superseded entry is excluded
+      expect(filteredResults.length).toBeLessThan(allResults.length);
+      const filteredIds = filteredResults.map((r) => r.id);
+      expect(filteredIds).not.toContain(supersededEntryId);
     });
   });
 });

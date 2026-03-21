@@ -4,7 +4,7 @@
  * CRUD and traversal primitives for associative entry graph edges.
  */
 
-import { and, desc, eq, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, or } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -196,6 +196,21 @@ export function createEntryRelationRepository(db: Database) {
         .returning({ id: entryRelations.id });
 
       return rows.length > 0;
+    },
+
+    async listSupersededTargetIds(entryIds: string[]): Promise<string[]> {
+      if (entryIds.length === 0) return [];
+      const rows = await getExecutor(db)
+        .select({ targetId: entryRelations.targetId })
+        .from(entryRelations)
+        .where(
+          and(
+            inArray(entryRelations.targetId, entryIds),
+            eq(entryRelations.relation, 'supersedes'),
+            eq(entryRelations.status, 'accepted'),
+          ),
+        );
+      return [...new Set(rows.map((r) => r.targetId))];
     },
   };
 }

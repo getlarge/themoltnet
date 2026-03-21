@@ -27,7 +27,11 @@ import {
   type AxTokenUsage,
 } from '@ax-llm/ax';
 
-import { AGENT_FEATURES, flattenChatPrompt } from './ax-shared.js';
+import {
+  AGENT_FEATURES,
+  extractJsonFromText,
+  flattenChatPrompt,
+} from './ax-shared.js';
 import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
 import type { ResultPayload } from './sdk-types.js';
 
@@ -102,10 +106,28 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   createChatReq(
     req: Readonly<AxInternalChatRequest<AgentModel>>,
   ): [AxAPI, AgentRequest] {
-    const prompt = flattenChatPrompt(req.chatPrompt);
+    let prompt = flattenChatPrompt(req.chatPrompt);
     const model = req.model ?? 'claude-sonnet-4-6';
     const maxTurns = this.maxTurns;
     const stream = req.modelConfig?.stream ?? false;
+
+    // When ax() uses structured output (f() API with complex fields),
+    // it sends responseFormat with a JSON schema. Since the Claude Agent
+    // SDK takes a plain text prompt, we inject the schema as instructions.
+    if (
+      req.responseFormat?.type === 'json_schema' &&
+      req.responseFormat.schema
+    ) {
+      const rawSchema = req.responseFormat.schema as Record<string, unknown>;
+      const schema =
+        typeof rawSchema === 'object' && 'schema' in rawSchema
+          ? rawSchema.schema
+          : rawSchema;
+      prompt +=
+        '\n\nIMPORTANT: You MUST respond with ONLY valid JSON matching ' +
+        'this schema. No markdown, no explanation, no wrapping:\n' +
+        JSON.stringify(schema, null, 2);
+    }
 
     const localCall = async (
       data: AgentRequest,
@@ -129,6 +151,27 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   createChatResp(resp: Readonly<AgentResponse>): AxChatResponse {
     const tokens = toTokenUsage(resp.usage);
     this.lastTokenUsage = tokens;
+
+    // Try to parse as JSON — when structured output was requested via
+    // prompt injection, the LLM returns JSON as text. This is stateless
+    // (no mutable flag) so it's safe under concurrency.
+    const json = extractJsonFromText(resp.resultText);
+    if (json !== null) {
+      return {
+        results: [
+          {
+            content: JSON.stringify(json),
+            finishReason: 'stop' as const,
+            index: 0,
+          },
+        ],
+        modelUsage: {
+          ai: 'claude-agent-sdk',
+          model: 'claude-agent-sdk',
+          tokens,
+        },
+      };
+    }
 
     return {
       results: [
@@ -276,13 +319,23 @@ function buildQueryOptions(model: string, maxTurns: number) {
   };
 }
 
-function extractAssistantText(message: SDKMessage): string | null {
-  if (message.type !== 'assistant') return null;
-  const content = (
-    message as unknown as {
-      message: { content: Array<{ type: string; text?: string }> };
-    }
+interface AssistantContentBlock {
+  type: string;
+  text?: string;
+  id?: string;
+  name?: string;
+  input?: unknown;
+}
+
+function getAssistantContent(message: SDKMessage): AssistantContentBlock[] {
+  if (message.type !== 'assistant') return [];
+  return (
+    message as unknown as { message: { content: AssistantContentBlock[] } }
   ).message.content;
+}
+
+function extractAssistantText(message: SDKMessage): string | null {
+  const content = getAssistantContent(message);
   const textBlocks = content.filter(
     (b): b is { type: 'text'; text: string } =>
       b.type === 'text' && typeof b.text === 'string',

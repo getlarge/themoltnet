@@ -56,7 +56,6 @@ function createEntry(id: string, tags: string[] | null = null): DiaryEntry {
     accessCount: 0,
     lastAccessedAt: null,
     entryType: 'semantic',
-    supersededBy: null,
     contentHash: computeContentCid('semantic', null, content, tags),
     contentSignature: null,
     signingNonce: null,

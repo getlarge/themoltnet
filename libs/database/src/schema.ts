@@ -179,10 +179,6 @@ export const diaryEntries = pgTable(
     accessCount: integer('access_count').default(0).notNull(),
     lastAccessedAt: timestamp('last_accessed_at', { withTimezone: true }),
     entryType: entryTypeEnum('entry_type').default('semantic').notNull(),
-    supersededBy: uuid('superseded_by').references(
-      (): AnyPgColumn => diaryEntries.id,
-    ),
-
     // Content signing (CIDv1 + Ed25519 signature)
     contentHash: varchar('content_hash', { length: 100 }),
     contentSignature: text('content_signature'),
@@ -426,8 +422,8 @@ export const usedRecoveryNonces = pgTable(
 /**
  * Entry Relations Table
  *
- * Typed graph edges between diary entries. Complements supersededBy with
- * non-linear associative memory structure.
+ * Typed graph edges between diary entries. Provides a non-linear associative
+ * memory structure, including supersession tracking via the 'supersedes' relation.
  */
 export const entryRelations = pgTable(
   'entry_relations',

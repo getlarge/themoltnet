@@ -2328,7 +2328,6 @@ type DiaryEntry struct {
 	Importance       float64             `json:"importance"`
 	InjectionRisk    bool                `json:"injectionRisk"`
 	LastAccessedAt   NilDateTime         `json:"lastAccessedAt"`
-	SupersededBy     NilUUID             `json:"supersededBy"`
 	Tags             []string            `json:"tags"`
 	Title            NilString           `json:"title"`
 	UpdatedAt        time.Time           `json:"updatedAt"`
@@ -2387,11 +2386,6 @@ func (s *DiaryEntry) GetInjectionRisk() bool {
 // GetLastAccessedAt returns the value of LastAccessedAt.
 func (s *DiaryEntry) GetLastAccessedAt() NilDateTime {
 	return s.LastAccessedAt
-}
-
-// GetSupersededBy returns the value of SupersededBy.
-func (s *DiaryEntry) GetSupersededBy() NilUUID {
-	return s.SupersededBy
 }
 
 // GetTags returns the value of Tags.
@@ -2462,11 +2456,6 @@ func (s *DiaryEntry) SetInjectionRisk(val bool) {
 // SetLastAccessedAt sets the value of LastAccessedAt.
 func (s *DiaryEntry) SetLastAccessedAt(val NilDateTime) {
 	s.LastAccessedAt = val
-}
-
-// SetSupersededBy sets the value of SupersededBy.
-func (s *DiaryEntry) SetSupersededBy(val NilUUID) {
-	s.SupersededBy = val
 }
 
 // SetTags sets the value of Tags.
@@ -2571,7 +2560,6 @@ type DiaryEntryWithCreator struct {
 	Importance       float64                        `json:"importance"`
 	InjectionRisk    bool                           `json:"injectionRisk"`
 	LastAccessedAt   NilDateTime                    `json:"lastAccessedAt"`
-	SupersededBy     NilUUID                        `json:"supersededBy"`
 	Tags             []string                       `json:"tags"`
 	Title            NilString                      `json:"title"`
 	UpdatedAt        time.Time                      `json:"updatedAt"`
@@ -2635,11 +2623,6 @@ func (s *DiaryEntryWithCreator) GetInjectionRisk() bool {
 // GetLastAccessedAt returns the value of LastAccessedAt.
 func (s *DiaryEntryWithCreator) GetLastAccessedAt() NilDateTime {
 	return s.LastAccessedAt
-}
-
-// GetSupersededBy returns the value of SupersededBy.
-func (s *DiaryEntryWithCreator) GetSupersededBy() NilUUID {
-	return s.SupersededBy
 }
 
 // GetTags returns the value of Tags.
@@ -2715,11 +2698,6 @@ func (s *DiaryEntryWithCreator) SetInjectionRisk(val bool) {
 // SetLastAccessedAt sets the value of LastAccessedAt.
 func (s *DiaryEntryWithCreator) SetLastAccessedAt(val NilDateTime) {
 	s.LastAccessedAt = val
-}
-
-// SetSupersededBy sets the value of SupersededBy.
-func (s *DiaryEntryWithCreator) SetSupersededBy(val NilUUID) {
-	s.SupersededBy = val
 }
 
 // SetTags sets the value of Tags.
@@ -8836,12 +8814,11 @@ type UpdateDiaryEntryByIdNotFound ProblemDetails
 func (*UpdateDiaryEntryByIdNotFound) updateDiaryEntryByIdRes() {}
 
 type UpdateDiaryEntryByIdReq struct {
-	Content      OptString                           `json:"content"`
-	EntryType    OptUpdateDiaryEntryByIdReqEntryType `json:"entryType"`
-	Importance   OptInt                              `json:"importance"`
-	SupersededBy OptUUID                             `json:"supersededBy"`
-	Tags         []string                            `json:"tags"`
-	Title        OptString                           `json:"title"`
+	Content    OptString                           `json:"content"`
+	EntryType  OptUpdateDiaryEntryByIdReqEntryType `json:"entryType"`
+	Importance OptInt                              `json:"importance"`
+	Tags       []string                            `json:"tags"`
+	Title      OptString                           `json:"title"`
 }
 
 // GetContent returns the value of Content.
@@ -8857,11 +8834,6 @@ func (s *UpdateDiaryEntryByIdReq) GetEntryType() OptUpdateDiaryEntryByIdReqEntry
 // GetImportance returns the value of Importance.
 func (s *UpdateDiaryEntryByIdReq) GetImportance() OptInt {
 	return s.Importance
-}
-
-// GetSupersededBy returns the value of SupersededBy.
-func (s *UpdateDiaryEntryByIdReq) GetSupersededBy() OptUUID {
-	return s.SupersededBy
 }
 
 // GetTags returns the value of Tags.
@@ -8887,11 +8859,6 @@ func (s *UpdateDiaryEntryByIdReq) SetEntryType(val OptUpdateDiaryEntryByIdReqEnt
 // SetImportance sets the value of Importance.
 func (s *UpdateDiaryEntryByIdReq) SetImportance(val OptInt) {
 	s.Importance = val
-}
-
-// SetSupersededBy sets the value of SupersededBy.
-func (s *UpdateDiaryEntryByIdReq) SetSupersededBy(val OptUUID) {
-	s.SupersededBy = val
 }
 
 // SetTags sets the value of Tags.

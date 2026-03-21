@@ -67,7 +67,6 @@ const mockEntry: DiaryEntry = {
   accessCount: 0,
   lastAccessedAt: null,
   entryType: 'semantic',
-  supersededBy: null,
   contentHash: null,
   contentSignature: null,
   signingNonce: null,

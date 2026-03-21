@@ -72,7 +72,6 @@ const expandedEntrySelection = {
   entryAccessCount: diaryEntries.accessCount,
   entryLastAccessedAt: diaryEntries.lastAccessedAt,
   entryTypeValue: diaryEntries.entryType,
-  entrySupersededBy: diaryEntries.supersededBy,
   entryContentHash: diaryEntries.contentHash,
   entryContentSignature: diaryEntries.contentSignature,
   entryCreatedAt: diaryEntries.createdAt,
@@ -120,7 +119,6 @@ interface ExpandedPackEntryRow extends InferSelectModel<
   entryAccessCount: number;
   entryLastAccessedAt: Date | null;
   entryTypeValue: InferSelectModel<typeof diaryEntries>['entryType'];
-  entrySupersededBy: string | null;
   entryContentHash: string | null;
   entryContentSignature: string | null;
   entryCreatedAt: Date;
@@ -152,7 +150,6 @@ function normalizeExpandedEntry(row: ExpandedPackEntryRow): ExpandedPackEntry {
       accessCount: row.entryAccessCount,
       lastAccessedAt: row.entryLastAccessedAt,
       entryType: row.entryTypeValue,
-      supersededBy: row.entrySupersededBy,
       contentHash: row.entryContentHash,
       contentSignature: row.entryContentSignature,
       createdAt: row.entryCreatedAt,
