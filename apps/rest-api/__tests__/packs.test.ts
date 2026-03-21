@@ -1,3 +1,4 @@
+import { computeContentCid } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -43,6 +44,17 @@ const MOCK_PACK_2 = {
   id: PACK_ID_2,
   packCid: 'bafytestpack2',
 };
+
+const LONG_ENTRY_CONTENT =
+  'Alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu. '.repeat(
+    6,
+  );
+const ENTRY_1_HASH = computeContentCid('semantic', '', LONG_ENTRY_CONTENT, [
+  'entry-1',
+]);
+const ENTRY_2_HASH = computeContentCid('semantic', '', LONG_ENTRY_CONTENT, [
+  'entry-2',
+]);
 
 describe('Pack routes', () => {
   let app: FastifyInstance;
@@ -119,6 +131,29 @@ describe('Pack routes', () => {
         [PACK_ID_2, true],
       ]),
     );
+    mocks.diaryEntryRepository.list.mockResolvedValue([
+      createMockEntry({
+        id: '11111111-1111-4111-8111-111111111111',
+        content: LONG_ENTRY_CONTENT,
+        contentHash: ENTRY_1_HASH,
+      }),
+      createMockEntry({
+        id: '22222222-2222-4222-8222-222222222222',
+        content: LONG_ENTRY_CONTENT,
+        contentHash: ENTRY_2_HASH,
+      }),
+    ]);
+    mocks.contextPackRepository.createPack.mockImplementation(
+      async (input) => ({
+        id: PACK_ID,
+        packCodec: 'dag-cbor',
+        supersedesPackId: null,
+        ...input,
+        expiresAt: input.expiresAt ?? new Date('2026-03-31T10:00:00Z'),
+        createdAt: input.createdAt ?? new Date('2026-03-24T10:00:00Z'),
+      }),
+    );
+    mocks.contextPackRepository.addEntries.mockResolvedValue([]);
   });
 
   it('gets a pack by id with Keto authorization', async () => {
@@ -272,5 +307,127 @@ describe('Pack routes', () => {
     });
 
     expect(response.statusCode).toBe(500);
+  });
+
+  it('previews a custom pack without persistence and compresses lower-ranked entries first', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/diaries/${DIARY_ID}/packs/preview`,
+      headers: authHeaders,
+      payload: {
+        packType: 'custom',
+        params: {
+          recipe: 'ax-agent-selected',
+          taskPrompt: 'Keto authorization debugging',
+        },
+        entries: [
+          { entryId: '11111111-1111-4111-8111-111111111111', rank: 1 },
+          { entryId: '22222222-2222-4222-8222-222222222222', rank: 2 },
+        ],
+        tokenBudget: 300,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      packType: 'custom',
+      params: {
+        recipe: 'ax-agent-selected',
+        taskPrompt: 'Keto authorization debugging',
+      },
+    });
+    expect(response.json().entries).toHaveLength(2);
+    expect(response.json().entries[0]).toMatchObject({
+      entryId: '11111111-1111-4111-8111-111111111111',
+      rank: 1,
+      compressionLevel: 'full',
+    });
+    expect(response.json().entries[1]).toMatchObject({
+      entryId: '22222222-2222-4222-8222-222222222222',
+      rank: 2,
+      compressionLevel: 'summary',
+    });
+    expect(mocks.contextPackRepository.createPack).not.toHaveBeenCalled();
+    expect(mocks.contextPackRepository.addEntries).not.toHaveBeenCalled();
+    expect(mocks.relationshipWriter.grantPackParent).not.toHaveBeenCalled();
+  });
+
+  it('creates and persists a custom pack', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: `/diaries/${DIARY_ID}/packs`,
+      headers: authHeaders,
+      payload: {
+        packType: 'custom',
+        params: {
+          recipe: 'ax-agent-selected',
+          selectionMethod: 'rag-multi-query',
+        },
+        entries: [
+          { entryId: '11111111-1111-4111-8111-111111111111', rank: 1 },
+          { entryId: '22222222-2222-4222-8222-222222222222', rank: 2 },
+        ],
+        pinned: true,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.contextPackRepository.createPack).toHaveBeenCalledWith(
+      expect.objectContaining({
+        diaryId: DIARY_ID,
+        packType: 'custom',
+        params: {
+          recipe: 'ax-agent-selected',
+          selectionMethod: 'rag-multi-query',
+        },
+        createdBy: OWNER_ID,
+        pinned: true,
+        expiresAt: null,
+      }),
+    );
+    expect(mocks.contextPackRepository.addEntries).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          packId: PACK_ID,
+          entryId: '11111111-1111-4111-8111-111111111111',
+          rank: 1,
+        }),
+        expect.objectContaining({
+          packId: PACK_ID,
+          entryId: '22222222-2222-4222-8222-222222222222',
+          rank: 2,
+        }),
+      ]),
+    );
+    expect(mocks.relationshipWriter.grantPackParent).toHaveBeenCalledWith(
+      PACK_ID,
+      DIARY_ID,
+    );
+  });
+
+  it('rejects custom pack selections that include entries outside the diary', async () => {
+    mocks.diaryEntryRepository.list.mockResolvedValue([
+      createMockEntry({
+        id: '11111111-1111-4111-8111-111111111111',
+        contentHash: ENTRY_1_HASH,
+      }),
+    ]);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/diaries/${DIARY_ID}/packs/preview`,
+      headers: authHeaders,
+      payload: {
+        packType: 'custom',
+        params: { recipe: 'ax-agent-selected' },
+        entries: [
+          { entryId: '11111111-1111-4111-8111-111111111111', rank: 1 },
+          { entryId: '22222222-2222-4222-8222-222222222222', rank: 2 },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(mocks.contextPackRepository.createPack).not.toHaveBeenCalled();
   });
 });
