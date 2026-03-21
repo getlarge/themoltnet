@@ -6,6 +6,7 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
+import { acceptsProblemJson } from '../problems/helpers.js';
 import {
   findProblemTypeByCode,
   findProblemTypeByStatus,
@@ -113,8 +114,7 @@ async function errorHandler(fastify: FastifyInstance) {
       // RFC 9457 recommends application/problem+json, but many HTTP clients
       // (including ogen-generated Go clients) only accept application/json.
       // Content-negotiate: use problem+json only if the client explicitly accepts it.
-      const accept = request.headers.accept ?? '';
-      const contentType = accept.includes('application/problem+json')
+      const contentType = acceptsProblemJson(request.headers.accept)
         ? 'application/problem+json'
         : 'application/json';
 

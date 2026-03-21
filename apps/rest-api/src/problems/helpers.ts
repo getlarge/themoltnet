@@ -9,6 +9,25 @@ interface ProblemError extends Error {
   validationErrors?: ValidationError[];
 }
 
+/**
+ * Check whether the client's Accept header includes application/problem+json
+ * with a positive quality value (case-insensitive, respects q=0).
+ */
+export function acceptsProblemJson(accept: string | undefined): boolean {
+  if (!accept) return false;
+  return accept
+    .toLowerCase()
+    .split(',')
+    .some((entry) => {
+      const [type, ...params] = entry.split(';').map((p) => p.trim());
+      if (type !== 'application/problem+json') return false;
+      const qParam = params.find((p) => p.startsWith('q='));
+      if (!qParam) return true;
+      const q = parseFloat(qParam.slice(2));
+      return Number.isFinite(q) && q > 0;
+    });
+}
+
 export function createProblem(slug: string, detail?: string): ProblemError {
   const problemType = problemTypes[slug];
   if (!problemType) {

@@ -1,4 +1,8 @@
-export { createProblem, createValidationProblem } from './helpers.js';
+export {
+  acceptsProblemJson,
+  createProblem,
+  createValidationProblem,
+} from './helpers.js';
 export {
   findProblemTypeByCode,
   findProblemTypeByStatus,
