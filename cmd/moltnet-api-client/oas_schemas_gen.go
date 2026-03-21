@@ -1909,6 +1909,111 @@ type CreateDiaryUnauthorized ProblemDetails
 
 func (*CreateDiaryUnauthorized) createDiaryRes() {}
 
+type CreateEntryRelationBadRequest ProblemDetails
+
+func (*CreateEntryRelationBadRequest) createEntryRelationRes() {}
+
+type CreateEntryRelationCreated EntryRelation
+
+func (*CreateEntryRelationCreated) createEntryRelationRes() {}
+
+type CreateEntryRelationForbidden ProblemDetails
+
+func (*CreateEntryRelationForbidden) createEntryRelationRes() {}
+
+type CreateEntryRelationInternalServerError ProblemDetails
+
+func (*CreateEntryRelationInternalServerError) createEntryRelationRes() {}
+
+type CreateEntryRelationNotFound ProblemDetails
+
+func (*CreateEntryRelationNotFound) createEntryRelationRes() {}
+
+type CreateEntryRelationOK EntryRelation
+
+func (*CreateEntryRelationOK) createEntryRelationRes() {}
+
+type CreateEntryRelationReq struct {
+	Relation RelationType                    `json:"relation"`
+	Status   OptCreateEntryRelationReqStatus `json:"status"`
+	TargetId uuid.UUID                       `json:"targetId"`
+}
+
+// GetRelation returns the value of Relation.
+func (s *CreateEntryRelationReq) GetRelation() RelationType {
+	return s.Relation
+}
+
+// GetStatus returns the value of Status.
+func (s *CreateEntryRelationReq) GetStatus() OptCreateEntryRelationReqStatus {
+	return s.Status
+}
+
+// GetTargetId returns the value of TargetId.
+func (s *CreateEntryRelationReq) GetTargetId() uuid.UUID {
+	return s.TargetId
+}
+
+// SetRelation sets the value of Relation.
+func (s *CreateEntryRelationReq) SetRelation(val RelationType) {
+	s.Relation = val
+}
+
+// SetStatus sets the value of Status.
+func (s *CreateEntryRelationReq) SetStatus(val OptCreateEntryRelationReqStatus) {
+	s.Status = val
+}
+
+// SetTargetId sets the value of TargetId.
+func (s *CreateEntryRelationReq) SetTargetId(val uuid.UUID) {
+	s.TargetId = val
+}
+
+type CreateEntryRelationReqStatus string
+
+const (
+	CreateEntryRelationReqStatusProposed CreateEntryRelationReqStatus = "proposed"
+	CreateEntryRelationReqStatusAccepted CreateEntryRelationReqStatus = "accepted"
+)
+
+// AllValues returns all CreateEntryRelationReqStatus values.
+func (CreateEntryRelationReqStatus) AllValues() []CreateEntryRelationReqStatus {
+	return []CreateEntryRelationReqStatus{
+		CreateEntryRelationReqStatusProposed,
+		CreateEntryRelationReqStatusAccepted,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateEntryRelationReqStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateEntryRelationReqStatusProposed:
+		return []byte(s), nil
+	case CreateEntryRelationReqStatusAccepted:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateEntryRelationReqStatus) UnmarshalText(data []byte) error {
+	switch CreateEntryRelationReqStatus(data) {
+	case CreateEntryRelationReqStatusProposed:
+		*s = CreateEntryRelationReqStatusProposed
+		return nil
+	case CreateEntryRelationReqStatusAccepted:
+		*s = CreateEntryRelationReqStatusAccepted
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateEntryRelationUnauthorized ProblemDetails
+
+func (*CreateEntryRelationUnauthorized) createEntryRelationRes() {}
+
 type CreateSigningRequestInternalServerError ProblemDetails
 
 func (*CreateSigningRequestInternalServerError) createSigningRequestRes() {}
@@ -2038,6 +2143,27 @@ func (*DeleteDiaryNotFound) deleteDiaryRes() {}
 type DeleteDiaryUnauthorized ProblemDetails
 
 func (*DeleteDiaryUnauthorized) deleteDiaryRes() {}
+
+type DeleteEntryRelationForbidden ProblemDetails
+
+func (*DeleteEntryRelationForbidden) deleteEntryRelationRes() {}
+
+type DeleteEntryRelationInternalServerError ProblemDetails
+
+func (*DeleteEntryRelationInternalServerError) deleteEntryRelationRes() {}
+
+// DeleteEntryRelationNoContent is response for DeleteEntryRelation operation.
+type DeleteEntryRelationNoContent struct{}
+
+func (*DeleteEntryRelationNoContent) deleteEntryRelationRes() {}
+
+type DeleteEntryRelationNotFound ProblemDetails
+
+func (*DeleteEntryRelationNotFound) deleteEntryRelationRes() {}
+
+type DeleteEntryRelationUnauthorized ProblemDetails
+
+func (*DeleteEntryRelationUnauthorized) deleteEntryRelationRes() {}
 
 // Ref: #/components/schemas/DiaryCatalog
 type DiaryCatalog struct {
@@ -3160,6 +3286,185 @@ func (s *DigestEntriesItemEntryType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+// Ref: #/components/schemas/EntryRelation
+type EntryRelation struct {
+	Confidence        NilFloat64     `json:"confidence"`
+	CreatedAt         time.Time      `json:"createdAt"`
+	ID                uuid.UUID      `json:"id"`
+	Relation          RelationType   `json:"relation"`
+	Similarity        NilFloat64     `json:"similarity"`
+	SourceCidSnapshot NilString      `json:"sourceCidSnapshot"`
+	SourceId          uuid.UUID      `json:"sourceId"`
+	Status            RelationStatus `json:"status"`
+	TargetCidSnapshot NilString      `json:"targetCidSnapshot"`
+	TargetId          uuid.UUID      `json:"targetId"`
+	UpdatedAt         time.Time      `json:"updatedAt"`
+	WorkflowId        NilString      `json:"workflowId"`
+}
+
+// GetConfidence returns the value of Confidence.
+func (s *EntryRelation) GetConfidence() NilFloat64 {
+	return s.Confidence
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *EntryRelation) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetID returns the value of ID.
+func (s *EntryRelation) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetRelation returns the value of Relation.
+func (s *EntryRelation) GetRelation() RelationType {
+	return s.Relation
+}
+
+// GetSimilarity returns the value of Similarity.
+func (s *EntryRelation) GetSimilarity() NilFloat64 {
+	return s.Similarity
+}
+
+// GetSourceCidSnapshot returns the value of SourceCidSnapshot.
+func (s *EntryRelation) GetSourceCidSnapshot() NilString {
+	return s.SourceCidSnapshot
+}
+
+// GetSourceId returns the value of SourceId.
+func (s *EntryRelation) GetSourceId() uuid.UUID {
+	return s.SourceId
+}
+
+// GetStatus returns the value of Status.
+func (s *EntryRelation) GetStatus() RelationStatus {
+	return s.Status
+}
+
+// GetTargetCidSnapshot returns the value of TargetCidSnapshot.
+func (s *EntryRelation) GetTargetCidSnapshot() NilString {
+	return s.TargetCidSnapshot
+}
+
+// GetTargetId returns the value of TargetId.
+func (s *EntryRelation) GetTargetId() uuid.UUID {
+	return s.TargetId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *EntryRelation) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// GetWorkflowId returns the value of WorkflowId.
+func (s *EntryRelation) GetWorkflowId() NilString {
+	return s.WorkflowId
+}
+
+// SetConfidence sets the value of Confidence.
+func (s *EntryRelation) SetConfidence(val NilFloat64) {
+	s.Confidence = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *EntryRelation) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetID sets the value of ID.
+func (s *EntryRelation) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetRelation sets the value of Relation.
+func (s *EntryRelation) SetRelation(val RelationType) {
+	s.Relation = val
+}
+
+// SetSimilarity sets the value of Similarity.
+func (s *EntryRelation) SetSimilarity(val NilFloat64) {
+	s.Similarity = val
+}
+
+// SetSourceCidSnapshot sets the value of SourceCidSnapshot.
+func (s *EntryRelation) SetSourceCidSnapshot(val NilString) {
+	s.SourceCidSnapshot = val
+}
+
+// SetSourceId sets the value of SourceId.
+func (s *EntryRelation) SetSourceId(val uuid.UUID) {
+	s.SourceId = val
+}
+
+// SetStatus sets the value of Status.
+func (s *EntryRelation) SetStatus(val RelationStatus) {
+	s.Status = val
+}
+
+// SetTargetCidSnapshot sets the value of TargetCidSnapshot.
+func (s *EntryRelation) SetTargetCidSnapshot(val NilString) {
+	s.TargetCidSnapshot = val
+}
+
+// SetTargetId sets the value of TargetId.
+func (s *EntryRelation) SetTargetId(val uuid.UUID) {
+	s.TargetId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *EntryRelation) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// SetWorkflowId sets the value of WorkflowId.
+func (s *EntryRelation) SetWorkflowId(val NilString) {
+	s.WorkflowId = val
+}
+
+func (*EntryRelation) updateEntryRelationStatusRes() {}
+
+// Ref: #/components/schemas/EntryRelationList
+type EntryRelationList struct {
+	Items []EntryRelation `json:"items"`
+	// Maximum number of items requested.
+	Limit float64 `json:"limit"`
+	// Number of items returned in this response window.
+	Total float64 `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *EntryRelationList) GetItems() []EntryRelation {
+	return s.Items
+}
+
+// GetLimit returns the value of Limit.
+func (s *EntryRelationList) GetLimit() float64 {
+	return s.Limit
+}
+
+// GetTotal returns the value of Total.
+func (s *EntryRelationList) GetTotal() float64 {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *EntryRelationList) SetItems(val []EntryRelation) {
+	s.Items = val
+}
+
+// SetLimit sets the value of Limit.
+func (s *EntryRelationList) SetLimit(val float64) {
+	s.Limit = val
+}
+
+// SetTotal sets the value of Total.
+func (s *EntryRelationList) SetTotal(val float64) {
+	s.Total = val
+}
+
+func (*EntryRelationList) listEntryRelationsRes() {}
 
 // Ref: #/components/schemas/EntryVerifyResult
 type EntryVerifyResult struct {
@@ -4299,6 +4604,70 @@ func (*ListDiarySharesNotFound) listDiarySharesRes() {}
 type ListDiarySharesUnauthorized ProblemDetails
 
 func (*ListDiarySharesUnauthorized) listDiarySharesRes() {}
+
+type ListEntryRelationsDirection string
+
+const (
+	ListEntryRelationsDirectionAsSource ListEntryRelationsDirection = "as_source"
+	ListEntryRelationsDirectionAsTarget ListEntryRelationsDirection = "as_target"
+	ListEntryRelationsDirectionBoth     ListEntryRelationsDirection = "both"
+)
+
+// AllValues returns all ListEntryRelationsDirection values.
+func (ListEntryRelationsDirection) AllValues() []ListEntryRelationsDirection {
+	return []ListEntryRelationsDirection{
+		ListEntryRelationsDirectionAsSource,
+		ListEntryRelationsDirectionAsTarget,
+		ListEntryRelationsDirectionBoth,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListEntryRelationsDirection) MarshalText() ([]byte, error) {
+	switch s {
+	case ListEntryRelationsDirectionAsSource:
+		return []byte(s), nil
+	case ListEntryRelationsDirectionAsTarget:
+		return []byte(s), nil
+	case ListEntryRelationsDirectionBoth:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListEntryRelationsDirection) UnmarshalText(data []byte) error {
+	switch ListEntryRelationsDirection(data) {
+	case ListEntryRelationsDirectionAsSource:
+		*s = ListEntryRelationsDirectionAsSource
+		return nil
+	case ListEntryRelationsDirectionAsTarget:
+		*s = ListEntryRelationsDirectionAsTarget
+		return nil
+	case ListEntryRelationsDirectionBoth:
+		*s = ListEntryRelationsDirectionBoth
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListEntryRelationsForbidden ProblemDetails
+
+func (*ListEntryRelationsForbidden) listEntryRelationsRes() {}
+
+type ListEntryRelationsInternalServerError ProblemDetails
+
+func (*ListEntryRelationsInternalServerError) listEntryRelationsRes() {}
+
+type ListEntryRelationsNotFound ProblemDetails
+
+func (*ListEntryRelationsNotFound) listEntryRelationsRes() {}
+
+type ListEntryRelationsUnauthorized ProblemDetails
+
+func (*ListEntryRelationsUnauthorized) listEntryRelationsRes() {}
 
 type ListProblemTypesOKItem struct {
 	Code         OptString `json:"code"`
@@ -6121,6 +6490,52 @@ func (o OptCreateDiaryReqVisibility) Or(d CreateDiaryReqVisibility) CreateDiaryR
 	return d
 }
 
+// NewOptCreateEntryRelationReqStatus returns new OptCreateEntryRelationReqStatus with value set to v.
+func NewOptCreateEntryRelationReqStatus(v CreateEntryRelationReqStatus) OptCreateEntryRelationReqStatus {
+	return OptCreateEntryRelationReqStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateEntryRelationReqStatus is optional CreateEntryRelationReqStatus.
+type OptCreateEntryRelationReqStatus struct {
+	Value CreateEntryRelationReqStatus
+	Set   bool
+}
+
+// IsSet returns true if OptCreateEntryRelationReqStatus was set.
+func (o OptCreateEntryRelationReqStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateEntryRelationReqStatus) Reset() {
+	var v CreateEntryRelationReqStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateEntryRelationReqStatus) SetTo(v CreateEntryRelationReqStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateEntryRelationReqStatus) Get() (v CreateEntryRelationReqStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateEntryRelationReqStatus) Or(d CreateEntryRelationReqStatus) CreateEntryRelationReqStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptDateTime returns new OptDateTime with value set to v.
 func NewOptDateTime(v time.Time) OptDateTime {
 	return OptDateTime{
@@ -6391,6 +6806,144 @@ func (o OptListDiaryPacksExpand) Get() (v ListDiaryPacksExpand, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListDiaryPacksExpand) Or(d ListDiaryPacksExpand) ListDiaryPacksExpand {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListEntryRelationsDirection returns new OptListEntryRelationsDirection with value set to v.
+func NewOptListEntryRelationsDirection(v ListEntryRelationsDirection) OptListEntryRelationsDirection {
+	return OptListEntryRelationsDirection{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListEntryRelationsDirection is optional ListEntryRelationsDirection.
+type OptListEntryRelationsDirection struct {
+	Value ListEntryRelationsDirection
+	Set   bool
+}
+
+// IsSet returns true if OptListEntryRelationsDirection was set.
+func (o OptListEntryRelationsDirection) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListEntryRelationsDirection) Reset() {
+	var v ListEntryRelationsDirection
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListEntryRelationsDirection) SetTo(v ListEntryRelationsDirection) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListEntryRelationsDirection) Get() (v ListEntryRelationsDirection, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEntryRelationsDirection {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRelationStatus returns new OptRelationStatus with value set to v.
+func NewOptRelationStatus(v RelationStatus) OptRelationStatus {
+	return OptRelationStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRelationStatus is optional RelationStatus.
+type OptRelationStatus struct {
+	Value RelationStatus
+	Set   bool
+}
+
+// IsSet returns true if OptRelationStatus was set.
+func (o OptRelationStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRelationStatus) Reset() {
+	var v RelationStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRelationStatus) SetTo(v RelationStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRelationStatus) Get() (v RelationStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRelationStatus) Or(d RelationStatus) RelationStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRelationType returns new OptRelationType with value set to v.
+func NewOptRelationType(v RelationType) OptRelationType {
+	return OptRelationType{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRelationType is optional RelationType.
+type OptRelationType struct {
+	Value RelationType
+	Set   bool
+}
+
+// IsSet returns true if OptRelationType was set.
+func (o OptRelationType) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRelationType) Reset() {
+	var v RelationType
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRelationType) SetTo(v RelationType) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRelationType) Get() (v RelationType, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRelationType) Or(d RelationType) RelationType {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -7410,6 +7963,125 @@ func (s *RegisterResponse) SetPublicKey(val string) {
 
 func (*RegisterResponse) registerAgentRes() {}
 
+// Ref: #/components/schemas/RelationStatus
+type RelationStatus string
+
+const (
+	RelationStatusProposed RelationStatus = "proposed"
+	RelationStatusAccepted RelationStatus = "accepted"
+	RelationStatusRejected RelationStatus = "rejected"
+)
+
+// AllValues returns all RelationStatus values.
+func (RelationStatus) AllValues() []RelationStatus {
+	return []RelationStatus{
+		RelationStatusProposed,
+		RelationStatusAccepted,
+		RelationStatusRejected,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RelationStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case RelationStatusProposed:
+		return []byte(s), nil
+	case RelationStatusAccepted:
+		return []byte(s), nil
+	case RelationStatusRejected:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RelationStatus) UnmarshalText(data []byte) error {
+	switch RelationStatus(data) {
+	case RelationStatusProposed:
+		*s = RelationStatusProposed
+		return nil
+	case RelationStatusAccepted:
+		*s = RelationStatusAccepted
+		return nil
+	case RelationStatusRejected:
+		*s = RelationStatusRejected
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/RelationType
+type RelationType string
+
+const (
+	RelationTypeSupersedes  RelationType = "supersedes"
+	RelationTypeElaborates  RelationType = "elaborates"
+	RelationTypeContradicts RelationType = "contradicts"
+	RelationTypeSupports    RelationType = "supports"
+	RelationTypeCausedBy    RelationType = "caused_by"
+	RelationTypeReferences  RelationType = "references"
+)
+
+// AllValues returns all RelationType values.
+func (RelationType) AllValues() []RelationType {
+	return []RelationType{
+		RelationTypeSupersedes,
+		RelationTypeElaborates,
+		RelationTypeContradicts,
+		RelationTypeSupports,
+		RelationTypeCausedBy,
+		RelationTypeReferences,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RelationType) MarshalText() ([]byte, error) {
+	switch s {
+	case RelationTypeSupersedes:
+		return []byte(s), nil
+	case RelationTypeElaborates:
+		return []byte(s), nil
+	case RelationTypeContradicts:
+		return []byte(s), nil
+	case RelationTypeSupports:
+		return []byte(s), nil
+	case RelationTypeCausedBy:
+		return []byte(s), nil
+	case RelationTypeReferences:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RelationType) UnmarshalText(data []byte) error {
+	switch RelationType(data) {
+	case RelationTypeSupersedes:
+		*s = RelationTypeSupersedes
+		return nil
+	case RelationTypeElaborates:
+		*s = RelationTypeElaborates
+		return nil
+	case RelationTypeContradicts:
+		*s = RelationTypeContradicts
+		return nil
+	case RelationTypeSupports:
+		*s = RelationTypeSupports
+		return nil
+	case RelationTypeCausedBy:
+		*s = RelationTypeCausedBy
+		return nil
+	case RelationTypeReferences:
+		*s = RelationTypeReferences
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type RequestRecoveryChallengeBadRequest ProblemDetails
 
 func (*RequestRecoveryChallengeBadRequest) requestRecoveryChallengeRes() {}
@@ -8393,6 +9065,36 @@ func (s *UpdateDiaryReqVisibility) UnmarshalText(data []byte) error {
 type UpdateDiaryUnauthorized ProblemDetails
 
 func (*UpdateDiaryUnauthorized) updateDiaryRes() {}
+
+type UpdateEntryRelationStatusForbidden ProblemDetails
+
+func (*UpdateEntryRelationStatusForbidden) updateEntryRelationStatusRes() {}
+
+type UpdateEntryRelationStatusInternalServerError ProblemDetails
+
+func (*UpdateEntryRelationStatusInternalServerError) updateEntryRelationStatusRes() {}
+
+type UpdateEntryRelationStatusNotFound ProblemDetails
+
+func (*UpdateEntryRelationStatusNotFound) updateEntryRelationStatusRes() {}
+
+type UpdateEntryRelationStatusReq struct {
+	Status RelationStatus `json:"status"`
+}
+
+// GetStatus returns the value of Status.
+func (s *UpdateEntryRelationStatusReq) GetStatus() RelationStatus {
+	return s.Status
+}
+
+// SetStatus sets the value of Status.
+func (s *UpdateEntryRelationStatusReq) SetStatus(val RelationStatus) {
+	s.Status = val
+}
+
+type UpdateEntryRelationStatusUnauthorized ProblemDetails
+
+func (*UpdateEntryRelationStatusUnauthorized) updateEntryRelationStatusRes() {}
 
 type VerifyAgentSignatureInternalServerError ProblemDetails
 

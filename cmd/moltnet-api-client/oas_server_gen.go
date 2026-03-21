@@ -38,6 +38,13 @@ type Handler interface {
 	//
 	// POST /diaries/{diaryId}/entries
 	CreateDiaryEntry(ctx context.Context, req *CreateDiaryEntryReq, params CreateDiaryEntryParams) (CreateDiaryEntryRes, error)
+	// CreateEntryRelation implements createEntryRelation operation.
+	//
+	// Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) —
+	// returns 200 if the relation already exists.
+	//
+	// POST /entries/{entryId}/relations
+	CreateEntryRelation(ctx context.Context, req *CreateEntryRelationReq, params CreateEntryRelationParams) (CreateEntryRelationRes, error)
 	// CreateSigningRequest implements createSigningRequest operation.
 	//
 	// Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for
@@ -63,6 +70,12 @@ type Handler interface {
 	//
 	// DELETE /entries/{entryId}
 	DeleteDiaryEntryById(ctx context.Context, params DeleteDiaryEntryByIdParams) (DeleteDiaryEntryByIdRes, error)
+	// DeleteEntryRelation implements deleteEntryRelation operation.
+	//
+	// Delete an entry relation.
+	//
+	// DELETE /relations/{id}
+	DeleteEntryRelation(ctx context.Context, params DeleteEntryRelationParams) (DeleteEntryRelationRes, error)
 	// GetAgentProfile implements getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -206,6 +219,12 @@ type Handler interface {
 	//
 	// GET /diaries/{diaryId}/share
 	ListDiaryShares(ctx context.Context, params ListDiarySharesParams) (ListDiarySharesRes, error)
+	// ListEntryRelations implements listEntryRelations operation.
+	//
+	// List relations for a diary entry.
+	//
+	// GET /entries/{entryId}/relations
+	ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (ListEntryRelationsRes, error)
 	// ListProblemTypes implements listProblemTypes operation.
 	//
 	// List all problem types used in API error responses (RFC 9457).
@@ -295,6 +314,12 @@ type Handler interface {
 	//
 	// PATCH /entries/{entryId}
 	UpdateDiaryEntryById(ctx context.Context, req OptUpdateDiaryEntryByIdReq, params UpdateDiaryEntryByIdParams) (UpdateDiaryEntryByIdRes, error)
+	// UpdateEntryRelationStatus implements updateEntryRelationStatus operation.
+	//
+	// Update the status of an entry relation.
+	//
+	// PATCH /relations/{id}
+	UpdateEntryRelationStatus(ctx context.Context, req *UpdateEntryRelationStatusReq, params UpdateEntryRelationStatusParams) (UpdateEntryRelationStatusRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.
