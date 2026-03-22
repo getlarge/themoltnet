@@ -32,6 +32,7 @@ compiling, ensure the diary has structured observations for the task domain.
 The `legreffier-scan` skill scans a codebase and creates structured diary
 entries — one per subsystem, with constraints, anti-patterns, and code
 patterns extracted. These scan entries become the backbone of focused packs.
+See `docs/recipes/legreffier-scan-flows.md` for the full scan workflow.
 
 ```
 # Run in Claude Code with legreffier active
@@ -41,18 +42,33 @@ patterns extracted. These scan entries become the backbone of focused packs.
 Scan produces entries tagged `source:scan` with categories like
 `scan-category:architecture`, `scan-category:testing`,
 `scan-category:security`. These are typically `semantic` entries with
-importance 6-8.
+importance 6-8. Entries are dense (500-1000+ tokens each), so generous
+token budgets are appropriate for scan-based packs.
 
-### LeGreffier consolidate (tiles)
+### Scan sessions and batches
 
-After scanning, `legreffier-consolidate` clusters related scan entries into
-**tiles** — subsystem-level summaries (~200-400 tokens) containing constraints,
-anti-patterns, and code patterns. These are tagged `source:tile` with
-`tile-id:*` and `tile-scope:*` for precise filtering.
+Scan entries are organized into sessions (`scan-session:*` timestamp tags)
+and batches (`scan-batch:phase1-b1..b6`, `scan-batch:phase2-tier0..tier2`).
+Use these tags to isolate specific scan passes:
 
-Note: `source:nugget` entries (atomic constraint rules) were previously
-created from compile output but this approach is deprecated. Tiles now carry
-constraints directly.
+- `scan-batch:phase2-tier0` — core subsystem observations (highest signal)
+- `scan-category:architecture` — architecture patterns and component structure
+- `scan-category:security` — security constraints and threat model
+
+Scan entries are dense (500-1000+ tokens each), so use generous token
+budgets for scan-based packs.
+
+**Staleness:** Scan observations can become outdated as the codebase evolves.
+The compile workflow automatically excludes entries that have been superseded
+(via `supersedes` entry relations). When re-scanning a codebase, consider
+creating `supersedes` relations from new scan entries to old ones covering
+the same subsystem. Alternatively, use `created_after` to limit to recent
+scan sessions.
+
+Note: `source:tile` and `source:nugget` entries are **deprecated**. Tiles
+were a consolidation output from the old legreffier-consolidate flow. Scan
+entries are the canonical source material — they carry the same constraints
+in their original, richer form.
 
 ### Accountable commits (procedural entries)
 
@@ -111,12 +127,12 @@ biases toward the last 2 weeks.
 
 Tag filters narrow the candidate pool before scoring:
 
-| Filter                          | Effect                         | Example                    |
-| ------------------------------- | ------------------------------ | -------------------------- |
-| `include_tags: ["source:scan"]` | Only scan-derived observations | Clean architecture context |
-| `include_tags: ["decision"]`    | Only architectural decisions   | Understanding "why"        |
-| `include_tags: ["source:tile"]` | Only consolidated tiles        | Pre-distilled context      |
-| `exclude_tags: ["learn:trace"]` | Skip axlearn experiment traces | Reduce noise               |
+| Filter                                                        | Effect                                         | Example                    |
+| ------------------------------------------------------------- | ---------------------------------------------- | -------------------------- |
+| `include_tags: ["source:scan"]`                               | Only scan-derived observations                 | Clean architecture context |
+| `include_tags: ["decision"]`                                  | Only architectural decisions                   | Understanding "why"        |
+| `include_tags: ["source:scan", "scan-category:architecture"]` | Architecture scan entries only                 | Focused subsystem patterns |
+| `exclude_tags: ["learn:trace"]`                               | Skip experimental learning traces (if present) | Reduce noise               |
 
 ## Compile scenarios
 
@@ -188,7 +204,7 @@ pack authorization commit, diary service scan, incident entries.
 | Following conventions   | `include_tags: ["source:scan"]`, high lambda             | Scans capture "how to do X correctly"          |
 | Understanding decisions | high `w_importance`, no tag filter                       | Decisions are high-importance semantic entries |
 | Debugging a subsystem   | moderate lambda (0.6), no tag filter                     | Need incidents + decisions + procedures        |
-| Onboarding to a module  | `include_tags: ["source:tile"]`                          | Tiles are pre-distilled summaries              |
+| Onboarding to a module  | `include_tags: ["source:scan"]`, low lambda (0.3)        | Scan entries are the richest subsystem context |
 | Recent feature work     | high `w_recency`, `include_tags: ["accountable-commit"]` | Procedural entries from recent commits         |
 
 ## The `custom` pack type (agent-composed)
@@ -281,24 +297,118 @@ rather than maintaining local file-based context (`.legreffier/context/`).
 Persisted packs have server-side provenance, CID addressing, and pack-to-pack
 lineage. Local context files are temporary scaffolding.
 
+## Discovering what to compile (the discovery method)
+
+Before compiling, explore the diary to understand what's available.
+This method works for any diary — it only requires `diary_tags` and
+`diaries_compile`.
+
+### Step 1: Map the tag landscape
+
+Start broad, then narrow:
+
+```
+# 1. See everything — discover what tag conventions exist
+diary_tags(min_count: 2)
+
+# 2. Once you spot prefixes, drill into them
+diary_tags(prefix: "scope:", min_count: 3)
+diary_tags(prefix: "source:")
+diary_tags(prefix: "scan-category:")
+diary_tags(prefix: "scan-batch:")
+diary_tags(prefix: "branch:", min_count: 5)
+diary_tags(prefix: "rejected:")
+```
+
+The initial unfiltered call reveals the tag conventions used in the diary.
+Different agents and workflows produce different tag namespaces — don't
+assume prefixes exist before checking.
+
+Group the discovered tags by purpose: domain scope, content origin,
+entry category, branch context, risk level, etc.
+
+### Step 2: Cross-reference tags with entry types
+
+Run `diary_tags` with `entry_types` filters to find where content lives:
+
+```
+diary_tags(entry_types: ["semantic"], min_count: 2)    → decisions, scans
+diary_tags(entry_types: ["episodic"], min_count: 2)    → incidents, bugs
+diary_tags(entry_types: ["procedural"], min_count: 5)  → commit activity
+```
+
+Build an intersection matrix: which tags × entry types have 5+ entries?
+Those are your viable pack candidates.
+
+### Step 3: Test compile recipes
+
+For each candidate, test a compile and evaluate:
+
+- **Budget utilization** — below 50% means the filter is too narrow
+- **Entries included** — below 5 is too sparse, above 30 may be too broad
+- **Compression ratio** — below 0.5 means heavy compression; consider
+  increasing the token budget if the entries are genuinely valuable
+
+Don't cap the token budget arbitrarily. If a scan pack needs 8000 tokens
+to include all relevant observations at full resolution, use 8000.
+
+### Step 4: Define a pack catalog
+
+Organize packs into tiers:
+
+**Tier 1 — Always useful** (pin these):
+
+- Codebase orientation: `source:scan`, low lambda, generous budget
+- Architecture decisions: `decision` tag, semantic only
+- Incident log: `incident` tag, episodic only
+
+**Tier 2 — On demand** (auto-expire):
+
+- Subsystem packs: `scope:database`, `scope:api`, etc.
+- Scan category packs: `scan-category:architecture`, etc.
+
+**Tier 3 — Per session** (never pin):
+
+- Branch context: `branch:feat/X`
+- Task-specific custom packs from search results
+
+### Key principles
+
+- **One primary tag dimension per pack** — don't cross two high-cardinality
+  prefixes in include_tags (AND semantics). Build separate focused packs.
+- **Scan entries are the backbone** — the `legreffier-scan` skill
+  (see `docs/recipes/legreffier-scan-flows.md`) produces structured
+  observations tagged `source:scan`. These are the richest structured
+  source for orientation and convention packs.
+- **Budget follows content, not the other way around** — if a focused tag
+  filter yields 15 dense scan entries totaling 10K tokens, use a 10K budget.
+  The anti-pattern is padding with low-signal tail entries, not having a
+  large budget.
+- **Test before pinning** — always evaluate compile output before pinning
+  a pack. A pack that looks right by parameters might miss important entries
+  due to tag coverage gaps.
+
 ## What makes a good pack
 
 1. **Focused task prompt** — specific question, not vague topic
 2. **Right entry pool** — tag filters narrow candidates before scoring
 3. **High lambda** (0.7-0.8) — for focused tasks; lower for exploration
 4. **Importance weighting** — architectural knowledge scores higher
-5. **No noise** — soul entries, learn traces, and unrelated commits dilute signal
-6. **Right budget** — 2000-4000 tokens is the sweet spot; larger budgets
-   include lower-quality tail entries
+5. **No noise** — soul entries, experimental traces, and unrelated commits dilute signal
+6. **Right budget** — match the budget to the content you need. Scan-heavy
+   packs may need 6000-10000 tokens; decision packs fit in 4000
 
 ## Anti-patterns
 
 - **No task prompt** — compile without a prompt returns the "most important"
   entries by importance/recency, not the most relevant
 - **Lambda 1.0** — pure relevance can include near-duplicate entries
-  (e.g. three learn:trace entries about the same topic)
-- **Budget too large** — 8000+ tokens pulls in tail entries that add noise
-  without signal; the agent has to read more to find less
+  (e.g. three entries about the same topic with near-identical embeddings)
+- **Arbitrary budget ceiling** — don't cap at 4000 just because. If a scan
+  pack with 8000-12000 tokens gives an agent genuinely better context for a
+  complex subsystem, use it. The right budget is whatever fits the entries
+  you actually need. The anti-pattern is padding with low-signal tail entries,
+  not having a large budget per se
 - **No tag filter when you know the source** — if you want architectural
   conventions, filter to `source:scan`; mixing in procedural commit entries
   adds "what was done" when you need "how to do it"
