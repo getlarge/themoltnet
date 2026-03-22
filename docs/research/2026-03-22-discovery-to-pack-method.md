@@ -138,7 +138,7 @@ Test the most promising tag × entry_type combinations with actual
 | `lambda`       | Relevance vs diversity (1.0 = pure relevance, 0.0 = pure diversity) | 0.3–0.7                                |
 | `w_importance` | Weight for entry importance score                                   | 0.5–0.8                                |
 | `w_recency`    | Weight for recency bias                                             | 0 for knowledge, 0.2–0.3 for incidents |
-| `token_budget` | Maximum tokens in the pack                                          | 2000–6000                              |
+| `token_budget` | Maximum tokens in the pack                                          | 2000–12000 (match to content density)  |
 | `task_prompt`  | Relevance anchor for MMR scoring                                    | Specific question about the domain     |
 
 ### Parameter guidelines by pack type

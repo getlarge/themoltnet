@@ -55,9 +55,6 @@ Use these tags to isolate specific scan passes:
 - `scan-category:architecture` — architecture patterns and component structure
 - `scan-category:security` — security constraints and threat model
 
-Scan entries are dense (500-1000+ tokens each), so use generous token
-budgets for scan-based packs.
-
 **Staleness:** Scan observations can become outdated as the codebase evolves.
 The compile workflow automatically excludes entries that have been superseded
 (via `supersedes` entry relations). When re-scanning a codebase, consider
