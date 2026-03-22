@@ -1,4 +1,7 @@
+import { type CriteriaItem, CriteriaItemSchema } from '@moltnet/context-evals';
 import { type Static, Type } from '@sinclair/typebox';
+
+export { type CriteriaItem, CriteriaItemSchema };
 
 // ── PR candidate (Phase 1 output) ──
 
@@ -19,28 +22,6 @@ export const PrCandidateSchema = Type.Object({
 });
 
 export type PrCandidate = Static<typeof PrCandidateSchema>;
-
-// ── Extraction result (Phase 2 output) ──
-
-export const CriteriaItemSchema = Type.Object({
-  description: Type.String(),
-  check_type: Type.Union([
-    Type.Literal('test_passes'),
-    Type.Literal('file_exists'),
-    Type.Literal('export_exists'),
-    Type.Literal('pattern_present'),
-    Type.Literal('type_checks'),
-    Type.Literal('behavioral'),
-  ]),
-  weight: Type.Number({ minimum: 0, maximum: 1 }),
-  // Type-specific optional fields
-  module: Type.Optional(Type.String()),
-  symbol: Type.Optional(Type.String()),
-  path: Type.Optional(Type.String()),
-  pattern: Type.Optional(Type.String()),
-});
-
-export type CriteriaItem = Static<typeof CriteriaItemSchema>;
 
 export interface ExtractionResult {
   isViable: boolean;

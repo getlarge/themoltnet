@@ -7,6 +7,15 @@ export {
   type WriteCompiledPackOptions,
 } from './compile-pack.js';
 export {
+  computeCriteriaScore,
+  type CriteriaItem,
+  CriteriaItemSchema,
+  type CriteriaResult,
+  evaluateCriteria,
+  evaluateCriterion,
+} from './criteria-scorer.js';
+export { type CachedEvalResult, EvalCache } from './eval-cache.js';
+export {
   cleanupAllWorktrees,
   createWorktree,
   type EvalResult,
@@ -16,6 +25,7 @@ export {
   injectPack,
   removeWorktree,
 } from './evaluate.js';
+export { buildNoopAI } from './noop-ai.js';
 export { execFileText, runShellCommand } from './process.js';
 export { SkillEvalAdapter } from './skill-adapter.js';
 export {

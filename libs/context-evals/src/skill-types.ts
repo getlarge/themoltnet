@@ -1,6 +1,8 @@
 import type { McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 import { type Static, Type } from '@sinclair/typebox';
 
+import { CriteriaItemSchema } from './criteria-scorer.js';
+
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const NonEmptyString = Type.String({ minLength: 1 });
@@ -13,6 +15,7 @@ export const SkillEvalTaskSchema = Type.Object({
   skillPath: NonEmptyString,
   env: Type.Optional(Type.Record(Type.String(), Type.String())),
   expected: Type.Optional(Type.Unknown()),
+  criteria: Type.Optional(Type.Array(CriteriaItemSchema)),
 });
 
 export type SkillEvalTask = Static<typeof SkillEvalTaskSchema>;

@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
 import { runAgentTask } from './agent-runner.js';
+import type { CriteriaItem } from './criteria-scorer.js';
 import {
   type CommandResult,
   execFileText,
@@ -33,6 +34,7 @@ export interface GpackTask {
   failToPass: string[];
   passToPass: string[];
   setup?: string[];
+  criteria?: CriteriaItem[];
 }
 
 export interface EvalTrace {
