@@ -49,16 +49,16 @@ they represent semantic categories that cut across scopes.
 
 Group by purpose:
 
-| Group                     | Tags                                                       | Purpose                           |
-| ------------------------- | ---------------------------------------------------------- | --------------------------------- |
-| **Domain scope**          | `scope:*`                                                  | What subsystem an entry is about  |
-| **Content origin**        | `source:scan`, `source:tile`, `source:nugget`              | How the entry was created         |
-| **Entry category**        | `decision`, `incident`, `workaround`, `accountable-commit` | What kind of knowledge            |
-| **Branch context**        | `branch:*`                                                 | When/where the work happened      |
-| **Risk level**            | `risk:low/medium/high`                                     | Commit risk classification        |
-| **Rejected alternatives** | `rejected:*`                                               | What was considered and discarded |
-| **Learning**              | `learn:trace`, `learn:agent:*`                             | Agent learning traces             |
-| **Session**               | `scan-session:*`, `tile-session:*`                         | Batch provenance                  |
+| Group                     | Tags                                                          | Purpose                           |
+| ------------------------- | ------------------------------------------------------------- | --------------------------------- |
+| **Domain scope**          | `scope:*`                                                     | What subsystem an entry is about  |
+| **Content origin**        | `source:scan` (`source:tile`, `source:nugget` are deprecated) | How the entry was created         |
+| **Entry category**        | `decision`, `incident`, `workaround`, `accountable-commit`    | What kind of knowledge            |
+| **Branch context**        | `branch:*`                                                    | When/where the work happened      |
+| **Risk level**            | `risk:low/medium/high`                                        | Commit risk classification        |
+| **Rejected alternatives** | `rejected:*`                                                  | What was considered and discarded |
+| **Learning**              | `learn:trace`, `learn:agent:*`                                | Agent learning traces             |
+| **Session**               | `scan-session:*`                                              | Batch provenance                  |
 
 ### Key insight: tags are AND-only in compile
 
@@ -81,7 +81,7 @@ Run `diary_tags` with `entry_types` filters to find where content lives.
 diary_tags(entry_types: ["semantic"], min_count: 2)
 ```
 
-Look for: `decision` tag count, `source:tile` count, `source:scan` count,
+Look for: `decision` tag count, `source:scan` count,
 scope tags. These are your knowledge backbone.
 
 ### Step 2.2: Episodic entries (incidents, bugs)
@@ -113,15 +113,15 @@ handoffs and session summaries.
 
 ### Step 2.5: Build the intersection matrix
 
-| Entry Type | Top Tags         | Count | Pack-worthy?                      |
-| ---------- | ---------------- | ----- | --------------------------------- |
-| semantic   | `decision`       | 27    | Yes — architecture decisions pack |
-| semantic   | `source:tile`    | 23    | Yes — codebase overview pack      |
-| semantic   | `source:scan`    | 30    | Yes — scan observations pack      |
-| episodic   | `incident`       | 24    | Yes — pitfalls pack               |
-| episodic   | `scope:database` | 7     | Marginal — too few for standalone |
-| procedural | `scope:tools`    | 34    | No — too granular for context     |
-| reflection | any              | 2     | No — too few                      |
+| Entry Type | Top Tags         | Count | Pack-worthy?                           |
+| ---------- | ---------------- | ----- | -------------------------------------- |
+| semantic   | `decision`       | 27    | Yes — architecture decisions pack      |
+| semantic   | `source:tile`    | 23    | Deprecated — use `source:scan` instead |
+| semantic   | `source:scan`    | 30    | Yes — codebase orientation pack        |
+| episodic   | `incident`       | 24    | Yes — pitfalls pack                    |
+| episodic   | `scope:database` | 7     | Marginal — too few for standalone      |
+| procedural | `scope:tools`    | 34    | No — too granular for context          |
+| reflection | any              | 2     | No — too few                           |
 
 **Rule of thumb: a pack needs 5+ entries to be useful, 10+ to be robust.**
 
