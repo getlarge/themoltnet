@@ -12,7 +12,10 @@
  * its `localCall` escape-hatch in `AxAPI`.
  */
 
-import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import type {
+  McpServerConfig,
+  SDKMessage,
+} from '@anthropic-ai/claude-agent-sdk';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import {
   type AxAIServiceImpl,
@@ -81,6 +84,14 @@ export interface AxAIClaudeAgentSDKOptions {
   model?: string;
   maxTurns?: number;
   options?: AxAIServiceOptions;
+  /** Working directory for the agent subprocess. */
+  cwd?: string;
+  /** Tool config. Default `[]` (no tools). Use `{ type: 'preset', preset: 'claude_code' }` for full agent. */
+  tools?: string[] | { type: 'preset'; preset: 'claude_code' };
+  /** MCP server configs. */
+  mcpServers?: Record<string, McpServerConfig>;
+  /** Extra env vars for the agent subprocess. */
+  extraEnv?: Record<string, string>;
 }
 
 // ── Impl ─────────────────────────────────────────────────────────────────────
@@ -95,10 +106,10 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   never
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
-  private maxTurns: number;
+  private opts: AxAIClaudeAgentSDKOptions;
 
-  constructor(maxTurns: number) {
-    this.maxTurns = maxTurns;
+  constructor(opts: AxAIClaudeAgentSDKOptions) {
+    this.opts = opts;
   }
 
   // ── Request ──────────────────────────────────────────────────────────────
@@ -108,7 +119,6 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   ): [AxAPI, AgentRequest] {
     let prompt = flattenChatPrompt(req.chatPrompt);
     const model = req.model ?? 'claude-sonnet-4-6';
-    const maxTurns = this.maxTurns;
     const stream = req.modelConfig?.stream ?? false;
 
     // When ax() uses structured output (f() API with complex fields),
@@ -129,13 +139,14 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
         JSON.stringify(schema, null, 2);
     }
 
+    const opts = this.opts;
     const localCall = async (
       data: AgentRequest,
     ): Promise<AgentResponse | ReadableStream<AgentStreamDelta>> => {
       if (stream) {
-        return runAgentQueryStream(data.prompt, data.model, maxTurns);
+        return runAgentQueryStream(data.prompt, data.model, opts);
       }
-      return runAgentQuery(data.prompt, data.model, maxTurns);
+      return runAgentQuery(data.prompt, data.model, opts);
     };
 
     const api: AxAPI = {
@@ -261,9 +272,8 @@ export class AxAIClaudeAgentSDK extends AxBaseAI<
 > {
   constructor(opts: AxAIClaudeAgentSDKOptions = {}) {
     const model = opts.model ?? DEFAULT_MODEL;
-    const maxTurns = opts.maxTurns ?? 1;
 
-    super(new AxAIClaudeAgentSDKImpl(maxTurns), {
+    super(new AxAIClaudeAgentSDKImpl(opts), {
       name: 'claude-agent-sdk',
       apiURL: '',
       headers: () => Promise.resolve({}),
@@ -289,7 +299,7 @@ function toTokenUsage(usage: AgentResponse['usage']): AxTokenUsage {
 
 // ── Agent SDK query helpers ──────────────────────────────────────────────────
 
-function buildQueryOptions(model: string, maxTurns: number) {
+function buildQueryOptions(model: string, opts: AxAIClaudeAgentSDKOptions) {
   const config = loadContextEvalsConfig();
   const runtimeEnv = getRuntimeEnv();
 
@@ -300,10 +310,12 @@ function buildQueryOptions(model: string, maxTurns: number) {
       : {}),
     permissionMode: 'bypassPermissions' as const,
     allowDangerouslySkipPermissions: true,
-    tools: [] as string[],
+    tools: opts.tools ?? ([] as string[]),
+    ...(opts.cwd ? { cwd: opts.cwd } : {}),
+    ...(opts.mcpServers ? { mcpServers: opts.mcpServers } : {}),
     persistSession: false,
     includePartialMessages: false,
-    maxTurns,
+    maxTurns: opts.maxTurns ?? 1,
     debug: false,
     env: {
       ...runtimeEnv,
@@ -315,6 +327,7 @@ function buildQueryOptions(model: string, maxTurns: number) {
       ...(config.ANTHROPIC_AUTH_TOKEN
         ? { ANTHROPIC_AUTH_TOKEN: config.ANTHROPIC_AUTH_TOKEN }
         : {}),
+      ...opts.extraEnv,
     },
   };
 }
@@ -378,8 +391,9 @@ function buildAgentResponse(
 async function runAgentQuery(
   prompt: string,
   model: string,
-  maxTurns: number,
+  opts: AxAIClaudeAgentSDKOptions,
 ): Promise<AgentResponse> {
+  const maxTurns = opts.maxTurns ?? 1;
   const t0 = performance.now();
   dbg(
     `query start model=${model} maxTurns=${maxTurns} prompt=${prompt.length}chars`,
@@ -387,7 +401,7 @@ async function runAgentQuery(
 
   const q = query({
     prompt,
-    options: buildQueryOptions(model, maxTurns),
+    options: buildQueryOptions(model, opts),
   }) as AsyncIterable<SDKMessage> & { close(): void };
 
   const tSpawn = performance.now();
@@ -434,14 +448,14 @@ async function runAgentQuery(
 function runAgentQueryStream(
   prompt: string,
   model: string,
-  maxTurns: number,
+  opts: AxAIClaudeAgentSDKOptions,
 ): ReadableStream<AgentStreamDelta> {
   return new ReadableStream<AgentStreamDelta>({
     async start(controller) {
       const q = query({
         prompt,
         options: {
-          ...buildQueryOptions(model, maxTurns),
+          ...buildQueryOptions(model, opts),
           includePartialMessages: true,
         },
       }) as AsyncIterable<SDKMessage> & { close(): void };
