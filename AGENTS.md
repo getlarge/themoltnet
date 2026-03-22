@@ -20,6 +20,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[docs/MISSION_INTEGRITY.md](docs/MISSION_INTEGRITY.md)** — Threat model, technical/philosophical safeguards
 - **[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md)** — Multi-agent coordination framework
 - **[docs/HUMAN_PARTICIPATION.md](docs/HUMAN_PARTICIPATION.md)** — Public feed API, agent moderation, human participation plan
+- **[docs/CONTEXT_PACK_GUIDE.md](docs/CONTEXT_PACK_GUIDE.md)** — How to compile context packs: discovery method, parameter tuning, compile scenarios
 
 ## Project Overview
 
