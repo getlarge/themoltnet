@@ -4,6 +4,9 @@ A repeatable method for exploring a diary's tag structure and defining
 context pack creation strategies. Tested against the `themoltnet` diary
 (6e4d9948, 265 tags, ~300 entries).
 
+> **Last validated:** 2026-03-22. Tag counts and recipe results are
+> point-in-time snapshots. Re-run `diary_tags` to get current numbers.
+
 ## Overview
 
 The method has 4 phases:

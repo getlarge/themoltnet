@@ -32,7 +32,7 @@ compiling, ensure the diary has structured observations for the task domain.
 The `legreffier-scan` skill scans a codebase and creates structured diary
 entries — one per subsystem, with constraints, anti-patterns, and code
 patterns extracted. These scan entries become the backbone of focused packs.
-See `docs/recipes/legreffier-scan-flows.md` for the full scan workflow.
+See `recipes/legreffier-scan-flows.md` for the full scan workflow.
 
 ```
 # Run in Claude Code with legreffier active
@@ -374,7 +374,7 @@ Organize packs into tiers:
 - **One primary tag dimension per pack** — don't cross two high-cardinality
   prefixes in include_tags (AND semantics). Build separate focused packs.
 - **Scan entries are the backbone** — the `legreffier-scan` skill
-  (see `docs/recipes/legreffier-scan-flows.md`) produces structured
+  (see `recipes/legreffier-scan-flows.md`) produces structured
   observations tagged `source:scan`. These are the richest structured
   source for orientation and convention packs.
 - **Budget follows content, not the other way around** — if a focused tag
