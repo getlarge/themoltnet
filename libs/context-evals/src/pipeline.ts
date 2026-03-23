@@ -482,11 +482,35 @@ async function main() {
         },
       );
     }
+    const label = packFileArgs.length > 0 ? 'pack' : 'baseline';
     console.log(
-      `[gpack] ${packFileArgs.length > 0 ? 'pack' : 'baseline'} scores: ${baselineResult.scores
+      `[gpack] ${label} scores: ${baselineResult.scores
         .map((s) => s.toFixed(2))
         .join(', ')} avg=${baselineResult.averageScore.toFixed(2)}`,
     );
+
+    // Print per-task trace metrics when available
+    const traces = baselineResult.trajectories ?? [];
+    for (let i = 0; i < traces.length; i++) {
+      const trace = traces[i];
+      if (!trace) continue;
+      const parts = [
+        `task=${trace.taskId}`,
+        `score=${baselineResult.scores[i]?.toFixed(2) ?? '?'}`,
+        trace.turnCount !== undefined ? `turns=${trace.turnCount}` : '',
+        trace.taskDurationMs !== undefined
+          ? `duration=${(trace.taskDurationMs / 1000).toFixed(1)}s`
+          : '',
+        trace.taskCostUsd !== undefined
+          ? `cost=$${trace.taskCostUsd.toFixed(4)}`
+          : '',
+        trace.toolCallCount !== undefined ? `tools=${trace.toolCallCount}` : '',
+        trace.taskUsage
+          ? `tokens=${trace.taskUsage.inputTokens}in/${trace.taskUsage.outputTokens}out`
+          : '',
+      ].filter(Boolean);
+      console.log(`  [${label}] ${parts.join(' | ')}`);
+    }
     return;
   }
 
