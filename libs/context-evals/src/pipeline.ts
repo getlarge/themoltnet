@@ -38,8 +38,10 @@ import { Value } from '@sinclair/typebox/value';
 import { MoltNetContextAdapter } from './adapter.js';
 import { createAuthedClient } from './client.js';
 import { loadContextEvalsConfig } from './config.js';
-import type { GpackTask } from './evaluate.js';
+import { EvalCache } from './eval-cache.js';
+import type { EvalTrace, GpackTask } from './evaluate.js';
 import { runBaseline, runGepaOptimization } from './gepa.js';
+import { buildNoopAI } from './noop-ai.js';
 import {
   type AIProvider,
   buildAI,
@@ -74,6 +76,7 @@ const { values } = parseArgs({
     'ai-key': { type: 'string' },
     'student-model': { type: 'string' },
     'teacher-model': { type: 'string' },
+    'eval-provider': { type: 'string' },
     'claude-model': { type: 'string', default: 'claude-sonnet-4-6' },
     'max-evals': { type: 'string', default: '30' },
     'num-trials': { type: 'string', default: '8' },
@@ -435,10 +438,12 @@ async function main() {
           .context_variants?.combined
       : undefined;
 
+  const evalCache = new EvalCache<EvalTrace>();
   const adapter = new MoltNetContextAdapter({
     verbose,
     claudeModel,
     concurrency,
+    evalCache,
   });
   const explicitPack = packFileArg
     ? await loadPackFile(repoRoot, packFileArg)
@@ -515,19 +520,15 @@ async function main() {
   console.log(`[gpack] seed pack: ${seedPack.length} chars`);
 
   // Build AI models for GEPA optimization.
-  // studentAI: cheap model the ax() program targets (passthrough in our case).
-  // teacherAI: more capable model that proposes improved instructions during
-  //            reflection. Optional but recommended for better optimization.
+  // studentAI: when adapter handles evaluation, use noop (zero-cost passthrough).
+  //            ax-llm still calls program.forward(studentAI) but we ignore predictions.
+  // teacherAI: reflection model for propose_new_texts. Also passed to adapter as reflectionAI.
+  const studentAI = studentProvider
+    ? buildAI({ provider: studentProvider, aiKey, model: studentModel })
+    : buildNoopAI();
   if (!studentProvider) {
-    throw new Error(
-      '[gpack] GEPA optimization requires --student-provider (openai, anthropic, google-gemini, claude-agent-sdk, or codex-agent-sdk).',
-    );
+    console.log('[gpack] using no-op student (adapter handles evaluation)');
   }
-  const studentAI = buildAI({
-    provider: studentProvider,
-    aiKey,
-    model: studentModel,
-  });
   if (teacherModel && !teacherProvider) {
     throw new Error('[gpack] --teacher-model requires --teacher-provider.');
   }
@@ -539,6 +540,11 @@ async function main() {
           model: teacherModel,
         })
       : undefined;
+
+  // Pass teacherAI as reflectionAI for propose_new_texts
+  if (teacherAI) {
+    adapter.setReflectionAI(teacherAI);
+  }
 
   console.log(
     `[gpack] starting GEPA optimization (numTrials=${numTrials} maxMetricCalls=${maxMetricCalls})...`,
@@ -565,11 +571,17 @@ async function main() {
         setup: task.setup,
       })),
     evaluateOne: async (task, instruction) => {
+      // Check shared cache first
+      const cached = evalCache.get(task.id, instruction);
+      if (cached) return cached;
+
       const evalResult = await adapter.evaluate([task], { instruction }, true);
-      return {
+      const result = {
         score: evalResult.scores[0] ?? 0,
         trace: evalResult.trajectories?.[0],
       };
+      evalCache.set(task.id, instruction, result);
+      return result;
     },
   });
 

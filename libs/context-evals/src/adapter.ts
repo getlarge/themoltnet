@@ -66,6 +66,11 @@ export class MoltNetContextAdapter implements AxGEPAAdapter<
     this.evalCache = options.evalCache;
   }
 
+  /** Set the reflection AI after construction (e.g. when teacher is resolved later). */
+  setReflectionAI(ai: AxAIService): void {
+    this.reflectionAI = ai;
+  }
+
   /**
    * Evaluate a candidate pack against a batch of tasks.
    * The candidate is { instruction: "<pack content>" } — AxGEPA always uses
