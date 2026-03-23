@@ -1,6 +1,10 @@
 ---
 name: canva-explore
-description: 'Explore Canva designs via MCP and extract visual/structural patterns into MoltNet diary entries. Requires Canva MCP (search-designs, get-design, get-design-pages). Patterns are stored for later compilation into design context packs.'
+description: >-
+  Explore Canva designs via MCP and extract visual/structural patterns into
+  MoltNet diary entries. Uses editing transactions for deep visual inspection
+  (fills, assets, element positions) and brand kit/template discovery.
+  Patterns include reusable asset IDs for faithful reproduction.
 ---
 
 # Canva Explore Skill
@@ -15,7 +19,8 @@ new design creation.
 - LeGreffier must be initialized (agent identity active, diary exists)
 - `DIARY_ID` must be resolved
 - Canva MCP connected (provides `search-designs`, `get-design`,
-  `get-design-pages` tools)
+  `start-editing-transaction`, `get-assets`, `list-brand-kits`,
+  `search-brand-templates` tools)
 
 ## When to trigger
 
@@ -26,32 +31,74 @@ new design creation.
 
 ## Workflow overview
 
-1. **Discover**: `search-designs` with keywords or list all
-2. **Inspect**: `get-design` + `get-design-pages` for each design
-3. **Analyze thumbnails**: Use vision on page thumbnails to extract visual
-   patterns
-4. **Create entries**: Write structured diary entries per pattern
+1. **Discover**: `search-designs` + `search-brand-templates` +
+   `list-brand-kits`
+2. **Deep inspect**: `start-editing-transaction` on representative designs
+   to get fills (images/logos with asset IDs), text elements with positions,
+   and page thumbnails with actual visual rendering
+3. **Catalog assets**: `get-assets` on discovered asset IDs to get names,
+   tags, thumbnails, and metadata
+4. **Analyze**: use thumbnail vision + fill/asset data + text content to
+   extract visual, structural, and brand patterns
+5. **Create entries**: write structured diary entries with asset IDs and
+   visual details
+6. **Cancel transactions**: always cancel editing transactions after
+   inspection (read-only use)
+
+## Key tools and what they expose
+
+| Tool                        | Returns                                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `search-designs`            | Design IDs, titles, thumbnails, page counts                                                                                                                                      |
+| `search-brand-templates`    | Brand templates (saved reusable templates)                                                                                                                                       |
+| `list-brand-kits`           | Brand kits with colors, fonts, logos                                                                                                                                             |
+| `get-design`                | Design metadata, owner, URLs, page count                                                                                                                                         |
+| `get-design-pages`          | Page dimensions, thumbnail URLs                                                                                                                                                  |
+| `get-design-content`        | Richtext only (no style data)                                                                                                                                                    |
+| `start-editing-transaction` | **Full design data**: richtexts with element IDs + positions + dimensions, fills with asset IDs + element types (IMAGE/SHAPE/RECT), page thumbnails with actual visual rendering |
+| `get-assets`                | Asset metadata: name, tags, thumbnail, dimensions, smart tags                                                                                                                    |
+| `get-design-thumbnail`      | Page thumbnail within an editing transaction (requires `transaction_id` + `page_index`)                                                                                          |
+
+**Critical**: `get-design-content` returns only text. To extract visual
+patterns (colors, logos, images, layout positions), you MUST use
+`start-editing-transaction`. Always `cancel-editing-transaction` after
+inspection.
 
 ## Extraction targets
 
 For each design (or group of similar designs), extract:
 
-### Visual patterns
-- **Color palette**: dominant colors, background/foreground contrast
-- **Typography**: heading/body font styles, sizes, hierarchy
-- **Layout**: grid structure, whitespace usage, alignment patterns
-- **Imagery**: photo style, illustration style, icon usage
+### Visual patterns (from editing transaction fills + thumbnails)
 
-### Structural patterns
+- **Color palette**: dominant colors from thumbnail vision, background hues
+- **Typography**: text element dimensions reveal hierarchy; ALL CAPS vs
+  mixed case from richtext content
+- **Layout**: element positions (`top`, `left`) and dimensions (`width`,
+  `height`) from fills and richtexts reveal grid structure
+- **Imagery**: fill asset IDs → `get-assets` reveals image types (photos,
+  logos, icons, QR codes) via `smart_tags` and `name`
+
+### Structural patterns (from text content + page structure)
+
 - **Page count**: typical length for this design type
-- **Section structure**: how content is organized (intro → body → CTA)
-- **Recurring elements**: headers, footers, slide numbers, brand marks
+- **Section structure**: how content is organized (intro -> body -> CTA)
+- **Recurring elements**: which asset IDs appear on multiple pages
+  (logos, icons) — cross-reference fill `asset_id` across `page_index`
 - **Transitions**: visual flow between pages
 
-### Brand patterns
-- **Consistency signals**: what stays the same across designs
+### Brand patterns (from brand kits + cross-design analysis)
+
+- **Brand kit**: `brand_kit_id` if available (pass directly to generation)
+- **Brand templates**: template IDs for faithful reproduction
+- **Consistency signals**: assets that appear across all designs
 - **Variation signals**: what changes per design type
-- **Quality markers**: what makes the best designs stand out
+
+### Reusable assets (from get-assets)
+
+- **Logos**: brand logos with asset IDs for `asset_ids` parameter
+- **Icons**: recurring icons (calendar, ticket, arrow, etc.)
+- **Speaker photos**: transparent-background portraits
+- **QR codes**: event-specific scannable codes
 
 ## Entry creation
 
@@ -77,21 +124,28 @@ Design type: <presentation|course|book|social|document|...>
 Source designs: <design titles/IDs that exhibit this pattern>
 
 Visual signature:
-  Colors: <palette description — e.g., "dark navy #1B2838 bg, white text,
-    coral #FF6B6B accents">
-  Typography: <font styles — e.g., "bold sans-serif headings 48pt,
-    light body 18pt with 1.6 line height">
-  Layout: <structure — e.g., "centered single-column, 60% content width,
-    generous top margin">
-  Imagery: <style — e.g., "minimal line icons, no photos, abstract
-    geometric shapes as dividers">
+  Colors: <palette description with hex values from thumbnail analysis —
+    e.g., "sky blue #3DB4F2 bg, white text, NestJS red #E0234E accents">
+  Typography: <text conventions — e.g., "ALL CAPS speaker names,
+    sans-serif headings, element heights suggest 48pt/18pt hierarchy">
+  Layout: <element positions — e.g., "logo top-left (top:0, left:0),
+    title centered (left:630), speaker cards mirrored left/right">
+  Imagery: <asset-backed — e.g., "NestJS Vienna logo (MAGGsnyc9qc) on
+    every page, transparent speaker photos, Meetup wordmark (MADnBsVUSPw)">
+
+Reusable assets:
+  - <asset_id>: <name> — <purpose> (e.g., "MAGGsnyc9qc: NestJS Vienna
+    logo — appears on all pages, top-left or top-right")
+  - <asset_id>: <name> — <purpose>
+
+Brand kit: <brand_kit_id if available, else "none">
+Brand template: <template_id if design is saved as template, else "none">
 
 Structure:
   Pages: <typical count or range>
-  Sections: <ordered list — e.g., "title → agenda → content slides →
-    summary → CTA">
-  Recurring elements: <e.g., "page numbers bottom-right, logo top-left,
-    section divider slides with gradient bg">
+  Sections: <ordered list — e.g., "title -> agenda -> content slides ->
+    summary -> CTA">
+  Recurring elements: <assets that appear on multiple pages, by ID>
 
 Quality markers:
   - <what makes this pattern work well>
@@ -107,6 +161,41 @@ Trigger hints:
   - task-class:create-design
   - design-type:<type>
 Confidence: <high|medium|low>
+```
+
+### Asset catalog entry (semantic)
+
+One entry per explore session to catalog all discovered reusable assets:
+
+```
+entries_create({
+  diary_id: "<DIARY_ID>",
+  title: "Asset catalog — <date>",
+  content: "<see below>",
+  tags: ["source:canva-explore", "asset-catalog",
+         "explore-session:<timestamp>"],
+  importance: 6,
+  entry_type: "semantic"
+})
+```
+
+Content template:
+
+```
+Asset catalog from Canva explore session <date>
+
+Logos:
+  - <asset_id>: <name> — <dimensions>, used in <design IDs>
+Icons:
+  - <asset_id>: <name> — <smart_tags summary>, used in <design IDs>
+Photos:
+  - <asset_id>: <name> — <dimensions>, <smart_tags summary>
+Other:
+  - <asset_id>: <name> — <type/purpose>
+
+Usage for new designs:
+  Pass asset_ids to generate-design or use update_fill/insert_fill
+  in editing transactions to place these assets in new designs.
 ```
 
 ### Design inventory entry (episodic)
@@ -137,38 +226,83 @@ Canva ID: <id>
 Summary: <1-2 sentence description of the design's purpose and audience>
 Notable features: <what stands out about this specific design>
 Patterns used: <references to pattern entries — "see Design pattern: X">
+Key assets: <asset IDs used in this design, from fills>
 ```
 
 ## Workflow
 
-### Step 1: Discover designs
+### Step 1: Discover designs and brand resources
 
 ```
-search-designs({ query: "<keyword or empty for all>" })
+# Discover all designs
+search-designs({ sort_by: "modified_descending", ownership: "owned" })
+
+# Check for brand templates
+search-brand-templates({ query: "<relevant keywords>" })
+
+# Check for brand kits
+list-brand-kits()
 ```
+
+Record brand kit IDs and template IDs — these are the most direct path
+to faithful design reproduction.
 
 ### Step 2: Group by type
 
 Cluster designs by type (presentations, courses, books, social posts, etc.)
 Process each type as a batch.
 
-### Step 3: Extract patterns per type
+### Step 3: Deep inspect representative designs
+
+For each design type, pick 2-3 representative designs:
+
+```
+# Open editing transaction (read-only inspection)
+start-editing-transaction({ design_id: "<id>" })
+# Returns: richtexts (text + positions), fills (images + asset IDs),
+#          page thumbnails (visual rendering), page structure
+
+# Catalog discovered assets
+get-assets({ asset_ids: [<unique asset IDs from fills>] })
+# Returns: asset names, tags, thumbnails, dimensions
+
+# ALWAYS cancel after inspection
+cancel-editing-transaction({ transaction_id: "<tx_id>" })
+```
+
+From the editing transaction, extract:
+
+- **Fills**: list all `asset_id` values, note which `page_index` they
+  appear on, whether they're `editable`, and their element type/position
+- **Recurring assets**: assets that appear on multiple pages are brand
+  elements (logos, watermarks, decorative backgrounds)
+- **Text layout**: element positions reveal the grid system and hierarchy
+- **Thumbnail**: actual visual rendering for color/style analysis
+
+### Step 4: Extract patterns per type
 
 For each design type:
-1. Pick 2-3 representative designs
-2. Analyze thumbnails via vision
-3. Identify recurring visual/structural patterns
-4. Create one `semantic` pattern entry per distinct pattern
-5. Create one `episodic` inventory entry per design
 
-### Step 4: Cross-type patterns
+1. Cross-reference fills across inspected designs — shared assets are
+   brand elements
+2. Analyze thumbnail vision for colors, background style, overall mood
+3. Map text element positions to understand layout grid
+4. Identify recurring structural sections from richtext content
+5. Create one `semantic` pattern entry per distinct pattern (include
+   asset IDs)
+6. Create one `episodic` inventory entry per design
+7. Create one `asset-catalog` entry for the session
+
+### Step 5: Cross-type patterns
 
 After all types are processed:
-1. Identify patterns that span design types (brand-level patterns)
+
+1. Identify assets that span design types (brand-level assets)
 2. Create brand-level pattern entries with broader `Applies to`
 3. Tag with `pattern:brand`
+4. Record brand kit ID if available
 
-### Step 5: Summary
+### Step 6: Summary
 
 Create a summary entry:
 
@@ -177,10 +311,13 @@ entries_create({
   diary_id: "<DIARY_ID>",
   title: "Canva explore summary — <date>",
   content: "Explored <N> designs across <M> types.
-    Created <X> pattern entries and <Y> inventory entries.
+    Created <X> pattern entries, <Y> inventory entries, 1 asset catalog.
     Key patterns: <list>.
     Design types covered: <list>.
-    Suggested next: consolidate entries, then test with canva-suggest.",
+    Brand kit: <id or none>.
+    Brand templates found: <count>.
+    Reusable assets cataloged: <count>.
+    Suggested next: use patterns + asset_ids to generate new designs.",
   tags: ["source:canva-explore", "explore-session:<timestamp>",
          "scan-category:summary"],
   importance: 5,
@@ -188,19 +325,70 @@ entries_create({
 })
 ```
 
+## Using patterns to create new designs
+
+When creating a new design based on extracted patterns:
+
+### Option A: Clone and edit (most faithful)
+
+Best when a matching design exists. Preserves all visual identity.
+
+```
+start-editing-transaction({ design_id: "<source_design_id>" })
+# Use find_and_replace_text to update content
+# Use update_fill to swap speaker photos
+commit-editing-transaction({ transaction_id: "<tx_id>" })
+```
+
+### Option B: Generate with brand kit + assets
+
+Best when brand kit exists. Canva applies brand colors/fonts.
+
+```
+generate-design({
+  brand_kit_id: "<from brand kit discovery>",
+  asset_ids: ["<logo_id>", "<icon_id>", ...],
+  ...
+})
+```
+
+### Option C: Generate then refine
+
+Generate from scratch, then edit to inject brand assets.
+
+```
+# 1. Generate
+generate-design-structured({ ... })
+# 2. Create from candidate
+create-design-from-candidate({ job_id, candidate_id })
+# 3. Open for editing
+start-editing-transaction({ design_id: "<new_id>" })
+# 4. Insert brand assets
+perform-editing-operations({
+  operations: [
+    { type: "insert_fill", asset_id: "<logo>", ... },
+    { type: "update_fill", element_id: "<placeholder>", asset_id: "<photo>" }
+  ]
+})
+commit-editing-transaction({ transaction_id: "<tx_id>" })
+```
+
 ## Tag conventions
 
-| Tag | Purpose |
-|---|---|
-| `source:canva-explore` | All entries from this skill |
-| `design-type:<type>` | The Canva design type |
-| `pattern:<category>` | Pattern category (color, typography, layout, structure, brand) |
-| `explore-session:<timestamp>` | Groups entries from one explore run |
-| `canva-id:<id>` | Links back to Canva design ID |
+| Tag                           | Purpose                                                                |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `source:canva-explore`        | All entries from this skill                                            |
+| `design-type:<type>`          | The Canva design type                                                  |
+| `pattern:<category>`          | Pattern category (color, typography, layout, structure, brand, assets) |
+| `explore-session:<timestamp>` | Groups entries from one explore run                                    |
+| `canva-id:<id>`               | Links back to Canva design ID                                          |
+| `asset-catalog`               | Session asset catalog entry                                            |
+| `brand-kit:<id>`              | Links to Canva brand kit                                               |
 
 ## Recovery after context compression
 
 1. Read this skill file
 2. Check `entries_search({ tags: ["source:canva-explore"] })` to see what
    exists
-3. Resume from last completed step
+3. Check `entries_search({ tags: ["asset-catalog"] })` for reusable assets
+4. Resume from last completed step
