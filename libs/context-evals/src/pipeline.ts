@@ -11,6 +11,7 @@
  *   pnpm gpack --eval add-dbos-dedup-queues --diary-id <uuid> --ai-key <key>
  *   pnpm gpack --eval add-dbos-dedup-queues --baseline  # run baseline (empty pack)
  *   pnpm gpack --eval all --baseline --pack-file .legreffier/context/runs/<ts>/compiled-pack.md
+ *   pnpm gpack --eval all --baseline --pack-file pack1.md --pack-file pack2.md  # multiple packs concatenated
  *   pnpm gpack --task-id auth-permissions-export-relationshipreader-and-add-testco-2bf0c3c8 --baseline
  *   pnpm gpack --task-file tasksmith/candidates/tasks/foo.json --baseline
  *
@@ -69,7 +70,7 @@ const { values } = parseArgs({
     'task-source': { type: 'string', default: 'evals' },
     'task-status': { type: 'string', default: 'verified' },
     families: { type: 'string' },
-    'pack-file': { type: 'string' },
+    'pack-file': { type: 'string', multiple: true },
     'diary-id': { type: 'string' },
     'student-provider': { type: 'string' },
     'teacher-provider': { type: 'string' },
@@ -115,7 +116,13 @@ if (!evalArg && taskIdArgs.length === 0 && taskFileArgs.length === 0) {
 }
 const taskSource = str(values['task-source']) || 'evals';
 const taskStatus = str(values['task-status']) || 'verified';
-const packFileArg = str(values['pack-file']);
+const packFileArgs = (
+  Array.isArray(values['pack-file'])
+    ? values['pack-file']
+    : typeof values['pack-file'] === 'string'
+      ? [values['pack-file']]
+      : []
+).filter((v): v is string => typeof v === 'string' && v.length > 0);
 const familyFilter = new Set(
   str(values['families'])
     .split(',')
@@ -445,14 +452,18 @@ async function main() {
     concurrency,
     evalCache,
   });
-  const explicitPack = packFileArg
-    ? await loadPackFile(repoRoot, packFileArg)
-    : '';
+  // Load explicit pack files (multiple --pack-file flags concatenated)
+  const explicitPack =
+    packFileArgs.length > 0
+      ? (
+          await Promise.all(packFileArgs.map((f) => loadPackFile(repoRoot, f)))
+        ).join('\n\n')
+      : '';
 
   if (runBaselineMode) {
-    if (packFileArg) {
+    if (packFileArgs.length > 0) {
       console.log(
-        `[gpack] running pack eval from ${resolve(repoRoot, packFileArg)}...`,
+        `[gpack] running pack eval from ${packFileArgs.length} file(s): ${packFileArgs.join(', ')}`,
       );
     } else {
       console.log('[gpack] running baseline (empty pack)...');
@@ -461,7 +472,7 @@ async function main() {
     if (debugTraces) {
       await writeDebugArtifact(
         repoRoot,
-        `${packFileArg ? 'gpack-pack' : 'gpack-baseline'}-${Date.now()}.json`,
+        `${packFileArgs.length > 0 ? 'gpack-pack' : 'gpack-baseline'}-${Date.now()}.json`,
         {
           phase: 'baseline',
           evals: evalInputs.map((input) => input.name),
@@ -472,7 +483,7 @@ async function main() {
       );
     }
     console.log(
-      `[gpack] ${packFileArg ? 'pack' : 'baseline'} scores: ${baselineResult.scores
+      `[gpack] ${packFileArgs.length > 0 ? 'pack' : 'baseline'} scores: ${baselineResult.scores
         .map((s) => s.toFixed(2))
         .join(', ')} avg=${baselineResult.averageScore.toFixed(2)}`,
     );
@@ -482,7 +493,7 @@ async function main() {
   let seedPack = '';
   if (explicitPack) {
     console.log(
-      `[gpack] evals=${evalInputs.map((e) => e.name).join(',')} seed=${resolve(repoRoot, packFileArg)} maxMetricCalls=${maxMetricCalls} numTrials=${numTrials}`,
+      `[gpack] evals=${evalInputs.map((e) => e.name).join(',')} seed=${packFileArgs.join('+')} maxMetricCalls=${maxMetricCalls} numTrials=${numTrials}`,
     );
     seedPack = explicitPack;
   } else {
