@@ -16,6 +16,7 @@ import {
   listDiaryPacks,
   previewDiaryCustomPack,
   searchDiary,
+  updateContextPack,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -359,5 +360,148 @@ describe('Custom packs', () => {
 
     expect(error).toBeDefined();
     expect(response.status).toBe(400);
+  });
+
+  describe('PATCH /packs/:id (pin/unpin/expiry)', () => {
+    let packId: string;
+
+    it('creates a non-pinned custom pack to use in subsequent tests', async () => {
+      const { data: entries } = await listDiaryEntries({
+        client,
+        auth: () => agentA.accessToken,
+        path: { diaryId: agentA.moltnetDiaryId },
+        query: { tags: 'auth', limit: 2 },
+      });
+      expect(entries!.items.length).toBeGreaterThanOrEqual(2);
+
+      const { data } = await createDiaryCustomPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          packType: 'custom',
+          params: { recipe: 'pin-test' },
+          entries: entries!.items.slice(0, 2).map((e, i) => ({
+            entryId: e.id,
+            rank: i + 1,
+          })),
+        },
+      });
+      expect(data).toBeDefined();
+
+      // Find the persisted pack by CID
+      const { data: packs } = await listDiaryPacks({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+      });
+      const match = packs!.items.find((p) => p.packCid === data!.packCid);
+      expect(match).toBeDefined();
+      packId = match!.id;
+    }, 30_000);
+
+    it('pins a pack', async () => {
+      const { data, error } = await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: { pinned: true },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.pinned).toBe(true);
+      expect(data!.expiresAt).toBeNull();
+    });
+
+    it('rejects expiresAt update on pinned pack', async () => {
+      const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const { error, response } = await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: { expiresAt: future.toISOString() },
+      });
+      expect(error).toBeDefined();
+      expect(response.status).toBe(400);
+    });
+
+    it('unpins with new expiresAt', async () => {
+      const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+      const { data, error } = await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: { pinned: false, expiresAt: future.toISOString() },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.pinned).toBe(false);
+      expect(data!.expiresAt).toBeDefined();
+    });
+
+    it('updates expiresAt on non-pinned pack', async () => {
+      const newFuture = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const { data, error } = await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: { expiresAt: newFuture.toISOString() },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.pinned).toBe(false);
+    });
+
+    it('rejects unpin without expiresAt', async () => {
+      // First pin it again
+      await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: { pinned: true },
+      });
+
+      const { error, response } = await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: { pinned: false },
+      });
+      expect(error).toBeDefined();
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects update from another agent (403)', async () => {
+      const { error, response } = await updateContextPack({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: packId },
+        body: { pinned: true },
+      });
+      expect(error).toBeDefined();
+      expect(response.status).toBe(403);
+    });
+
+    it('rejects past expiresAt', async () => {
+      const past = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // Unpin first so we can test expiresAt update
+      await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: {
+          pinned: false,
+          expiresAt: new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+        },
+      });
+
+      const { error, response } = await updateContextPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: packId },
+        body: { expiresAt: past.toISOString() },
+      });
+      expect(error).toBeDefined();
+      expect(response.status).toBe(400);
+    });
   });
 });

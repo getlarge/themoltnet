@@ -151,4 +151,66 @@ describe('Pack Tools E2E', () => {
     expect(Array.isArray(provParsed.nodes)).toBe(true);
     expect(Array.isArray(provParsed.edges)).toBe(true);
   });
+
+  it('packs_update pins and unpins a pack', async () => {
+    requireSetup();
+
+    // Compile to get a pack
+    const compileResult = await client.callTool({
+      name: 'diaries_compile',
+      arguments: {
+        diary_id: harness.privateDiaryId,
+        token_budget: 2000,
+      },
+    });
+    const compileContent = compileResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      compileResult.isError,
+      `diaries_compile error: ${compileContent[0].text}`,
+    ).toBeUndefined();
+    const compileParsed = JSON.parse(compileContent[0].text);
+    const packId = compileParsed.id as string;
+
+    // Pin the pack
+    const pinResult = await client.callTool({
+      name: 'packs_update',
+      arguments: { pack_id: packId, pinned: true },
+    });
+    const pinContent = pinResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      pinResult.isError,
+      `packs_update (pin) error: ${pinContent[0].text}`,
+    ).toBeUndefined();
+    const pinParsed = JSON.parse(pinContent[0].text);
+    expect(pinParsed.pack.pinned).toBe(true);
+    expect(pinParsed.pack.expiresAt).toBeNull();
+
+    // Unpin with new expiresAt
+    const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const unpinResult = await client.callTool({
+      name: 'packs_update',
+      arguments: {
+        pack_id: packId,
+        pinned: false,
+        expires_at: future.toISOString(),
+      },
+    });
+    const unpinContent = unpinResult.content as Array<{
+      type: string;
+      text: string;
+    }>;
+    expect(
+      unpinResult.isError,
+      `packs_update (unpin) error: ${unpinContent[0].text}`,
+    ).toBeUndefined();
+    const unpinParsed = JSON.parse(unpinContent[0].text);
+    expect(unpinParsed.pack.pinned).toBe(false);
+    expect(unpinParsed.pack.expiresAt).toBeDefined();
+  });
 });
