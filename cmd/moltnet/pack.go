@@ -31,8 +31,9 @@ func runPackExport(args []string) error {
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
 	out := fs.String("out", "", "Output file path (default: stdout)")
 	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack export <pack-id> [options]")
-		fmt.Fprintln(os.Stderr, "\nExport a context pack as markdown.")
+		fmt.Fprintln(os.Stderr, "Usage: moltnet pack export [options] <pack-uuid>")
+		fmt.Fprintln(os.Stderr, "\nExport a context pack as markdown. The pack ID must be a UUID (not a CID).")
+		fmt.Fprintln(os.Stderr, "Use 'moltnet pack list' or the MCP packs_list tool to find pack UUIDs.")
 		fmt.Fprintln(os.Stderr, "\nOptions:")
 		fs.PrintDefaults()
 	}
