@@ -5,18 +5,18 @@ import { join } from 'node:path';
 const SKILL_VERSION = 'legreffier-v0.1.0';
 const SKILL_FALLBACK = 'main';
 
-const SKILL_PATH = '.claude/skills/legreffier/SKILL.md';
+const SKILL_NAMES = ['legreffier', 'legreffier-scan', 'legreffier-explore'];
 
-function skillUrl(ref: string): string {
-  return `https://raw.githubusercontent.com/getlarge/themoltnet/${ref}/${SKILL_PATH}`;
+function skillUrl(name: string, ref: string): string {
+  return `https://raw.githubusercontent.com/getlarge/themoltnet/${ref}/.claude/skills/${name}/SKILL.md`;
 }
 
-const SKILLS: Array<{ name: string; urls: string[] }> = [
-  {
-    name: 'legreffier',
-    urls: [skillUrl(SKILL_VERSION), skillUrl(SKILL_FALLBACK)],
-  },
-];
+const SKILLS: Array<{ name: string; urls: string[] }> = SKILL_NAMES.map(
+  (name) => ({
+    name,
+    urls: [skillUrl(name, SKILL_VERSION), skillUrl(name, SKILL_FALLBACK)],
+  }),
+);
 
 /**
  * Install MoltNet skills into the given skill directory.
