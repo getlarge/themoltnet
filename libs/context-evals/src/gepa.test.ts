@@ -93,4 +93,16 @@ describe('buildMetricFn', () => {
     expect(second.trace).toBe(trace);
     expect(evaluator).toHaveBeenCalledOnce();
   });
+
+  it('preserves objectives in cached results', async () => {
+    const objectives = {
+      task_success: 0.8,
+      turn_efficiency: 0.6,
+      cost_efficiency: 0.9,
+    };
+    const evaluator = vi.fn().mockResolvedValue({ score: 0.8, objectives });
+    const metric = buildMetricFn(evaluator);
+    const result = await metric('task-1', 'instruction');
+    expect(result.objectives).toEqual(objectives);
+  });
 });

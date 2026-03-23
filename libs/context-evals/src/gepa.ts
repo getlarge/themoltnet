@@ -65,6 +65,12 @@ export type TaskExample = Readonly<
 /** Result from a single evaluation, optionally including a trace. */
 export interface EvalOneResult<TTrace> {
   score: number;
+  /**
+   * Multi-objective scores. When present, metricFn returns this map
+   * instead of `{ score }`. ax-llm preserves the full vector through
+   * normalizeScores → evalBatch → candidates → Pareto archive.
+   */
+  objectives?: Record<string, number>;
   trace?: TTrace;
 }
 
@@ -253,8 +259,10 @@ export async function runGepaOptimization<
     // GEPA's normalizeScores expects Record<string, number> at runtime, but
     // AxMetricFn types say number. Cast through unknown to satisfy both.
     // DO NOT simplify to `return evalResult.score` — bare numbers produce bestScore: 0.
-    // TODO: remove cast when ax-llm fixes AxMetricFn return type.
-    return { score: evalResult.score } as unknown as number;
+    // When evaluateOne provides multi-objective scores, return the full map.
+    // ax-llm preserves arbitrary keys through normalizeScores → Pareto archive.
+    const objectiveMap = evalResult.objectives ?? { score: evalResult.score };
+    return objectiveMap as unknown as number;
   };
 
   const result = await optimizer.compile(
