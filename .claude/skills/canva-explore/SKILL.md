@@ -1,6 +1,6 @@
 ---
 name: canva-explore
-description: 'Explore Canva designs and extract visual/structural patterns into MoltNet diary entries. Works with Canva MCP (search-designs, get-design, get-design-pages) or mock data when Canva MCP is unavailable. Patterns are stored for later compilation into design context packs.'
+description: 'Explore Canva designs via MCP and extract visual/structural patterns into MoltNet diary entries. Requires Canva MCP (search-designs, get-design, get-design-pages). Patterns are stored for later compilation into design context packs.'
 ---
 
 # Canva Explore Skill
@@ -14,11 +14,8 @@ new design creation.
 
 - LeGreffier must be initialized (agent identity active, diary exists)
 - `DIARY_ID` must be resolved
-- **One of:**
-  - Canva MCP connected (provides `search-designs`, `get-design`,
-    `get-design-pages` tools)
-  - Mock mode: user provides design descriptions, screenshots, or the
-    skill uses the mock data in `references/mock-designs.md`
+- Canva MCP connected (provides `search-designs`, `get-design`,
+  `get-design-pages` tools)
 
 ## When to trigger
 
@@ -27,22 +24,13 @@ new design creation.
 - User wants to prepare context before creating a new design
 - First time setting up design memory for a Canva account
 
-## Modes
-
-### Live (Canva MCP connected)
+## Workflow overview
 
 1. **Discover**: `search-designs` with keywords or list all
 2. **Inspect**: `get-design` + `get-design-pages` for each design
 3. **Analyze thumbnails**: Use vision on page thumbnails to extract visual
    patterns
 4. **Create entries**: Write structured diary entries per pattern
-
-### Mock (no Canva MCP)
-
-1. User describes designs or provides screenshots
-2. Agent analyzes descriptions/images
-3. Creates the same structured entries as live mode
-4. Can also use `references/mock-designs.md` for demonstration
 
 ## Extraction targets
 
@@ -155,16 +143,9 @@ Patterns used: <references to pattern entries — "see Design pattern: X">
 
 ### Step 1: Discover designs
 
-**Live mode:**
 ```
 search-designs({ query: "<keyword or empty for all>" })
 ```
-
-**Mock mode:**
-Ask the user: "Describe your most important designs — what types
-(presentations, courses, etc.) and what they look like visually."
-
-Or use `references/mock-designs.md` for demonstration.
 
 ### Step 2: Group by type
 
@@ -175,7 +156,7 @@ Process each type as a batch.
 
 For each design type:
 1. Pick 2-3 representative designs
-2. Analyze thumbnails (live) or descriptions (mock)
+2. Analyze thumbnails via vision
 3. Identify recurring visual/structural patterns
 4. Create one `semantic` pattern entry per distinct pattern
 5. Create one `episodic` inventory entry per design
