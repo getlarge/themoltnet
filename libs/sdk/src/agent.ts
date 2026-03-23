@@ -176,6 +176,9 @@ export interface PacksNamespace {
     query?: ListDiaryPacksData['query'],
   ): Promise<ContextPackList>;
 
+  /** Fetch a pack with expanded entries and render as markdown. */
+  export(id: string): Promise<string>;
+
   getProvenance(
     id: string,
     query?: GetContextPackProvenanceByIdData['query'],

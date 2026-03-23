@@ -9,6 +9,39 @@ import type { PacksNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 
+function renderPackMarkdown(
+  id: string,
+  pack: Awaited<ReturnType<PacksNamespace['get']>>,
+): string {
+  const entries = pack.entries ?? [];
+  const sections = entries.map((entry, index) => {
+    const title =
+      entry.entry.title ?? `Entry ${index + 1} — ${entry.entryId.slice(0, 8)}`;
+    return [
+      `### ${title}`,
+      '',
+      `- Entry ID: \`${entry.entryId}\``,
+      `- CID: \`${entry.entryCidSnapshot}\``,
+      `- Compression: \`${entry.compressionLevel}\``,
+      `- Tokens: ${entry.packedTokens ?? '?'}/${entry.originalTokens ?? '?'}`,
+      '',
+      entry.entry.content,
+    ].join('\n');
+  });
+
+  return [
+    `# Context Pack ${id}`,
+    '',
+    `Entries: ${entries.length}`,
+    `Created: ${pack.createdAt}`,
+    '',
+    '---',
+    '',
+    ...sections,
+    '',
+  ].join('\n');
+}
+
 export function createPacksNamespace(context: AgentContext): PacksNamespace {
   const { client, auth } = context;
 
@@ -33,6 +66,18 @@ export function createPacksNamespace(context: AgentContext): PacksNamespace {
           query,
         }),
       );
+    },
+
+    async export(id) {
+      const pack = unwrapResult(
+        await getContextPackById({
+          client,
+          auth,
+          path: { id },
+          query: { expand: 'entries' },
+        }),
+      );
+      return renderPackMarkdown(id, pack);
     },
 
     async getProvenance(id, query) {
