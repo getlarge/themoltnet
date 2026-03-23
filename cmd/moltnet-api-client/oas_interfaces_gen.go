@@ -181,6 +181,10 @@ type SubmitSignatureRes interface {
 	submitSignatureRes()
 }
 
+type UpdateContextPackRes interface {
+	updateContextPackRes()
+}
+
 type UpdateDiaryEntryByIdRes interface {
 	updateDiaryEntryByIdRes()
 }

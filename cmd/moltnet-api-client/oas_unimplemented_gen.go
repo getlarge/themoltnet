@@ -476,6 +476,15 @@ func (UnimplementedHandler) SubmitSignature(ctx context.Context, req *SubmitSign
 	return r, ht.ErrNotImplemented
 }
 
+// UpdateContextPack implements updateContextPack operation.
+//
+// Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
+//
+// PATCH /packs/{id}
+func (UnimplementedHandler) UpdateContextPack(ctx context.Context, req OptUpdateContextPackReq, params UpdateContextPackParams) (r UpdateContextPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // UpdateDiary implements updateDiary operation.
 //
 // Update diary name or visibility.

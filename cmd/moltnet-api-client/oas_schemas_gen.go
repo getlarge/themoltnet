@@ -1561,6 +1561,7 @@ func (s *ContextPackResponse) SetSupersedesPackId(val NilUUID) {
 }
 
 func (*ContextPackResponse) getContextPackByIdRes() {}
+func (*ContextPackResponse) updateContextPackRes()  {}
 
 // Ref: #/components/schemas/ContextPackResponseList
 type ContextPackResponseList struct {
@@ -7597,6 +7598,52 @@ func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
 	return d
 }
 
+// NewOptUpdateContextPackReq returns new OptUpdateContextPackReq with value set to v.
+func NewOptUpdateContextPackReq(v UpdateContextPackReq) OptUpdateContextPackReq {
+	return OptUpdateContextPackReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateContextPackReq is optional UpdateContextPackReq.
+type OptUpdateContextPackReq struct {
+	Value UpdateContextPackReq
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateContextPackReq was set.
+func (o OptUpdateContextPackReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateContextPackReq) Reset() {
+	var v UpdateContextPackReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateContextPackReq) SetTo(v UpdateContextPackReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateContextPackReq) Get() (v UpdateContextPackReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateContextPackReq) Or(d UpdateContextPackReq) UpdateContextPackReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUpdateDiaryEntryByIdReq returns new OptUpdateDiaryEntryByIdReq with value set to v.
 func NewOptUpdateDiaryEntryByIdReq(v UpdateDiaryEntryByIdReq) OptUpdateDiaryEntryByIdReq {
 	return OptUpdateDiaryEntryByIdReq{
@@ -9383,6 +9430,51 @@ func (s *Success) SetSuccess(val bool) {
 func (*Success) deleteDiaryEntryByIdRes() {}
 func (*Success) deleteDiaryRes()          {}
 func (*Success) revokeDiaryShareRes()     {}
+
+type UpdateContextPackBadRequest ProblemDetails
+
+func (*UpdateContextPackBadRequest) updateContextPackRes() {}
+
+type UpdateContextPackForbidden ProblemDetails
+
+func (*UpdateContextPackForbidden) updateContextPackRes() {}
+
+type UpdateContextPackInternalServerError ProblemDetails
+
+func (*UpdateContextPackInternalServerError) updateContextPackRes() {}
+
+type UpdateContextPackNotFound ProblemDetails
+
+func (*UpdateContextPackNotFound) updateContextPackRes() {}
+
+type UpdateContextPackReq struct {
+	ExpiresAt OptDateTime `json:"expiresAt"`
+	Pinned    OptBool     `json:"pinned"`
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *UpdateContextPackReq) GetExpiresAt() OptDateTime {
+	return s.ExpiresAt
+}
+
+// GetPinned returns the value of Pinned.
+func (s *UpdateContextPackReq) GetPinned() OptBool {
+	return s.Pinned
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *UpdateContextPackReq) SetExpiresAt(val OptDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *UpdateContextPackReq) SetPinned(val OptBool) {
+	s.Pinned = val
+}
+
+type UpdateContextPackUnauthorized ProblemDetails
+
+func (*UpdateContextPackUnauthorized) updateContextPackRes() {}
 
 type UpdateDiaryEntryByIdConflict ProblemDetails
 

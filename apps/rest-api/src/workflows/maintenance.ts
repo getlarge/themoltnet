@@ -16,6 +16,7 @@ import {
   DBOS,
   type NonceRepository,
 } from '@moltnet/database';
+import type { FastifyBaseLogger } from 'fastify';
 
 import type { PackGcConfig } from '../config.js';
 
@@ -26,6 +27,7 @@ export interface MaintenanceDeps {
   contextPackRepository: ContextPackRepository;
   dataSource: DataSource;
   relationshipWriter: RelationshipWriter;
+  logger: FastifyBaseLogger;
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -58,9 +60,9 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
   // ── Nonce Cleanup ────────────────────────────────────────────
   DBOS.registerScheduled(
     async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
-      const { nonceRepository } = getDeps();
+      const { nonceRepository, logger } = getDeps();
       await nonceRepository.cleanup();
-      DBOS.logger.info('maintenance: nonce cleanup complete');
+      logger.info('maintenance: nonce cleanup complete');
     },
     { name: 'maintenance.nonceCleanup', crontab: '0 0 * * *' },
   );
@@ -84,16 +86,18 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
       name: 'maintenance.packGc.ketoCleanup',
       retriesAllowed: true,
       maxAttempts: 3,
+      intervalSeconds: 2,
       backoffRate: 2,
     },
   );
 
   const packGcWorkflow = DBOS.registerWorkflow(
     async (input: { batchSize: number }) => {
+      const { logger } = getDeps();
       const expiredPacks = await listExpiredStep(new Date(), input.batchSize);
 
       if (expiredPacks.length === 0) {
-        DBOS.logger.info('maintenance: pack GC — no expired packs');
+        logger.info('maintenance: pack GC — no expired packs');
         return { deleted: 0, batchFull: false };
       }
 
@@ -113,16 +117,15 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
       // Best-effort Keto cleanup — orphaned tuples are harmless
       try {
         await ketoCleanupStep(packRefs);
-      } catch {
-        DBOS.logger.warn(
-          `maintenance: pack GC — Keto cleanup failed for ${ids.length} packs (orphaned tuples are harmless)`,
+      } catch (error) {
+        logger.warn(
+          { err: error, packIds: ids },
+          'maintenance: pack GC — Keto cleanup failed (orphaned tuples are harmless)',
         );
       }
 
       const batchFull = expiredPacks.length >= input.batchSize;
-      DBOS.logger.info(
-        `maintenance: pack GC complete — deleted ${deleted}, batchFull=${batchFull}`,
-      );
+      logger.info({ deleted, batchFull }, 'maintenance: pack GC complete');
 
       return { deleted, batchFull };
     },
@@ -134,8 +137,9 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
 
   DBOS.registerScheduled(
     async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
-      const handle = await DBOS.startWorkflow(packGcWorkflow)({ batchSize });
-      await handle.getResult();
+      // Fire-and-forget: don't await getResult() to avoid blocking
+      // the next cron tick if GC takes longer than expected.
+      await DBOS.startWorkflow(packGcWorkflow)({ batchSize });
     },
     { name: 'maintenance.packGcScheduler', crontab: cron },
   );

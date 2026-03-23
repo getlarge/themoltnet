@@ -264,6 +264,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           contextPackRepository,
           dataSource: getDataSource(),
           relationshipWriter,
+          logger: app.log,
         });
       },
     ],
