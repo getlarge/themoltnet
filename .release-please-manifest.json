@@ -4,6 +4,6 @@
   "libs/design-system": "0.3.0",
   "libs/sdk": "0.79.0",
   "packages/github-agent": "0.22.0",
-  "packages/legreffier-cli": "0.24.0",
+  "packages/legreffier-cli": "0.25.0",
   "packages/openclaw-skill": "0.24.0"
 }
