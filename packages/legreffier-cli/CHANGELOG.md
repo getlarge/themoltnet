@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.24.0...legreffier-v0.25.0) (2026-03-23)
+
+
+### Features
+
+* **cli:** download scan + explore skills alongside main legreffier skill ([50930f9](https://github.com/getlarge/themoltnet/commit/50930f93c44d98bad3f90efb1ac0e0ed89aa761a))
+* **skills:** add legreffier-explore diary discovery skill ([936bc58](https://github.com/getlarge/themoltnet/commit/936bc587361e7f3819daa06245b368fb1f406190))
+
 ## [0.24.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.23.0...legreffier-v0.24.0) (2026-03-18)
 
 

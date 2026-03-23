@@ -171,3 +171,5 @@ See [BUILDER_JOURNAL.md](../BUILDER_JOURNAL.md) for the full method specificatio
 | 2026-03-05 | handoff    | [Docker Build Speedup: Model Stage Isolation + .dockerignore Fixes](2026-03-05-02-docker-build-speedup.md)                                         |
 | 2026-03-06 | handoff    | [Context Distill Phase 2 — DBOS Workflows + API Endpoints](2026-03-06-01-context-distill-phase2.md)                                                |
 | 2026-03-06 | handoff    | [Entry-Centric Routes + SDK Distill Surface (Issues #377 + #379)](2026-03-06-02-entry-centric-routes-sdk-distill.md)                               |
+| 2026-03-21 | handoff    | [Custom Pack Preview + Create API (Issue #456)](2026-03-21-01-custom-pack-preview-create-api.md)                                                   |
+| 2026-03-21 | handoff    | [Custom Pack MCP Tools, Generated Clients, and E2E Coverage](2026-03-21-02-custom-pack-mcp-sdk-e2e.md)                                             |

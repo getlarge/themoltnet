@@ -213,6 +213,72 @@ func decodeConsolidateDiaryParams(args [1]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// CreateDiaryCustomPackParams is parameters of createDiaryCustomPack operation.
+type CreateDiaryCustomPackParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackCreateDiaryCustomPackParams(packed middleware.Parameters) (params CreateDiaryCustomPackParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateDiaryCustomPackParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateDiaryCustomPackParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateDiaryEntryParams is parameters of createDiaryEntry operation.
 type CreateDiaryEntryParams struct {
 	// UUID v4 identifier.
@@ -3294,6 +3360,72 @@ func decodeListSigningRequestsParams(args [0]string, argsEscaped bool, r *http.R
 		return params, &ogenerrors.DecodeParamError{
 			Name: "status",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// PreviewDiaryCustomPackParams is parameters of previewDiaryCustomPack operation.
+type PreviewDiaryCustomPackParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackPreviewDiaryCustomPackParams(packed middleware.Parameters) (params PreviewDiaryCustomPackParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodePreviewDiaryCustomPackParams(args [1]string, argsEscaped bool, r *http.Request) (params PreviewDiaryCustomPackParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
 			Err:  err,
 		}
 	}

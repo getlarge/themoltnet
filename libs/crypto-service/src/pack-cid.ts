@@ -13,8 +13,6 @@
  * {
  *   v: 'moltnet:pack:v1',
  *   diaryId: string,
- *   createdBy: string,
- *   createdAt: string (ISO 8601),
  *   packType: 'compile' | 'optimized',
  *   params: { ... type-specific parameters },
  *   entries: [{ cid: CID, compressionLevel: string, rank: number }]
@@ -66,8 +64,6 @@ export interface PackEntryRef {
 /** Common fields shared by all pack envelope inputs. */
 interface PackEnvelopeBase {
   diaryId: string;
-  createdBy: string;
-  createdAt: string;
   entries: PackEntryRef[];
 }
 
@@ -116,8 +112,6 @@ export function buildPackEnvelope(input: PackEnvelopeInput): Uint8Array {
 
   const envelope = {
     v: 'moltnet:pack:v1',
-    createdAt: input.createdAt,
-    createdBy: input.createdBy,
     diaryId: input.diaryId,
     entries,
     packType: input.packType,

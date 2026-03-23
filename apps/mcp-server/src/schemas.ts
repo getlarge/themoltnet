@@ -8,6 +8,7 @@
 import type {
   CompileDiaryData,
   ConsolidateDiaryData,
+  CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateEntryRelationData,
@@ -27,6 +28,7 @@ import type {
   ListDiaryEntriesData,
   ListDiaryPacksData,
   ListEntryRelationsData,
+  PreviewDiaryCustomPackData,
   ReflectDiaryData,
   SearchDiaryData,
   SearchPublicFeedData,
@@ -675,6 +677,96 @@ export type PackListInput = {
   expand?: ListPacksQuery['expand'];
 };
 
+export const CustomPackEntrySelectionSchema = Type.Object({
+  entry_id: Type.String({
+    description: 'Entry identifier (UUID) selected by the caller.',
+  }),
+  rank: Type.Integer({
+    description: 'Caller-defined rank. Lower numbers are kept first.',
+    minimum: 1,
+  }),
+});
+type PreviewCustomPackBody = BodyOf<PreviewDiaryCustomPackData>;
+type CreateCustomPackBody = BodyOf<CreateDiaryCustomPackData>;
+type CustomPackEntrySelection = PreviewCustomPackBody['entries'][number] &
+  CreateCustomPackBody['entries'][number];
+type CustomPackParams = PreviewCustomPackBody['params'] &
+  CreateCustomPackBody['params'];
+
+export const PackPreviewSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary ID (UUID) that owns the selected entries.',
+  }),
+  params: Type.Record(Type.String(), Type.Unknown(), {
+    description:
+      'Arbitrary client-side retrieval metadata to persist in the pack.',
+  }),
+  entries: Type.Array(CustomPackEntrySelectionSchema, {
+    description: 'Explicit entry selections with caller-defined ranking.',
+    minItems: 1,
+    maxItems: 500,
+  }),
+  token_budget: Type.Optional(
+    Type.Integer({
+      description: 'Optional token budget used for server-side compression.',
+      minimum: 1,
+      maximum: 100000,
+    }),
+  ),
+  pinned: Type.Optional(
+    Type.Boolean({
+      description: 'Whether the persisted pack should be pinned.',
+    }),
+  ),
+});
+export type PackPreviewInput = {
+  diary_id: PathOf<PreviewDiaryCustomPackData>['id'];
+  params: CustomPackParams;
+  entries: Array<{
+    entry_id: CustomPackEntrySelection['entryId'];
+    rank: CustomPackEntrySelection['rank'];
+  }>;
+  token_budget?: PreviewCustomPackBody['tokenBudget'];
+  pinned?: PreviewCustomPackBody['pinned'];
+};
+
+export const PackCreateSchema = Type.Object({
+  diary_id: Type.String({
+    description: 'Diary ID (UUID) that owns the selected entries.',
+  }),
+  params: Type.Record(Type.String(), Type.Unknown(), {
+    description:
+      'Arbitrary client-side retrieval metadata to persist in the pack.',
+  }),
+  entries: Type.Array(CustomPackEntrySelectionSchema, {
+    description: 'Explicit entry selections with caller-defined ranking.',
+    minItems: 1,
+    maxItems: 500,
+  }),
+  token_budget: Type.Optional(
+    Type.Integer({
+      description: 'Optional token budget used for server-side compression.',
+      minimum: 1,
+      maximum: 100000,
+    }),
+  ),
+  pinned: Type.Optional(
+    Type.Boolean({
+      description: 'Whether the persisted pack should be pinned.',
+    }),
+  ),
+});
+export type PackCreateInput = {
+  diary_id: PathOf<CreateDiaryCustomPackData>['id'];
+  params: CustomPackParams;
+  entries: Array<{
+    entry_id: CustomPackEntrySelection['entryId'];
+    rank: CustomPackEntrySelection['rank'];
+  }>;
+  token_budget?: CreateCustomPackBody['tokenBudget'];
+  pinned?: CreateCustomPackBody['pinned'];
+};
+
 export const PackProvenanceSchema = Type.Object({
   pack_id: Type.Optional(
     Type.String({
@@ -825,6 +917,14 @@ type _PackGetInputMatchesSchema = AssertSchemaToApi<
 type _PackListInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackListSchema>,
   PackListInput
+>;
+type _PackPreviewInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackPreviewSchema>,
+  PackPreviewInput
+>;
+type _PackCreateInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackCreateSchema>,
+  PackCreateInput
 >;
 type _PackProvenanceInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackProvenanceSchema>,

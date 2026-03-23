@@ -6,25 +6,36 @@
  */
 
 import {
+  createDiaryCustomPack,
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
   listDiaryPacks,
+  previewDiaryCustomPack,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
 import type {
+  PackCreateInput,
   PackGetInput,
   PackListInput,
+  PackPreviewInput,
   PackProvenanceInput,
 } from './schemas.js';
 import {
+  PackCreateSchema,
   PackGetSchema,
   PackListSchema,
+  PackPreviewSchema,
   PackProvenanceSchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
-import { errorResult, getTokenFromContext, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  getTokenFromContext,
+  textResult,
+} from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
 
@@ -48,7 +59,7 @@ export async function handlePacksGet(
 
   if (error) {
     deps.logger.error({ tool: 'packs_get', err: error }, 'tool.error');
-    return errorResult('Pack not found');
+    return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
   return textResult({ pack: data });
@@ -75,7 +86,77 @@ export async function handlePacksList(
 
   if (error) {
     deps.logger.error({ tool: 'packs_list', err: error }, 'tool.error');
-    return errorResult('Failed to list packs');
+    return errorResult(extractApiErrorMessage(error, 'Failed to list packs'));
+  }
+
+  return textResult(data);
+}
+
+export async function handlePacksPreview(
+  args: PackPreviewInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'packs_preview' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await previewDiaryCustomPack({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.diary_id },
+    body: {
+      packType: 'custom',
+      params: args.params,
+      entries: args.entries.map(({ entry_id, rank }) => ({
+        entryId: entry_id,
+        rank,
+      })),
+      tokenBudget: args.token_budget,
+      pinned: args.pinned,
+    },
+  });
+
+  if (error) {
+    deps.logger.error({ tool: 'packs_preview', err: error }, 'tool.error');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to preview custom pack'),
+    );
+  }
+
+  return textResult(data);
+}
+
+export async function handlePacksCreate(
+  args: PackCreateInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'packs_create' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await createDiaryCustomPack({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.diary_id },
+    body: {
+      packType: 'custom',
+      params: args.params,
+      entries: args.entries.map(({ entry_id, rank }) => ({
+        entryId: entry_id,
+        rank,
+      })),
+      tokenBudget: args.token_budget,
+      pinned: args.pinned,
+    },
+  });
+
+  if (error) {
+    deps.logger.error({ tool: 'packs_create', err: error }, 'tool.error');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to create custom pack'),
+    );
   }
 
   return textResult(data);
@@ -90,18 +171,33 @@ export async function handlePacksProvenance(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  if (!args.pack_id && !args.pack_cid) {
+  const rawArgs = args as PackProvenanceInput & {
+    packId?: unknown;
+    packCid?: unknown;
+  };
+  const packIdValue = rawArgs.pack_id ?? rawArgs.packId;
+  const packCidValue = rawArgs.pack_cid ?? rawArgs.packCid;
+  const packId =
+    typeof packIdValue === 'string' && packIdValue.trim() !== ''
+      ? packIdValue
+      : undefined;
+  const packCid =
+    typeof packCidValue === 'string' && packCidValue.trim() !== ''
+      ? packCidValue
+      : undefined;
+
+  if (!packId && !packCid) {
     return errorResult('Exactly one of pack_id or pack_cid must be provided');
   }
-  if (args.pack_id && args.pack_cid) {
+  if (packId && packCid) {
     return errorResult('Exactly one of pack_id or pack_cid must be provided');
   }
 
-  if (args.pack_id) {
+  if (packId) {
     const { data, error } = await getContextPackProvenanceById({
       client: deps.client,
       auth: () => token,
-      path: { id: args.pack_id },
+      path: { id: packId },
       query: {
         ...(args.depth !== undefined && { depth: args.depth }),
       },
@@ -109,7 +205,7 @@ export async function handlePacksProvenance(
 
     if (error) {
       deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
-      return errorResult('Pack not found');
+      return errorResult(extractApiErrorMessage(error, 'Pack not found'));
     }
 
     return textResult(data);
@@ -119,7 +215,7 @@ export async function handlePacksProvenance(
   const { data, error } = await getContextPackProvenanceByCid({
     client: deps.client,
     auth: () => token,
-    path: { cid: args.pack_cid as string },
+    path: { cid: packCid as string },
     query: {
       ...(args.depth !== undefined && { depth: args.depth }),
     },
@@ -127,7 +223,7 @@ export async function handlePacksProvenance(
 
   if (error) {
     deps.logger.error({ tool: 'packs_provenance', err: error }, 'tool.error');
-    return errorResult('Pack not found');
+    return errorResult(extractApiErrorMessage(error, 'Pack not found'));
   }
 
   return textResult(data);
@@ -156,6 +252,26 @@ export function registerPackTools(
       inputSchema: PackListSchema,
     },
     async (args, ctx) => handlePacksList(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'packs_preview',
+      description:
+        'Preview a custom context pack from an explicit entry selection without persisting it.',
+      inputSchema: PackPreviewSchema,
+    },
+    async (args, ctx) => handlePacksPreview(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'packs_create',
+      description:
+        'Create and persist a custom context pack from an explicit entry selection.',
+      inputSchema: PackCreateSchema,
+    },
+    async (args, ctx) => handlePacksCreate(args, deps, ctx),
   );
 
   fastify.mcpAddTool(

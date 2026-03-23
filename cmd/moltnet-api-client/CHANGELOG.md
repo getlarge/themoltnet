@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.71.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.70.0...moltnet-api-client-v0.71.0) (2026-03-21)
+
+
+### Features
+
+* add custom pack preview/create across REST, MCP, and generated clients ([25dee1e](https://github.com/getlarge/themoltnet/commit/25dee1e4d4fe82cf19a2244e509d6bd5d9678bb1))
+* **mcp-server:** add custom pack tools and e2e coverage ([62f2e36](https://github.com/getlarge/themoltnet/commit/62f2e367265ddd5d4ad9f4a7447b50e11f04f5c7))
+
+
+### Bug Fixes
+
+* **packs:** stabilize deterministic pack identity flows ([ff21db5](https://github.com/getlarge/themoltnet/commit/ff21db5cd47d6b5c447565eeaba5de914a91c56b))
+
+## [0.70.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.69.1...moltnet-api-client-v0.70.0) (2026-03-21)
+
+
+### Features
+
+* **api:** diary tag discovery endpoint ([acd532f](https://github.com/getlarge/themoltnet/commit/acd532fc44430254c2fff7cc69bfb3f6b191720f))
+
+
+### Bug Fixes
+
+* address PR review — escape LIKE wildcards, fix falsy checks, regen Go client ([6192659](https://github.com/getlarge/themoltnet/commit/6192659b831f2db6a578437cac9e8a24b18f2704))
+
 ## [0.69.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.45.0...moltnet-api-client-v0.69.1) (2026-03-21)
 
 

@@ -151,8 +151,6 @@ function serverComputePackCid(
   sourceEntries: DBEntry[],
   opts: {
     diaryId: string;
-    createdBy: string;
-    createdAt: string;
     tokenBudget: number;
     lambda: number;
     taskPromptHash?: string;
@@ -182,8 +180,6 @@ function serverComputePackCid(
 
   const packCid = computePackCid({
     diaryId: opts.diaryId,
-    createdBy: opts.createdBy,
-    createdAt: opts.createdAt,
     packType: 'compile',
     params,
     entries: packEntries,
@@ -280,8 +276,6 @@ describe('compile provenance (integration)', () => {
       // Server computes pack CID from compile output
       const { packCid } = serverComputePackCid(result, ENTRIES, {
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
-        createdAt: '2026-03-16T10:00:00.000Z',
         tokenBudget: 10000,
         lambda: 0.7,
       });
@@ -298,8 +292,6 @@ describe('compile provenance (integration)', () => {
 
       const { packCid, params } = serverComputePackCid(result, ENTRIES, {
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
-        createdAt: '2026-03-16T10:01:00.000Z',
         tokenBudget: 10000,
         lambda: 0.5,
       });
@@ -359,16 +351,12 @@ describe('compile provenance (integration)', () => {
 
       const { packCid: cid1 } = serverComputePackCid(result1, ENTRIES, {
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
-        createdAt: '2026-03-16T10:02:00.000Z',
         tokenBudget: 10000,
         lambda: 0.5,
       });
 
       const { packCid: cid2 } = serverComputePackCid(result2, ENTRIES, {
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
-        createdAt: '2026-03-16T10:02:00.000Z',
         tokenBudget: 10000,
         lambda: 0.5,
       });
@@ -383,8 +371,7 @@ describe('compile provenance (integration)', () => {
       const largeResult = compile(distillEntries, { tokenBudget: 10000 });
 
       // Different budgets may select different entries or compression levels
-      const ts = '2026-03-16T10:03:00.000Z';
-      const base = { diaryId: DIARY_ID, createdBy: OWNER_ID, createdAt: ts };
+      const base = { diaryId: DIARY_ID };
 
       const { packCid: smallCid } = serverComputePackCid(smallResult, ENTRIES, {
         ...base,
@@ -406,8 +393,6 @@ describe('compile provenance (integration)', () => {
 
       const { packCid, params } = serverComputePackCid(result, ENTRIES, {
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
-        createdAt: '2026-03-16T10:04:00.000Z',
         tokenBudget: 10000,
         lambda: 0.5,
       });
@@ -438,8 +423,6 @@ describe('compile provenance (integration)', () => {
 
       const { packCid, params } = serverComputePackCid(result, ENTRIES, {
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
-        createdAt: '2026-03-16T10:05:00.000Z',
         tokenBudget: 10000,
         lambda: 0.5,
       });
@@ -516,8 +499,6 @@ describe('compile provenance (integration)', () => {
         ENTRIES,
         {
           diaryId: DIARY_ID,
-          createdBy: OWNER_ID,
-          createdAt: '2026-03-16T10:06:00.000Z',
           tokenBudget: 10000,
           lambda: 0.5,
         },
@@ -538,8 +519,6 @@ describe('compile provenance (integration)', () => {
       const entryMap = new Map(ENTRIES.map((e) => [e.id, e]));
       const optimizedCid = computePackCid({
         diaryId: DIARY_ID,
-        createdBy: OWNER_ID,
-        createdAt: '2026-03-16T11:00:00.000Z',
         packType: 'optimized',
         params: {
           sourcePackCid: compileCid,

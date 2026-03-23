@@ -806,6 +806,18 @@ export const ContextPackResponseListSchema = Type.Object(
   { $id: 'ContextPackResponseList' },
 );
 
+export const CompileStatsSchema = Type.Object(
+  {
+    totalTokens: Type.Number(),
+    entriesIncluded: Type.Number(),
+    entriesCompressed: Type.Number(),
+    compressionRatio: Type.Number(),
+    budgetUtilization: Type.Number(),
+    elapsedMs: Type.Number(),
+  },
+  { $id: 'CompileStats' },
+);
+
 export const CompileResultSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
@@ -834,14 +846,7 @@ export const CompileResultSchema = Type.Object(
       format: 'date-time',
     }),
     entries: Type.Array(ContextPackEntrySchema),
-    compileStats: Type.Object({
-      totalTokens: Type.Number(),
-      entriesIncluded: Type.Number(),
-      entriesCompressed: Type.Number(),
-      compressionRatio: Type.Number(),
-      budgetUtilization: Type.Number(),
-      elapsedMs: Type.Number(),
-    }),
+    compileStats: Type.Ref(CompileStatsSchema),
     compileTrace: Type.Object({
       lambdaUsed: Type.Number(),
       embeddingDim: Type.Number(),
@@ -849,6 +854,33 @@ export const CompileResultSchema = Type.Object(
     }),
   },
   { $id: 'CompileResult' },
+);
+
+export const CustomPackEntryResultSchema = Type.Object(
+  {
+    entryId: Type.String({ format: 'uuid' }),
+    entryCidSnapshot: Type.String(),
+    rank: Type.Integer({ minimum: 1 }),
+    compressionLevel: Type.Union([
+      Type.Literal('full'),
+      Type.Literal('summary'),
+      Type.Literal('keywords'),
+    ]),
+    originalTokens: Type.Number(),
+    packedTokens: Type.Number(),
+  },
+  { $id: 'CustomPackEntryResult' },
+);
+
+export const CustomPackResultSchema = Type.Object(
+  {
+    packCid: Type.String(),
+    packType: Type.Literal('custom'),
+    params: Type.Record(Type.String(), Type.Unknown()),
+    entries: Type.Array(Type.Ref(CustomPackEntryResultSchema)),
+    compileStats: Type.Ref(CompileStatsSchema),
+  },
+  { $id: 'CustomPackResult' },
 );
 
 /**
@@ -880,6 +912,7 @@ export const sharedSchemas = [
   ContextPackResponseSchema,
   ContextPackListSchema,
   ContextPackResponseListSchema,
+  CompileStatsSchema,
   DigestSchema,
   EntryVerifyResultSchema,
   SuccessSchema,
@@ -899,6 +932,8 @@ export const sharedSchemas = [
   NetworkInfoSchema,
   ConsolidateResultSchema,
   CompileResultSchema,
+  CustomPackEntryResultSchema,
+  CustomPackResultSchema,
   ProvenanceGraphSchema,
   RelationTypeSchema,
   RelationStatusSchema,

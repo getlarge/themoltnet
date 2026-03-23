@@ -12,6 +12,9 @@ import type {
   ConsolidateDiaryData,
   ConsolidateDiaryErrors,
   ConsolidateDiaryResponses,
+  CreateDiaryCustomPackData,
+  CreateDiaryCustomPackErrors,
+  CreateDiaryCustomPackResponses,
   CreateDiaryData,
   CreateDiaryEntryData,
   CreateDiaryEntryErrors,
@@ -118,6 +121,9 @@ import type {
   ListSigningRequestsData,
   ListSigningRequestsErrors,
   ListSigningRequestsResponses,
+  PreviewDiaryCustomPackData,
+  PreviewDiaryCustomPackErrors,
+  PreviewDiaryCustomPackResponses,
   ReflectDiaryData,
   ReflectDiaryErrors,
   ReflectDiaryResponses,
@@ -648,6 +654,26 @@ export const getContextPackById = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * Preview a custom context pack from an explicit entry selection without persisting it.
+ */
+export const previewDiaryCustomPack = <ThrowOnError extends boolean = false>(
+  options: Options<PreviewDiaryCustomPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    PreviewDiaryCustomPackResponses,
+    PreviewDiaryCustomPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/packs/preview',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * List persisted context packs for a diary. Use `expand=entries` to include entry content.
  */
 export const listDiaryPacks = <ThrowOnError extends boolean = false>(
@@ -661,6 +687,26 @@ export const listDiaryPacks = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/diaries/{id}/packs',
     ...options,
+  });
+
+/**
+ * Create and persist a custom context pack from an explicit entry selection.
+ */
+export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
+  options: Options<CreateDiaryCustomPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateDiaryCustomPackResponses,
+    CreateDiaryCustomPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/diaries/{id}/packs',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

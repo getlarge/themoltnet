@@ -49,6 +49,15 @@ func (UnimplementedHandler) CreateDiary(ctx context.Context, req *CreateDiaryReq
 	return r, ht.ErrNotImplemented
 }
 
+// CreateDiaryCustomPack implements createDiaryCustomPack operation.
+//
+// Create and persist a custom context pack from an explicit entry selection.
+//
+// POST /diaries/{id}/packs
+func (UnimplementedHandler) CreateDiaryCustomPack(ctx context.Context, req *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (r CreateDiaryCustomPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateDiaryEntry implements createDiaryEntry operation.
 //
 // Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
@@ -360,6 +369,15 @@ func (UnimplementedHandler) ListProblemTypes(ctx context.Context) (r []ListProbl
 //
 // GET /crypto/signing-requests
 func (UnimplementedHandler) ListSigningRequests(ctx context.Context, params ListSigningRequestsParams) (r ListSigningRequestsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// PreviewDiaryCustomPack implements previewDiaryCustomPack operation.
+//
+// Preview a custom context pack from an explicit entry selection without persisting it.
+//
+// POST /diaries/{id}/packs/preview
+func (UnimplementedHandler) PreviewDiaryCustomPack(ctx context.Context, req *PreviewDiaryCustomPackReq, params PreviewDiaryCustomPackParams) (r PreviewDiaryCustomPackRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
