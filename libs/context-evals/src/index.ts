@@ -1,4 +1,8 @@
-export { type GpackOutput, MoltNetContextAdapter } from './adapter.js';
+export {
+  type GpackOutput,
+  MoltNetContextAdapter,
+  type MoltNetContextAdapterOptions,
+} from './adapter.js';
 export { type AgentRunResult, runAgentTask } from './agent-runner.js';
 export { createAuthedClient, type MoltnetCredentials } from './client.js';
 export {
@@ -27,6 +31,10 @@ export {
 } from './evaluate.js';
 export { buildNoopAI } from './noop-ai.js';
 export { execFileText, runShellCommand } from './process.js';
+export {
+  proposeNewTexts,
+  type ProposeNewTextsOptions,
+} from './propose-texts.js';
 export { SkillEvalAdapter } from './skill-adapter.js';
 export {
   type SkillEvalAdapterOptions,

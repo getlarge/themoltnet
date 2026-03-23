@@ -9,10 +9,16 @@
  * per-task failure traces so the reflection LLM knows *why* the pack failed.
  */
 
-import type { AxGEPAAdapter, AxGEPAEvaluationBatch } from '@ax-llm/ax';
+import type {
+  AxAIService,
+  AxGEPAAdapter,
+  AxGEPAEvaluationBatch,
+} from '@ax-llm/ax';
 import fastq from 'fastq';
 
+import type { EvalCache } from './eval-cache.js';
 import { type EvalTrace, evaluateTask, type GpackTask } from './evaluate.js';
+import { proposeNewTexts } from './propose-texts.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,6 +34,16 @@ interface TaskResult {
   trajectory?: EvalTrace;
 }
 
+export interface MoltNetContextAdapterOptions {
+  verbose?: boolean;
+  claudeModel?: string;
+  concurrency?: number;
+  /** AI service for propose_new_texts reflection. Typically the teacher model. */
+  reflectionAI?: AxAIService;
+  /** Shared cache — also consulted by metricFn via gepa.ts. */
+  evalCache?: EvalCache<EvalTrace>;
+}
+
 // ── Adapter ───────────────────────────────────────────────────────────────────
 
 export class MoltNetContextAdapter implements AxGEPAAdapter<
@@ -38,18 +54,16 @@ export class MoltNetContextAdapter implements AxGEPAAdapter<
   private verbose: boolean;
   private claudeModel: string;
   private concurrency: number;
+  private reflectionAI?: AxAIService;
+  private evalCache?: EvalCache<EvalTrace>;
   private lastBatch: readonly GpackTask[] = [];
 
-  constructor(
-    options: {
-      verbose?: boolean;
-      claudeModel?: string;
-      concurrency?: number;
-    } = {},
-  ) {
+  constructor(options: MoltNetContextAdapterOptions = {}) {
     this.verbose = options.verbose ?? false;
     this.claudeModel = options.claudeModel ?? 'claude-sonnet-4-6';
     this.concurrency = options.concurrency ?? 1;
+    this.reflectionAI = options.reflectionAI;
+    this.evalCache = options.evalCache;
   }
 
   /**
@@ -187,6 +201,24 @@ export class MoltNetContextAdapter implements AxGEPAAdapter<
                 .join('\n');
 
         const task = this.lastBatch.find((t) => t.id === output.taskId);
+
+        // Enrich with agent trace data when available
+        const agentMetrics = trace
+          ? [
+              trace.turnCount !== undefined && trace.turnCount !== null
+                ? `Turns: ${trace.turnCount}`
+                : '',
+              trace.taskCostUsd !== undefined && trace.taskCostUsd !== null
+                ? `Cost: $${trace.taskCostUsd.toFixed(4)}`
+                : '',
+              trace.toolSummaries?.length
+                ? `Tool calls: ${trace.toolSummaries.join(', ')}`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' | ')
+          : '';
+
         dataset[component].push({
           Inputs: {
             task_id: output.taskId,
@@ -198,11 +230,26 @@ export class MoltNetContextAdapter implements AxGEPAAdapter<
             score: output.score,
             tests_passed: trace?.testsPassed ?? false,
           },
-          Feedback: feedback,
+          Feedback: agentMetrics
+            ? `${feedback}\n\nAgent metrics: ${agentMetrics}`
+            : feedback,
         });
       }
     }
 
     return dataset;
+  }
+
+  async propose_new_texts(
+    candidate: Readonly<Record<string, string>>,
+    reflectiveDataset: Readonly<Record<string, unknown[]>>,
+    componentsToUpdate: readonly string[],
+  ): Promise<Record<string, string>> {
+    return proposeNewTexts({
+      reflectionAI: this.reflectionAI,
+      candidate,
+      reflectiveDataset,
+      componentsToUpdate,
+    });
   }
 }

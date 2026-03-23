@@ -1,7 +1,9 @@
 import type { McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
+import type { AxAIService } from '@ax-llm/ax';
 import { type Static, Type } from '@sinclair/typebox';
 
 import { CriteriaItemSchema } from './criteria-scorer.js';
+import type { EvalCache } from './eval-cache.js';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -70,4 +72,8 @@ export interface SkillEvalAdapterOptions {
   claudeModel?: string;
   verbose?: boolean;
   concurrency?: number;
+  /** AI service for propose_new_texts reflection. Typically the teacher model. */
+  reflectionAI?: AxAIService;
+  /** Shared cache — also consulted by metricFn via gepa.ts. */
+  evalCache?: EvalCache<SkillEvalTrace>;
 }

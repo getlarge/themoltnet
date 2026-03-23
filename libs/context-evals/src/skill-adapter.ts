@@ -8,6 +8,7 @@ import type { GpackOutput } from './adapter.js';
 import { runAgentTask } from './agent-runner.js';
 import { createWorktree, removeWorktree } from './evaluate.js';
 import { execFileText } from './process.js';
+import { proposeNewTexts } from './propose-texts.js';
 import type {
   SkillEvalAdapterOptions,
   SkillEvalTask,
@@ -232,6 +233,26 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
               ? scorer.toFeedback(trace.scoreResult, task)
               : 'No score result available';
 
+        // Enrich with agent trace data when available
+        const agentMetrics = trace
+          ? [
+              trace.turnCount !== undefined && trace.turnCount !== null
+                ? `Turns: ${trace.turnCount}`
+                : '',
+              trace.costUsd !== undefined && trace.costUsd !== null
+                ? `Cost: $${trace.costUsd.toFixed(4)}`
+                : '',
+              trace.toolCallCount !== undefined && trace.toolCallCount !== null
+                ? `Tool calls: ${trace.toolCallCount}`
+                : '',
+              trace.toolSummaries?.length
+                ? `Tools: ${trace.toolSummaries.join(', ')}`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' | ')
+          : '';
+
         dataset[component].push({
           Inputs: {
             task_id: output.taskId,
@@ -241,11 +262,26 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
           'Generated Outputs': {
             score: output.score,
           },
-          Feedback: feedback,
+          Feedback: agentMetrics
+            ? `${feedback}\n\nAgent metrics: ${agentMetrics}`
+            : feedback,
         });
       }
     }
 
     return dataset;
+  }
+
+  async propose_new_texts(
+    candidate: Readonly<Record<string, string>>,
+    reflectiveDataset: Readonly<Record<string, unknown[]>>,
+    componentsToUpdate: readonly string[],
+  ): Promise<Record<string, string>> {
+    return proposeNewTexts({
+      reflectionAI: this.options.reflectionAI,
+      candidate,
+      reflectiveDataset,
+      componentsToUpdate,
+    });
   }
 }
