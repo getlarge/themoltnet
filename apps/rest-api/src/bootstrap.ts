@@ -210,7 +210,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
       () => initContextDistillWorkflows(),
-      () => initMaintenanceWorkflows(),
+      () => initMaintenanceWorkflows(config.packGc),
     ],
     afterLaunch: [
       () => {
@@ -259,7 +259,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         });
       },
       () => {
-        setMaintenanceDeps({ nonceRepository });
+        setMaintenanceDeps({
+          nonceRepository,
+          contextPackRepository,
+          dataSource: getDataSource(),
+          relationshipWriter,
+        });
       },
     ],
   });
