@@ -748,4 +748,108 @@ export async function packRoutes(fastify: FastifyInstance) {
       return toListResponse(items, limit);
     },
   );
+
+  // ── PATCH /packs/:id ──────────────────────────────────────────
+
+  const PackUpdateBodySchema = Type.Object({
+    pinned: Type.Optional(Type.Boolean()),
+    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+  });
+
+  server.patch(
+    '/packs/:id',
+    {
+      schema: {
+        operationId: 'updateContextPack',
+        tags: ['diary'],
+        description:
+          'Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.',
+        security: [{ bearerAuth: [] }],
+        params: PackParamsSchema,
+        body: PackUpdateBodySchema,
+        response: {
+          200: Type.Ref(ContextPackResponseSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const pack = await fastify.contextPackRepository.findById(
+        request.params.id,
+      );
+      if (!pack) {
+        throw createProblem('not-found', 'Context pack not found');
+      }
+
+      const allowed = await fastify.permissionChecker.canManagePack(
+        pack.id,
+        request.authContext!.identityId,
+      );
+      if (!allowed) {
+        throw createProblem('forbidden', 'Not authorized to manage this pack');
+      }
+
+      const { pinned, expiresAt } = request.body;
+
+      // Case 1: Pin the pack
+      if (pinned === true) {
+        await fastify.contextPackRepository.pin(pack.id);
+      }
+      // Case 2: Unpin the pack (requires expiresAt)
+      else if (pinned === false) {
+        if (!expiresAt) {
+          throw createProblem(
+            'validation-failed',
+            'expiresAt is required when setting pinned to false',
+          );
+        }
+        const expiresAtDate = new Date(expiresAt);
+        if (expiresAtDate <= new Date()) {
+          throw createProblem(
+            'validation-failed',
+            'expiresAt must be in the future',
+          );
+        }
+        await fastify.contextPackRepository.unpin(pack.id, expiresAtDate);
+      }
+      // Case 3: Update expiresAt only (pack must be non-pinned)
+      else if (expiresAt !== undefined) {
+        if (pack.pinned) {
+          throw createProblem(
+            'validation-failed',
+            'Cannot set expiresAt on a pinned pack — unpin it first or send pinned: false together',
+          );
+        }
+        const expiresAtDate = new Date(expiresAt);
+        if (expiresAtDate <= new Date()) {
+          throw createProblem(
+            'validation-failed',
+            'expiresAt must be in the future',
+          );
+        }
+        await fastify.contextPackRepository.updateExpiry(
+          pack.id,
+          expiresAtDate,
+        );
+      }
+      // No meaningful fields provided
+      else {
+        throw createProblem(
+          'validation-failed',
+          'At least one of pinned or expiresAt must be provided',
+        );
+      }
+
+      // Re-fetch with creator join to match response schema
+      const updated = await fastify.contextPackRepository.findById(pack.id);
+      if (!updated) {
+        throw createProblem('not-found', 'Context pack not found');
+      }
+      return updated;
+    },
+  );
 }
