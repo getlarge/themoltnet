@@ -33,6 +33,7 @@ import type {
   SearchDiaryData,
   SearchPublicFeedData,
   SubmitSignatureData,
+  UpdateContextPackData,
   UpdateDiaryEntryByIdData,
   UpdateEntryRelationStatusData,
   VerifyCryptoSignatureData,
@@ -792,6 +793,29 @@ export type PackProvenanceInput = {
   depth?: NonNullable<GetContextPackProvenanceByIdData['query']>['depth'];
 };
 
+export const PackUpdateSchema = Type.Object({
+  pack_id: Type.String({
+    description: 'Context pack ID (UUID) to update.',
+  }),
+  pinned: Type.Optional(
+    Type.Boolean({
+      description:
+        'Set to true to pin (exempt from GC, clears expiresAt). Set to false to unpin (requires expires_at).',
+    }),
+  ),
+  expires_at: Type.Optional(
+    Type.String({
+      description:
+        'ISO 8601 expiration date. Required when unpinning. Must be in the future.',
+    }),
+  ),
+});
+export type PackUpdateInput = {
+  pack_id: PathOf<UpdateContextPackData>['id'];
+  pinned?: NonNullable<BodyOf<UpdateContextPackData>>['pinned'];
+  expires_at?: NonNullable<BodyOf<UpdateContextPackData>>['expiresAt'];
+};
+
 // --- Compile-time drift checks ---
 
 type _EntryCreateInputMatchesSchema = AssertSchemaToApi<
@@ -929,4 +953,8 @@ type _PackCreateInputMatchesSchema = AssertSchemaToApi<
 type _PackProvenanceInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackProvenanceSchema>,
   PackProvenanceInput
+>;
+type _PackUpdateInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackUpdateSchema>,
+  PackUpdateInput
 >;

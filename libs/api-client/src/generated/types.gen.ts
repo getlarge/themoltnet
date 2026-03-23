@@ -2152,6 +2152,54 @@ export type GetContextPackByIdResponses = {
 export type GetContextPackByIdResponse =
   GetContextPackByIdResponses[keyof GetContextPackByIdResponses];
 
+export type UpdateContextPackData = {
+  body?: {
+    pinned?: boolean;
+    expiresAt?: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}';
+};
+
+export type UpdateContextPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type UpdateContextPackError =
+  UpdateContextPackErrors[keyof UpdateContextPackErrors];
+
+export type UpdateContextPackResponses = {
+  /**
+   * Default Response
+   */
+  200: ContextPackResponse;
+};
+
+export type UpdateContextPackResponse =
+  UpdateContextPackResponses[keyof UpdateContextPackResponses];
+
 export type PreviewDiaryCustomPackData = {
   body: {
     packType: 'custom';

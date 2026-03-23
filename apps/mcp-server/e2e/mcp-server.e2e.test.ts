@@ -139,8 +139,9 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('packs_preview');
       expect(toolNames).toContain('packs_create');
       expect(toolNames).toContain('packs_provenance');
+      expect(toolNames).toContain('packs_update');
 
-      expect(tools).toHaveLength(36);
+      expect(tools).toHaveLength(37);
     });
 
     it('lists all registered resources', async () => {

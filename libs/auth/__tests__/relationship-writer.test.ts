@@ -8,12 +8,14 @@ import {
 interface MockRelationshipApi {
   createRelationship: ReturnType<typeof vi.fn>;
   deleteRelationships: ReturnType<typeof vi.fn>;
+  patchRelationships: ReturnType<typeof vi.fn>;
 }
 
 function createMockRelationshipApi(): MockRelationshipApi {
   return {
     createRelationship: vi.fn(),
     deleteRelationships: vi.fn(),
+    patchRelationships: vi.fn(),
   };
 }
 
@@ -167,6 +169,60 @@ describe('RelationshipWriter', () => {
         namespace: 'DiaryEntry',
         object: ENTRY_ID,
       });
+    });
+  });
+
+  describe('removePackRelationsBatch', () => {
+    const PACK_ID_1 = 'aaaa0000-0000-0000-0000-000000000001';
+    const PACK_ID_2 = 'aaaa0000-0000-0000-0000-000000000002';
+    const DIARY_ID_1 = 'bbbb0000-0000-0000-0000-000000000001';
+    const DIARY_ID_2 = 'bbbb0000-0000-0000-0000-000000000002';
+
+    it('sends single patchRelationships call with delete actions', async () => {
+      mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+
+      await writer.removePackRelationsBatch([
+        { id: PACK_ID_1, diaryId: DIARY_ID_1 },
+        { id: PACK_ID_2, diaryId: DIARY_ID_2 },
+      ]);
+
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledOnce();
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledWith({
+        relationshipPatch: [
+          {
+            action: 'delete',
+            relation_tuple: {
+              namespace: 'ContextPack',
+              object: PACK_ID_1,
+              relation: 'parent',
+              subject_set: {
+                namespace: 'Diary',
+                object: DIARY_ID_1,
+                relation: '',
+              },
+            },
+          },
+          {
+            action: 'delete',
+            relation_tuple: {
+              namespace: 'ContextPack',
+              object: PACK_ID_2,
+              relation: 'parent',
+              subject_set: {
+                namespace: 'Diary',
+                object: DIARY_ID_2,
+                relation: '',
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('is a no-op for empty array', async () => {
+      await writer.removePackRelationsBatch([]);
+
+      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
     });
   });
 });

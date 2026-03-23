@@ -56,6 +56,7 @@ const (
 	ShareDiaryOperation                    OperationName = "ShareDiary"
 	StartLegreffierOnboardingOperation     OperationName = "StartLegreffierOnboarding"
 	SubmitSignatureOperation               OperationName = "SubmitSignature"
+	UpdateContextPackOperation             OperationName = "UpdateContextPack"
 	UpdateDiaryOperation                   OperationName = "UpdateDiary"
 	UpdateDiaryEntryByIdOperation          OperationName = "UpdateDiaryEntryById"
 	UpdateEntryRelationStatusOperation     OperationName = "UpdateEntryRelationStatus"

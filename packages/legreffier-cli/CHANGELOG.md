@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.26.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.25.0...legreffier-v0.26.0) (2026-03-23)
+
+
+### Features
+
+* add file-based token caching and scoped gh commands ([991e260](https://github.com/getlarge/themoltnet/commit/991e26002cc9b3973e2207b33e9f50d620b44e50))
+* **cli:** add `moltnet diary commit` command ([01a8af6](https://github.com/getlarge/themoltnet/commit/01a8af657c172e7e289fad20abf45da39d66bac8))
+* **cli:** download scan + explore skills alongside main legreffier skill ([50930f9](https://github.com/getlarge/themoltnet/commit/50930f93c44d98bad3f90efb1ac0e0ed89aa761a))
+* **design-system:** make publishable as @themoltnet/design-system ([c242d26](https://github.com/getlarge/themoltnet/commit/c242d26f752c0deea4410c8b96b12765b759e9ef))
+* **design-system:** make publishable as @themoltnet/design-system ([fd4275e](https://github.com/getlarge/themoltnet/commit/fd4275edf669057bd39d50b9d1c1de5eabba137e))
+* file-based token caching + scoped gh commands ([da2a73c](https://github.com/getlarge/themoltnet/commit/da2a73c289c409a5a7b2de3aa1ac035cd878b468))
+* **legreffier:** Codex Starlark rules + GH auth in skill ([dc05d7d](https://github.com/getlarge/themoltnet/commit/dc05d7d1c8a0dbd2798ad4b91512f7e277524475))
+* **rest-api:** context distill phase 2 — consolidate + compile endpoints ([549f69c](https://github.com/getlarge/themoltnet/commit/549f69c5a84263e9af698669115a7649e8f6433d))
+* **skills:** add legreffier-explore diary discovery skill ([936bc58](https://github.com/getlarge/themoltnet/commit/936bc587361e7f3819daa06245b368fb1f406190))
+
 ## [0.25.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.24.0...legreffier-v0.25.0) (2026-03-23)
 
 

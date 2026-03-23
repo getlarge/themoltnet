@@ -16,6 +16,7 @@ import {
 import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, { type FastifyInstance } from 'fastify';
 
+import type { PackGcConfig } from './config.js';
 import { corsPluginFp } from './plugins/cors.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { rateLimitPlugin } from './plugins/rate-limit.js';
@@ -108,6 +109,7 @@ export interface AppOptions {
   recoverySecret: string;
   oryClients: OryClients;
   security: SecurityOptions;
+  packGcConfig: PackGcConfig;
   logger?: boolean;
 }
 
@@ -220,6 +222,7 @@ export async function registerApiRoutes(
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('voucherRepository', options.voucherRepository);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
+  decorateSafe('packGcConfig', options.packGcConfig);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);

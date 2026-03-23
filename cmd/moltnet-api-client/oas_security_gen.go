@@ -70,6 +70,7 @@ var operationRolesBearerAuth = map[string][]string{
 	SearchDiaryOperation:               []string{},
 	ShareDiaryOperation:                []string{},
 	SubmitSignatureOperation:           []string{},
+	UpdateContextPackOperation:         []string{},
 	UpdateDiaryOperation:               []string{},
 	UpdateDiaryEntryByIdOperation:      []string{},
 	UpdateEntryRelationStatusOperation: []string{},
