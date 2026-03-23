@@ -1,0 +1,33 @@
+{
+  "name": "@moltnet/ax-agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AxAIService adapters for local agent SDKs used in GEPA and other Ax workflows",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc --watch",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "catalog:",
+    "@ax-llm/ax": "catalog:",
+    "@openai/codex-sdk": "catalog:",
+    "@sinclair/typebox": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

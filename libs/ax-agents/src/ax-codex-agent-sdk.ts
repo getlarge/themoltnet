@@ -30,7 +30,7 @@ import {
   extractJsonFromText,
   flattenChatPrompt,
 } from './ax-shared.js';
-import { getRuntimeEnv, loadContextEvalsConfig } from './config.js';
+import { getRuntimeEnv, loadAxAgentsConfig } from './config.js';
 
 const DEBUG = getRuntimeEnv().AX_AGENT_SDK_DEBUG === '1';
 
@@ -66,6 +66,9 @@ export interface AxAICodexAgentSDKOptions {
   model?: string;
   maxTurns?: number;
   options?: AxAIServiceOptions;
+  cwd?: string;
+  sandboxMode?: 'read-only' | 'full';
+  extraEnv?: Record<string, string>;
 }
 
 class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
@@ -78,10 +81,10 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
   never
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
-  private maxTurns: number;
+  private opts: AxAICodexAgentSDKOptions;
 
-  constructor(maxTurns: number) {
-    this.maxTurns = maxTurns;
+  constructor(opts: AxAICodexAgentSDKOptions) {
+    this.opts = opts;
   }
 
   createChatReq(
@@ -89,7 +92,6 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
   ): [AxAPI, AgentRequest] {
     const prompt = flattenChatPrompt(req.chatPrompt);
     const model = req.model ?? DEFAULT_MODEL;
-    const maxTurns = this.maxTurns;
     const stream = req.modelConfig?.stream ?? false;
 
     // When ax() uses structured output, extract the JSON schema to pass
@@ -106,18 +108,14 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
           : rawSchema;
     }
 
+    const sdkOpts = this.opts;
     const localCall = async (
       data: AgentRequest,
     ): Promise<AgentResponse | ReadableStream<AgentStreamDelta>> => {
       if (stream) {
-        return runAgentQueryStream(data.prompt, data.model, maxTurns);
+        return runAgentQueryStream(data.prompt, data.model, sdkOpts);
       }
-      return runAgentQuery(
-        data.prompt,
-        data.model,
-        maxTurns,
-        data.outputSchema,
-      );
+      return runAgentQuery(data.prompt, data.model, sdkOpts, data.outputSchema);
     };
 
     const api: AxAPI = {
@@ -221,9 +219,8 @@ export class AxAICodexAgentSDK extends AxBaseAI<
 > {
   constructor(opts: AxAICodexAgentSDKOptions = {}) {
     const model = opts.model ?? DEFAULT_MODEL;
-    const maxTurns = opts.maxTurns ?? 1;
 
-    super(new AxAICodexAgentSDKImpl(maxTurns), {
+    super(new AxAICodexAgentSDKImpl(opts), {
       name: 'codex-agent-sdk',
       apiURL: '',
       headers: () => Promise.resolve({}),
@@ -244,7 +241,11 @@ function toTokenUsage(usage: AgentResponse['usage']): AxTokenUsage {
   };
 }
 
-function buildInstructionPrompt(prompt: string, maxTurns: number): string {
+function buildInstructionPrompt(
+  prompt: string,
+  opts: AxAICodexAgentSDKOptions,
+): string {
+  const maxTurns = opts.maxTurns ?? 1;
   return [
     'You are being used as a single-response model adapter.',
     `Limit yourself to ${maxTurns} internal turn(s) if possible.`,
@@ -255,20 +256,25 @@ function buildInstructionPrompt(prompt: string, maxTurns: number): string {
   ].join('\n');
 }
 
-function buildThreadOptions(model: string): ThreadOptions {
+function buildThreadOptions(
+  model: string,
+  opts: AxAICodexAgentSDKOptions,
+): ThreadOptions {
   return {
     model,
-    sandboxMode: 'read-only',
+    sandboxMode:
+      (opts.sandboxMode as ThreadOptions['sandboxMode']) ?? 'read-only',
     skipGitRepoCheck: true,
     approvalPolicy: 'never',
     modelReasoningEffort: 'low',
     networkAccessEnabled: false,
+    ...(opts.cwd ? { cwd: opts.cwd } : {}),
   };
 }
 
-function buildCodex(): Codex {
-  const config = loadContextEvalsConfig();
-  const env = buildCodexEnv();
+function buildCodex(opts: AxAICodexAgentSDKOptions): Codex {
+  const config = loadAxAgentsConfig();
+  const env = buildCodexEnv(opts);
 
   return new Codex({
     ...(config.CODEX_EXECUTABLE
@@ -279,13 +285,14 @@ function buildCodex(): Codex {
   });
 }
 
-function buildCodexEnv(): Record<string, string> {
-  const config = loadContextEvalsConfig();
+function buildCodexEnv(opts: AxAICodexAgentSDKOptions): Record<string, string> {
+  const config = loadAxAgentsConfig();
   const runtimeEnv = getRuntimeEnv();
   const env: Record<string, string> = {
     OTEL_SDK_DISABLED: 'true',
     OPENAI_DISABLE_TELEMETRY: '1',
     PATH: runtimeEnv.PATH || '',
+    ...opts.extraEnv,
   };
 
   if (config.OPENAI_API_KEY) {
@@ -298,12 +305,12 @@ function buildCodexEnv(): Record<string, string> {
 async function runAgentQuery(
   prompt: string,
   model: string,
-  maxTurns: number,
+  opts: AxAICodexAgentSDKOptions,
   outputSchema?: unknown,
 ): Promise<AgentResponse> {
   dbg(`run model=${model} prompt=${prompt.length}chars`);
-  const thread = buildCodex().startThread(buildThreadOptions(model));
-  const turn = await thread.run(buildInstructionPrompt(prompt, maxTurns), {
+  const thread = buildCodex(opts).startThread(buildThreadOptions(model, opts));
+  const turn = await thread.run(buildInstructionPrompt(prompt, opts), {
     ...(outputSchema ? { outputSchema } : {}),
   });
 
@@ -317,14 +324,16 @@ async function runAgentQuery(
 function runAgentQueryStream(
   prompt: string,
   model: string,
-  maxTurns: number,
+  opts: AxAICodexAgentSDKOptions,
 ): ReadableStream<AgentStreamDelta> {
   return new ReadableStream<AgentStreamDelta>({
     async start(controller) {
       try {
-        const thread = buildCodex().startThread(buildThreadOptions(model));
+        const thread = buildCodex(opts).startThread(
+          buildThreadOptions(model, opts),
+        );
         const { events } = await thread.runStreamed(
-          buildInstructionPrompt(prompt, maxTurns),
+          buildInstructionPrompt(prompt, opts),
         );
 
         for await (const event of events) {
