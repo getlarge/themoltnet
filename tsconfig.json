@@ -33,6 +33,9 @@
       "path": "libs/auth"
     },
     {
+      "path": "libs/ax-agents"
+    },
+    {
       "path": "libs/bootstrap"
     },
     {

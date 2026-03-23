@@ -18,6 +18,9 @@
       "path": "../apps/rest-api"
     },
     {
+      "path": "../libs/ax-agents"
+    },
+    {
       "path": "../libs/bootstrap"
     },
     {

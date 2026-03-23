@@ -31,6 +31,7 @@
     "@dotenvx/dotenvx": "catalog:",
     "@huggingface/transformers": "catalog:",
     "drizzle-orm": "catalog:",
+    "@moltnet/ax-agents": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/context-evals": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",

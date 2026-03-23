@@ -7,13 +7,5 @@
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../api-client"
-    },
-    {
-      "path": "../ax-agents"
-    }
-  ]
+  "include": ["src/**/*.ts"]
 }

@@ -19,10 +19,8 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { ax } from '@ax-llm/ax';
-import {
-  AxAIClaudeAgentSDK,
-  resolveRepoRoot,
-} from '@moltnet/context-evals/pipeline-shared';
+import { AxAIClaudeAgentSDK } from '@moltnet/ax-agents';
+import { resolveRepoRoot } from '@moltnet/context-evals/pipeline-shared';
 import fastq from 'fastq';
 
 // ── Timing ───────────────────────────────────────────────────────────────────

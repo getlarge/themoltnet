@@ -45,7 +45,7 @@
     "@anthropic-ai/claude-agent-sdk": "catalog:",
     "@ax-llm/ax": "catalog:",
     "@moltnet/api-client": "workspace:*",
-    "@openai/codex-sdk": "catalog:",
+    "@moltnet/ax-agents": "workspace:*",
     "@sinclair/typebox": "catalog:",
     "fastq": "catalog:"
   },
