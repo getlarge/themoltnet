@@ -20,8 +20,11 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import {
+  buildNoopAI,
+  EvalCache,
   type SkillEvalTask,
   SkillEvalTaskSchema,
+  type SkillEvalTrace,
 } from '@moltnet/context-evals';
 import { loadContextEvalsConfig } from '@moltnet/context-evals/config';
 import { runBaseline, runGepaOptimization } from '@moltnet/context-evals/gepa';
@@ -159,6 +162,7 @@ async function main() {
   const agentConfigDir = str(values['agent-config-dir']) || evalEnv.configDir;
   const agentName = str(values['agent-name']) || evalEnv.agentName;
 
+  const evalCache = new EvalCache<SkillEvalTrace>();
   const adapter = new SkillEvalAdapter({
     repoRoot,
     mcpServers: {
@@ -182,6 +186,7 @@ async function main() {
     claudeModel,
     verbose,
     concurrency,
+    evalCache,
   });
 
   if (runBaselineMode) {
@@ -213,16 +218,15 @@ async function main() {
   }
 
   // GEPA optimization
+  // studentAI: when adapter handles evaluation, use noop (zero-cost passthrough).
+  const studentAI = studentProvider
+    ? buildAI({ provider: studentProvider, aiKey, model: studentModel })
+    : buildNoopAI();
   if (!studentProvider) {
-    throw new Error(
-      '[skill-eval] GEPA optimization requires --student-provider (openai, anthropic, google-gemini, claude-agent-sdk, or codex-agent-sdk).',
+    console.log(
+      '[skill-eval] using no-op student (adapter handles evaluation)',
     );
   }
-  const studentAI = buildAI({
-    provider: studentProvider,
-    aiKey,
-    model: studentModel,
-  });
   if (teacherModel && !teacherProvider) {
     throw new Error(
       '[skill-eval] --teacher-model requires --teacher-provider.',
@@ -236,6 +240,11 @@ async function main() {
           model: teacherModel,
         })
       : undefined;
+
+  // Pass teacherAI as reflectionAI for propose_new_texts
+  if (teacherAI) {
+    adapter.setReflectionAI(teacherAI);
+  }
 
   const outDir = resolve(repoRoot, 'evals', 'runs');
   await mkdir(outDir, { recursive: true });
@@ -266,10 +275,17 @@ async function main() {
         env: (task.env ?? null) as object | null,
       })),
     evaluateOne: async (task, instruction) => {
+      // Check shared cache first
+      const cached = evalCache.get(task.id, instruction);
+      if (cached) return cached;
+
       const evalResult = await adapter.evaluate([task], { instruction }, true);
-      const score = evalResult.scores[0] ?? 0;
-      const trace = evalResult.trajectories?.[0] ?? undefined;
-      return { score, trace };
+      const result = {
+        score: evalResult.scores[0] ?? 0,
+        trace: evalResult.trajectories?.[0] ?? undefined,
+      };
+      evalCache.set(task.id, instruction, result);
+      return result;
     },
     onEvalComplete: async (entry) => {
       await appendFile(tracesPath, JSON.stringify(entry) + '\n', 'utf8');

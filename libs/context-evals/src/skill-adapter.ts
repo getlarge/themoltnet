@@ -1,7 +1,11 @@
 import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import type { AxGEPAAdapter, AxGEPAEvaluationBatch } from '@ax-llm/ax';
+import type {
+  AxAIService,
+  AxGEPAAdapter,
+  AxGEPAEvaluationBatch,
+} from '@ax-llm/ax';
 import fastq from 'fastq';
 
 import type { GpackOutput } from './adapter.js';
@@ -34,6 +38,11 @@ export class SkillEvalAdapter implements AxGEPAAdapter<
   private lastBatch: readonly SkillEvalTask[] = [];
 
   constructor(private options: SkillEvalAdapterOptions) {}
+
+  /** Set the reflection AI after construction (e.g. when teacher is resolved later). */
+  setReflectionAI(ai: AxAIService): void {
+    this.options = { ...this.options, reflectionAI: ai };
+  }
 
   async evaluate(
     batch: readonly SkillEvalTask[],
