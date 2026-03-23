@@ -12,7 +12,7 @@
  */
 
 import { ax, AxGEPA } from '@ax-llm/ax';
-import { AxAIClaudeAgentSDK } from '@moltnet/context-evals/pipeline-shared';
+import { AxAIClaudeAgentSDK } from '@moltnet/ax-agents';
 
 // ── Timing ──────────────────────────────────────────────────────────────────
 

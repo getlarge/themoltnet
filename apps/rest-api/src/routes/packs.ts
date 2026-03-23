@@ -378,9 +378,13 @@ export async function packRoutes(fastify: FastifyInstance) {
     if (persist) {
       const createdAtDate = new Date(createdAt);
       const pinned = request.body.pinned ?? false;
+      const compileTtlDays =
+        fastify.packGcConfig?.PACK_GC_COMPILE_TTL_DAYS ?? 7;
       const expiresAt = pinned
         ? null
-        : new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        : new Date(
+            createdAtDate.getTime() + compileTtlDays * 24 * 60 * 60 * 1000,
+          );
 
       // TODO(issue-456): Move custom pack persistence + Keto parent grant into
       // a DBOS workflow with retry/compensation semantics, matching the compile
@@ -742,6 +746,109 @@ export async function packRoutes(fastify: FastifyInstance) {
       }));
 
       return toListResponse(items, limit);
+    },
+  );
+
+  // ── PATCH /packs/:id ──────────────────────────────────────────
+
+  const PackUpdateBodySchema = Type.Object({
+    pinned: Type.Optional(Type.Boolean()),
+    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+  });
+
+  server.patch(
+    '/packs/:id',
+    {
+      schema: {
+        operationId: 'updateContextPack',
+        tags: ['diary'],
+        description:
+          'Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.',
+        security: [{ bearerAuth: [] }],
+        params: PackParamsSchema,
+        body: PackUpdateBodySchema,
+        response: {
+          200: Type.Ref(ContextPackResponseSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request) => {
+      const pack = await fastify.contextPackRepository.findById(
+        request.params.id,
+      );
+      if (!pack) {
+        throw createProblem('not-found', 'Context pack not found');
+      }
+
+      const allowed = await fastify.permissionChecker.canManagePack(
+        pack.id,
+        request.authContext!.identityId,
+      );
+      if (!allowed) {
+        throw createProblem('forbidden', 'Not authorized to manage this pack');
+      }
+
+      const { pinned, expiresAt } = request.body;
+      const now = new Date();
+
+      // Validate upfront before entering the transaction
+      if (pinned === false && !expiresAt) {
+        throw createProblem(
+          'validation-failed',
+          'expiresAt is required when setting pinned to false',
+        );
+      }
+      if (
+        expiresAt !== undefined &&
+        pinned !== true &&
+        new Date(expiresAt) <= now
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'expiresAt must be in the future',
+        );
+      }
+      if (pinned === undefined && expiresAt !== undefined && pack.pinned) {
+        throw createProblem(
+          'validation-failed',
+          'Cannot set expiresAt on a pinned pack — unpin it first or send pinned: false together',
+        );
+      }
+      if (pinned === undefined && expiresAt === undefined) {
+        throw createProblem(
+          'validation-failed',
+          'At least one of pinned or expiresAt must be provided',
+        );
+      }
+
+      // Mutate + re-fetch atomically to avoid race with GC
+      const updated = await fastify.dataSource.runTransaction(async () => {
+        if (pinned === true) {
+          await fastify.contextPackRepository.pin(pack.id);
+        } else if (pinned === false) {
+          await fastify.contextPackRepository.unpin(
+            pack.id,
+            new Date(expiresAt!),
+          );
+        } else if (expiresAt !== undefined) {
+          await fastify.contextPackRepository.updateExpiry(
+            pack.id,
+            new Date(expiresAt),
+          );
+        }
+
+        return fastify.contextPackRepository.findById(pack.id);
+      });
+
+      if (!updated) {
+        throw createProblem('not-found', 'Context pack not found');
+      }
+      return updated;
     },
   );
 }

@@ -101,8 +101,10 @@ function toAsyncGenerator<T>(values: T[]): AsyncGenerator<T> {
   })();
 }
 
-function lastThreadOptions(): ThreadOptions | undefined {
-  return startThreadMock.mock.lastCall?.[0];
+function lastThreadOptions(): (ThreadOptions & { cwd?: string }) | undefined {
+  return startThreadMock.mock.lastCall?.[0] as
+    | (ThreadOptions & { cwd?: string })
+    | undefined;
 }
 
 function lastRunPrompt(): string {
@@ -467,6 +469,30 @@ describe('AxAICodexAgentSDK', () => {
       expect(lastThreadOptions()?.skipGitRepoCheck).toBe(true);
     });
 
+    it('passes cwd to the codex thread', async () => {
+      mockThread();
+
+      const ai = new AxAICodexAgentSDK({ cwd: '/tmp/codex-eval' });
+      await ai.chat({
+        chatPrompt: [{ role: 'user', content: 'cwd test' }],
+        modelConfig: { stream: false },
+      });
+
+      expect(lastThreadOptions()?.cwd).toBe('/tmp/codex-eval');
+    });
+
+    it('allows overriding sandbox mode', async () => {
+      mockThread();
+
+      const ai = new AxAICodexAgentSDK({ sandboxMode: 'full' });
+      await ai.chat({
+        chatPrompt: [{ role: 'user', content: 'sandbox override test' }],
+        modelConfig: { stream: false },
+      });
+
+      expect(lastThreadOptions()?.sandboxMode).toBe('full');
+    });
+
     it('injects maxTurns into the adapter prompt', async () => {
       mockThread();
 
@@ -492,6 +518,18 @@ describe('AxAICodexAgentSDK', () => {
 
       expect(lastCodexOptions()?.env?.OTEL_SDK_DISABLED).toBe('true');
       expect(lastCodexOptions()?.env?.OPENAI_DISABLE_TELEMETRY).toBe('1');
+    });
+
+    it('merges extra env vars into the sdk env', async () => {
+      mockThread();
+
+      const ai = new AxAICodexAgentSDK({ extraEnv: { FOO: 'bar' } });
+      await ai.chat({
+        chatPrompt: [{ role: 'user', content: 'env override test' }],
+        modelConfig: { stream: false },
+      });
+
+      expect(lastCodexOptions()?.env?.FOO).toBe('bar');
     });
   });
 

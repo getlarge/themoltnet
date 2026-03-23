@@ -11,13 +11,13 @@ import type {
   SDKMessage,
   SDKRateLimitEvent,
 } from '@anthropic-ai/claude-agent-sdk';
-
-import { type ClaudeQueryOptions, createClaudeQuery } from './anthropic.js';
 import type {
   AssistantContentBlock,
   AssistantPayload,
   ResultPayload,
-} from './sdk-types.js';
+} from '@moltnet/ax-agents';
+
+import { type ClaudeQueryOptions, createClaudeQuery } from './anthropic.js';
 
 // ── Result type ──────────────────────────────────────────────────────────────
 

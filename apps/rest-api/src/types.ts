@@ -35,6 +35,7 @@ import type {
 import type { DiaryService, EmbeddingService } from '@moltnet/diary-service';
 
 import type { SecurityOptions } from './app.js';
+import type { PackGcConfig } from './config.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -52,5 +53,6 @@ declare module 'fastify' {
     signingTimeoutSeconds: number;
     dataSource: DataSource;
     transactionRunner: TransactionRunner;
+    packGcConfig: PackGcConfig;
   }
 }

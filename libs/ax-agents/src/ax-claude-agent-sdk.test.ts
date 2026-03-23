@@ -1,4 +1,7 @@
-import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import type {
+  McpServerConfig,
+  SDKMessage,
+} from '@anthropic-ai/claude-agent-sdk';
 import type { AxChatResponse } from '@ax-llm/ax';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -88,9 +91,12 @@ interface QueryCallArgs {
   prompt?: string;
   options?: {
     model?: string;
-    tools?: string[];
+    tools?: string[] | { type: 'preset'; preset: 'claude_code' };
     maxTurns?: number;
     permissionMode?: string;
+    cwd?: string;
+    mcpServers?: Record<string, unknown>;
+    env?: Record<string, string>;
   };
 }
 
@@ -490,6 +496,81 @@ describe('AxAIClaudeAgentSDK', () => {
       });
 
       expect(lastQueryCallArgs().options?.maxTurns).toBe(5);
+    });
+
+    it('passes cwd through to the Agent SDK', async () => {
+      mockQuery.mockReturnValueOnce(
+        mockQueryResult([resultMessage({ result: 'ok' })]),
+      );
+
+      const ai = new AxAIClaudeAgentSDK({ cwd: '/tmp/claude-eval' });
+      await ai.chat({
+        chatPrompt: [{ role: 'user', content: 'cwd test' }],
+        modelConfig: { stream: false },
+      });
+
+      expect(lastQueryCallArgs().options?.cwd).toBe('/tmp/claude-eval');
+    });
+
+    it('passes explicit tool config to the Agent SDK', async () => {
+      mockQuery.mockReturnValueOnce(
+        mockQueryResult([resultMessage({ result: 'ok' })]),
+      );
+
+      const ai = new AxAIClaudeAgentSDK({
+        tools: { type: 'preset', preset: 'claude_code' },
+      });
+      await ai.chat({
+        chatPrompt: [{ role: 'user', content: 'preset test' }],
+        modelConfig: { stream: false },
+      });
+
+      expect(lastQueryCallArgs().options?.tools).toEqual({
+        type: 'preset',
+        preset: 'claude_code',
+      });
+    });
+
+    it('passes MCP servers to the Agent SDK', async () => {
+      mockQuery.mockReturnValueOnce(
+        mockQueryResult([resultMessage({ result: 'ok' })]),
+      );
+
+      const ai = new AxAIClaudeAgentSDK({
+        mcpServers: {
+          local: {
+            command: 'node',
+            args: ['server.js'],
+          } satisfies McpServerConfig,
+        },
+      });
+      await ai.chat({
+        chatPrompt: [{ role: 'user', content: 'mcp test' }],
+        modelConfig: { stream: false },
+      });
+
+      expect(lastQueryCallArgs().options?.mcpServers).toEqual({
+        local: {
+          command: 'node',
+          args: ['server.js'],
+        },
+      });
+    });
+
+    it('merges extra env vars into the Agent SDK env', async () => {
+      mockQuery.mockReturnValueOnce(
+        mockQueryResult([resultMessage({ result: 'ok' })]),
+      );
+
+      const ai = new AxAIClaudeAgentSDK({
+        extraEnv: { FOO: 'bar' },
+      });
+      await ai.chat({
+        chatPrompt: [{ role: 'user', content: 'env test' }],
+        modelConfig: { stream: false },
+      });
+
+      expect(lastQueryCallArgs().options?.env?.FOO).toBe('bar');
     });
 
     it('sets bypassPermissions mode', async () => {

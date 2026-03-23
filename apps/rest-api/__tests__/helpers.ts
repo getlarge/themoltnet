@@ -163,6 +163,7 @@ export interface MockServices {
     listExpiredUnpinned: ReturnType<typeof vi.fn>;
     pin: ReturnType<typeof vi.fn>;
     unpin: ReturnType<typeof vi.fn>;
+    updateExpiry: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
     listByDiary: ReturnType<typeof vi.fn>;
   };
@@ -231,6 +232,7 @@ export function createMockServices(): MockServices {
       listExpiredUnpinned: vi.fn().mockResolvedValue([]),
       pin: vi.fn(),
       unpin: vi.fn(),
+      updateExpiry: vi.fn(),
       deleteMany: vi.fn(),
       listByDiary: vi.fn().mockResolvedValue([]),
     },
@@ -312,6 +314,7 @@ export function createMockServices(): MockServices {
       registerAgent: vi.fn(),
       removeEntryRelations: vi.fn(),
       removePackRelations: vi.fn(),
+      removePackRelationsBatch: vi.fn(),
     },
     dataSource: {
       client: { __mock: 'transactionalClient' },
@@ -378,6 +381,11 @@ export async function createTestApp(
     recoverySecret: TEST_RECOVERY_SECRET,
     oryClients: mockOryClients,
     security: { ...TEST_SECURITY_OPTIONS, ...securityOverrides },
+    packGcConfig: {
+      PACK_GC_COMPILE_TTL_DAYS: 7,
+      PACK_GC_CRON: '0 * * * *',
+      PACK_GC_BATCH_SIZE: 100,
+    },
   });
 
   return app;

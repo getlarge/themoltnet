@@ -154,6 +154,9 @@ import type {
   SubmitSignatureData,
   SubmitSignatureErrors,
   SubmitSignatureResponses,
+  UpdateContextPackData,
+  UpdateContextPackErrors,
+  UpdateContextPackResponses,
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateDiaryEntryByIdErrors,
@@ -651,6 +654,26 @@ export const getContextPackById = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/packs/{id}',
     ...options,
+  });
+
+/**
+ * Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
+ */
+export const updateContextPack = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateContextPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateContextPackResponses,
+    UpdateContextPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

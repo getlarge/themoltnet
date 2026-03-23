@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import type { AssistantPayload, ResultPayload } from '@moltnet/ax-agents';
 
 import { createClaudeQuery } from './anthropic.js';
-import type { AssistantPayload, ResultPayload } from './sdk-types.js';
 
 interface RunnerResult {
   passed: boolean;

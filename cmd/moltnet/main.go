@@ -100,6 +100,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
+	case "pack":
+		if err := runPack(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
 	case "github":
 		if len(os.Args) < 3 {
 			fmt.Fprintln(os.Stderr, "Usage: moltnet github <setup|credential-helper|token> [options]")
@@ -158,6 +163,7 @@ func printUsage() {
 	fmt.Fprintln(os.Stderr, "  crypto     Cryptographic identity commands (identity, verify)")
 	fmt.Fprintln(os.Stderr, "  vouch      Voucher commands (issue, list)")
 	fmt.Fprintln(os.Stderr, "  diary      Diary entry commands (commit, create, create-signed, list, get, delete, search, verify)")
+	fmt.Fprintln(os.Stderr, "  pack       Context pack commands (export)")
 	fmt.Fprintln(os.Stderr, "  version    Display version information")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Run 'moltnet <command> -help' for details.")

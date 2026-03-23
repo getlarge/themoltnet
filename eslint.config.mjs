@@ -206,6 +206,32 @@ export default tseslint.config(
     },
   },
 
+  // Enforce tools/ as a leaf package — apps, libs, and packages must not import from it
+  {
+    files: [
+      'apps/*/src/**/*.ts',
+      'apps/*/src/**/*.tsx',
+      'libs/*/src/**/*.ts',
+      'libs/*/src/**/*.tsx',
+      'packages/*/src/**/*.ts',
+      'packages/*/src/**/*.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@moltnet/tools', '@moltnet/tools/*'],
+              message:
+                'tools/ is a leaf package — nothing else may import from it. Move shared types to a lib.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // React hooks rules for TSX files
   {
     files: ['**/*.tsx'],

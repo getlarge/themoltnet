@@ -18,11 +18,8 @@ import {
   AxAIOpenAIModel,
   type AxAIService,
 } from '@ax-llm/ax';
-
-import { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
-import { AxAICodexAgentSDK } from './ax-codex-agent-sdk.js';
-export { AxAIClaudeAgentSDK } from './ax-claude-agent-sdk.js';
-export { AxAICodexAgentSDK } from './ax-codex-agent-sdk.js';
+import { AxAIClaudeAgentSDK, AxAICodexAgentSDK } from '@moltnet/ax-agents';
+export { AxAIClaudeAgentSDK, AxAICodexAgentSDK } from '@moltnet/ax-agents';
 import { loadContextEvalsConfig } from './config.js';
 import type { EvalTrace } from './evaluate.js';
 import { execFileText } from './process.js';
@@ -149,10 +146,10 @@ export function buildAI(options: BuildAIOptions): AxAIService {
       });
 
     case 'claude-agent-sdk':
-      return new AxAIClaudeAgentSDK({ model });
+      return new AxAIClaudeAgentSDK({ model }) as unknown as AxAIService;
 
     case 'codex-agent-sdk':
-      return new AxAICodexAgentSDK({ model });
+      return new AxAICodexAgentSDK({ model }) as unknown as AxAIService;
   }
 }
 

@@ -11,6 +11,9 @@
   "references": [
     {
       "path": "../api-client"
+    },
+    {
+      "path": "../ax-agents"
     }
   ]
 }
