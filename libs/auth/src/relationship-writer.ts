@@ -26,6 +26,9 @@ export interface RelationshipWriter {
   registerAgent(agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
   removePackRelations(packId: string): Promise<void>;
+  removePackRelationsBatch(
+    packs: Array<{ id: string; diaryId: string }>,
+  ): Promise<void>;
 }
 
 export function createRelationshipWriter(
@@ -124,6 +127,28 @@ export function createRelationshipWriter(
       await relationshipApi.deleteRelationships({
         namespace: KetoNamespace.ContextPack,
         object: packId,
+      });
+    },
+
+    async removePackRelationsBatch(
+      packs: Array<{ id: string; diaryId: string }>,
+    ): Promise<void> {
+      if (packs.length === 0) return;
+
+      await relationshipApi.patchRelationships({
+        relationshipPatch: packs.map((pack) => ({
+          action: 'delete' as const,
+          relation_tuple: {
+            namespace: KetoNamespace.ContextPack,
+            object: pack.id,
+            relation: ContextPackRelation.Parent,
+            subject_set: {
+              namespace: KetoNamespace.Diary,
+              object: pack.diaryId,
+              relation: '',
+            },
+          },
+        })),
       });
     },
 

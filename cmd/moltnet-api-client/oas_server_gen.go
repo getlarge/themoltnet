@@ -320,6 +320,12 @@ type Handler interface {
 	//
 	// POST /crypto/signing-requests/{id}/sign
 	SubmitSignature(ctx context.Context, req *SubmitSignatureReq, params SubmitSignatureParams) (SubmitSignatureRes, error)
+	// UpdateContextPack implements updateContextPack operation.
+	//
+	// Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
+	//
+	// PATCH /packs/{id}
+	UpdateContextPack(ctx context.Context, req OptUpdateContextPackReq, params UpdateContextPackParams) (UpdateContextPackRes, error)
 	// UpdateDiary implements updateDiary operation.
 	//
 	// Update diary name or visibility.

@@ -69,6 +69,12 @@ export const ObservabilityConfigSchema = Type.Object({
   AXIOM_METRICS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
 });
 
+export const PackGcConfigSchema = Type.Object({
+  PACK_GC_COMPILE_TTL_DAYS: Type.Number({ default: 7 }),
+  PACK_GC_CRON: Type.String({ default: '0 * * * *' }),
+  PACK_GC_BATCH_SIZE: Type.Number({ default: 100 }),
+});
+
 export const EmbeddingConfigSchema = Type.Object({
   /** Directory where model files are cached/loaded from */
   EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
@@ -112,6 +118,7 @@ export type WebhookConfig = Static<typeof WebhookConfigSchema>;
 export type OryConfig = Static<typeof OryConfigSchema>;
 export type ObservabilityEnvConfig = Static<typeof ObservabilityConfigSchema>;
 export type RecoveryConfig = Static<typeof RecoveryConfigSchema>;
+export type PackGcConfig = Static<typeof PackGcConfigSchema>;
 export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
 
@@ -124,6 +131,7 @@ export interface AppConfig {
   recovery: RecoveryConfig;
   embedding: EmbeddingConfig;
   security: SecurityConfig;
+  packGc: PackGcConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -238,6 +246,16 @@ export function loadEmbeddingConfig(
   );
 }
 
+export function loadPackGcConfig(
+  env: Record<string, string | undefined> = process.env,
+): PackGcConfig {
+  return validateSchema(
+    'PackGc',
+    PackGcConfigSchema,
+    pickEnv(PackGcConfigSchema, env),
+  );
+}
+
 export function loadSecurityConfig(
   env: Record<string, string | undefined> = process.env,
 ): SecurityConfig {
@@ -274,6 +292,7 @@ export function loadConfig(
     recovery: loadRecoveryConfig(env),
     embedding: loadEmbeddingConfig(env),
     security,
+    packGc: loadPackGcConfig(env),
   };
 }
 
@@ -290,6 +309,7 @@ const allSchemas: TObject[] = [
   ObservabilityConfigSchema,
   EmbeddingConfigSchema,
   SecurityConfigSchema,
+  PackGcConfigSchema,
 ];
 
 /**

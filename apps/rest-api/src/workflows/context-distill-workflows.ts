@@ -87,6 +87,7 @@ export interface ContextDistillDeps {
   entryRelationRepository: EntryRelationRepository;
   embeddingService: EmbeddingService;
   logger: Logger;
+  compileTtlDays: number;
 }
 
 /** Compile workflow output: the persisted pack + its entries + compile stats. */
@@ -475,7 +476,10 @@ export function initContextDistillWorkflows(): void {
         },
         createdAt: createdAtDate,
         pinned: false,
-        expiresAt: new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(
+          createdAtDate.getTime() +
+            getDeps().compileTtlDays * 24 * 60 * 60 * 1000,
+        ),
       };
 
       const entryInputs: NewContextPackEntry[] = compileResult.entries.map(

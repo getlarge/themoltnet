@@ -103,7 +103,8 @@ var (
 		"GET": "Authorization",
 	}
 	rn25AllowedHeaders = map[string]string{
-		"GET": "Authorization",
+		"GET":   "Authorization",
+		"PATCH": "Authorization,Content-Type",
 	}
 	rn65AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
@@ -1275,12 +1276,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							s.handleGetContextPackByIdRequest([1]string{
 								args[0],
 							}, elemIsEscaped, w, r)
+						case "PATCH":
+							s.handleUpdateContextPackRequest([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
 						default:
 							s.notAllowed(w, r, notAllowedParams{
-								allowedMethods: "GET",
+								allowedMethods: "GET,PATCH",
 								allowedHeaders: rn25AllowedHeaders,
 								acceptPost:     "",
-								acceptPatch:    "",
+								acceptPatch:    "application/json",
 							})
 						}
 
@@ -2950,6 +2955,15 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 							r.name = GetContextPackByIdOperation
 							r.summary = ""
 							r.operationID = "getContextPackById"
+							r.operationGroup = ""
+							r.pathPattern = "/packs/{id}"
+							r.args = args
+							r.count = 1
+							return r, true
+						case "PATCH":
+							r.name = UpdateContextPackOperation
+							r.summary = ""
+							r.operationID = "updateContextPack"
 							r.operationGroup = ""
 							r.pathPattern = "/packs/{id}"
 							r.args = args
