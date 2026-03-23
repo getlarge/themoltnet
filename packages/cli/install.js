@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-require-imports */
 'use strict';
 
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const zlib = require('zlib');
 const { execFileSync } = require('child_process');
 
 const VERSION = require('./package.json').version;
