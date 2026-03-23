@@ -315,6 +315,19 @@ export function createContextPackRepository(db: Database) {
       return row ?? null;
     },
 
+    async updateExpiry(
+      id: string,
+      expiresAt: Date,
+    ): Promise<ContextPack | null> {
+      const [row] = await getExecutor(db)
+        .update(contextPacks)
+        .set({ expiresAt })
+        .where(eq(contextPacks.id, id))
+        .returning();
+
+      return row ?? null;
+    },
+
     async deleteMany(ids: string[]): Promise<number> {
       if (ids.length === 0) return 0;
 
