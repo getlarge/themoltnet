@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.72.0](https://github.com/getlarge/themoltnet/compare/cli-v0.71.0...cli-v0.72.0) (2026-03-23)
+
+
+### Miscellaneous Chores
+
+* **cli:** Synchronize go-cli versions
+
 ## [0.71.0](https://github.com/getlarge/themoltnet/compare/cli-v0.70.0...cli-v0.71.0) (2026-03-21)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.72.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.71.0...moltnet-api-client-v0.72.0) (2026-03-23)
+
+
+### Features
+
+* pack GC — garbage collect expired non-pinned context packs ([268e31f](https://github.com/getlarge/themoltnet/commit/268e31fba44caca524901560eaecff07f01a73ca))
+
+
+### Bug Fixes
+
+* **pack-gc:** address code review — atomicity, logger, tests, Go client ([66309f6](https://github.com/getlarge/themoltnet/commit/66309f6b2f55fc2df313d375cc67eafac3e920ea))
+
 ## [0.71.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.70.0...moltnet-api-client-v0.71.0) (2026-03-21)
 
 
