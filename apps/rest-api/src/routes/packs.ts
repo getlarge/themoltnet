@@ -378,9 +378,13 @@ export async function packRoutes(fastify: FastifyInstance) {
     if (persist) {
       const createdAtDate = new Date(createdAt);
       const pinned = request.body.pinned ?? false;
+      const compileTtlDays =
+        fastify.packGcConfig?.PACK_GC_COMPILE_TTL_DAYS ?? 7;
       const expiresAt = pinned
         ? null
-        : new Date(createdAtDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+        : new Date(
+            createdAtDate.getTime() + compileTtlDays * 24 * 60 * 60 * 1000,
+          );
 
       // TODO(issue-456): Move custom pack persistence + Keto parent grant into
       // a DBOS workflow with retry/compensation semantics, matching the compile

@@ -255,6 +255,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           relationshipWriter,
           embeddingService,
           logger: app.log,
+          compileTtlDays: config.packGc.PACK_GC_COMPILE_TTL_DAYS,
         });
       },
       () => {
@@ -321,6 +322,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
       sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
+    packGcConfig: config.packGc,
   });
 
   // ── Observability metrics plugin ───────────────────────────────
