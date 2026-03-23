@@ -12,6 +12,7 @@ import {
   getContextPackProvenanceById,
   listDiaryPacks,
   previewDiaryCustomPack,
+  updateContextPack,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
@@ -21,6 +22,7 @@ import type {
   PackListInput,
   PackPreviewInput,
   PackProvenanceInput,
+  PackUpdateInput,
 } from './schemas.js';
 import {
   PackCreateSchema,
@@ -28,6 +30,7 @@ import {
   PackListSchema,
   PackPreviewSchema,
   PackProvenanceSchema,
+  PackUpdateSchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
@@ -229,6 +232,33 @@ export async function handlePacksProvenance(
   return textResult(data);
 }
 
+export async function handlePacksUpdate(
+  args: PackUpdateInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'packs_update' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await updateContextPack({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.pack_id },
+    body: {
+      ...(args.pinned !== undefined && { pinned: args.pinned }),
+      ...(args.expires_at !== undefined && { expiresAt: args.expires_at }),
+    },
+  });
+
+  if (error) {
+    deps.logger.error({ tool: 'packs_update', err: error }, 'tool.error');
+    return errorResult(extractApiErrorMessage(error, 'Failed to update pack'));
+  }
+
+  return textResult({ pack: data });
+}
+
 // --- Tool registration ---
 
 export function registerPackTools(
@@ -272,6 +302,18 @@ export function registerPackTools(
       inputSchema: PackCreateSchema,
     },
     async (args, ctx) => handlePacksCreate(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'packs_update',
+      description:
+        'Update a context pack — pin/unpin or change expiration date. ' +
+        'Pin a pack to protect it from garbage collection. ' +
+        'When unpinning, expires_at is required.',
+      inputSchema: PackUpdateSchema,
+    },
+    async (args, ctx) => handlePacksUpdate(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
