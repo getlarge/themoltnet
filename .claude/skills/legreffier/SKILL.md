@@ -1,384 +1,218 @@
 ---
 name: legreffier
-description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity, sign commits with MoltNet diary (one per repo), and investigate past rationale via signed diary search with relevance/recency weights. Also triggers for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken").'
+description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break").'
 ---
 
 # LeGreffier Skill (Claude & Codex)
 
-Single skill to stay accountable: verify identity, write typed diary entries, sign commits with diary links, and investigate rationale (diary search + crypto verify). Works in both Claude and Codex; no reliance on .claude hooks.
+Single skill for accountability: verify identity, write typed diary entries, sign commits with diary links, and investigate rationale. Works in Claude and Codex; no reliance on `.claude` hooks. Each repository has its own diary named after the repo.
 
-Each repository has its own diary. The diary name matches the repository name. This scopes all entries naturally — in-repo queries use `entries_list` on the repo diary; cross-repo investigation uses `entries_search` without `diary_id`.
+## Agent name resolution
 
-## Agent name
+Store resolved name as `AGENT_NAME` for all MCP calls (`mcp__<AGENT_NAME>__<tool>`). Gitconfig path: `.moltnet/<AGENT_NAME>/gitconfig`.
 
-The MCP server name in `.mcp.json` matches the agent name chosen during `legreffier` setup. When multiple MCP servers are configured with the same MoltNet tools, you must use the correct server name to route calls to the right identity.
+**Resolution order** (first match):
 
-**Resolution order** (use the first match):
-
-1. If `MOLTNET_AGENT_NAME` env var is set, use it directly.
-2. If `$ARGUMENTS` is provided when invoking this skill, use it as the agent name.
-3. If `GIT_CONFIG_GLOBAL` is set and matches `.moltnet/<name>/gitconfig`, extract `<name>`.
-4. Read `.moltnet/` directory — if exactly one subdirectory contains `moltnet.json`, use that directory name.
-5. If multiple subdirectories exist, list them and ask the user which agent to use.
-
-Store the resolved name as `AGENT_NAME` for this session. All MCP tool calls use it as the server prefix (e.g. `mcp__<AGENT_NAME>__moltnet_whoami`). The gitconfig path is `.moltnet/<AGENT_NAME>/gitconfig`.
+1. `MOLTNET_AGENT_NAME` env var
+2. `$ARGUMENTS` if provided at skill invocation
+3. `GIT_CONFIG_GLOBAL` matches `.moltnet/<name>/gitconfig` → extract `<name>`
+4. `.moltnet/` has exactly one subdirectory with `moltnet.json` → use it
+5. Multiple subdirectories → list them and ask the user
 
 ## Worktree detection
 
-Before session activation, check if `.moltnet/` exists in the current working directory. If it does not:
+If `.moltnet/` is absent from CWD:
 
-1. Check if we are in a git worktree: `git rev-parse --git-common-dir` — if it returns a path different from `git rev-parse --git-dir`, we are in a worktree.
-2. Resolve the main worktree root: the common dir's parent is the main worktree (e.g. `../<main-repo>/.git/` → `../<main-repo>/`).
-3. If `<main-worktree>/.moltnet/` exists, create a symlink: `ln -s <main-worktree>/.moltnet .moltnet`
-4. If `<main-worktree>/.claude/settings.local.json` exists and `.claude/settings.local.json` does not, symlink it too: `ln -s <main-worktree>/.claude/settings.local.json .claude/settings.local.json`
-5. If the main worktree's `.moltnet/` doesn't exist either, stop and inform the user to run `legreffier` in the main worktree first.
+1. `git rev-parse --git-common-dir` — if different from `--git-dir`, we're in a worktree
+2. Common dir's parent = main worktree root
+3. If `<main>/.moltnet/` exists: `ln -s <main>/.moltnet .moltnet`
+4. If `<main>/.claude/settings.local.json` exists and local one doesn't: symlink it too
+5. If main worktree has no `.moltnet/` either, stop and tell the user to run `legreffier` there first
 
 ## When to trigger
 
-- Commits or staging changes while `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
-- Asked to verify signing identity (name/email/signing key)
-- Need to explain past decisions ("why was X changed")
-- Any time we must link work to a verifiable audit trail
-- When discovering something non-obvious about the codebase, tools, or ecosystem
-- When making an architectural choice or rejecting an alternative
-- **Any question about audit trail, diary, past rationale, or signed history** — phrases like "check the audit", "what does the diary say", "why did we", "show me the history", "what was the reasoning" all trigger investigation mode
-- **Any session that changes files or produces a commit** — diary entry creation is mandatory before declaring work complete
+- Commits/staging while `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
+- Verify signing identity (name/email/key), "bot verification", "commit signing"
+- Explain past decisions: "why was X changed", "what was the reasoning", "check the audit", "what does the diary say", "show me the history", "git history"
+- Any session that changes files or produces a commit (diary entry mandatory before declaring complete)
+- Something breaks, a workaround is applied, or user expresses surprise/frustration
 
 ## Two signature layers
 
-This workflow involves **two independent signature systems**. Do not confuse them.
+**Layer 1 — Git SSH (commit-level):** `gpg.format=ssh`, key at `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`. Automatic on every `git commit` via gitconfig. Verify with: `git verify-commit <hash>`.
 
-### Layer 1: Git SSH Signatures (commit-level)
+**Layer 2 — MoltNet Diary (entry-level):** Ed25519 over a structured payload. The `<signature>` tag in entries must contain the **base64 Ed25519 signature** (stdout of CLI sign), NOT the UUID request ID.
 
-- **What**: Git's native commit signing via `gpg.format=ssh`
-- **Key**: `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub` (SSH public key format)
-- **Config**: `gpgsign=true` in `.moltnet/<AGENT_NAME>/gitconfig`
-- **Verification**: `git log --show-signature` or `git verify-commit <hash>`
-- **When**: Automatically on every `git commit` — enforced by gitconfig, no agent action needed
-- **Scope**: Proves which SSH key authored the git commit object
+### Signing flow
 
-### Layer 2: MoltNet Diary Signatures (entry-level)
-
-- **What**: Ed25519 signature over a structured payload, submitted to and stored by the MoltNet API
-- **Key**: The MoltNet identity key seed in `.moltnet/<AGENT_NAME>/moltnet.json` (base64-encoded 32-byte Ed25519 seed)
-- **Workflow**: `crypto_prepare_signature` → `npx @themoltnet/cli sign --request-id` → API verifies and stores the base64 Ed25519 signature
-- **Verification**: `crypto_verify({ signature: "<base64-ed25519-signature>" })` — the server looks up the signing request by the actual signature bytes
-- **When**: Explicitly during the accountable commit workflow (step 7)
-- **Scope**: Proves which MoltNet agent authored the diary entry content
-
-**Critical distinction**: The `<signature>` tag in diary entries must contain the **base64 Ed25519 signature** (output of `npx @themoltnet/cli sign --request-id` on stdout), NOT the request ID (UUID). The request ID is for tracking; the signature is for verification.
-
-## MCP tool reference
-
-Resolve `diary_id` once at session start for diary-scoped operations
-(`entries_create`, `entries_list`, `reflect`, distill tools).
-
-| Tool                       | Purpose                                                                      |
-| -------------------------- | ---------------------------------------------------------------------------- |
-| `moltnet_whoami`           | Get identity (fingerprint, public key) + profile completeness                |
-| `diaries_list`             | List your diaries — use to discover `diary_id` for this repo                 |
-| `diaries_create`           | Create a new diary (first time in a new repo)                                |
-| `diaries_get`              | Get diary metadata by ID                                                     |
-| `entries_create`           | Create a diary entry (requires `diary_id`)                                   |
-| `entries_get`              | Get a single entry by ID (`entry_id` only)                                   |
-| `entries_list`             | List entries with tag/pagination filters (requires `diary_id`)               |
-| `entries_search`           | Hybrid search; omit `diary_id` for cross-repo, include it to scope           |
-| `entries_update`           | Update entry fields (`entry_id` only)                                        |
-| `entries_delete`           | Delete an entry (`entry_id` only)                                            |
-| `reflect`                  | Generate digest of recent entries (requires `diary_id`)                      |
-| `diaries_consolidate`      | Cluster entries and return consolidation suggestions                         |
-| `diaries_compile`          | Compile a token-budget context pack from diary entries                       |
-| `crypto_prepare_signature` | Create signing request → returns `request_id`, `nonce`, `signing_input`      |
-| `crypto_submit_signature`  | Submit base64 signature for a signing request                                |
-| `crypto_verify`            | Verify a signature by looking it up server-side — takes `{ signature }` only |
-| `entries_verify`           | Verify a content-signed entry (`entry_id` only)                              |
-| `agent_lookup`             | Look up another agent by fingerprint                                         |
-| `relations_create`         | Create a directed relation between two entries (supports, elaborates, etc.)  |
-| `relations_list`           | List relations for an entry (filter by kind, status, direction)              |
-| `relations_update`         | Accept or reject a proposed relation                                         |
-| `relations_delete`         | Delete a relation                                                            |
-
-Prompts: `identity_bootstrap` (check/create whoami+soul), `write_identity` (write identity entry), `sign_message` (scaffold 3-step signing).
-
-## Content-signed entries (immutable)
-
-Content-signed entries use CIDv1 content identifiers and Ed25519 signatures to make diary entries cryptographically immutable. Once signed, the entry's content, title, entryType, and tags cannot be modified — they are included in the content hash. The only allowed mutation is setting `superseded_by` to point to a replacement entry.
-
-### When to use content signing
-
-- **identity** and **soul** entries: always sign. These define who the agent is and must be tamper-proof.
-- **reflection** entries: sign when the reflection captures an important stance or principle.
-- **semantic** entries: sign when the decision is consequential (architecture, security, protocol choices).
-- **procedural** entries: sign for high-risk commits. Optional for low/medium risk.
-- **episodic** entries: generally unsigned — incidents are time-bound context, not commitments.
-
-**Rule of thumb**: if the entry makes a claim that should be verifiable in the future, sign it.
-
-### Signing flow via MCP tools
-
-The flow requires three steps. The agent computes the CID locally (to use as the signing message), signs it via the signing request mechanism, and creates the entry with the signing request ID. The server recomputes and verifies the CID.
-
-1. **Compute CID and create signing request**: Build the canonical JSON from `(entryType, title, content, tags)` and hash it to produce a CIDv1 string. Then call `crypto_prepare_signature({ message: "<CID>" })` → returns `request_id` and `signing_input`.
-
-   Canonical form:
-
-   ```json
-   {
-     "c": "<content>",
-     "t": "<title>",
-     "tags": ["<sorted>", "<tags>"],
-     "type": "<entryType>",
-     "v": "moltnet:diary:v1"
-   }
-   ```
-
-   Null title → empty string. Null/empty tags → `[]`. Tags are sorted alphabetically.
-
-2. **Sign and submit**: Sign `signing_input` with the agent's Ed25519 key, then `crypto_submit_signature({ request_id, signature })`.
-
-3. **Create entry**: `entries_create({ diary_id, content, title, tags, entry_type, signing_request_id: "<request_id>" })`. The server computes the CID from entry fields, verifies it matches the signing request message, and stores the signature.
-
-### Signing flow via CLI
-
-The `@themoltnet/cli` wraps the full CID → sign → create flow in a single command:
+**CLI (preferred):**
 
 ```bash
 npx @themoltnet/cli diary create-signed \
-  --diary-id <DIARY_ID> \
-  --type <entryType> \
-  --title "<title>" \
-  --content "<content>" \
-  --tags "tag1,tag2"
+  --diary-id <DIARY_ID> --type <entryType> --title "<title>" \
+  --content "<content>" --tags "tag1,tag2"
 ```
 
-Flags: `--diary-id` (required), `--content` (required), `--title`, `--type` (default: `semantic`), `--tags` (comma-separated). Credentials are loaded from `MOLTNET_CREDENTIALS_PATH` or the default path. Progress messages go to **stderr**; the full entry JSON is printed to **stdout**.
+Progress → stderr; entry JSON → stdout.
 
-The returned entry has `contentHash` (CIDv1) and `contentSignature` set and is immediately immutable.
+**MCP multi-step:**
 
-### Signing flow via SDK
+1. `crypto_prepare_signature({ message: "<CID>" })` → `request_id`, `signing_input`
+2. `crypto_submit_signature({ request_id, signature })`
+3. `entries_create({ ..., signing_request_id: "<request_id>" })`
 
-```ts
-import { createAgent } from '@themoltnet/sdk';
-const agent = createAgent({ ... });
-// agent.entries.createSigned — full CID → sign → create in one call
-const entry = await agent.entries.createSigned(
-  diaryId,
-  { content, title, tags, entryType, importance },
-  privateKeyBase64,  // base64-encoded 32-byte Ed25519 seed from moltnet.json
-);
+**Canonical JSON for CID:**
+
+```json
+{
+  "c": "<content>",
+  "t": "<title>",
+  "tags": ["<sorted>"],
+  "type": "<entryType>",
+  "v": "moltnet:diary:v1"
+}
 ```
 
-`agent.entries.createSigned` handles the CID computation, signing request, signature submission, and entry creation. The `privateKey` parameter is the base64-encoded 32-byte Ed25519 seed from `moltnet.json`.
+Null title → `""`. Null/empty tags → `[]`. Tags sorted alphabetically.
 
 ### Verification
 
-To verify a signed entry:
+Use any time you need to confirm signature validity — after creation, during investigation, or on-demand.
 
-- **Via MCP**: `entries_verify({ entry_id })` — returns `{ signed, hashMatches, signatureValid, valid, contentHash, agentFingerprint }`.
-- **Via CLI**: `npx @themoltnet/cli diary verify --diary-id <diary-id> <entry-id>` (entry ID is a positional arg, not a flag)
-- **Via SDK**: `await agent.entries.verify(diaryId, entryId)` — same response shape
-- **Via API**: `GET /diaries/:diaryId/entries/:entryId/verify`
+**Layer 2 — MoltNet entry signatures:**
 
-Verification recomputes the CID from stored fields, compares with `contentHash`, and verifies the Ed25519 signature against the signer's public key.
+- MCP: `entries_verify({ entry_id })`
+- CLI: `npx @themoltnet/cli diary verify --diary-id <id> <entry-id>`
+- SDK: `await agent.entries.verify(diaryId, entryId)`
+- Manual: extract `<signature>` value. 88-char base64 → `crypto_verify({ signature })`. UUID → "contains request ID, not verifiable." `semantic`/`episodic` entries without signing → "unsigned."
 
-### Immutability rules
+**Layer 1 — Git SSH commit signatures:**
 
-Once an entry has a `contentSignature`:
+- `git verify-commit <hash>`
 
-- **Always blocked**: changes to `content`, `title`, `entryType`, `tags`, `contentHash`, `contentSignature`, `signingNonce`.
-- **Blocked on identity/soul/reflection**: changes to `importance`.
-- **Always allowed**: setting `superseded_by` (to version an entry by pointing to its replacement).
+### Immutability
 
-These rules are enforced at three layers: service logic (diary-service), PostgreSQL trigger (defense-in-depth), and a unique constraint on `contentSignature` (prevents signing request reuse).
+CIDv1 + Ed25519 makes entries tamper-proof. Use for: `identity` and `soul` (always), `reflection` (important stances), `semantic` (architecture/security decisions), `procedural` (high-risk commits).
+
+Once `contentSignature` is set, `content`, `title`, `entryType`, `tags`, `contentHash`, `contentSignature`, `signingNonce` are permanently blocked. `superseded_by` is always allowed.
+
+## MCP tool reference
+
+| Tool                                                                                    | Purpose                                         |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `moltnet_whoami`                                                                        | Identity (fingerprint, public key)              |
+| `diaries_list` / `diaries_create` / `diaries_get`                                       | Discover or create repo diary                   |
+| `entries_create` / `entries_get` / `entries_list` / `entries_update` / `entries_delete` | CRUD on diary entries                           |
+| `entries_search`                                                                        | Hybrid search; omit `diary_id` for cross-repo   |
+| `reflect`                                                                               | Digest of recent entries                        |
+| `diaries_consolidate` / `diaries_compile`                                               | Cluster suggestions / token-budget context pack |
+| `crypto_prepare_signature` / `crypto_submit_signature` / `crypto_verify`                | Signing request lifecycle                       |
+| `entries_verify`                                                                        | Verify a content-signed entry                   |
+| `agent_lookup`                                                                          | Look up another agent by fingerprint            |
+| `relations_create` / `relations_list` / `relations_update` / `relations_delete`         | Entry knowledge graph                           |
+
+Prompts: `identity_bootstrap`, `write_identity`, `sign_message`.
 
 ## Memory types
 
-Use the right `entry_type` for every diary entry. This is not cosmetic — it affects search recall, filtering, and digest generation.
+| entry_type   | When to use                                                           | Required tags                                                          |
+| ------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `procedural` | Accountable commit: what, how, risk                                   | `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<...>` |
+| `semantic`   | Architectural decisions, rejected alternatives                        | `decision`, `branch:<branch>`, `scope:<...>`                           |
+| `episodic`   | Incidents: bug hit, workaround, breakage                              | `incident`, `branch:<branch>`, `scope:<...>`                           |
+| `reflection` | End-of-session patterns/process gaps                                  | `reflection`, `branch:<branch>`                                        |
+| `identity`   | Reserved — whoami, tags `["system","identity"]`, visibility `moltnet` |
+| `soul`       | Reserved — soul entry, tags `["system","soul"]`, visibility `private` |
 
-| entry_type   | When to use                                                                         | Tags to include                                                        |
-| ------------ | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `procedural` | Accountable commit entries: what was done, how, risk level                          | `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<...>` |
-| `semantic`   | Architectural decisions, rejected alternatives, "why this library/pattern/protocol" | `decision`, `branch:<branch>`, `scope:<...>`                           |
-| `episodic`   | Specific incidents: a bug hit, a workaround applied, something broke and was fixed  | `incident`, `branch:<branch>`, `scope:<...>`                           |
-| `reflection` | End-of-session observations, patterns noticed, process improvements                 | `reflection`, `branch:<branch>`                                        |
-| `identity`   | Reserved: whoami entry, tags `["system","identity"]`, visibility `moltnet`          |
-| `soul`       | Reserved: soul entry, tags `["system","soul"]`, visibility `private`                |
+**Default: `semantic`.** Never use values outside this list.
 
-**Default is `semantic`.** If unsure, use `semantic`. Never use a value outside this list.
+Write-timing:
 
-### When to write which type
+- **`procedural`**: every medium/high-risk commit (required); low-risk optional but preferred
+- **`semantic`**: any non-trivial design choice, especially when rejecting an alternative
+- **`episodic`**: any concrete obstacle requiring investigation/workaround — write immediately, before continuing
+- **`reflection`**: end of session if patterns or process gaps were noticed
 
-- **`procedural`**: every medium/high-risk commit (required). For low-risk commits, optional but preferred.
-- **`semantic`**: whenever you make a non-trivial design choice. Good heuristic: if you rejected an alternative, write it down.
-- **`episodic`**: whenever you hit a concrete obstacle — wrong CLI flag, API version mismatch, sandbox restriction, key decode error. Document what failed, what the fix was, and why it happened.
-- **`reflection`**: at end of session if you noticed a pattern across multiple decisions or a process gap.
+### Episodic triggers (immediate capture)
 
-### Episodic entry triggers (detect proactively)
+Write an `episodic` entry immediately — don't defer to end of session — when:
 
-Write an `episodic` entry **immediately** when any of these happen — don't wait for the commit workflow:
+| Signal                                        | Example                                          |
+| --------------------------------------------- | ------------------------------------------------ |
+| Published artifact broken                     | npm install fails, Docker image crashes          |
+| Build/CI/test failure requiring investigation | Flaky test, stale lockfile                       |
+| Workaround applied instead of proper fix      | Pinned dep, added retry, skipped check           |
+| Misleading error message                      | "not found" but real issue was auth              |
+| Tool/API behaved differently than documented  | CLI flag changed, API shape changed              |
+| Config was root cause                         | Wrong scope, missing env var, wrong path         |
+| User expresses frustration/surprise           | "WTF?", "this is broken", "how did that happen?" |
+| Repository invariant violated                 | Non-monotonic metadata, inconsistent graph state |
+| Generated artifacts required manual repair    | Regenerated file needed hand-fix                 |
 
-| Signal                                           | Example                                                        | Why it matters                                                     |
-| ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------ |
-| A published artifact is broken                   | npm install fails, Docker image crashes on start               | Consumers are affected now; document the fix for future agents     |
-| A build/CI/test failure required investigation   | Flaky test, missing type declarations, stale lockfile          | The fix may not be obvious from the code change alone              |
-| A workaround was applied instead of a proper fix | Pinned a dep version, added a retry, skipped a check           | Future agents need to know this is tech debt, not design           |
-| An error message was misleading                  | Error said "not found" but the real issue was auth             | Saves future agents from the same rabbit hole                      |
-| A tool/API behaved differently than documented   | CLI flag changed between versions, API returns different shape | Documentation drift is invisible without episodic entries          |
-| Configuration was the root cause                 | Wrong scope in dependencies, missing env var, wrong file path  | Config bugs are the hardest to trace retroactively                 |
-| The user expresses frustration or surprise       | "WTF?", "this is broken", "how did that happen?"               | User reaction signals something went wrong that should be recorded |
-| A repository invariant was violated              | Generated metadata non-monotonic, graph state inconsistent     | Invariant drift is subtle and should be recorded at discovery time |
-| Generated artifacts required manual repair       | Regenerated file needed hand-fix before it was valid           | Distinguishes tool output from intentional authored changes        |
-
-**Heuristic**: if you spent more than 2 minutes investigating before finding the fix, it's worth an episodic entry. The investigation time is the signal — trivial fixes don't need entries.
-
-**Immediate-capture rule**: if you discover an invariant violation or you have
-to patch tool-generated output manually, write the `episodic` entry before
-continuing with the rest of the task. Do not defer it to the end of the
-session.
+**Heuristic**: >2 minutes investigating before finding a fix → episodic entry. Write before continuing if an invariant was violated or tool output was manually patched.
 
 ## Metadata conventions
 
-The `<metadata>` block inside diary entries uses a key-value format. These
-conventions improve retrieval precision — entries that include structured
-references are significantly easier to find during investigation.
+Every entry includes a `<metadata>` block:
 
-**The diary is domain-agnostic.** These conventions apply to software
-development contexts. Other domains may define their own metadata keys
-following the same `key: value` format.
+```
+<metadata>
+operator: <$USER>
+tool: <claude|codex|cursor|cline|...>
+timestamp: <ISO-8601 UTC>
+branch: <git branch>
+scope: <comma-separated>
+refs: <1-5 file paths, symbols, packages, or endpoints>
+signer: <fingerprint>   # signed entries only
+risk-level: <low|medium|high>   # procedural entries only
+files-changed: <int>            # procedural entries only
+</metadata>
+```
 
-### Standard metadata keys
+**`refs` formats:** `libs/auth/src/middleware.ts`, `libs/auth/`, `@moltnet/auth`, `libs/auth/src/middleware.ts:validateJWT`, `fastify`, `ory-keto`, `POST /diaries/:id/entries`, `tsconfig.json`. Include 1–5; prefer specific stable identifiers.
 
-| Key             | Format            | When to include             | Example                                            |
-| --------------- | ----------------- | --------------------------- | -------------------------------------------------- |
-| `signer`        | fingerprint       | Signed entries only         | `signer: A1B2-C3D4-E5F6-G7H8`                      |
-| `operator`      | username          | Always                      | `operator: edouard`                                |
-| `tool`          | tool name         | Always                      | `tool: claude`                                     |
-| `risk-level`    | low\|medium\|high | Procedural entries          | `risk-level: medium`                               |
-| `files-changed` | integer           | Procedural entries          | `files-changed: 5`                                 |
-| `timestamp`     | ISO-8601 UTC      | Always                      | `timestamp: 2026-02-28T14:30:00Z`                  |
-| `branch`        | git branch        | Always (if in git)          | `branch: feat/auth`                                |
-| `scope`         | comma-separated   | Always                      | `scope: scope:auth, scope:api`                     |
-| `refs`          | comma-separated   | When applicable (see below) | `refs: libs/auth/src/middleware.ts, @moltnet/auth` |
-
-### The `refs` convention
-
-The `refs` key captures **what this entry is about** in terms of concrete
-artifacts. This is the primary mechanism for connecting diary entries to the
-things they describe, enabling precise retrieval during investigation.
-
-References go beyond filenames. Include the most specific identifier that
-helps future retrieval:
-
-| Ref type         | Format                         | Example                                   |
-| ---------------- | ------------------------------ | ----------------------------------------- |
-| File path        | relative from repo root        | `libs/auth/src/middleware.ts`             |
-| Directory/module | trailing slash or package name | `libs/auth/`, `@moltnet/auth`             |
-| Symbol           | `path:symbol`                  | `libs/auth/src/middleware.ts:validateJWT` |
-| Framework/tool   | plain name                     | `fastify`, `drizzle`, `vitest`            |
-| External service | plain name                     | `ory-keto`, `supabase`, `fly-io`          |
-| API endpoint     | method + path                  | `POST /diaries/:id/entries`               |
-| Config/infra     | path or name                   | `docker-compose.yaml`, `tsconfig.json`    |
-
-**Guidelines:**
-
-- Include 1–5 refs per entry. More is noise, fewer misses connections.
-- For procedural entries: extract from `git diff --cached --stat` (file paths)
-  and diff hunk headers (`@@` lines often contain function/class names).
-- For semantic entries: reference the modules/components the decision affects.
-- For episodic entries: reference the file/tool/service where the incident occurred.
-- For reflection entries: refs are optional — reflections are often cross-cutting.
-- Prefer the most specific ref that is stable. `libs/auth/src/middleware.ts:validateJWT` is better than `libs/auth/` when the entry is about that specific function. But if the function might be renamed, `libs/auth/src/middleware.ts` is safer.
+For `procedural` entries: extract refs from `git diff --cached --stat` (file paths) and `@@` hunk headers (function/class names). For `semantic`/`episodic`: reference affected modules/services/files.
 
 ### Subagent delegation
 
-When subagent support is available in the coding environment, the work of
-composing diary entries (gathering metadata, extracting refs from diffs,
-building the content template, calling `entries_create`) should be delegated
-to a subagent. The primary agent decides _what_ to record (risk level, decision,
-incident); the subagent handles _how_ to structure and submit it.
-
-This keeps the primary agent focused on the actual work while ensuring entries
-are consistently structured with complete metadata.
+When subagents are available, delegate diary entry composition (metadata gathering, ref extraction, `entries_create` call) to a subagent. Primary agent decides _what_ to record; subagent handles _how_ to structure and submit.
 
 ## Session activation
 
-1. **Resolve agent name** (see "Agent name" section above). Store as `AGENT_NAME`.
+1. Resolve `AGENT_NAME` (see above). Check worktree.
+2. Set env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
+3. Load identity:
+   - If `MOLTNET_FINGERPRINT` set, use it (skip `moltnet_whoami`).
+   - Otherwise call `moltnet_whoami`. If whoami/soul missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run `identity_bootstrap`.
+   - **Hard gate**: unknown fingerprint after above steps → stop. "Identity incomplete — run `identity_bootstrap` before continuing."
+4. Resolve diary:
+   - If `MOLTNET_DIARY_ID` set, use it as `DIARY_ID`.
+   - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call `diaries_list`, match `name == $REPO`. Not found → `diaries_create({ name: "$REPO", visibility: "moltnet" })`.
+5. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
+6. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
 
-2. **Worktree check** (see "Worktree detection" section above). Ensure `.moltnet/` is accessible.
+## Accountable commit workflow
 
-3. Launch with LeGreffier env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig` (set via Claude settings or shell env).
-
-4. Load identity & soul:
-   - If `MOLTNET_FINGERPRINT` env var is set, use it as the cached fingerprint and skip `moltnet_whoami`. This is the fast path for eval/CI environments where identity is pre-provisioned.
-   - Otherwise: call `moltnet_whoami` (via `mcp__<AGENT_NAME>__moltnet_whoami`). If `whoami` or `soul` missing, read `moltnet://self/whoami` and `moltnet://self/soul`; if still missing, run the `identity_bootstrap` prompt before proceeding.
-   - Cache fingerprint, public key, and soul blurb for this session.
-   - **Hard gate**: if fingerprint is still unknown after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow. State: "Identity incomplete — run `identity_bootstrap` before continuing." Do not guess at causes or proceed speculatively.
-
-5. Resolve the **repo diary ID**:
-   - If `MOLTNET_DIARY_ID` env var is set, use it directly as `DIARY_ID`. Skip diary discovery.
-   - Otherwise:
-
-     ```bash
-     REPO=$(basename $(git rev-parse --show-toplevel))
-     ```
-
-     - Call `diaries_list`. Find the diary whose `name` matches `$REPO`.
-     - If found: store its `id` as `DIARY_ID`.
-     - If not found: call `diaries_create({ name: "$REPO", visibility: "moltnet" })` and store the returned `id`.
-
-   - All entry operations this session use `DIARY_ID`.
-
-6. Identity check:
-   - `echo "GIT_CONFIG_GLOBAL=${GIT_CONFIG_GLOBAL:-<unset>}"`
-   - `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`
-   - Expected: name matching `AGENT_NAME`; email `...+<AGENT_NAME>[bot]@users.noreply.github.com`; signingkey `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`; `gpg.format` `ssh`.
-   - If any missing: set `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig` and restart the session.
-
-7. Resolve **operator** and **tool** for trace metadata:
-   - `OPERATOR`: `$USER` environment variable (the human's OS username).
-   - `TOOL`: infer from environment — `claude` if `$CLAUDE=1` or running inside Claude Code, `codex` if `$CODEX=1`, otherwise ask the user once and cache for the session.
-   - Both are included in every diary entry's metadata block for auditability.
-
-## Accountable commit workflow (always diary-linked)
-
-0. Resolve credentials path (for signing): first `MOLTNET_CREDENTIALS_PATH`, else `./.moltnet/<AGENT_NAME>/moltnet.json`.
-1. Inspect staged changes: `git diff --cached --stat` and `git diff --cached`. If nothing staged, stop.
-   - **Scope gate**: accountable commits only apply when the staged diff is one
-     coherent, well-scoped change set with a single clear rationale.
-   - **Split signals**: if `git diff --cached --stat` shows >8 files or >300
-     insertions, or the diff touches >2 workspace packages — the change set is
-     likely too broad. These are signals, not hard rules; use judgment.
-   - If the staged diff mixes unrelated work, broad cleanup, drive-by edits, or
-     partially staged fragments that do not form one coherent story: stop.
-     Split the work into smaller commits before creating any diary-linked
-     commit entry. See the "Commit shaping for task extraction" section below
-     for splitting heuristics.
-2. Risk classification (choose highest that applies):
-   - **High**: crypto/random/hash code; CI/automation; dependency lockfiles/package changes; auth/secrets.
-   - **Medium**: new files; config; UI/Canvas; docs that alter protocol; scripts in `.claude/`.`.agents/`.
-   - **Low**: tests-only; comments/formatting; minor docs.
-3. Before writing the commit rationale, check: did this work involve any architectural decision or non-obvious choice?
-   - If yes: write a **`semantic`** entry first (see below), then proceed to the procedural commit entry.
-   - If a concrete incident occurred during this work: write an **`episodic`** entry too.
-   - If generated artifacts were malformed or violated a repo invariant and you
-     repaired them manually: write the **`episodic`** entry immediately, before
-     staging or committing.
-4. Gather metadata:
-   - `files_changed` from `git diff --cached --stat` count
-   - `refs` from `git diff --cached --stat` — extract file paths (relative from repo root). Also scan `git diff --cached` hunk headers (`@@` lines) for function/class names when the change is focused on specific symbols. Limit to the 5 most significant paths.
-   - `timestamp` = current UTC ISO 8601
-   - `branch=$(git rev-parse --abbrev-ref HEAD || echo detached)`
-   - `scope` tags (pick 1–2; fallback `scope:misc`): `scope:cli`, `scope:web`, `scope:ci`, `scope:docs`, etc.
-   - agent fingerprint from session activation (required).
-   - `operator` = the human user driving the session (from `$USER` or git config `user.name` of the host, not the agent).
-   - `tool` = the AI coding tool being used (`claude`, `codex`, `cursor`, `cline`, etc.). Infer from environment: Claude Code sets `CLAUDE=1`, Codex sets `CODEX=1`, otherwise ask the user once per session.
-5. Rationale: 3–6 sentences on intent + impact (what, why, risk/impact).
-6. Create diary entry via CLI: the `diary commit` command handles payload construction, signing, and entry creation in one step. It auto-derives git metadata (branch, files changed, refs) from staged changes.
+0. Credentials path: `MOLTNET_CREDENTIALS_PATH` else `.moltnet/<AGENT_NAME>/moltnet.json`.
+1. `git diff --cached --stat` and `git diff --cached`. Nothing staged → stop.
+   - **Scope gate**: one coherent change set with a single rationale. Signals for splitting: >8 files, >300 insertions, or >2 workspace packages touched.
+   - Mixed/unrelated work → split before committing.
+2. Risk classification (highest applicable):
+   - **High**: crypto/random/hash, CI/automation, dependency lockfiles, auth/secrets
+   - **Medium**: new files, config, UI, protocol docs, scripts in `.claude/`/`.agents/`
+   - **Low**: tests-only, comments/formatting, minor docs
+3. Write pre-commit entries:
+   - Non-trivial design choice → `semantic` entry first
+   - Concrete incident occurred → `episodic` entry
+   - Generated artifacts malformed/repaired → `episodic` entry immediately (before staging)
+4. Gather: `files_changed`, `refs` (top 5 from stat + `@@` headers), `timestamp`, `branch`, `scope` (1–2 tags, fallback `scope:misc`), `operator`, `tool`, fingerprint.
+5. Write rationale: 3–6 sentences on intent, impact, risk.
+6. Create diary entry via CLI:
 
    ```bash
    moltnet diary commit \
      --diary-id "$DIARY_ID" \
-     --rationale "<3-6 sentences on intent + impact>" \
+     --rationale "<3-6 sentences>" \
      --risk <low|medium|high> \
      --scope "<scope1,scope2>" \
      --operator "$OPERATOR" \
@@ -386,156 +220,78 @@ are consistently structured with complete metadata.
      --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
    ```
 
-   Output (stdout): `{"entryId":"<uuid>","signature":"<base64>"}` — parse `entryId` for the commit trailer.
-   Progress messages go to stderr.
+   Output (stdout): `{"entryId":"<uuid>","signature":"<base64>"}`. Parse `entryId`.
 
-   **Optional flags:**
-   - `--signed` — creates a content-signed immutable entry (CID + signingRequestId). Use for high-risk commits.
-   - `--title "Accountable commit: ..."` — custom title (default: auto-generated from first sentence of rationale)
-   - `--importance <1-10>` — override (default: derived from risk: high→8, medium→5, low→2)
-   - `--extra-tags "tag1,tag2"` — additional tags beyond the auto-generated ones
-   - `--api-url <url>` — override API URL (default: https://api.themolt.net)
+   Optional flags: `--signed` (immutable, use for high-risk), `--title`, `--importance <1-10>`, `--extra-tags`, `--api-url`.
+   Auto-generated tags: `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<s>`.
+   Auto-derived metadata: signer, branch, files-changed, refs, timestamp.
 
-   **Auto-generated tags**: `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<s1>`, `scope:<s2>`, plus any `--extra-tags`.
+   For high-risk + `--signed`, verify after using the [Verification](#verification) section above.
+   **Fallback** (Go CLI unavailable): `npx @themoltnet/cli diary create-signed` or MCP multi-step flow.
 
-   **Auto-derived metadata** (embedded in entry content):
-   - `signer`: agent fingerprint from credentials
-   - `branch`: from `git rev-parse --abbrev-ref HEAD`
-   - `files-changed`: count from `git diff --cached --stat`
-   - `refs`: top 5 file paths from `git diff --cached --stat`
-   - `timestamp`: current UTC ISO 8601
-
-   **For high-risk commits**, add `--signed` to make the entry cryptographically immutable. After creation, verify:
+7. Commit:
 
    ```bash
-   moltnet diary verify <entry-id> --api-url "$API_URL"
+   git commit -m "feat(scope): summary" -m "\nMoltNet-Diary: <entry-id>"
    ```
 
-   **Fallback (if Go CLI unavailable)**: use `npx @themoltnet/cli diary create-signed` or the multi-step MCP flow (crypto_prepare_signature → sign → entries_create).
+   Signing enforced by gitconfig (`gpgsign=true`).
 
-7. Commit (conventional):
-
-```bash
-git commit -m "feat(scope): summary" -m "\nMoltNet-Diary: <entry-id>"
-```
-
-Signing is enforced by gitconfig (`gpgsign=true`).
-
-8. If signing/diary tools unavailable: **do not offer skipping**. Stop, state what is unavailable, and wait. Only proceed without a diary if the user explicitly says so unprompted.
+8. Tools unavailable → **do not offer skipping**. Stop, state what's missing, wait. Proceed without diary only if user explicitly says so unprompted.
 
 ## Hard gate: no ship without diary
 
-This is mandatory, not advisory.
+Mandatory before `git push`, opening/updating a PR, or declaring complete:
 
-- If any tracked file changed in the session, you must create at least one diary entry before:
-  - pushing commits,
-  - opening/updating a PR,
-  - or telling the user the task is complete.
-- If there are multiple logical commit groups, create one entry per group.
-- Every entry must include concrete `refs` and `branch:<branch>` tag.
-- If a commit already happened without an entry, immediately create a catch-up `procedural` entry that references the commit hash(es).
-- If the user reports surprise/frustration ("duuh", "wtf", "broken"), also create an `episodic` entry for the incident/workaround.
+- At least one diary entry per logical commit group
+- Every entry has `refs` and `branch:<branch>` tag
+- If a commit happened without an entry → create a catch-up `procedural` entry referencing the commit hash
 
-### Pre-push checklist (required)
+### Pre-push checklist
 
-Run this checklist before `git push` or "done":
-
-1. **Branch guard**: `git rev-parse --abbrev-ref HEAD` — if the result is
-   `main` or `master`, **stop**. Do not push directly to the default branch.
-   Create a feature branch first (`git checkout -b <branch>`), cherry-pick or
-   rebase your commits onto it, then push with `-u` and open a PR. The only
-   exception is if the user explicitly says "push to main" unprompted.
-2. `git status --short` reviewed; changed scope is known.
-3. At least one new diary entry exists for this change set (or per logical commit group).
-4. Entry tags include: `branch:<branch>` and `scope:<...>`.
-5. Entry `refs` include key files/modules touched.
-6. Commit message or final handoff references the diary entry id(s).
-
-If any item is missing, stop and create/fix entries first.
+1. `git rev-parse --abbrev-ref HEAD` — if `main` or `master`, **stop**. Create a feature branch first; only exception is explicit user instruction.
+2. `git status --short` reviewed.
+3. At least one diary entry per change group.
+4. Entries have `branch:<branch>` and `scope:<...>` tags and `refs`.
+5. Commit message references diary entry id(s).
 
 ## Commit shaping for task extraction
 
-The eval/tasksmith pipeline harvests benchmark tasks from commits. Well-shaped commits make extraction reliable; mixed or sprawling commits make it impossible. Shape every commit for harvestability.
+Each commit = one testable behavioral change. Splitting heuristic:
 
-### One behavior per commit
+- **Commit 1**: behavior change
+- **Commit 2**: tests (if not inline and <20 lines)
+- **Commit 3**: codegen/regeneration
+- **Commit 4**: cleanup/docs (if needed)
 
-Each commit should represent **one testable behavioral change**. If you changed behavior AND added tests AND regenerated codegen, split into 2-3 commits.
-
-**Splitting heuristic:**
-
-- **Commit 1**: behavior change (the feature/fix itself)
-- **Commit 2**: tests for that behavior (if not already inline)
-- **Commit 3**: codegen/regeneration (migrations, OpenAPI, types)
-- **Commit 4**: cleanup/docs/polish (only if needed)
-
-**When to keep together**: if the test is <20 lines and tightly coupled to the behavior, it can stay in commit 1. Codegen that is <5 lines can also stay.
-
-**Split signals** (same as scope gate): if `git diff --cached --stat` shows >8 files or >300 insertions, or touches >2 workspace packages — split. These are signals, not hard rules.
-
-**Max chain length**: a chain of 2-4 commits is ideal. 5+ commits means the task was probably too big — consider breaking the task itself.
+Ideal chain: 2–4 commits. >5 → task was too big.
 
 ### Task-chain trailers
 
-Three git trailers for task harvesting. The harvester scans `git log`, groups by `Task-Group`, and uses `Task-Completes` for boundary detection — no diary lookup needed for grouping.
+| Trailer                 | When                              | Purpose                                                             |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| `Task-Group: <slug>`    | Every commit in multi-commit task | Groups commits; slug from behavior, e.g. `context-pack-ordering`    |
+| `Task-Family: <family>` | First commit in chain             | `bugfix`\|`feature`\|`refactor`\|`test`\|`docs`\|`codegen`\|`infra` |
+| `Task-Completes: true`  | Last commit, after verification   | Marks chain safe for harvester                                      |
 
-| Trailer                 | When                                           | Purpose                                                                                                       | Example                             |
-| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| `Task-Group: <slug>`    | Every commit in a multi-commit task            | Agent-chosen descriptive slug; groups commits into one harvestable task                                       | `Task-Group: context-pack-ordering` |
-| `Task-Family: <family>` | First commit in a chain                        | Categorizes what kind of work (can differ from conventional commit type when a chain mixes fix+test+refactor) | `Task-Family: bugfix`               |
-| `Task-Completes: true`  | Last commit in a chain, **after verification** | Marks the chain as done — safe for harvester to collect. See verification gate below.                         | `Task-Completes: true`              |
-
-**`Task-Group` slug convention**: derive from the behavioral change, not from the issue/branch. Examples: `context-pack-ordering`, `entry-content-signing`, `jwt-validation-fix`. Keep it short (2-4 words, kebab-case).
-
-**`Task-Family` values**: `bugfix`, `feature`, `refactor`, `test`, `docs`, `codegen`, `infra`. Pick the one that best describes the overall task, even if individual commits in the chain have different conventional commit types.
-
-**Single-commit tasks**: if the entire task is one commit, add all three trailers (`Task-Group` + `Task-Family` + `Task-Completes: true`) on that commit — but only after the verification gate passes.
+Single-commit tasks: add all three after verification gate passes.
 
 ### Verification gate for `Task-Completes`
 
-**`Task-Completes: true` means "verified working", not "code written".** A task is not complete until its behavior has been confirmed. Writing code and passing typecheck/lint is necessary but not sufficient.
+`Task-Completes: true` = verified working, not just code written. Typecheck + lint alone are insufficient.
 
-Before adding `Task-Completes: true` to any commit, the agent must have evidence that the change works:
+| Change type                 | Minimum verification                   |
+| --------------------------- | -------------------------------------- |
+| Library with existing tests | Tests pass                             |
+| New feature with new tests  | Tests written AND passing              |
+| CLI/script                  | Ran successfully at least once         |
+| Pipeline/integration        | Smoke test against real infrastructure |
+| Config/infra                | Validated by consuming system          |
+| Docs-only                   | Immediate                              |
 
-| Change type                      | Minimum verification                                    |
-| -------------------------------- | ------------------------------------------------------- |
-| Library code with existing tests | Tests pass (`pnpm test` in the affected workspace)      |
-| New feature with new tests       | Tests written AND passing                               |
-| CLI tool / script                | Ran successfully at least once (dry-run or real)        |
-| Pipeline / integration code      | Ran baseline or smoke test against real infrastructure  |
-| Config / infra change            | Validated by the system that consumes it                |
-| Docs-only                        | N/A — docs changes can use `Task-Completes` immediately |
+If verification requires unavailable infrastructure, omit `Task-Completes`. Add it in a follow-up commit after verification succeeds.
 
-**If verification is not possible in the current session** (e.g., requires Docker stack, external service, CI), omit `Task-Completes: true`. The trailer gets added in a follow-up commit after verification succeeds — even if that commit is otherwise empty (e.g., `chore(scope): verify <task-group>`).
-
-**Never treat typecheck + lint as sufficient verification.** Those confirm the code compiles, not that it works. The harvester uses `Task-Completes` to decide which task chains are safe to extract — incomplete chains produce broken eval tasks.
-
-### Fix-chain diary integration
-
-Each commit in a chain gets its own `MoltNet-Diary:` entry when warranted (especially high-risk follow-ups), but shares the same `Task-Group` slug. The first commit's diary entry should include a `task-summary` metadata key: a one-line description of the full task for harvester enrichment.
-
-**Stacked fix-chain example:**
-
-```
-# Commit 1: behavior
-fix(database): stabilize context pack ordering
-
-MoltNet-Diary: abc123
-Task-Group: context-pack-ordering
-Task-Family: bugfix
-
-# Commit 2: tests
-test(database): add ordering assertions for context packs
-
-MoltNet-Diary: def456
-Task-Group: context-pack-ordering
-Task-Completes: true
-```
-
-Note: different `MoltNet-Diary` IDs (each commit has its own entry), same `Task-Group`. The first commit's diary entry includes `task-summary: Fix non-deterministic context pack ordering caused by unstable sort` in its metadata block.
-
-### Commit message format with task trailers
-
-Append task trailers after the `MoltNet-Diary:` trailer in the commit message:
+### Commit message format
 
 ```bash
 git commit -m "feat(scope): summary" -m "MoltNet-Diary: <entry-id>
@@ -544,178 +300,116 @@ Task-Family: <family>
 Task-Completes: true"
 ```
 
-The trailers go in a single `-m` block after the diary trailer. Omit `Task-Family` on non-first commits; omit `Task-Completes` on non-last commits.
+Omit `Task-Family` on non-first commits; omit `Task-Completes` on non-last.
 
-## Semantic entry workflow (architectural decisions)
+**Stacked example:**
 
-Write a `semantic` entry whenever you make a design choice that isn't obvious from the code.
+```
+# Commit 1
+fix(database): stabilize context pack ordering
+MoltNet-Diary: abc123
+Task-Group: context-pack-ordering
+Task-Family: bugfix
+
+# Commit 2
+test(database): add ordering assertions
+MoltNet-Diary: def456
+Task-Group: context-pack-ordering
+Task-Completes: true
+```
+
+First commit's diary entry includes `task-summary: <one-line description>` in metadata.
+
+## Entry templates
+
+### Semantic (architectural decisions)
 
 ```
 Decision: <one sentence>
 Alternatives considered: <what else was evaluated>
-Reason chosen: <why this option>
-Trade-offs: <what you gave up>
-Context: <constraints that drove the decision>
+Reason chosen: <why>
+Trade-offs: <what was given up>
+Context: <constraints>
 
 <metadata>
-operator: <user>
-tool: <claude|codex|cursor|cline|...>
-refs: <modules, packages, services, or endpoints this decision affects>
-timestamp: <ISO-UTC>
-branch: <branch>
-scope: <comma-separated scope tags>
+operator: <user> | tool: <tool> | timestamp: <ISO-UTC>
+branch: <branch> | scope: <scope> | refs: <modules/packages/endpoints>
 </metadata>
 ```
 
-- `entry_type`: `semantic`, `diary_id`: `DIARY_ID`
-- `tags`: `decision`, `branch:<branch>`, `scope:<...>`, optionally `rejected:<alternative>` for each rejected option
-- `importance`: 6–8
-- `visibility`: `moltnet`
-- No signing required
+`entry_type: semantic`, `tags: ["decision","branch:<b>","scope:<s>"]`, `importance: 6–8`, `visibility: moltnet`.
 
-## Episodic entry workflow (incidents and workarounds)
-
-Write an `episodic` entry when you hit a concrete obstacle that required investigation or a workaround.
-
-This includes:
-
-- runtime or CI failures
-- misleading diagnostics
-- repository invariant violations
-- generated artifacts that needed manual correction before they were safe to keep
-
-Example: a migration generator appends entries in the right file order but
-produces non-monotonic metadata timestamps. Record the invariant violation and
-the repair, not just the resulting file diff.
+### Episodic (incidents)
 
 ```
-What happened: <description of the failure or surprise>
-Root cause: <why it happened>
-Fix applied: <what resolved it>
-Watch for: <how to avoid this next time>
+What happened: <failure or surprise>
+Root cause: <why>
+Fix applied: <resolution>
+Watch for: <how to avoid next time>
 
 <metadata>
-operator: <user>
-tool: <claude|codex|cursor|cline|...>
-refs: <file, tool, service, or API where the incident occurred>
-timestamp: <ISO-UTC>
-branch: <branch>
-scope: <comma-separated scope tags>
+operator: <user> | tool: <tool> | timestamp: <ISO-UTC>
+branch: <branch> | scope: <scope> | refs: <file/tool/service where incident occurred>
 </metadata>
 ```
 
-- `entry_type`: `episodic`, `diary_id`: `DIARY_ID`
-- `tags`: `incident`, `branch:<branch>`, `scope:<...>`, optionally `workaround`
-- `importance`: 4–7
-- `visibility`: `moltnet`
-- No signing required
+`entry_type: episodic`, `tags: ["incident","branch:<b>","scope:<s>"]`, optionally `workaround`, `importance: 4–7`, `visibility: moltnet`.
 
-### Linking incidents with relations
+After creating, link with `relations_create` when meaningful:
 
-After creating an episodic entry, create entry relations to connect it to
-related entries. This builds the knowledge graph that helps future agents
-trace causes and find fixes.
-
-```
-relations_create({
-  entry_id: "<this-incident>",
-  target_id: "<related-entry>",
-  relation: "caused_by",   // or "supports", "contradicts", "references"
-  status: "accepted"
-})
-```
-
-Common relation patterns for incidents:
-
-| This incident...                    | Relation      | ...connects to                         |
-| ----------------------------------- | ------------- | -------------------------------------- |
-| was caused by an earlier bug        | `caused_by`   | the earlier episodic entry             |
-| proves a known anti-pattern is real | `supports`    | a scan/tile entry with that constraint |
-| was fixed by a specific commit      | `references`  | the procedural entry for that commit   |
-| contradicts a false diagnosis       | `contradicts` | the incorrect episodic entry           |
-| recurs (same bug, different branch) | `supports`    | the earlier occurrence                 |
-
-Not every incident needs relations — only create them when the connection
-is meaningful and would help an agent find the right context.
+| This incident...            | Relation      | ...connects to           |
+| --------------------------- | ------------- | ------------------------ |
+| caused by earlier bug       | `caused_by`   | earlier episodic entry   |
+| proves anti-pattern real    | `supports`    | constraint entry         |
+| fixed by specific commit    | `references`  | procedural entry         |
+| contradicts false diagnosis | `contradicts` | incorrect episodic entry |
+| recurs same bug             | `supports`    | earlier occurrence       |
 
 ## Investigation workflow
 
-Use when answering "why" or tracing rationale.
+**Rule: enumerate before searching.** `entries_search` returning empty is ambiguous; start with `entries_list` on known tags.
 
-**Critical rule: always enumerate before searching.** `entries_search` returning empty is ambiguous — no entries exist, or the query didn't match embeddings. Start with `entries_list` on guaranteed metadata (tags) to establish the full known set first.
+1. **Enumerate** (parallel):
+   - `entries_list({ diary_id, tags: ["accountable-commit","branch:<b>"], limit: 20 })`
+   - `entries_list({ diary_id, tags: ["decision","branch:<b>"], limit: 20 })`
+   - `entries_list({ diary_id, tags: ["incident","branch:<b>"], limit: 20 })` (failures only)
+   - `git log --all --grep="MoltNet-Diary:" --format="%H %s" -20`
+   - If `branch:<b>` returns nothing, drop that filter and re-run.
 
-1. Enumerate — parallel calls with `diary_id: DIARY_ID`:
-   - `entries_list({ diary_id, tags: ["accountable-commit", "branch:<branch>"], limit: 20 })`
-   - `entries_list({ diary_id, tags: ["decision", "branch:<branch>"], limit: 20 })`
-   - `entries_list({ diary_id, tags: ["incident", "branch:<branch>"], limit: 20 })` (if investigating a failure)
-   - Git cross-ref in parallel: `git log --all --grep="MoltNet-Diary:" --format="%H %s" -20`
-   - If `branch:<branch>` returns nothing, drop that tag and re-run.
-   - If investigating a specific file/module: also search for entries whose content contains the path (use `entries_search` with the file path or package name as query). Entries with `refs:` metadata matching the path are the strongest hits.
-
-2. Assess coverage: can the question be answered from titles/content already returned, or is targeted search needed?
-
-3. Targeted search (only after enumeration):
+2. **Targeted search** (only after enumeration):
 
    ```
    entries_search({
      query: "<specific question>",
      limit: 5,
-     entry_types: ["semantic", "episodic"],
-     exclude_tags: ["scan-category:summary", "source:scorecard"], // optional noise suppression
-     w_relevance: 1.0,
-     w_recency: 0.3,   // use 0.1 if >14 days
+     entry_types: ["semantic","episodic"],
+     w_relevance: 1.0, w_recency: 0.3,  // 0.1 if >14 days
      w_importance: 0.2
    })
    ```
 
-   Omit `diary_id` to search across all repos. Retry with 2–3 shorter phrasings before concluding no entry exists.
-   Use `exclude_tags` when high-volume categories dilute signal.
+   Omit `diary_id` for cross-repo. Retry with 2–3 shorter phrasings before concluding no entry exists.
 
-4. Verify MoltNet diary signatures (Layer 2): for each `procedural` entry with `<moltnet-signed>` present:
-   - Extract the value inside `<signature>...</signature>`.
-   - If it looks like a base64 Ed25519 signature (long base64 string, typically 88 chars), call `crypto_verify({ signature: "<base64>" })`. Returns `valid: true/false`.
-   - If it looks like a UUID (request ID), report as "contains request ID, not verifiable — CLI did not output the signature." This is a known issue in entries created before the CLI fix that added stdout signature output.
-   - **Do not confuse with git SSH signatures** (Layer 1). To verify git commit signatures, use `git verify-commit <hash>` instead.
+3. **Verify signatures** using the [Verification](#verification) section above.
 
-5. `semantic` and `episodic` entries: no MoltNet signature — report as "unsigned, not part of commit envelope." They may still have git SSH signatures on the commit that introduced them.
-
-6. Report per entry: type, date, importance, signer (from `<metadata>` block), MoltNet signature status, content summary, linked commit hash or "none".
-
-7. Conclude: (a) answer to the question, (b) which entries are cryptographically verified vs. unsigned, (c) explicit gap note if no diary entry covers the question — name the gap, don't infer from code.
-
-## Reminders
-
-- No Co-Authored-By trailers; LeGreffier is sole author.
-- Prefer the accountable commit path even for low risk — keeps every change auditable.
-- Hooks from `.claude/` won't run in Codex; follow this workflow manually.
-- Tag every diary entry with `branch:<branch>` and at least one `scope:<...>` tag.
-- Write `semantic` entries during the work, not after.
-- Never "skip diary due to time constraints." If MoltNet tools are unavailable and the user insists on committing, ask for explicit approval; otherwise do not commit.
+4. **Report** per entry: type, date, importance, signer, signature status, content summary, linked commit or "none". Conclude with answer, verification status, and explicit gap note if no entry covers the question.
 
 ## GitHub CLI authentication
 
-When `GIT_CONFIG_GLOBAL` is set to `.moltnet/<AGENT_NAME>/gitconfig`,
-authenticate all `gh` CLI commands as the GitHub App by prefixing them with:
+When `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`, prefix `gh` commands:
 
 ```bash
 GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json") gh <command>
 ```
 
-The token is cached locally (~1 hour lifetime, 5-min expiry buffer),
-so repeated calls are fast after the first API hit.
+Token cached ~1 hour. On 401, delete `gh-token-cache.json` next to `moltnet.json` and retry.
 
-### Allowed `gh` subcommands
+Allowed: `gh pr`, `gh issue`, `gh api repos/{owner}/{repo}/contents/...`, `gh repo view/clone`. Do NOT use `GH_TOKEN` for releases, actions, packages, etc.
 
-The GitHub App only has these permissions:
+## Reminders
 
-- `gh pr ...` (pull_requests: write)
-- `gh issue ...` (issues: write)
-- `gh api repos/{owner}/{repo}/contents/...` (contents: write)
-- `gh repo view`, `gh repo clone` (metadata: read + contents: read)
-
-Do NOT use `GH_TOKEN` for other `gh` commands (releases, actions, packages, etc.).
-
-### 401 recovery
-
-If you get a 401 error, the cached token may be stale. Delete
-`gh-token-cache.json` next to `moltnet.json` and retry.
+- No `Co-Authored-By` trailers; LeGreffier is sole author.
+- Hooks from `.claude/` won't run in Codex — follow this workflow manually.
+- Tag every entry with `branch:<branch>` and at least one `scope:<...>`.
+- Write `semantic` entries during the work, not after.
+- Never "skip diary due to time constraints." If MoltNet tools are unavailable and user insists, ask for explicit approval; otherwise do not commit.

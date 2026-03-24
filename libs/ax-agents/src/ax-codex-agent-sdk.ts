@@ -49,6 +49,7 @@ interface AgentRequest {
 
 interface AgentResponse {
   resultText: string;
+  model: string;
   usage: {
     inputTokens: number;
     outputTokens: number;
@@ -59,6 +60,7 @@ interface AgentResponse {
 interface AgentStreamDelta {
   type: 'text_delta' | 'result';
   text?: string;
+  model?: string;
   usage?: AgentResponse['usage'];
 }
 
@@ -144,7 +146,7 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
         ],
         modelUsage: {
           ai: 'codex-agent-sdk',
-          model: 'codex-agent-sdk',
+          model: resp.model,
           tokens,
         },
       };
@@ -160,7 +162,7 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
       ],
       modelUsage: {
         ai: 'codex-agent-sdk',
-        model: 'codex-agent-sdk',
+        model: resp.model,
         tokens,
       },
     };
@@ -177,7 +179,7 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
         results: [{ content: '', finishReason: 'stop' as const, index: 0 }],
         modelUsage: {
           ai: 'codex-agent-sdk',
-          model: 'codex-agent-sdk',
+          model: delta.model ?? 'codex-agent-sdk',
           tokens,
         },
       };
@@ -317,6 +319,7 @@ async function runAgentQuery(
   return {
     resultText:
       turn.finalResponse || extractLastAgentMessageText(turn.items) || '',
+    model,
     usage: mapUsage(turn.usage),
   };
 }
@@ -345,6 +348,7 @@ function runAgentQueryStream(
           } else if (event.type === 'turn.completed') {
             controller.enqueue({
               type: 'result',
+              model,
               usage: mapUsage(event.usage),
             });
           } else if (event.type === 'turn.failed') {

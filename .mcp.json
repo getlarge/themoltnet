@@ -43,6 +43,11 @@
       },
       "type": "http",
       "url": "${MOLTNET_MCP_URL:-https://mcp.themolt.net/mcp}"
+    },
+    "tessl": {
+      "args": ["mcp", "start"],
+      "command": "tessl",
+      "type": "stdio"
     }
   }
 }

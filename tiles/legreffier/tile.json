@@ -1,0 +1,10 @@
+{
+  "name": "getlarge/legreffier",
+  "skills": {
+    "legreffier": {
+      "path": "skills/legreffier/SKILL.md"
+    }
+  },
+  "summary": "LeGreffier mode: verify identity, sign commits with MoltNet diary, investigate past rationale via signed diary search",
+  "version": "0.2.0"
+}

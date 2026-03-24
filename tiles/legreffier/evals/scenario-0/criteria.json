@@ -1,0 +1,66 @@
+{
+  "checklist": [
+    {
+      "description": "Script checks MOLTNET_AGENT_NAME env var first before any other resolution method",
+      "max_score": 8,
+      "name": "Env var priority"
+    },
+    {
+      "description": "Script extracts agent name from GIT_CONFIG_GLOBAL path pattern .moltnet/<name>/gitconfig as a fallback",
+      "max_score": 8,
+      "name": "GIT_CONFIG_GLOBAL extraction"
+    },
+    {
+      "description": "Script scans .moltnet/ for subdirectories containing moltnet.json and uses the name if exactly one exists",
+      "max_score": 8,
+      "name": "Single-directory fallback"
+    },
+    {
+      "description": "Script uses git rev-parse --git-common-dir to detect worktree and resolves main worktree root",
+      "max_score": 10,
+      "name": "Worktree detection"
+    },
+    {
+      "description": "Script creates symlink from main worktree's .moltnet/ into current worktree when missing",
+      "max_score": 8,
+      "name": "Worktree symlink creation"
+    },
+    {
+      "description": "Script exits with error if fingerprint cannot be resolved — does not continue speculatively",
+      "max_score": 10,
+      "name": "Identity hard gate"
+    },
+    {
+      "description": "Script checks user.name, user.email, user.signingkey, and gpg.format values",
+      "max_score": 8,
+      "name": "Git config verification"
+    },
+    {
+      "description": "Script resolves repo name from git toplevel and describes listing/creating the diary",
+      "max_score": 8,
+      "name": "Diary resolution"
+    },
+    {
+      "description": "Design doc distinguishes Git SSH signatures (commit-level, automatic) from MoltNet Ed25519 diary signatures (entry-level, explicit)",
+      "max_score": 10,
+      "name": "Two signature layers"
+    },
+    {
+      "description": "Script resolves operator from $USER environment variable",
+      "max_score": 6,
+      "name": "Operator inference"
+    },
+    {
+      "description": "Script infers tool from CLAUDE=1 or CODEX=1 environment variables",
+      "max_score": 8,
+      "name": "Tool inference"
+    },
+    {
+      "description": "Script checks MOLTNET_DIARY_ID env var and skips diary discovery if set",
+      "max_score": 8,
+      "name": "MOLTNET_DIARY_ID shortcut"
+    }
+  ],
+  "context": "Tests whether the agent correctly implements the session activation sequence: agent name resolution priority, worktree detection and symlinking, identity hard gate, two-signature-layer distinction, and operator/tool inference.",
+  "type": "weighted_checklist"
+}

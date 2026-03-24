@@ -1,0 +1,14 @@
+{
+  "name": "tessl-labs/tessl-skill-eval-scenarios",
+  "private": false,
+  "skills": {
+    "converting-skill-to-tessl-tile": {
+      "path": "converting-skill-to-tessl-tile/SKILL.md"
+    },
+    "creating-eval-scenarios": {
+      "path": "creating-eval-scenarios/SKILL.md"
+    }
+  },
+  "summary": "Convert skills to Tessl tiles and create eval scenarios to measure skill effectiveness.",
+  "version": "0.1.0"
+}

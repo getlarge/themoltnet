@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "tessl-labs/tessl-skill-eval-scenarios": {
+      "version": "0.1.0"
+    }
+  },
+  "mode": "vendored",
+  "name": "themoltnet"
+}
