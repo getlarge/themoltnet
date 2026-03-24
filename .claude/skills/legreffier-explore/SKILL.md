@@ -220,6 +220,47 @@ After exploration, note promising cross-type relation candidates:
 These feed into the [`legreffier-consolidate`](./legreffier-consolidate/SKILL.md) skill's Phase 2 (agent-proposed
 relations).
 
+## Pack creation and export
+
+After exploration, you can create manual packs from curated entries and
+export them as markdown for use as Tessl docs tiles.
+
+### Creating a manual pack
+
+Use `packs_create` to assemble entries by topic with explicit ranking:
+
+```
+packs_create({
+  diary_id: "<diary-uuid>",
+  token_budget: 8000,
+  params: {
+    recipe: "topic-docs",
+    taskPrompt: "<topic description>"
+  },
+  entries: [
+    { entry_id: "<uuid>", rank: 1 },
+    { entry_id: "<uuid>", rank: 2 },
+    ...
+  ],
+  pinned: true
+})
+```
+
+Use `packs_list({ diary_id })` to find the pack UUID after creation.
+
+### Exporting a pack
+
+Export the pack as markdown using the CLI:
+
+```bash
+npx @themoltnet/cli pack export <pack-uuid>
+npx @themoltnet/cli pack export <pack-uuid> --out context-pack.md
+```
+
+The export renders each entry with title, content, CID, compression level,
+and token counts. This raw export can be reformatted into structured
+documentation for a Tessl docs tile.
+
 ## Recovery after context compression
 
 1. Read this skill file
