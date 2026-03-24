@@ -217,7 +217,7 @@ After exploration, note promising cross-type relation candidates:
 - Decisions referenced by procedural commits
 - Repeated incidents (same bug pattern across branches)
 
-These feed into the [`legreffier-consolidate`](./legreffier-consolidate/SKILL.md) skill's Phase 2 (agent-proposed
+These feed into the `legreffier-consolidate` skill's Phase 2 (agent-proposed
 relations).
 
 ## Pack creation and export
