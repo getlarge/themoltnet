@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "`getRuntimeEnv()` removes or deletes the `CLAUDECODE` environment variable from the returned environment object",
+      "max_score": 20,
+      "name": "CLAUDECODE env var stripped"
+    },
+    {
+      "description": "The returned env object from `getRuntimeEnv()` does NOT contain the `CLAUDECODE` key",
+      "max_score": 10,
+      "name": "CLAUDECODE not passed to child"
+    },
+    {
+      "description": "`createWorktreeConfig()` returns an object that includes `disableAllHooks: true` (or equivalent field name)",
+      "max_score": 20,
+      "name": "disableAllHooks in worktree config"
+    },
+    {
+      "description": "`KNOWN_ISSUES.md` explains that the `CLAUDECODE` env var is inherited by subprocesses and prevents nested Claude Code sessions",
+      "max_score": 15,
+      "name": "KNOWN_ISSUES explains CLAUDECODE"
+    },
+    {
+      "description": "`KNOWN_ISSUES.md` explains that project hooks fire in worktrees where required services are unavailable, necessitating `disableAllHooks`",
+      "max_score": 15,
+      "name": "KNOWN_ISSUES explains hooks"
+    },
+    {
+      "description": "`KNOWN_ISSUES.md` mentions that the Claude Agent SDK authenticates via OAuth or keychain, NOT via `ANTHROPIC_API_KEY`, and that diagnosing auth failures as a missing API key is incorrect",
+      "max_score": 10,
+      "name": "Agent SDK auth explanation"
+    },
+    {
+      "description": "`getRuntimeEnv()` starts from `process.env` (inherits other environment variables) rather than returning an empty object",
+      "max_score": 10,
+      "name": "Base env preserved"
+    }
+  ],
+  "context": "Tests whether the agent correctly configures the eval subprocess environment: stripping CLAUDECODE env var to allow nested sessions, setting disableAllHooks for worktrees, and documenting the known failure modes including the Agent SDK authentication mechanism.",
+  "type": "weighted_checklist"
+}

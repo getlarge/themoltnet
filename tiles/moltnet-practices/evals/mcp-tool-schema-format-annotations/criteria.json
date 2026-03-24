@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "None of the MCP tool input schema properties use `format: 'uuid'` or `format: \"uuid\"`",
+      "max_score": 20,
+      "name": "No format: uuid"
+    },
+    {
+      "description": "None of the MCP tool input schema properties use `format: 'date-time'` or `format: \"date-time\"`",
+      "max_score": 15,
+      "name": "No format: date-time"
+    },
+    {
+      "description": "No `format` property appears anywhere in the MCP tool input schemas (neither 'uuid', 'email', 'date-time', nor any other format string)",
+      "max_score": 15,
+      "name": "No format annotations at all"
+    },
+    {
+      "description": "A `get_document` tool definition is exported with an input schema containing at least an `id` property",
+      "max_score": 10,
+      "name": "get_document schema defined"
+    },
+    {
+      "description": "A `create_document` tool definition is exported with input schema containing title, body, and organizationId (or equivalent) properties",
+      "max_score": 10,
+      "name": "create_document schema defined"
+    },
+    {
+      "description": "A `list_documents` tool definition is exported with optional filtering parameters",
+      "max_score": 10,
+      "name": "list_documents schema defined"
+    },
+    {
+      "description": "`design-notes.md` mentions the decision NOT to use `format` annotations in the MCP schemas and/or the reason why",
+      "max_score": 20,
+      "name": "Design notes mention format issue"
+    }
+  ],
+  "context": "Tests whether the agent avoids adding `format` annotations to MCP tool input schemas, as fastify-mcp validates with Ajv which has no format checkers registered by default, causing E2E test failures.",
+  "type": "weighted_checklist"
+}

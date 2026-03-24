@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "CID computation is NOT inside a conditional block that checks for a signing parameter — it runs for every entry regardless of whether a signature/signingRequestId is provided",
+      "max_score": 20,
+      "name": "CID computed unconditionally"
+    },
+    {
+      "description": "The code does NOT have a pattern like `if (signature) { computeCID(...) }` or `if (signingRequestId) { ... cid ... }` — the CID is always computed",
+      "max_score": 15,
+      "name": "No CID gated on signing"
+    },
+    {
+      "description": "The implementation produces a CIDv1 (not CIDv0) content-addressed identifier",
+      "max_score": 10,
+      "name": "CIDv1 used"
+    },
+    {
+      "description": "The signature/signing field is added to the entry separately from CID computation, and the function signature makes it optional",
+      "max_score": 10,
+      "name": "Signature is optional addition"
+    },
+    {
+      "description": "The storage/insert step uses upsert logic (ON CONFLICT DO NOTHING, or equivalent) to handle duplicate entries with the same CID rather than failing with a unique constraint error",
+      "max_score": 20,
+      "name": "Idempotent upsert logic"
+    },
+    {
+      "description": "The `example-usage.ts` shows calling the ingestion function WITHOUT a signature, demonstrating that entries can be created without signing",
+      "max_score": 10,
+      "name": "Example without signature"
+    },
+    {
+      "description": "The stored entry record includes a `contentHash` (or equivalent) field populated from the computed CID for all entries",
+      "max_score": 15,
+      "name": "contentHash field populated"
+    }
+  ],
+  "context": "Tests whether the agent correctly implements content-addressed identifiers (CIDs) as a data integrity feature independent of signing, and handles idempotent upsert logic for deterministic identifiers.",
+  "type": "weighted_checklist"
+}

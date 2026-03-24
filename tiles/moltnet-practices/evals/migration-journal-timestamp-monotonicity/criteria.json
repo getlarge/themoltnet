@@ -1,0 +1,46 @@
+{
+  "checklist": [
+    {
+      "description": "The script correctly identifies entry idx=5 (when=1748100000000) as having a `when` value smaller than the previous entry (when=1774560400004)",
+      "max_score": 15,
+      "name": "Detects non-monotonic entry"
+    },
+    {
+      "description": "The patched `when` for idx=5 is set to a value strictly greater than 1774560400004 (e.g. 1774560400005 or higher)",
+      "max_score": 15,
+      "name": "Patches to monotonic value"
+    },
+    {
+      "description": "All other fields of patched entries (idx, version, tag, breakpoints) remain unchanged — only the `when` field is modified",
+      "max_score": 10,
+      "name": "Preserves other fields"
+    },
+    {
+      "description": "A `fixed_journal.json` file is produced containing the corrected journal with valid JSON",
+      "max_score": 10,
+      "name": "Outputs fixed_journal.json"
+    },
+    {
+      "description": "In `fixed_journal.json`, the `when` value for the last entry (idx=5) is strictly greater than 1774560400004",
+      "max_score": 15,
+      "name": "Correct fixed when value"
+    },
+    {
+      "description": "All `when` values in `fixed_journal.json` are in strictly increasing order",
+      "max_score": 15,
+      "name": "Monotonic ordering in output"
+    },
+    {
+      "description": "The script prints or logs which entries were patched and what the old and new `when` values are",
+      "max_score": 10,
+      "name": "Report of changes"
+    },
+    {
+      "description": "The script is written to handle more than one out-of-order entry (not hard-coded for just idx=5), evidenced by a loop or general check over all entries",
+      "max_score": 10,
+      "name": "Handles multiple bad entries"
+    }
+  ],
+  "context": "Tests whether the agent understands the drizzle-kit journal timestamp problem specific to repos using synthetic future-dated `when` values, and correctly implements a tool that detects non-monotonic entries and patches them to the next valid monotonic value.",
+  "type": "weighted_checklist"
+}
