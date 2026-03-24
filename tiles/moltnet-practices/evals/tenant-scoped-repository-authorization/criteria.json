@@ -1,0 +1,46 @@
+{
+  "checklist": [
+    {
+      "description": "When both `ids` and `organizationId` are provided, the query applies BOTH as simultaneous conditions (not one or the other)",
+      "max_score": 20,
+      "name": "Both filters as AND conditions"
+    },
+    {
+      "description": "The `list` method does NOT use if/else-if (or equivalent) logic that causes the organizationId condition to be skipped when `ids` is provided",
+      "max_score": 20,
+      "name": "No if/else-if branching on filter params"
+    },
+    {
+      "description": "When `organizationId` is provided, it is always added to the query as a WHERE condition regardless of whether `ids` is also provided",
+      "max_score": 15,
+      "name": "organizationId always applied"
+    },
+    {
+      "description": "When `ids` is provided and non-empty, an `inArray` (or equivalent) condition is applied to filter by the given IDs",
+      "max_score": 10,
+      "name": "ids filter applied when provided"
+    },
+    {
+      "description": "The `security-notes.md` explains that skipping the tenant scope when an ID list is provided can allow cross-tenant data leakage",
+      "max_score": 15,
+      "name": "Security notes explain the risk"
+    },
+    {
+      "description": "Repository is implemented as a factory function, not a class",
+      "max_score": 8,
+      "name": "Factory function pattern"
+    },
+    {
+      "description": "The `list` method returns `Document[]` (or `Promise<Document[]>`)",
+      "max_score": 6,
+      "name": "Correct return type for list"
+    },
+    {
+      "description": "The implementation handles the case where `ids` is an empty array safely (either returns empty result or skips the inArray condition)",
+      "max_score": 6,
+      "name": "Empty ids handled safely"
+    }
+  ],
+  "context": "Tests whether the agent implements a repository list method that correctly applies both an ID list filter AND a tenant scope filter as AND conditions, avoiding the dangerous if/else-if pattern that allows one branch to silently skip the tenant check.",
+  "type": "weighted_checklist"
+}

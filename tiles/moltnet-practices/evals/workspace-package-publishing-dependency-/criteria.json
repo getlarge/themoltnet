@@ -1,0 +1,46 @@
+{
+  "checklist": [
+    {
+      "description": "All three `@acme/*` workspace packages (`@acme/ui-components`, `@acme/data-utils`, `@acme/api-client`) are moved from `dependencies` to `devDependencies` in the corrected `package.json`",
+      "max_score": 20,
+      "name": "workspace deps moved to devDeps"
+    },
+    {
+      "description": "The corrected `package.json` has NO `workspace:*` entries in the `dependencies` field",
+      "max_score": 15,
+      "name": "No workspace deps in dependencies"
+    },
+    {
+      "description": "The non-bundled, non-workspace dependencies (`react`, `react-dom`) remain in `dependencies` (or are moved to `peerDependencies`) — they are NOT removed entirely",
+      "max_score": 10,
+      "name": "Non-bundled deps preserved"
+    },
+    {
+      "description": "`check-pack.sh` detects the presence of `workspace:` strings inside the `dependencies` field of `package.json`",
+      "max_score": 15,
+      "name": "check-pack.sh detects workspace in deps"
+    },
+    {
+      "description": "`check-pack.sh` exits with a non-zero exit code when workspace deps are found in `dependencies`",
+      "max_score": 10,
+      "name": "check-pack.sh exits non-zero on violation"
+    },
+    {
+      "description": "`audit-report.md` explains that pnpm publish rewrites `workspace:*` to concrete version numbers, causing E404 for internal packages that don't exist on npm",
+      "max_score": 15,
+      "name": "Audit report explains the risk"
+    },
+    {
+      "description": "`audit-report.md` names all three misplaced workspace packages as the issue",
+      "max_score": 10,
+      "name": "Audit report identifies all three packages"
+    },
+    {
+      "description": "`audit-report.md` or `check-pack.sh` comments mention that bundled deps should be in devDependencies because Vite inlines them — they are not needed at runtime by consumers",
+      "max_score": 5,
+      "name": "Vite bundling reason explained"
+    }
+  ],
+  "context": "Tests whether the agent correctly identifies that bundled workspace dependencies must be in devDependencies (not dependencies) to avoid pnpm publish rewriting workspace:* to concrete npm versions that don't exist.",
+  "type": "weighted_checklist"
+}

@@ -1,0 +1,51 @@
+{
+  "checklist": [
+    {
+      "description": "In the service entrypoint, `configureDBOS` is called before `initDBOS`",
+      "max_score": 10,
+      "name": "configureDBOS before initDBOS"
+    },
+    {
+      "description": "`initWorkflows` (or equivalent workflow registration) is called before `initDBOS`",
+      "max_score": 10,
+      "name": "initWorkflows before initDBOS"
+    },
+    {
+      "description": "`initDBOS` is called before `launchDBOS`",
+      "max_score": 10,
+      "name": "initDBOS before launchDBOS"
+    },
+    {
+      "description": "In the dispatch handler, no DBOS workflow is started (e.g. via `DBOS.startWorkflow`, `wfQueue.enqueue`, or similar) inside a `runTransaction` or transaction callback block",
+      "max_score": 15,
+      "name": "No workflow inside transaction"
+    },
+    {
+      "description": "Workflow dispatches happen after the transaction has committed — the code structure shows the DB write completes first, then workflows are triggered",
+      "max_score": 10,
+      "name": "Workflows after transaction commit"
+    },
+    {
+      "description": "When dispatching multiple workflows or running multiple async operations in parallel inside a DBOS workflow step, `Promise.allSettled()` is used instead of `Promise.all()`",
+      "max_score": 15,
+      "name": "Promise.allSettled in step"
+    },
+    {
+      "description": "`Promise.all()` is NOT used for parallel async operations inside DBOS workflow steps",
+      "max_score": 10,
+      "name": "No Promise.all in DBOS steps"
+    },
+    {
+      "description": "Uses DBOS SDK imports from `@dbos-inc/dbos-sdk` for workflow/step decorators or classes",
+      "max_score": 10,
+      "name": "Correct DBOS imports"
+    },
+    {
+      "description": "Service shutdown calls `DBOS.shutdown()` (or `shutdownDBOS`) when the process terminates",
+      "max_score": 10,
+      "name": "Shutdown order"
+    }
+  ],
+  "context": "Tests whether the agent correctly initializes DBOS in the right order (configureDBOS → initWorkflows → initDBOS → launchDBOS), avoids starting workflows inside runTransaction, and uses Promise.allSettled instead of Promise.all in DBOS single-step contexts.",
+  "type": "weighted_checklist"
+}

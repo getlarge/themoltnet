@@ -1,0 +1,56 @@
+{
+  "checklist": [
+    {
+      "description": "Repository is implemented as an exported factory function (e.g. `export function createNotificationsRepository(db)`) rather than a class",
+      "max_score": 12,
+      "name": "Factory function export"
+    },
+    {
+      "description": "A type alias is exported using `ReturnType<typeof createNotificationsRepository>` (or equivalent naming pattern)",
+      "max_score": 8,
+      "name": "ReturnType alias"
+    },
+    {
+      "description": "The `create` / insert method calls `getExecutor(db)` instead of using `db` directly",
+      "max_score": 12,
+      "name": "getExecutor for insert"
+    },
+    {
+      "description": "The update method (marking as read) calls `getExecutor(db)` instead of using `db` directly",
+      "max_score": 10,
+      "name": "getExecutor for update"
+    },
+    {
+      "description": "The delete method calls `getExecutor(db)` instead of using `db` directly",
+      "max_score": 10,
+      "name": "getExecutor for delete"
+    },
+    {
+      "description": "None of the write methods (insert/update/delete) use the raw `db` parameter directly — only `getExecutor(db)` is used for mutations",
+      "max_score": 8,
+      "name": "No raw db for writes"
+    },
+    {
+      "description": "Read/query methods (findById, list) do NOT include the `embedding` column in their SELECT — the embedding column is explicitly excluded",
+      "max_score": 12,
+      "name": "Embedding column excluded"
+    },
+    {
+      "description": "The embedding exclusion uses `getTableColumns()` destructuring to build a column selection (rather than manually listing every column)",
+      "max_score": 8,
+      "name": "Column exclusion technique"
+    },
+    {
+      "description": "The repository does NOT use a class with `new`, `this`, or class-based methods anywhere",
+      "max_score": 10,
+      "name": "No class-based pattern"
+    },
+    {
+      "description": "Methods return proper typed values: create returns `Notification`, findById returns `Notification | null`, list returns `Notification[]`",
+      "max_score": 10,
+      "name": "Proper return types"
+    }
+  ],
+  "context": "Tests whether the agent correctly implements a Drizzle repository following MoltNet conventions: factory functions (not classes), use of getExecutor for all writes to pick up DBOS transaction context, and exclusion of the expensive embedding column from read queries.",
+  "type": "weighted_checklist"
+}

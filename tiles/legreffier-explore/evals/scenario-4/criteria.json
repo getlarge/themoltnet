@@ -1,0 +1,66 @@
+{
+  "checklist": [
+    {
+      "description": "Report template includes all required sections: Inventory, Tag Namespaces, Agent Mistakes, Commit Patterns, Coverage Gaps, Noise Sources, Recommended Compile Recipes",
+      "max_score": 12,
+      "name": "All report sections"
+    },
+    {
+      "description": "Report or code specifies that the exploration output should be stored as entry_type: reflection",
+      "max_score": 8,
+      "name": "Entry type reflection"
+    },
+    {
+      "description": "Report metadata uses tags exploration and diary-health",
+      "max_score": 8,
+      "name": "Exploration tags"
+    },
+    {
+      "description": "Report metadata sets importance to 6",
+      "max_score": 6,
+      "name": "Importance 6"
+    },
+    {
+      "description": "Recovery protocol searches for existing exploration entry using the exploration tag before starting a new exploration",
+      "max_score": 12,
+      "name": "Recovery detection"
+    },
+    {
+      "description": "Recovery protocol reads the existing exploration entry, determines which phases are complete, and resumes from the next incomplete phase",
+      "max_score": 10,
+      "name": "Phase resumption"
+    },
+    {
+      "description": "findRelationOpportunities identifies incidents that prove scan entry anti-patterns as relation candidates",
+      "max_score": 8,
+      "name": "Incident-antipattern relations"
+    },
+    {
+      "description": "findRelationOpportunities identifies decisions referenced by procedural commits as relation candidates",
+      "max_score": 8,
+      "name": "Decision-commit relations"
+    },
+    {
+      "description": "findRelationOpportunities identifies repeated incidents (same bug pattern across branches) as relation candidates",
+      "max_score": 8,
+      "name": "Repeated incident relations"
+    },
+    {
+      "description": "Report header includes date, total entries analyzed, and temporal range",
+      "max_score": 8,
+      "name": "Header fields"
+    },
+    {
+      "description": "Agent Mistakes section groups incidents by severity (Critical/High vs Medium/Low)",
+      "max_score": 6,
+      "name": "Severity grouping in report"
+    },
+    {
+      "description": "Report or code documents that exploration phases must run in order (1-5), each building on previous findings",
+      "max_score": 6,
+      "name": "Ordered phases"
+    }
+  ],
+  "context": "Tests whether the agent implements the full exploration output format, recovery protocol, and relation opportunity detection: report structure with all required sections, diary entry metadata (reflection type, exploration+diary-health tags, importance 6), context compression recovery, and cross-type relation candidates.",
+  "type": "weighted_checklist"
+}

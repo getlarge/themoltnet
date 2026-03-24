@@ -1,7 +1,43 @@
 {
   "dependencies": {
+    "getlarge/moltnet-practices": {
+      "version": "0.1.0"
+    },
     "tessl-labs/tessl-skill-eval-scenarios": {
       "version": "0.1.0"
+    },
+    "tessl/npm-dotenvx--dotenvx": {
+      "version": "1.49.0"
+    },
+    "tessl/npm-eslint": {
+      "version": "9.34.0"
+    },
+    "tessl/npm-eslint-plugin-react-hooks": {
+      "version": "5.2.0"
+    },
+    "tessl/npm-eslint-plugin-simple-import-sort": {
+      "version": "12.1.0"
+    },
+    "tessl/npm-husky": {
+      "version": "9.1.0"
+    },
+    "tessl/npm-knip": {
+      "version": "5.63.0"
+    },
+    "tessl/npm-lint-staged": {
+      "version": "15.5.0"
+    },
+    "tessl/npm-prettier": {
+      "version": "3.6.0"
+    },
+    "tessl/npm-tsx": {
+      "version": "4.20.0"
+    },
+    "tessl/npm-typescript": {
+      "version": "5.9.1"
+    },
+    "tessl/npm-vitest": {
+      "version": "3.2.0"
     }
   },
   "mode": "vendored",

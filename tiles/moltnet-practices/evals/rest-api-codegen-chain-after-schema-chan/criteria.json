@@ -1,0 +1,51 @@
+{
+  "checklist": [
+    {
+      "description": "The script runs `pnpm run generate:openapi` (or equivalent) as part of the chain",
+      "max_score": 12,
+      "name": "generate:openapi step"
+    },
+    {
+      "description": "The script runs `pnpm run generate:ts-client` (or equivalent TypeScript client generation) as part of the chain",
+      "max_score": 10,
+      "name": "generate:ts-client step"
+    },
+    {
+      "description": "The script runs `pnpm run go:generate` (or equivalent Go client generation) as part of the chain",
+      "max_score": 12,
+      "name": "go:generate step"
+    },
+    {
+      "description": "The script runs `pnpm run typecheck` as the final verification step",
+      "max_score": 12,
+      "name": "typecheck step"
+    },
+    {
+      "description": "The steps appear in the correct order: OpenAPI generation → TS client → Go client → typecheck",
+      "max_score": 15,
+      "name": "Correct order"
+    },
+    {
+      "description": "The script uses `set -e` or equivalent error-on-failure mechanism so that if any step fails, subsequent steps are not run",
+      "max_score": 10,
+      "name": "Stops on failure"
+    },
+    {
+      "description": "`REGENERATION.md` explains that skipping the Go generation step causes the CLI to break with a decode error (not a compile-time error)",
+      "max_score": 10,
+      "name": "Docs explain Go breakage"
+    },
+    {
+      "description": "`REGENERATION.md` mentions all three generated artifacts: OpenAPI spec, TypeScript client, and Go client",
+      "max_score": 10,
+      "name": "Docs mention all three outputs"
+    },
+    {
+      "description": "`REGENERATION.md` explains that typecheck is needed to catch downstream TypeScript consumers that were broken by the schema change",
+      "max_score": 9,
+      "name": "Typecheck purpose explained"
+    }
+  ],
+  "context": "Tests whether the agent correctly implements the full API schema regeneration chain: OpenAPI generation → TypeScript client → Go client → typecheck, in the right order and with failure handling.",
+  "type": "weighted_checklist"
+}

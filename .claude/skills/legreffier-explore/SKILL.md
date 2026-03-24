@@ -1,6 +1,6 @@
 ---
 name: legreffier-explore
-description: 'Systematic diary exploration: discover tags, entry distribution, coverage gaps, agent mistakes, and compile recipes. Run before consolidation or when onboarding to a new diary.'
+description: 'Systematic diary exploration: discover tags, entry distribution, coverage gaps, agent mistakes, and compile recipes. Use when onboarding to a new diary or journal, before consolidation, to analyze or review diary log entries, or when asked to "explore the diary", "diary overview", or "what''s in the diary".'
 ---
 
 # LeGreffier Explore Skill
@@ -12,14 +12,8 @@ to a diary you haven't worked with before.
 
 ## Agent name resolution
 
-Follow the same resolution order as the main `legreffier` skill:
-
-1. `MOLTNET_AGENT_NAME` env var
-2. `<agent-name>` argument passed when invoking this skill
-3. `GIT_CONFIG_GLOBAL` matching `.moltnet/<name>/gitconfig`
-4. Single `.moltnet/` subdirectory containing `moltnet.json`
-5. If multiple, ask the user
-
+Follow the same resolution order as the main `legreffier` skill (env var →
+argument → gitconfig → single `.moltnet/` subdirectory → ask user).
 Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 
 ## Prerequisites
@@ -27,16 +21,16 @@ Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 - LeGreffier MCP tools available (`entries_list`, `entries_search`,
   `diaries_list`, `diaries_get`)
 - Agent identity active (`mcp__<AGENT_NAME>__moltnet_whoami`)
-- Diary resolved (same as main legreffier skill: match repo name via
-  `diaries_list`, or use `MOLTNET_DIARY_ID` env var)
+- Diary resolved (match repo name via `diaries_list`, or use
+  `MOLTNET_DIARY_ID` env var)
 
 ## When to trigger
 
-- First time working with a diary (onboarding)
+- First time working with a diary or journal (onboarding)
 - Before designing compile recipes for a new task domain
 - After a batch of work (50+ new entries) to check diary health
 - When compile packs feel noisy or incomplete
-- When asked to "explore the diary" or "what's in the diary"
+- When asked to "explore the diary", "diary analysis", "review diary", or "what's in the diary"
 
 ## Exploration phases
 
@@ -45,7 +39,7 @@ Use subagents for phases 2-4 to keep the primary context clean.
 
 ### Phase 1: Inventory
 
-**Goal**: map what's in the diary by counting entries per tag and entry type.
+Map what's in the diary by counting entries per tag and entry type.
 
 ```
 entries_list({ diary_id, limit: 50, offset: 0 })
@@ -53,7 +47,7 @@ entries_list({ diary_id, limit: 50, offset: 50 })
 // continue until all entries are covered
 ```
 
-From the results, compute:
+Compute:
 
 1. **Entry type counts**: count per `entryType` value
 2. **Tag frequency**: count occurrences of every distinct tag across all entries
@@ -63,12 +57,12 @@ From the results, compute:
 4. **Importance distribution**: histogram of importance values (1-10)
 5. **Temporal range**: earliest and most recent entry dates
 
-Output: inventory table + tag namespace tree (see output format below).
+Output: inventory table + tag namespace tree (see [Output format](#output-format)).
 
 ### Phase 2: Agent mistakes (episodic analysis)
 
-**Goal**: find incidents that document mistakes agents made — these are
-candidates for Task Harvest eval tasks and entry relations.
+Find incidents that document mistakes agents made — candidates for Task Harvest
+eval tasks and entry relations.
 
 ```
 entries_list({ diary_id, tags: ["incident"], limit: 20 })
@@ -76,7 +70,7 @@ entries_search({ diary_id, query: "bug fix workaround error failed",
                  entry_types: ["episodic"], limit: 15 })
 ```
 
-If no entries have the `incident` tag, fall back to:
+If no `incident`-tagged entries exist, fall back to:
 
 ```
 entries_search({ diary_id, query: "what happened root cause fix applied",
@@ -94,15 +88,12 @@ For each episodic entry, extract:
 | Subsystem          | Infer from tags or content             |
 | Severity           | Critical / High / Medium / Low         |
 
-Group by subsystem. The highest-severity incidents with clear preventive
-context are the best Task Harvest candidates.
+Group by subsystem. Highest-severity incidents with clear preventive context
+are the best Task Harvest candidates.
 
 ### Phase 3: Commit patterns (procedural analysis)
 
-**Goal**: understand how agents commit — scope distribution, risk levels,
-branch patterns.
-
-Search for procedural entries:
+Understand how agents commit — scope distribution, risk levels, branch patterns.
 
 ```
 entries_list({ diary_id, limit: 30,
@@ -120,33 +111,29 @@ Analyze:
 
 - **Tag frequency within procedural entries** — which tags appear most
 - **Branch groupings** — which branches have the most entries
-- **Anti-patterns**: look for double-prefix tags (e.g. `scope:scope:*`),
-  catch-all tags, entries without branch or scope tags, unusually broad
-  entries (many files changed)
+- **Anti-patterns**: double-prefix tags (e.g. `scope:scope:*`), catch-all
+  tags, entries without branch or scope tags, unusually broad entries
 
 ### Phase 4: Coverage gaps
 
-**Goal**: find topics the diary should cover but doesn't.
+Find topics the diary should cover but doesn't.
 
-Two approaches (use whichever applies):
-
-**If learn:trace entries exist** (from AxLearn or similar):
+**If `learn:trace` entries exist** (from AxLearn or similar):
 
 ```
 entries_list({ diary_id, tags: ["learn:trace"], limit: 20 })
 ```
 
-Analyze: which questions were asked repeatedly? Which had no context?
-Those are coverage gaps.
+Analyze which questions were asked repeatedly and which had no context —
+those are coverage gaps.
 
-**If no learn:trace entries**: compare the codebase structure against
-diary topics. Read the top-level project layout and check if each
-major subsystem has at least one semantic entry covering it.
+**If no `learn:trace` entries**: compare the codebase structure against diary
+topics. Read the top-level project layout and check if each major subsystem
+has at least one semantic entry covering it.
 
 ### Phase 5: Compile recipe recommendations
 
-**Goal**: based on phases 1-4, recommend compile recipes tailored to
-this specific diary.
+Based on phases 1-4, recommend compile recipes tailored to this specific diary.
 
 For each recipe, specify:
 
@@ -163,9 +150,72 @@ exclude_tags: [<tags>] # optional, noise sources from Phase 4
 rationale: '<why these parameters for this diary>'
 ```
 
-Base recommendations on what the diary actually contains — don't recommend
-filtering by `source:tile` if no tiles exist, don't recommend excluding
-`learn:trace` if no learn traces exist.
+Base recommendations strictly on what the diary actually contains — don't
+recommend filtering by `source:tile` if no tiles exist, don't recommend
+excluding `learn:trace` if no learn traces exist.
+
+### Phase 6: Pack-to-docs transformation
+
+**Goal**: transform a raw pack export into structured documentation. This
+phase runs after creating and exporting a pack (see
+[Pack creation and export](#pack-creation-and-export)).
+
+**Step 1 — Strip entry scaffolding, keep provenance:**
+
+Remove `<metadata>` blocks, `<moltnet-signed>` wrappers, and signature
+tags. Strip the per-entry header format (`- Compression: ...`,
+`- Tokens: ...`) but **keep Entry ID and CID** lines — move them to
+a provenance footnote or appendix per entry so traceability is preserved.
+
+**Step 2 — Group by topic:**
+
+Entries about the same subsystem or pattern become sections. Use `scope:`
+tags from the pack entries to guide grouping. One H2 per major topic,
+H3 per individual pattern or incident.
+
+**Step 3 — Deduplicate and merge:**
+
+Multiple entries about the same issue (e.g., 4 migration timestamp
+incidents) become one section with the consolidated pattern + root cause
+
+- rule. Preserve the most detailed entry's content, fold others in.
+  Reference all source entry IDs.
+
+**Step 4 — Extract rules as callouts:**
+
+"Watch for:", "Rule:", "MUST", "NEVER" statements from incidents and
+decisions become **bold rules**. These are the actionable items agents
+will use.
+
+**Step 5 — Add keyword anchors for retrieval:**
+
+Think about what queries agents will use to find this documentation.
+Add terms they would naturally search for that may not appear verbatim
+in the original entries — command names, tool names, error messages,
+file paths, and concept synonyms. Place keywords near the relevant
+section in natural prose. Don't create keyword dump lists.
+
+**Step 6 — Add pack provenance header:**
+
+At the top or bottom of the doc, include the source pack metadata:
+
+```markdown
+## Source
+
+| Pack UUID | Pack CID | Entries | Tokens  |
+| --------- | -------- | ------- | ------- |
+| `<uuid>`  | `<cid>`  | <count> | <total> |
+```
+
+This lets readers trace any claim back to the original diary entries.
+
+**Step 7 — Structure for scanning:**
+
+- H2 for major topics/subsystems
+- H3 for individual patterns or incidents
+- Bold **Severity** and **Subsystem** labels on incidents
+- Quick reference tables for commands or checklists
+- Keep total doc under ~3k tokens per file for optimal retrieval
 
 ## Output format
 
@@ -181,18 +231,13 @@ Temporal range: <earliest> to <most recent>
 ## Inventory
 
 | Entry type | Count |
-|-----------|-------|
-| ... | ... |
+|------------|-------|
+| ...        | ...   |
 
 ## Tag Namespaces
 
 <namespace>:
   - <value>: <count>
-  - <value>: <count>
-
-<namespace>:
-  - ...
-
 (Discovered from data, not hardcoded)
 
 ## Agent Mistakes (<count> found)
@@ -213,7 +258,7 @@ Temporal range: <earliest> to <most recent>
 
 | Topic | Evidence | Gap type |
 |-------|----------|----------|
-| ... | <how discovered> | <description> |
+| ...   | <how discovered> | <description> |
 
 ## Noise Sources (recommend excluding from packs)
 
@@ -238,6 +283,52 @@ After exploration, note promising cross-type relation candidates:
 These feed into the `legreffier-consolidate` skill's Phase 2 (agent-proposed
 relations).
 
+## Pack creation and export
+
+After exploration, you can create manual packs from curated entries and
+export them as markdown for use as Tessl docs tiles.
+
+### Creating a manual pack
+
+Use `packs_create` to assemble entries by topic with explicit ranking:
+
+```
+packs_create({
+  diary_id: "<diary-uuid>",
+  token_budget: 8000,
+  params: {
+    recipe: "topic-docs",
+    taskPrompt: "<topic description>"
+  },
+  entries: [
+    { entry_id: "<uuid>", rank: 1 },
+    { entry_id: "<uuid>", rank: 2 },
+    ...
+  ],
+  pinned: false
+})
+```
+
+Use `packs_list({ diary_id })` to find the pack UUID after creation.
+
+**Important:** Always set `pinned: true` when creating packs you intend to
+keep. Unpinned packs are garbage-collected after ~1 week by default. If you
+forgot to pin at creation, use `packs_update` to pin the pack before it
+expires.
+
+### Exporting a pack
+
+Export the pack as markdown using the CLI:
+
+```bash
+npx @themoltnet/cli pack export <pack-uuid>
+npx @themoltnet/cli pack export <pack-uuid> --out context-pack.md
+```
+
+The export renders each entry with title, content, CID, compression level,
+and token counts. This raw export can be reformatted into structured
+documentation for a Tessl docs tile.
+
 ## Recovery after context compression
 
 1. Read this skill file
@@ -248,5 +339,5 @@ relations).
 
 ## Permissions
 
-Read access to the diary (entries_list, entries_search, entries_get).
-Write access for the final reflection entry (entries_create).
+Read access to the diary (`entries_list`, `entries_search`, `entries_get`).
+Write access for the final reflection entry (`entries_create`).

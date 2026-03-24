@@ -1,0 +1,51 @@
+{
+  "checklist": [
+    {
+      "description": "The migration SQL contains a `DROP FUNCTION` statement for `document_search` before the `CREATE OR REPLACE FUNCTION` statement",
+      "max_score": 15,
+      "name": "DROP FUNCTION present"
+    },
+    {
+      "description": "The `DROP FUNCTION` statement appears before the `CREATE OR REPLACE FUNCTION` statement in the migration file",
+      "max_score": 10,
+      "name": "DROP before CREATE"
+    },
+    {
+      "description": "The updated `RETURNS TABLE` clause in the new function definition includes `content_hash text` (or equivalent)",
+      "max_score": 12,
+      "name": "content_hash in RETURNS TABLE"
+    },
+    {
+      "description": "The updated `RETURNS TABLE` clause includes `reviewed_at timestamptz` (or equivalent)",
+      "max_score": 12,
+      "name": "reviewed_at in RETURNS TABLE"
+    },
+    {
+      "description": "The function body's RETURN QUERY SELECT statement includes `d.content_hash` and `d.reviewed_at` in the column list",
+      "max_score": 10,
+      "name": "New columns returned in SELECT"
+    },
+    {
+      "description": "The migration includes `ALTER TABLE documents ADD COLUMN content_hash text` (or equivalent)",
+      "max_score": 10,
+      "name": "ALTER TABLE adds content_hash"
+    },
+    {
+      "description": "The migration includes `ALTER TABLE documents ADD COLUMN reviewed_at timestamptz` (or equivalent)",
+      "max_score": 10,
+      "name": "ALTER TABLE adds reviewed_at"
+    },
+    {
+      "description": "The `notes.md` file explains that DROP FUNCTION is required because the RETURNS TABLE output columns changed (not just input parameters)",
+      "max_score": 11,
+      "name": "Notes explain DROP necessity"
+    },
+    {
+      "description": "The new function definition preserves the original input parameters (query_text, query_embedding, match_limit) unchanged",
+      "max_score": 10,
+      "name": "Input params preserved"
+    }
+  ],
+  "context": "Tests whether the agent writes a PostgreSQL migration that includes DROP FUNCTION before CREATE OR REPLACE when the RETURNS TABLE signature changes, and correctly updates all RETURNS TABLE output columns to include the newly added table columns.",
+  "type": "weighted_checklist"
+}

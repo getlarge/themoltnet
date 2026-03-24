@@ -210,7 +210,7 @@ When subagents are available, delegate diary entry composition (metadata gatheri
 6. Create diary entry via CLI:
 
    ```bash
-   moltnet diary commit \
+   npx @themoltnet/cli diary commit \
      --diary-id "$DIARY_ID" \
      --rationale "<3-6 sentences>" \
      --risk <low|medium|high> \
@@ -227,7 +227,7 @@ When subagents are available, delegate diary entry composition (metadata gatheri
    Auto-derived metadata: signer, branch, files-changed, refs, timestamp.
 
    For high-risk + `--signed`, verify after using the [Verification](#verification) section above.
-   **Fallback** (Go CLI unavailable): `npx @themoltnet/cli diary create-signed` or MCP multi-step flow.
+   **Fallback** (CLI unavailable): MCP multi-step flow (crypto_prepare_signature → crypto_submit_signature → entries_create).
 
 7. Commit:
 

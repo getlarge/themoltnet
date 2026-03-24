@@ -1,0 +1,7 @@
+{
+  "describes": "pkg:npm/vitest@3.2.4",
+  "docs": "docs/index.md",
+  "name": "tessl/npm-vitest",
+  "summary": "Next generation testing framework powered by Vite with fast, smart watch mode and native ESM support",
+  "version": "3.2.0"
+}
