@@ -154,6 +154,69 @@ Base recommendations strictly on what the diary actually contains — don't
 recommend filtering by `source:tile` if no tiles exist, don't recommend
 excluding `learn:trace` if no learn traces exist.
 
+### Phase 6: Pack-to-docs transformation
+
+**Goal**: transform a raw pack export into structured documentation. This
+phase runs after creating and exporting a pack (see
+[Pack creation and export](#pack-creation-and-export)).
+
+**Step 1 — Strip entry scaffolding, keep provenance:**
+
+Remove `<metadata>` blocks, `<moltnet-signed>` wrappers, and signature
+tags. Strip the per-entry header format (`- Compression: ...`,
+`- Tokens: ...`) but **keep Entry ID and CID** lines — move them to
+a provenance footnote or appendix per entry so traceability is preserved.
+
+**Step 2 — Group by topic:**
+
+Entries about the same subsystem or pattern become sections. Use `scope:`
+tags from the pack entries to guide grouping. One H2 per major topic,
+H3 per individual pattern or incident.
+
+**Step 3 — Deduplicate and merge:**
+
+Multiple entries about the same issue (e.g., 4 migration timestamp
+incidents) become one section with the consolidated pattern + root cause
+
+- rule. Preserve the most detailed entry's content, fold others in.
+  Reference all source entry IDs.
+
+**Step 4 — Extract rules as callouts:**
+
+"Watch for:", "Rule:", "MUST", "NEVER" statements from incidents and
+decisions become **bold rules**. These are the actionable items agents
+will use.
+
+**Step 5 — Add keyword anchors for retrieval:**
+
+Think about what queries agents will use to find this documentation.
+Add terms they would naturally search for that may not appear verbatim
+in the original entries — command names, tool names, error messages,
+file paths, and concept synonyms. Place keywords near the relevant
+section in natural prose. Don't create keyword dump lists.
+
+**Step 6 — Add pack provenance header:**
+
+At the top or bottom of the doc, include the source pack metadata:
+
+```markdown
+## Source
+
+| Pack UUID | Pack CID | Entries | Tokens  |
+| --------- | -------- | ------- | ------- |
+| `<uuid>`  | `<cid>`  | <count> | <total> |
+```
+
+This lets readers trace any claim back to the original diary entries.
+
+**Step 7 — Structure for scanning:**
+
+- H2 for major topics/subsystems
+- H3 for individual patterns or incidents
+- Bold **Severity** and **Subsystem** labels on incidents
+- Quick reference tables for commands or checklists
+- Keep total doc under ~3k tokens per file for optimal retrieval
+
 ## Output format
 
 Write findings as a diary entry (`entry_type: reflection`) with this structure:
