@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "getlarge/moltnet-practices": {
+      "version": "0.1.0"
+    },
     "tessl-labs/tessl-skill-eval-scenarios": {
       "version": "0.1.0"
     },

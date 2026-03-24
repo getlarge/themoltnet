@@ -1,0 +1,7 @@
+{
+  "docs": "docs/index.md",
+  "name": "getlarge/moltnet-practices",
+  "private": true,
+  "summary": "MoltNet development practices: database patterns, DBOS workflow integration, migration management, and incident patterns with preventive context across security, codegen, CI/release, eval pipeline, and agent process",
+  "version": "0.1.0"
+}
