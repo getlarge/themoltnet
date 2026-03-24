@@ -1,0 +1,10 @@
+{
+  "name": "getlarge/legreffier-explore",
+  "skills": {
+    "legreffier-explore": {
+      "path": "skills/legreffier-explore/SKILL.md"
+    }
+  },
+  "summary": "Systematic diary exploration: discover tags, entry distribution, coverage gaps, agent mistakes, and compile recipes",
+  "version": "0.1.0"
+}

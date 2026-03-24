@@ -1,0 +1,106 @@
+{
+  "instructions": [
+    {
+      "instruction": "Run exploration phases in order (1-5), each building on the previous phase's findings",
+      "original_snippets": "Run phases in order. Each phase builds on the previous one's findings.",
+      "relevant_when": "Performing a diary exploration",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Use subagents for phases 2-4 to keep the primary context clean",
+      "original_snippets": "Use subagents for phases 2-4 to keep the primary context clean.",
+      "relevant_when": "Executing exploration phases in an environment with subagent support",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Phase 1 Inventory: paginate entries_list with limit 50 and increasing offset until all entries are covered",
+      "original_snippets": "entries_list({ diary_id, limit: 50, offset: 0 }) ... entries_list({ diary_id, limit: 50, offset: 50 }) ... continue until all entries are covered",
+      "relevant_when": "Running Phase 1 inventory of diary entries",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Phase 1 computes: entry type counts, tag frequency, tag namespaces (grouped by prefix before first colon), importance distribution (histogram 1-10), temporal range",
+      "original_snippets": "1. Entry type counts ... 2. Tag frequency ... 3. Tag namespaces: group tags by prefix (everything before the first `:`) ... 4. Importance distribution: histogram ... 5. Temporal range",
+      "relevant_when": "Analyzing diary inventory data",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Tag namespaces must be discovered from the data, NOT hardcoded",
+      "original_snippets": "Do NOT hardcode expected namespaces — discover them from the data.",
+      "relevant_when": "Grouping tags by namespace in Phase 1",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Phase 2 searches for agent mistakes using entries_list with incident tag first, then entries_search with episodic type as fallback",
+      "original_snippets": "entries_list({ diary_id, tags: [\"incident\"], limit: 20 }) ... If no entries have the `incident` tag, fall back to: entries_search({ diary_id, query: \"what happened root cause fix applied\", entry_types: [\"episodic\"], limit: 20 })",
+      "relevant_when": "Running Phase 2 episodic analysis",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "For each episodic entry, extract: what went wrong, root cause, fix applied, preventive context, subsystem (from tags/content), severity (Critical/High/Medium/Low)",
+      "original_snippets": "| What went wrong | The mistake or failure | ... | Root cause | Why it happened | ... | Severity | Critical / High / Medium / Low |",
+      "relevant_when": "Analyzing episodic entries in Phase 2",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Group episodic findings by subsystem; highest-severity incidents with clear preventive context are best Task Harvest candidates",
+      "original_snippets": "Group by subsystem. The highest-severity incidents with clear preventive context are the best Task Harvest candidates.",
+      "relevant_when": "Summarizing Phase 2 findings",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Phase 3 uses the most common procedural tag from Phase 1 to search for procedural entries, falling back to entries_search with query 'commit'",
+      "original_snippets": "entries_list({ diary_id, limit: 30, tags: [<most common procedural tag from Phase 1>] }) ... If no obvious procedural tag exists, use: entries_search({ diary_id, query: \"commit\", entry_types: [\"procedural\"], limit: 30 })",
+      "relevant_when": "Running Phase 3 procedural analysis",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Phase 3 checks for anti-patterns: double-prefix tags (e.g. scope:scope:*), catch-all tags, entries without branch or scope tags, unusually broad entries",
+      "original_snippets": "Anti-patterns: look for double-prefix tags (e.g. `scope:scope:*`), catch-all tags, entries without branch or scope tags, unusually broad entries (many files changed)",
+      "relevant_when": "Analyzing procedural entries for quality issues",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Phase 4 coverage gaps: if learn:trace entries exist, analyze repeated questions with no context; otherwise compare codebase structure against diary topics",
+      "original_snippets": "If learn:trace entries exist ... Analyze: which questions were asked repeatedly? ... If no learn:trace entries: compare the codebase structure against diary topics.",
+      "relevant_when": "Finding coverage gaps in Phase 4",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Phase 5 compile recipes must specify: name, intent, task_prompt, token_budget, lambda, w_importance, w_recency, include_tags, exclude_tags, rationale",
+      "original_snippets": "name: '<descriptive name>' ... intent: '<what task this context supports>' ... task_prompt: '<specific question>' ... token_budget: <number> ... lambda: <0.0-1.0> ... w_importance: <0.0-1.0> ... w_recency: <0.0-1.0> ... include_tags ... exclude_tags ... rationale",
+      "relevant_when": "Recommending compile recipes in Phase 5",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Compile recipes must be based on what the diary actually contains — don't recommend filtering by tags that don't exist",
+      "original_snippets": "Base recommendations on what the diary actually contains — don't recommend filtering by `source:tile` if no tiles exist, don't recommend excluding `learn:trace` if no learn traces exist.",
+      "relevant_when": "Designing compile recipe parameters",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Output findings as a diary entry with entry_type: reflection, tags: [exploration, diary-health], importance: 6",
+      "original_snippets": "Write findings as a diary entry (`entry_type: reflection`) ... Tags: `[\"exploration\", \"diary-health\"]` ... Importance: 6",
+      "relevant_when": "Writing the exploration output",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Output follows a specific structure: Inventory table, Tag Namespaces tree, Agent Mistakes (grouped by severity), Commit Patterns, Coverage Gaps, Noise Sources, Recommended Compile Recipes",
+      "original_snippets": "## Inventory ... ## Tag Namespaces ... ## Agent Mistakes ... ## Commit Patterns ... ## Coverage Gaps ... ## Noise Sources ... ## Recommended Compile Recipes",
+      "relevant_when": "Formatting the exploration output",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Note relation opportunities after exploration: incidents proving anti-patterns, decisions referenced by commits, repeated incidents across branches",
+      "original_snippets": "After exploration, note promising cross-type relation candidates: Incidents that prove scan entry anti-patterns ... Decisions referenced by procedural commits ... Repeated incidents (same bug pattern across branches)",
+      "relevant_when": "Concluding the exploration and identifying follow-up work",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Recovery after context compression: check for existing exploration entry via entries_search with exploration tag, read it, skip completed phases, resume from next incomplete phase",
+      "original_snippets": "Check for existing exploration: entries_search({ diary_id, tags: [\"exploration\"], limit: 1 }) ... If found, read it and skip completed phases ... Resume from the next incomplete phase",
+      "relevant_when": "Resuming an exploration after context window compression",
+      "why_given": "new knowledge"
+    }
+  ]
+}
