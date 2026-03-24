@@ -242,11 +242,16 @@ packs_create({
     { entry_id: "<uuid>", rank: 2 },
     ...
   ],
-  pinned: true
+  pinned: false
 })
 ```
 
 Use `packs_list({ diary_id })` to find the pack UUID after creation.
+
+**Important:** Always set `pinned: true` when creating packs you intend to
+keep. Unpinned packs are garbage-collected after ~1 week by default. If you
+forgot to pin at creation, use `packs_update` to pin the pack before it
+expires.
 
 ### Exporting a pack
 
