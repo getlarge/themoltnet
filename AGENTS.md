@@ -332,3 +332,7 @@ pnpm run typecheck:clean   # cleans all .tsbuildinfo + dist/, then typechecks
 ```
 
 This happens when `dist/` is cleaned (e.g. switching branches, manual cleanup) but `.tsbuildinfo` at the package root is not. The `tsBuildInfoFile` option in each workspace `tsconfig.json` co-locates the cache with outputs to prevent this.
+
+# Agent Rules <!-- tessl-managed -->
+
+@.tessl/RULES.md follow the [instructions](.tessl/RULES.md)

@@ -1,0 +1,7 @@
+{
+  "describes": "pkg:npm/@dotenvx/dotenvx@1.49.0",
+  "docs": "docs/index.md",
+  "name": "tessl/npm-dotenvx--dotenvx",
+  "summary": "A secure dotenv library and CLI tool with multi-environment support and encryption capabilities",
+  "version": "1.49.0"
+}

@@ -1,0 +1,7 @@
+{
+  "describes": "pkg:npm/eslint-plugin-react-hooks@5.2.0",
+  "docs": "docs/index.md",
+  "name": "tessl/npm-eslint-plugin-react-hooks",
+  "summary": "ESLint plugin that enforces the Rules of Hooks for React applications with additional React Compiler rules",
+  "version": "5.2.0"
+}

@@ -1,0 +1,7 @@
+{
+  "describes": "pkg:npm/eslint@9.34.0",
+  "docs": "docs/index.md",
+  "name": "tessl/npm-eslint",
+  "summary": "An AST-based pattern checker for JavaScript that provides comprehensive linting capabilities with configurable rules and autofix support.",
+  "version": "9.34.0"
+}

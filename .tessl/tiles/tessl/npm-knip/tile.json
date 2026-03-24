@@ -1,0 +1,7 @@
+{
+  "describes": "pkg:npm/knip@5.63.1",
+  "docs": "docs/index.md",
+  "name": "tessl/npm-knip",
+  "summary": "Find and fix unused dependencies, exports and files in your TypeScript and JavaScript projects",
+  "version": "5.63.0"
+}

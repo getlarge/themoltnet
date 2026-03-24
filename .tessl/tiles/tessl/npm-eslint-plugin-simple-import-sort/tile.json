@@ -1,0 +1,7 @@
+{
+  "describes": "pkg:npm/eslint-plugin-simple-import-sort@12.1.1",
+  "docs": "docs/index.md",
+  "name": "tessl/npm-eslint-plugin-simple-import-sort",
+  "summary": "Easy autofixable import sorting ESLint plugin with intelligent grouping and ordering rules",
+  "version": "12.1.0"
+}
