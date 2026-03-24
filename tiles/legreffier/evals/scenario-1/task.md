@@ -20,30 +20,35 @@ Create the following files:
 
 The following files are provided as inputs. Extract them before beginning.
 
+<!-- prettier-ignore-start -->
+
+```
 =============== FILE: inputs/sample-diff.patch ===============
 diff --git a/libs/auth/src/middleware.ts b/libs/auth/src/middleware.ts
 index abc1234..def5678 100644
 --- a/libs/auth/src/middleware.ts
 +++ b/libs/auth/src/middleware.ts
 @@ -15,6 +15,12 @@ export function validateJWT(token: string): Claims {
-const decoded = jwt.verify(token, publicKey);
+   const decoded = jwt.verify(token, publicKey);
++  if (!decoded.sub) {
++    throw new AuthError('JWT missing subject claim');
++  }
++  if (decoded.exp && decoded.exp < Date.now() / 1000) {
++    throw new AuthError('JWT expired');
++  }
+   return decoded as Claims;
+ }
+diff --git a/libs/auth/src/types.ts b/libs/auth/src/types.ts
+index 111aaaa..222bbbb 100644
+--- a/libs/auth/src/types.ts
++++ b/libs/auth/src/types.ts
+@@ -8,4 +8,5 @@ export interface Claims {
+   sub: string;
+   exp: number;
+   iat: number;
++  scope?: string[];
+ }
+=============== END FILE ===============
+```
 
-- if (!decoded.sub) {
-- throw new AuthError('JWT missing subject claim');
-- }
-- if (decoded.exp && decoded.exp < Date.now() / 1000) {
-- throw new AuthError('JWT expired');
-- }
-  return decoded as Claims;
-  }
-  diff --git a/libs/auth/src/types.ts b/libs/auth/src/types.ts
-  index 111aaaa..222bbbb 100644
-  --- a/libs/auth/src/types.ts
-  +++ b/libs/auth/src/types.ts
-  @@ -8,4 +8,5 @@ export interface Claims {
-  sub: string;
-  exp: number;
-  iat: number;
-- scope?: string[];
-  }
-  =============== END FILE ===============
+<!-- prettier-ignore-end -->
