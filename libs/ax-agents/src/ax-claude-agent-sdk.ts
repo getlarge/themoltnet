@@ -102,6 +102,7 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   never
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
+  private lastModel: string = DEFAULT_MODEL;
   private opts: AxAIClaudeAgentSDKOptions;
 
   constructor(opts: AxAIClaudeAgentSDKOptions) {
@@ -115,6 +116,7 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   ): [AxAPI, AgentRequest] {
     let prompt = flattenChatPrompt(req.chatPrompt);
     const model = req.model ?? 'claude-sonnet-4-6';
+    this.lastModel = model;
     const stream = req.modelConfig?.stream ?? false;
 
     // When ax() uses structured output (f() API with complex fields),
@@ -174,7 +176,7 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
         ],
         modelUsage: {
           ai: 'claude-agent-sdk',
-          model: 'claude-agent-sdk',
+          model: this.lastModel,
           tokens,
         },
       };
@@ -209,7 +211,7 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
         results: [{ content: '', finishReason: 'stop' as const, index: 0 }],
         modelUsage: {
           ai: 'claude-agent-sdk',
-          model: 'claude-agent-sdk',
+          model: this.lastModel,
           tokens,
         },
       };

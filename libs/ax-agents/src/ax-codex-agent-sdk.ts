@@ -81,6 +81,7 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
   never
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
+  private lastModel: string = DEFAULT_MODEL;
   private opts: AxAICodexAgentSDKOptions;
 
   constructor(opts: AxAICodexAgentSDKOptions) {
@@ -92,6 +93,7 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
   ): [AxAPI, AgentRequest] {
     const prompt = flattenChatPrompt(req.chatPrompt);
     const model = req.model ?? DEFAULT_MODEL;
+    this.lastModel = model;
     const stream = req.modelConfig?.stream ?? false;
 
     // When ax() uses structured output, extract the JSON schema to pass
@@ -144,7 +146,7 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
         ],
         modelUsage: {
           ai: 'codex-agent-sdk',
-          model: 'codex-agent-sdk',
+          model: this.lastModel,
           tokens,
         },
       };
@@ -177,7 +179,7 @@ class AxAICodexAgentSDKImpl implements AxAIServiceImpl<
         results: [{ content: '', finishReason: 'stop' as const, index: 0 }],
         modelUsage: {
           ai: 'codex-agent-sdk',
-          model: 'codex-agent-sdk',
+          model: this.lastModel,
           tokens,
         },
       };
