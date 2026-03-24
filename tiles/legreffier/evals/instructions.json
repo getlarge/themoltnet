@@ -1,0 +1,232 @@
+{
+  "instructions": [
+    {
+      "instruction": "Resolve agent name using priority order: MOLTNET_AGENT_NAME env var > $ARGUMENTS > GIT_CONFIG_GLOBAL path extraction > single .moltnet/ subdirectory > ask user",
+      "original_snippets": "1. If `MOLTNET_AGENT_NAME` env var is set, use it directly. ... 2. If `$ARGUMENTS` is provided ... 3. If `GIT_CONFIG_GLOBAL` is set and matches `.moltnet/<name>/gitconfig`, extract `<name>`. ... 4. Read `.moltnet/` directory — if exactly one subdirectory contains `moltnet.json`, use that directory name.",
+      "relevant_when": "Starting a session, resolving which MoltNet identity to use",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "In worktrees, symlink .moltnet/ from the main worktree root if it doesn't exist locally",
+      "original_snippets": "Check if we are in a git worktree ... Resolve the main worktree root ... If `<main-worktree>/.moltnet/` exists, create a symlink: `ln -s <main-worktree>/.moltnet .moltnet`",
+      "relevant_when": "Working inside a git worktree that lacks a .moltnet directory",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Two independent signature layers: Git SSH signatures (commit-level, automatic) and MoltNet diary signatures (entry-level, explicit Ed25519 over CID). Never confuse them.",
+      "original_snippets": "This workflow involves **two independent signature systems**. Do not confuse them. ... Layer 1: Git SSH Signatures (commit-level) ... Layer 2: MoltNet Diary Signatures (entry-level)",
+      "relevant_when": "Creating signed diary entries or verifying signatures",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "The <signature> tag in diary entries must contain the base64 Ed25519 signature, NOT the request ID (UUID)",
+      "original_snippets": "The `<signature>` tag in diary entries must contain the **base64 Ed25519 signature** (output of `npx @themoltnet/cli sign --request-id` on stdout), NOT the request ID (UUID).",
+      "relevant_when": "Creating content-signed diary entries",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Use the correct entry_type for every diary entry: procedural, semantic, episodic, reflection, identity, soul",
+      "original_snippets": "Use the right `entry_type` for every diary entry. This is not cosmetic — it affects search recall, filtering, and digest generation.",
+      "relevant_when": "Creating any diary entry",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Default entry_type is semantic. Never use a value outside the allowed list.",
+      "original_snippets": "**Default is `semantic`.** If unsure, use `semantic`. Never use a value outside this list.",
+      "relevant_when": "Creating any diary entry when type is uncertain",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Write episodic entries immediately when discovering incidents, workarounds, misleading errors, tool/API drift, config root causes, user frustration, invariant violations, or generated artifact repairs",
+      "original_snippets": "Write an `episodic` entry **immediately** when any of these happen — don't wait for the commit workflow ... **Immediate-capture rule**: if you discover an invariant violation ... write the `episodic` entry before continuing with the rest of the task.",
+      "relevant_when": "Any incident, surprise, or workaround during development",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Include structured metadata in diary entries using key-value format: signer, operator, tool, risk-level, files-changed, timestamp, branch, scope, refs",
+      "original_snippets": "The `<metadata>` block inside diary entries uses a key-value format. These conventions improve retrieval precision ... | Key | Format | When to include |",
+      "relevant_when": "Creating any diary entry",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Include 1-5 refs per entry pointing to files, symbols, packages, services, or endpoints affected",
+      "original_snippets": "Include 1–5 refs per entry. More is noise, fewer misses connections. ... Prefer the most specific ref that is stable.",
+      "relevant_when": "Creating diary entries that reference code artifacts",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Accountable commit workflow: inspect staged changes, classify risk (high/medium/low), gather metadata, write rationale, create diary entry via CLI diary commit, then git commit with MoltNet-Diary trailer",
+      "original_snippets": "0. Resolve credentials path ... 1. Inspect staged changes ... 2. Risk classification ... 5. Rationale: 3–6 sentences ... 6. Create diary entry via CLI ... 7. Commit (conventional)",
+      "relevant_when": "Making any git commit while GIT_CONFIG_GLOBAL is set",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Scope gate: accountable commits only apply when staged diff is one coherent change set. Split if >8 files, >300 insertions, or >2 workspace packages.",
+      "original_snippets": "**Scope gate**: accountable commits only apply when the staged diff is one coherent, well-scoped change set ... if `git diff --cached --stat` shows >8 files or >300 insertions, or the diff touches >2 workspace packages — the change set is likely too broad.",
+      "relevant_when": "Evaluating whether staged changes are ready for an accountable commit",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Risk classification hierarchy: High (crypto, CI, deps, auth), Medium (new files, config, UI, protocol docs, scripts), Low (tests, comments, formatting)",
+      "original_snippets": "**High**: crypto/random/hash code; CI/automation; dependency lockfiles/package changes; auth/secrets. **Medium**: new files; config; UI/Canvas; docs that alter protocol ... **Low**: tests-only; comments/formatting; minor docs.",
+      "relevant_when": "Classifying commit risk during accountable commit workflow",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Before writing procedural commit entry, check if work involved an architectural decision (write semantic entry first) or a concrete incident (write episodic entry too)",
+      "original_snippets": "Before writing the commit rationale, check: did this work involve any architectural decision or non-obvious choice? If yes: write a **`semantic`** entry first ... If a concrete incident occurred during this work: write an **`episodic`** entry too.",
+      "relevant_when": "During accountable commit workflow, before writing the procedural entry",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Use moltnet diary commit CLI command (not raw MCP calls) for accountable commits — it auto-derives git metadata",
+      "original_snippets": "Create diary entry via CLI: the `diary commit` command handles payload construction, signing, and entry creation in one step. It auto-derives git metadata (branch, files changed, refs) from staged changes.",
+      "relevant_when": "Creating procedural diary entries for commits",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "For high-risk commits, add --signed flag to make entry cryptographically immutable, then verify",
+      "original_snippets": "**For high-risk commits**, add `--signed` to make the entry cryptographically immutable. After creation, verify: `moltnet diary verify <entry-id>`",
+      "relevant_when": "Creating diary entries for high-risk commits",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Commit message format: conventional commit with MoltNet-Diary trailer: git commit -m 'feat(scope): summary' -m 'MoltNet-Diary: <entry-id>'",
+      "original_snippets": "git commit -m \"feat(scope): summary\" -m \"\\nMoltNet-Diary: <entry-id>\"",
+      "relevant_when": "Writing git commit messages",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Hard gate: if signing/diary tools are unavailable, do not offer to skip. Stop and state what is unavailable. Only proceed without diary if user explicitly says so unprompted.",
+      "original_snippets": "If signing/diary tools unavailable: **do not offer skipping**. Stop, state what is unavailable, and wait. Only proceed without a diary if the user explicitly says so unprompted.",
+      "relevant_when": "When MoltNet tools are down or unreachable",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "No ship without diary: if any tracked file changed, must create diary entry before pushing, opening PR, or declaring complete",
+      "original_snippets": "If any tracked file changed in the session, you must create at least one diary entry before: pushing commits, opening/updating a PR, or telling the user the task is complete.",
+      "relevant_when": "Before pushing commits, creating PRs, or declaring task complete",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Pre-push checklist: branch guard (no push to main/master), review git status, verify diary entries exist with correct tags (branch:<branch>, scope:<...>), refs include key files, commit references diary entry IDs",
+      "original_snippets": "Run this checklist before `git push` or 'done': 1. **Branch guard** ... 2. `git status --short` reviewed ... 3. At least one new diary entry exists ... 4. Entry tags include ... 5. Entry `refs` include key files ... 6. Commit message or final handoff references the diary entry id(s).",
+      "relevant_when": "Before pushing commits or declaring work done",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "One behavior per commit. Split: behavior change, tests, codegen/regeneration, cleanup. Max chain 2-4 commits.",
+      "original_snippets": "Each commit should represent **one testable behavioral change** ... **Splitting heuristic:** Commit 1: behavior change ... Commit 2: tests ... Commit 3: codegen ... Max chain length: 2-4 commits is ideal.",
+      "relevant_when": "Shaping commits for a multi-step task",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Use task-chain trailers: Task-Group (every commit), Task-Family (first commit), Task-Completes: true (last commit, after verification only)",
+      "original_snippets": "Three git trailers for task harvesting ... | `Task-Group: <slug>` | Every commit in a multi-commit task | ... | `Task-Completes: true` | Last commit in a chain, **after verification** |",
+      "relevant_when": "Writing git commit messages for multi-commit tasks",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Task-Completes: true means 'verified working', not 'code written'. Must have evidence the change works before adding this trailer.",
+      "original_snippets": "**`Task-Completes: true` means 'verified working', not 'code written'.** ... Before adding `Task-Completes: true` to any commit, the agent must have evidence that the change works.",
+      "relevant_when": "Adding Task-Completes trailer to final commit in a chain",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Investigation workflow: always enumerate before searching. Start with entries_list on guaranteed metadata (tags), then targeted entries_search with relevance/recency/importance weights.",
+      "original_snippets": "**Critical rule: always enumerate before searching.** `entries_search` returning empty is ambiguous ... Start with `entries_list` on guaranteed metadata (tags) to establish the full known set first.",
+      "relevant_when": "Answering 'why' questions or tracing past rationale",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Investigation search weights: w_relevance=1.0, w_recency=0.3 (0.1 if >14 days), w_importance=0.2. Use exclude_tags for noise suppression.",
+      "original_snippets": "entries_search({ query: \"<specific question>\", limit: 5, ... w_relevance: 1.0, w_recency: 0.3, w_importance: 0.2 })",
+      "relevant_when": "Performing targeted diary search during investigation",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "When verifying MoltNet signatures, distinguish base64 Ed25519 signatures from UUIDs (request IDs). Only base64 signatures are verifiable via crypto_verify.",
+      "original_snippets": "If it looks like a base64 Ed25519 signature (long base64 string, typically 88 chars), call `crypto_verify` ... If it looks like a UUID (request ID), report as 'contains request ID, not verifiable'.",
+      "relevant_when": "Verifying diary entry signatures during investigation",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "No Co-Authored-By trailers; LeGreffier is sole author.",
+      "original_snippets": "No Co-Authored-By trailers; LeGreffier is sole author.",
+      "relevant_when": "Writing git commit messages",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Tag every diary entry with branch:<branch> and at least one scope:<...> tag",
+      "original_snippets": "Tag every diary entry with `branch:<branch>` and at least one `scope:<...>` tag.",
+      "relevant_when": "Creating any diary entry",
+      "why_given": "reminder"
+    },
+    {
+      "instruction": "Write semantic entries during the work, not after",
+      "original_snippets": "Write `semantic` entries during the work, not after.",
+      "relevant_when": "When making architectural decisions during development",
+      "why_given": "reminder"
+    },
+    {
+      "instruction": "Never skip diary due to time constraints. If tools unavailable and user insists, ask explicit approval.",
+      "original_snippets": "Never \"skip diary due to time constraints.\" If MoltNet tools are unavailable and the user insists on committing, ask for explicit approval; otherwise do not commit.",
+      "relevant_when": "When pressured to skip diary creation",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "GitHub CLI authentication: prefix gh commands with GH_TOKEN=$(npx @themoltnet/cli github token --credentials ...) when GIT_CONFIG_GLOBAL is set",
+      "original_snippets": "authenticate all `gh` CLI commands as the GitHub App by prefixing them with: GH_TOKEN=$(npx @themoltnet/cli github token --credentials ...) gh <command>",
+      "relevant_when": "Running gh CLI commands while in LeGreffier mode",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "GitHub App only has limited permissions: pr, issue, contents, metadata. Do NOT use GH_TOKEN for releases, actions, packages.",
+      "original_snippets": "The GitHub App only has these permissions: `gh pr ...`, `gh issue ...`, `gh api repos/{owner}/{repo}/contents/...`, `gh repo view/clone` ... Do NOT use `GH_TOKEN` for other `gh` commands.",
+      "relevant_when": "Using gh CLI with the GitHub App token",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Semantic entry format: Decision, Alternatives considered, Reason chosen, Trade-offs, Context, plus metadata block",
+      "original_snippets": "Decision: <one sentence> ... Alternatives considered: <what else was evaluated> ... Reason chosen: <why this option> ... Trade-offs: <what you gave up> ... Context: <constraints>",
+      "relevant_when": "Writing a semantic diary entry for an architectural decision",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Episodic entry format: What happened, Root cause, Fix applied, Watch for, plus metadata block",
+      "original_snippets": "What happened: <description> ... Root cause: <why it happened> ... Fix applied: <what resolved it> ... Watch for: <how to avoid this next time>",
+      "relevant_when": "Writing an episodic diary entry for an incident",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "After creating episodic entries, link them to related entries using relations_create with appropriate relation types (caused_by, supports, contradicts, references)",
+      "original_snippets": "After creating an episodic entry, create entry relations to connect it to related entries ... Common relation patterns for incidents: caused_by, supports, contradicts, references",
+      "relevant_when": "After writing an episodic entry that relates to other entries",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Content-signed entries use CIDv1 content identifiers. Canonical JSON form: {c, t, tags, type, v} with null title→empty string, null tags→[], tags sorted alphabetically.",
+      "original_snippets": "Canonical form: {\"c\": \"<content>\", \"t\": \"<title>\", \"tags\": [\"<sorted>\", \"<tags>\"], \"type\": \"<entryType>\", \"v\": \"moltnet:diary:v1\"}",
+      "relevant_when": "Creating content-signed diary entries manually",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Identity hard gate: if fingerprint is unknown after activation steps, stop completely. Do not proceed with any commit, investigation, or diary workflow.",
+      "original_snippets": "**Hard gate**: if fingerprint is still unknown after the above steps, stop. Do not proceed with any commit, investigation, or diary workflow.",
+      "relevant_when": "During session activation when identity cannot be resolved",
+      "why_given": "particular preference"
+    },
+    {
+      "instruction": "Resolve operator from $USER env var and tool from environment (CLAUDE=1 → claude, CODEX=1 → codex)",
+      "original_snippets": "`OPERATOR`: `$USER` environment variable ... `TOOL`: infer from environment — `claude` if `$CLAUDE=1` ... `codex` if `$CODEX=1`",
+      "relevant_when": "During session activation to set trace metadata",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Sign identity and soul entries always. Sign reflection entries for important stances. Sign semantic entries for consequential decisions. Episodic entries generally unsigned.",
+      "original_snippets": "**identity** and **soul** entries: always sign ... **reflection** entries: sign when the reflection captures an important stance ... **semantic** entries: sign when the decision is consequential ... **episodic** entries: generally unsigned",
+      "relevant_when": "Deciding whether to content-sign a diary entry",
+      "why_given": "particular preference"
+    }
+  ]
+}

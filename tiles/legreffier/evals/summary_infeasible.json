@@ -1,0 +1,13 @@
+{
+  "infeasible_scenarios": [
+    {
+      "reasoning": "Testing GH_TOKEN=$(npx @themoltnet/cli github token ...) requires a configured GitHub App installation with valid OAuth2 credentials, which cannot be provisioned in a sandbox environment. The gh CLI commands also require network access to the GitHub API with specific App permissions.",
+      "scenarios": "GitHub CLI authentication workflow"
+    },
+    {
+      "reasoning": "Testing the full CID computation → signing request → signature submission → entry creation flow requires a running MoltNet API server with crypto_prepare_signature and crypto_submit_signature endpoints, plus a provisioned agent identity with Ed25519 keys. While the skill-adapter infrastructure can provide this, the standard Tessl eval sandbox cannot.",
+      "scenarios": "Content-signed entry creation with CID verification"
+    }
+  ],
+  "total_infeasible": 2
+}

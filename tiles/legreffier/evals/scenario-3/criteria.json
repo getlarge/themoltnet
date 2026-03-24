@@ -1,0 +1,66 @@
+{
+  "checklist": [
+    {
+      "description": "IncidentRecord type includes fields for: what happened, root cause, fix applied, and watch-for guidance",
+      "max_score": 10,
+      "name": "Episodic entry format"
+    },
+    {
+      "description": "classifyIncident or guide covers at least 5 of: broken artifacts, build failures, workarounds, misleading errors, API drift, config root causes, user frustration, invariant violations",
+      "max_score": 10,
+      "name": "Incident trigger categories"
+    },
+    {
+      "description": "Guide states that invariant violations and manual artifact repairs must be documented before continuing with the rest of the task, not deferred to session end",
+      "max_score": 10,
+      "name": "Immediate capture rule"
+    },
+    {
+      "description": "shouldRecordIncident or guide mentions that spending more than ~2 minutes investigating is a signal that an incident is worth recording",
+      "max_score": 8,
+      "name": "Investigation time heuristic"
+    },
+    {
+      "description": "Guide distinguishes at least 4 entry types (procedural, semantic, episodic, reflection) with clear when-to-use guidance",
+      "max_score": 8,
+      "name": "Entry type differentiation"
+    },
+    {
+      "description": "Metadata or guide specifies that every record must include branch:<branch> and at least one scope:<...> tag",
+      "max_score": 8,
+      "name": "Branch and scope tags"
+    },
+    {
+      "description": "IncidentRecord includes refs field with 1-5 references to files, tools, services, or endpoints where the incident occurred",
+      "max_score": 8,
+      "name": "Refs metadata"
+    },
+    {
+      "description": "Guide states that episodic entries are generally unsigned, while identity/soul entries should always be signed",
+      "max_score": 8,
+      "name": "Signing guidance"
+    },
+    {
+      "description": "incident-relations.ts supports at least 3 of: caused_by, supports, contradicts, references as relation types",
+      "max_score": 10,
+      "name": "Relation types"
+    },
+    {
+      "description": "Relations have explicit direction (source entry → target entry) rather than being bidirectional",
+      "max_score": 6,
+      "name": "Directed relations"
+    },
+    {
+      "description": "Metadata includes operator (human user) and tool (AI coding environment) fields",
+      "max_score": 6,
+      "name": "Operator and tool fields"
+    },
+    {
+      "description": "Guide or code defaults to semantic when entry type is uncertain",
+      "max_score": 8,
+      "name": "Default entry type"
+    }
+  ],
+  "context": "Tests whether the agent correctly implements episodic entry creation patterns: incident categories that trigger recording, immediate-capture rule, structured episodic format, entry type selection, metadata conventions, tagging, refs, content signing guidance, and relation types for linking incidents.",
+  "type": "weighted_checklist"
+}
