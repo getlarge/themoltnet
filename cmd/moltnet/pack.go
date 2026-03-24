@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 	"github.com/google/uuid"
@@ -90,7 +91,7 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Context Pack %s\n\n", id)
 	fmt.Fprintf(&b, "Entries: %d\n", len(pack.Entries))
-	fmt.Fprintf(&b, "Created: %s\n", pack.CreatedAt.Format("2006-01-02T15:04:05Z"))
+	fmt.Fprintf(&b, "Created: %s\n", pack.CreatedAt.UTC().Format(time.RFC3339))
 	b.WriteString("\n---\n\n")
 
 	for i, entry := range pack.Entries {
