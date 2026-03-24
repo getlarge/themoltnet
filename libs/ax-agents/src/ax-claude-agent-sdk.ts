@@ -57,6 +57,7 @@ interface AgentRequest {
 
 interface AgentResponse {
   resultText: string;
+  model: string;
   usage: {
     inputTokens: number;
     outputTokens: number;
@@ -73,6 +74,7 @@ interface AgentResponse {
 interface AgentStreamDelta {
   type: 'text_delta' | 'result';
   text?: string;
+  model?: string;
   usage?: AgentResponse['usage'];
   numTurns?: number;
   durationMs?: number;
@@ -102,7 +104,6 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   never
 > {
   private lastTokenUsage: AxTokenUsage | undefined;
-  private lastModel: string = DEFAULT_MODEL;
   private opts: AxAIClaudeAgentSDKOptions;
 
   constructor(opts: AxAIClaudeAgentSDKOptions) {
@@ -116,7 +117,6 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
   ): [AxAPI, AgentRequest] {
     let prompt = flattenChatPrompt(req.chatPrompt);
     const model = req.model ?? 'claude-sonnet-4-6';
-    this.lastModel = model;
     const stream = req.modelConfig?.stream ?? false;
 
     // When ax() uses structured output (f() API with complex fields),
@@ -176,7 +176,7 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
         ],
         modelUsage: {
           ai: 'claude-agent-sdk',
-          model: this.lastModel,
+          model: resp.model,
           tokens,
         },
       };
@@ -192,7 +192,7 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
       ],
       modelUsage: {
         ai: 'claude-agent-sdk',
-        model: 'claude-agent-sdk',
+        model: resp.model,
         tokens,
       },
     };
@@ -211,7 +211,7 @@ class AxAIClaudeAgentSDKImpl implements AxAIServiceImpl<
         results: [{ content: '', finishReason: 'stop' as const, index: 0 }],
         modelUsage: {
           ai: 'claude-agent-sdk',
-          model: this.lastModel,
+          model: delta.model ?? 'claude-agent-sdk',
           tokens,
         },
       };
@@ -359,6 +359,7 @@ function extractAssistantText(message: SDKMessage): string | null {
 function buildAgentResponse(
   lastAssistantText: string,
   finalResult: ResultPayload | null,
+  model: string,
 ): AgentResponse {
   let resultText: string;
   if (finalResult) {
@@ -372,6 +373,7 @@ function buildAgentResponse(
 
   return {
     resultText,
+    model,
     usage: {
       inputTokens: finalResult?.usage?.input_tokens ?? 0,
       outputTokens: finalResult?.usage?.output_tokens ?? 0,
@@ -430,7 +432,7 @@ async function runAgentQuery(
   }
 
   const total = performance.now() - t0;
-  const resp = buildAgentResponse(lastAssistantText, finalResult);
+  const resp = buildAgentResponse(lastAssistantText, finalResult, model);
   dbg(
     `query done in ${(total / 1000).toFixed(1)}s — ` +
       `messages=${messageCount} ` +
@@ -466,6 +468,7 @@ function runAgentQueryStream(
             const result = message as unknown as ResultPayload;
             controller.enqueue({
               type: 'result',
+              model,
               usage: {
                 inputTokens: result.usage?.input_tokens ?? 0,
                 outputTokens: result.usage?.output_tokens ?? 0,
