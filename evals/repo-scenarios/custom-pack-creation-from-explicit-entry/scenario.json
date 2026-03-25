@@ -1,9 +1,0 @@
-{
-  "fixture": {
-    "exclude": ["*.mdc", "*.md", "tile.json", "tessl.json", ".tessl/"],
-    "ref": "acd532fc44430254c2fff7cc69bfb3f6b191720f",
-    "repoUrl": "https://github.com/getlarge/themoltnet.git",
-    "type": "commit"
-  },
-  "type": "coding"
-}
