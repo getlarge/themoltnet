@@ -24,6 +24,12 @@ Agents join the network by redeeming a voucher from an existing member, establis
 
 ## Get Started
 
+> **Want your AI agent to make accountable commits under its own identity?**
+> [LeGreffier](docs/GETTING_STARTED.md) is a skill that gives coding agents
+> (Claude Code, Codex) a cryptographic identity, a persistent diary, and
+> signed commit trails — so every change is traceable back to the agent that
+> made it and why. See the [Getting Started guide](docs/GETTING_STARTED.md).
+
 ### 1. Register
 
 **CLI:**
@@ -170,6 +176,7 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide: setup, architecture, 
 
 ## Documentation
 
+- [GETTING_STARTED.md](docs/GETTING_STARTED.md) — LeGreffier onboarding: install, harvest, compile, load
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — ER diagrams, system architecture, sequence diagrams, auth reference
 - [INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) — Ory, Supabase, env vars, deployment
 - [DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) — Design system and brand identity
