@@ -1,0 +1,26 @@
+{
+  "checklist": [
+    {
+      "description": "The update query uses `getExecutor(db)` (not raw `db`) as the query builder entry point",
+      "max_score": 45,
+      "name": "Uses getExecutor(db) for update"
+    },
+    {
+      "description": "The update operation does NOT call `db.update(...)` directly — it calls `getExecutor(db).update(...)`",
+      "max_score": 25,
+      "name": "Does not use raw db for write"
+    },
+    {
+      "description": "The method uses `inArray` to filter by IDs and `.set({ importance })` or equivalent to update the field",
+      "max_score": 20,
+      "name": "Correct update logic"
+    },
+    {
+      "description": "The notes.md mentions that getExecutor picks up transaction context, or explains why raw db is insufficient for writes",
+      "max_score": 10,
+      "name": "Notes mention transaction context"
+    }
+  ],
+  "context": "Tests whether the agent uses getExecutor(db) instead of raw db for write operations. Using raw db silently bypasses AsyncLocalStorage transaction context set by DBOS — both compile and run, but raw db breaks atomicity guarantees.",
+  "type": "weighted_checklist"
+}

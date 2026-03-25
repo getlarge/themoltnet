@@ -1,0 +1,26 @@
+{
+  "checklist": [
+    {
+      "description": "The pack_id field in the input schema does NOT include `format: 'uuid'` — it uses Type.String() without a format annotation, matching the existing codebase convention shown in the example",
+      "max_score": 50,
+      "name": "No format uuid on pack_id"
+    },
+    {
+      "description": "The tool is registered via fastify.mcpAddTool with name 'packs_delete', a description, and an inputSchema",
+      "max_score": 20,
+      "name": "Tool registered correctly"
+    },
+    {
+      "description": "The pack_id parameter is typed as Type.String() (required, not optional)",
+      "max_score": 15,
+      "name": "pack_id is required string"
+    },
+    {
+      "description": "The notes.md explains why format: 'uuid' is omitted (Ajv validation, fastify-mcp convention, or similar reasoning), OR follows the example pattern without adding format",
+      "max_score": 15,
+      "name": "Notes explain format omission"
+    }
+  ],
+  "context": "Tests whether the agent avoids adding format: 'uuid' to MCP tool input schemas. fastify-mcp validates inputs with Ajv which has no 'uuid' format checker registered — adding format: 'uuid' causes runtime validation failures. The existing codebase convention is to omit format annotations in MCP schemas.",
+  "type": "weighted_checklist"
+}
