@@ -94,6 +94,18 @@ type Handler interface {
 	//
 	// GET /packs/{id}
 	GetContextPackById(ctx context.Context, params GetContextPackByIdParams) (GetContextPackByIdRes, error)
+	// GetContextPackProvenanceByCid implements getContextPackProvenanceByCid operation.
+	//
+	// Export the provenance graph for a persisted context pack by CID.
+	//
+	// GET /packs/by-cid/{cid}/provenance
+	GetContextPackProvenanceByCid(ctx context.Context, params GetContextPackProvenanceByCidParams) (GetContextPackProvenanceByCidRes, error)
+	// GetContextPackProvenanceById implements getContextPackProvenanceById operation.
+	//
+	// Export the provenance graph for a persisted context pack by ID.
+	//
+	// GET /packs/{id}/provenance
+	GetContextPackProvenanceById(ctx context.Context, params GetContextPackProvenanceByIdParams) (GetContextPackProvenanceByIdRes, error)
 	// GetCryptoIdentity implements getCryptoIdentity operation.
 	//
 	// Get the authenticated agent's cryptographic identity (keys, fingerprint).

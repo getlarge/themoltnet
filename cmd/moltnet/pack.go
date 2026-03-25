@@ -1,7 +1,10 @@
 package main
 
 import (
+	"compress/flate"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -14,15 +17,17 @@ import (
 
 func runPack(args []string) error {
 	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export> [options]")
+		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export|provenance> [options]")
 		return fmt.Errorf("subcommand required")
 	}
 	switch args[0] {
 	case "export":
 		return runPackExport(args[1:])
+	case "provenance":
+		return runPackProvenance(args[1:])
 	default:
 		fmt.Fprintf(os.Stderr, "unknown pack subcommand: %s\n", args[0])
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export> [options]")
+		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export|provenance> [options]")
 		return fmt.Errorf("unknown subcommand: %s", args[0])
 	}
 }
@@ -85,6 +90,132 @@ func runPackExport(args []string) error {
 		fmt.Print(md)
 	}
 	return nil
+}
+
+func runPackProvenance(args []string) error {
+	fs := flag.NewFlagSet("pack provenance", flag.ExitOnError)
+	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
+	packID := fs.String("pack-id", "", "Pack UUID")
+	packCID := fs.String("pack-cid", "", "Pack CID")
+	depth := fs.Int("depth", 2, "Follow pack supersession ancestry to this depth")
+	out := fs.String("out", "", "Write JSON to file instead of stdout")
+	shareURL := fs.String("share-url", "", "Print a shareable viewer URL (e.g. https://themolt.net/labs/provenance)")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: moltnet pack provenance [options]")
+		fmt.Fprintln(os.Stderr, "\nExport the provenance graph for a context pack as JSON.")
+		fmt.Fprintln(os.Stderr, "Provide exactly one of --pack-id or --pack-cid.")
+		fmt.Fprintln(os.Stderr, "\nOptions:")
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if (*packID == "") == (*packCID == "") {
+		fs.Usage()
+		return fmt.Errorf("provide exactly one of --pack-id or --pack-cid")
+	}
+
+	if *depth < 0 {
+		return fmt.Errorf("--depth must be a non-negative integer")
+	}
+
+	// Validate pack-id early, before loading credentials.
+	var packUUID uuid.UUID
+	if *packID != "" {
+		var err error
+		packUUID, err = uuid.Parse(*packID)
+		if err != nil {
+			return fmt.Errorf("invalid --pack-id %q: %w", *packID, err)
+		}
+	}
+
+	client, err := newClientFromCreds(*apiURL)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	depthOpt := moltnetapi.NewOptInt(*depth)
+
+	// Both endpoints return the same shape; use any to marshal uniformly.
+	var graph any
+	if *packID != "" {
+		res, err := client.GetContextPackProvenanceById(ctx, moltnetapi.GetContextPackProvenanceByIdParams{
+			ID:    packUUID,
+			Depth: depthOpt,
+		})
+		if err != nil {
+			return fmt.Errorf("pack provenance: %w", err)
+		}
+		g, ok := res.(*moltnetapi.ProvenanceGraph)
+		if !ok {
+			return fmt.Errorf("unexpected response type: %T", res)
+		}
+		graph = g
+	} else {
+		res, err := client.GetContextPackProvenanceByCid(ctx, moltnetapi.GetContextPackProvenanceByCidParams{
+			Cid:   *packCID,
+			Depth: depthOpt,
+		})
+		if err != nil {
+			return fmt.Errorf("pack provenance: %w", err)
+		}
+		g, ok := res.(*moltnetapi.GetContextPackProvenanceByCidOK)
+		if !ok {
+			return fmt.Errorf("unexpected response type: %T", res)
+		}
+		graph = g
+	}
+
+	serialized, err := json.MarshalIndent(graph, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal graph: %w", err)
+	}
+
+	if *shareURL != "" {
+		compact, err := json.Marshal(graph)
+		if err != nil {
+			return fmt.Errorf("compact JSON: %w", err)
+		}
+		param, err := deflateBase64URL(compact)
+		if err != nil {
+			return fmt.Errorf("compress graph: %w", err)
+		}
+		if len(param) > 8000 {
+			fmt.Fprintf(os.Stderr, "[pack provenance] warning: URL param is %d bytes — may exceed browser limits\n", len(param))
+		}
+		viewerURL := strings.TrimRight(*shareURL, "/") + "?graph=" + param
+		fmt.Println(viewerURL)
+		return nil
+	}
+
+	if *out != "" {
+		if err := os.WriteFile(*out, append(serialized, '\n'), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", *out, err)
+		}
+		fmt.Fprintf(os.Stderr, "[pack provenance] wrote %s\n", *out)
+		return nil
+	}
+
+	fmt.Println(string(serialized))
+	return nil
+}
+
+// deflateBase64URL compresses data with raw DEFLATE and returns URL-safe base64.
+func deflateBase64URL(data []byte) (string, error) {
+	var buf strings.Builder
+	w, err := flate.NewWriter(&buf, flate.DefaultCompression)
+	if err != nil {
+		return "", err
+	}
+	if _, err := w.Write(data); err != nil {
+		return "", err
+	}
+	if err := w.Close(); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString([]byte(buf.String())), nil
 }
 
 func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string {

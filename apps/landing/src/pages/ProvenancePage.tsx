@@ -575,8 +575,7 @@ export function ProvenancePage() {
                   <Text variant="h4">Graph Input</Text>
                   <Text variant="caption" color="secondary">
                     Paste a `moltnet.provenance-graph/v1` payload or export a
-                    real pack graph with `pnpm --filter @moltnet/tools
-                    graph:provenance`.
+                    real pack graph with `npx @themoltnet/cli pack provenance`.
                   </Text>
                   <div
                     style={{

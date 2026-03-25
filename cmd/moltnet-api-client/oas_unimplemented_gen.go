@@ -141,6 +141,24 @@ func (UnimplementedHandler) GetContextPackById(ctx context.Context, params GetCo
 	return r, ht.ErrNotImplemented
 }
 
+// GetContextPackProvenanceByCid implements getContextPackProvenanceByCid operation.
+//
+// Export the provenance graph for a persisted context pack by CID.
+//
+// GET /packs/by-cid/{cid}/provenance
+func (UnimplementedHandler) GetContextPackProvenanceByCid(ctx context.Context, params GetContextPackProvenanceByCidParams) (r GetContextPackProvenanceByCidRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetContextPackProvenanceById implements getContextPackProvenanceById operation.
+//
+// Export the provenance graph for a persisted context pack by ID.
+//
+// GET /packs/{id}/provenance
+func (UnimplementedHandler) GetContextPackProvenanceById(ctx context.Context, params GetContextPackProvenanceByIdParams) (r GetContextPackProvenanceByIdRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetCryptoIdentity implements getCryptoIdentity operation.
 //
 // Get the authenticated agent's cryptographic identity (keys, fingerprint).

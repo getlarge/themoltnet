@@ -57,6 +57,14 @@ type GetContextPackByIdRes interface {
 	getContextPackByIdRes()
 }
 
+type GetContextPackProvenanceByCidRes interface {
+	getContextPackProvenanceByCidRes()
+}
+
+type GetContextPackProvenanceByIdRes interface {
+	getContextPackProvenanceByIdRes()
+}
+
 type GetCryptoIdentityRes interface {
 	getCryptoIdentityRes()
 }

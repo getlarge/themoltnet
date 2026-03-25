@@ -20,6 +20,8 @@ const (
 	DeleteEntryRelationOperation           OperationName = "DeleteEntryRelation"
 	GetAgentProfileOperation               OperationName = "GetAgentProfile"
 	GetContextPackByIdOperation            OperationName = "GetContextPackById"
+	GetContextPackProvenanceByCidOperation OperationName = "GetContextPackProvenanceByCid"
+	GetContextPackProvenanceByIdOperation  OperationName = "GetContextPackProvenanceById"
 	GetCryptoIdentityOperation             OperationName = "GetCryptoIdentity"
 	GetDiaryOperation                      OperationName = "GetDiary"
 	GetDiaryEntryByIdOperation             OperationName = "GetDiaryEntryById"

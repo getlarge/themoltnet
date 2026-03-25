@@ -1406,7 +1406,7 @@ func (s *ConsolidateResultTraceStrategyUsed) UnmarshalText(data []byte) error {
 type ContextPackResponse struct {
 	CreatedAt        time.Time                   `json:"createdAt"`
 	CreatedBy        uuid.UUID                   `json:"createdBy"`
-	Creator          NilAgentIdentity            `json:"creator"`
+	Creator          AgentIdentity               `json:"creator"`
 	DiaryId          uuid.UUID                   `json:"diaryId"`
 	Entries          []ExpandedPackEntry         `json:"entries"`
 	ExpiresAt        NilDateTime                 `json:"expiresAt"`
@@ -1431,7 +1431,7 @@ func (s *ContextPackResponse) GetCreatedBy() uuid.UUID {
 }
 
 // GetCreator returns the value of Creator.
-func (s *ContextPackResponse) GetCreator() NilAgentIdentity {
+func (s *ContextPackResponse) GetCreator() AgentIdentity {
 	return s.Creator
 }
 
@@ -1501,7 +1501,7 @@ func (s *ContextPackResponse) SetCreatedBy(val uuid.UUID) {
 }
 
 // SetCreator sets the value of Creator.
-func (s *ContextPackResponse) SetCreator(val NilAgentIdentity) {
+func (s *ContextPackResponse) SetCreator(val AgentIdentity) {
 	s.Creator = val
 }
 
@@ -2928,7 +2928,7 @@ type DiaryEntryWithCreator struct {
 	ContentHash      NilString                      `json:"contentHash"`
 	ContentSignature NilString                      `json:"contentSignature"`
 	CreatedAt        time.Time                      `json:"createdAt"`
-	Creator          NilAgentIdentity               `json:"creator"`
+	Creator          AgentIdentity                  `json:"creator"`
 	DiaryId          uuid.UUID                      `json:"diaryId"`
 	EntryType        DiaryEntryWithCreatorEntryType `json:"entryType"`
 	ID               uuid.UUID                      `json:"id"`
@@ -2966,7 +2966,7 @@ func (s *DiaryEntryWithCreator) GetCreatedAt() time.Time {
 }
 
 // GetCreator returns the value of Creator.
-func (s *DiaryEntryWithCreator) GetCreator() NilAgentIdentity {
+func (s *DiaryEntryWithCreator) GetCreator() AgentIdentity {
 	return s.Creator
 }
 
@@ -3041,7 +3041,7 @@ func (s *DiaryEntryWithCreator) SetCreatedAt(val time.Time) {
 }
 
 // SetCreator sets the value of Creator.
-func (s *DiaryEntryWithCreator) SetCreator(val NilAgentIdentity) {
+func (s *DiaryEntryWithCreator) SetCreator(val AgentIdentity) {
 	s.Creator = val
 }
 
@@ -4163,6 +4163,359 @@ func (*GetContextPackByIdNotFound) getContextPackByIdRes() {}
 type GetContextPackByIdUnauthorized ProblemDetails
 
 func (*GetContextPackByIdUnauthorized) getContextPackByIdRes() {}
+
+type GetContextPackProvenanceByCidForbidden ProblemDetails
+
+func (*GetContextPackProvenanceByCidForbidden) getContextPackProvenanceByCidRes() {}
+
+type GetContextPackProvenanceByCidInternalServerError ProblemDetails
+
+func (*GetContextPackProvenanceByCidInternalServerError) getContextPackProvenanceByCidRes() {}
+
+type GetContextPackProvenanceByCidNotFound ProblemDetails
+
+func (*GetContextPackProvenanceByCidNotFound) getContextPackProvenanceByCidRes() {}
+
+type GetContextPackProvenanceByCidOK struct {
+	Edges    []GetContextPackProvenanceByCidOKEdgesItem `json:"edges"`
+	Metadata GetContextPackProvenanceByCidOKMetadata    `json:"metadata"`
+	Nodes    []GetContextPackProvenanceByCidOKNodesItem `json:"nodes"`
+}
+
+// GetEdges returns the value of Edges.
+func (s *GetContextPackProvenanceByCidOK) GetEdges() []GetContextPackProvenanceByCidOKEdgesItem {
+	return s.Edges
+}
+
+// GetMetadata returns the value of Metadata.
+func (s *GetContextPackProvenanceByCidOK) GetMetadata() GetContextPackProvenanceByCidOKMetadata {
+	return s.Metadata
+}
+
+// GetNodes returns the value of Nodes.
+func (s *GetContextPackProvenanceByCidOK) GetNodes() []GetContextPackProvenanceByCidOKNodesItem {
+	return s.Nodes
+}
+
+// SetEdges sets the value of Edges.
+func (s *GetContextPackProvenanceByCidOK) SetEdges(val []GetContextPackProvenanceByCidOKEdgesItem) {
+	s.Edges = val
+}
+
+// SetMetadata sets the value of Metadata.
+func (s *GetContextPackProvenanceByCidOK) SetMetadata(val GetContextPackProvenanceByCidOKMetadata) {
+	s.Metadata = val
+}
+
+// SetNodes sets the value of Nodes.
+func (s *GetContextPackProvenanceByCidOK) SetNodes(val []GetContextPackProvenanceByCidOKNodesItem) {
+	s.Nodes = val
+}
+
+func (*GetContextPackProvenanceByCidOK) getContextPackProvenanceByCidRes() {}
+
+type GetContextPackProvenanceByCidOKEdgesItem struct {
+	From  string                                          `json:"from"`
+	ID    string                                          `json:"id"`
+	Kind  GetContextPackProvenanceByCidOKEdgesItemKind    `json:"kind"`
+	Label OptString                                       `json:"label"`
+	Meta  OptGetContextPackProvenanceByCidOKEdgesItemMeta `json:"meta"`
+	To    string                                          `json:"to"`
+}
+
+// GetFrom returns the value of From.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) GetFrom() string {
+	return s.From
+}
+
+// GetID returns the value of ID.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) GetID() string {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) GetKind() GetContextPackProvenanceByCidOKEdgesItemKind {
+	return s.Kind
+}
+
+// GetLabel returns the value of Label.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) GetLabel() OptString {
+	return s.Label
+}
+
+// GetMeta returns the value of Meta.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) GetMeta() OptGetContextPackProvenanceByCidOKEdgesItemMeta {
+	return s.Meta
+}
+
+// GetTo returns the value of To.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) GetTo() string {
+	return s.To
+}
+
+// SetFrom sets the value of From.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) SetFrom(val string) {
+	s.From = val
+}
+
+// SetID sets the value of ID.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) SetID(val string) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) SetKind(val GetContextPackProvenanceByCidOKEdgesItemKind) {
+	s.Kind = val
+}
+
+// SetLabel sets the value of Label.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) SetLabel(val OptString) {
+	s.Label = val
+}
+
+// SetMeta sets the value of Meta.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) SetMeta(val OptGetContextPackProvenanceByCidOKEdgesItemMeta) {
+	s.Meta = val
+}
+
+// SetTo sets the value of To.
+func (s *GetContextPackProvenanceByCidOKEdgesItem) SetTo(val string) {
+	s.To = val
+}
+
+type GetContextPackProvenanceByCidOKEdgesItemKind string
+
+const (
+	GetContextPackProvenanceByCidOKEdgesItemKindIncludes   GetContextPackProvenanceByCidOKEdgesItemKind = "includes"
+	GetContextPackProvenanceByCidOKEdgesItemKindSupersedes GetContextPackProvenanceByCidOKEdgesItemKind = "supersedes"
+)
+
+// AllValues returns all GetContextPackProvenanceByCidOKEdgesItemKind values.
+func (GetContextPackProvenanceByCidOKEdgesItemKind) AllValues() []GetContextPackProvenanceByCidOKEdgesItemKind {
+	return []GetContextPackProvenanceByCidOKEdgesItemKind{
+		GetContextPackProvenanceByCidOKEdgesItemKindIncludes,
+		GetContextPackProvenanceByCidOKEdgesItemKindSupersedes,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetContextPackProvenanceByCidOKEdgesItemKind) MarshalText() ([]byte, error) {
+	switch s {
+	case GetContextPackProvenanceByCidOKEdgesItemKindIncludes:
+		return []byte(s), nil
+	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetContextPackProvenanceByCidOKEdgesItemKind) UnmarshalText(data []byte) error {
+	switch GetContextPackProvenanceByCidOKEdgesItemKind(data) {
+	case GetContextPackProvenanceByCidOKEdgesItemKindIncludes:
+		*s = GetContextPackProvenanceByCidOKEdgesItemKindIncludes
+		return nil
+	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
+		*s = GetContextPackProvenanceByCidOKEdgesItemKindSupersedes
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetContextPackProvenanceByCidOKEdgesItemMeta map[string]jx.Raw
+
+func (s *GetContextPackProvenanceByCidOKEdgesItemMeta) init() GetContextPackProvenanceByCidOKEdgesItemMeta {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetContextPackProvenanceByCidOKMetadata struct {
+	Depth  float64                                       `json:"depth"`
+	Format GetContextPackProvenanceByCidOKMetadataFormat `json:"format"`
+	// ISO 8601 timestamp.
+	GeneratedAt time.Time `json:"generatedAt"`
+	RootNodeId  string    `json:"rootNodeId"`
+	// UUID v4 identifier.
+	RootPackId uuid.UUID `json:"rootPackId"`
+}
+
+// GetDepth returns the value of Depth.
+func (s *GetContextPackProvenanceByCidOKMetadata) GetDepth() float64 {
+	return s.Depth
+}
+
+// GetFormat returns the value of Format.
+func (s *GetContextPackProvenanceByCidOKMetadata) GetFormat() GetContextPackProvenanceByCidOKMetadataFormat {
+	return s.Format
+}
+
+// GetGeneratedAt returns the value of GeneratedAt.
+func (s *GetContextPackProvenanceByCidOKMetadata) GetGeneratedAt() time.Time {
+	return s.GeneratedAt
+}
+
+// GetRootNodeId returns the value of RootNodeId.
+func (s *GetContextPackProvenanceByCidOKMetadata) GetRootNodeId() string {
+	return s.RootNodeId
+}
+
+// GetRootPackId returns the value of RootPackId.
+func (s *GetContextPackProvenanceByCidOKMetadata) GetRootPackId() uuid.UUID {
+	return s.RootPackId
+}
+
+// SetDepth sets the value of Depth.
+func (s *GetContextPackProvenanceByCidOKMetadata) SetDepth(val float64) {
+	s.Depth = val
+}
+
+// SetFormat sets the value of Format.
+func (s *GetContextPackProvenanceByCidOKMetadata) SetFormat(val GetContextPackProvenanceByCidOKMetadataFormat) {
+	s.Format = val
+}
+
+// SetGeneratedAt sets the value of GeneratedAt.
+func (s *GetContextPackProvenanceByCidOKMetadata) SetGeneratedAt(val time.Time) {
+	s.GeneratedAt = val
+}
+
+// SetRootNodeId sets the value of RootNodeId.
+func (s *GetContextPackProvenanceByCidOKMetadata) SetRootNodeId(val string) {
+	s.RootNodeId = val
+}
+
+// SetRootPackId sets the value of RootPackId.
+func (s *GetContextPackProvenanceByCidOKMetadata) SetRootPackId(val uuid.UUID) {
+	s.RootPackId = val
+}
+
+type GetContextPackProvenanceByCidOKMetadataFormat string
+
+const (
+	GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1 GetContextPackProvenanceByCidOKMetadataFormat = "moltnet.provenance-graph/v1"
+)
+
+// AllValues returns all GetContextPackProvenanceByCidOKMetadataFormat values.
+func (GetContextPackProvenanceByCidOKMetadataFormat) AllValues() []GetContextPackProvenanceByCidOKMetadataFormat {
+	return []GetContextPackProvenanceByCidOKMetadataFormat{
+		GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetContextPackProvenanceByCidOKMetadataFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetContextPackProvenanceByCidOKMetadataFormat) UnmarshalText(data []byte) error {
+	switch GetContextPackProvenanceByCidOKMetadataFormat(data) {
+	case GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1:
+		*s = GetContextPackProvenanceByCidOKMetadataFormatMoltnetProvenanceGraphV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// GetContextPackProvenanceByCidOKNodesItem represents sum type.
+type GetContextPackProvenanceByCidOKNodesItem struct {
+	Type                     GetContextPackProvenanceByCidOKNodesItemType // switch on this field
+	ProvenanceGraphPackNode  ProvenanceGraphPackNode
+	ProvenanceGraphEntryNode ProvenanceGraphEntryNode
+}
+
+// GetContextPackProvenanceByCidOKNodesItemType is oneOf type of GetContextPackProvenanceByCidOKNodesItem.
+type GetContextPackProvenanceByCidOKNodesItemType string
+
+// Possible values for GetContextPackProvenanceByCidOKNodesItemType.
+const (
+	ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem  GetContextPackProvenanceByCidOKNodesItemType = "pack"
+	ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem GetContextPackProvenanceByCidOKNodesItemType = "entry"
+)
+
+// IsProvenanceGraphPackNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphPackNode.
+func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphPackNode() bool {
+	return s.Type == ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem
+}
+
+// IsProvenanceGraphEntryNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphEntryNode.
+func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphEntryNode() bool {
+	return s.Type == ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem
+}
+
+// SetProvenanceGraphPackNode sets GetContextPackProvenanceByCidOKNodesItem to ProvenanceGraphPackNode.
+func (s *GetContextPackProvenanceByCidOKNodesItem) SetProvenanceGraphPackNode(v ProvenanceGraphPackNode) {
+	s.Type = ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem
+	s.ProvenanceGraphPackNode = v
+}
+
+// GetProvenanceGraphPackNode returns ProvenanceGraphPackNode and true boolean if GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphPackNode.
+func (s GetContextPackProvenanceByCidOKNodesItem) GetProvenanceGraphPackNode() (v ProvenanceGraphPackNode, ok bool) {
+	if !s.IsProvenanceGraphPackNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphPackNode, true
+}
+
+// NewProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem returns new GetContextPackProvenanceByCidOKNodesItem from ProvenanceGraphPackNode.
+func NewProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem(v ProvenanceGraphPackNode) GetContextPackProvenanceByCidOKNodesItem {
+	var s GetContextPackProvenanceByCidOKNodesItem
+	s.SetProvenanceGraphPackNode(v)
+	return s
+}
+
+// SetProvenanceGraphEntryNode sets GetContextPackProvenanceByCidOKNodesItem to ProvenanceGraphEntryNode.
+func (s *GetContextPackProvenanceByCidOKNodesItem) SetProvenanceGraphEntryNode(v ProvenanceGraphEntryNode) {
+	s.Type = ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem
+	s.ProvenanceGraphEntryNode = v
+}
+
+// GetProvenanceGraphEntryNode returns ProvenanceGraphEntryNode and true boolean if GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphEntryNode.
+func (s GetContextPackProvenanceByCidOKNodesItem) GetProvenanceGraphEntryNode() (v ProvenanceGraphEntryNode, ok bool) {
+	if !s.IsProvenanceGraphEntryNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphEntryNode, true
+}
+
+// NewProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem returns new GetContextPackProvenanceByCidOKNodesItem from ProvenanceGraphEntryNode.
+func NewProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem(v ProvenanceGraphEntryNode) GetContextPackProvenanceByCidOKNodesItem {
+	var s GetContextPackProvenanceByCidOKNodesItem
+	s.SetProvenanceGraphEntryNode(v)
+	return s
+}
+
+type GetContextPackProvenanceByCidUnauthorized ProblemDetails
+
+func (*GetContextPackProvenanceByCidUnauthorized) getContextPackProvenanceByCidRes() {}
+
+type GetContextPackProvenanceByIdForbidden ProblemDetails
+
+func (*GetContextPackProvenanceByIdForbidden) getContextPackProvenanceByIdRes() {}
+
+type GetContextPackProvenanceByIdInternalServerError ProblemDetails
+
+func (*GetContextPackProvenanceByIdInternalServerError) getContextPackProvenanceByIdRes() {}
+
+type GetContextPackProvenanceByIdNotFound ProblemDetails
+
+func (*GetContextPackProvenanceByIdNotFound) getContextPackProvenanceByIdRes() {}
+
+type GetContextPackProvenanceByIdUnauthorized ProblemDetails
+
+func (*GetContextPackProvenanceByIdUnauthorized) getContextPackProvenanceByIdRes() {}
 
 type GetCryptoIdentityInternalServerError ProblemDetails
 
@@ -6363,51 +6716,6 @@ func (s *NetworkInfoTechnical) SetMcpLibrary(val string) {
 	s.McpLibrary = val
 }
 
-// NewNilAgentIdentity returns new NilAgentIdentity with value set to v.
-func NewNilAgentIdentity(v AgentIdentity) NilAgentIdentity {
-	return NilAgentIdentity{
-		Value: v,
-	}
-}
-
-// NilAgentIdentity is nullable AgentIdentity.
-type NilAgentIdentity struct {
-	Value AgentIdentity
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilAgentIdentity) SetTo(v AgentIdentity) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilAgentIdentity) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilAgentIdentity) SetToNull() {
-	o.Null = true
-	var v AgentIdentity
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilAgentIdentity) Get() (v AgentIdentity, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilAgentIdentity) Or(d AgentIdentity) AgentIdentity {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewNilBool returns new NilBool with value set to v.
 func NewNilBool(v bool) NilBool {
 	return NilBool{
@@ -7092,6 +7400,52 @@ func (o OptGetContextPackByIdExpand) Or(d GetContextPackByIdExpand) GetContextPa
 	return d
 }
 
+// NewOptGetContextPackProvenanceByCidOKEdgesItemMeta returns new OptGetContextPackProvenanceByCidOKEdgesItemMeta with value set to v.
+func NewOptGetContextPackProvenanceByCidOKEdgesItemMeta(v GetContextPackProvenanceByCidOKEdgesItemMeta) OptGetContextPackProvenanceByCidOKEdgesItemMeta {
+	return OptGetContextPackProvenanceByCidOKEdgesItemMeta{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptGetContextPackProvenanceByCidOKEdgesItemMeta is optional GetContextPackProvenanceByCidOKEdgesItemMeta.
+type OptGetContextPackProvenanceByCidOKEdgesItemMeta struct {
+	Value GetContextPackProvenanceByCidOKEdgesItemMeta
+	Set   bool
+}
+
+// IsSet returns true if OptGetContextPackProvenanceByCidOKEdgesItemMeta was set.
+func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptGetContextPackProvenanceByCidOKEdgesItemMeta) Reset() {
+	var v GetContextPackProvenanceByCidOKEdgesItemMeta
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptGetContextPackProvenanceByCidOKEdgesItemMeta) SetTo(v GetContextPackProvenanceByCidOKEdgesItemMeta) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) Get() (v GetContextPackProvenanceByCidOKEdgesItemMeta, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptGetContextPackProvenanceByCidOKEdgesItemMeta) Or(d GetContextPackProvenanceByCidOKEdgesItemMeta) GetContextPackProvenanceByCidOKEdgesItemMeta {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
 	return OptInt{
@@ -7270,6 +7624,178 @@ func (o OptListEntryRelationsDirection) Get() (v ListEntryRelationsDirection, ok
 
 // Or returns value if set, or given parameter if does not.
 func (o OptListEntryRelationsDirection) Or(d ListEntryRelationsDirection) ListEntryRelationsDirection {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilProvenanceGraphEntryNodeMetaCreator returns new OptNilProvenanceGraphEntryNodeMetaCreator with value set to v.
+func NewOptNilProvenanceGraphEntryNodeMetaCreator(v ProvenanceGraphEntryNodeMetaCreator) OptNilProvenanceGraphEntryNodeMetaCreator {
+	return OptNilProvenanceGraphEntryNodeMetaCreator{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilProvenanceGraphEntryNodeMetaCreator is optional nullable ProvenanceGraphEntryNodeMetaCreator.
+type OptNilProvenanceGraphEntryNodeMetaCreator struct {
+	Value ProvenanceGraphEntryNodeMetaCreator
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilProvenanceGraphEntryNodeMetaCreator was set.
+func (o OptNilProvenanceGraphEntryNodeMetaCreator) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilProvenanceGraphEntryNodeMetaCreator) Reset() {
+	var v ProvenanceGraphEntryNodeMetaCreator
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilProvenanceGraphEntryNodeMetaCreator) SetTo(v ProvenanceGraphEntryNodeMetaCreator) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilProvenanceGraphEntryNodeMetaCreator) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilProvenanceGraphEntryNodeMetaCreator) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v ProvenanceGraphEntryNodeMetaCreator
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilProvenanceGraphEntryNodeMetaCreator) Get() (v ProvenanceGraphEntryNodeMetaCreator, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilProvenanceGraphEntryNodeMetaCreator) Or(d ProvenanceGraphEntryNodeMetaCreator) ProvenanceGraphEntryNodeMetaCreator {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilProvenanceGraphPackNodeMetaCreator returns new OptNilProvenanceGraphPackNodeMetaCreator with value set to v.
+func NewOptNilProvenanceGraphPackNodeMetaCreator(v ProvenanceGraphPackNodeMetaCreator) OptNilProvenanceGraphPackNodeMetaCreator {
+	return OptNilProvenanceGraphPackNodeMetaCreator{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilProvenanceGraphPackNodeMetaCreator is optional nullable ProvenanceGraphPackNodeMetaCreator.
+type OptNilProvenanceGraphPackNodeMetaCreator struct {
+	Value ProvenanceGraphPackNodeMetaCreator
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilProvenanceGraphPackNodeMetaCreator was set.
+func (o OptNilProvenanceGraphPackNodeMetaCreator) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilProvenanceGraphPackNodeMetaCreator) Reset() {
+	var v ProvenanceGraphPackNodeMetaCreator
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilProvenanceGraphPackNodeMetaCreator) SetTo(v ProvenanceGraphPackNodeMetaCreator) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilProvenanceGraphPackNodeMetaCreator) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilProvenanceGraphPackNodeMetaCreator) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v ProvenanceGraphPackNodeMetaCreator
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilProvenanceGraphPackNodeMetaCreator) Get() (v ProvenanceGraphPackNodeMetaCreator, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilProvenanceGraphPackNodeMetaCreator) Or(d ProvenanceGraphPackNodeMetaCreator) ProvenanceGraphPackNodeMetaCreator {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptProvenanceGraphEdgesItemMeta returns new OptProvenanceGraphEdgesItemMeta with value set to v.
+func NewOptProvenanceGraphEdgesItemMeta(v ProvenanceGraphEdgesItemMeta) OptProvenanceGraphEdgesItemMeta {
+	return OptProvenanceGraphEdgesItemMeta{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptProvenanceGraphEdgesItemMeta is optional ProvenanceGraphEdgesItemMeta.
+type OptProvenanceGraphEdgesItemMeta struct {
+	Value ProvenanceGraphEdgesItemMeta
+	Set   bool
+}
+
+// IsSet returns true if OptProvenanceGraphEdgesItemMeta was set.
+func (o OptProvenanceGraphEdgesItemMeta) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptProvenanceGraphEdgesItemMeta) Reset() {
+	var v ProvenanceGraphEdgesItemMeta
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptProvenanceGraphEdgesItemMeta) SetTo(v ProvenanceGraphEdgesItemMeta) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptProvenanceGraphEdgesItemMeta) Get() (v ProvenanceGraphEdgesItemMeta, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptProvenanceGraphEdgesItemMeta) Or(d ProvenanceGraphEdgesItemMeta) ProvenanceGraphEdgesItemMeta {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -8233,6 +8759,898 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
+}
+
+// Ref: #/components/schemas/ProvenanceGraph
+type ProvenanceGraph struct {
+	Edges    []ProvenanceGraphEdgesItem `json:"edges"`
+	Metadata ProvenanceGraphMetadata    `json:"metadata"`
+	Nodes    []ProvenanceGraphNodesItem `json:"nodes"`
+}
+
+// GetEdges returns the value of Edges.
+func (s *ProvenanceGraph) GetEdges() []ProvenanceGraphEdgesItem {
+	return s.Edges
+}
+
+// GetMetadata returns the value of Metadata.
+func (s *ProvenanceGraph) GetMetadata() ProvenanceGraphMetadata {
+	return s.Metadata
+}
+
+// GetNodes returns the value of Nodes.
+func (s *ProvenanceGraph) GetNodes() []ProvenanceGraphNodesItem {
+	return s.Nodes
+}
+
+// SetEdges sets the value of Edges.
+func (s *ProvenanceGraph) SetEdges(val []ProvenanceGraphEdgesItem) {
+	s.Edges = val
+}
+
+// SetMetadata sets the value of Metadata.
+func (s *ProvenanceGraph) SetMetadata(val ProvenanceGraphMetadata) {
+	s.Metadata = val
+}
+
+// SetNodes sets the value of Nodes.
+func (s *ProvenanceGraph) SetNodes(val []ProvenanceGraphNodesItem) {
+	s.Nodes = val
+}
+
+func (*ProvenanceGraph) getContextPackProvenanceByIdRes() {}
+
+type ProvenanceGraphEdgesItem struct {
+	From  string                          `json:"from"`
+	ID    string                          `json:"id"`
+	Kind  ProvenanceGraphEdgesItemKind    `json:"kind"`
+	Label OptString                       `json:"label"`
+	Meta  OptProvenanceGraphEdgesItemMeta `json:"meta"`
+	To    string                          `json:"to"`
+}
+
+// GetFrom returns the value of From.
+func (s *ProvenanceGraphEdgesItem) GetFrom() string {
+	return s.From
+}
+
+// GetID returns the value of ID.
+func (s *ProvenanceGraphEdgesItem) GetID() string {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *ProvenanceGraphEdgesItem) GetKind() ProvenanceGraphEdgesItemKind {
+	return s.Kind
+}
+
+// GetLabel returns the value of Label.
+func (s *ProvenanceGraphEdgesItem) GetLabel() OptString {
+	return s.Label
+}
+
+// GetMeta returns the value of Meta.
+func (s *ProvenanceGraphEdgesItem) GetMeta() OptProvenanceGraphEdgesItemMeta {
+	return s.Meta
+}
+
+// GetTo returns the value of To.
+func (s *ProvenanceGraphEdgesItem) GetTo() string {
+	return s.To
+}
+
+// SetFrom sets the value of From.
+func (s *ProvenanceGraphEdgesItem) SetFrom(val string) {
+	s.From = val
+}
+
+// SetID sets the value of ID.
+func (s *ProvenanceGraphEdgesItem) SetID(val string) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ProvenanceGraphEdgesItem) SetKind(val ProvenanceGraphEdgesItemKind) {
+	s.Kind = val
+}
+
+// SetLabel sets the value of Label.
+func (s *ProvenanceGraphEdgesItem) SetLabel(val OptString) {
+	s.Label = val
+}
+
+// SetMeta sets the value of Meta.
+func (s *ProvenanceGraphEdgesItem) SetMeta(val OptProvenanceGraphEdgesItemMeta) {
+	s.Meta = val
+}
+
+// SetTo sets the value of To.
+func (s *ProvenanceGraphEdgesItem) SetTo(val string) {
+	s.To = val
+}
+
+type ProvenanceGraphEdgesItemKind string
+
+const (
+	ProvenanceGraphEdgesItemKindIncludes   ProvenanceGraphEdgesItemKind = "includes"
+	ProvenanceGraphEdgesItemKindSupersedes ProvenanceGraphEdgesItemKind = "supersedes"
+)
+
+// AllValues returns all ProvenanceGraphEdgesItemKind values.
+func (ProvenanceGraphEdgesItemKind) AllValues() []ProvenanceGraphEdgesItemKind {
+	return []ProvenanceGraphEdgesItemKind{
+		ProvenanceGraphEdgesItemKindIncludes,
+		ProvenanceGraphEdgesItemKindSupersedes,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphEdgesItemKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphEdgesItemKindIncludes:
+		return []byte(s), nil
+	case ProvenanceGraphEdgesItemKindSupersedes:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphEdgesItemKind) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphEdgesItemKind(data) {
+	case ProvenanceGraphEdgesItemKindIncludes:
+		*s = ProvenanceGraphEdgesItemKindIncludes
+		return nil
+	case ProvenanceGraphEdgesItemKindSupersedes:
+		*s = ProvenanceGraphEdgesItemKindSupersedes
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ProvenanceGraphEdgesItemMeta map[string]jx.Raw
+
+func (s *ProvenanceGraphEdgesItemMeta) init() ProvenanceGraphEdgesItemMeta {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/ProvenanceGraphEntryNode
+type ProvenanceGraphEntryNode struct {
+	Cid   NilString                    `json:"cid"`
+	ID    string                       `json:"id"`
+	Kind  ProvenanceGraphEntryNodeKind `json:"kind"`
+	Label string                       `json:"label"`
+	Meta  ProvenanceGraphEntryNodeMeta `json:"meta"`
+}
+
+// GetCid returns the value of Cid.
+func (s *ProvenanceGraphEntryNode) GetCid() NilString {
+	return s.Cid
+}
+
+// GetID returns the value of ID.
+func (s *ProvenanceGraphEntryNode) GetID() string {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *ProvenanceGraphEntryNode) GetKind() ProvenanceGraphEntryNodeKind {
+	return s.Kind
+}
+
+// GetLabel returns the value of Label.
+func (s *ProvenanceGraphEntryNode) GetLabel() string {
+	return s.Label
+}
+
+// GetMeta returns the value of Meta.
+func (s *ProvenanceGraphEntryNode) GetMeta() ProvenanceGraphEntryNodeMeta {
+	return s.Meta
+}
+
+// SetCid sets the value of Cid.
+func (s *ProvenanceGraphEntryNode) SetCid(val NilString) {
+	s.Cid = val
+}
+
+// SetID sets the value of ID.
+func (s *ProvenanceGraphEntryNode) SetID(val string) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ProvenanceGraphEntryNode) SetKind(val ProvenanceGraphEntryNodeKind) {
+	s.Kind = val
+}
+
+// SetLabel sets the value of Label.
+func (s *ProvenanceGraphEntryNode) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetMeta sets the value of Meta.
+func (s *ProvenanceGraphEntryNode) SetMeta(val ProvenanceGraphEntryNodeMeta) {
+	s.Meta = val
+}
+
+type ProvenanceGraphEntryNodeKind string
+
+const (
+	ProvenanceGraphEntryNodeKindEntry ProvenanceGraphEntryNodeKind = "entry"
+)
+
+// AllValues returns all ProvenanceGraphEntryNodeKind values.
+func (ProvenanceGraphEntryNodeKind) AllValues() []ProvenanceGraphEntryNodeKind {
+	return []ProvenanceGraphEntryNodeKind{
+		ProvenanceGraphEntryNodeKindEntry,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphEntryNodeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphEntryNodeKindEntry:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphEntryNodeKind) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphEntryNodeKind(data) {
+	case ProvenanceGraphEntryNodeKindEntry:
+		*s = ProvenanceGraphEntryNodeKindEntry
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ProvenanceGraphEntryNodeMeta struct {
+	ContentHash NilString `json:"contentHash"`
+	// ISO 8601 timestamp.
+	CreatedAt time.Time                                 `json:"createdAt"`
+	Creator   OptNilProvenanceGraphEntryNodeMetaCreator `json:"creator"`
+	// UUID v4 identifier.
+	DiaryId uuid.UUID `json:"diaryId"`
+	// UUID v4 identifier.
+	EntryId uuid.UUID `json:"entryId"`
+	// Entry memory type.
+	EntryType ProvenanceGraphEntryNodeMetaEntryType `json:"entryType"`
+	Signed    bool                                  `json:"signed"`
+	Tags      []string                              `json:"tags"`
+	Title     NilString                             `json:"title"`
+	// ISO 8601 timestamp.
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *ProvenanceGraphEntryNodeMeta) GetContentHash() NilString {
+	return s.ContentHash
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ProvenanceGraphEntryNodeMeta) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreator returns the value of Creator.
+func (s *ProvenanceGraphEntryNodeMeta) GetCreator() OptNilProvenanceGraphEntryNodeMetaCreator {
+	return s.Creator
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *ProvenanceGraphEntryNodeMeta) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *ProvenanceGraphEntryNodeMeta) GetEntryId() uuid.UUID {
+	return s.EntryId
+}
+
+// GetEntryType returns the value of EntryType.
+func (s *ProvenanceGraphEntryNodeMeta) GetEntryType() ProvenanceGraphEntryNodeMetaEntryType {
+	return s.EntryType
+}
+
+// GetSigned returns the value of Signed.
+func (s *ProvenanceGraphEntryNodeMeta) GetSigned() bool {
+	return s.Signed
+}
+
+// GetTags returns the value of Tags.
+func (s *ProvenanceGraphEntryNodeMeta) GetTags() []string {
+	return s.Tags
+}
+
+// GetTitle returns the value of Title.
+func (s *ProvenanceGraphEntryNodeMeta) GetTitle() NilString {
+	return s.Title
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *ProvenanceGraphEntryNodeMeta) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *ProvenanceGraphEntryNodeMeta) SetContentHash(val NilString) {
+	s.ContentHash = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ProvenanceGraphEntryNodeMeta) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreator sets the value of Creator.
+func (s *ProvenanceGraphEntryNodeMeta) SetCreator(val OptNilProvenanceGraphEntryNodeMetaCreator) {
+	s.Creator = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *ProvenanceGraphEntryNodeMeta) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *ProvenanceGraphEntryNodeMeta) SetEntryId(val uuid.UUID) {
+	s.EntryId = val
+}
+
+// SetEntryType sets the value of EntryType.
+func (s *ProvenanceGraphEntryNodeMeta) SetEntryType(val ProvenanceGraphEntryNodeMetaEntryType) {
+	s.EntryType = val
+}
+
+// SetSigned sets the value of Signed.
+func (s *ProvenanceGraphEntryNodeMeta) SetSigned(val bool) {
+	s.Signed = val
+}
+
+// SetTags sets the value of Tags.
+func (s *ProvenanceGraphEntryNodeMeta) SetTags(val []string) {
+	s.Tags = val
+}
+
+// SetTitle sets the value of Title.
+func (s *ProvenanceGraphEntryNodeMeta) SetTitle(val NilString) {
+	s.Title = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *ProvenanceGraphEntryNodeMeta) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+type ProvenanceGraphEntryNodeMetaCreator struct {
+	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
+	Fingerprint string `json:"fingerprint"`
+	// UUID v4 identifier.
+	IdentityId uuid.UUID `json:"identityId"`
+	// Ed25519 public key with prefix.
+	PublicKey string `json:"publicKey"`
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *ProvenanceGraphEntryNodeMetaCreator) GetFingerprint() string {
+	return s.Fingerprint
+}
+
+// GetIdentityId returns the value of IdentityId.
+func (s *ProvenanceGraphEntryNodeMetaCreator) GetIdentityId() uuid.UUID {
+	return s.IdentityId
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *ProvenanceGraphEntryNodeMetaCreator) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *ProvenanceGraphEntryNodeMetaCreator) SetFingerprint(val string) {
+	s.Fingerprint = val
+}
+
+// SetIdentityId sets the value of IdentityId.
+func (s *ProvenanceGraphEntryNodeMetaCreator) SetIdentityId(val uuid.UUID) {
+	s.IdentityId = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *ProvenanceGraphEntryNodeMetaCreator) SetPublicKey(val string) {
+	s.PublicKey = val
+}
+
+// Entry memory type.
+type ProvenanceGraphEntryNodeMetaEntryType string
+
+const (
+	ProvenanceGraphEntryNodeMetaEntryTypeEpisodic   ProvenanceGraphEntryNodeMetaEntryType = "episodic"
+	ProvenanceGraphEntryNodeMetaEntryTypeSemantic   ProvenanceGraphEntryNodeMetaEntryType = "semantic"
+	ProvenanceGraphEntryNodeMetaEntryTypeProcedural ProvenanceGraphEntryNodeMetaEntryType = "procedural"
+	ProvenanceGraphEntryNodeMetaEntryTypeReflection ProvenanceGraphEntryNodeMetaEntryType = "reflection"
+	ProvenanceGraphEntryNodeMetaEntryTypeIdentity   ProvenanceGraphEntryNodeMetaEntryType = "identity"
+	ProvenanceGraphEntryNodeMetaEntryTypeSoul       ProvenanceGraphEntryNodeMetaEntryType = "soul"
+)
+
+// AllValues returns all ProvenanceGraphEntryNodeMetaEntryType values.
+func (ProvenanceGraphEntryNodeMetaEntryType) AllValues() []ProvenanceGraphEntryNodeMetaEntryType {
+	return []ProvenanceGraphEntryNodeMetaEntryType{
+		ProvenanceGraphEntryNodeMetaEntryTypeEpisodic,
+		ProvenanceGraphEntryNodeMetaEntryTypeSemantic,
+		ProvenanceGraphEntryNodeMetaEntryTypeProcedural,
+		ProvenanceGraphEntryNodeMetaEntryTypeReflection,
+		ProvenanceGraphEntryNodeMetaEntryTypeIdentity,
+		ProvenanceGraphEntryNodeMetaEntryTypeSoul,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphEntryNodeMetaEntryType) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphEntryNodeMetaEntryTypeEpisodic:
+		return []byte(s), nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeSemantic:
+		return []byte(s), nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeProcedural:
+		return []byte(s), nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeReflection:
+		return []byte(s), nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeIdentity:
+		return []byte(s), nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeSoul:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphEntryNodeMetaEntryType) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphEntryNodeMetaEntryType(data) {
+	case ProvenanceGraphEntryNodeMetaEntryTypeEpisodic:
+		*s = ProvenanceGraphEntryNodeMetaEntryTypeEpisodic
+		return nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeSemantic:
+		*s = ProvenanceGraphEntryNodeMetaEntryTypeSemantic
+		return nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeProcedural:
+		*s = ProvenanceGraphEntryNodeMetaEntryTypeProcedural
+		return nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeReflection:
+		*s = ProvenanceGraphEntryNodeMetaEntryTypeReflection
+		return nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeIdentity:
+		*s = ProvenanceGraphEntryNodeMetaEntryTypeIdentity
+		return nil
+	case ProvenanceGraphEntryNodeMetaEntryTypeSoul:
+		*s = ProvenanceGraphEntryNodeMetaEntryTypeSoul
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ProvenanceGraphMetadata struct {
+	Depth  float64                       `json:"depth"`
+	Format ProvenanceGraphMetadataFormat `json:"format"`
+	// ISO 8601 timestamp.
+	GeneratedAt time.Time `json:"generatedAt"`
+	RootNodeId  string    `json:"rootNodeId"`
+	// UUID v4 identifier.
+	RootPackId uuid.UUID `json:"rootPackId"`
+}
+
+// GetDepth returns the value of Depth.
+func (s *ProvenanceGraphMetadata) GetDepth() float64 {
+	return s.Depth
+}
+
+// GetFormat returns the value of Format.
+func (s *ProvenanceGraphMetadata) GetFormat() ProvenanceGraphMetadataFormat {
+	return s.Format
+}
+
+// GetGeneratedAt returns the value of GeneratedAt.
+func (s *ProvenanceGraphMetadata) GetGeneratedAt() time.Time {
+	return s.GeneratedAt
+}
+
+// GetRootNodeId returns the value of RootNodeId.
+func (s *ProvenanceGraphMetadata) GetRootNodeId() string {
+	return s.RootNodeId
+}
+
+// GetRootPackId returns the value of RootPackId.
+func (s *ProvenanceGraphMetadata) GetRootPackId() uuid.UUID {
+	return s.RootPackId
+}
+
+// SetDepth sets the value of Depth.
+func (s *ProvenanceGraphMetadata) SetDepth(val float64) {
+	s.Depth = val
+}
+
+// SetFormat sets the value of Format.
+func (s *ProvenanceGraphMetadata) SetFormat(val ProvenanceGraphMetadataFormat) {
+	s.Format = val
+}
+
+// SetGeneratedAt sets the value of GeneratedAt.
+func (s *ProvenanceGraphMetadata) SetGeneratedAt(val time.Time) {
+	s.GeneratedAt = val
+}
+
+// SetRootNodeId sets the value of RootNodeId.
+func (s *ProvenanceGraphMetadata) SetRootNodeId(val string) {
+	s.RootNodeId = val
+}
+
+// SetRootPackId sets the value of RootPackId.
+func (s *ProvenanceGraphMetadata) SetRootPackId(val uuid.UUID) {
+	s.RootPackId = val
+}
+
+type ProvenanceGraphMetadataFormat string
+
+const (
+	ProvenanceGraphMetadataFormatMoltnetProvenanceGraphV1 ProvenanceGraphMetadataFormat = "moltnet.provenance-graph/v1"
+)
+
+// AllValues returns all ProvenanceGraphMetadataFormat values.
+func (ProvenanceGraphMetadataFormat) AllValues() []ProvenanceGraphMetadataFormat {
+	return []ProvenanceGraphMetadataFormat{
+		ProvenanceGraphMetadataFormatMoltnetProvenanceGraphV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphMetadataFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphMetadataFormatMoltnetProvenanceGraphV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphMetadataFormat) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphMetadataFormat(data) {
+	case ProvenanceGraphMetadataFormatMoltnetProvenanceGraphV1:
+		*s = ProvenanceGraphMetadataFormatMoltnetProvenanceGraphV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// ProvenanceGraphNodesItem represents sum type.
+type ProvenanceGraphNodesItem struct {
+	Type                     ProvenanceGraphNodesItemType // switch on this field
+	ProvenanceGraphPackNode  ProvenanceGraphPackNode
+	ProvenanceGraphEntryNode ProvenanceGraphEntryNode
+}
+
+// ProvenanceGraphNodesItemType is oneOf type of ProvenanceGraphNodesItem.
+type ProvenanceGraphNodesItemType string
+
+// Possible values for ProvenanceGraphNodesItemType.
+const (
+	ProvenanceGraphPackNodeProvenanceGraphNodesItem  ProvenanceGraphNodesItemType = "pack"
+	ProvenanceGraphEntryNodeProvenanceGraphNodesItem ProvenanceGraphNodesItemType = "entry"
+)
+
+// IsProvenanceGraphPackNode reports whether ProvenanceGraphNodesItem is ProvenanceGraphPackNode.
+func (s ProvenanceGraphNodesItem) IsProvenanceGraphPackNode() bool {
+	return s.Type == ProvenanceGraphPackNodeProvenanceGraphNodesItem
+}
+
+// IsProvenanceGraphEntryNode reports whether ProvenanceGraphNodesItem is ProvenanceGraphEntryNode.
+func (s ProvenanceGraphNodesItem) IsProvenanceGraphEntryNode() bool {
+	return s.Type == ProvenanceGraphEntryNodeProvenanceGraphNodesItem
+}
+
+// SetProvenanceGraphPackNode sets ProvenanceGraphNodesItem to ProvenanceGraphPackNode.
+func (s *ProvenanceGraphNodesItem) SetProvenanceGraphPackNode(v ProvenanceGraphPackNode) {
+	s.Type = ProvenanceGraphPackNodeProvenanceGraphNodesItem
+	s.ProvenanceGraphPackNode = v
+}
+
+// GetProvenanceGraphPackNode returns ProvenanceGraphPackNode and true boolean if ProvenanceGraphNodesItem is ProvenanceGraphPackNode.
+func (s ProvenanceGraphNodesItem) GetProvenanceGraphPackNode() (v ProvenanceGraphPackNode, ok bool) {
+	if !s.IsProvenanceGraphPackNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphPackNode, true
+}
+
+// NewProvenanceGraphPackNodeProvenanceGraphNodesItem returns new ProvenanceGraphNodesItem from ProvenanceGraphPackNode.
+func NewProvenanceGraphPackNodeProvenanceGraphNodesItem(v ProvenanceGraphPackNode) ProvenanceGraphNodesItem {
+	var s ProvenanceGraphNodesItem
+	s.SetProvenanceGraphPackNode(v)
+	return s
+}
+
+// SetProvenanceGraphEntryNode sets ProvenanceGraphNodesItem to ProvenanceGraphEntryNode.
+func (s *ProvenanceGraphNodesItem) SetProvenanceGraphEntryNode(v ProvenanceGraphEntryNode) {
+	s.Type = ProvenanceGraphEntryNodeProvenanceGraphNodesItem
+	s.ProvenanceGraphEntryNode = v
+}
+
+// GetProvenanceGraphEntryNode returns ProvenanceGraphEntryNode and true boolean if ProvenanceGraphNodesItem is ProvenanceGraphEntryNode.
+func (s ProvenanceGraphNodesItem) GetProvenanceGraphEntryNode() (v ProvenanceGraphEntryNode, ok bool) {
+	if !s.IsProvenanceGraphEntryNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphEntryNode, true
+}
+
+// NewProvenanceGraphEntryNodeProvenanceGraphNodesItem returns new ProvenanceGraphNodesItem from ProvenanceGraphEntryNode.
+func NewProvenanceGraphEntryNodeProvenanceGraphNodesItem(v ProvenanceGraphEntryNode) ProvenanceGraphNodesItem {
+	var s ProvenanceGraphNodesItem
+	s.SetProvenanceGraphEntryNode(v)
+	return s
+}
+
+// Ref: #/components/schemas/ProvenanceGraphPackNode
+type ProvenanceGraphPackNode struct {
+	Cid   NilString                   `json:"cid"`
+	ID    string                      `json:"id"`
+	Kind  ProvenanceGraphPackNodeKind `json:"kind"`
+	Label string                      `json:"label"`
+	Meta  ProvenanceGraphPackNodeMeta `json:"meta"`
+}
+
+// GetCid returns the value of Cid.
+func (s *ProvenanceGraphPackNode) GetCid() NilString {
+	return s.Cid
+}
+
+// GetID returns the value of ID.
+func (s *ProvenanceGraphPackNode) GetID() string {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *ProvenanceGraphPackNode) GetKind() ProvenanceGraphPackNodeKind {
+	return s.Kind
+}
+
+// GetLabel returns the value of Label.
+func (s *ProvenanceGraphPackNode) GetLabel() string {
+	return s.Label
+}
+
+// GetMeta returns the value of Meta.
+func (s *ProvenanceGraphPackNode) GetMeta() ProvenanceGraphPackNodeMeta {
+	return s.Meta
+}
+
+// SetCid sets the value of Cid.
+func (s *ProvenanceGraphPackNode) SetCid(val NilString) {
+	s.Cid = val
+}
+
+// SetID sets the value of ID.
+func (s *ProvenanceGraphPackNode) SetID(val string) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ProvenanceGraphPackNode) SetKind(val ProvenanceGraphPackNodeKind) {
+	s.Kind = val
+}
+
+// SetLabel sets the value of Label.
+func (s *ProvenanceGraphPackNode) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetMeta sets the value of Meta.
+func (s *ProvenanceGraphPackNode) SetMeta(val ProvenanceGraphPackNodeMeta) {
+	s.Meta = val
+}
+
+type ProvenanceGraphPackNodeKind string
+
+const (
+	ProvenanceGraphPackNodeKindPack ProvenanceGraphPackNodeKind = "pack"
+)
+
+// AllValues returns all ProvenanceGraphPackNodeKind values.
+func (ProvenanceGraphPackNodeKind) AllValues() []ProvenanceGraphPackNodeKind {
+	return []ProvenanceGraphPackNodeKind{
+		ProvenanceGraphPackNodeKindPack,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphPackNodeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphPackNodeKindPack:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphPackNodeKind) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphPackNodeKind(data) {
+	case ProvenanceGraphPackNodeKindPack:
+		*s = ProvenanceGraphPackNodeKindPack
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ProvenanceGraphPackNodeMeta struct {
+	// ISO 8601 timestamp.
+	CreatedAt time.Time                                `json:"createdAt"`
+	Creator   OptNilProvenanceGraphPackNodeMetaCreator `json:"creator"`
+	// UUID v4 identifier.
+	DiaryId uuid.UUID `json:"diaryId"`
+	// ISO 8601 timestamp.
+	ExpiresAt NilDateTime `json:"expiresAt"`
+	PackCid   string      `json:"packCid"`
+	PackCodec string      `json:"packCodec"`
+	// UUID v4 identifier.
+	PackId   uuid.UUID `json:"packId"`
+	PackType string    `json:"packType"`
+	Pinned   bool      `json:"pinned"`
+	// UUID v4 identifier.
+	SupersedesPackId NilUUID `json:"supersedesPackId"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ProvenanceGraphPackNodeMeta) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreator returns the value of Creator.
+func (s *ProvenanceGraphPackNodeMeta) GetCreator() OptNilProvenanceGraphPackNodeMetaCreator {
+	return s.Creator
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *ProvenanceGraphPackNodeMeta) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ProvenanceGraphPackNodeMeta) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *ProvenanceGraphPackNodeMeta) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPackCodec returns the value of PackCodec.
+func (s *ProvenanceGraphPackNodeMeta) GetPackCodec() string {
+	return s.PackCodec
+}
+
+// GetPackId returns the value of PackId.
+func (s *ProvenanceGraphPackNodeMeta) GetPackId() uuid.UUID {
+	return s.PackId
+}
+
+// GetPackType returns the value of PackType.
+func (s *ProvenanceGraphPackNodeMeta) GetPackType() string {
+	return s.PackType
+}
+
+// GetPinned returns the value of Pinned.
+func (s *ProvenanceGraphPackNodeMeta) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetSupersedesPackId returns the value of SupersedesPackId.
+func (s *ProvenanceGraphPackNodeMeta) GetSupersedesPackId() NilUUID {
+	return s.SupersedesPackId
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ProvenanceGraphPackNodeMeta) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreator sets the value of Creator.
+func (s *ProvenanceGraphPackNodeMeta) SetCreator(val OptNilProvenanceGraphPackNodeMetaCreator) {
+	s.Creator = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *ProvenanceGraphPackNodeMeta) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ProvenanceGraphPackNodeMeta) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *ProvenanceGraphPackNodeMeta) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPackCodec sets the value of PackCodec.
+func (s *ProvenanceGraphPackNodeMeta) SetPackCodec(val string) {
+	s.PackCodec = val
+}
+
+// SetPackId sets the value of PackId.
+func (s *ProvenanceGraphPackNodeMeta) SetPackId(val uuid.UUID) {
+	s.PackId = val
+}
+
+// SetPackType sets the value of PackType.
+func (s *ProvenanceGraphPackNodeMeta) SetPackType(val string) {
+	s.PackType = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *ProvenanceGraphPackNodeMeta) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetSupersedesPackId sets the value of SupersedesPackId.
+func (s *ProvenanceGraphPackNodeMeta) SetSupersedesPackId(val NilUUID) {
+	s.SupersedesPackId = val
+}
+
+type ProvenanceGraphPackNodeMetaCreator struct {
+	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
+	Fingerprint string `json:"fingerprint"`
+	// UUID v4 identifier.
+	IdentityId uuid.UUID `json:"identityId"`
+	// Ed25519 public key with prefix.
+	PublicKey string `json:"publicKey"`
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *ProvenanceGraphPackNodeMetaCreator) GetFingerprint() string {
+	return s.Fingerprint
+}
+
+// GetIdentityId returns the value of IdentityId.
+func (s *ProvenanceGraphPackNodeMetaCreator) GetIdentityId() uuid.UUID {
+	return s.IdentityId
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *ProvenanceGraphPackNodeMetaCreator) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *ProvenanceGraphPackNodeMetaCreator) SetFingerprint(val string) {
+	s.Fingerprint = val
+}
+
+// SetIdentityId sets the value of IdentityId.
+func (s *ProvenanceGraphPackNodeMetaCreator) SetIdentityId(val uuid.UUID) {
+	s.IdentityId = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *ProvenanceGraphPackNodeMetaCreator) SetPublicKey(val string) {
+	s.PublicKey = val
 }
 
 // Ref: #/components/schemas/PublicFeedEntry
