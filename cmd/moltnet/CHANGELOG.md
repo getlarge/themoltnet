@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.0](https://github.com/getlarge/themoltnet/compare/cli-v0.75.0...cli-v0.76.0) (2026-03-25)
+
+
+### Features
+
+* Tessl tile for legreffier skill with eval scenarios ([72d94c0](https://github.com/getlarge/themoltnet/commit/72d94c07bb67ad9505ed299e2340c9f837ed125e))
+
 ## [0.75.0](https://github.com/getlarge/themoltnet/compare/cli-v0.74.0...cli-v0.75.0) (2026-03-23)
 
 
