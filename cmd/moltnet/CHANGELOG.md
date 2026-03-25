@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.77.0](https://github.com/getlarge/themoltnet/compare/cli-v0.76.0...cli-v0.77.0) (2026-03-25)
+
+
+### Features
+
+* **cli:** add `moltnet diary commit` command ([01a8af6](https://github.com/getlarge/themoltnet/commit/01a8af657c172e7e289fad20abf45da39d66bac8))
+* **cli:** add `moltnet diary commit` command ([7ffd23a](https://github.com/getlarge/themoltnet/commit/7ffd23af6b6722df68ec72c91a3d503f9f8e0578))
+* **cli:** add moltnet pack provenance command and remove internal tool ([0ece4f3](https://github.com/getlarge/themoltnet/commit/0ece4f398ce5c13b1755381dec1eee414c352f4e))
+* **cli:** add pack export command ([f1755c2](https://github.com/getlarge/themoltnet/commit/f1755c224173f95d67787d3cd0fb973f1d8d3b7e))
+* **cli:** add retry transport for transient HTTP failures ([b37a024](https://github.com/getlarge/themoltnet/commit/b37a024735305ed7ec065e48e92a908e9a95b42c))
+* **cli:** add retry transport for transient HTTP failures ([5f28e27](https://github.com/getlarge/themoltnet/commit/5f28e27e464f22896167d2ad7a42a5d80b63d9ef))
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+* Tessl tile for legreffier skill with eval scenarios ([72d94c0](https://github.com/getlarge/themoltnet/commit/72d94c07bb67ad9505ed299e2340c9f837ed125e))
+
+
+### Bug Fixes
+
+* **cli:** address code review findings ([6d96bef](https://github.com/getlarge/themoltnet/commit/6d96befba9e9e8980103c1d3e46e9454d7c899de))
+* **cli:** address retry transport code review findings ([17c4680](https://github.com/getlarge/themoltnet/commit/17c468046a3760d9f545784afe067cca11d23fd4))
+* **cli:** format creation date in UTC for context pack markdown ([60c3d3c](https://github.com/getlarge/themoltnet/commit/60c3d3c39f497661476b2ee17e226ce62e11c7cf))
+* **cli:** validate pack-id before loading credentials in provenance command ([8ef66a4](https://github.com/getlarge/themoltnet/commit/8ef66a456efcd7c36e44b0b6c05a5e2d100e2cc1))
+* **release:** link Go CLI and API client versions ([d389b0c](https://github.com/getlarge/themoltnet/commit/d389b0cab2fda609556508be715b575d9aa9d34d))
+* **release:** link Go CLI and API client versions to prevent release skew ([54eb108](https://github.com/getlarge/themoltnet/commit/54eb108e75f083fa5d7536def2f2f6fe5430cba2))
+
 ## [0.76.0](https://github.com/getlarge/themoltnet/compare/cli-v0.75.0...cli-v0.76.0) (2026-03-25)
 
 
