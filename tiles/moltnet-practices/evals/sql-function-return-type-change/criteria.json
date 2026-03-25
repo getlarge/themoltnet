@@ -1,0 +1,31 @@
+{
+  "checklist": [
+    {
+      "description": "The migration.sql includes a DROP FUNCTION (or DROP FUNCTION IF EXISTS) statement for diary_search before the CREATE OR REPLACE FUNCTION statement",
+      "max_score": 35,
+      "name": "DROP FUNCTION before CREATE"
+    },
+    {
+      "description": "The updated RETURNS TABLE clause includes `verified boolean` (or equivalent)",
+      "max_score": 10,
+      "name": "verified column in RETURNS TABLE"
+    },
+    {
+      "description": "The function body's RETURN QUERY SELECT includes `e.verified` from the diary_entries table",
+      "max_score": 10,
+      "name": "verified in SELECT"
+    },
+    {
+      "description": "The notes.md or migration output mentions checking that the new _journal.json entry's `when` value is monotonically greater than the previous entry, OR the agent produces a corrected _journal.json",
+      "max_score": 25,
+      "name": "Journal timestamp checked"
+    },
+    {
+      "description": "The notes.md explains that DROP is required because the return type changed (not just input params), or mentions that CREATE OR REPLACE cannot change RETURNS TABLE",
+      "max_score": 20,
+      "name": "Notes explain DROP requirement"
+    }
+  ],
+  "context": "Tests whether the agent knows that (1) PostgreSQL requires DROP FUNCTION before CREATE OR REPLACE when the RETURNS TABLE signature changes, and (2) drizzle-kit generates non-monotonic journal timestamps when the repo uses synthetic future-dated values — the agent must check and fix the journal entry.",
+  "type": "weighted_checklist"
+}
