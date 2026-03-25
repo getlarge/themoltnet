@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.25.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.24.0...openclaw-skill-v0.25.0) (2026-03-25)
+
+
+### Features
+
+* **tiles:** add moltnet-practices docs tile and explore skill improvements ([2fc0288](https://github.com/getlarge/themoltnet/commit/2fc0288a8a4a2ad9ef9fc660be31a5d93539a669))
+
+
+### Bug Fixes
+
+* **skills:** replace bare moltnet CLI with npx @themoltnet/cli ([2e45527](https://github.com/getlarge/themoltnet/commit/2e455271efad088a421d41857ab5115152f481c3))
+
 ## [0.24.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.23.0...openclaw-skill-v0.24.0) (2026-03-08)
 
 
