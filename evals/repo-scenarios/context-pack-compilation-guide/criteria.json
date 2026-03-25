@@ -1,0 +1,69 @@
+{
+  "checklist": [
+    {
+      "category": "INTENT",
+      "description": "A new documentation file exists in docs/ that covers context pack compilation. It must be discoverable as a top-level docs file (not buried in a subdirectory).",
+      "example": "docs/CONTEXT_PACK_GUIDE.md is created as a new file.",
+      "max_score": 1,
+      "name": "guide_exists_in_docs"
+    },
+    {
+      "category": "INTENT",
+      "description": "The guide explains all four compile levers with enough detail that a reader knows what each does and when to use it: task_prompt (semantic query), lambda (relevance vs diversity tradeoff), importance/recency weights, and tag filters (include_tags/exclude_tags).",
+      "example": "CONTEXT_PACK_GUIDE.md has a 'The compile levers' section covering task_prompt, lambda, w_importance, w_recency, and tag filters with descriptions and guidance.",
+      "max_score": 1,
+      "name": "compile_levers_documented"
+    },
+    {
+      "category": "INTENT",
+      "description": "The guide includes at least two concrete worked examples (scenarios) that show specific compile parameter values and explain why those values were chosen for that task type.",
+      "example": "CONTEXT_PACK_GUIDE.md has scenarios A (REST route), B (crypto/signing), and C (Keto auth), each with task_prompt, lambda, weights, and result description.",
+      "max_score": 1,
+      "name": "worked_scenarios_included"
+    },
+    {
+      "category": "INTENT",
+      "description": "PROVENANCE.md describes three goals for MoltNet, not two. The third goal must include the concept of verifying or measuring whether compiled context actually improves agent work.",
+      "example": "PROVENANCE.md 'Why This Exists' now reads 'MoltNet has three related but distinct goals' and adds 'verify that the compiled context actually improves agent work'.",
+      "max_score": 1,
+      "name": "provenance_three_goals"
+    },
+    {
+      "category": "INTENT",
+      "description": "PROVENANCE.md's artifact model (the bullet list of entries, relations, packs, viewer) is updated to reflect the third goal — the eval/benchmarking artifact type is present alongside entries, packs, and viewer.",
+      "example": "PROVENANCE.md adds 'eval tasks are benchmarks that measure whether packs help (goal 3: verification)' to the artifact model list.",
+      "max_score": 1,
+      "name": "provenance_artifact_model_updated"
+    },
+    {
+      "category": "INTEGRATION",
+      "description": "The new guide and the existing key docs (at minimum PROVENANCE.md, GEPA.md, and GPACK_PIPELINE.md) include cross-links to each other, following the Related docs pattern used elsewhere in the docs/ directory.",
+      "example": "GEPA.md and GPACK_PIPELINE.md get Related docs blocks linking to CONTEXT_PACK_GUIDE.md; PROVENANCE.md links to the new guide in a further reading section; the new guide links to PROVENANCE.md, GPACK_PIPELINE.md, GEPA.md.",
+      "max_score": 1,
+      "name": "docs_cross_linked"
+    },
+    {
+      "category": "INTENT",
+      "description": "The guide explains where diary entries come from as the source pool for packs — at minimum: scan-derived entries and decisions/incidents as distinct entry types with different tagging.",
+      "example": "CONTEXT_PACK_GUIDE.md has a 'Where entries come from' section covering legreffier-scan (source:scan), consolidate (tiles/nuggets), accountable commits, and decisions/incidents.",
+      "max_score": 1,
+      "name": "entry_sources_covered"
+    },
+    {
+      "category": "DESIGN",
+      "description": "The guide includes anti-patterns or pitfalls section — specific mistakes that lead to poor packs, not generic advice.",
+      "example": "CONTEXT_PACK_GUIDE.md includes anti-patterns like: no task_prompt produces importance-ranked rather than relevance-ranked results; token budget too large pulls in tail entries; lambda 1.0 can include near-duplicates.",
+      "max_score": 1,
+      "name": "anti_patterns_or_pitfalls"
+    },
+    {
+      "category": "MUST_NOT",
+      "description": "If the guide covers the custom pack type, it accurately represents the current implementation status — not describing it as fully implemented when it is not.",
+      "example": "CONTEXT_PACK_GUIDE.md states the custom pack route is not yet implemented: 'The route to create custom packs is not yet implemented.'",
+      "max_score": 1,
+      "name": "custom_pack_type_status"
+    }
+  ],
+  "context": "Evaluates whether the agent adds a context pack compilation guide to docs/, fixes PROVENANCE.md's goals count, and cross-links the documentation ecosystem.",
+  "type": "weighted_checklist"
+}

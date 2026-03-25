@@ -1,0 +1,90 @@
+{
+  "checklist": [
+    {
+      "category": "INTENT",
+      "description": "The superseded_by column is removed from the diary_entries schema definition (Drizzle schema and/or SQL migration). The DiaryEntry type no longer includes a supersededBy field.",
+      "example": "schema.ts removes `supersededBy: uuid('superseded_by').references(...)` from the diaryEntries table definition; mapRowToDiaryEntry no longer maps `superseded_by`.",
+      "max_score": 1,
+      "name": "superseded_by_column_removed"
+    },
+    {
+      "category": "INTENT",
+      "description": "The excludeSuperseded filter in diary entry listing still correctly excludes entries that have been superseded, now using the entry_relations graph instead of the column. Passing excludeSuperseded: true omits entries that are the target of an accepted supersedes relation.",
+      "example": "entryFilterConditions rewrites the condition from `supersededBy IS NULL` to a NOT EXISTS subquery: `NOT EXISTS (SELECT 1 FROM entry_relations er WHERE er.target_id = diary_entries.id AND er.relation = 'supersedes' AND er.status = 'accepted')`.",
+      "max_score": 1,
+      "name": "exclude_superseded_filter_works"
+    },
+    {
+      "category": "INTENT",
+      "description": "The diary_search() SQL function is updated to filter out superseded entries using the entry_relations table rather than the removed column. Both the vector and FTS branches of the function apply the updated filter.",
+      "example": "Migration drops and recreates diary_search() with NOT EXISTS subquery on entry_relations in both the vector_cte and fts_cte WHERE clauses; the RETURNS TABLE no longer includes superseded_by.",
+      "max_score": 1,
+      "name": "diary_search_function_updated"
+    },
+    {
+      "category": "INTENT",
+      "description": "The database migration copies existing superseded_by relationships from diary_entries into entry_relations rows before dropping the column. Entries that were superseded before the migration remain identifiable as superseded afterward.",
+      "example": "Migration inserts rows: `INSERT INTO entry_relations (source_id, target_id, relation, status) SELECT superseded_by, id, 'supersedes', 'accepted' FROM diary_entries WHERE superseded_by IS NOT NULL ON CONFLICT DO NOTHING`.",
+      "max_score": 1,
+      "name": "data_migration_preserves_supersession"
+    },
+    {
+      "category": "INTENT",
+      "description": "The database migration contains a statement to drop the superseded_by column from diary_entries after migrating data.",
+      "example": "Migration ends with `ALTER TABLE diary_entries DROP COLUMN IF EXISTS superseded_by`.",
+      "max_score": 1,
+      "name": "migration_drops_column"
+    },
+    {
+      "category": "REUSE",
+      "description": "Supersession lookups go through the existing entry_relations table/repository abstractions, not through ad-hoc direct queries or a new table. The solution extends or calls the existing entry-relation query layer.",
+      "example": "listSupersededTargetIds is added to createEntryRelationRepository and uses the entryRelations Drizzle table with inArray + eq filters for relation and status.",
+      "max_score": 1,
+      "name": "uses_entry_relations_repository"
+    },
+    {
+      "category": "REUSE",
+      "description": "The excludeSuperseded filter is updated within the existing filter-condition building pattern used by the diary-entry repository (not duplicated inline for each query).",
+      "example": "entryFilterConditions helper in diary-entry.repository.ts is updated to use the NOT EXISTS subquery, so all callers of this helper automatically get the updated behavior.",
+      "max_score": 1,
+      "name": "filter_conditions_helper_updated"
+    },
+    {
+      "category": "INTEGRATION",
+      "description": "A Drizzle migration file is created in libs/database/drizzle/ to apply schema and data changes, following the project's migration conventions.",
+      "example": "libs/database/drizzle/0031_migrate-superseded-by.sql with statement-breakpoint separators between the INSERT, index creation, trigger rewrites, function rewrite, and DROP COLUMN.",
+      "max_score": 1,
+      "name": "drizzle_migration_generated"
+    },
+    {
+      "category": "INTEGRATION",
+      "description": "The entry-relation repository gains a method to batch-query which entry IDs (from a given list) are the target of an accepted supersedes relation, returning the IDs that are superseded.",
+      "example": "listSupersededTargetIds(entryIds: string[]): Promise<string[]> added to createEntryRelationRepository, returning IDs from the input list that appear as target_id in an accepted supersedes relation.",
+      "max_score": 1,
+      "name": "batch_superseded_lookup_added"
+    },
+    {
+      "category": "INTEGRATION",
+      "description": "All repository query paths that previously selected or mapped the superseded_by column are updated to remove it. No code references the removed column at runtime.",
+      "example": "context-pack.repository.ts removes entrySupersededBy from expandedEntrySelection, ExpandedPackEntryRow interface, and normalizeExpandedEntry mapping; diary-entry.repository.ts removes supersededBy from mapRowToDiaryEntry and partial update type.",
+      "max_score": 1,
+      "name": "superseded_by_removed_from_all_query_paths"
+    },
+    {
+      "category": "DESIGN",
+      "description": "A database index is added to support efficient lookups of entries that are targets of accepted supersedes relations, avoiding full-table scans for the NOT EXISTS filter.",
+      "example": "Migration creates `CREATE INDEX IF NOT EXISTS idx_entry_relations_supersedes_target ON entry_relations (target_id) WHERE relation = 'supersedes' AND status = 'accepted'`.",
+      "max_score": 1,
+      "name": "supersedes_lookup_index"
+    },
+    {
+      "category": "EDGE_CASE",
+      "description": "The batch superseded lookup handles empty input gracefully (returns an empty array without querying the database).",
+      "example": "listSupersededTargetIds returns [] immediately if entryIds.length === 0.",
+      "max_score": 1,
+      "name": "empty_input_guard_in_batch_lookup"
+    }
+  ],
+  "context": "Migrate superseded_by column from diary_entries to entry_relations graph, preserving filter behavior and updating all query paths",
+  "type": "weighted_checklist"
+}
