@@ -1,0 +1,37 @@
+name: Publish Skill Tiles
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tiles/legreffier/**'
+      - 'tiles/legreffier-explore/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: publish-tiles-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.path }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        path:
+          - tiles/legreffier
+          - tiles/legreffier-explore
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish tile
+        uses: tesslio/publish@main
+        with:
+          token: ${{ secrets.TESSL_API_TOKEN }}
+          path: ${{ matrix.path }}
+          review: 'true'
+          review-threshold: '50'
