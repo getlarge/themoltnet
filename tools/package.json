@@ -11,7 +11,6 @@
     "download-model": "node download-embedding-model.mjs",
     "gpack": "tsx ../libs/context-evals/src/pipeline.ts",
     "compile-pack": "tsx src/compile-pack.ts",
-    "graph:provenance": "tsx src/export-pack-provenance.ts",
     "seed-feed": "tsx src/seed-public-feed.ts",
     "eval:setup": "tsx src/skill-evals/eval-setup.ts",
     "eval:teardown": "tsx src/skill-evals/eval-setup.ts --teardown",
