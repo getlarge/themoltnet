@@ -120,6 +120,16 @@ func runPackProvenance(args []string) error {
 		return fmt.Errorf("--depth must be a non-negative integer")
 	}
 
+	// Validate pack-id early, before loading credentials.
+	var packUUID uuid.UUID
+	if *packID != "" {
+		var err error
+		packUUID, err = uuid.Parse(*packID)
+		if err != nil {
+			return fmt.Errorf("invalid --pack-id %q: %w", *packID, err)
+		}
+	}
+
 	client, err := newClientFromCreds(*apiURL)
 	if err != nil {
 		return err
@@ -131,10 +141,6 @@ func runPackProvenance(args []string) error {
 	// Both endpoints return the same shape; use any to marshal uniformly.
 	var graph any
 	if *packID != "" {
-		packUUID, err := uuid.Parse(*packID)
-		if err != nil {
-			return fmt.Errorf("invalid --pack-id %q: %w", *packID, err)
-		}
 		res, err := client.GetContextPackProvenanceById(ctx, moltnetapi.GetContextPackProvenanceByIdParams{
 			ID:    packUUID,
 			Depth: depthOpt,
