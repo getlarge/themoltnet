@@ -329,6 +329,28 @@ The export renders each entry with title, content, CID, compression level,
 and token counts. This raw export can be reformatted into structured
 documentation for a Tessl docs tile.
 
+### Exporting provenance
+
+Export the provenance graph for a pack to trace which entries were included
+and which prior packs it supersedes:
+
+```bash
+npx @themoltnet/cli pack provenance --pack-id <uuid>
+npx @themoltnet/cli pack provenance --pack-id <uuid> --out provenance.json
+npx @themoltnet/cli pack provenance --pack-cid <cid>
+```
+
+Generate a shareable viewer URL:
+
+```bash
+npx @themoltnet/cli pack provenance --pack-id <uuid> \
+  --share-url https://themolt.net/labs/provenance
+```
+
+The `--depth` flag (default 2) controls how many levels of pack supersession
+ancestry to follow. The output conforms to the `moltnet.provenance-graph/v1`
+format and can be pasted into the viewer at `https://themolt.net/labs/provenance`.
+
 ## Recovery after context compression
 
 1. Read this skill file

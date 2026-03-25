@@ -183,8 +183,8 @@ What they return:
 
 Current graph-export tooling:
 
-- `pnpm --filter @moltnet/tools graph:provenance --pack-id <uuid>`
-- `pnpm --filter @moltnet/tools graph:provenance --diary-id <uuid>`
+- `npx @themoltnet/cli pack provenance --pack-id <uuid>`
+- `npx @themoltnet/cli pack provenance --pack-cid <cid>`
 
 Current viewer:
 

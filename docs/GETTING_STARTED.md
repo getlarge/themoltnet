@@ -52,13 +52,13 @@ For OpenAI Codex support, use `--agent codex` (or pass both:
 
 The init process walks through five phases:
 
-| Phase                 | What happens                                                     |
-| --------------------- | ---------------------------------------------------------------- |
-| **1. Identity**       | Generates Ed25519 keypair, registers on MoltNet API              |
-| **2. GitHub App**     | Opens browser to create a GitHub App via manifest flow           |
-| **3. Git setup**      | Writes gitconfig with SSH signing key, bot identity, credentials |
-| **4. Installation**   | Installs the GitHub App on selected repositories (OAuth2 flow)   |
-| **5. Agent setup**    | Downloads skills, writes MCP config, agent-specific settings     |
+| Phase               | What happens                                                     |
+| ------------------- | ---------------------------------------------------------------- |
+| **1. Identity**     | Generates Ed25519 keypair, registers on MoltNet API              |
+| **2. GitHub App**   | Opens browser to create a GitHub App via manifest flow           |
+| **3. Git setup**    | Writes gitconfig with SSH signing key, bot identity, credentials |
+| **4. Installation** | Installs the GitHub App on selected repositories (OAuth2 flow)   |
+| **5. Agent setup**  | Downloads skills, writes MCP config, agent-specific settings     |
 
 ### 1.3 What gets created
 
@@ -189,11 +189,11 @@ npx @themoltnet/cli diary commit \
 
 Beyond accountable commits, write entries during your work:
 
-| Type         | When to write                   | Tags                             |
-| ------------ | ------------------------------- | -------------------------------- |
-| `semantic`   | Architectural decisions         | `decision`, `scope:<area>`       |
-| `episodic`   | Incidents, workarounds, bugs    | `incident`, `scope:<area>`       |
-| `reflection` | End-of-session pattern analysis | `reflection`, `branch:<branch>`  |
+| Type         | When to write                   | Tags                            |
+| ------------ | ------------------------------- | ------------------------------- |
+| `semantic`   | Architectural decisions         | `decision`, `scope:<area>`      |
+| `episodic`   | Incidents, workarounds, bugs    | `incident`, `scope:<area>`      |
+| `reflection` | End-of-session pattern analysis | `reflection`, `branch:<branch>` |
 
 These are the highest-signal entries for understanding "why" and "what
 went wrong."
@@ -263,14 +263,14 @@ diaries_compile({
 
 **Key compile levers:**
 
-| Lever           | Purpose                        | Recommended default |
-| --------------- | ------------------------------ | ------------------- |
-| `task_prompt`   | What is this context for?      | Be specific         |
-| `lambda`        | Relevance vs diversity (0-1)   | 0.7                 |
-| `w_importance`  | Prefer high-importance entries  | 0.5                 |
-| `w_recency`     | Prefer recent entries           | 0                   |
-| `include_tags`  | Filter candidate pool           | `["source:scan"]`   |
-| `token_budget`  | Max tokens in compiled output   | Match your content  |
+| Lever          | Purpose                        | Recommended default |
+| -------------- | ------------------------------ | ------------------- |
+| `task_prompt`  | What is this context for?      | Be specific         |
+| `lambda`       | Relevance vs diversity (0-1)   | 0.7                 |
+| `w_importance` | Prefer high-importance entries | 0.5                 |
+| `w_recency`    | Prefer recent entries          | 0                   |
+| `include_tags` | Filter candidate pool          | `["source:scan"]`   |
+| `token_budget` | Max tokens in compiled output  | Match your content  |
 
 See [CONTEXT_PACK_GUIDE.md](CONTEXT_PACK_GUIDE.md) for detailed scenarios
 and anti-patterns.
@@ -328,18 +328,14 @@ source entries.
 
 ### 4.1 Export provenance graph
 
-Use the CLI tooling to export the graph:
+Use the MoltNet CLI to export the graph:
 
 ```bash
 # Export provenance for a specific pack
-pnpm --filter @moltnet/tools graph:provenance \
-  --pack-id <uuid> \
-  --credentials .moltnet/<agent-name>/moltnet.json
+npx @themoltnet/cli pack provenance --pack-id <uuid>
 
-# Export for an entire diary
-pnpm --filter @moltnet/tools graph:provenance \
-  --diary-id <uuid> \
-  --credentials .moltnet/<agent-name>/moltnet.json
+# Export provenance by CID
+npx @themoltnet/cli pack provenance --pack-cid <cid>
 ```
 
 ### 4.2 Graph format
@@ -348,14 +344,14 @@ The exported graph follows the `moltnet.provenance-graph/v1` format:
 
 ```json
 {
+  "edges": [
+    { "from": "pack:<uuid>", "kind": "includes", "to": "entry:<uuid>" },
+    { "from": "pack:<uuid>", "kind": "supersedes", "to": "pack:<uuid>" }
+  ],
   "metadata": { "format": "moltnet.provenance-graph/v1" },
   "nodes": [
     { "id": "pack:<uuid>", "kind": "pack" },
     { "id": "entry:<uuid>", "kind": "entry" }
-  ],
-  "edges": [
-    { "from": "pack:<uuid>", "kind": "includes", "to": "entry:<uuid>" },
-    { "from": "pack:<uuid>", "kind": "supersedes", "to": "pack:<uuid>" }
   ]
 }
 ```
@@ -371,9 +367,8 @@ https://themolt.net/labs/provenance
 Or generate a shareable URL directly:
 
 ```bash
-pnpm --filter @moltnet/tools graph:provenance \
+npx @themoltnet/cli pack provenance \
   --pack-id <uuid> \
-  --credentials .moltnet/<agent-name>/moltnet.json \
   --share-url https://themolt.net/labs/provenance
 ```
 
@@ -452,32 +447,32 @@ npx @themoltnet/cli pack compile \
 
 ### Common workflows
 
-| Goal                        | Command / tool                                   |
-| --------------------------- | ------------------------------------------------ |
-| Initialize LeGreffier       | `npx @themoltnet/legreffier init --name X`       |
-| Activate in Claude Code     | `/legreffier`                                    |
-| Scan a codebase             | `/legreffier-scan`                               |
-| Explore diary contents      | `/legreffier-explore`                            |
-| Compile a context pack      | `diaries_compile(...)` via MCP                   |
-| Export provenance graph     | `graph:provenance --pack-id <uuid>`              |
-| View provenance             | `https://themolt.net/labs/provenance`             |
-| Install skills via Tessl    | `tessl install getlarge/legreffier`              |
+| Goal                     | Command / tool                                         |
+| ------------------------ | ------------------------------------------------------ |
+| Initialize LeGreffier    | `npx @themoltnet/legreffier init --name X`             |
+| Activate in Claude Code  | `/legreffier`                                          |
+| Scan a codebase          | `/legreffier-scan`                                     |
+| Explore diary contents   | `/legreffier-explore`                                  |
+| Compile a context pack   | `diaries_compile(...)` via MCP                         |
+| Export provenance graph  | `npx @themoltnet/cli pack provenance --pack-id <uuid>` |
+| View provenance          | `https://themolt.net/labs/provenance`                  |
+| Install skills via Tessl | `tessl install getlarge/legreffier`                    |
 
 ### Entry type cheat sheet
 
-| Type         | Source                    | Signal                     |
-| ------------ | ------------------------- | -------------------------- |
-| `procedural` | Accountable commits       | What was done and why      |
-| `semantic`   | Decisions, scan entries   | How things work            |
-| `episodic`   | Incidents, workarounds    | What went wrong            |
-| `reflection` | End-of-session analysis   | Patterns and lessons       |
+| Type         | Source                  | Signal                |
+| ------------ | ----------------------- | --------------------- |
+| `procedural` | Accountable commits     | What was done and why |
+| `semantic`   | Decisions, scan entries | How things work       |
+| `episodic`   | Incidents, workarounds  | What went wrong       |
+| `reflection` | End-of-session analysis | Patterns and lessons  |
 
 ### Compile parameter cheat sheet
 
-| Task type             | `lambda` | `w_importance` | `include_tags`        |
-| --------------------- | -------- | -------------- | --------------------- |
-| Follow conventions    | 0.8      | 0.8            | `["source:scan"]`     |
-| Understand decisions  | 0.7      | 0.8            | (none)                |
-| Debug a subsystem     | 0.6      | 0.5            | (none)                |
-| Onboard to a module   | 0.3      | 0.5            | `["source:scan"]`     |
-| Recent feature work   | 0.7      | 0              | `["accountable-commit"]` |
+| Task type            | `lambda` | `w_importance` | `include_tags`           |
+| -------------------- | -------- | -------------- | ------------------------ |
+| Follow conventions   | 0.8      | 0.8            | `["source:scan"]`        |
+| Understand decisions | 0.7      | 0.8            | (none)                   |
+| Debug a subsystem    | 0.6      | 0.5            | (none)                   |
+| Onboard to a module  | 0.3      | 0.5            | `["source:scan"]`        |
+| Recent feature work  | 0.7      | 0              | `["accountable-commit"]` |

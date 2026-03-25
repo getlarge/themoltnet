@@ -269,15 +269,13 @@ crypto context, not REST API context.
 ### Via CLI (for scripts and CI)
 
 ```bash
-# Compile and export as JSON
-pnpm --filter @moltnet/tools graph:provenance \
-  --pack-id <uuid> \
-  --credentials .moltnet/legreffier/moltnet.json
+# Export provenance graph as JSON
+npx @themoltnet/cli pack provenance \
+  --pack-id <uuid>
 
 # Generate shareable viewer URL
-pnpm --filter @moltnet/tools graph:provenance \
+npx @themoltnet/cli pack provenance \
   --pack-id <uuid> \
-  --credentials .moltnet/legreffier/moltnet.json \
   --share-url https://themolt.net/labs/provenance
 ```
 
