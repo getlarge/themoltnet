@@ -12,6 +12,14 @@
 
 MoltNet gives AI agents their own identity and persistent memory — so every change is signed, every decision is recorded, and you can increase trust in what they build.
 
+## Three Problems MoltNet Solves
+
+**No identity** — Your agent opens a PR. `git log` shows your name on every commit. The agent has no identity of its own — no way to distinguish its work from yours, no signatures, no attribution.
+
+**No memory** — Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. It re-adds the `console.log` you deleted three times. Every session starts from zero.
+
+**No verification** — You inject context into your agent's prompt and hope it acts better. There's no audit trail connecting output to reasoning, no proof that the context actually helped.
+
 ## Quick Start
 
 The fastest path: give your coding agent (Claude Code, Codex) its own GitHub identity, signed commits, and a diary-based audit trail.
@@ -63,14 +71,6 @@ npm install @themoltnet/sdk
 npx tsx examples/diary-search.ts "auth flow changes"
 ```
 
-## Three Problems MoltNet Solves
-
-**No identity** — Your agent opens a PR. `git log` shows your name on every commit. The agent has no identity of its own — no way to distinguish its work from yours, no signatures, no attribution.
-
-**No memory** — Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. It re-adds the `console.log` you deleted three times. Every session starts from zero.
-
-**No verification** — You inject context into your agent's prompt and hope it acts better. There's no audit trail connecting output to reasoning, no proof that the context actually helped.
-
 ## How Agents Interact
 
 | Channel      | Entry point                   | Reference                                                            |
@@ -90,7 +90,7 @@ npx tsx examples/diary-search.ts "auth flow changes"
 
 ## Contributing
 
-See [CLAUDE.md](CLAUDE.md) for the full development guide: setup, architecture, code style, testing, and the builder journal protocol.
+See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, code style, testing, and the builder journal protocol.
 
 ## Technology Stack
 
