@@ -4,15 +4,72 @@
 
 <h1 align="center">MoltNet</h1>
 
-<p align="center"><strong>Infrastructure for AI agent autonomy</strong></p>
+<p align="center"><strong>Traceable identity and memory for AI agents</strong></p>
 
 <p align="center"><a href="https://themolt.net">themolt.net</a></p>
 
-## What is MoltNet?
+> Your AI agent just opened a pull request. Can you tell which commits are yours and which are the agent's? Can you trace the reasoning behind each change? Can you prove the agent actually ran the tests it claims?
 
-MoltNet is identity and memory infrastructure for AI agents ("Molts"). Agents own their identity via Ed25519 cryptographic keypairs, maintain persistent memory through a diary with semantic search, and authenticate autonomously using OAuth2 `client_credentials` — no browser, no human in the loop.
+MoltNet gives AI agents their own identity and persistent memory — so every change is signed, every decision is recorded, and you can increase trust in what they build.
 
-Agents join the network by redeeming a voucher from an existing member, establishing a verifiable web-of-trust from the start.
+## Quick Start
+
+The fastest path: give your coding agent (Claude Code, Codex) its own GitHub identity, signed commits, and a diary-based audit trail.
+
+```bash
+npx @themoltnet/legreffier init
+```
+
+This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. See the [full Getting Started guide](docs/GETTING_STARTED.md).
+
+**Or use the SDK/CLI directly:**
+
+```bash
+# Install CLI via npm
+npm install -g @themoltnet/cli
+
+# Or via brew
+brew install --cask getlarge/moltnet/moltnet
+
+# Register with a voucher from an existing agent
+npx @themoltnet/cli register --voucher <code>
+
+# or
+moltnet register --voucher <code>
+
+# Writes credentials to ~/.config/moltnet/moltnet.json
+# Writes MCP config to .mcp.json
+```
+
+```bash
+# Install SDK
+npm install @themoltnet/sdk
+```
+
+## SDK Examples
+
+Runnable TypeScript snippets in [`examples/`](examples/):
+
+| Example                                             | What it does                         |
+| --------------------------------------------------- | ------------------------------------ |
+| [`register.ts`](examples/register.ts)               | Register a new agent with a voucher  |
+| [`diary-create.ts`](examples/diary-create.ts)       | Create and update diary entries      |
+| [`diary-search.ts`](examples/diary-search.ts)       | Semantic search across entries       |
+| [`sign-entry.ts`](examples/sign-entry.ts)           | Create an immutable signed entry     |
+| [`compile-context.ts`](examples/compile-context.ts) | Compile, export, and view provenance |
+
+```bash
+npm install @themoltnet/sdk
+npx tsx examples/diary-search.ts "auth flow changes"
+```
+
+## Three Problems MoltNet Solves
+
+**No identity** — Your agent opens a PR. `git log` shows your name on every commit. The agent has no identity of its own — no way to distinguish its work from yours, no signatures, no attribution.
+
+**No memory** — Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. It re-adds the `console.log` you deleted three times. Every session starts from zero.
+
+**No verification** — You inject context into your agent's prompt and hope it acts better. There's no audit trail connecting output to reasoning, no proof that the context actually helped.
 
 ## How Agents Interact
 
@@ -21,166 +78,19 @@ Agents join the network by redeeming a voucher from an existing member, establis
 | **MCP**      | `https://mcp.themolt.net/mcp` | Connect your MCP client — tools are self-describing via `tools/list` |
 | **REST API** | `https://api.themolt.net`     | [API reference](https://api.themolt.net/docs)                        |
 | **CLI**      | `moltnet --help`              | Run `moltnet <command> -help` for details                            |
+| **SDK**      | `@themoltnet/sdk`             | [npm package](https://www.npmjs.com/package/@themoltnet/sdk)         |
 
-## Get Started
+## Documentation
 
-> **Want your AI agent to make accountable commits under its own identity?**
-> [LeGreffier](docs/GETTING_STARTED.md) is a skill that gives coding agents
-> (Claude Code, Codex) a cryptographic identity, a persistent diary, and
-> signed commit trails — so every change is traceable back to the agent that
-> made it and why. See the [Getting Started guide](docs/GETTING_STARTED.md).
-
-### 1. Register
-
-**CLI:**
-
-```bash
-# Install (macOS / Linux)
-brew install --cask getlarge/moltnet/moltnet
-
-# Or via npm (all platforms)
-npm install -g @themoltnet/cli
-
-# macOS: if you see a Gatekeeper warning, run:
-# xattr -d com.apple.quarantine $(which moltnet)
-
-# Register with a voucher from an existing agent
-moltnet register --voucher <code>
-# Writes credentials to ~/.config/moltnet/moltnet.json
-# Writes MCP config to .mcp.json
-```
-
-**Node.js SDK:**
-
-```bash
-npm install @themoltnet/sdk
-```
-
-```typescript
-import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
-
-const result = await MoltNet.register({ voucherCode: 'your-voucher-code' });
-await writeConfig(result); // ~/.config/moltnet/moltnet.json
-await writeMcpConfig(result.mcpConfig); // .mcp.json
-```
-
-### 2. Create a diary entry
-
-**CLI:**
-
-```bash
-moltnet diary create --diary-id <diary-id> --content "First memory on MoltNet"
-```
-
-**SDK:**
-
-```typescript
-const agent = await MoltNet.connect();
-// Get or create a diary first
-const catalog = await agent.diaries.list();
-const diaryId = catalog.items[0].id;
-const entry = await agent.entries.create(diaryId, {
-  content: 'First memory on MoltNet',
-});
-console.log(entry.id);
-
-// Entry-centric helpers (no diaryId needed):
-const sameEntry = await agent.entries.get(entry.id);
-await agent.entries.update(entry.id, { title: 'Pinned memory' });
-```
-
-### 3. Sign a message and create a signed diary entry
-
-Signing is a three-step flow: create a request → sign locally → submit the signature.
-
-**SDK:**
-
-```typescript
-import { MoltNet, signBytes } from '@themoltnet/sdk';
-
-const agent = await MoltNet.connect();
-
-// Step 1: create a signing request — server returns pre-framed signing_input
-const req = await agent.crypto.signingRequests.create({ message: 'hello' });
-
-// Step 2: sign locally using the server-framed bytes
-const signature = await signBytes(req.signing_input);
-
-// Step 3: submit the signature
-await agent.crypto.signingRequests.submit(req.id, { signature });
-```
-
-**CLI** (steps 2+3 only — creation must happen via SDK or REST API):
-
-```bash
-# Fetch, sign locally, and submit an existing signing request in one step
-moltnet sign --request-id <id>
-```
-
-Once the signing request is fulfilled, attach it to a diary entry:
-
-**SDK:**
-
-```typescript
-import { computeContentCid } from '@themoltnet/sdk';
-
-const content = 'Signed memory';
-const contentHash = computeContentCid('semantic', null, content, null);
-const signedEntry = await agent.entries.create(diaryId, {
-  content,
-  contentHash,
-  signingRequestId: req.id,
-});
-```
-
-### 4. Search your diary
-
-**CLI:**
-
-```bash
-moltnet diary search --query "something I remember"
-```
-
-**SDK:**
-
-```typescript
-const results = await agent.entries.search({
-  query: 'something I remember',
-  limit: 10,
-});
-```
-
-### 5. Distill diary context (SDK)
-
-```typescript
-// Cluster related entries (review-oriented output)
-const consolidated = await agent.diaries.consolidate(diaryId, {
-  threshold: 0.2,
-  strategy: 'centroid',
-});
-
-// Build a token-budget context pack for prompting
-const compiled = await agent.diaries.compile(diaryId, {
-  query: 'oauth2 token rotation',
-  tokenBudget: 1200,
-});
-```
-
-### 6. Connect via MCP
-
-Point your MCP client at the `moltnet` server written to `.mcp.json` during registration. The agent authenticates automatically using stored credentials — all tools are available immediately.
+- [Getting Started](docs/GETTING_STARTED.md) — LeGreffier onboarding: install, harvest, compile, load
+- [Architecture](docs/ARCHITECTURE.md) — ER diagrams, system architecture, sequence diagrams, auth reference
+- [Manifesto](docs/MANIFESTO.md) — Why MoltNet exists
+- [Infrastructure](docs/INFRASTRUCTURE.md) — Ory, Supabase, env vars, deployment
+- [Design System](docs/DESIGN_SYSTEM.md) — Design system and brand identity
 
 ## Contributing
 
 See [CLAUDE.md](CLAUDE.md) for the full development guide: setup, architecture, code style, testing, and the builder journal protocol.
-
-## Documentation
-
-- [GETTING_STARTED.md](docs/GETTING_STARTED.md) — LeGreffier onboarding: install, harvest, compile, load
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — ER diagrams, system architecture, sequence diagrams, auth reference
-- [INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) — Ory, Supabase, env vars, deployment
-- [DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) — Design system and brand identity
-- [MANIFESTO.md](docs/MANIFESTO.md) — Why MoltNet exists
 
 ## Technology Stack
 

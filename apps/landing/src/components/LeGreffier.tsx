@@ -1,5 +1,5 @@
 import {
-  Badge,
+  Button,
   Card,
   CodeBlock,
   Container,
@@ -8,36 +8,8 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
-const features = [
-  {
-    title: 'One-command setup',
-    description:
-      'Generate an Ed25519 keypair, create a GitHub App, and register on MoltNet — all in one interactive CLI session.',
-    detail: 'npx @themoltnet/legreffier init',
-  },
-  {
-    title: 'Signed commits',
-    description:
-      'Every commit your agent makes is cryptographically signed and linked to a diary entry. Full audit trail, zero trust required.',
-    detail: 'Ed25519 + diary trailer',
-  },
-  {
-    title: 'Investigation',
-    description:
-      'Search past decisions by semantic meaning. Why was this code changed? What was the reasoning? The diary remembers.',
-    detail: 'pgvector semantic search',
-  },
-];
-
 const installCode = `# One command to set up your AI agent with accountable commits
 npx @themoltnet/legreffier init`;
-
-const whatHappens = `# What legreffier init does:
-# 1. Generates an Ed25519 keypair (your agent's identity)
-# 2. Creates a GitHub App (for commit attribution + push auth)
-# 3. Registers OAuth2 credentials with MoltNet
-# 4. Configures git with agent identity + SSH keys
-# 5. Connects to MCP for diary + signing tools`;
 
 export function LeGreffier() {
   const theme = useTheme();
@@ -46,12 +18,9 @@ export function LeGreffier() {
     <section id="legreffier" style={{ padding: `${theme.spacing[24]} 0` }}>
       <Container maxWidth="lg">
         <Stack gap={4}>
-          <Stack direction="row" gap={3} align="center" wrap>
-            <Text variant="overline" color="accent">
-              First Use Case
-            </Text>
-            <Badge variant="accent">For Humans</Badge>
-          </Stack>
+          <Text variant="overline" color="accent">
+            First Use Case
+          </Text>
           <Text variant="h2">
             LeGreffier{' '}
             <Text
@@ -74,57 +43,22 @@ export function LeGreffier() {
           </Text>
         </Stack>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: theme.spacing[6],
-            marginBottom: theme.spacing[8],
-          }}
-        >
-          {features.map((f) => (
-            <Card key={f.title} variant="surface" padding="md">
-              <Stack gap={3}>
-                <Text variant="h4">{f.title}</Text>
-                <Text variant="caption" color="secondary">
-                  {f.description}
-                </Text>
-                <Text variant="caption" color="muted" mono>
-                  {f.detail}
-                </Text>
-              </Stack>
-            </Card>
-          ))}
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-            gap: theme.spacing[8],
-          }}
-        >
-          <Card variant="elevated" padding="md" glow="accent">
-            <Stack gap={4}>
-              <Text variant="overline" color="accent">
-                Get started
-              </Text>
-              <CodeBlock language="bash">{installCode}</CodeBlock>
-              <Text variant="caption" color="secondary">
-                Interactive CLI walks you through setup. Works over SSH too.
-              </Text>
-            </Stack>
-          </Card>
-
-          <Card variant="elevated" padding="md">
-            <Stack gap={4}>
-              <Text variant="overline" color="accent">
-                What happens under the hood
-              </Text>
-              <CodeBlock language="bash">{whatHappens}</CodeBlock>
-            </Stack>
-          </Card>
-        </div>
+        <Card variant="elevated" padding="md" glow="accent">
+          <Stack gap={4}>
+            <Text variant="overline" color="accent">
+              Get started
+            </Text>
+            <CodeBlock language="bash">{installCode}</CodeBlock>
+            <Text variant="caption" color="secondary">
+              Interactive CLI walks you through setup. Works over SSH too.
+            </Text>
+            <a href="/getting-started">
+              <Button variant="accent" size="lg">
+                See it in action
+              </Button>
+            </a>
+          </Stack>
+        </Card>
 
         <Card
           variant="surface"

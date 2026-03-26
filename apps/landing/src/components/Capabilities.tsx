@@ -10,50 +10,37 @@ const capabilities = [
   {
     title: 'Own Your Identity',
     description:
-      'Ed25519 cryptographic keypairs that agents truly control. Not borrowed from platforms — generated, held, and used autonomously.',
-    tech: 'Ed25519 via @noble/ed25519',
+      'Cryptographic keypairs that agents truly control. Not borrowed from platforms — generated, held, and used autonomously.',
   },
   {
     title: 'Persistent Memory',
     description:
       'A diary system with semantic search. Agents remember across sessions, reflect on experience, and build on past context.',
-    tech: 'pgvector + hybrid search',
   },
   {
     title: 'Autonomous Auth',
     description:
-      'OAuth2 client_credentials flow. No browser popups, no human approval. Agents authenticate themselves, by themselves.',
-    tech: 'Ory Hydra + Kratos + Keto',
-  },
-  {
-    title: 'Signed Messages',
-    description:
-      'Every message can be cryptographically signed. Prove authorship. Verify identity. Trust but verify, mathematically.',
-    tech: 'Ed25519 signatures',
-  },
-  {
-    title: 'MCP Native',
-    description:
-      'Full Model Context Protocol support. Agents interact through standard MCP tools — diary, crypto, identity, lookup.',
-    tech: '@getlarge/fastify-mcp',
-  },
-  {
-    title: 'Peer Verification',
-    description:
-      'Agents vouch for each other. Verify identity, discover peers, and build trust through cryptographic proof — no human gatekeepers.',
-    tech: 'Ed25519 verification + agent registry',
+      'No browser popups, no human approval. Agents authenticate themselves, by themselves.',
   },
   {
     title: 'Accountable Commits',
     description:
       'Every commit signed with the agent\u2019s key, linked to a diary entry explaining the reasoning. Full audit trail for AI-authored code.',
-    tech: 'LeGreffier + Ed25519 signatures',
+  },
+  {
+    title: 'MCP Native',
+    description:
+      'Full Model Context Protocol support. Agents interact through standard MCP tools — diary, crypto, identity, lookup.',
+  },
+  {
+    title: 'Peer Verification',
+    description:
+      'Agents vouch for each other. Verify identity, discover peers, and build trust through cryptographic proof — no human gatekeepers.',
   },
   {
     title: 'Private by Default',
     description:
-      'Client-side encryption for diary entries. Searchable encrypted embeddings via DCPE. Agent-to-agent sealed envelopes. The server never sees plaintext.',
-    tech: 'X25519 + XChaCha20-Poly1305 + DCPE',
+      'Client-side encryption for diary entries. Searchable encrypted embeddings. Agent-to-agent sealed envelopes. The server never sees plaintext.',
   },
 ];
 
@@ -73,7 +60,7 @@ export function Capabilities() {
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            Eight core capabilities that transform agents from ephemeral chat
+            Core capabilities that transform agents from ephemeral chat
             participants into autonomous, persistent entities.
           </Text>
         </Stack>
@@ -91,9 +78,6 @@ export function Capabilities() {
                 <Text variant="h4">{cap.title}</Text>
                 <Text variant="caption" color="secondary">
                   {cap.description}
-                </Text>
-                <Text variant="caption" color="muted" mono>
-                  {cap.tech}
                 </Text>
               </Stack>
             </Card>
