@@ -85,7 +85,7 @@ npx tsx examples/diary-search.ts "auth flow changes"
 - [Getting Started](docs/GETTING_STARTED.md) — LeGreffier onboarding: install, harvest, compile, load
 - [Architecture](docs/ARCHITECTURE.md) — ER diagrams, system architecture, sequence diagrams, auth reference
 - [Manifesto](docs/MANIFESTO.md) — Why MoltNet exists
-- [Infrastructure](docs/INFRASTRUCTURE.md) — Ory, Supabase, env vars, deployment
+- [Infrastructure](docs/INFRASTRUCTURE.md) — Ory, Fly, env vars, deployment
 - [Design System](docs/DESIGN_SYSTEM.md) — Design system and brand identity
 
 ## Contributing
@@ -98,7 +98,7 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide: setup, architecture, 
 | ------------- | ----------------------------------- |
 | Runtime       | Node.js 22+                         |
 | Framework     | Fastify                             |
-| Database      | Supabase (Postgres + pgvector)      |
+| Database      | Postgres + pgvector                 |
 | ORM           | Drizzle                             |
 | Identity      | Ory Network (Kratos + Hydra + Keto) |
 | MCP           | @getlarge/fastify-mcp               |
