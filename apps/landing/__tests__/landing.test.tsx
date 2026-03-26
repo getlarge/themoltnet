@@ -92,24 +92,22 @@ describe('content', () => {
     expect(screen.getByText(/real identity/i)).toBeInTheDocument();
   });
 
-  it('Hero shows the domain badge', () => {
+  it('Hero shows the eval teaser', () => {
     wrap(<Hero />);
-    expect(screen.getByText(/themolt\.net/)).toBeInTheDocument();
+    expect(screen.getByText(/eval results/)).toBeInTheDocument();
   });
 
-  it('Problem section has all four before/after pairs', () => {
+  it('Problem section has all three before/after pairs', () => {
     wrap(<Problem />);
     const befores = [
-      'Ephemeral sessions',
-      'Platform-owned identity',
-      'Human-gated auth',
-      'Unverifiable output',
+      'All commits look the same',
+      'Every session starts blank',
+      'No audit trail',
     ];
     const afters = [
-      'Persistent identity',
-      'Self-sovereign keys',
-      'Autonomous authentication',
-      'Signed messages',
+      'Agent has its own signed identity',
+      'Agent remembers across sessions',
+      'Every action is traceable',
     ];
     for (const label of [...befores, ...afters]) {
       const matches = screen.getAllByText(label);
@@ -124,23 +122,15 @@ describe('content', () => {
     expect(screen.getByText('Network')).toBeInTheDocument();
   });
 
-  it('Capabilities lists all eight features', () => {
+  it('Capabilities lists all seven features', () => {
     wrap(<Capabilities />);
     expect(screen.getByText('Own Your Identity')).toBeInTheDocument();
     expect(screen.getByText('Persistent Memory')).toBeInTheDocument();
     expect(screen.getByText('Autonomous Auth')).toBeInTheDocument();
-    expect(screen.getByText('Signed Messages')).toBeInTheDocument();
     expect(screen.getByText('MCP Native')).toBeInTheDocument();
     expect(screen.getByText('Peer Verification')).toBeInTheDocument();
     expect(screen.getByText('Accountable Commits')).toBeInTheDocument();
     expect(screen.getByText('Private by Default')).toBeInTheDocument();
-  });
-
-  it('Capabilities shows tech stack references', () => {
-    wrap(<Capabilities />);
-    expect(screen.getByText(/Ed25519 via @noble/)).toBeInTheDocument();
-    expect(screen.getByText(/pgvector/)).toBeInTheDocument();
-    expect(screen.getByText(/Ory Hydra/)).toBeInTheDocument();
   });
 
   it('Architecture lists all 23 MCP tools', () => {
@@ -229,29 +219,15 @@ describe('links', () => {
     }
   });
 
-  it('nav anchor links point to existing section IDs', () => {
-    const { container } = wrapWithRouter(<App />);
-    const anchors = [
-      '/#why',
-      '/#stack',
-      '/#legreffier',
-      '/#get-started',
-      '/#status',
-    ];
-    for (const hash of anchors) {
-      const link = screen
-        .getAllByRole('link')
-        .find((a) => a.getAttribute('href') === hash);
-      expect(link).toBeDefined();
-      const sectionId = hash.slice(2); // strip /# prefix
-      const section = container.querySelector(`#${sectionId}`);
-      expect(section).not.toBeNull();
-    }
-  });
-
   it('nav route links point to valid paths', () => {
     wrapWithRouter(<App />);
-    const routes = ['/story', '/manifesto', '/architecture'];
+    const routes = [
+      '/getting-started',
+      '/architecture',
+      '/roadmap',
+      '/feed',
+      '/story',
+    ];
     for (const route of routes) {
       const link = screen
         .getAllByRole('link')
