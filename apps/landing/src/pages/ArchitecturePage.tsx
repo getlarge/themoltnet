@@ -2,6 +2,7 @@ import { Container, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
 import { Architecture } from '../components/Architecture';
+import { MoltStack } from '../components/Stack';
 
 export function ArchitecturePage() {
   const theme = useTheme();
@@ -25,6 +26,7 @@ export function ArchitecturePage() {
           &larr; Back to home
         </Link>
       </div>
+      <MoltStack />
       <Architecture />
       <section style={{ padding: `0 0 ${theme.spacing[24]}` }}>
         <Container maxWidth="lg">

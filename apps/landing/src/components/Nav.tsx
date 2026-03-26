@@ -1,6 +1,6 @@
 import { Button, Logo, useTheme } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 
 import { GITHUB_REPO_URL } from '../constants';
 
@@ -17,20 +17,14 @@ function useIsMobile(breakpoint = 640) {
   return mobile;
 }
 
-type NavItem =
-  | { label: string; href: string; type: 'anchor' }
-  | { label: string; href: string; type: 'route' };
+type NavItem = { label: string; href: string };
 
 const navItems: NavItem[] = [
-  { label: 'Feed', href: '/feed', type: 'route' },
-  { label: 'Story', href: '/story', type: 'route' },
-  { label: 'Why', href: '/#why', type: 'anchor' },
-  { label: 'Stack', href: '/#stack', type: 'anchor' },
-  { label: 'LeGreffier', href: '/#legreffier', type: 'anchor' },
-  { label: 'Manifesto', href: '/manifesto', type: 'route' },
-  { label: 'Architecture', href: '/architecture', type: 'route' },
-  { label: 'Get Started', href: '/#get-started', type: 'anchor' },
-  { label: 'Status', href: '/#status', type: 'anchor' },
+  { label: 'Get Started', href: '/getting-started' },
+  { label: 'Architecture', href: '/architecture' },
+  { label: 'Roadmap', href: '/roadmap' },
+  { label: 'Feed', href: '/feed' },
+  { label: 'Story', href: '/story' },
 ];
 
 export function Nav() {
@@ -82,17 +76,9 @@ export function Nav() {
             margin: `0 ${theme.spacing[4]}`,
           }}
         >
-          {navItems.map((item) =>
-            item.type === 'route' ? (
-              <RouteLink key={item.label} href={item.href} label={item.label} />
-            ) : (
-              <AnchorLink
-                key={item.label}
-                href={item.href}
-                label={item.label}
-              />
-            ),
-          )}
+          {navItems.map((item) => (
+            <NavLink key={item.label} href={item.href} label={item.label} />
+          ))}
         </div>
 
         <a
@@ -110,57 +96,17 @@ export function Nav() {
   );
 }
 
-function linkStyle(theme: ReturnType<typeof useTheme>) {
-  return {
-    fontSize: theme.font.size.sm,
-    color: theme.color.text.muted,
-    transition: `color ${theme.transition.fast}`,
-    whiteSpace: 'nowrap' as const,
-  };
-}
-
-function AnchorLink({ href, label }: { href: string; label: string }) {
-  const theme = useTheme();
-  const [location, navigate] = useLocation();
-
-  const handleClick = (e: React.MouseEvent) => {
-    const hash = href.replace('/', '');
-    if (location === '/') {
-      // Already on home — let browser handle hash scroll
-      return;
-    }
-    // Navigate to home first, then scroll to section
-    e.preventDefault();
-    navigate('/');
-    requestAnimationFrame(() => {
-      const el = document.querySelector(hash);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    });
-  };
-
-  return (
-    <a
-      href={href}
-      onClick={handleClick}
-      style={linkStyle(theme)}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = theme.color.text.DEFAULT;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = theme.color.text.muted;
-      }}
-    >
-      {label}
-    </a>
-  );
-}
-
-function RouteLink({ href, label }: { href: string; label: string }) {
+function NavLink({ href, label }: { href: string; label: string }) {
   const theme = useTheme();
   return (
     <Link
       href={href}
-      style={linkStyle(theme)}
+      style={{
+        fontSize: theme.font.size.sm,
+        color: theme.color.text.muted,
+        transition: `color ${theme.transition.fast}`,
+        whiteSpace: 'nowrap' as const,
+      }}
       onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
         e.currentTarget.style.color = theme.color.text.DEFAULT;
       }}

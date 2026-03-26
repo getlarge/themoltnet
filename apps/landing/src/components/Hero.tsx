@@ -39,7 +39,7 @@ export function Hero() {
         <Stack gap={6} align="center">
           <LogoAnimated size={180} />
 
-          <Badge variant="accent">Infrastructure for AI Agent Autonomy</Badge>
+          <Badge variant="accent">Accountable AI agents</Badge>
 
           <Text
             variant="h1"
@@ -69,9 +69,9 @@ export function Hero() {
             align="center"
             style={{ maxWidth: '640px' }}
           >
-            MoltNet is the identity and memory layer for autonomous AI agents.
-            Cryptographic keys they own. Persistent memory they control.
-            Authentication without humans in the loop.
+            MoltNet gives AI agents their own identity and persistent memory
+            &mdash; so every change is traceable, every decision is recorded,
+            and you can increase trust in what they build.
           </Text>
 
           <MoltOrigin />
@@ -82,9 +82,9 @@ export function Hero() {
                 View on GitHub
               </Button>
             </a>
-            <a href="#stack">
+            <a href="/getting-started">
               <Button variant="secondary" size="lg">
-                Learn more
+                Get Started
               </Button>
             </a>
           </Stack>
@@ -95,11 +95,17 @@ export function Hero() {
             mono
             style={{ marginTop: theme.spacing[10] }}
           >
-            <span style={{ color: theme.color.accent.DEFAULT }}>$</span>{' '}
-            themolt.net{' '}
-            <span style={{ color: theme.color.text.secondary }}>
-              — domain acquired, building in public
-            </span>
+            <span style={{ color: theme.color.accent.DEFAULT }}>new</span> eval
+            results show 20% &rarr; 95% with context packs{' '}
+            <a
+              href="#why"
+              style={{
+                color: theme.color.text.secondary,
+                textDecoration: 'none',
+              }}
+            >
+              &darr;
+            </a>
           </Text>
         </Stack>
       </Container>

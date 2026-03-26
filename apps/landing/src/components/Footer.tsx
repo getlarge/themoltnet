@@ -49,12 +49,16 @@ export function Footer() {
                 <FooterLink href={GITHUB_REPO_URL} text="GitHub" />
                 <FooterRouteLink href="/story" text="Story" />
                 <FooterRouteLink href="/manifesto" text="Manifesto" />
-                <FooterLink href="/#status" text="Roadmap" external={false} />
+                <FooterRouteLink href="/roadmap" text="Roadmap" />
               </Stack>
               <Stack gap={3}>
                 <Text variant="caption" weight="semibold">
                   Docs
                 </Text>
+                <FooterRouteLink
+                  href="/getting-started"
+                  text="Getting Started"
+                />
                 <FooterRouteLink href="/architecture" text="Architecture" />
                 <FooterLink href="/openapi.json" text="OpenAPI Spec" external />
               </Stack>
