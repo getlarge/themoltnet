@@ -261,82 +261,16 @@ Sequence the output in this order:
 Write a local YAML or Markdown note that will drive **manual entry selection**
 for `packs_create`.
 
-Preferred template path:
+Canonical template file:
 
-`tiles/legreffier-explore/templates/exploration-pack-plan.yaml`
+`exploration-pack-plan.yaml`
 
-Copy or adapt that template rather than inventing an ad hoc structure.
+This file must live next to `SKILL.md` in every shipped layout
+(`.agents/`, `.claude/`, and Tessl tile packaging). If the adjacent template is
+missing, stop and report a packaging or installation error.
 
-Preferred shape:
-
-```yaml
-diary: <diary-name>
-generated_at: <ISO timestamp>
-entries_analyzed: <count>
-temporal_range:
-  start: <earliest>
-  end: <most_recent>
-
-inventory:
-  entry_types:
-    <entry_type>: <count>
-  top_tags:
-    <tag>: <count>
-
-tag_namespaces:
-  <namespace>:
-    <value>: <count>
-
-agent_mistakes:
-  critical_high:
-    - entry_id: <uuid>
-      title: <title>
-      subsystem: <inferred subsystem>
-      what_went_wrong: <summary>
-      preventive_context: <what should have been known>
-  medium_low:
-    - ...
-
-commit_patterns:
-  top_tags:
-    <tag>: <count>
-  branches:
-    <branch>: <count>
-  anti_patterns:
-    - <pattern>
-
-coverage_gaps:
-  - topic: <topic>
-    evidence: <how discovered>
-    gap_type: <description>
-
-noise_sources:
-  - tag_or_pattern: <tag or pattern>
-    why: <why it should be excluded>
-
-recommended_compile_recipes:
-  - name: <recipe name>
-    intent: <what task this supports>
-    task_prompt: <specific compile question>
-    token_budget: <number>
-    lambda: <0.0-1.0>
-    w_importance: <0.0-1.0>
-    w_recency: <0.0-1.0>
-    include_tags: [<tags>]
-    exclude_tags: [<tags>]
-    rationale: <why these settings fit this diary>
-
-manual_pack_plan:
-  candidate_topics:
-    - <topic bucket>
-  candidate_entry_ids:
-    - <uuid>
-  selection_rules:
-    - prefer entries with clear preventive context
-    - prefer decisions plus incidents that prove them
-    - avoid raw learn traces unless the goal is coverage-gap analysis
-  next_step: create a curated packs_create payload from the selected entry IDs
-```
+Use that adjacent file as the single source of truth for the scratch artifact
+shape. Copy or adapt it rather than re-specifying the full YAML structure here.
 
 Only promote exploration findings into the diary if explicitly requested or if
 the result has been condensed into a stable, reusable artifact such as:
