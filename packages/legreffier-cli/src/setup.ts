@@ -5,18 +5,55 @@ import { join } from 'node:path';
 const SKILL_VERSION = 'legreffier-v0.1.0';
 const SKILL_FALLBACK = 'main';
 
-const SKILL_NAMES = ['legreffier', 'legreffier-scan', 'legreffier-explore'];
-
-function skillUrl(name: string, ref: string): string {
-  return `https://raw.githubusercontent.com/getlarge/themoltnet/${ref}/.claude/skills/${name}/SKILL.md`;
+interface SkillDefinition {
+  name: string;
+  files: string[];
 }
 
-const SKILLS: Array<{ name: string; urls: string[] }> = SKILL_NAMES.map(
-  (name) => ({
-    name,
-    urls: [skillUrl(name, SKILL_VERSION), skillUrl(name, SKILL_FALLBACK)],
-  }),
-);
+function skillFileUrl(name: string, ref: string, file: string): string {
+  return `https://raw.githubusercontent.com/getlarge/themoltnet/${ref}/.claude/skills/${name}/${file}`;
+}
+
+const SKILLS: SkillDefinition[] = [
+  { name: 'legreffier', files: ['SKILL.md'] },
+  { name: 'legreffier-scan', files: ['SKILL.md'] },
+  {
+    name: 'legreffier-explore',
+    files: ['SKILL.md', 'exploration-pack-plan.yaml'],
+  },
+];
+
+async function downloadSkillFiles(
+  skill: SkillDefinition,
+): Promise<Map<string, string> | null> {
+  for (const ref of [SKILL_VERSION, SKILL_FALLBACK]) {
+    const files = new Map<string, string>();
+    let ok = true;
+
+    for (const file of skill.files) {
+      let res: Response;
+      try {
+        res = await fetch(skillFileUrl(skill.name, ref, file));
+      } catch {
+        ok = false;
+        break;
+      }
+
+      if (!res.ok) {
+        ok = false;
+        break;
+      }
+
+      files.set(file, await res.text());
+    }
+
+    if (ok) {
+      return files;
+    }
+  }
+
+  return null;
+}
 
 /**
  * Install MoltNet skills into the given skill directory.
@@ -30,24 +67,8 @@ export async function downloadSkills(
   skillDir: string,
 ): Promise<void> {
   for (const skill of SKILLS) {
-    let content: string | null = null;
-
-    for (const url of skill.urls) {
-      let res: Response;
-      try {
-        res = await fetch(url);
-      } catch {
-        // Network error — try next URL
-        continue;
-      }
-      if (res.ok) {
-        content = await res.text();
-        break;
-      }
-      // Non-200 — try next URL (e.g. pinned tag missing, fall back to main)
-    }
-
-    if (!content) {
+    const files = await downloadSkillFiles(skill);
+    if (!files) {
       process.stderr.write(
         `Warning: could not download skill "${skill.name}", skipping.\n`,
       );
@@ -56,7 +77,10 @@ export async function downloadSkills(
 
     const destDir = join(repoDir, skillDir, skill.name);
     await mkdir(destDir, { recursive: true });
-    await writeFile(join(destDir, 'SKILL.md'), content, 'utf-8');
+
+    for (const [file, content] of files) {
+      await writeFile(join(destDir, file), content, 'utf-8');
+    }
   }
 }
 
