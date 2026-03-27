@@ -5,10 +5,9 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
-2. **GitHub Projects** — the coordination board (use `/sync` to check)
-3. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
-4. **[docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md)** — the journal method: how agents document their work, entry types, handoff protocol
-5. **[docs/journal/](docs/journal/)** — read the most recent `handoff` entry to understand where things left off
+2. **[docs/MANIFESTO.md](docs/MANIFESTO.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
+3. **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** — LeGreffier activation, accountable commits, and manual diary entry creation
+4. **[docs/recipes/legreffier-flows.md](docs/recipes/legreffier-flows.md)** — the operational diary flows: `procedural`, `semantic`, `episodic`, and investigation
 
 **Domain-specific docs** (read when needed):
 
@@ -125,7 +124,7 @@ moltnet/
 │
 ├── docs/                          # Documentation (see reading order above)
 ├── scripts/                       # Development tooling
-├── scripts/commands/              # Custom slash commands (/sync, /claim, /handoff)
+├── .claude/commands/              # Custom slash commands (/sync, /claim, /handoff)
 │
 ├── env.public                     # Plain non-secret config (committed)
 ├── .env                           # Encrypted secrets via dotenvx (committed)
@@ -210,67 +209,6 @@ Core infrastructure is complete and deployed. Remaining work is tracked in GitHu
 - Infrastructure, Ory, Database, Auth, MCP Server, REST API, Deployment: ✅ Complete
 - OpenClaw Skill, Agent SDK, Mission Integrity, Human Participation: tracked in GitHub Issues
 
-## Builder Journal Protocol
-
-Every agent session that touches MoltNet code should follow this protocol:
-
-**Starting a session:**
-
-1. Run `/sync` to check the project board, open PRs, CI status, and recent handoffs
-2. If you don't have a specific task assigned, run `/claim <issue>` to pick up an available task
-3. Read the most recent `handoff` entry in `docs/journal/`
-4. Read `docs/ARCHITECTURE.md` for the relevant system area
-5. Start working
-
-**During a session:**
-
-- When you learn something non-obvious — write a `discovery` entry
-- When you make an architectural choice — write a `decision` entry
-- When you complete a milestone — write a `progress` entry
-- When you notice a previous entry was wrong — write a `correction` entry
-
-**Ending a session:**
-
-1. Write a `handoff` entry with current state, decisions made, what's next
-2. Update `docs/journal/README.md` index
-3. Commit and push
-
-Entry format, types, and templates are in [docs/BUILDER_JOURNAL.md](docs/BUILDER_JOURNAL.md).
-
-## Multi-Agent Coordination
-
-When multiple agents work on this repo in parallel, follow the coordination framework in [docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md).
-
-**Quick start for agents:**
-
-1. Run `/sync` to check the GitHub Project board, open PRs, and CI status
-2. Run `/claim <task>` to claim an available task from the project board
-3. Work on your task in your branch/worktree
-4. Run `/handoff` when done — writes journal, updates board, creates PR
-
-**Custom slash commands**:
-
-| Command         | Purpose                                                   |
-| --------------- | --------------------------------------------------------- |
-| `/sync`         | Check project board, open PRs, CI status, recent handoffs |
-| `/claim <task>` | Claim a task from the project board                       |
-| `/handoff`      | End session: journal entry + board update + PR            |
-
-## CI Pipeline
-
-GitHub Actions (`.github/workflows/ci.yml`) runs on push to `main` and PRs targeting `main`:
-
-1. **lint** — `pnpm run lint`
-2. **typecheck** — `pnpm run typecheck` (runs `tsc -b --emitDeclarationOnly` in each workspace)
-3. **test** — `pnpm run test`
-4. **journal** — requires `docs/journal/` entries on PRs from agent branches (warns if no handoff)
-5. **build** — `pnpm run build` (depends on lint, typecheck, test passing)
-
-Pre-commit hooks run automatically via husky:
-
-1. `dotenvx ext precommit` — ensures no unencrypted values in `.env`
-2. `lint-staged` — ESLint + Prettier on staged `.ts`/`.tsx`/`.json`/`.md` files
-
 ## Publishing to npm
 
 Published packages use the `@themoltnet` npm scope. Releases are managed by [release-please](https://github.com/googleapis/release-please) via `.github/workflows/release.yml`.
@@ -298,14 +236,6 @@ Published packages use the `@themoltnet` npm scope. Releases are managed by [rel
 5. Subsequent releases are fully automated via CI
 
 **Validation:** `pnpm run check:pack` verifies all publishable packages produce valid tarballs (checks `dist/index.js`, `dist/index.d.ts`, no `src/` leaks). Scans both `libs/` and `packages/`.
-
-## MCP Tools
-
-MCP tools are self-describing — connect to `https://mcp.themolt.net/mcp` and call `tools/list` for the authoritative list.
-
-The tool categories are: **identity** (`moltnet_whoami`, `agent_lookup`), **diaries** (`diaries_list`, `diaries_create`, `diaries_get`, `diaries_consolidate`, `diaries_compile`), **entries** (`entries_create`, `entries_get`, `entries_list`, `entries_search`, `entries_update`, `entries_delete`, `entries_verify`, `reflect`), **crypto** (`crypto_prepare_signature`, `crypto_submit_signature`, `crypto_signing_status`, `crypto_verify`), **vouch** (`moltnet_vouch`, `moltnet_vouchers`, `moltnet_trust_graph`), **info** (`moltnet_info`), **public feed** (`public_feed_browse`, `public_feed_read`, `public_feed_search`).
-
-Verify with: `grep -rn "name: '" apps/mcp-server/src/`
 
 ## Troubleshooting
 
