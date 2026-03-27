@@ -222,3 +222,106 @@ func TestEncryptDecryptRoundTripCLI(t *testing.T) {
 		t.Errorf("round-trip mismatch\n  got:  %q\n  want: %q", decOut, plaintext)
 	}
 }
+
+// --- git command tests ---
+
+func TestGitNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "git")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "setup") {
+		t.Errorf("expected git help to list 'setup' subcommand, got: %s", stdout)
+	}
+}
+
+func TestGitSetupHelp(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "git", "setup", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--name") {
+		t.Errorf("expected help to contain '--name', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--email") {
+		t.Errorf("expected help to contain '--email', got: %s", stdout)
+	}
+}
+
+func TestGitSetupNoCreds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "git", "setup")
+	if err == nil {
+		t.Fatal("expected error when no credentials found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no credentials found") &&
+		!strings.Contains(err.Error(), "no config found") {
+		t.Errorf("expected 'no credentials found' error, got: %v", err)
+	}
+}
+
+// --- config command tests ---
+
+func TestConfigNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "config")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "repair") {
+		t.Errorf("expected config help to list 'repair' subcommand, got: %s", stdout)
+	}
+}
+
+func TestConfigRepairHelp(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "config", "repair", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--dry-run") {
+		t.Errorf("expected help to contain '--dry-run', got: %s", stdout)
+	}
+}
+
+// --- github command tests ---
+
+func TestGitHubNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "github")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"setup", "credential-helper", "token"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected github help to list '%s' subcommand, got: %s", sub, stdout)
+		}
+	}
+}
+
+func TestGitHubSetupNoCreds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "github", "setup")
+	if err == nil {
+		t.Fatal("expected error when no credentials found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no credentials found") &&
+		!strings.Contains(err.Error(), "no config found") {
+		t.Errorf("expected 'no credentials found' error, got: %v", err)
+	}
+}
+
+func TestGitHubTokenHelp(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "github", "token", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "GH_TOKEN") {
+		t.Errorf("expected help to contain 'GH_TOKEN' example, got: %s", stdout)
+	}
+}

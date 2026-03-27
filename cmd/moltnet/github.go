@@ -18,31 +18,9 @@ import (
 	"time"
 )
 
-func runGitHubSetup(args []string) error {
-	fs := flag.NewFlagSet("github setup", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to moltnet.json")
-	name := fs.String("name", "", "Git committer name (default: app name from GitHub)")
-	appSlug := fs.String("app-slug", "", "GitHub App slug (default: from moltnet.json github.app_slug)")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet github setup [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "One-command setup for GitHub App git identity.")
-		fmt.Fprintln(os.Stderr, "Exports SSH keys, looks up bot user ID, configures git")
-		fmt.Fprintln(os.Stderr, "signing, and adds the credential helper.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Requires a 'github' section in moltnet.json with app_id,")
-		fmt.Fprintln(os.Stderr, "installation_id, and private_key_path.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	creds, err := loadCredentials(*credPath)
+// runGitHubSetupCmd is the flag-free business logic for github setup.
+func runGitHubSetupCmd(credPath, name, appSlug string) error {
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
@@ -52,7 +30,7 @@ func runGitHubSetup(args []string) error {
 	}
 
 	// Resolve app slug
-	slug := *appSlug
+	slug := appSlug
 	if slug == "" {
 		slug = creds.GitHub.AppSlug
 	}
@@ -63,15 +41,11 @@ func runGitHubSetup(args []string) error {
 	// Step 1: Export SSH keys if not present
 	if creds.SSH == nil {
 		fmt.Fprintln(os.Stderr, "Exporting SSH keys...")
-		sshArgs := []string{}
-		if *credPath != "" {
-			sshArgs = append(sshArgs, "--credentials", *credPath)
-		}
-		if err := runSSHKeyExport(sshArgs); err != nil {
+		if err := runSSHKeyExportCmd(credPath, ""); err != nil {
 			return fmt.Errorf("ssh-key export: %w", err)
 		}
 		// Re-read config to get SSH paths
-		creds, err = loadCredentials(*credPath)
+		creds, err = loadCredentials(credPath)
 		if err != nil {
 			return err
 		}
@@ -86,7 +60,7 @@ func runGitHubSetup(args []string) error {
 	fmt.Fprintf(os.Stderr, "  Bot user ID: %d\n", botUserID)
 
 	// Step 3: Determine name and email
-	gitName := *name
+	gitName := name
 	if gitName == "" {
 		gitName = appName
 	}
@@ -94,16 +68,12 @@ func runGitHubSetup(args []string) error {
 
 	// Step 4: Run git setup
 	fmt.Fprintln(os.Stderr, "Configuring git identity...")
-	gitArgs := []string{"--name", gitName, "--email", gitEmail}
-	if *credPath != "" {
-		gitArgs = append(gitArgs, "--credentials", *credPath)
-	}
-	if err := runGitSetup(gitArgs); err != nil {
+	if err := runGitSetupCmd(credPath, gitName, gitEmail); err != nil {
 		return fmt.Errorf("git setup: %w", err)
 	}
 
 	// Re-read config to get gitconfig path
-	creds, err = loadCredentials(*credPath)
+	creds, err = loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
@@ -111,8 +81,8 @@ func runGitHubSetup(args []string) error {
 	// Step 5: Persist app_slug if not already stored
 	if creds.GitHub.AppSlug == "" {
 		creds.GitHub.AppSlug = slug
-		if *credPath != "" {
-			if _, err := WriteConfigTo(creds, *credPath); err != nil {
+		if credPath != "" {
+			if _, err := WriteConfigTo(creds, credPath); err != nil {
 				return fmt.Errorf("update config: %w", err)
 			}
 		} else {
@@ -126,8 +96,8 @@ func runGitHubSetup(args []string) error {
 	if creds.Git != nil && creds.Git.ConfigPath != "" {
 		fmt.Fprintln(os.Stderr, "Adding credential helper to gitconfig...")
 		helperCmd := "moltnet github credential-helper"
-		if *credPath != "" {
-			helperCmd += " --credentials " + *credPath
+		if credPath != "" {
+			helperCmd += " --credentials " + credPath
 		}
 		credHelperLine := fmt.Sprintf("\n[credential \"https://github.com\"]\n\thelper = %s\n", helperCmd)
 		f, err := os.OpenFile(creds.Git.ConfigPath, os.O_APPEND|os.O_WRONLY, 0o644)
@@ -190,25 +160,9 @@ func lookupBotUser(appSlug string) (int64, string, error) {
 	return result.ID, appSlug, nil
 }
 
-func runGitHubCredentialHelper(args []string) error {
-	fs := flag.NewFlagSet("github credential-helper", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to moltnet.json")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet github credential-helper [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Git credential helper for GitHub App authentication.")
-		fmt.Fprintln(os.Stderr, "Outputs access token in git credential protocol format.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	creds, err := loadCredentials(*credPath)
+// runGitHubCredentialHelperCmd is the flag-free business logic for github credential-helper.
+func runGitHubCredentialHelperCmd(credPath string) error {
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
@@ -230,25 +184,9 @@ func runGitHubCredentialHelper(args []string) error {
 	return nil
 }
 
-func runGitHubToken(args []string) error {
-	fs := flag.NewFlagSet("github token", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to moltnet.json (env: MOLTNET_CREDENTIALS_PATH)")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet github token [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Print a GitHub App installation access token to stdout.")
-		fmt.Fprintln(os.Stderr, "Use with: GH_TOKEN=$(moltnet github token) gh pr create ...")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	path := *credPath
+// runGitHubTokenCmd is the flag-free business logic for github token.
+func runGitHubTokenCmd(credPath string) error {
+	path := credPath
 	if path == "" {
 		path = os.Getenv("MOLTNET_CREDENTIALS_PATH")
 	}
@@ -400,4 +338,36 @@ func createAppJWT(appID string, privKey *rsa.PrivateKey) (string, error) {
 
 	signature := base64.RawURLEncoding.EncodeToString(sig)
 	return signingInput + "." + signature, nil
+}
+
+// runGitHubSetup is the legacy flag-parsing entry point, preserved for existing tests.
+func runGitHubSetup(args []string) error {
+	fs := flag.NewFlagSet("github setup", flag.ExitOnError)
+	credPath := fs.String("credentials", "", "Path to moltnet.json")
+	name := fs.String("name", "", "Git committer name")
+	appSlug := fs.String("app-slug", "", "GitHub App slug")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return runGitHubSetupCmd(*credPath, *name, *appSlug)
+}
+
+// runGitHubCredentialHelper is the legacy flag-parsing entry point, preserved for existing tests.
+func runGitHubCredentialHelper(args []string) error {
+	fs := flag.NewFlagSet("github credential-helper", flag.ExitOnError)
+	credPath := fs.String("credentials", "", "Path to moltnet.json")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return runGitHubCredentialHelperCmd(*credPath)
+}
+
+// runGitHubToken is the legacy flag-parsing entry point, preserved for existing tests.
+func runGitHubToken(args []string) error {
+	fs := flag.NewFlagSet("github token", flag.ExitOnError)
+	credPath := fs.String("credentials", "", "Path to moltnet.json")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return runGitHubTokenCmd(*credPath)
 }

@@ -15,27 +15,9 @@ type ConfigIssue struct {
 	Action  string // "fixed", "warning", "migrate"
 }
 
-func runConfigRepair(args []string) error {
-	fs := flag.NewFlagSet("config repair", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to moltnet.json")
-	dryRun := fs.Bool("dry-run", false, "Report issues without fixing them")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet config repair [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Validate and repair a MoltNet config file.")
-		fmt.Fprintln(os.Stderr, "Checks required fields, fixes stale file paths,")
-		fmt.Fprintln(os.Stderr, "and migrates credentials.json to moltnet.json.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	resolvedPath, creds, issues, err := loadAndValidate(*credPath)
+// runConfigRepairCmd is the flag-free business logic for config repair.
+func runConfigRepairCmd(credPath string, dryRun bool) error {
+	resolvedPath, creds, issues, err := loadAndValidate(credPath)
 	if err != nil {
 		return err
 	}
@@ -50,7 +32,7 @@ func runConfigRepair(args []string) error {
 		fmt.Fprintf(os.Stderr, "  [%s] %s: %s\n", iss.Action, iss.Field, iss.Problem)
 	}
 
-	if *dryRun {
+	if dryRun {
 		return nil
 	}
 
@@ -72,8 +54,8 @@ func runConfigRepair(args []string) error {
 
 	if fixed > 0 {
 		writePath := resolvedPath
-		if *credPath != "" {
-			writePath = *credPath
+		if credPath != "" {
+			writePath = credPath
 		}
 		if _, err := WriteConfigTo(creds, writePath); err != nil {
 			return fmt.Errorf("write config: %w", err)
@@ -193,6 +175,17 @@ func checkFilePath(issues *[]ConfigIssue, field, path string) {
 			Action:  "warning",
 		})
 	}
+}
+
+// runConfigRepair is the legacy flag-parsing entry point, preserved for existing tests.
+func runConfigRepair(args []string) error {
+	fs := flag.NewFlagSet("config repair", flag.ExitOnError)
+	credPath := fs.String("credentials", "", "Path to moltnet.json")
+	dryRun := fs.Bool("dry-run", false, "Report issues without fixing them")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return runConfigRepairCmd(*credPath, *dryRun)
 }
 
 // migrateConfig writes the config to moltnet.json in the same directory.

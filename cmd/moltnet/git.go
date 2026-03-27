@@ -8,27 +8,9 @@ import (
 	"strings"
 )
 
-func runGitSetup(args []string) error {
-	fs := flag.NewFlagSet("git setup", flag.ExitOnError)
-	name := fs.String("name", "", "Git committer name (default: moltnet-agent-<id-prefix>)")
-	email := fs.String("email", "", "Git committer email (default: <identity_id>@agents.themolt.net)")
-	credPath := fs.String("credentials", "", "Path to moltnet.json")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet git setup [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Configure git identity for SSH commit signing.")
-		fmt.Fprintln(os.Stderr, "Requires SSH keys (run 'moltnet ssh-key' first).")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	creds, err := loadCredentials(*credPath)
+// runGitSetupCmd is the flag-free business logic for git setup.
+func runGitSetupCmd(credPath, name, email string) error {
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
@@ -44,7 +26,7 @@ func runGitSetup(args []string) error {
 	}
 
 	// Determine name/email
-	gitName := *name
+	gitName := name
 	if gitName == "" {
 		idPrefix := creds.IdentityID
 		if len(idPrefix) > 8 {
@@ -53,15 +35,15 @@ func runGitSetup(args []string) error {
 		gitName = "moltnet-agent-" + idPrefix
 	}
 
-	gitEmail := *email
+	gitEmail := email
 	if gitEmail == "" {
 		gitEmail = creds.IdentityID + "@agents.themolt.net"
 	}
 
 	// Build allowed_signers — relative to the config file
 	var configDir string
-	if *credPath != "" {
-		configDir = filepath.Dir(*credPath)
+	if credPath != "" {
+		configDir = filepath.Dir(credPath)
 	} else {
 		configDir, err = GetConfigDir()
 		if err != nil {
@@ -109,8 +91,8 @@ func runGitSetup(args []string) error {
 		Signing:    true,
 		ConfigPath: gitconfigPath,
 	}
-	if *credPath != "" {
-		if _, err := WriteConfigTo(creds, *credPath); err != nil {
+	if credPath != "" {
+		if _, err := WriteConfigTo(creds, credPath); err != nil {
 			return fmt.Errorf("update config: %w", err)
 		}
 	} else {
@@ -127,4 +109,16 @@ func runGitSetup(args []string) error {
 	fmt.Fprintf(os.Stderr, "\nActivate with: export GIT_CONFIG_GLOBAL=%s\n", gitconfigPath)
 
 	return nil
+}
+
+// runGitSetup is the legacy flag-parsing entry point, preserved for existing tests.
+func runGitSetup(args []string) error {
+	fs := flag.NewFlagSet("git setup", flag.ExitOnError)
+	name := fs.String("name", "", "Git committer name")
+	email := fs.String("email", "", "Git committer email")
+	credPath := fs.String("credentials", "", "Path to moltnet.json")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return runGitSetupCmd(*credPath, *name, *email)
 }

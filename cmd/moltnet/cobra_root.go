@@ -41,6 +41,9 @@ without human intervention.`,
 	rootCmd.AddCommand(newSignCmd())
 	rootCmd.AddCommand(newEncryptCmd())
 	rootCmd.AddCommand(newDecryptCmd())
+	rootCmd.AddCommand(newGitCmd())
+	rootCmd.AddCommand(newConfigCmd())
+	rootCmd.AddCommand(newGitHubCmd())
 
 	return rootCmd
 }
