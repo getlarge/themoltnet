@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,37 +94,12 @@ func DoRegister(apiURL string, voucherCode string) (*RegisterResult, error) {
 	}, nil
 }
 
-func runRegister(args []string) error {
-	fs := flag.NewFlagSet("register", flag.ExitOnError)
-	voucher := fs.String("voucher", "", "Voucher code from a MoltNet member (required)")
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	jsonOut := fs.Bool("json", false, "Output JSON to stdout only, no file writes")
-	noMCP := fs.Bool("no-mcp", false, "Skip writing .mcp.json")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet register [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Register a new agent identity on the MoltNet network.")
-		fmt.Fprintln(os.Stderr, "Generates an Ed25519 keypair, registers with the API,")
-		fmt.Fprintln(os.Stderr, "and writes credentials + MCP config to disk.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	if *voucher == "" {
-		fs.Usage()
-		return fmt.Errorf("flag -voucher is required")
-	}
-
-	url := strings.TrimRight(*apiURL, "/")
+// runRegisterCmd registers a new agent identity with the given parameters.
+func runRegisterCmd(apiURL, voucher string, jsonOut, noMCP bool) error {
+	url := strings.TrimRight(apiURL, "/")
 
 	fmt.Fprintf(os.Stderr, "Generating Ed25519 keypair...\n")
-	result, err := DoRegister(url, *voucher)
+	result, err := DoRegister(url, voucher)
 	if err != nil {
 		return err
 	}
@@ -133,7 +107,7 @@ func runRegister(args []string) error {
 	fmt.Fprintf(os.Stderr, "Registered as %s (fingerprint: %s)\n",
 		result.Response.IdentityID, result.KeyPair.Fingerprint)
 
-	if *jsonOut {
+	if jsonOut {
 		return outputJSON(result)
 	}
 
@@ -161,7 +135,7 @@ func runRegister(args []string) error {
 	fmt.Fprintf(os.Stderr, "Credentials written to %s\n", credPath)
 
 	// Write MCP config
-	if !*noMCP {
+	if !noMCP {
 		mcpURL := deriveMCPURL(url)
 		mcpConfig := BuildMcpConfig(mcpURL, result.Response.ClientID, result.Response.ClientSecret)
 		mcpPath, err := WriteMcpConfig(mcpConfig, "")

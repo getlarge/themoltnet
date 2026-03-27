@@ -2,34 +2,15 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 )
 
-func runInfo(args []string) error {
-	fs := flag.NewFlagSet("info", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	jsonOut := fs.Bool("json", false, "Output raw JSON")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet info [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Display information about the MoltNet network.")
-		fmt.Fprintln(os.Stderr, "Fetches the network discovery document from the API.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	url := strings.TrimRight(*apiURL, "/") + "/.well-known/moltnet.json"
+// runInfoCmd fetches and displays the MoltNet network discovery document.
+func runInfoCmd(apiURL string, jsonOut bool) error {
+	url := strings.TrimRight(apiURL, "/") + "/.well-known/moltnet.json"
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -46,7 +27,7 @@ func runInfo(args []string) error {
 		return fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
 	}
 
-	if *jsonOut {
+	if jsonOut {
 		fmt.Println(string(body))
 		return nil
 	}

@@ -1,10 +1,6 @@
 package main
 
-import (
-	"strings"
-
-	"github.com/getlarge/themoltnet/cmd/moltnet/cmd"
-)
+import "strings"
 
 // x-release-please-start-version
 var version = "0.1.0"
@@ -20,6 +16,6 @@ func deriveMCPURL(apiURL string) string {
 }
 
 func main() {
-	cmd.SetVersionInfo(version, commit)
-	cmd.Execute()
+	SetVersionInfo(version, commit)
+	Execute()
 }

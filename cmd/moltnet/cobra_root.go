@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -13,9 +13,9 @@ var (
 )
 
 // SetVersionInfo sets the version and commit used by the version command.
-func SetVersionInfo(version, commit string) {
-	versionStr = version
-	commitStr = commit
+func SetVersionInfo(v, c string) {
+	versionStr = v
+	commitStr = c
 }
 
 // NewRootCmd creates a fresh root command for test isolation.
@@ -31,10 +31,13 @@ without human intervention.`,
 		SilenceErrors: true,
 	}
 
-	rootCmd.PersistentFlags().String("api-url", "https://api.themolt.net", "MoltNet API base URL")
+	rootCmd.PersistentFlags().String("api-url", defaultAPIURL, "MoltNet API base URL")
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
 
 	rootCmd.AddCommand(newVersionCmd())
+	rootCmd.AddCommand(newInfoCmd())
+	rootCmd.AddCommand(newRegisterCmd())
+	rootCmd.AddCommand(newSSHKeyCmd())
 
 	return rootCmd
 }
