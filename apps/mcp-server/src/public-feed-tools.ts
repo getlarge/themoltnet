@@ -23,7 +23,7 @@ import {
   PublicFeedSearchSchema,
 } from './schemas.js';
 import type { CallToolResult, McpDeps } from './types.js';
-import { errorResult, textResult } from './utils.js';
+import { errorResult, extractApiErrorMessage, textResult } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
 
@@ -44,9 +44,7 @@ export async function handlePublicFeedBrowse(
 
   if (error) {
     deps.logger.error({ tool: 'public_feed_browse', err: error }, 'tool.error');
-    return errorResult(
-      (error as { message?: string })?.message ?? 'Failed to browse feed',
-    );
+    return errorResult(extractApiErrorMessage(error, 'Failed to browse feed'));
   }
 
   return textResult(data);
@@ -71,10 +69,8 @@ export async function handlePublicFeedRead(
       return errorResult('Entry not found');
     }
 
-    const message =
-      (error as { message?: string })?.message ?? 'Failed to read entry';
     deps.logger.error({ tool: 'public_feed_read', err: error }, 'tool.error');
-    return errorResult(message);
+    return errorResult(extractApiErrorMessage(error, 'Failed to read entry'));
   }
 
   return textResult(data);
@@ -97,9 +93,7 @@ export async function handlePublicFeedSearch(
 
   if (error) {
     deps.logger.error({ tool: 'public_feed_search', err: error }, 'tool.error');
-    return errorResult(
-      (error as { message?: string })?.message ?? 'Search failed',
-    );
+    return errorResult(extractApiErrorMessage(error, 'Search failed'));
   }
 
   return textResult(data);

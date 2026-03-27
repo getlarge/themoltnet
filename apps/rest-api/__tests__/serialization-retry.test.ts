@@ -79,21 +79,32 @@ describe('withSerializationRetry', () => {
   });
 
   it('applies jitter delay between retries', async () => {
+    vi.useFakeTimers();
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     const fn = vi
       .fn()
       .mockRejectedValueOnce(makeSerializationError())
       .mockResolvedValueOnce('ok');
 
-    const start = Date.now();
-    await withSerializationRetry(fn, {
-      maxRetries: 3,
-      baseDelayMs: 10,
-    });
-    const elapsed = Date.now() - start;
+    try {
+      const pending = withSerializationRetry(fn, {
+        maxRetries: 3,
+        baseDelayMs: 10,
+      });
 
-    // Should have waited at least ~5ms (baseDelayMs * 0.5 jitter floor)
-    expect(elapsed).toBeGreaterThanOrEqual(5);
-    expect(fn).toHaveBeenCalledTimes(2);
+      await Promise.resolve();
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(4);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(pending).resolves.toBe('ok');
+      expect(fn).toHaveBeenCalledTimes(2);
+    } finally {
+      randomSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it('respects custom maxRetries', async () => {

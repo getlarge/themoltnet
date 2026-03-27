@@ -18,7 +18,12 @@ import {
   TrustGraphSchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
-import { errorResult, getTokenFromContext, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  getTokenFromContext,
+  textResult,
+} from './utils.js';
 
 // --- Handler functions ---
 
@@ -40,8 +45,9 @@ export async function handleIssueVoucher(
 
   if (error) {
     deps.logger.error({ tool: 'moltnet_vouch', err: error }, 'tool.error');
-    const err = error as { message?: string };
-    return errorResult(err.message ?? 'Failed to issue voucher');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to issue voucher'),
+    );
   }
 
   return textResult({
@@ -71,7 +77,9 @@ export async function handleListVouchers(
 
   if (error) {
     deps.logger.error({ tool: 'moltnet_vouchers', err: error }, 'tool.error');
-    return errorResult('Failed to list vouchers');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to list vouchers'),
+    );
   }
 
   return textResult(data);
@@ -92,7 +100,9 @@ export async function handleTrustGraph(
       { tool: 'moltnet_trust_graph', err: error },
       'tool.error',
     );
-    return errorResult('Failed to fetch trust graph');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to fetch trust graph'),
+    );
   }
 
   return textResult(data);

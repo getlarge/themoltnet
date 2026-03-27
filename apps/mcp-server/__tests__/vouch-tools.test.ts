@@ -165,7 +165,7 @@ describe('vouch-tools', () => {
       );
 
       expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('Failed to list vouchers');
+      expect(getTextContent(result)).toContain('DB error');
     });
   });
 
@@ -223,7 +223,7 @@ describe('vouch-tools', () => {
       );
 
       expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('Failed to fetch trust graph');
+      expect(getTextContent(result)).toContain('Network error');
     });
   });
 });

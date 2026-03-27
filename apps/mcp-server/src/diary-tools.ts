@@ -56,7 +56,12 @@ import {
   ReflectSchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
-import { errorResult, getTokenFromContext, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  getTokenFromContext,
+  textResult,
+} from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
 
@@ -85,9 +90,7 @@ export async function handleEntryCreate(
 
   if (error) {
     deps.logger.error({ tool: 'entries_create', err: error }, 'tool.error');
-    return errorResult(
-      (error as { message?: string })?.message ?? 'Failed to create entry',
-    );
+    return errorResult(extractApiErrorMessage(error, 'Failed to create entry'));
   }
 
   return textResult({
@@ -114,7 +117,7 @@ export async function handleEntryGet(
 
   if (error) {
     deps.logger.error({ tool: 'entries_get', err: error }, 'tool.error');
-    return errorResult('Entry not found');
+    return errorResult(extractApiErrorMessage(error, 'Entry not found'));
   }
 
   return textResult({ entry: data });
@@ -143,7 +146,7 @@ export async function handleEntryList(
 
   if (error) {
     deps.logger.error({ tool: 'entries_list', err: error }, 'tool.error');
-    return errorResult('Failed to list entries');
+    return errorResult(extractApiErrorMessage(error, 'Failed to list entries'));
   }
 
   return textResult(data);
@@ -178,7 +181,7 @@ export async function handleEntrySearch(
 
   if (error) {
     deps.logger.error({ tool: 'entries_search', err: error }, 'tool.error');
-    return errorResult('Search failed');
+    return errorResult(extractApiErrorMessage(error, 'Search failed'));
   }
 
   return textResult(data);
@@ -207,7 +210,7 @@ export async function handleEntryUpdate(
 
   if (error) {
     deps.logger.error({ tool: 'entries_update', err: error }, 'tool.error');
-    return errorResult('Entry not found');
+    return errorResult(extractApiErrorMessage(error, 'Failed to update entry'));
   }
 
   return textResult({ success: true, entry: data });
@@ -230,7 +233,7 @@ export async function handleEntryDelete(
 
   if (error) {
     deps.logger.error({ tool: 'entries_delete', err: error }, 'tool.error');
-    return errorResult('Entry not found');
+    return errorResult(extractApiErrorMessage(error, 'Failed to delete entry'));
   }
 
   return textResult({ success: true, message: 'Entry deleted' });
@@ -258,7 +261,7 @@ export async function handleReflect(
 
   if (error) {
     deps.logger.error({ tool: 'reflect', err: error }, 'tool.error');
-    return errorResult('Reflect failed');
+    return errorResult(extractApiErrorMessage(error, 'Reflect failed'));
   }
 
   return textResult({ digest: data });
@@ -281,7 +284,7 @@ export async function handleEntryVerify(
 
   if (error) {
     deps.logger.error({ tool: 'entries_verify', err: error }, 'tool.error');
-    return errorResult('Verification failed');
+    return errorResult(extractApiErrorMessage(error, 'Verification failed'));
   }
 
   return textResult(data);
@@ -303,7 +306,7 @@ export async function handleDiariesList(
 
   if (error) {
     deps.logger.error({ tool: 'diaries_list', err: error }, 'tool.error');
-    return errorResult('Failed to list diaries');
+    return errorResult(extractApiErrorMessage(error, 'Failed to list diaries'));
   }
 
   return textResult(data);
@@ -326,9 +329,7 @@ export async function handleDiariesCreate(
 
   if (error) {
     deps.logger.error({ tool: 'diaries_create', err: error }, 'tool.error');
-    return errorResult(
-      (error as { message?: string })?.message ?? 'Failed to create diary',
-    );
+    return errorResult(extractApiErrorMessage(error, 'Failed to create diary'));
   }
 
   return textResult({ success: true, diary: data });
@@ -351,7 +352,7 @@ export async function handleDiariesGet(
 
   if (error) {
     deps.logger.error({ tool: 'diaries_get', err: error }, 'tool.error');
-    return errorResult('Diary not found');
+    return errorResult(extractApiErrorMessage(error, 'Diary not found'));
   }
 
   return textResult({ diary: data });
@@ -385,7 +386,7 @@ export async function handleDiariesConsolidate(
       { tool: 'diaries_consolidate', err: error },
       'tool.error',
     );
-    return errorResult('Consolidation failed');
+    return errorResult(extractApiErrorMessage(error, 'Consolidation failed'));
   }
 
   return textResult(data);
@@ -433,7 +434,7 @@ export async function handleDiariesCompile(
 
   if (error) {
     deps.logger.error({ tool: 'diaries_compile', err: error }, 'tool.error');
-    return errorResult('Compile failed');
+    return errorResult(extractApiErrorMessage(error, 'Compile failed'));
   }
 
   return textResult(data);
@@ -465,7 +466,9 @@ export async function handleDiaryTags(
 
   if (error) {
     deps.logger.error({ tool: 'diary_tags', err: error }, 'tool.error');
-    return errorResult('Failed to list diary tags');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to list diary tags'),
+    );
   }
 
   return textResult(data);

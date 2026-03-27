@@ -10,7 +10,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { MoltnetInfoSchema } from './schemas.js';
 import type { CallToolResult, McpDeps } from './types.js';
-import { errorResult, textResult } from './utils.js';
+import { errorResult, extractApiErrorMessage, textResult } from './utils.js';
 
 // --- Handler function (testable without MCP transport) ---
 
@@ -25,8 +25,7 @@ export async function handleMoltnetInfo(
   if (error) {
     deps.logger.error({ tool: 'moltnet_info', err: error }, 'tool.error');
     return errorResult(
-      (error as { message?: string })?.message ??
-        'Failed to fetch network info',
+      extractApiErrorMessage(error, 'Failed to fetch network info'),
     );
   }
 

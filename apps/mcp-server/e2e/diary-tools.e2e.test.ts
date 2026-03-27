@@ -357,12 +357,12 @@ describe('Diary Tools E2E', () => {
     requireSetup();
     const result = await client.callTool({
       name: 'entries_list',
-      arguments: { diary_id: 'does-not-exist' },
+      arguments: { diary_id: '00000000-0000-0000-0000-000000000000' },
     });
 
     const content = result.content as Array<{ type: string; text: string }>;
     expect(result.isError).toBe(true);
-    expect(content[0].text).toContain('Failed to list entries');
+    expect(content[0].text).toMatch(/Diary not found|not found/i);
   });
 
   it('validates required diary_id for scoped entry tools', async () => {

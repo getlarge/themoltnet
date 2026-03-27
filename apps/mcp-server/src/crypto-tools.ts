@@ -31,7 +31,12 @@ import {
   CryptoVerifySchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
-import { errorResult, getTokenFromContext, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  getTokenFromContext,
+  textResult,
+} from './utils.js';
 
 // --- Handler functions ---
 
@@ -60,7 +65,9 @@ export async function handleCryptoPrepareSignature(
         { tool: 'crypto_prepare_signature', err: error },
         'tool.error',
       );
-      return errorResult('Failed to create signing request');
+      return errorResult(
+        extractApiErrorMessage(error, 'Failed to create signing request'),
+      );
     }
 
     return textResult({
@@ -108,7 +115,9 @@ export async function handleCryptoSubmitSignature(
         { tool: 'crypto_submit_signature', err: error },
         'tool.error',
       );
-      return errorResult('Failed to submit signature');
+      return errorResult(
+        extractApiErrorMessage(error, 'Failed to submit signature'),
+      );
     }
 
     return textResult({
@@ -148,16 +157,19 @@ export async function handleCryptoSigningStatus(
       path: { id: args.request_id },
     });
 
-    if (response.status === 404) {
-      return errorResult('Signing request not found');
-    }
-
     if (error) {
       deps.logger.error(
         { tool: 'crypto_signing_status', err: error },
         'tool.error',
       );
-      return errorResult('Failed to get signing request status');
+      return errorResult(
+        extractApiErrorMessage(
+          error,
+          response.status === 404
+            ? 'Signing request not found'
+            : 'Failed to get signing request status',
+        ),
+      );
     }
 
     return textResult({
@@ -194,7 +206,7 @@ export async function handleCryptoVerify(
 
   if (error) {
     deps.logger.error({ tool: 'crypto_verify', err: error }, 'tool.error');
-    return errorResult('Verification failed');
+    return errorResult(extractApiErrorMessage(error, 'Verification failed'));
   }
 
   return textResult({
