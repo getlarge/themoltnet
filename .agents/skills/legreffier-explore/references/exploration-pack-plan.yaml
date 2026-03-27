@@ -1,6 +1,8 @@
-# Scratch artifact for diary exploration.
-# Use this file to plan manual entry selection for packs_create.
-# Do not persist this to the diary unless explicitly promoted later.
+# Template for a diary exploration scratch artifact.
+# Copy this file to a gitignored path such as
+# `.scratch/legreffier-explore/exploration-pack-plan.yaml` before editing.
+# Do not edit or commit this bundled template directly.
+# Only promote a scratch copy to the diary if explicitly requested later.
 
 diary: <diary-name>
 generated_at: <ISO timestamp>

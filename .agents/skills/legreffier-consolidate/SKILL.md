@@ -24,7 +24,7 @@ compile/load/eval).
 
 ### Internal references
 
-- `consolidation-approach.md` (in this skill folder) — design rationale,
+- `references/consolidation-approach.md` — design rationale,
   merge group identification algorithm, tile quality gate.
 
 ---
@@ -212,7 +212,7 @@ Sources: [entry short IDs]
 ["source:tile", "tile-session:<timestamp>", "tile-scope:<scope>", "tile-id:<scope>/<topic>"]
 ```
 
-See `consolidation-approach.md` for merge rules and quality gate.
+See `references/consolidation-approach.md` for merge rules and quality gate.
 
 ---
 
@@ -255,7 +255,7 @@ recipes and parameter tuning.
 ## Recovery after context compression
 
 1. Read this skill file
-2. Read `consolidation-approach.md` for methodology
+2. Read `references/consolidation-approach.md` for methodology
 3. Query completed work:
    - `entries_relations_list({ diary_id, status: "accepted" })` — see what's done
    - `entries_search({ tags: ["source:tile", "tile-session:<session>"] })` — find tiles

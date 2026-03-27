@@ -61,7 +61,7 @@ describe('downloadSkills', () => {
     vi.stubGlobal('fetch', async (url: string) => ({
       ok: true,
       text: async () =>
-        url.endsWith('exploration-pack-plan.yaml')
+        url.endsWith('references/exploration-pack-plan.yaml')
           ? 'operator_controls: {}'
           : `# Skill content for ${url}`,
     }));
@@ -74,11 +74,59 @@ describe('downloadSkills', () => {
         '.claude',
         'skills',
         'legreffier-explore',
+        'references',
         'exploration-pack-plan.yaml',
       ),
       'utf-8',
     );
     expect(template).toContain('operator_controls');
+  });
+
+  it('downloads all referenced scan docs with the skill bundle', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      text: async () => `content for ${url}`,
+    }));
+
+    await downloadSkills(tmpRepo, '.claude/skills');
+
+    const scanFlows = await readFile(
+      join(
+        tmpRepo,
+        '.claude',
+        'skills',
+        'legreffier-scan',
+        'references',
+        'scan-flows.md',
+      ),
+      'utf-8',
+    );
+    const pathDiscovery = await readFile(
+      join(
+        tmpRepo,
+        '.claude',
+        'skills',
+        'legreffier-scan',
+        'references',
+        'path-discovery.md',
+      ),
+      'utf-8',
+    );
+    const contentTemplates = await readFile(
+      join(
+        tmpRepo,
+        '.claude',
+        'skills',
+        'legreffier-scan',
+        'references',
+        'content-templates.md',
+      ),
+      'utf-8',
+    );
+
+    expect(scanFlows).toContain('scan-flows.md');
+    expect(pathDiscovery).toContain('path-discovery.md');
+    expect(contentTemplates).toContain('content-templates.md');
   });
 
   it('warns and skips if fetch returns non-200', async () => {
@@ -100,7 +148,7 @@ describe('downloadSkills', () => {
     vi.stubGlobal('fetch', async (url: string) => {
       if (
         url.includes('legreffier-v0.1.0/.claude/skills/legreffier-explore/') &&
-        url.endsWith('exploration-pack-plan.yaml')
+        url.endsWith('references/exploration-pack-plan.yaml')
       ) {
         return { ok: false, status: 404 };
       }
@@ -126,6 +174,7 @@ describe('downloadSkills', () => {
         '.claude',
         'skills',
         'legreffier-explore',
+        'references',
         'exploration-pack-plan.yaml',
       ),
       'utf-8',
