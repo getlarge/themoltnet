@@ -15,7 +15,11 @@ const MODELS = [
   'anthropic/claude-haiku-4-5',
 ] as const;
 
+// Strip leading '--' injected by pnpm run
+const rawArgs = process.argv.slice(2).filter((a) => a !== '--');
+
 const { values } = parseArgs({
+  args: rawArgs,
   options: {
     model: {
       type: 'string',
