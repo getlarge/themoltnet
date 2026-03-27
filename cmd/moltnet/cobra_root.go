@@ -47,6 +47,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newAgentsCmd())
 	rootCmd.AddCommand(newCryptoCmd())
 	rootCmd.AddCommand(newVouchCmd())
+	rootCmd.AddCommand(newDiaryCmd())
 
 	return rootCmd
 }

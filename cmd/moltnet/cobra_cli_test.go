@@ -460,3 +460,177 @@ func TestVouchListNoCreds(t *testing.T) {
 		t.Errorf("expected 'no credentials found' error, got: %v", err)
 	}
 }
+
+// --- diary command tests ---
+
+func TestDiaryNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "diary")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"create", "create-signed", "list", "get", "delete", "search", "verify", "commit"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected diary help to list '%s' subcommand, got: %s", sub, stdout)
+		}
+	}
+}
+
+func TestDiaryCreateRequiresDiaryID(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "diary", "create", "--content", "hello")
+	if err == nil {
+		t.Fatal("expected error when --diary-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "diary-id") {
+		t.Errorf("expected error to mention 'diary-id', got: %v", err)
+	}
+}
+
+func TestDiaryCreateRequiresContent(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "diary", "create", "--diary-id", "00000000-0000-0000-0000-000000000001")
+	if err == nil {
+		t.Fatal("expected error when --content is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "content") {
+		t.Errorf("expected error to mention 'content', got: %v", err)
+	}
+}
+
+func TestDiaryListRequiresDiaryID(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "diary", "list")
+	if err == nil {
+		t.Fatal("expected error when --diary-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "diary-id") {
+		t.Errorf("expected error to mention 'diary-id', got: %v", err)
+	}
+}
+
+func TestDiaryGetRequiresArg(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "diary", "get")
+	if err == nil {
+		t.Fatal("expected error when entry-id arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestDiaryDeleteRequiresArg(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "diary", "delete")
+	if err == nil {
+		t.Fatal("expected error when entry-id arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestDiarySearchRequiresQuery(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "diary", "search")
+	if err == nil {
+		t.Fatal("expected error when --query is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "query") {
+		t.Errorf("expected error to mention 'query', got: %v", err)
+	}
+}
+
+func TestDiaryVerifyRequiresArg(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "diary", "verify")
+	if err == nil {
+		t.Fatal("expected error when entry-id arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestDiaryCommitRequiresAllFlags(t *testing.T) {
+	// Each test omits one required flag
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{
+			name:    "missing diary-id",
+			args:    []string{"diary", "commit", "--rationale", "text", "--risk", "low", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
+			wantErr: "diary-id",
+		},
+		{
+			name:    "missing rationale",
+			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--risk", "low", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
+			wantErr: "rationale",
+		},
+		{
+			name:    "missing risk",
+			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
+			wantErr: "risk",
+		},
+		{
+			name:    "missing scope",
+			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--operator", "ed", "--tool", "claude"},
+			wantErr: "scope",
+		},
+		{
+			name:    "missing operator",
+			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--scope", "cli", "--tool", "claude"},
+			wantErr: "operator",
+		},
+		{
+			name:    "missing tool",
+			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--scope", "cli", "--operator", "ed"},
+			wantErr: "tool",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := NewRootCmd()
+			_, _, err := executeCommand(root, tt.args...)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("expected error to mention %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestDiaryCommitHelpShowsExamples(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "diary", "commit", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{"--diary-id", "--rationale", "--risk", "--scope", "--operator", "--tool"} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected commit help to contain %q, got: %s", flag, stdout)
+		}
+	}
+	if !strings.Contains(stdout, "Example") {
+		t.Errorf("expected commit help to contain 'Example', got: %s", stdout)
+	}
+}
+
+func TestDiaryCreateSignedHelpShowsTypes(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "diary", "create-signed", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, entryType := range []string{"semantic", "episodic", "procedural", "reflection", "identity", "soul"} {
+		if !strings.Contains(stdout, entryType) {
+			t.Errorf("expected create-signed help to mention entry type %q, got: %s", entryType, stdout)
+		}
+	}
+}
