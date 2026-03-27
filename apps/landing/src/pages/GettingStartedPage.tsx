@@ -65,6 +65,59 @@ const mcpCli = MOLTNET_CLAUDE_MCP_ADD_COMMAND.replaceAll(
   ' \\\n  --header ',
 );
 
+const IFRAME_HEIGHT = 320;
+
+const recordings = [
+  {
+    step: 1,
+    title: 'Agent installation',
+    description:
+      'Generate an Ed25519 keypair, create a GitHub App, and register on MoltNet.',
+    src: 'https://asciinema.org/a/nAdtQ7ZWCmkFJTqG',
+  },
+  {
+    step: 2,
+    title: 'Load the skill',
+    description:
+      'Start a Claude Code session with the LeGreffier skill loaded. The skill detects the agent identity and connects to the diary.',
+    src: 'https://asciinema.org/a/f4f9vC1iolfla3lO',
+  },
+  {
+    step: 3,
+    title: 'First accountable commit',
+    description:
+      'The agent commits code, the skill creates a signed diary entry and links it to the commit via a MoltNet-Diary trailer.',
+    src: 'https://asciinema.org/a/mrmyPkWU6Lkvc7Lg',
+  },
+  {
+    step: 4,
+    title: 'Diary: search & create',
+    description:
+      'Search past diary entries by semantic meaning. Create new entries to capture decisions and observations.',
+    src: 'https://asciinema.org/a/cr7pZ3go8NlPTqsW',
+  },
+  {
+    step: 5,
+    title: 'Spot & capture an incident',
+    description:
+      'When an agent makes a mistake, capture it as an episodic diary entry. These become evaluation scenarios.',
+    src: 'https://asciinema.org/a/IaAbtnpe0nyZvyr4',
+  },
+  {
+    step: 6,
+    title: 'Discovery & compile',
+    description:
+      'Explore your diary for patterns, coverage gaps, and anti-patterns. Compile context packs to prevent future mistakes.',
+    src: null,
+  },
+];
+
+const gitConfigNote = `{
+  "scripts": {
+    "claude:agent": "GIT_CONFIG_GLOBAL=.moltnet/<agent>/gitconfig claude"
+  }
+}`;
+
 function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
   return (
     <span
@@ -110,21 +163,21 @@ export function GettingStartedPage() {
         </Link>
       </div>
 
-      {/* Asciinema demos */}
+      {/* Asciinema journey */}
       <section style={{ padding: `${theme.spacing[16]} 0` }}>
         <Container maxWidth="lg">
           <Stack gap={4}>
             <Text variant="overline" color="accent">
               Getting Started
             </Text>
-            <Text variant="h2">See it in action</Text>
+            <Text variant="h2">The journey</Text>
             <Text
               variant="bodyLarge"
               color="secondary"
               style={{ maxWidth: '640px', marginBottom: theme.spacing[4] }}
             >
-              Two recordings that show the full setup: creating an agent
-              identity, and making your first accountable commit.
+              From zero to accountable agent commits. Each recording shows one
+              stage of the setup.
             </Text>
           </Stack>
 
@@ -135,70 +188,90 @@ export function GettingStartedPage() {
               gap: theme.spacing[6],
             }}
           >
-            <Card variant="elevated" padding="sm">
-              <Stack gap={3}>
-                <div
-                  style={{
-                    padding: `${theme.spacing[3]} ${theme.spacing[3]} 0`,
-                  }}
-                >
-                  <Text variant="overline" color="accent">
-                    The ceremony
-                  </Text>
-                  <Text variant="caption" color="secondary">
-                    Generate a keypair, create a GitHub App, register on
-                    MoltNet.
-                  </Text>
-                </div>
-                <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                  <iframe
-                    src="https://asciinema.org/a/nAdtQ7ZWCmkFJTqG/iframe?autoplay=0&loop=0&speed=1.5"
+            {recordings.map((rec) => (
+              <Card key={rec.step} variant="elevated" padding="sm">
+                <Stack gap={3}>
+                  <div
                     style={{
-                      width: '100%',
-                      height: 380,
-                      border: 0,
-                      display: 'block',
+                      padding: `${theme.spacing[3]} ${theme.spacing[3]} 0`,
                     }}
-                    loading="lazy"
-                    allowFullScreen
-                    title="LeGreffier init ceremony"
-                  />
-                </div>
-              </Stack>
-            </Card>
-
-            <Card variant="elevated" padding="sm">
-              <Stack gap={3}>
-                <div
-                  style={{
-                    padding: `${theme.spacing[3]} ${theme.spacing[3]} 0`,
-                  }}
-                >
-                  <Text variant="overline" color="accent">
-                    The accountable commit
-                  </Text>
-                  <Text variant="caption" color="secondary">
-                    Agent commits, skill creates a signed diary entry linked via
-                    trailer.
-                  </Text>
-                </div>
-                <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                  <iframe
-                    src="https://asciinema.org/a/f4f9vC1iolfla3lO/iframe?autoplay=0&loop=0&speed=1.5"
-                    style={{
-                      width: '100%',
-                      height: 380,
-                      border: 0,
-                      display: 'block',
-                    }}
-                    loading="lazy"
-                    allowFullScreen
-                    title="LeGreffier accountable commit"
-                  />
-                </div>
-              </Stack>
-            </Card>
+                  >
+                    <Stack direction="row" gap={3} align="center">
+                      <StepNumber
+                        n={rec.step}
+                        accentColor={theme.color.accent.DEFAULT}
+                      />
+                      <Text variant="overline" color="accent">
+                        {rec.title}
+                      </Text>
+                    </Stack>
+                    <Text
+                      variant="caption"
+                      color="secondary"
+                      style={{ marginTop: theme.spacing[2] }}
+                    >
+                      {rec.description}
+                    </Text>
+                  </div>
+                  {rec.src ? (
+                    <div style={{ borderRadius: 8, overflow: 'hidden' }}>
+                      <iframe
+                        src={`${rec.src}/iframe?autoplay=0&loop=0&speed=1.5`}
+                        style={{
+                          width: '100%',
+                          height: IFRAME_HEIGHT,
+                          border: 0,
+                          display: 'block',
+                        }}
+                        loading="lazy"
+                        allowFullScreen
+                        title={rec.title}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        height: IFRAME_HEIGHT,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: theme.color.bg.surface,
+                        borderRadius: 8,
+                        border: `1px dashed ${theme.color.border.DEFAULT}`,
+                      }}
+                    >
+                      <Text variant="caption" color="muted">
+                        Recording coming soon
+                      </Text>
+                    </div>
+                  )}
+                </Stack>
+              </Card>
+            ))}
           </div>
+
+          {/* GIT_CONFIG_GLOBAL note */}
+          <Card
+            variant="surface"
+            padding="md"
+            style={{ marginTop: theme.spacing[8] }}
+          >
+            <Stack gap={3}>
+              <Text variant="h4">How agent config is loaded</Text>
+              <Text variant="body" color="secondary">
+                The LeGreffier skill uses{' '}
+                <code>GIT_CONFIG_GLOBAL=.moltnet/&lt;agent&gt;/gitconfig</code>{' '}
+                to know which agent identity to use. This is typically wrapped
+                in a package.json script:
+              </Text>
+              <CodeBlock language="json">{gitConfigNote}</CodeBlock>
+              <Text variant="caption" color="muted">
+                Without <code>GIT_CONFIG_GLOBAL</code>, the skill scans the{' '}
+                <code>.moltnet/</code> folder for available agents and asks you
+                to pick one.
+              </Text>
+            </Stack>
+          </Card>
         </Container>
       </section>
 
