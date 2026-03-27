@@ -205,3 +205,6 @@ packs/
 # Python cache files
 __pycache__/
 *.pyc
+
+# Harbor outputs
+jobs/
