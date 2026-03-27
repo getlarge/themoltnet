@@ -22,37 +22,41 @@ variants per eval:
 - `<name>` — no context injected
 - `<name>-with-context` — tile docs injected as `.claude/CLAUDE.md`
 
-## Run a single task
+## Run evals
 
 ```bash
-PYTHONPATH=harbor harbor run \
-  -p harbor/tasks/mcp-format-uuid-validation \
-  --agent-import-path agents.claude_code_moltnet:ClaudeCodeMoltNet \
-  --model anthropic/claude-sonnet-4-6 \
-  -y
+# Single task
+npx tsx harbor/run.ts -t mcp-format-uuid-validation
+
+# Multiple tasks
+npx tsx harbor/run.ts -t mcp-format-uuid-validation -t codegen-chain-go-client
+
+# All tasks with concurrency
+npx tsx harbor/run.ts -c 2
+
+# Different model
+npx tsx harbor/run.ts -m anthropic/claude-haiku-4-5
+
+# Force Docker rebuild (after pulling new base image)
+npx tsx harbor/run.ts -t mcp-format-uuid-validation -f
 ```
 
-## Run all tasks
-
-```bash
-PYTHONPATH=harbor harbor run \
-  -p harbor/tasks \
-  --agent-import-path agents.claude_code_moltnet:ClaudeCodeMoltNet \
-  --model anthropic/claude-sonnet-4-6 \
-  --n-concurrent 2 \
-  -y
-```
+Run `npx tsx harbor/run.ts --help` for all options.
 
 ## Authentication
 
-Pass one of:
+Export one of these in your shell before running:
 
+- `CLAUDE_CODE_OAUTH_TOKEN` — Claude OAuth token (preferred)
 - `ANTHROPIC_API_KEY` — standard API key
-- `CLAUDE_CODE_OAUTH_TOKEN` — Claude OAuth token
 
-Via environment or `--ae`:
+## Structure
 
-```bash
-harbor run ... --ae ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
-harbor run ... --ae CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN
+```
+harbor/
+├── run.ts               # CLI wrapper
+├── scaffold.ts          # Generates tasks from tile evals
+├── agents/              # Custom Harbor agent (PYTHONPATH=harbor)
+├── judge/               # TypeScript judge (kept for future Agent SDK use)
+└── templates/           # task.toml, Dockerfile, test.sh
 ```
