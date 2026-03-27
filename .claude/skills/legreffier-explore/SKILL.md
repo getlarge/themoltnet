@@ -266,8 +266,8 @@ Canonical template file:
 `exploration-pack-plan.yaml`
 
 This file must live next to `SKILL.md` in every shipped layout
-(`.agents/`, `.claude/`, and Tessl tile packaging). If the adjacent template is
-missing, stop and report a packaging or installation error.
+If the adjacent template is missing, stop and report that the skill bundle is
+incomplete.
 
 Use that adjacent file as the single source of truth for the scratch artifact
 shape. Copy or adapt it rather than re-specifying the full YAML structure here.
