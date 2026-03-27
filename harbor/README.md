@@ -7,13 +7,12 @@ from tile eval definitions in `tiles/moltnet-practices/evals/`.
 
 ```bash
 uv tool install harbor
-cd harbor/judge && npm install && cd ../..
 ```
 
 ## Scaffold tasks
 
 ```bash
-npx tsx harbor/scaffold.ts
+pnpm eval:scaffold
 ```
 
 Reads `tiles/moltnet-practices/evals/*/` and generates `harbor/tasks/` with two
@@ -26,22 +25,22 @@ variants per eval:
 
 ```bash
 # Single task
-npx tsx harbor/run.ts -t mcp-format-uuid-validation
+pnpm eval:run -t mcp-format-uuid-validation
 
 # Multiple tasks
-npx tsx harbor/run.ts -t mcp-format-uuid-validation -t codegen-chain-go-client
+pnpm eval:run -t mcp-format-uuid-validation -t codegen-chain-go-client
 
 # All tasks with concurrency
-npx tsx harbor/run.ts -c 2
+pnpm eval:run -c 2
 
 # Different model
-npx tsx harbor/run.ts -m anthropic/claude-haiku-4-5
+pnpm eval:run -m anthropic/claude-haiku-4-5
 
 # Force Docker rebuild (after pulling new base image)
-npx tsx harbor/run.ts -t mcp-format-uuid-validation -f
+pnpm eval:run -t mcp-format-uuid-validation -f
 ```
 
-Run `npx tsx harbor/run.ts --help` for all options.
+Run `pnpm eval:run --help` for all options.
 
 ## Authentication
 
