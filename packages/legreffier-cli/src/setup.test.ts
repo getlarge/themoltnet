@@ -61,7 +61,7 @@ describe('downloadSkills', () => {
     vi.stubGlobal('fetch', async (url: string) => ({
       ok: true,
       text: async () =>
-        url.endsWith('exploration-pack-plan.yaml')
+        url.endsWith('references/exploration-pack-plan.yaml')
           ? 'operator_controls: {}'
           : `# Skill content for ${url}`,
     }));
@@ -74,6 +74,7 @@ describe('downloadSkills', () => {
         '.claude',
         'skills',
         'legreffier-explore',
+        'references',
         'exploration-pack-plan.yaml',
       ),
       'utf-8',
@@ -147,7 +148,7 @@ describe('downloadSkills', () => {
     vi.stubGlobal('fetch', async (url: string) => {
       if (
         url.includes('legreffier-v0.1.0/.claude/skills/legreffier-explore/') &&
-        url.endsWith('exploration-pack-plan.yaml')
+        url.endsWith('references/exploration-pack-plan.yaml')
       ) {
         return { ok: false, status: 404 };
       }
@@ -173,6 +174,7 @@ describe('downloadSkills', () => {
         '.claude',
         'skills',
         'legreffier-explore',
+        'references',
         'exploration-pack-plan.yaml',
       ),
       'utf-8',

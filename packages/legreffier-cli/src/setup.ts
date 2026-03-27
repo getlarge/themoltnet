@@ -27,7 +27,7 @@ const SKILLS: SkillDefinition[] = [
   },
   {
     name: 'legreffier-explore',
-    files: ['SKILL.md', 'exploration-pack-plan.yaml'],
+    files: ['SKILL.md', 'references/exploration-pack-plan.yaml'],
   },
 ];
 

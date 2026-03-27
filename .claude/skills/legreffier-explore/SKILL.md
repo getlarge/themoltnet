@@ -263,13 +263,12 @@ for `packs_create`.
 
 Canonical template file:
 
-`exploration-pack-plan.yaml`
+`references/exploration-pack-plan.yaml`
 
-This file must live next to `SKILL.md` in every shipped layout
-If the adjacent template is missing, stop and report that the skill bundle is
+If that reference file is missing, stop and report that the skill bundle is
 incomplete.
 
-Use that adjacent file as the single source of truth for the scratch artifact
+Use that reference file as the single source of truth for the scratch artifact
 shape. Copy or adapt it rather than re-specifying the full YAML structure here.
 
 Only promote exploration findings into the diary if explicitly requested or if
