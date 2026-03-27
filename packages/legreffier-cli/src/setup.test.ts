@@ -57,6 +57,30 @@ describe('downloadSkills', () => {
     expect(content).toContain('Skill content');
   });
 
+  it('downloads companion reference files next to the skill', async () => {
+    vi.stubGlobal('fetch', async (url: string) => ({
+      ok: true,
+      text: async () =>
+        url.endsWith('exploration-pack-plan.yaml')
+          ? 'operator_controls: {}'
+          : `# Skill content for ${url}`,
+    }));
+
+    await downloadSkills(tmpRepo, '.claude/skills');
+
+    const template = await readFile(
+      join(
+        tmpRepo,
+        '.claude',
+        'skills',
+        'legreffier-explore',
+        'exploration-pack-plan.yaml',
+      ),
+      'utf-8',
+    );
+    expect(template).toContain('operator_controls');
+  });
+
   it('warns and skips if fetch returns non-200', async () => {
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
@@ -70,6 +94,45 @@ describe('downloadSkills', () => {
     await expect(
       stat(join(tmpRepo, '.claude', 'skills', 'legreffier', 'SKILL.md')),
     ).rejects.toThrow();
+  });
+
+  it('falls back to main only when a full skill payload is available', async () => {
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (
+        url.includes('legreffier-v0.1.0/.claude/skills/legreffier-explore/') &&
+        url.endsWith('exploration-pack-plan.yaml')
+      ) {
+        return { ok: false, status: 404 };
+      }
+
+      return {
+        ok: true,
+        text: async () =>
+          url.includes('/main/')
+            ? `main payload for ${url}`
+            : `tag payload for ${url}`,
+      };
+    });
+
+    await downloadSkills(tmpRepo, '.claude/skills');
+
+    const skill = await readFile(
+      join(tmpRepo, '.claude', 'skills', 'legreffier-explore', 'SKILL.md'),
+      'utf-8',
+    );
+    const template = await readFile(
+      join(
+        tmpRepo,
+        '.claude',
+        'skills',
+        'legreffier-explore',
+        'exploration-pack-plan.yaml',
+      ),
+      'utf-8',
+    );
+
+    expect(skill).toContain('/main/');
+    expect(template).toContain('/main/');
   });
 });
 
