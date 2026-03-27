@@ -634,3 +634,111 @@ func TestDiaryCreateSignedHelpShowsTypes(t *testing.T) {
 		}
 	}
 }
+
+// --- pack command tests ---
+
+func TestPackNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "pack")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "export") {
+		t.Errorf("expected pack help to list 'export' subcommand, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "provenance") {
+		t.Errorf("expected pack help to list 'provenance' subcommand, got: %s", stdout)
+	}
+}
+
+func TestPackExportRequiresArg(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "pack", "export")
+	if err == nil {
+		t.Fatal("expected error when pack-uuid arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestPackExportHelp(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "pack", "export", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--out") {
+		t.Errorf("expected help to contain '--out', got: %s", stdout)
+	}
+}
+
+func TestPackProvenanceRequiresOneSelector(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "pack", "provenance")
+	if err == nil {
+		t.Fatal("expected error when neither --pack-id nor --pack-cid is provided, got nil")
+	}
+	if !strings.Contains(err.Error(), "exactly one") {
+		t.Errorf("expected error to mention 'exactly one', got: %v", err)
+	}
+}
+
+func TestPackProvenanceBothSelectors(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "pack", "provenance",
+		"--pack-id", "00000000-0000-0000-0000-000000000000",
+		"--pack-cid", "bafy123")
+	if err == nil {
+		t.Fatal("expected error when both --pack-id and --pack-cid are provided, got nil")
+	}
+	if !strings.Contains(err.Error(), "exactly one") {
+		t.Errorf("expected error to mention 'exactly one', got: %v", err)
+	}
+}
+
+func TestPackProvenanceHelp(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "pack", "provenance", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--depth") {
+		t.Errorf("expected help to contain '--depth', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--share-url") {
+		t.Errorf("expected help to contain '--share-url', got: %s", stdout)
+	}
+}
+
+// --- completion command tests ---
+
+func TestCompletionBash(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "completion", "bash")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stdout == "" {
+		t.Error("expected non-empty bash completion output")
+	}
+}
+
+func TestCompletionZsh(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "completion", "zsh")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stdout == "" {
+		t.Error("expected non-empty zsh completion output")
+	}
+}
+
+func TestCompletionInvalidShell(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "completion", "invalid")
+	if err == nil {
+		t.Fatal("expected error for invalid shell, got nil")
+	}
+}

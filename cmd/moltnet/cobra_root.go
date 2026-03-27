@@ -48,6 +48,8 @@ without human intervention.`,
 	rootCmd.AddCommand(newCryptoCmd())
 	rootCmd.AddCommand(newVouchCmd())
 	rootCmd.AddCommand(newDiaryCmd())
+	rootCmd.AddCommand(newPackCmd())
+	rootCmd.AddCommand(newCompletionCmd())
 
 	return rootCmd
 }
