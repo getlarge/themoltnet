@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/base64"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -13,74 +12,47 @@ import (
 	"github.com/google/uuid"
 )
 
-func runSign(args []string) error {
-	fs := flag.NewFlagSet("sign", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to moltnet.json (default: ~/.config/moltnet/moltnet.json)")
-	nonce := fs.String("nonce", "", "Nonce from the signing request")
-	requestID := fs.String("request-id", "", "Signing request ID — fetch, sign, and submit in one step")
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL (used with --request-id)")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet sign [options] <message>")
-		fmt.Fprintln(os.Stderr, "       moltnet sign --request-id <id>")
-		fmt.Fprintln(os.Stderr, "       echo <message> | moltnet sign --nonce <nonce> -")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Sign a message + nonce with your Ed25519 private key.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "With --request-id: fetches the signing request from the API,")
-		fmt.Fprintln(os.Stderr, "signs the payload, and submits the signature — all in one step.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Without --request-id: signs the message+nonce locally and prints")
-		fmt.Fprintln(os.Stderr, "the base64-encoded signature to stdout.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	creds, err := loadCredentials(*credPath)
+func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []string) error {
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
 
 	// --request-id: one-shot fetch + sign + submit
-	if *requestID != "" {
+	if requestID != "" {
 		if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
 			return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
 		}
-		client, err := newClientFromCreds(*apiURL)
+		client, err := newClientFromCreds(apiURL)
 		if err != nil {
 			return err
 		}
-		sig, err := signWithRequestID(client, *requestID, creds.Keys.PrivateKey)
+		sig, err := signWithRequestID(client, requestID, creds.Keys.PrivateKey)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "Signature submitted for request %s\n", *requestID)
+		fmt.Fprintf(os.Stderr, "Signature submitted for request %s\n", requestID)
 		// Print the base64 signature to stdout so callers can capture it
-		fmt.Print(sig)
+		fmt.Fprint(w, sig)
 		return nil
 	}
 
 	// Manual mode: --nonce + message positional arg
-	if *nonce == "" {
-		return fmt.Errorf("one of --nonce or --request-id is required\n\nUsage: moltnet sign --nonce <nonce> <message>\n       moltnet sign --request-id <id>")
+	if nonce == "" {
+		return fmt.Errorf("one of --nonce or --request-id is required")
 	}
 
-	payload, err := readPayload(fs.Args())
+	payload, err := readPayload(args)
 	if err != nil {
 		return err
 	}
 
-	sig, err := SignForRequest(payload, *nonce, creds.Keys.PrivateKey)
+	sig, err := SignForRequest(payload, nonce, creds.Keys.PrivateKey)
 	if err != nil {
 		return fmt.Errorf("sign: %w", err)
 	}
 
-	fmt.Print(sig)
+	fmt.Fprint(w, sig)
 	return nil
 }
 

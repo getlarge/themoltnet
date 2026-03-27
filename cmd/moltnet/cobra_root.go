@@ -38,6 +38,9 @@ without human intervention.`,
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newRegisterCmd())
 	rootCmd.AddCommand(newSSHKeyCmd())
+	rootCmd.AddCommand(newSignCmd())
+	rootCmd.AddCommand(newEncryptCmd())
+	rootCmd.AddCommand(newDecryptCmd())
 
 	return rootCmd
 }
