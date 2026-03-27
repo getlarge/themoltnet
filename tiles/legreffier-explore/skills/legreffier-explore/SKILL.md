@@ -32,6 +32,35 @@ Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 - When compile packs feel noisy or incomplete
 - When asked to "explore the diary", "diary analysis", "review diary", or "what's in the diary"
 
+## Operator preflight
+
+Before creating any scratch artifact, propose a few **exploration directions**
+to the operator and let them steer the search space.
+
+The first output should be a short operator-facing preflight, not a scratch
+file. Offer 2-4 concrete directions such as:
+
+- incident-first: focus on mistakes, fixes, and preventive context
+- decision-first: focus on architectural constraints and stable rules
+- subsystem-first: focus on one tag namespace or subsystem
+- retrieval-first: focus on what should go into a manual context pack
+
+Then ask the operator to control the search scope. Prefer explicit operator
+input over inference when the interface allows it. Capture at least:
+
+- target objective
+- chosen direction
+- preferred tags or tag namespaces
+- excluded tags
+- entry types to emphasize
+- search terms or recurring questions to chase
+- optional time window
+
+If the operator does not care or does not answer, proceed with a broad
+exploration and record that the defaults were inferred. If they do answer,
+the scratch output must record their choices so later `packs_create` work stays
+traceable.
+
 ## Exploration phases
 
 Run phases in order. Each phase builds on the previous one's findings.
@@ -219,58 +248,103 @@ This lets readers trace any claim back to the original diary entries.
 
 ## Output format
 
-Write findings as a diary entry (`entry_type: reflection`) with this structure:
+Primary output is a **scratch artifact for manual pack planning**, not a diary
+entry. Exploration is often noisy and provisional; do not persist it to the
+diary by default.
 
+Sequence the output in this order:
+
+1. operator preflight with suggested directions
+2. confirmed or inferred search controls
+3. scratch artifact using the template below
+
+Write a local YAML or Markdown note that will drive **manual entry selection**
+for `packs_create`.
+
+Preferred template path:
+
+`tiles/legreffier-explore/templates/exploration-pack-plan.yaml`
+
+Copy or adapt that template rather than inventing an ad hoc structure.
+
+Preferred shape:
+
+```yaml
+diary: <diary-name>
+generated_at: <ISO timestamp>
+entries_analyzed: <count>
+temporal_range:
+  start: <earliest>
+  end: <most_recent>
+
+inventory:
+  entry_types:
+    <entry_type>: <count>
+  top_tags:
+    <tag>: <count>
+
+tag_namespaces:
+  <namespace>:
+    <value>: <count>
+
+agent_mistakes:
+  critical_high:
+    - entry_id: <uuid>
+      title: <title>
+      subsystem: <inferred subsystem>
+      what_went_wrong: <summary>
+      preventive_context: <what should have been known>
+  medium_low:
+    - ...
+
+commit_patterns:
+  top_tags:
+    <tag>: <count>
+  branches:
+    <branch>: <count>
+  anti_patterns:
+    - <pattern>
+
+coverage_gaps:
+  - topic: <topic>
+    evidence: <how discovered>
+    gap_type: <description>
+
+noise_sources:
+  - tag_or_pattern: <tag or pattern>
+    why: <why it should be excluded>
+
+recommended_compile_recipes:
+  - name: <recipe name>
+    intent: <what task this supports>
+    task_prompt: <specific compile question>
+    token_budget: <number>
+    lambda: <0.0-1.0>
+    w_importance: <0.0-1.0>
+    w_recency: <0.0-1.0>
+    include_tags: [<tags>]
+    exclude_tags: [<tags>]
+    rationale: <why these settings fit this diary>
+
+manual_pack_plan:
+  candidate_topics:
+    - <topic bucket>
+  candidate_entry_ids:
+    - <uuid>
+  selection_rules:
+    - prefer entries with clear preventive context
+    - prefer decisions plus incidents that prove them
+    - avoid raw learn traces unless the goal is coverage-gap analysis
+  next_step: create a curated packs_create payload from the selected entry IDs
 ```
-# Diary Exploration — <diary-name>
 
-Date: <ISO timestamp>
-Entries analyzed: <count>
-Temporal range: <earliest> to <most recent>
+Only promote exploration findings into the diary if explicitly requested or if
+the result has been condensed into a stable, reusable artifact such as:
 
-## Inventory
-
-| Entry type | Count |
-|------------|-------|
-| ...        | ...   |
-
-## Tag Namespaces
-
-<namespace>:
-  - <value>: <count>
-(Discovered from data, not hardcoded)
-
-## Agent Mistakes (<count> found)
-
-### Critical/High severity
-- <entry title>: <one-line summary + subsystem>
-
-### Medium/Low severity
-- ...
-
-## Commit Patterns
-
-- Top tags: <list with counts>
-- Branch distribution: <list with counts>
-- Anti-patterns: <list if any>
-
-## Coverage Gaps
-
-| Topic | Evidence | Gap type |
-|-------|----------|----------|
-| ...   | <how discovered> | <description> |
-
-## Noise Sources (recommend excluding from packs)
-
-- <tag or entry pattern>: <why it's noise>
-
-## Recommended Compile Recipes
-
-<yaml blocks per recipe, tailored to this diary>
-```
-
-Tags: `["exploration", "diary-health"]`
-Importance: 6
+- a durable compile recipe set
+- a cross-session operating rule
+- a curated pack plan worth preserving
+- a post-pack reflection that supersedes an older exploration
 
 ## Relation opportunities
 
@@ -332,12 +406,14 @@ documentation for a Tessl docs tile.
 ## Recovery after context compression
 
 1. Read this skill file
-2. Check for existing exploration:
-   `entries_search({ diary_id, tags: ["exploration"], limit: 1 })`
-3. If found, read it and skip completed phases
-4. Resume from the next incomplete phase
+2. Check for an existing local exploration scratch artifact or pack-planning
+   note for this diary
+3. If one exists, resume from the next incomplete phase
+4. Only fall back to diary-stored exploration if the user explicitly promoted
+   one earlier
 
 ## Permissions
 
 Read access to the diary (`entries_list`, `entries_search`, `entries_get`).
-Write access for the final reflection entry (`entries_create`).
+Diary write access is optional and should only be used for explicit promotion,
+not as the default output path.
