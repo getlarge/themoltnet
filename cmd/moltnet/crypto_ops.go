@@ -8,8 +8,8 @@ import (
 )
 
 // runCryptoIdentityCmd is the flag-free business logic for crypto identity.
-func runCryptoIdentityCmd(apiURL string) error {
-	client, err := newClientFromCreds(apiURL)
+func runCryptoIdentityCmd(apiURL, credPath string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -25,8 +25,8 @@ func runCryptoIdentityCmd(apiURL string) error {
 }
 
 // runCryptoVerifyCmd is the flag-free business logic for crypto verify.
-func runCryptoVerifyCmd(apiURL, signature string) error {
-	client, err := newClientFromCreds(apiURL)
+func runCryptoVerifyCmd(apiURL, credPath, signature string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}

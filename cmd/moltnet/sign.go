@@ -23,7 +23,7 @@ func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []s
 		if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
 			return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
 		}
-		client, err := newClientFromCreds(apiURL)
+		client, err := newClientFromCreds(apiURL, credPath)
 		if err != nil {
 			return err
 		}

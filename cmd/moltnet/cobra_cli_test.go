@@ -742,3 +742,240 @@ func TestCompletionInvalidShell(t *testing.T) {
 		t.Fatal("expected error for invalid shell, got nil")
 	}
 }
+
+// --- Issue 1: diary commit output goes through io.Writer, not os.Stdout ---
+
+func TestDiaryCommitAcceptsWriter(t *testing.T) {
+	// Verify runDiaryCommitCmd accepts an io.Writer as first parameter.
+	// We can't call it without a real API, but we can verify the function
+	// signature compiles correctly by calling with invalid input that fails
+	// before reaching the API.
+	var buf strings.Builder
+	err := runDiaryCommitCmd(&buf, "http://127.0.0.1:1", "", "not-a-uuid", "rationale", "low", "cli", "ed", "claude", "", false, 0, "")
+	if err == nil {
+		t.Fatal("expected error for invalid diary ID")
+	}
+	// Verify nothing was written to the buffer (error happened before output)
+	if buf.Len() != 0 {
+		t.Errorf("expected no output on error, got: %s", buf.String())
+	}
+}
+
+// --- Issue 3+4: --credentials flag is plumbed through ---
+
+func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
+	// Create a valid credentials file with OAuth2 creds pointing at unreachable API
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	dir := t.TempDir()
+	credPath := filepath.Join(dir, "creds.json")
+	creds := CredentialsFile{
+		IdentityID: "test",
+		Keys:       CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+	}
+	data, _ := json.Marshal(creds)
+	os.WriteFile(credPath, data, 0o600)
+
+	// Use empty HOME so default discovery fails, proving --credentials is used
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err = executeCommand(root, "agents", "whoami",
+		"--credentials", credPath,
+		"--api-url", "http://127.0.0.1:1")
+	if err == nil {
+		t.Fatal("expected error for unreachable API, got nil")
+	}
+	// Should fail with connection error, NOT "no credentials found"
+	if strings.Contains(err.Error(), "no credentials found") {
+		t.Errorf("credentials flag was ignored — got 'no credentials found' instead of connection error: %v", err)
+	}
+}
+
+func TestCredentialsFlagPlumbedToVouchList(t *testing.T) {
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	dir := t.TempDir()
+	credPath := filepath.Join(dir, "creds.json")
+	creds := CredentialsFile{
+		IdentityID: "test",
+		Keys:       CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+	}
+	data, _ := json.Marshal(creds)
+	os.WriteFile(credPath, data, 0o600)
+
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err = executeCommand(root, "vouch", "list",
+		"--credentials", credPath,
+		"--api-url", "http://127.0.0.1:1")
+	if err == nil {
+		t.Fatal("expected error for unreachable API, got nil")
+	}
+	if strings.Contains(err.Error(), "no credentials found") {
+		t.Errorf("credentials flag was ignored — got 'no credentials found' instead of connection error: %v", err)
+	}
+}
+
+func TestCredentialsFlagPlumbedToDiaryCreate(t *testing.T) {
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	dir := t.TempDir()
+	credPath := filepath.Join(dir, "creds.json")
+	creds := CredentialsFile{
+		IdentityID: "test",
+		Keys:       CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey},
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+	}
+	data, _ := json.Marshal(creds)
+	os.WriteFile(credPath, data, 0o600)
+
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err = executeCommand(root, "diary", "create",
+		"--diary-id", "00000000-0000-0000-0000-000000000001",
+		"--content", "test",
+		"--credentials", credPath,
+		"--api-url", "http://127.0.0.1:1")
+	if err == nil {
+		t.Fatal("expected error for unreachable API, got nil")
+	}
+	if strings.Contains(err.Error(), "no credentials found") {
+		t.Errorf("credentials flag was ignored — got 'no credentials found' instead of connection error: %v", err)
+	}
+}
+
+func TestCredentialsFlagPlumbedToSignRequestID(t *testing.T) {
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	dir := t.TempDir()
+	credPath := filepath.Join(dir, "creds.json")
+	creds := CredentialsFile{
+		IdentityID: "test",
+		Keys: CredentialsKeys{
+			PublicKey:  kp.PublicKey,
+			PrivateKey: kp.PrivateKey,
+		},
+		OAuth2: CredentialsOAuth2{
+			ClientID:     "test-client",
+			ClientSecret: "test-secret",
+		},
+	}
+	data, _ := json.Marshal(creds)
+	os.WriteFile(credPath, data, 0o600)
+
+	root := NewRootCmd()
+	// This will fail at the API call, but that's fine — we're testing that
+	// the credentials from --credentials are actually loaded (not default path).
+	_, _, err = executeCommand(root, "sign",
+		"--credentials", credPath,
+		"--request-id", "00000000-0000-0000-0000-000000000001",
+		"--api-url", "http://127.0.0.1:1")
+	if err == nil {
+		t.Fatal("expected error for unreachable API, got nil")
+	}
+	// The error should be about connection, not about missing credentials
+	if strings.Contains(err.Error(), "no credentials found") {
+		t.Errorf("credentials flag was ignored — got 'no credentials found' error: %v", err)
+	}
+}
+
+// --- Issue 5: vouch has examples ---
+
+func TestVouchIssueHelpShowsExample(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "vouch", "issue", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "Example") {
+		t.Errorf("expected vouch issue help to contain 'Example', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "moltnet vouch issue") {
+		t.Errorf("expected vouch issue help to contain example command, got: %s", stdout)
+	}
+}
+
+func TestVouchListHelpShowsExample(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "vouch", "list", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "Example") {
+		t.Errorf("expected vouch list help to contain 'Example', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "moltnet vouch list") {
+		t.Errorf("expected vouch list help to contain example command, got: %s", stdout)
+	}
+}
+
+// --- Issue 6: crypto verify uses MarkFlagRequired ---
+
+func TestCryptoVerifyRequiresSignatureViaMarkFlagRequired(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "crypto", "verify")
+	if err == nil {
+		t.Fatal("expected error when --signature is missing, got nil")
+	}
+	// MarkFlagRequired produces: "required flag(s) \"signature\" not set"
+	if !strings.Contains(err.Error(), "required") && !strings.Contains(err.Error(), "signature") {
+		t.Errorf("expected Cobra required-flag error mentioning 'signature', got: %v", err)
+	}
+}
+
+// --- Issue 7: error messages use double-dash ---
+
+func TestValidateCommitFlagsErrorFormat(t *testing.T) {
+	// Call validateCommitFlags with empty diary-id, verify error contains "--diary-id" not "-diary-id"
+	err := validateCommitFlags("", "text", "low", "cli", "ed", "claude", 0)
+	if err == nil {
+		t.Fatal("expected error for empty diary-id")
+	}
+	if !strings.Contains(err.Error(), "--diary-id") {
+		t.Errorf("expected error to contain '--diary-id' (double dash), got: %v", err)
+	}
+
+	// Verify other flags also use double-dash
+	tests := []struct {
+		name    string
+		fn      func() error
+		wantSub string
+	}{
+		{"rationale", func() error {
+			return validateCommitFlags("00000000-0000-0000-0000-000000000001", "", "low", "cli", "ed", "claude", 0)
+		}, "--rationale"},
+		{"risk", func() error {
+			return validateCommitFlags("00000000-0000-0000-0000-000000000001", "text", "", "cli", "ed", "claude", 0)
+		}, "--risk"},
+		{"scope", func() error {
+			return validateCommitFlags("00000000-0000-0000-0000-000000000001", "text", "low", "", "ed", "claude", 0)
+		}, "--scope"},
+		{"operator", func() error {
+			return validateCommitFlags("00000000-0000-0000-0000-000000000001", "text", "low", "cli", "", "claude", 0)
+		}, "--operator"},
+		{"tool", func() error {
+			return validateCommitFlags("00000000-0000-0000-0000-000000000001", "text", "low", "cli", "ed", "", 0)
+		}, "--tool"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.fn()
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			if !strings.Contains(err.Error(), tt.wantSub) {
+				t.Errorf("expected error to contain %q, got: %v", tt.wantSub, err)
+			}
+		})
+	}
+}

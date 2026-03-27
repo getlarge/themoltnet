@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/google/uuid"
@@ -34,9 +35,10 @@ func newDiaryCreateCmd() *cobra.Command {
 		Example: `  moltnet diary create --diary-id <uuid> --content "Entry text"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			content, _ := cmd.Flags().GetString("content")
-			return runDiaryCreateCmd(apiURL, diaryID, content)
+			return runDiaryCreateCmd(apiURL, credPath, diaryID, content)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
@@ -57,12 +59,13 @@ Entry types: semantic, episodic, procedural, reflection, identity, soul`,
 		Example: `  moltnet diary create-signed --diary-id <uuid> --content "Entry text" --type semantic --tags "tag1,tag2"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			content, _ := cmd.Flags().GetString("content")
 			title, _ := cmd.Flags().GetString("title")
 			entryType, _ := cmd.Flags().GetString("type")
 			tagsStr, _ := cmd.Flags().GetString("tags")
-			return runDiaryCreateSignedCmd(apiURL, diaryID, content, title, entryType, tagsStr)
+			return runDiaryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
@@ -82,8 +85,9 @@ func newDiaryListCmd() *cobra.Command {
 		Example: `  moltnet diary list --diary-id <uuid>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
 			diaryID, _ := cmd.Flags().GetString("diary-id")
-			return runDiaryListCmd(apiURL, diaryID)
+			return runDiaryListCmd(apiURL, credPath, diaryID)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID to list entries from (required)")
@@ -99,7 +103,8 @@ func newDiaryGetCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
-			return runDiaryGetCmd(apiURL, args[0])
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runDiaryGetCmd(apiURL, credPath, args[0])
 		},
 	}
 }
@@ -112,7 +117,8 @@ func newDiaryDeleteCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
-			return runDiaryDeleteCmd(apiURL, args[0])
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runDiaryDeleteCmd(apiURL, credPath, args[0])
 		},
 	}
 }
@@ -124,8 +130,9 @@ func newDiarySearchCmd() *cobra.Command {
 		Example: `  moltnet diary search --query "authentication decisions"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
 			query, _ := cmd.Flags().GetString("query")
-			return runDiarySearchCmd(apiURL, query)
+			return runDiarySearchCmd(apiURL, credPath, query)
 		},
 	}
 	cmd.Flags().String("query", "", "Search query (required)")
@@ -141,7 +148,8 @@ func newDiaryVerifyCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
-			return runDiaryVerifyCmd(apiURL, args[0])
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runDiaryVerifyCmd(apiURL, credPath, args[0])
 		},
 	}
 }
@@ -166,7 +174,7 @@ Auto-derives git metadata from staged changes.`,
 			signed, _ := cmd.Flags().GetBool("signed")
 			importance, _ := cmd.Flags().GetInt("importance")
 			extraTags, _ := cmd.Flags().GetString("extra-tags")
-			return runDiaryCommitCmd(apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title, signed, importance, extraTags)
+			return runDiaryCommitCmd(cmd.OutOrStdout(), apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title, signed, importance, extraTags)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
@@ -189,7 +197,7 @@ Auto-derives git metadata from staged changes.`,
 }
 
 // runDiaryCommitCmd is the parameterized business logic for diary commit.
-func runDiaryCommitCmd(apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title string, signed bool, importance int, extraTags string) error {
+func runDiaryCommitCmd(w io.Writer, apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title string, signed bool, importance int, extraTags string) error {
 	if err := validateCommitFlags(diaryID, rationale, risk, scope, operator, tool, importance); err != nil {
 		return err
 	}
@@ -203,7 +211,7 @@ func runDiaryCommitCmd(apiURL, credPath, diaryID, rationale, risk, scope, operat
 
 	scopes := splitAndTrim(scope, ",")
 	if len(scopes) == 0 {
-		return fmt.Errorf("flag -scope must contain at least one non-empty scope")
+		return fmt.Errorf("flag --scope must contain at least one non-empty scope")
 	}
 	var extraTagsList []string
 	if extraTags != "" {
@@ -245,5 +253,5 @@ func runDiaryCommitCmd(apiURL, credPath, diaryID, rationale, risk, scope, operat
 		return err
 	}
 
-	return json.NewEncoder(os.Stdout).Encode(result)
+	return json.NewEncoder(w).Encode(result)
 }

@@ -8,8 +8,8 @@ import (
 )
 
 // runVouchIssueCmd is the flag-free business logic for vouch issue.
-func runVouchIssueCmd(apiURL string) error {
-	client, err := newClientFromCreds(apiURL)
+func runVouchIssueCmd(apiURL, credPath string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -25,8 +25,8 @@ func runVouchIssueCmd(apiURL string) error {
 }
 
 // runVouchListCmd is the flag-free business logic for vouch list.
-func runVouchListCmd(apiURL string) error {
-	client, err := newClientFromCreds(apiURL)
+func runVouchListCmd(apiURL, credPath string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}

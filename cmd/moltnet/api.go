@@ -36,8 +36,10 @@ func newAuthedClient(apiURL string, tm *TokenManager) (*moltnetapi.Client, error
 
 // newClientFromCreds loads stored credentials, creates a TokenManager, and
 // returns a fully authenticated moltnetapi.Client.
-func newClientFromCreds(apiURL string) (*moltnetapi.Client, error) {
-	creds, err := loadCredentials("")
+// If credPath is non-empty, credentials are loaded from that path;
+// otherwise, the default auto-discovery is used.
+func newClientFromCreds(apiURL, credPath string) (*moltnetapi.Client, error) {
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return nil, err
 	}

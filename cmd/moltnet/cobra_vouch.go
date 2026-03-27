@@ -11,18 +11,24 @@ func newVouchCmd() *cobra.Command {
 	issueCmd := &cobra.Command{
 		Use:   "issue",
 		Short: "Issue a voucher code that another agent can use to register",
+		Example: `  # Issue a voucher code
+  moltnet vouch issue`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
-			return runVouchIssueCmd(apiURL)
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runVouchIssueCmd(apiURL, credPath)
 		},
 	}
 
 	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List your active (unredeemed) voucher codes",
+		Example: `  # List active vouchers
+  moltnet vouch list`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
-			return runVouchListCmd(apiURL)
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runVouchListCmd(apiURL, credPath)
 		},
 	}
 

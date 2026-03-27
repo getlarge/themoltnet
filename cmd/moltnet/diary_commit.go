@@ -123,28 +123,28 @@ func firstSentence(s string) string {
 // validateCommitFlags validates all required flags for diary commit.
 func validateCommitFlags(diaryID, rationale, risk, scope, operator, tool string, importance int) error {
 	if diaryID == "" {
-		return fmt.Errorf("flag -diary-id is required")
+		return fmt.Errorf("flag --diary-id is required")
 	}
 	if _, err := uuid.Parse(diaryID); err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 	if rationale == "" {
-		return fmt.Errorf("flag -rationale is required")
+		return fmt.Errorf("flag --rationale is required")
 	}
 	if risk == "" {
-		return fmt.Errorf("flag -risk is required")
+		return fmt.Errorf("flag --risk is required")
 	}
 	if risk != "low" && risk != "medium" && risk != "high" {
 		return fmt.Errorf("invalid risk %q: must be low, medium, or high", risk)
 	}
 	if scope == "" {
-		return fmt.Errorf("flag -scope is required")
+		return fmt.Errorf("flag --scope is required")
 	}
 	if operator == "" {
-		return fmt.Errorf("flag -operator is required")
+		return fmt.Errorf("flag --operator is required")
 	}
 	if tool == "" {
-		return fmt.Errorf("flag -tool is required")
+		return fmt.Errorf("flag --tool is required")
 	}
 	if importance != 0 && (importance < 1 || importance > 10) {
 		return fmt.Errorf("invalid importance %d: must be between 1 and 10", importance)

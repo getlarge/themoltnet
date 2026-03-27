@@ -13,13 +13,13 @@ import (
 // --- Parameterized business logic (called by Cobra commands) ---
 
 // runDiaryCreateCmd is the flag-free business logic for diary create.
-func runDiaryCreateCmd(apiURL, diaryID, content string) error {
+func runDiaryCreateCmd(apiURL, credPath, diaryID, content string) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func runDiaryCreateCmd(apiURL, diaryID, content string) error {
 }
 
 // runDiaryCreateSignedCmd is the flag-free business logic for diary create-signed.
-func runDiaryCreateSignedCmd(apiURL, diaryID, content, title, entryType, tagsStr string) error {
+func runDiaryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr string) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -61,11 +61,11 @@ func runDiaryCreateSignedCmd(apiURL, diaryID, content, title, entryType, tagsStr
 	fmt.Fprintf(os.Stderr, "Computed CID: %s\n", cid)
 
 	// Step 2: Load credentials and create client
-	creds, err := loadCredentials("")
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -121,13 +121,13 @@ func runDiaryCreateSignedCmd(apiURL, diaryID, content, title, entryType, tagsStr
 }
 
 // runDiaryListCmd is the flag-free business logic for diary list.
-func runDiaryListCmd(apiURL, diaryID string) error {
+func runDiaryListCmd(apiURL, credPath, diaryID string) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -143,13 +143,13 @@ func runDiaryListCmd(apiURL, diaryID string) error {
 }
 
 // runDiaryGetCmd is the flag-free business logic for diary get.
-func runDiaryGetCmd(apiURL, entryID string) error {
+func runDiaryGetCmd(apiURL, credPath, entryID string) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -165,13 +165,13 @@ func runDiaryGetCmd(apiURL, entryID string) error {
 }
 
 // runDiaryDeleteCmd is the flag-free business logic for diary delete.
-func runDiaryDeleteCmd(apiURL, entryID string) error {
+func runDiaryDeleteCmd(apiURL, credPath, entryID string) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -183,8 +183,8 @@ func runDiaryDeleteCmd(apiURL, entryID string) error {
 }
 
 // runDiarySearchCmd is the flag-free business logic for diary search.
-func runDiarySearchCmd(apiURL, query string) error {
-	client, err := newClientFromCreds(apiURL)
+func runDiarySearchCmd(apiURL, credPath, query string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -205,13 +205,13 @@ func runDiarySearchCmd(apiURL, query string) error {
 }
 
 // runDiaryVerifyCmd is the flag-free business logic for diary verify.
-func runDiaryVerifyCmd(apiURL, entryID string) error {
+func runDiaryVerifyCmd(apiURL, credPath, entryID string) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}

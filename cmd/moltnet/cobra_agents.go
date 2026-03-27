@@ -13,7 +13,8 @@ func newAgentsCmd() *cobra.Command {
 		Short: "Display your agent identity as registered on the MoltNet network",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
-			return runAgentsWhoamiCmd(apiURL)
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runAgentsWhoamiCmd(apiURL, credPath)
 		},
 	}
 
@@ -23,7 +24,8 @@ func newAgentsCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
-			return runAgentsLookupCmd(apiURL, args[0])
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runAgentsLookupCmd(apiURL, credPath, args[0])
 		},
 	}
 

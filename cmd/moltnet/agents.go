@@ -10,8 +10,8 @@ import (
 )
 
 // runAgentsWhoamiCmd is the flag-free business logic for agents whoami.
-func runAgentsWhoamiCmd(apiURL string) error {
-	client, err := newClientFromCreds(apiURL)
+func runAgentsWhoamiCmd(apiURL, credPath string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -27,8 +27,8 @@ func runAgentsWhoamiCmd(apiURL string) error {
 }
 
 // runAgentsLookupCmd is the flag-free business logic for agents lookup.
-func runAgentsLookupCmd(apiURL, fingerprint string) error {
-	client, err := newClientFromCreds(apiURL)
+func runAgentsLookupCmd(apiURL, credPath, fingerprint string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}

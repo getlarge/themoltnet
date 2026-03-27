@@ -29,8 +29,9 @@ Use 'moltnet pack list' or the MCP packs_list tool to find pack UUIDs.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
 			out, _ := cmd.Flags().GetString("out")
-			return runPackExportCmd(apiURL, args[0], out)
+			return runPackExportCmd(apiURL, credPath, args[0], out)
 		},
 	}
 	cmd.Flags().String("out", "", "Output file path (default: stdout)")
@@ -47,12 +48,13 @@ Provide exactly one of --pack-id or --pack-cid.`,
   moltnet pack provenance --pack-cid <cid> --share-url https://themolt.net/labs/provenance`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
 			packID, _ := cmd.Flags().GetString("pack-id")
 			packCID, _ := cmd.Flags().GetString("pack-cid")
 			depth, _ := cmd.Flags().GetInt("depth")
 			out, _ := cmd.Flags().GetString("out")
 			shareURL, _ := cmd.Flags().GetString("share-url")
-			return runPackProvenanceCmd(apiURL, packID, packCID, depth, out, shareURL)
+			return runPackProvenanceCmd(apiURL, credPath, packID, packCID, depth, out, shareURL)
 		},
 	}
 	cmd.Flags().String("pack-id", "", "Pack UUID")

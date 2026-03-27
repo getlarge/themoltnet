@@ -288,6 +288,10 @@ func deriveKey(shared []byte) ([]byte, error) {
 }
 
 func runEncryptCmd(w io.Writer, recipient string, args []string) error {
+	if recipient == "" {
+		return fmt.Errorf("recipient public key is required")
+	}
+
 	plaintext, err := readPayload(args)
 	if err != nil {
 		return err

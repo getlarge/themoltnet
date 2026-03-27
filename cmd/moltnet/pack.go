@@ -16,13 +16,13 @@ import (
 )
 
 // runPackExportCmd is the flag-free business logic for pack export.
-func runPackExportCmd(apiURL, packID, out string) error {
+func runPackExportCmd(apiURL, credPath, packID, out string) error {
 	packUUID, err := uuid.Parse(packID)
 	if err != nil {
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func runPackExportCmd(apiURL, packID, out string) error {
 }
 
 // runPackProvenanceCmd is the flag-free business logic for pack provenance.
-func runPackProvenanceCmd(apiURL, packID, packCID string, depth int, out, shareURL string) error {
+func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, out, shareURL string) error {
 	// Mutual exclusivity: exactly one of packID or packCID must be non-empty.
 	if (packID == "") == (packCID == "") {
 		return fmt.Errorf("provide exactly one of --pack-id or --pack-cid")
@@ -79,7 +79,7 @@ func runPackProvenanceCmd(apiURL, packID, packCID string, depth int, out, shareU
 		}
 	}
 
-	client, err := newClientFromCreds(apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -221,5 +221,5 @@ func runPackProvenance(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return runPackProvenanceCmd(*apiURL, *packID, *packCID, *depth, *out, *shareURL)
+	return runPackProvenanceCmd(*apiURL, "", *packID, *packCID, *depth, *out, *shareURL)
 }
