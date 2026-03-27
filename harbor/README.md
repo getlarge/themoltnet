@@ -25,9 +25,9 @@ variants per eval:
 ## Run a single task
 
 ```bash
-PYTHONPATH=. harbor run \
+PYTHONPATH=harbor harbor run \
   -p harbor/tasks/mcp-format-uuid-validation \
-  --agent-import-path harbor_agents.claude_code_moltnet:ClaudeCodeMoltNet \
+  --agent-import-path agents.claude_code_moltnet:ClaudeCodeMoltNet \
   --model anthropic/claude-sonnet-4-6 \
   -y
 ```
@@ -35,9 +35,9 @@ PYTHONPATH=. harbor run \
 ## Run all tasks
 
 ```bash
-PYTHONPATH=. harbor run \
+PYTHONPATH=harbor harbor run \
   -p harbor/tasks \
-  --agent-import-path harbor_agents.claude_code_moltnet:ClaudeCodeMoltNet \
+  --agent-import-path agents.claude_code_moltnet:ClaudeCodeMoltNet \
   --model anthropic/claude-sonnet-4-6 \
   --n-concurrent 2 \
   -y
