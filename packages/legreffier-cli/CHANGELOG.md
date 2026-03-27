@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.26.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.26.0...legreffier-v0.26.1) (2026-03-27)
+
+
+### Bug Fixes
+
+* follow up legreffier skill bundle review comments ([df19ad9](https://github.com/getlarge/themoltnet/commit/df19ad9c709913ebd7b77e0b3a32c1949ab3fbb8))
+* **legreffier-cli:** ship scan skill companion docs ([d1e3860](https://github.com/getlarge/themoltnet/commit/d1e38602362c014e231d241103c96429fd33f8a7))
+* **legreffier-explore:** ship adjacent template bundle ([7e4f722](https://github.com/getlarge/themoltnet/commit/7e4f7227c4066fa68ff388b1cf2ed445ccfded0a))
+
 ## [0.26.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.25.0...legreffier-v0.26.0) (2026-03-23)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/legreffier",
-  "version": "0.26.0",
+  "version": "0.26.1",
   "description": "LeGreffier — one-command accountable AI agent setup",
   "license": "AGPL-3.0-only",
   "type": "module",
