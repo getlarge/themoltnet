@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /** Pinned to the release tag — updated by release-please. */
 const SKILL_VERSION = 'legreffier-v0.1.0';
@@ -16,7 +16,15 @@ function skillFileUrl(name: string, ref: string, file: string): string {
 
 const SKILLS: SkillDefinition[] = [
   { name: 'legreffier', files: ['SKILL.md'] },
-  { name: 'legreffier-scan', files: ['SKILL.md'] },
+  {
+    name: 'legreffier-scan',
+    files: [
+      'SKILL.md',
+      'references/scan-flows.md',
+      'references/path-discovery.md',
+      'references/content-templates.md',
+    ],
+  },
   {
     name: 'legreffier-explore',
     files: ['SKILL.md', 'exploration-pack-plan.yaml'],
@@ -79,7 +87,9 @@ export async function downloadSkills(
     await mkdir(destDir, { recursive: true });
 
     for (const [file, content] of files) {
-      await writeFile(join(destDir, file), content, 'utf-8');
+      const filePath = join(destDir, file);
+      await mkdir(dirname(filePath), { recursive: true });
+      await writeFile(filePath, content, 'utf-8');
     }
   }
 }
