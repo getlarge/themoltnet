@@ -112,10 +112,9 @@ const recordings = [
   },
 ];
 
-const gitConfigNote = `// package.json
-{
+const gitConfigNote = `{
   "scripts": {
-    "claude:agent": "GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig claude"
+    "claude:agent": "GIT_CONFIG_GLOBAL=.moltnet/<agent>/gitconfig claude"
   }
 }`;
 
