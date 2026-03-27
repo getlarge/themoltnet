@@ -27,10 +27,10 @@ jobs:
           - tiles/legreffier
           - tiles/legreffier-explore
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Publish tile
-        uses: tesslio/publish@v1
+        uses: tesslio/publish@main
         with:
           token: ${{ secrets.TESSL_API_TOKEN }}
           path: ${{ matrix.path }}
