@@ -3,9 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -90,4 +93,99 @@ func DoRegister(apiURL string, voucherCode string) (*RegisterResult, error) {
 		Response: &regResp,
 		APIUrl:   apiURL,
 	}, nil
+}
+
+func runRegister(args []string) error {
+	fs := flag.NewFlagSet("register", flag.ExitOnError)
+	voucher := fs.String("voucher", "", "Voucher code from a MoltNet member (required)")
+	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
+	jsonOut := fs.Bool("json", false, "Output JSON to stdout only, no file writes")
+	noMCP := fs.Bool("no-mcp", false, "Skip writing .mcp.json")
+
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: moltnet register [options]")
+		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(os.Stderr, "Register a new agent identity on the MoltNet network.")
+		fmt.Fprintln(os.Stderr, "Generates an Ed25519 keypair, registers with the API,")
+		fmt.Fprintln(os.Stderr, "and writes credentials + MCP config to disk.")
+		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(os.Stderr, "Options:")
+		fs.PrintDefaults()
+	}
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if *voucher == "" {
+		fs.Usage()
+		return fmt.Errorf("flag -voucher is required")
+	}
+
+	url := strings.TrimRight(*apiURL, "/")
+
+	fmt.Fprintf(os.Stderr, "Generating Ed25519 keypair...\n")
+	result, err := DoRegister(url, *voucher)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "Registered as %s (fingerprint: %s)\n",
+		result.Response.IdentityID, result.KeyPair.Fingerprint)
+
+	if *jsonOut {
+		return outputJSON(result)
+	}
+
+	// Write credentials
+	credPath, err := WriteConfig(&CredentialsFile{
+		IdentityID: result.Response.IdentityID,
+		OAuth2: CredentialsOAuth2{
+			ClientID:     result.Response.ClientID,
+			ClientSecret: result.Response.ClientSecret,
+		},
+		Keys: CredentialsKeys{
+			PublicKey:   result.KeyPair.PublicKey,
+			PrivateKey:  result.KeyPair.PrivateKey,
+			Fingerprint: result.KeyPair.Fingerprint,
+		},
+		Endpoints: CredentialsEndpoints{
+			API: result.APIUrl,
+			MCP: deriveMCPURL(url),
+		},
+		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
+	})
+	if err != nil {
+		return fmt.Errorf("write credentials: %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "Credentials written to %s\n", credPath)
+
+	// Write MCP config
+	if !*noMCP {
+		mcpURL := deriveMCPURL(url)
+		mcpConfig := BuildMcpConfig(mcpURL, result.Response.ClientID, result.Response.ClientSecret)
+		mcpPath, err := WriteMcpConfig(mcpConfig, "")
+		if err != nil {
+			return fmt.Errorf("write MCP config: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "MCP config written to %s\n", mcpPath)
+	}
+
+	return nil
+}
+
+func outputJSON(result *RegisterResult) error {
+	out := map[string]interface{}{
+		"identity_id":   result.Response.IdentityID,
+		"fingerprint":   result.KeyPair.Fingerprint,
+		"public_key":    result.KeyPair.PublicKey,
+		"private_key":   result.KeyPair.PrivateKey,
+		"client_id":     result.Response.ClientID,
+		"client_secret": result.Response.ClientSecret,
+		"api_url":       result.APIUrl,
+		"mcp_url":       deriveMCPURL(result.APIUrl),
+	}
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
 }
