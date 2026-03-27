@@ -198,7 +198,10 @@ out-tsc/
 
 # Context evals outputs
 evals/runs
-
 tasksmith/verified
 tasksmith/reports
 packs/
+
+# Python cache files
+__pycache__/
+*.pyc

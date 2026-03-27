@@ -1,2 +1,3 @@
 nodejs 22
 golang 1.26.0
+uv latest
