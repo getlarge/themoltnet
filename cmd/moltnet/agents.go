@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 
@@ -53,56 +52,3 @@ func printJSON(v interface{}) error {
 	return enc.Encode(v)
 }
 
-// runAgents is the legacy dispatcher, preserved for existing tests.
-func runAgents(args []string) error {
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet agents <whoami|lookup> [options]")
-		return fmt.Errorf("subcommand required")
-	}
-	switch args[0] {
-	case "whoami":
-		return runAgentsWhoami(args[1:])
-	case "lookup":
-		return runAgentsLookup(args[1:])
-	default:
-		fmt.Fprintf(os.Stderr, "unknown agents subcommand: %s\n", args[0])
-		fmt.Fprintln(os.Stderr, "Usage: moltnet agents <whoami|lookup> [options]")
-		return fmt.Errorf("unknown subcommand: %s", args[0])
-	}
-}
-
-// runAgentsWhoami is the legacy flag-parsing entry point, preserved for existing tests.
-func runAgentsWhoami(args []string) error {
-	fs := flag.NewFlagSet("agents whoami", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet agents whoami [options]")
-		fmt.Fprintln(os.Stderr, "\nDisplay your agent identity as registered on the MoltNet network.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	return runAgentsWhoamiCmd(*apiURL)
-}
-
-// runAgentsLookup is the legacy flag-parsing entry point, preserved for existing tests.
-func runAgentsLookup(args []string) error {
-	fs := flag.NewFlagSet("agents lookup", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet agents lookup <fingerprint> [options]")
-		fmt.Fprintln(os.Stderr, "\nLook up an agent profile by their key fingerprint.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if fs.NArg() < 1 {
-		fs.Usage()
-		return fmt.Errorf("fingerprint argument required")
-	}
-	return runAgentsLookupCmd(*apiURL, fs.Arg(0))
-}

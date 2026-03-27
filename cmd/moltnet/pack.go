@@ -200,47 +200,7 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 	return b.String()
 }
 
-// --- Legacy dispatchers preserved for existing tests ---
-
-// runPack is the legacy dispatcher, preserved for existing tests.
-func runPack(args []string) error {
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export|provenance> [options]")
-		return fmt.Errorf("subcommand required")
-	}
-	switch args[0] {
-	case "export":
-		return runPackExport(args[1:])
-	case "provenance":
-		return runPackProvenance(args[1:])
-	default:
-		fmt.Fprintf(os.Stderr, "unknown pack subcommand: %s\n", args[0])
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export|provenance> [options]")
-		return fmt.Errorf("unknown subcommand: %s", args[0])
-	}
-}
-
-// runPackExport is the legacy flag-parsing entry point, preserved for existing tests.
-func runPackExport(args []string) error {
-	fs := flag.NewFlagSet("pack export", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	out := fs.String("out", "", "Output file path (default: stdout)")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack export [options] <pack-uuid>")
-		fmt.Fprintln(os.Stderr, "\nExport a context pack as markdown. The pack ID must be a UUID (not a CID).")
-		fmt.Fprintln(os.Stderr, "Use 'moltnet pack list' or the MCP packs_list tool to find pack UUIDs.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if fs.NArg() < 1 {
-		fs.Usage()
-		return fmt.Errorf("pack id argument required")
-	}
-	return runPackExportCmd(*apiURL, fs.Arg(0), *out)
-}
+// --- Legacy wrappers preserved for existing tests ---
 
 // runPackProvenance is the legacy flag-parsing entry point, preserved for existing tests.
 func runPackProvenance(args []string) error {

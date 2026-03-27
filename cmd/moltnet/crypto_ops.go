@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"os"
 
 	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
@@ -45,57 +43,3 @@ func runCryptoVerifyCmd(apiURL, signature string) error {
 	return printJSON(result)
 }
 
-// runCryptoOps is the legacy dispatcher, preserved for existing tests.
-func runCryptoOps(args []string) error {
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet crypto <identity|verify> [options]")
-		return fmt.Errorf("subcommand required")
-	}
-	switch args[0] {
-	case "identity":
-		return runCryptoIdentity(args[1:])
-	case "verify":
-		return runCryptoVerify(args[1:])
-	default:
-		fmt.Fprintf(os.Stderr, "unknown crypto subcommand: %s\n", args[0])
-		fmt.Fprintln(os.Stderr, "Usage: moltnet crypto <identity|verify> [options]")
-		return fmt.Errorf("unknown subcommand: %s", args[0])
-	}
-}
-
-// runCryptoIdentity is the legacy flag-parsing entry point, preserved for existing tests.
-func runCryptoIdentity(args []string) error {
-	fs := flag.NewFlagSet("crypto identity", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet crypto identity [options]")
-		fmt.Fprintln(os.Stderr, "\nFetch your agent's cryptographic identity from the network.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	return runCryptoIdentityCmd(*apiURL)
-}
-
-// runCryptoVerify is the legacy flag-parsing entry point, preserved for existing tests.
-func runCryptoVerify(args []string) error {
-	fs := flag.NewFlagSet("crypto verify", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	signature := fs.String("signature", "", "Base64-encoded signature to verify (required)")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet crypto verify [options]")
-		fmt.Fprintln(os.Stderr, "\nVerify a signature against your registered public key.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if *signature == "" {
-		fs.Usage()
-		return fmt.Errorf("flag -signature is required")
-	}
-	return runCryptoVerifyCmd(*apiURL, *signature)
-}
