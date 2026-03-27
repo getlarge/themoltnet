@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
@@ -19,6 +20,19 @@ interface ScoredCriterion {
   score: number;
   max_score: number;
   evidence: string;
+}
+
+/**
+ * Build a clean env for the Claude Code subprocess spawned by the SDK.
+ *
+ * Only strips CLAUDECODE (nested-session guard). Keeps CLAUDE_CODE_OAUTH_TOKEN
+ * because inside the Harbor Docker container it's the primary auth credential
+ * (via docker/sandbox-templates:claude-code with apiKeyHelper stripped).
+ */
+function getRuntimeEnv(): Record<string, string | undefined> {
+  const env = { ...process.env };
+  delete env.CLAUDECODE;
+  return env;
 }
 
 async function main(): Promise<void> {
@@ -43,25 +57,31 @@ After reading the files, output ONLY a JSON array — one object per criterion:
 
 No markdown fences. No explanation outside the JSON.`;
 
+  const runtimeEnv = getRuntimeEnv();
+
+  // Resolve claude binary — in docker/sandbox-templates:claude-code it's
+  // at /home/agent/.local/bin/claude, matching Harbor's agent-phase invocation.
+  const claudePath =
+    process.env.CLAUDE_CODE_EXECUTABLE || '/home/agent/.local/bin/claude';
+
   const conversation = query({
     prompt,
     options: {
       cwd: '/app',
+      pathToClaudeCodeExecutable: claudePath,
       model: process.env.JUDGE_MODEL ?? 'claude-sonnet-4-6',
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       tools: { type: 'preset', preset: 'claude_code' },
       persistSession: false,
+      includePartialMessages: false,
       maxTurns: 5,
       settings: { disableAllHooks: true },
+      debug: true,
       env: {
+        ...runtimeEnv,
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-        ...(process.env.ANTHROPIC_API_KEY
-          ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY }
-          : {}),
-        ...(process.env.CLAUDE_CODE_OAUTH_TOKEN
-          ? { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN }
-          : {}),
+        ENABLE_TOOL_SEARCH: '0',
       },
     },
   });

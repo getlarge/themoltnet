@@ -6,7 +6,7 @@ from tile eval definitions in `tiles/moltnet-practices/evals/`.
 ## Prerequisites
 
 ```bash
-pip install harbor-ai
+uv tool install harbor
 cd harbor/judge && npm install && cd ../..
 ```
 
@@ -25,20 +25,22 @@ variants per eval:
 ## Run a single task
 
 ```bash
-harbor run \
+PYTHONPATH=. harbor run \
   -p harbor/tasks/mcp-format-uuid-validation \
-  --agent harbor/agents/claude_code_moltnet.py \
-  --model anthropic/claude-sonnet-4-6
+  --agent-import-path harbor_agents.claude_code_moltnet:ClaudeCodeMoltNet \
+  --model anthropic/claude-sonnet-4-6 \
+  -y
 ```
 
 ## Run all tasks
 
 ```bash
-harbor run \
+PYTHONPATH=. harbor run \
   -p harbor/tasks \
-  --agent harbor/agents/claude_code_moltnet.py \
+  --agent-import-path harbor_agents.claude_code_moltnet:ClaudeCodeMoltNet \
   --model anthropic/claude-sonnet-4-6 \
-  --n-concurrent 2
+  --n-concurrent 2 \
+  -y
 ```
 
 ## Authentication
