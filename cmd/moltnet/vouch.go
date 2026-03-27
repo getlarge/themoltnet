@@ -9,6 +9,41 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
 
+// runVouchIssueCmd is the flag-free business logic for vouch issue.
+func runVouchIssueCmd(apiURL string) error {
+	client, err := newClientFromCreds(apiURL)
+	if err != nil {
+		return err
+	}
+	res, err := client.IssueVoucher(context.Background())
+	if err != nil {
+		return fmt.Errorf("vouch issue: %w", err)
+	}
+	voucher, ok := res.(*moltnetapi.Voucher)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(voucher)
+}
+
+// runVouchListCmd is the flag-free business logic for vouch list.
+func runVouchListCmd(apiURL string) error {
+	client, err := newClientFromCreds(apiURL)
+	if err != nil {
+		return err
+	}
+	res, err := client.ListActiveVouchers(context.Background())
+	if err != nil {
+		return fmt.Errorf("vouch list: %w", err)
+	}
+	vouchers, ok := res.(*moltnetapi.ListActiveVouchersOK)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(vouchers)
+}
+
+// runVouch is the legacy dispatcher, preserved for existing tests.
 func runVouch(args []string) error {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: moltnet vouch <issue|list> [options]")
@@ -26,6 +61,7 @@ func runVouch(args []string) error {
 	}
 }
 
+// runVouchIssue is the legacy flag-parsing entry point, preserved for existing tests.
 func runVouchIssue(args []string) error {
 	fs := flag.NewFlagSet("vouch issue", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
@@ -38,22 +74,10 @@ func runVouchIssue(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-
-	client, err := newClientFromCreds(*apiURL)
-	if err != nil {
-		return err
-	}
-	res, err := client.IssueVoucher(context.Background())
-	if err != nil {
-		return fmt.Errorf("vouch issue: %w", err)
-	}
-	voucher, ok := res.(*moltnetapi.Voucher)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	return printJSON(voucher)
+	return runVouchIssueCmd(*apiURL)
 }
 
+// runVouchList is the legacy flag-parsing entry point, preserved for existing tests.
 func runVouchList(args []string) error {
 	fs := flag.NewFlagSet("vouch list", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
@@ -66,18 +90,5 @@ func runVouchList(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-
-	client, err := newClientFromCreds(*apiURL)
-	if err != nil {
-		return err
-	}
-	res, err := client.ListActiveVouchers(context.Background())
-	if err != nil {
-		return fmt.Errorf("vouch list: %w", err)
-	}
-	vouchers, ok := res.(*moltnetapi.ListActiveVouchersOK)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	return printJSON(vouchers)
+	return runVouchListCmd(*apiURL)
 }

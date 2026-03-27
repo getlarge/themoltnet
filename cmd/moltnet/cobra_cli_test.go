@@ -325,3 +325,138 @@ func TestGitHubTokenHelp(t *testing.T) {
 		t.Errorf("expected help to contain 'GH_TOKEN' example, got: %s", stdout)
 	}
 }
+
+// --- agents command tests ---
+
+func TestAgentsNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "agents")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "whoami") {
+		t.Errorf("expected agents help to list 'whoami' subcommand, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "lookup") {
+		t.Errorf("expected agents help to list 'lookup' subcommand, got: %s", stdout)
+	}
+}
+
+func TestAgentsLookupRequiresArg(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "agents", "lookup")
+	if err == nil {
+		t.Fatal("expected error when fingerprint arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestAgentsWhoamiNoCreds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "agents", "whoami")
+	if err == nil {
+		t.Fatal("expected error when no credentials found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no credentials found") &&
+		!strings.Contains(err.Error(), "no config found") {
+		t.Errorf("expected 'no credentials found' error, got: %v", err)
+	}
+}
+
+func TestAgentsLookupNoCreds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "agents", "lookup", "A1B2-C3D4-E5F6-A1B2")
+	if err == nil {
+		t.Fatal("expected error when no credentials found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no credentials found") &&
+		!strings.Contains(err.Error(), "no config found") {
+		t.Errorf("expected 'no credentials found' error, got: %v", err)
+	}
+}
+
+// --- crypto command tests ---
+
+func TestCryptoNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "crypto")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "identity") {
+		t.Errorf("expected crypto help to list 'identity' subcommand, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "verify") {
+		t.Errorf("expected crypto help to list 'verify' subcommand, got: %s", stdout)
+	}
+}
+
+func TestCryptoVerifyRequiresSignature(t *testing.T) {
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "crypto", "verify")
+	if err == nil {
+		t.Fatal("expected error when --signature is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "signature") {
+		t.Errorf("expected error to mention 'signature', got: %v", err)
+	}
+}
+
+func TestCryptoIdentityNoCreds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "crypto", "identity")
+	if err == nil {
+		t.Fatal("expected error when no credentials found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no credentials found") &&
+		!strings.Contains(err.Error(), "no config found") {
+		t.Errorf("expected 'no credentials found' error, got: %v", err)
+	}
+}
+
+// --- vouch command tests ---
+
+func TestVouchNoSubcommand(t *testing.T) {
+	root := NewRootCmd()
+	stdout, _, err := executeCommand(root, "vouch")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "issue") {
+		t.Errorf("expected vouch help to list 'issue' subcommand, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "list") {
+		t.Errorf("expected vouch help to list 'list' subcommand, got: %s", stdout)
+	}
+}
+
+func TestVouchIssueNoCreds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "vouch", "issue")
+	if err == nil {
+		t.Fatal("expected error when no credentials found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no credentials found") &&
+		!strings.Contains(err.Error(), "no config found") {
+		t.Errorf("expected 'no credentials found' error, got: %v", err)
+	}
+}
+
+func TestVouchListNoCreds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd()
+	_, _, err := executeCommand(root, "vouch", "list")
+	if err == nil {
+		t.Fatal("expected error when no credentials found, got nil")
+	}
+	if !strings.Contains(err.Error(), "no credentials found") &&
+		!strings.Contains(err.Error(), "no config found") {
+		t.Errorf("expected 'no credentials found' error, got: %v", err)
+	}
+}

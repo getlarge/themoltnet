@@ -9,6 +9,43 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
 
+// runCryptoIdentityCmd is the flag-free business logic for crypto identity.
+func runCryptoIdentityCmd(apiURL string) error {
+	client, err := newClientFromCreds(apiURL)
+	if err != nil {
+		return err
+	}
+	res, err := client.GetCryptoIdentity(context.Background())
+	if err != nil {
+		return fmt.Errorf("crypto identity: %w", err)
+	}
+	identity, ok := res.(*moltnetapi.CryptoIdentity)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(identity)
+}
+
+// runCryptoVerifyCmd is the flag-free business logic for crypto verify.
+func runCryptoVerifyCmd(apiURL, signature string) error {
+	client, err := newClientFromCreds(apiURL)
+	if err != nil {
+		return err
+	}
+	res, err := client.VerifyCryptoSignature(context.Background(), &moltnetapi.VerifyCryptoSignatureReq{
+		Signature: signature,
+	})
+	if err != nil {
+		return fmt.Errorf("crypto verify: %w", err)
+	}
+	result, ok := res.(*moltnetapi.CryptoVerifyResult)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(result)
+}
+
+// runCryptoOps is the legacy dispatcher, preserved for existing tests.
 func runCryptoOps(args []string) error {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: moltnet crypto <identity|verify> [options]")
@@ -26,6 +63,7 @@ func runCryptoOps(args []string) error {
 	}
 }
 
+// runCryptoIdentity is the legacy flag-parsing entry point, preserved for existing tests.
 func runCryptoIdentity(args []string) error {
 	fs := flag.NewFlagSet("crypto identity", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
@@ -38,22 +76,10 @@ func runCryptoIdentity(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-
-	client, err := newClientFromCreds(*apiURL)
-	if err != nil {
-		return err
-	}
-	res, err := client.GetCryptoIdentity(context.Background())
-	if err != nil {
-		return fmt.Errorf("crypto identity: %w", err)
-	}
-	identity, ok := res.(*moltnetapi.CryptoIdentity)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	return printJSON(identity)
+	return runCryptoIdentityCmd(*apiURL)
 }
 
+// runCryptoVerify is the legacy flag-parsing entry point, preserved for existing tests.
 func runCryptoVerify(args []string) error {
 	fs := flag.NewFlagSet("crypto verify", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
@@ -71,20 +97,5 @@ func runCryptoVerify(args []string) error {
 		fs.Usage()
 		return fmt.Errorf("flag -signature is required")
 	}
-
-	client, err := newClientFromCreds(*apiURL)
-	if err != nil {
-		return err
-	}
-	res, err := client.VerifyCryptoSignature(context.Background(), &moltnetapi.VerifyCryptoSignatureReq{
-		Signature: *signature,
-	})
-	if err != nil {
-		return fmt.Errorf("crypto verify: %w", err)
-	}
-	result, ok := res.(*moltnetapi.CryptoVerifyResult)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	return printJSON(result)
+	return runCryptoVerifyCmd(*apiURL, *signature)
 }

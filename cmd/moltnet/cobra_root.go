@@ -44,6 +44,9 @@ without human intervention.`,
 	rootCmd.AddCommand(newGitCmd())
 	rootCmd.AddCommand(newConfigCmd())
 	rootCmd.AddCommand(newGitHubCmd())
+	rootCmd.AddCommand(newAgentsCmd())
+	rootCmd.AddCommand(newCryptoCmd())
+	rootCmd.AddCommand(newVouchCmd())
 
 	return rootCmd
 }

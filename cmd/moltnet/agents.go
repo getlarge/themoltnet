@@ -10,6 +10,50 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 )
 
+// runAgentsWhoamiCmd is the flag-free business logic for agents whoami.
+func runAgentsWhoamiCmd(apiURL string) error {
+	client, err := newClientFromCreds(apiURL)
+	if err != nil {
+		return err
+	}
+	res, err := client.GetWhoami(context.Background())
+	if err != nil {
+		return fmt.Errorf("agents whoami: %w", err)
+	}
+	whoami, ok := res.(*moltnetapi.Whoami)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(whoami)
+}
+
+// runAgentsLookupCmd is the flag-free business logic for agents lookup.
+func runAgentsLookupCmd(apiURL, fingerprint string) error {
+	client, err := newClientFromCreds(apiURL)
+	if err != nil {
+		return err
+	}
+	res, err := client.GetAgentProfile(context.Background(), moltnetapi.GetAgentProfileParams{
+		Fingerprint: fingerprint,
+	})
+	if err != nil {
+		return fmt.Errorf("agents lookup: %w", err)
+	}
+	profile, ok := res.(*moltnetapi.AgentProfile)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(profile)
+}
+
+// printJSON marshals v to indented JSON and writes to stdout.
+func printJSON(v interface{}) error {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(v)
+}
+
+// runAgents is the legacy dispatcher, preserved for existing tests.
 func runAgents(args []string) error {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: moltnet agents <whoami|lookup> [options]")
@@ -27,6 +71,7 @@ func runAgents(args []string) error {
 	}
 }
 
+// runAgentsWhoami is the legacy flag-parsing entry point, preserved for existing tests.
 func runAgentsWhoami(args []string) error {
 	fs := flag.NewFlagSet("agents whoami", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
@@ -39,22 +84,10 @@ func runAgentsWhoami(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-
-	client, err := newClientFromCreds(*apiURL)
-	if err != nil {
-		return err
-	}
-	res, err := client.GetWhoami(context.Background())
-	if err != nil {
-		return fmt.Errorf("agents whoami: %w", err)
-	}
-	whoami, ok := res.(*moltnetapi.Whoami)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	return printJSON(whoami)
+	return runAgentsWhoamiCmd(*apiURL)
 }
 
+// runAgentsLookup is the legacy flag-parsing entry point, preserved for existing tests.
 func runAgentsLookup(args []string) error {
 	fs := flag.NewFlagSet("agents lookup", flag.ExitOnError)
 	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
@@ -71,27 +104,5 @@ func runAgentsLookup(args []string) error {
 		fs.Usage()
 		return fmt.Errorf("fingerprint argument required")
 	}
-
-	client, err := newClientFromCreds(*apiURL)
-	if err != nil {
-		return err
-	}
-	res, err := client.GetAgentProfile(context.Background(), moltnetapi.GetAgentProfileParams{
-		Fingerprint: fs.Arg(0),
-	})
-	if err != nil {
-		return fmt.Errorf("agents lookup: %w", err)
-	}
-	profile, ok := res.(*moltnetapi.AgentProfile)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	return printJSON(profile)
-}
-
-// printJSON marshals v to indented JSON and writes to stdout.
-func printJSON(v interface{}) error {
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	return enc.Encode(v)
+	return runAgentsLookupCmd(*apiURL, fs.Arg(0))
 }
