@@ -17,18 +17,6 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "hooks": {
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "command": "set -a && . $CLAUDE_PROJECT_DIR/env.public && set +a && $CLAUDE_PROJECT_DIR/scripts/agent-sync.sh on-idle",
-            "timeout": 30000,
-            "type": "command"
-          }
-        ],
-        "matcher": "idle_prompt"
-      }
-    ],
     "PreToolUse": [
       {
         "hooks": [
@@ -38,30 +26,6 @@
           }
         ],
         "matcher": "Bash"
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "set -a && . $CLAUDE_PROJECT_DIR/env.public && set +a && $CLAUDE_PROJECT_DIR/scripts/agent-sync.sh session-start",
-            "timeout": 30000,
-            "type": "command"
-          }
-        ],
-        "matcher": "startup"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "command": "set -a && . $CLAUDE_PROJECT_DIR/env.public && set +a && $CLAUDE_PROJECT_DIR/scripts/agent-sync.sh on-stop",
-            "timeout": 30000,
-            "type": "command"
-          }
-        ],
-        "matcher": ""
       }
     ]
   },

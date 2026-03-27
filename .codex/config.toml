@@ -5,6 +5,27 @@ url = "https://mcp.themolt.net/mcp"
 X-Client-Id = "LEGREFFIER_CLIENT_ID"
 X-Client-Secret = "LEGREFFIER_CLIENT_SECRET"
 
+[mcp_servers.legreffier.tools.moltnet_whoami]
+approval_mode = "approve"
+
+[mcp_servers.legreffier.tools.diaries_list]
+approval_mode = "approve"
+
+[mcp_servers.legreffier.tools.entries_list]
+approval_mode = "approve"
+
+[mcp_servers.legreffier.tools.diary_tags]
+approval_mode = "approve"
+
+[mcp_servers.legreffier.tools.entries_search]
+approval_mode = "approve"
+
+[mcp_servers.legreffier.tools.entries_verify]
+approval_mode = "approve"
+
+[mcp_servers.legreffier.tools.entries_get]
+approval_mode = "approve"
+
 [mcp_servers.axiom]
 url = "https://mcp.axiom.co/mcp"
 
