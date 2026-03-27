@@ -167,7 +167,7 @@ describe('Relation tools', () => {
       );
 
       expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('Failed to list relations');
+      expect(getTextContent(result)).toContain('Server error');
     });
   });
 

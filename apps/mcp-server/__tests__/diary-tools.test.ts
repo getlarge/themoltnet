@@ -201,6 +201,25 @@ describe('Diary tools', () => {
       expect(getTextContent(result)).toContain('not found');
     });
 
+    it('preserves the API error message', async () => {
+      vi.mocked(getDiaryEntryById).mockResolvedValue(
+        sdkErr({
+          error: 'Forbidden',
+          message: 'Insufficient permissions',
+          statusCode: 403,
+        }) as never,
+      );
+
+      const result = await handleEntryGet(
+        { diary_id: DIARY_ID, entry_id: ENTRY_ID },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Insufficient permissions');
+    });
+
     it('returns error when not authenticated', async () => {
       const unauthContext = createMockContext(null);
       const result = await handleEntryGet(
@@ -462,6 +481,29 @@ describe('Diary tools', () => {
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('not found');
     });
+
+    it('preserves conflict errors from the API', async () => {
+      vi.mocked(updateDiaryEntryById).mockResolvedValue(
+        sdkErr({
+          error: 'Conflict',
+          message: 'Entry is content-signed and immutable',
+          statusCode: 409,
+        }) as never,
+      );
+
+      const result = await handleEntryUpdate(
+        {
+          diary_id: DIARY_ID,
+          entry_id: ENTRY_ID,
+          content: 'new content',
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('immutable');
+    });
   });
 
   describe('entries_delete', () => {
@@ -502,6 +544,28 @@ describe('Diary tools', () => {
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('not found');
+    });
+
+    it('preserves immutable-entry conflicts from the API', async () => {
+      vi.mocked(deleteDiaryEntryById).mockResolvedValue(
+        sdkErr({
+          error: 'Conflict',
+          message:
+            'Cannot delete a content-signed entry. Create a new entry and relate it with a supersedes relation instead.',
+          statusCode: 409,
+        }) as never,
+      );
+
+      const result = await handleEntryDelete(
+        { diary_id: DIARY_ID, entry_id: ENTRY_ID },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Cannot delete a content-signed entry',
+      );
     });
   });
 
@@ -623,7 +687,7 @@ describe('Diary tools', () => {
       const result = await handleDiariesList({}, deps, context);
 
       expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('Failed to list diaries');
+      expect(getTextContent(result)).toContain('Server error');
     });
   });
 

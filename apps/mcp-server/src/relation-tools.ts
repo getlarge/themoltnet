@@ -26,7 +26,12 @@ import {
   RelationUpdateSchema,
 } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
-import { errorResult, getTokenFromContext, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  getTokenFromContext,
+  textResult,
+} from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
 
@@ -53,7 +58,7 @@ export async function handleRelationsCreate(
   if (error) {
     deps.logger.error({ tool: 'relations_create', err: error }, 'tool.error');
     return errorResult(
-      (error as { message?: string })?.message ?? 'Failed to create relation',
+      extractApiErrorMessage(error, 'Failed to create relation'),
     );
   }
 
@@ -83,7 +88,9 @@ export async function handleRelationsList(
 
   if (error) {
     deps.logger.error({ tool: 'relations_list', err: error }, 'tool.error');
-    return errorResult('Failed to list relations');
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to list relations'),
+    );
   }
 
   return textResult(data);
@@ -108,9 +115,7 @@ export async function handleRelationsUpdate(
   if (error) {
     deps.logger.error({ tool: 'relations_update', err: error }, 'tool.error');
     return errorResult(
-      (error as { detail?: string })?.detail ??
-        (error as { message?: string })?.message ??
-        'Failed to update relation',
+      extractApiErrorMessage(error, 'Failed to update relation'),
     );
   }
 
@@ -135,9 +140,7 @@ export async function handleRelationsDelete(
   if (error) {
     deps.logger.error({ tool: 'relations_delete', err: error }, 'tool.error');
     return errorResult(
-      (error as { detail?: string })?.detail ??
-        (error as { message?: string })?.message ??
-        'Failed to delete relation',
+      extractApiErrorMessage(error, 'Failed to delete relation'),
     );
   }
 

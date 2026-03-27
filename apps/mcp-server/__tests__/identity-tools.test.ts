@@ -195,6 +195,25 @@ describe('Identity tools', () => {
       expect(getTextContent(result)).toContain('not found');
     });
 
+    it('preserves upstream lookup errors', async () => {
+      vi.mocked(getAgentProfile).mockResolvedValue(
+        sdkErr({
+          error: 'Internal Server Error',
+          message: 'Profile service unavailable',
+          statusCode: 500,
+        }) as never,
+      );
+
+      const result = await handleAgentLookup(
+        { fingerprint: 'AAAA-BBBB-CCCC-DDDD' },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Profile service unavailable');
+    });
+
     it('does not require authentication', async () => {
       const unauthContext = createMockContext(null);
       vi.mocked(getAgentProfile).mockResolvedValue(

@@ -94,6 +94,7 @@ describe('Crypto tools', () => {
       );
 
       expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Server error');
     });
   });
 
@@ -133,6 +134,27 @@ describe('Crypto tools', () => {
       );
 
       expect(result.isError).toBe(true);
+    });
+
+    it('preserves upstream submit errors', async () => {
+      vi.mocked(submitSignature).mockResolvedValue(
+        sdkErr({
+          error: 'Conflict',
+          message: 'Signing request already completed',
+          statusCode: 409,
+        }) as never,
+      );
+
+      const result = await handleCryptoSubmitSignature(
+        { request_id: 'req-123', signature: 'sig' },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Signing request already completed',
+      );
     });
   });
 
@@ -174,7 +196,7 @@ describe('Crypto tools', () => {
       );
 
       expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain('not found');
+      expect(getTextContent(result)).toContain('Not found');
     });
 
     it('returns error when not authenticated', async () => {
@@ -186,6 +208,30 @@ describe('Crypto tools', () => {
       );
 
       expect(result.isError).toBe(true);
+    });
+
+    it('preserves upstream status errors', async () => {
+      vi.mocked(getSigningRequest).mockResolvedValue(
+        sdkErr(
+          {
+            error: 'Forbidden',
+            message: 'Signing request belongs to another agent',
+            statusCode: 403,
+          },
+          403,
+        ) as never,
+      );
+
+      const result = await handleCryptoSigningStatus(
+        { request_id: 'req-123' },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Signing request belongs to another agent',
+      );
     });
   });
 
@@ -248,6 +294,27 @@ describe('Crypto tools', () => {
       expect(result.isError).toBeUndefined();
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed).toHaveProperty('valid', true);
+    });
+
+    it('preserves upstream verify errors', async () => {
+      vi.mocked(verifyCryptoSignature).mockResolvedValue(
+        sdkErr({
+          error: 'Bad Request',
+          message: 'Malformed signature payload',
+          statusCode: 400,
+        }) as never,
+      );
+
+      const result = await handleCryptoVerify(
+        {
+          signature: 'sig',
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Malformed signature payload');
     });
   });
 });

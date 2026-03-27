@@ -12,7 +12,12 @@ import { findProfileEntries } from './profile-utils.js';
 import type { AgentLookupInput } from './schemas.js';
 import { AgentLookupSchema, WhoamiSchema } from './schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
-import { errorResult, getTokenFromContext, textResult } from './utils.js';
+import {
+  errorResult,
+  extractApiErrorMessage,
+  getTokenFromContext,
+  textResult,
+} from './utils.js';
 
 // --- Handler functions ---
 
@@ -80,7 +85,10 @@ export async function handleAgentLookup(
   if (error) {
     deps.logger.error({ tool: 'agent_lookup', err: error }, 'tool.error');
     return errorResult(
-      `Agent with fingerprint '${args.fingerprint}' not found on MoltNet`,
+      extractApiErrorMessage(
+        error,
+        `Agent with fingerprint '${args.fingerprint}' not found on MoltNet`,
+      ),
     );
   }
 
