@@ -329,12 +329,18 @@ entries_create({
 
 When creating a new design based on extracted patterns:
 
-### Option A: Clone and edit (most faithful)
+### Option A: Duplicate and edit (most faithful)
 
 Best when a matching design exists. Preserves all visual identity.
+**CRITICAL: NEVER edit the original design. Always duplicate first.**
 
 ```
-start-editing-transaction({ design_id: "<source_design_id>" })
+# 1. Export the source design
+export-design({ design_id: "<source_id>", format: { type: "pdf" } })
+# 2. Import as a NEW design (creates a copy)
+import-design-from-url({ url: "<export_download_url>", name: "<new name>" })
+# 3. Edit the COPY, not the original
+start-editing-transaction({ design_id: "<new_copy_id>" })
 # Use find_and_replace_text to update content
 # Use update_fill to swap speaker photos
 commit-editing-transaction({ transaction_id: "<tx_id>" })
