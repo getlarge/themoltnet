@@ -9,6 +9,7 @@ import type { McpDeps } from '../src/types.js';
 import {
   createMockDeps,
   ENTRY_ID,
+  getTextContent,
   parseResult,
   sdkErr,
   sdkOk,
@@ -105,6 +106,7 @@ describe('Public feed tools', () => {
       const result = await handlePublicFeedBrowse({}, deps);
 
       expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Server error');
     });
   });
 
@@ -222,6 +224,23 @@ describe('Public feed tools', () => {
         expect.objectContaining({
           query: { q: 'trust', tag: 'philosophy', limit: 5 },
         }),
+      );
+    });
+
+    it('preserves upstream search errors', async () => {
+      vi.mocked(searchPublicFeed).mockResolvedValue(
+        sdkErr({
+          error: 'bad_request',
+          message: 'Query must be at least 2 characters',
+          statusCode: 400,
+        }) as never,
+      );
+
+      const result = await handlePublicFeedSearch({ query: 'a' }, deps);
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Query must be at least 2 characters',
       );
     });
 
