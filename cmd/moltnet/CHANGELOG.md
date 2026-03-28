@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.79.0](https://github.com/getlarge/themoltnet/compare/cli-v0.78.0...cli-v0.79.0) (2026-03-28)
+
+
+### Features
+
+* **cli:** migrate agents, crypto, vouch to Cobra with CLI tests ([568ddfc](https://github.com/getlarge/themoltnet/commit/568ddfc86c69de6b198f156361179a8e8b25eef9))
+* **cli:** migrate CLI from flag to Cobra ([7d1e996](https://github.com/getlarge/themoltnet/commit/7d1e996dcfa07fea5a71eb1eedff236d016295d7))
+* **cli:** migrate diary commands (8 subcommands) to Cobra with CLI tests ([5eb8111](https://github.com/getlarge/themoltnet/commit/5eb81113e27e03fe75f0e8d72eba4928c8a826f0))
+* **cli:** migrate git, config, github to Cobra with CLI tests ([50c2628](https://github.com/getlarge/themoltnet/commit/50c262880dd1ec35146c30bcb8818afebd421faa))
+* **cli:** migrate info, register, ssh-key to Cobra with CLI tests ([380b747](https://github.com/getlarge/themoltnet/commit/380b747045ed07071dcf62ea97cc542e23c300c9))
+* **cli:** migrate pack commands, add shell completion with CLI tests ([e6a26e4](https://github.com/getlarge/themoltnet/commit/e6a26e4e105ced5521759cf4842952babc8edba6))
+* **cli:** migrate sign, encrypt, decrypt to Cobra with CLI tests ([82bb3bd](https://github.com/getlarge/themoltnet/commit/82bb3bd8b39887079cf1abd32fe7d4f8f1425539))
+* **cli:** scaffold Cobra root command with global flags and test helper ([fc1ed0a](https://github.com/getlarge/themoltnet/commit/fc1ed0a840aca38e5d2926655c300ddb8d49c239))
+
+
+### Bug Fixes
+
+* **cli:** address Copilot review — plumb --credentials, io.Writer, examples ([290faa4](https://github.com/getlarge/themoltnet/commit/290faa4ad44de45c8d283177a46b1bcb16091fb2))
+* **cli:** second review round — deprecations, globals, placement, t.Parallel ([ef148bb](https://github.com/getlarge/themoltnet/commit/ef148bbc63deb5107a5188fb8d6edebc4a9fe2b4))
+
 ## [0.78.0](https://github.com/getlarge/themoltnet/compare/cli-v0.77.0...cli-v0.78.0) (2026-03-25)
 
 
