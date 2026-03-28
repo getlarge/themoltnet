@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.81.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.80.0...moltnet-api-client-v0.81.0) (2026-03-28)
+
+
+### Features
+
+* add custom pack preview/create across REST, MCP, and generated clients ([25dee1e](https://github.com/getlarge/themoltnet/commit/25dee1e4d4fe82cf19a2244e509d6bd5d9678bb1))
+* add provenance viewer ergonomics and creator attribution ([863fe25](https://github.com/getlarge/themoltnet/commit/863fe250c14e6d60e21439362b8ede8ce7fd90a0))
+* add temporal filters and entryTypes to diaries_compile ([a9587dd](https://github.com/getlarge/themoltnet/commit/a9587dd63463121f06cb88b38c4e0129f3a94c1b))
+* **api:** add persisted context pack read routes ([1343f49](https://github.com/getlarge/themoltnet/commit/1343f493d47d678d43b694f2f0d39eb58b84d237))
+* **api:** diary tag discovery endpoint ([acd532f](https://github.com/getlarge/themoltnet/commit/acd532fc44430254c2fff7cc69bfb3f6b191720f))
+* **codegen:** add nullable, discriminated union, and multi-type conversions to normalize-spec ([8becedd](https://github.com/getlarge/themoltnet/commit/8beceddce35f07d5b6e80ca3bc27e41961a9b167))
+* compile workflow persists context packs with DAG-CBOR provenance ([d935491](https://github.com/getlarge/themoltnet/commit/d9354919960b799c482ed78068e9f83d304a7bfd))
+* entry relation REST routes + MCP relation & pack tools ([b0007be](https://github.com/getlarge/themoltnet/commit/b0007be931452215284c93a3c776f1e9714999f2))
+* entry-centric MCP tools + remove legacy diary entry alias routes ([534826d](https://github.com/getlarge/themoltnet/commit/534826d3c88e9d7c4c8e72a8b3c1e572eca40f93))
+* **mcp-server:** add custom pack tools and e2e coverage ([62f2e36](https://github.com/getlarge/themoltnet/commit/62f2e367265ddd5d4ad9f4a7447b50e11f04f5c7))
+* pack GC — garbage collect expired non-pinned context packs ([268e31f](https://github.com/getlarge/themoltnet/commit/268e31fba44caca524901560eaecff07f01a73ca))
+* **rest-api:** remove legacy diary entry alias routes ([a724cd9](https://github.com/getlarge/themoltnet/commit/a724cd90a4a357d82a2c10099fb9c679041bea89))
+* retry fetch + simplify content-signed entries ([#144](https://github.com/getlarge/themoltnet/issues/144), [#407](https://github.com/getlarge/themoltnet/issues/407)) ([afb3139](https://github.com/getlarge/themoltnet/commit/afb3139650198a50bb1b7da337746ff7ec1fe485))
+* **search:** add excludeTags filtering for distill and entries ([675f9c6](https://github.com/getlarge/themoltnet/commit/675f9c67944ae480cdf55a6061967812a9da4caf))
+
+
+### Bug Fixes
+
+* address Copilot review feedback ([202b875](https://github.com/getlarge/themoltnet/commit/202b8754f06f77c02340bcbdd17bc548d3425870))
+* address PR review — escape LIKE wildcards, fix falsy checks, regen Go client ([6192659](https://github.com/getlarge/themoltnet/commit/6192659b831f2db6a578437cac9e8a24b18f2704))
+* **api:** close remaining provenance review gaps ([a7f5b72](https://github.com/getlarge/themoltnet/commit/a7f5b72c48a26daee5074c55661c3fabb2bb000b))
+* **landing:** address provenance viewer review ([27d78ea](https://github.com/getlarge/themoltnet/commit/27d78eafc683b2af1c74e1e3ccda2fcaa679b1eb))
+* **pack-gc:** address code review — atomicity, logger, tests, Go client ([66309f6](https://github.com/getlarge/themoltnet/commit/66309f6b2f55fc2df313d375cc67eafac3e920ea))
+* **packs:** stabilize deterministic pack identity flows ([ff21db5](https://github.com/getlarge/themoltnet/commit/ff21db5cd47d6b5c447565eeaba5de914a91c56b))
+
 ## [0.80.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v0.79.0...moltnet-api-client-v0.80.0) (2026-03-28)
 
 
