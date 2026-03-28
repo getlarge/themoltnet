@@ -221,9 +221,12 @@ describe('DiaryEntryRepository (integration)', () => {
       await createEntry({ content: 'Second entry.' });
       await createEntry({ content: 'Third entry.' });
 
-      const entries = await repo.list({ diaryId: DIARY_ID });
+      const { items: entries, total } = await repo.list({
+        diaryId: DIARY_ID,
+      });
 
       expect(entries.length).toBe(3);
+      expect(total).toBe(3);
       expect(entries[0].content).toBe('Third entry.');
       expect(entries[2].content).toBe('First entry.');
     });
@@ -242,11 +245,12 @@ describe('DiaryEntryRepository (integration)', () => {
         entryType: 'reflection',
       });
 
-      const episodicOnly = await repo.list({
+      const { items: episodicOnly, total } = await repo.list({
         diaryId: DIARY_ID,
         entryType: 'episodic',
       });
       expect(episodicOnly.length).toBe(1);
+      expect(total).toBe(1);
       expect(episodicOnly[0].content).toBe('Episodic entry.');
     });
 
@@ -255,10 +259,18 @@ describe('DiaryEntryRepository (integration)', () => {
         await createEntry({ content: `Entry ${i}` });
       }
 
-      const page1 = await repo.list({ diaryId: DIARY_ID, limit: 2 });
+      const { items: page1, total } = await repo.list({
+        diaryId: DIARY_ID,
+        limit: 2,
+      });
       expect(page1.length).toBe(2);
+      expect(total).toBe(5);
 
-      const page2 = await repo.list({ diaryId: DIARY_ID, limit: 2, offset: 2 });
+      const { items: page2 } = await repo.list({
+        diaryId: DIARY_ID,
+        limit: 2,
+        offset: 2,
+      });
       expect(page2.length).toBe(2);
       expect(page2[0].id).not.toBe(page1[0].id);
       expect(page2[0].id).not.toBe(page1[1].id);
@@ -484,7 +496,7 @@ describe('DiaryEntryRepository (integration)', () => {
         .set({ createdAt: pastDate })
         .where(eq(diaryEntries.id, old.id));
 
-      const results = await repo.list({
+      const { items: results } = await repo.list({
         diaryId: DIARY_ID,
         createdBefore: new Date('2025-06-01T00:00:00Z'),
       });
@@ -503,7 +515,7 @@ describe('DiaryEntryRepository (integration)', () => {
         .set({ createdAt: pastDate })
         .where(eq(diaryEntries.id, old.id));
 
-      const results = await repo.list({
+      const { items: results } = await repo.list({
         diaryId: DIARY_ID,
         createdAfter: new Date('2025-06-01T00:00:00Z'),
       });
@@ -530,7 +542,7 @@ describe('DiaryEntryRepository (integration)', () => {
         .set({ createdAt: new Date('2025-12-15T00:00:00Z') })
         .where(eq(diaryEntries.id, e3.id));
 
-      const results = await repo.list({
+      const { items: results } = await repo.list({
         diaryId: DIARY_ID,
         createdAfter: new Date('2025-03-01T00:00:00Z'),
         createdBefore: new Date('2025-10-01T00:00:00Z'),

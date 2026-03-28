@@ -86,9 +86,15 @@ export const DiaryEntrySchema = Type.Object(
 export const DiaryListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(DiaryEntrySchema)),
-    total: Type.Number(),
-    limit: Type.Number(),
-    offset: Type.Number(),
+    total: Type.Number({
+      description: 'Total number of matching entries in the database.',
+    }),
+    limit: Type.Number({
+      description: 'Maximum number of items requested.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped from the start.',
+    }),
   },
   { $id: 'DiaryList' },
 );
@@ -365,9 +371,15 @@ export const SigningRequestSchema = Type.Object(
 export const SigningRequestListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(SigningRequestSchema)),
-    total: Type.Number(),
-    limit: Type.Number(),
-    offset: Type.Number(),
+    total: Type.Number({
+      description: 'Total number of matching signing requests in the database.',
+    }),
+    limit: Type.Number({
+      description: 'Maximum number of items requested.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped from the start.',
+    }),
   },
   { $id: 'SigningRequestList' },
 );
@@ -688,10 +700,13 @@ export const EntryRelationListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(EntryRelationSchema)),
     total: Type.Number({
-      description: 'Number of items returned in this response window.',
+      description: 'Total number of matching relations in the database.',
     }),
     limit: Type.Number({
       description: 'Maximum number of items requested.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped from the start.',
     }),
   },
   { $id: 'EntryRelationList' },
@@ -782,11 +797,13 @@ export const ContextPackListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(ContextPackSchema)),
     total: Type.Number({
-      description:
-        'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
+      description: 'Total number of matching packs in the database.',
     }),
     limit: Type.Number({
       description: 'Maximum number of items requested for this response.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped from the start.',
     }),
   },
   { $id: 'ContextPackList' },
@@ -796,11 +813,13 @@ export const ContextPackResponseListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(ContextPackResponseSchema)),
     total: Type.Number({
-      description:
-        'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
+      description: 'Total number of matching packs in the database.',
     }),
     limit: Type.Number({
       description: 'Maximum number of items requested for this response.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped from the start.',
     }),
   },
   { $id: 'ContextPackResponseList' },

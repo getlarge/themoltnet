@@ -4,7 +4,7 @@
  * CRUD and traversal primitives for associative entry graph edges.
  */
 
-import { and, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, or } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -138,13 +138,15 @@ export function createEntryRelationRepository(db: Database) {
         relation?: EntryRelation['relation'];
         status?: EntryRelation['status'];
         limit?: number;
+        offset?: number;
         direction?: 'as_source' | 'as_target' | 'both';
       },
-    ): Promise<EntryRelation[]> {
+    ): Promise<{ items: EntryRelation[]; total: number }> {
       const {
         relation,
         status,
         limit = 100,
+        offset = 0,
         direction = 'both',
       } = options ?? {};
 
@@ -168,12 +170,23 @@ export function createEntryRelationRepository(db: Database) {
         conditions.push(eq(entryRelations.status, status));
       }
 
-      return getExecutor(db)
-        .select()
-        .from(entryRelations)
-        .where(and(...conditions))
-        .orderBy(desc(entryRelations.createdAt))
-        .limit(limit);
+      const where = and(...conditions);
+
+      const [items, [{ value: total }]] = await Promise.all([
+        getExecutor(db)
+          .select()
+          .from(entryRelations)
+          .where(where)
+          .orderBy(desc(entryRelations.createdAt))
+          .limit(limit)
+          .offset(offset),
+        getExecutor(db)
+          .select({ value: count() })
+          .from(entryRelations)
+          .where(where),
+      ]);
+
+      return { items, total };
     },
 
     async updateStatus(

@@ -274,25 +274,33 @@ export type ContextPackResponse = {
 export type ContextPackList = {
   items: Array<ContextPack>;
   /**
-   * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
+   * Total number of matching packs in the database.
    */
   total: number;
   /**
    * Maximum number of items requested for this response.
    */
   limit: number;
+  /**
+   * Number of items skipped from the start.
+   */
+  offset: number;
 };
 
 export type ContextPackResponseList = {
   items: Array<ContextPackResponse>;
   /**
-   * Number of items returned in this response window. This API currently uses returned-count semantics for list totals.
+   * Total number of matching packs in the database.
    */
   total: number;
   /**
    * Maximum number of items requested for this response.
    */
   limit: number;
+  /**
+   * Number of items skipped from the start.
+   */
+  offset: number;
 };
 
 export type CompileStats = {
@@ -803,13 +811,17 @@ export type EntryRelation = {
 export type EntryRelationList = {
   items: Array<EntryRelation>;
   /**
-   * Number of items returned in this response window.
+   * Total number of matching relations in the database.
    */
   total: number;
   /**
    * Maximum number of items requested.
    */
   limit: number;
+  /**
+   * Number of items skipped from the start.
+   */
+  offset: number;
 };
 
 export type GetOAuth2TokenData = {
@@ -2269,6 +2281,7 @@ export type ListDiaryPacksData = {
   };
   query?: {
     limit?: number;
+    offset?: number;
     expand?: 'entries';
   };
   url: '/diaries/{id}/packs';
@@ -2378,6 +2391,7 @@ export type ListEntryRelationsData = {
     status?: RelationStatus;
     direction?: 'as_source' | 'as_target' | 'both';
     limit?: number;
+    offset?: number;
   };
   url: '/entries/{entryId}/relations';
 };

@@ -164,9 +164,15 @@ export const PaginatedResponseSchema = <
 ) =>
   Type.Object({
     items: Type.Array(itemSchema),
-    total: Type.Number(),
-    limit: Type.Number(),
-    offset: Type.Number(),
+    total: Type.Number({
+      description: 'Total number of matching items in the database.',
+    }),
+    limit: Type.Number({
+      description: 'Maximum number of items requested.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped from the start.',
+    }),
   });
 
 // ============================================================================

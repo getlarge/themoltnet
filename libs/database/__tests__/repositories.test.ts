@@ -273,13 +273,33 @@ describe('createEntryRelationRepository', () => {
     expect(result).toBeNull();
   });
 
-  it('listByEntry returns matching relations', async () => {
-    db._chain.limit.mockResolvedValue([mockRelation]);
+  it('listByEntry returns matching relations with total count', async () => {
+    // Promise.all runs two queries: items (select → from → where → orderBy → limit → offset)
+    // and count (select → from → where). Both call db.select(), so we make select()
+    // return different chains for each call.
+    let selectCallCount = 0;
+    const itemsChain = {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      offset: vi.fn().mockResolvedValue([mockRelation]),
+    };
+    const countChain = {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([{ value: 5 }]),
+    };
+    db.select.mockImplementation(() => {
+      selectCallCount += 1;
+      return (selectCallCount === 1
+        ? itemsChain
+        : countChain) as unknown as ReturnType<typeof db.select>;
+    });
 
     const result = await repo.listByEntry(ENTRY_ID, { limit: 1 });
 
-    expect(db.select).toHaveBeenCalled();
-    expect(result).toEqual([mockRelation]);
+    expect(db.select).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ items: [mockRelation], total: 5 });
   });
 
   it('listByEntry with direction as_source only returns relations where entry is source', async () => {
@@ -289,16 +309,32 @@ describe('createEntryRelationRepository', () => {
       sourceId: '990e8400-e29b-41d4-a716-446655440004',
       targetId: ENTRY_ID,
     };
-    // as_source: only mockRelation (where sourceId === ENTRY_ID) should appear
-    db._chain.limit.mockResolvedValue([mockRelation]);
+    let selectCallCount = 0;
+    const itemsChain = {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      offset: vi.fn().mockResolvedValue([mockRelation]),
+    };
+    const countChain = {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([{ value: 1 }]),
+    };
+    db.select.mockImplementation(() => {
+      selectCallCount += 1;
+      return (selectCallCount === 1
+        ? itemsChain
+        : countChain) as unknown as ReturnType<typeof db.select>;
+    });
 
     const result = await repo.listByEntry(ENTRY_ID, {
       direction: 'as_source',
     });
 
-    expect(db.select).toHaveBeenCalled();
-    expect(result).toEqual([mockRelation]);
-    expect(result).not.toContainEqual(targetOnlyRelation);
+    expect(db.select).toHaveBeenCalledTimes(2);
+    expect(result.items).toEqual([mockRelation]);
+    expect(result.items).not.toContainEqual(targetOnlyRelation);
   });
 
   it('updateStatus returns the updated relation', async () => {

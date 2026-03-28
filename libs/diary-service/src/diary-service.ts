@@ -99,7 +99,9 @@ export interface DiaryService {
     agentId: string,
     opts?: { diaryId?: string },
   ): Promise<DiaryEntry>;
-  listEntries(input: ListInput): Promise<DiaryEntry[]>;
+  listEntries(
+    input: ListInput,
+  ): Promise<{ items: DiaryEntry[]; total: number }>;
   listTags(input: ListTagsInput, agentId: string): Promise<TagCount[]>;
   searchEntries(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   searchOwned(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
@@ -556,7 +558,9 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return entry;
     },
 
-    listEntries(input: ListInput): Promise<DiaryEntry[]> {
+    listEntries(
+      input: ListInput,
+    ): Promise<{ items: DiaryEntry[]; total: number }> {
       return diaryEntryRepository.list({
         diaryId: input.diaryId,
         tags: input.tags,

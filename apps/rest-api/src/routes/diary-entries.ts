@@ -288,7 +288,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         ? excludeTags.split(',').map((t) => t.trim())
         : undefined;
 
-      const entries = await fastify.diaryService.listEntries({
+      const { items, total } = await fastify.diaryService.listEntries({
         diaryId: diary.id,
         tags: tagsFilter,
         excludeTags: excludedTagsFilter,
@@ -298,8 +298,8 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       });
 
       return {
-        items: entries,
-        total: entries.length,
+        items,
+        total,
         limit: limit ?? 20,
         offset: offset ?? 0,
       };
