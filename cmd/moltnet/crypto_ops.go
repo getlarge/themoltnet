@@ -42,4 +42,3 @@ func runCryptoVerifyCmd(apiURL, credPath, signature string) error {
 	}
 	return printJSON(result)
 }
-

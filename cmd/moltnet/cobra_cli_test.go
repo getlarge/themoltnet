@@ -10,7 +10,8 @@ import (
 )
 
 func TestInfoHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "info", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -24,7 +25,8 @@ func TestInfoHelp(t *testing.T) {
 }
 
 func TestInfoMissingServer(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "info", "--api-url", "http://127.0.0.1:1")
 	if err == nil {
 		t.Fatal("expected error for unreachable server, got nil")
@@ -36,7 +38,8 @@ func TestInfoMissingServer(t *testing.T) {
 }
 
 func TestRegisterRequiresVoucher(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "register")
 	if err == nil {
 		t.Fatal("expected error when voucher is missing, got nil")
@@ -47,7 +50,8 @@ func TestRegisterRequiresVoucher(t *testing.T) {
 }
 
 func TestRegisterHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "register", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -61,7 +65,8 @@ func TestRegisterHelp(t *testing.T) {
 }
 
 func TestSSHKeyHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "ssh-key", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -74,7 +79,8 @@ func TestSSHKeyHelp(t *testing.T) {
 // --- sign command tests ---
 
 func TestSignRequiresNonceOrRequestID(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	// Provide a dummy credentials file so we get past credential loading
 	kp, err := GenerateKeyPair()
 	if err != nil {
@@ -102,7 +108,8 @@ func TestSignRequiresNonceOrRequestID(t *testing.T) {
 }
 
 func TestSignHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "sign", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -122,7 +129,8 @@ func TestSignHelp(t *testing.T) {
 // --- encrypt command tests ---
 
 func TestEncryptRequiresRecipient(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "encrypt", "msg")
 	if err == nil {
 		t.Fatal("expected error when --recipient is missing")
@@ -134,7 +142,8 @@ func TestEncryptRequiresRecipient(t *testing.T) {
 }
 
 func TestEncryptHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "encrypt", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -150,7 +159,8 @@ func TestEncryptHelp(t *testing.T) {
 // --- decrypt command tests ---
 
 func TestDecryptHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "decrypt", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -166,6 +176,7 @@ func TestDecryptHelp(t *testing.T) {
 // --- encrypt/decrypt round-trip CLI test ---
 
 func TestEncryptDecryptRoundTripCLI(t *testing.T) {
+	t.Parallel()
 	// Generate a test keypair
 	kp, err := GenerateKeyPair()
 	if err != nil {
@@ -194,7 +205,7 @@ func TestEncryptDecryptRoundTripCLI(t *testing.T) {
 	plaintext := "hello from CLI round-trip test"
 
 	// Encrypt
-	encRoot := NewRootCmd()
+	encRoot := NewRootCmd("test", "")
 	encOut, _, err := executeCommand(encRoot, "encrypt", "--recipient", kp.PublicKey, plaintext)
 	if err != nil {
 		t.Fatalf("encrypt command error: %v", err)
@@ -212,7 +223,7 @@ func TestEncryptDecryptRoundTripCLI(t *testing.T) {
 	}
 
 	// Decrypt
-	decRoot := NewRootCmd()
+	decRoot := NewRootCmd("test", "")
 	decOut, _, err := executeCommand(decRoot, "decrypt", "--credentials", credPath, sealedJSON)
 	if err != nil {
 		t.Fatalf("decrypt command error: %v", err)
@@ -226,7 +237,8 @@ func TestEncryptDecryptRoundTripCLI(t *testing.T) {
 // --- git command tests ---
 
 func TestGitNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -237,7 +249,8 @@ func TestGitNoSubcommand(t *testing.T) {
 }
 
 func TestGitSetupHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "git", "setup", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -252,7 +265,7 @@ func TestGitSetupHelp(t *testing.T) {
 
 func TestGitSetupNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "git", "setup")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
@@ -266,7 +279,8 @@ func TestGitSetupNoCreds(t *testing.T) {
 // --- config command tests ---
 
 func TestConfigNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "config")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -277,7 +291,8 @@ func TestConfigNoSubcommand(t *testing.T) {
 }
 
 func TestConfigRepairHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "config", "repair", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -290,7 +305,8 @@ func TestConfigRepairHelp(t *testing.T) {
 // --- github command tests ---
 
 func TestGitHubNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "github")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -304,7 +320,7 @@ func TestGitHubNoSubcommand(t *testing.T) {
 
 func TestGitHubSetupNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "github", "setup")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
@@ -316,7 +332,8 @@ func TestGitHubSetupNoCreds(t *testing.T) {
 }
 
 func TestGitHubTokenHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "github", "token", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -329,7 +346,8 @@ func TestGitHubTokenHelp(t *testing.T) {
 // --- agents command tests ---
 
 func TestAgentsNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "agents")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -343,7 +361,8 @@ func TestAgentsNoSubcommand(t *testing.T) {
 }
 
 func TestAgentsLookupRequiresArg(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "agents", "lookup")
 	if err == nil {
 		t.Fatal("expected error when fingerprint arg is missing, got nil")
@@ -355,7 +374,7 @@ func TestAgentsLookupRequiresArg(t *testing.T) {
 
 func TestAgentsWhoamiNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "agents", "whoami")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
@@ -368,7 +387,7 @@ func TestAgentsWhoamiNoCreds(t *testing.T) {
 
 func TestAgentsLookupNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "agents", "lookup", "A1B2-C3D4-E5F6-A1B2")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
@@ -382,7 +401,8 @@ func TestAgentsLookupNoCreds(t *testing.T) {
 // --- crypto command tests ---
 
 func TestCryptoNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "crypto")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -396,7 +416,8 @@ func TestCryptoNoSubcommand(t *testing.T) {
 }
 
 func TestCryptoVerifyRequiresSignature(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "crypto", "verify")
 	if err == nil {
 		t.Fatal("expected error when --signature is missing, got nil")
@@ -408,7 +429,7 @@ func TestCryptoVerifyRequiresSignature(t *testing.T) {
 
 func TestCryptoIdentityNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "crypto", "identity")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
@@ -422,7 +443,8 @@ func TestCryptoIdentityNoCreds(t *testing.T) {
 // --- vouch command tests ---
 
 func TestVouchNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "vouch")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -437,7 +459,7 @@ func TestVouchNoSubcommand(t *testing.T) {
 
 func TestVouchIssueNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "vouch", "issue")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
@@ -450,7 +472,7 @@ func TestVouchIssueNoCreds(t *testing.T) {
 
 func TestVouchListNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "vouch", "list")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
@@ -464,7 +486,8 @@ func TestVouchListNoCreds(t *testing.T) {
 // --- diary command tests ---
 
 func TestDiaryNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "diary")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -477,7 +500,8 @@ func TestDiaryNoSubcommand(t *testing.T) {
 }
 
 func TestDiaryCreateRequiresDiaryID(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "create", "--content", "hello")
 	if err == nil {
 		t.Fatal("expected error when --diary-id is missing, got nil")
@@ -488,7 +512,8 @@ func TestDiaryCreateRequiresDiaryID(t *testing.T) {
 }
 
 func TestDiaryCreateRequiresContent(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "create", "--diary-id", "00000000-0000-0000-0000-000000000001")
 	if err == nil {
 		t.Fatal("expected error when --content is missing, got nil")
@@ -499,7 +524,8 @@ func TestDiaryCreateRequiresContent(t *testing.T) {
 }
 
 func TestDiaryListRequiresDiaryID(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "list")
 	if err == nil {
 		t.Fatal("expected error when --diary-id is missing, got nil")
@@ -510,7 +536,8 @@ func TestDiaryListRequiresDiaryID(t *testing.T) {
 }
 
 func TestDiaryGetRequiresArg(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "get")
 	if err == nil {
 		t.Fatal("expected error when entry-id arg is missing, got nil")
@@ -521,7 +548,8 @@ func TestDiaryGetRequiresArg(t *testing.T) {
 }
 
 func TestDiaryDeleteRequiresArg(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "delete")
 	if err == nil {
 		t.Fatal("expected error when entry-id arg is missing, got nil")
@@ -532,7 +560,8 @@ func TestDiaryDeleteRequiresArg(t *testing.T) {
 }
 
 func TestDiarySearchRequiresQuery(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "search")
 	if err == nil {
 		t.Fatal("expected error when --query is missing, got nil")
@@ -543,7 +572,8 @@ func TestDiarySearchRequiresQuery(t *testing.T) {
 }
 
 func TestDiaryVerifyRequiresArg(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "verify")
 	if err == nil {
 		t.Fatal("expected error when entry-id arg is missing, got nil")
@@ -554,6 +584,7 @@ func TestDiaryVerifyRequiresArg(t *testing.T) {
 }
 
 func TestDiaryCommitRequiresAllFlags(t *testing.T) {
+	t.Parallel()
 	// Each test omits one required flag
 	tests := []struct {
 		name    string
@@ -594,7 +625,7 @@ func TestDiaryCommitRequiresAllFlags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			root := NewRootCmd()
+			root := NewRootCmd("test", "")
 			_, _, err := executeCommand(root, tt.args...)
 			if err == nil {
 				t.Fatal("expected error, got nil")
@@ -607,7 +638,8 @@ func TestDiaryCommitRequiresAllFlags(t *testing.T) {
 }
 
 func TestDiaryCommitHelpShowsExamples(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "diary", "commit", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -623,7 +655,8 @@ func TestDiaryCommitHelpShowsExamples(t *testing.T) {
 }
 
 func TestDiaryCreateSignedHelpShowsTypes(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "diary", "create-signed", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -638,7 +671,8 @@ func TestDiaryCreateSignedHelpShowsTypes(t *testing.T) {
 // --- pack command tests ---
 
 func TestPackNoSubcommand(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "pack")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -652,7 +686,8 @@ func TestPackNoSubcommand(t *testing.T) {
 }
 
 func TestPackExportRequiresArg(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "pack", "export")
 	if err == nil {
 		t.Fatal("expected error when pack-uuid arg is missing, got nil")
@@ -663,7 +698,8 @@ func TestPackExportRequiresArg(t *testing.T) {
 }
 
 func TestPackExportHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "pack", "export", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -674,7 +710,8 @@ func TestPackExportHelp(t *testing.T) {
 }
 
 func TestPackProvenanceRequiresOneSelector(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "pack", "provenance")
 	if err == nil {
 		t.Fatal("expected error when neither --pack-id nor --pack-cid is provided, got nil")
@@ -685,7 +722,8 @@ func TestPackProvenanceRequiresOneSelector(t *testing.T) {
 }
 
 func TestPackProvenanceBothSelectors(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "pack", "provenance",
 		"--pack-id", "00000000-0000-0000-0000-000000000000",
 		"--pack-cid", "bafy123")
@@ -698,7 +736,8 @@ func TestPackProvenanceBothSelectors(t *testing.T) {
 }
 
 func TestPackProvenanceHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "pack", "provenance", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -714,7 +753,8 @@ func TestPackProvenanceHelp(t *testing.T) {
 // --- completion command tests ---
 
 func TestCompletionBash(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "completion", "bash")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -725,7 +765,8 @@ func TestCompletionBash(t *testing.T) {
 }
 
 func TestCompletionZsh(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "completion", "zsh")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -736,7 +777,8 @@ func TestCompletionZsh(t *testing.T) {
 }
 
 func TestCompletionInvalidShell(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "completion", "invalid")
 	if err == nil {
 		t.Fatal("expected error for invalid shell, got nil")
@@ -746,6 +788,7 @@ func TestCompletionInvalidShell(t *testing.T) {
 // --- Issue 1: diary commit output goes through io.Writer, not os.Stdout ---
 
 func TestDiaryCommitAcceptsWriter(t *testing.T) {
+	t.Parallel()
 	// Verify runDiaryCommitCmd accepts an io.Writer as first parameter.
 	// We can't call it without a real API, but we can verify the function
 	// signature compiles correctly by calling with invalid input that fails
@@ -781,7 +824,7 @@ func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
 
 	// Use empty HOME so default discovery fails, proving --credentials is used
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err = executeCommand(root, "agents", "whoami",
 		"--credentials", credPath,
 		"--api-url", "http://127.0.0.1:1")
@@ -810,7 +853,7 @@ func TestCredentialsFlagPlumbedToVouchList(t *testing.T) {
 	os.WriteFile(credPath, data, 0o600)
 
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err = executeCommand(root, "vouch", "list",
 		"--credentials", credPath,
 		"--api-url", "http://127.0.0.1:1")
@@ -838,7 +881,7 @@ func TestCredentialsFlagPlumbedToDiaryCreate(t *testing.T) {
 	os.WriteFile(credPath, data, 0o600)
 
 	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	_, _, err = executeCommand(root, "diary", "create",
 		"--diary-id", "00000000-0000-0000-0000-000000000001",
 		"--content", "test",
@@ -873,7 +916,7 @@ func TestCredentialsFlagPlumbedToSignRequestID(t *testing.T) {
 	data, _ := json.Marshal(creds)
 	os.WriteFile(credPath, data, 0o600)
 
-	root := NewRootCmd()
+	root := NewRootCmd("test", "")
 	// This will fail at the API call, but that's fine — we're testing that
 	// the credentials from --credentials are actually loaded (not default path).
 	_, _, err = executeCommand(root, "sign",
@@ -892,7 +935,8 @@ func TestCredentialsFlagPlumbedToSignRequestID(t *testing.T) {
 // --- Issue 5: vouch has examples ---
 
 func TestVouchIssueHelpShowsExample(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "vouch", "issue", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -906,7 +950,8 @@ func TestVouchIssueHelpShowsExample(t *testing.T) {
 }
 
 func TestVouchListHelpShowsExample(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "vouch", "list", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -922,7 +967,8 @@ func TestVouchListHelpShowsExample(t *testing.T) {
 // --- Issue 6: crypto verify uses MarkFlagRequired ---
 
 func TestCryptoVerifyRequiresSignatureViaMarkFlagRequired(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "crypto", "verify")
 	if err == nil {
 		t.Fatal("expected error when --signature is missing, got nil")
@@ -936,6 +982,7 @@ func TestCryptoVerifyRequiresSignatureViaMarkFlagRequired(t *testing.T) {
 // --- Issue 7: error messages use double-dash ---
 
 func TestValidateCommitFlagsErrorFormat(t *testing.T) {
+	t.Parallel()
 	// Call validateCommitFlags with empty diary-id, verify error contains "--diary-id" not "-diary-id"
 	err := validateCommitFlags("", "text", "low", "cli", "ed", "claude", 0)
 	if err == nil {

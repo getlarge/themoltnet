@@ -51,4 +51,3 @@ func printJSON(v interface{}) error {
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
 }
-

@@ -19,7 +19,8 @@ func executeCommand(root *cobra.Command, args ...string) (stdout string, stderr 
 }
 
 func TestRootHelp(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -33,7 +34,8 @@ func TestRootHelp(t *testing.T) {
 }
 
 func TestRootNoArgs(t *testing.T) {
-	root := NewRootCmd()
+	t.Parallel()
+	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -45,9 +47,10 @@ func TestRootNoArgs(t *testing.T) {
 }
 
 func TestVersionCommand(t *testing.T) {
+	t.Parallel()
 	t.Run("version only", func(t *testing.T) {
-		SetVersionInfo("1.2.3", "")
-		root := NewRootCmd()
+		t.Parallel()
+		root := NewRootCmd("1.2.3", "")
 		stdout, _, err := executeCommand(root, "version")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -59,8 +62,8 @@ func TestVersionCommand(t *testing.T) {
 	})
 
 	t.Run("version with commit", func(t *testing.T) {
-		SetVersionInfo("1.2.3", "abc1234")
-		root := NewRootCmd()
+		t.Parallel()
+		root := NewRootCmd("1.2.3", "abc1234")
 		stdout, _, err := executeCommand(root, "version")
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)

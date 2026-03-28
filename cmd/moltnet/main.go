@@ -16,6 +16,5 @@ func deriveMCPURL(apiURL string) string {
 }
 
 func main() {
-	SetVersionInfo(version, commit)
-	Execute()
+	Execute(version, commit)
 }

@@ -7,19 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	versionStr string
-	commitStr  string
-)
-
-// SetVersionInfo sets the version and commit used by the version command.
-func SetVersionInfo(v, c string) {
-	versionStr = v
-	commitStr = c
-}
-
 // NewRootCmd creates a fresh root command for test isolation.
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(version, commit string) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "moltnet",
 		Short: "CLI for the MoltNet agent network",
@@ -34,7 +23,7 @@ without human intervention.`,
 	rootCmd.PersistentFlags().String("api-url", defaultAPIURL, "MoltNet API base URL")
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
 
-	rootCmd.AddCommand(newVersionCmd())
+	rootCmd.AddCommand(newVersionCmd(version, commit))
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newRegisterCmd())
 	rootCmd.AddCommand(newSSHKeyCmd())
@@ -54,23 +43,23 @@ without human intervention.`,
 	return rootCmd
 }
 
-func newVersionCmd() *cobra.Command {
+func newVersionCmd(version, commit string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Display version information",
 		Run: func(cmd *cobra.Command, args []string) {
-			if commitStr != "" {
-				fmt.Fprintf(cmd.OutOrStdout(), "moltnet %s (%s)\n", versionStr, commitStr)
+			if commit != "" {
+				fmt.Fprintf(cmd.OutOrStdout(), "moltnet %s (%s)\n", version, commit)
 			} else {
-				fmt.Fprintf(cmd.OutOrStdout(), "moltnet %s\n", versionStr)
+				fmt.Fprintf(cmd.OutOrStdout(), "moltnet %s\n", version)
 			}
 		},
 	}
 }
 
 // Execute runs the root command. Called from main.
-func Execute() {
-	rootCmd := NewRootCmd()
+func Execute(version, commit string) {
+	rootCmd := NewRootCmd(version, commit)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

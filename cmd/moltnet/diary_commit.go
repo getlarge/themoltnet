@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -11,6 +13,69 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 	"github.com/google/uuid"
 )
+
+// runDiaryCommitCmd is the parameterized business logic for diary commit.
+func runDiaryCommitCmd(w io.Writer, apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title string, signed bool, importance int, extraTags string) error {
+	if err := validateCommitFlags(diaryID, rationale, risk, scope, operator, tool, importance); err != nil {
+		return err
+	}
+
+	diaryUUID, err := uuid.Parse(diaryID)
+	if err != nil {
+		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
+	}
+
+	imp := importance
+	if imp == 0 {
+		imp = deriveImportance(risk)
+	}
+
+	scopes := splitAndTrim(scope, ",")
+	if len(scopes) == 0 {
+		return fmt.Errorf("flag --scope must contain at least one non-empty scope")
+	}
+	var extraTagsList []string
+	if extraTags != "" {
+		extraTagsList = splitAndTrim(extraTags, ",")
+	}
+
+	fmt.Fprintln(os.Stderr, "Extracting git metadata...")
+	meta, err := extractGitMeta()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "Branch: %s, files changed: %d\n", meta.Branch, meta.FilesChanged)
+
+	creds, err := loadCredentials(credPath)
+	if err != nil {
+		return err
+	}
+
+	payload := buildCommitPayload(rationale, meta, creds.Keys.Fingerprint, operator, tool, risk, scopes)
+	tags := buildCommitTags(risk, meta.Branch, scopes, extraTagsList)
+
+	entryTitle := title
+	if entryTitle == "" {
+		entryTitle = "Accountable commit: " + firstSentence(rationale)
+	}
+
+	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
+		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
+	}
+	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
+	client, err := newAuthedClient(apiURL, tm)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintln(os.Stderr, "Creating diary entry...")
+	result, err := signAndCreateEntry(client, creds, payload, diaryUUID, entryTitle, tags, imp, signed)
+	if err != nil {
+		return err
+	}
+
+	return json.NewEncoder(w).Encode(result)
+}
 
 type gitMeta struct {
 	Branch       string
@@ -303,4 +368,3 @@ func signAndCreateEntryUnsigned(
 	fmt.Fprintf(os.Stderr, "Entry created: %s\n", entry.ID)
 	return &commitResult{EntryID: entry.ID.String(), Signature: sig}, nil
 }
-
