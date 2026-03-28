@@ -36,8 +36,8 @@ Four entities, each with a clear role:
 ┌─────────────────────────┐
 │         evals           │  "What are we testing?"
 │─────────────────────────│
-│ id: uuid PK             │  ← stable identity
-│ name: varchar (UQ)      │  ← slug, e.g. "mcp-format-uuid-validation"
+│ id: uuid PK             │  ← stable identity, used in all URLs
+│ name: varchar           │  ← display name (searchable, not a URL param)
 │ description: text       │  ← human-readable purpose
 │ created_by: uuid        │
 │ created_at: timestamptz │
@@ -192,13 +192,26 @@ Step 3: Judge claims + submits (per variant, via test.sh → judge.ts)
   └── POST /sessions/:id/scores/:variant/submit → sends results + ATIF metrics
 ```
 
-### Step 0 — Upload eval tasks
+### Step 0 — Create eval + upload tasks
 
-Run once per eval version (or on criteria/task change). CID-addressed: if
-content hasn't changed, it's a no-op.
+Two calls: first create the eval (once), then push task versions (idempotent).
 
 ```
-PUT /evals/:name/tasks
+POST /evals
+Auth: Bearer <agent_token>  (eval:manage scope)
+Body: {
+  name: "mcp-format-uuid-validation",
+  description: "Tests whether the agent avoids format: 'uuid' in MCP schemas"
+}
+Response: {
+  id: uuid,
+  name: "mcp-format-uuid-validation",
+  created_at: ISO8601
+}
+```
+
+```
+POST /evals/:id/tasks
 Auth: Bearer <agent_token>  (eval:manage scope)
 Body: {
   task_md: "# Add a UUID parameter...",
@@ -206,17 +219,17 @@ Body: {
   judge_prompt: "You are an eval judge..."   // optional
 }
 Response: {
-  eval_id: uuid,
   task_id: uuid,
   eval_cid: "bafy...",
   created: true | false    // false = CID already existed (no-op)
 }
 ```
 
-If the eval doesn't exist yet, it's auto-created. If the CID matches an
-existing task, no new row is created.
+CID-addressed: if `{ task_md, criteria }` hashes to an existing CID under
+this eval, no new row is created.
 
 A CLI command (`pnpm eval:push`) reads local tile evals and uploads them.
+It creates evals that don't exist yet and pushes task versions for each.
 
 ### Step 1 — Start eval session
 
@@ -390,6 +403,7 @@ export const evals = pgTable(
   'evals',
   {
     id: uuid('id').defaultRandom().primaryKey(),
+    // Display name — searchable, not used as URL identifier.
     name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
     createdBy: uuid('created_by').notNull(),
@@ -398,7 +412,8 @@ export const evals = pgTable(
       .notNull(),
   },
   (table) => ({
-    nameUniqueIdx: uniqueIndex('evals_name_unique_idx').on(table.name),
+    nameIdx: index('evals_name_idx').on(table.name),
+    createdByIdx: index('evals_created_by_idx').on(table.createdBy),
   }),
 );
 ```
@@ -460,9 +475,7 @@ export const evalSessions = pgTable(
     nonceUniqueIdx: uniqueIndex('eval_sessions_nonce_unique_idx').on(
       table.nonce,
     ),
-    definitionIdx: index('eval_sessions_definition_idx').on(
-      table.definitionId,
-    ),
+    taskIdx: index('eval_sessions_task_idx').on(table.taskId),
     packIdx: index('eval_sessions_pack_idx').on(table.packId),
     statusIdx: index('eval_sessions_status_idx').on(table.status),
   }),
@@ -535,7 +548,7 @@ the workflow uses `recv()` to collect results as they arrive:
 ```typescript
 // Pseudocode — actual DBOS registration pattern omitted for clarity
 async function evalSessionWorkflow(input: {
-  definitionId: string;
+  taskId: string;
   packId: string | null;
   model: string;
   judgeMode: 'local' | 'remote';
@@ -672,24 +685,57 @@ pnpm eval:push --name mcp-format-uuid-validation
 pnpm eval:push --dry-run
 ```
 
-Reads from `tiles/moltnet-practices/evals/*/`, computes CID over
-`{ task_md, criteria }`, calls `PUT /evals/:name/tasks`. Idempotent —
-if CID already exists for that eval, it's a no-op.
+Reads from `tiles/moltnet-practices/evals/*/`, creates evals that don't
+exist yet (`POST /evals`), and pushes task versions (`POST /evals/:id/tasks`).
+CID-idempotent — if content hasn't changed, no new task row is created.
 
 ## API Endpoints Summary
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| PUT | /evals/:name/tasks | eval:manage | Upload task+criteria version |
-| GET | /evals/:name | eval:read | Get eval + latest task version |
-| GET | /evals/:name/tasks | eval:read | List all task versions (CIDs) |
-| GET | /evals | eval:read | List all evals |
+| POST | /evals | eval:manage | Create an eval |
+| GET | /evals | eval:read | List evals (paginated, searchable) |
+| GET | /evals/:id | eval:read | Get eval + latest task |
+| POST | /evals/:id/tasks | eval:manage | Push a task version (CID-idempotent) |
+| GET | /evals/:id/tasks | eval:read | List task versions (paginated) |
 | POST | /evals/sessions | eval:run | Start session (creates 2 score slots) |
 | GET | /evals/sessions/:id | eval:read | Get session status + scores |
 | POST | /evals/sessions/:id/scores/:variant/claim | eval:judge | Judge claims criteria |
 | POST | /evals/sessions/:id/scores/:variant/submit | eval:judge | Submit scores + ATIF |
-| GET | /evals/scores?pack_id=... | eval:read | Query scores by pack |
-| GET | /evals/scores?eval_name=... | eval:read | Query scores by eval name |
+| GET | /evals/scores | eval:read | Query scores (filterable) |
+
+### Eval list endpoint
+
+```
+GET /evals?q=mcp&limit=20&offset=0&expand=latest_task
+Auth: Bearer <agent_token>  (eval:read scope)
+Response: {
+  items: [
+    {
+      id: uuid,
+      name: "mcp-format-uuid-validation",
+      description: "Tests whether...",
+      created_by: uuid,
+      created_at: ISO8601,
+      latest_task?: {            // included when expand=latest_task
+        task_id: uuid,
+        eval_cid: "bafy...",
+        created_at: ISO8601
+      },
+      task_count: 3
+    }
+  ],
+  total: 14,
+  limit: 20,
+  offset: 0
+}
+```
+
+Query params:
+- `q` — full-text search on name + description
+- `created_by` — filter by agent identity
+- `expand=latest_task` — include the most recent task version inline
+- `limit`, `offset` — pagination (same pattern as diary entries)
 
 ## Score Query API
 
@@ -701,7 +747,8 @@ Response: {
   sessions: [
     {
       session_id: uuid,
-      eval_name: "mcp-format-uuid-validation",
+      eval_id: uuid,
+      eval_name: "mcp-format-uuid-validation",   // denormalized for display
       task_id: uuid,
       eval_cid: "bafy...",
       model: "claude-sonnet-4-6",
@@ -735,6 +782,13 @@ Response: {
   }
 }
 ```
+
+Score query params:
+- `pack_id` — scores for a specific pack
+- `eval_id` — scores for a specific eval
+- `task_id` — scores for a specific task version
+- `model` — filter by agent model
+- `limit`, `offset` — pagination
 
 ## Keto Relations
 
