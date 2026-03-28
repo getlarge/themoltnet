@@ -30,44 +30,53 @@ The judge authenticates as a MoltNet agent (OAuth2 `client_credentials`) with
 
 ## Entity Model
 
-Three entities, each with a clear role:
+Four entities, each with a clear role:
 
 ```
-┌──────────────────────────────┐
-│      eval_definitions        │  "What are we testing?"
-│──────────────────────────────│
-│ id: uuid PK                  │  ← stable identity (FK target)
-│ name: varchar (UQ)           │  ← slug, e.g. "mcp-format-uuid-validation"
-│ eval_cid: varchar            │  ← DAG-CBOR CID of current { task_md, criteria }
-│ eval_codec: varchar          │  ← 'dag-cbor'
-│ task_md: text                │  ← the prompt the agent sees
-│ criteria: jsonb              │  ← { type, context, checklist }
-│ judge_prompt: text           │  ← optional per-eval judge instructions
-│ revision: integer            │  ← bumped on content change (1, 2, 3...)
-│ previous_cid: varchar        │  ← CID before last update (audit trail)
-│ created_by: uuid             │
-│ created_at: timestamptz      │
-│ updated_at: timestamptz      │
-└──────────────┬───────────────┘
+┌─────────────────────────┐
+│         evals           │  "What are we testing?"
+│─────────────────────────│
+│ id: uuid PK             │  ← stable identity
+│ name: varchar (UQ)      │  ← slug, e.g. "mcp-format-uuid-validation"
+│ description: text       │  ← human-readable purpose
+│ created_by: uuid        │
+│ created_at: timestamptz │
+└────────────┬────────────┘
              │
-             │ 1:N  (one definition, many sessions)
+             │ 1:N  (one eval, many task versions)
              ▼
+┌──────────────────────────────┐
+│        eval_tasks            │  "Version N of task + criteria"
+│──────────────────────────────│
+│ id: uuid PK                  │
+│ eval_id: uuid FK → evals     │
+│ eval_cid: varchar (UQ)       │  ← DAG-CBOR CID of { task_md, criteria }
+│ eval_codec: varchar           │  ← 'dag-cbor'
+│ task_md: text                 │  ← the prompt the agent sees
+│ criteria: jsonb               │  ← { type, context, checklist }
+│ judge_prompt: text            │  ← optional per-task judge instructions
+│ created_by: uuid              │
+│ created_at: timestamptz       │
+└──────────────┬───────────────┘
+               │
+               │ 1:N  (one task version, many sessions)
+               ▼
 ┌─────────────────────────┐        ┌──────────────────┐
 │     eval_sessions       │  N:1   │  context_packs   │ (existing)
 │─────────────────────────│ ──────►│                  │
 │ id: uuid PK             │        └──────────────────┘
-│ definition_id: uuid FK  │
-│ pack_id: uuid FK (null) │  ← the pack being evaluated (null = no pack)
+│ task_id: uuid FK        │  ← which task version was used
+│ pack_id: uuid FK (null) │  ← the pack being evaluated
 │ model: varchar          │  ← agent model, e.g. "claude-sonnet-4-6"
 │ judge_mode: enum        │  ← local | remote
 │ status: enum            │  ← pending → running → scored | expired
-│ nonce: varchar (UQ)     │  ← binds the two variant runs to this session
-│ started_by: uuid        │  ← agent identity that initiated the eval
+│ nonce: varchar (UQ)     │  ← binds the two variant runs
+│ started_by: uuid        │
 │ started_at: timestamptz │
 │ expires_at: timestamptz │
 └────────────┬────────────┘
              │
-             │ 1:N  (one session, two scores: with + without context)
+             │ 1:N  (one session, two scores)
              ▼
 ┌───────────────────────────┐
 │       eval_scores         │  "How did each variant score?"
@@ -82,10 +91,10 @@ Three entities, each with a clear role:
 │ scores: jsonb             │  ← per-criterion { name, score, max, evidence }
 │ judge_model: varchar      │
 │ judge_transcript: text    │  ← full judge LLM conversation (audit)
-│ criteria_hash: varchar    │  ← echo-back verification
+│ criteria_hash: varchar    │  ← echo-back verification against task's criteria
 │ proof_signature: text     │  ← server Ed25519 signature of proof payload
 │ claimed_by: uuid          │  ← judge agent identity
-│ metadata: jsonb           │  ← agent telemetry (turns, cost, duration)
+│ metadata: jsonb           │  ← ATIF telemetry (tokens, cost, steps, duration)
 │ started_at: timestamptz   │
 │ claimed_at: timestamptz   │
 │ submitted_at: timestamptz │
@@ -93,28 +102,26 @@ Three entities, each with a clear role:
 └───────────────────────────┘
 ```
 
-### Why three entities?
+### Why four entities?
 
-- **eval_definitions** is the stable anchor — one row per eval name, updated
-  in place when content changes. The CID provides integrity (you can verify
-  the content matches), while `revision` + `previous_cid` provide the audit
-  trail. Sessions reference `definition_id` (stable FK), so all scores for
-  an eval — past and present — are reachable through one ID.
+- **evals** is the stable anchor — one row per eval name, never mutated.
+  "All scores for mcp-format-uuid-validation" is a single FK join regardless
+  of how many times the task or criteria changed.
 
-  Scores record `criteria_hash` at judging time, so you can always tell which
-  criteria version a score was judged against, even if the definition has
-  since been updated.
+- **eval_tasks** are immutable, CID-addressed snapshots of `{ task_md, criteria }`.
+  Each content change produces a new row with a new CID. Full version history
+  is preserved — no data is overwritten. Sessions reference a specific task
+  version, so you always know exactly which criteria a score was judged against.
 
-- **eval_sessions** is the evaluation campaign — "test pack X on eval Y with
-  model Z." It groups the two variant runs (with and without context) into a
-  single logical unit. You can't submit just the "with context" result and
-  claim a lift — the session binds them.
+- **eval_sessions** is the evaluation campaign — "test pack X on eval Y
+  (task version Z) with model W." It groups the with/without context variant
+  runs into a single logical unit. Both variants must complete.
 
 - **eval_scores** are the individual variant results — one per variant per
-  session. Each score has its own nonce, claim/submit lifecycle, and proof
-  signature. This is where the proctoring protocol lives.
+  session. Each score has its own claim/submit lifecycle, nonce, and proof
+  signature. The `metadata` JSONB holds ATIF telemetry (tokens, cost, steps).
 
-### Definition CID
+### Task CID
 
 Same content-addressing pattern as `context_packs.packCid`:
 
@@ -128,14 +135,15 @@ const evalCid = await computePackCid({
 });
 ```
 
-On upload:
-- If `name` doesn't exist → insert new row (revision=1)
-- If `name` exists and CID matches → no-op (content unchanged)
-- If `name` exists and CID differs → update row, bump revision,
-  set `previous_cid` to old CID
+On upload (`PUT /evals/:name/tasks`):
+- Compute CID over `{ task_md, criteria }`
+- If CID already exists as an eval_task → no-op (idempotent)
+- If CID is new → insert new eval_task row under the eval
 
-Sessions reference `definition_id` (stable FK for joins). The `criteria_hash`
-on each eval_score provides verifiable binding to the exact criteria used.
+Sessions reference `task_id` (FK to the specific version). Querying
+"all scores for eval X" joins through evals → eval_tasks → sessions.
+Querying "scores for eval X at a specific task version" goes directly
+through eval_tasks → sessions.
 
 ### Session-Score relationship
 
@@ -170,10 +178,10 @@ Score lifecycle (per variant):
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     MoltNet REST API                        │
-│  eval_definitions ──► eval_sessions ──► eval_scores         │
+│  evals ──► eval_tasks ──► eval_sessions ──► eval_scores     │
 └─────────────────────────────────────────────────────────────┘
 
-Step 1: Start session (for a pack + eval + model)
+Step 1: Start session (for a pack + task version + model)
   ├── Creates session with two score slots (with/without context)
   └── Returns session_id, task_md, per-variant nonces
 
@@ -181,16 +189,16 @@ Step 2: Agent works (Harbor Docker, per variant — unchanged)
 
 Step 3: Judge claims + submits (per variant, via test.sh → judge.ts)
   ├── POST /sessions/:id/scores/:variant/claim → gets criteria
-  └── POST /sessions/:id/scores/:variant/submit → sends results
+  └── POST /sessions/:id/scores/:variant/submit → sends results + ATIF metrics
 ```
 
-### Step 0 — Upload eval definitions
+### Step 0 — Upload eval tasks
 
 Run once per eval version (or on criteria/task change). CID-addressed: if
 content hasn't changed, it's a no-op.
 
 ```
-PUT /evals/definitions/:name
+PUT /evals/:name/tasks
 Auth: Bearer <agent_token>  (eval:manage scope)
 Body: {
   task_md: "# Add a UUID parameter...",
@@ -198,12 +206,15 @@ Body: {
   judge_prompt: "You are an eval judge..."   // optional
 }
 Response: {
-  definition_id: uuid,
+  eval_id: uuid,
+  task_id: uuid,
   eval_cid: "bafy...",
-  revision: 3,
-  changed: true | false    // false = CID unchanged (content identical)
+  created: true | false    // false = CID already existed (no-op)
 }
 ```
+
+If the eval doesn't exist yet, it's auto-created. If the CID matches an
+existing task, no new row is created.
 
 A CLI command (`pnpm eval:push`) reads local tile evals and uploads them.
 
@@ -216,7 +227,7 @@ the agent.
 POST /evals/sessions
 Auth: Bearer <agent_token>  (eval:run scope)
 Body: {
-  eval_cid: "bafy...",           // or definition_id — either works
+  task_id: uuid,                 // specific task version to run against
   pack_id?: uuid,                // context pack being evaluated (null = no pack)
   model: "claude-sonnet-4-6",   // model used for agent
   judge_mode: "local" | "remote"
@@ -242,6 +253,9 @@ Response: {
 The runner receives `task_md` from the server (not local disk) and separate
 nonces for each variant. It then launches two Harbor runs — one with context
 injected, one without.
+
+Alternatively, the runner can pass `eval_cid` instead of `task_id` — the
+server resolves it to the matching eval_task row.
 
 ### Step 2 — Agent works (unchanged)
 
@@ -337,7 +351,7 @@ Response: {
 | Replay old session scores | Nonce + time window + single-use session |
 | Weaker judge model | judge_model recorded; server can enforce minimum |
 | Multiple attempts, submit best | Session is single-use; rate-limit per definition |
-| Server changes criteria post-hoc | eval_cid is content-addressed, immutable |
+| Server changes criteria post-hoc | eval_tasks are immutable (CID-addressed, append-only) |
 
 **Not prevented (accepted risk):** A determined actor could intercept the judge
 LLM call and inject fabricated output. The remote judge path eliminates this
@@ -369,16 +383,37 @@ export const evalVariantEnum = pgEnum('eval_variant', [
 ]);
 ```
 
-### eval_definitions
+### evals
 
 ```typescript
-export const evalDefinitions = pgTable(
-  'eval_definitions',
+export const evals = pgTable(
+  'evals',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    // Slug — one row per eval. UNIQUE constraint.
     name: varchar('name', { length: 255 }).notNull(),
-    // DAG-CBOR CID of current { task_md, criteria }. Changes on content update.
+    description: text('description'),
+    createdBy: uuid('created_by').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    nameUniqueIdx: uniqueIndex('evals_name_unique_idx').on(table.name),
+  }),
+);
+```
+
+### eval_tasks
+
+```typescript
+export const evalTasks = pgTable(
+  'eval_tasks',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    evalId: uuid('eval_id')
+      .notNull()
+      .references(() => evals.id, { onDelete: 'cascade' }),
+    // DAG-CBOR CID of { task_md, criteria } — immutable, unique.
     evalCid: varchar('eval_cid', { length: 100 }).notNull(),
     evalCodec: varchar('eval_codec', { length: 50 })
       .default('dag-cbor')
@@ -386,23 +421,16 @@ export const evalDefinitions = pgTable(
     taskMd: text('task_md').notNull(),
     criteria: jsonb('criteria').notNull(),
     judgePrompt: text('judge_prompt'),
-    // Revision counter — bumped on each content change.
-    revision: integer('revision').default(1).notNull(),
-    // CID of the previous version (null for first revision). Audit trail.
-    previousCid: varchar('previous_cid', { length: 100 }),
     createdBy: uuid('created_by').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
   },
   (table) => ({
-    nameUniqueIdx: uniqueIndex('eval_definitions_name_unique_idx').on(
-      table.name,
+    evalCidUniqueIdx: uniqueIndex('eval_tasks_eval_cid_unique_idx').on(
+      table.evalCid,
     ),
-    evalCidIdx: index('eval_definitions_eval_cid_idx').on(table.evalCid),
+    evalIdx: index('eval_tasks_eval_idx').on(table.evalId),
   }),
 );
 ```
@@ -414,9 +442,9 @@ export const evalSessions = pgTable(
   'eval_sessions',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    definitionId: uuid('definition_id')
+    taskId: uuid('task_id')
       .notNull()
-      .references(() => evalDefinitions.id),
+      .references(() => evalTasks.id),
     packId: uuid('pack_id').references(() => contextPacks.id),
     model: varchar('model', { length: 100 }).notNull(),
     judgeMode: evalJudgeModeEnum('judge_mode').default('local').notNull(),
@@ -645,21 +673,23 @@ pnpm eval:push --dry-run
 ```
 
 Reads from `tiles/moltnet-practices/evals/*/`, computes CID over
-`{ task_md, criteria }`, calls `POST /evals/definitions`. Idempotent —
-if CID already exists, it's a no-op.
+`{ task_md, criteria }`, calls `PUT /evals/:name/tasks`. Idempotent —
+if CID already exists for that eval, it's a no-op.
 
 ## API Endpoints Summary
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| PUT | /evals/definitions/:name | eval:manage | Upsert task + criteria |
-| GET | /evals/definitions/:name | eval:read | Get current definition |
+| PUT | /evals/:name/tasks | eval:manage | Upload task+criteria version |
+| GET | /evals/:name | eval:read | Get eval + latest task version |
+| GET | /evals/:name/tasks | eval:read | List all task versions (CIDs) |
+| GET | /evals | eval:read | List all evals |
 | POST | /evals/sessions | eval:run | Start session (creates 2 score slots) |
 | GET | /evals/sessions/:id | eval:read | Get session status + scores |
 | POST | /evals/sessions/:id/scores/:variant/claim | eval:judge | Judge claims criteria |
-| POST | /evals/sessions/:id/scores/:variant/submit | eval:judge | Submit scores |
+| POST | /evals/sessions/:id/scores/:variant/submit | eval:judge | Submit scores + ATIF |
 | GET | /evals/scores?pack_id=... | eval:read | Query scores by pack |
-| GET | /evals/scores?eval_cid=... | eval:read | Query scores by eval |
+| GET | /evals/scores?eval_name=... | eval:read | Query scores by eval name |
 
 ## Score Query API
 
@@ -672,17 +702,26 @@ Response: {
     {
       session_id: uuid,
       eval_name: "mcp-format-uuid-validation",
+      task_id: uuid,
       eval_cid: "bafy...",
       model: "claude-sonnet-4-6",
       judge_mode: "local",
       with_context: {
         reward: 0.85,
         scores: [...],
+        metadata: {
+          total_prompt_tokens: 12345,
+          total_completion_tokens: 6789,
+          total_cost_usd: 0.42,
+          total_steps: 15,
+          duration_ms: 45000
+        },
         proof_signature: "ed25519:..."
       },
       without_context: {
         reward: 0.60,
         scores: [...],
+        metadata: { ... },
         proof_signature: "ed25519:..."
       },
       context_lift: 0.25,
@@ -723,50 +762,42 @@ Interchange Format). The `final_metrics` object includes:
 
 Per-step data also includes timestamps, tool calls, and model info.
 
-### The gap
+### Mounting ATIF in the verifier
 
 The ATIF trajectory is written by Harbor's trial runner **outside** the
-verifier container. The verifier (test.sh / judge.ts) only has access to:
+verifier container. By default, the verifier only sees:
 - `/app/*` — agent-produced artifacts
 - `/tests/*` — criteria, judge code
 - `/logs/verifier/` — where it writes reward.json
 
-The ATIF data is **not mounted** into the verifier by default.
+**Plan:** Contribute an upstream change to Harbor (or use custom verifier
+config) to mount the agent trajectory at `/logs/trajectory.json` inside the
+verifier container. This lets `judge.ts` read ATIF metrics and submit them
+alongside scores in one call — no separate metrics endpoint needed.
 
-### Approach: two-phase metric collection
+The `metadata` field in the submit payload carries the ATIF `final_metrics`:
 
-Since `run.ts` orchestrates Harbor and has access to the trial output directory
-*after* Harbor completes, it can extract metrics from the ATIF trajectory and
-submit them in a separate call:
+```typescript
+// In judge.ts, during proctored submission:
+const trajectory = JSON.parse(
+  await readFile('/logs/trajectory.json', 'utf-8'),
+);
+const metrics = trajectory.final_metrics;
 
+await submitScores(apiUrl, token, sessionId, {
+  // ... scores, reward, etc.
+  metadata: {
+    total_prompt_tokens: metrics.total_prompt_tokens,
+    total_completion_tokens: metrics.total_completion_tokens,
+    total_cached_tokens: metrics.total_cached_tokens,
+    total_cost_usd: metrics.total_cost_usd,
+    total_steps: metrics.total_steps,
+    duration_ms: computeDurationFromPhases(trajectory),
+  },
+});
 ```
-POST /evals/sessions/{session_id}/scores/{variant}/metrics
-Auth: Bearer <runner_token>
-Body: {
-  nonce: "a1b2c3...",
-  total_prompt_tokens: 12345,
-  total_completion_tokens: 6789,
-  total_cached_tokens: 1000,
-  total_cost_usd: 0.42,
-  total_steps: 15,
-  duration_ms: 45000
-}
-```
 
-**Flow:**
-1. `run.ts` starts Harbor for a variant
-2. Harbor runs agent → writes ATIF trajectory to trial output dir
-3. Harbor runs verifier → judge.ts claims/submits scores to server
-4. Harbor finishes → `run.ts` reads ATIF from trial output dir
-5. `run.ts` posts metrics to the server for that variant score
-
-This keeps the judge and metrics collection independent. The metrics endpoint
-merges into the `metadata` JSONB on the eval_score row.
-
-Alternatively, Harbor could be patched to mount the trajectory into the
-verifier at `/logs/trajectory.json` — this would let judge.ts read and submit
-metrics in one call. This would be a cleaner solution but requires an upstream
-change or a custom Harbor config.
+This is stored in `eval_scores.metadata` JSONB.
 
 ## Open Questions
 
@@ -779,9 +810,9 @@ change or a custom Harbor config.
 3. **Time windows** — Session expiry (both variants): 1 hour? Claim-to-submit
    window (per variant judge): 10 min?
 
-4. **ATIF access in verifier** — Should we pursue mounting the trajectory into
-   the verifier container (upstream Harbor change), or stick with the two-phase
-   approach from run.ts?
-
-5. **Partial sessions** — What if only one variant completes? Keep partial data
+4. **Partial sessions** — What if only one variant completes? Keep partial data
    but mark session as expired? Or discard?
+
+5. **Harbor upstream** — Scope of the ATIF-in-verifier change. Could be a
+   task.toml config (`[verifier] mount_trajectory = true`) or a default
+   behavior change. Need to check Harbor's extension points.
