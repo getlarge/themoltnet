@@ -1568,8 +1568,9 @@ type ContextPackResponseList struct {
 	Items []ContextPackResponse `json:"items"`
 	// Maximum number of items requested for this response.
 	Limit float64 `json:"limit"`
-	// Number of items returned in this response window. This API currently uses returned-count semantics
-	// for list totals.
+	// Number of items skipped before the returned window.
+	Offset float64 `json:"offset"`
+	// Total number of matching packs in the database.
 	Total float64 `json:"total"`
 }
 
@@ -1581,6 +1582,11 @@ func (s *ContextPackResponseList) GetItems() []ContextPackResponse {
 // GetLimit returns the value of Limit.
 func (s *ContextPackResponseList) GetLimit() float64 {
 	return s.Limit
+}
+
+// GetOffset returns the value of Offset.
+func (s *ContextPackResponseList) GetOffset() float64 {
+	return s.Offset
 }
 
 // GetTotal returns the value of Total.
@@ -1596,6 +1602,11 @@ func (s *ContextPackResponseList) SetItems(val []ContextPackResponse) {
 // SetLimit sets the value of Limit.
 func (s *ContextPackResponseList) SetLimit(val float64) {
 	s.Limit = val
+}
+
+// SetOffset sets the value of Offset.
+func (s *ContextPackResponseList) SetOffset(val float64) {
+	s.Offset = val
 }
 
 // SetTotal sets the value of Total.
@@ -3836,7 +3847,9 @@ type EntryRelationList struct {
 	Items []EntryRelation `json:"items"`
 	// Maximum number of items requested.
 	Limit float64 `json:"limit"`
-	// Number of items returned in this response window.
+	// Number of items skipped before the returned window.
+	Offset float64 `json:"offset"`
+	// Total number of matching relations in the database.
 	Total float64 `json:"total"`
 }
 
@@ -3848,6 +3861,11 @@ func (s *EntryRelationList) GetItems() []EntryRelation {
 // GetLimit returns the value of Limit.
 func (s *EntryRelationList) GetLimit() float64 {
 	return s.Limit
+}
+
+// GetOffset returns the value of Offset.
+func (s *EntryRelationList) GetOffset() float64 {
+	return s.Offset
 }
 
 // GetTotal returns the value of Total.
@@ -3863,6 +3881,11 @@ func (s *EntryRelationList) SetItems(val []EntryRelation) {
 // SetLimit sets the value of Limit.
 func (s *EntryRelationList) SetLimit(val float64) {
 	s.Limit = val
+}
+
+// SetOffset sets the value of Offset.
+func (s *EntryRelationList) SetOffset(val float64) {
+	s.Offset = val
 }
 
 // SetTotal sets the value of Total.

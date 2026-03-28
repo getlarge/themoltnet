@@ -656,12 +656,16 @@
             "description": "Maximum number of items requested for this response.",
             "type": "number"
           },
+          "offset": {
+            "description": "Number of items skipped from the start.",
+            "type": "number"
+          },
           "total": {
-            "description": "Number of items returned in this response window. This API currently uses returned-count semantics for list totals.",
+            "description": "Total number of matching packs in the database.",
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit"],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "ContextPackResponse": {
@@ -777,12 +781,16 @@
             "description": "Maximum number of items requested for this response.",
             "type": "number"
           },
+          "offset": {
+            "description": "Number of items skipped from the start.",
+            "type": "number"
+          },
           "total": {
-            "description": "Number of items returned in this response window. This API currently uses returned-count semantics for list totals.",
+            "description": "Total number of matching packs in the database.",
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit"],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "CryptoIdentity": {
@@ -1250,12 +1258,15 @@
             "type": "array"
           },
           "limit": {
+            "description": "Maximum number of items requested.",
             "type": "number"
           },
           "offset": {
+            "description": "Number of items skipped from the start.",
             "type": "number"
           },
           "total": {
+            "description": "Total number of matching entries in the database.",
             "type": "number"
           }
         },
@@ -1584,12 +1595,16 @@
             "description": "Maximum number of items requested.",
             "type": "number"
           },
+          "offset": {
+            "description": "Number of items skipped from the start.",
+            "type": "number"
+          },
           "total": {
-            "description": "Number of items returned in this response window.",
+            "description": "Total number of matching relations in the database.",
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit"],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "EntryType": {
@@ -3019,12 +3034,15 @@
             "type": "array"
           },
           "limit": {
+            "description": "Maximum number of items requested.",
             "type": "number"
           },
           "offset": {
+            "description": "Number of items skipped from the start.",
             "type": "number"
           },
           "total": {
+            "description": "Total number of matching signing requests in the database.",
             "type": "number"
           }
         },
@@ -5771,6 +5789,15 @@
           },
           {
             "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
             "name": "expand",
             "required": false,
             "schema": {
@@ -6457,6 +6484,15 @@
             "schema": {
               "maximum": 100,
               "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "minimum": 0,
               "type": "integer"
             }
           },
