@@ -33,18 +33,22 @@ The judge authenticates as a MoltNet agent (OAuth2 `client_credentials`) with
 Three entities, each with a clear role:
 
 ```
-┌─────────────────────────┐
-│    eval_definitions     │  "What are we testing?"
-│─────────────────────────│
-│ id: uuid PK             │
-│ name: varchar           │  ← slug, e.g. "mcp-format-uuid-validation"
-│ eval_cid: varchar (UQ)  │  ← DAG-CBOR CID over { task_md, criteria }
-│ task_md: text           │  ← the prompt the agent sees
-│ criteria: jsonb         │  ← { type, context, checklist }
-│ judge_prompt: text      │  ← optional per-eval judge instructions
-│ created_by: uuid        │
-│ created_at: timestamptz │
-└────────────┬────────────┘
+┌──────────────────────────────┐
+│      eval_definitions        │  "What are we testing?"
+│──────────────────────────────│
+│ id: uuid PK                  │  ← stable identity (FK target)
+│ name: varchar (UQ)           │  ← slug, e.g. "mcp-format-uuid-validation"
+│ eval_cid: varchar            │  ← DAG-CBOR CID of current { task_md, criteria }
+│ eval_codec: varchar          │  ← 'dag-cbor'
+│ task_md: text                │  ← the prompt the agent sees
+│ criteria: jsonb              │  ← { type, context, checklist }
+│ judge_prompt: text           │  ← optional per-eval judge instructions
+│ revision: integer            │  ← bumped on content change (1, 2, 3...)
+│ previous_cid: varchar        │  ← CID before last update (audit trail)
+│ created_by: uuid             │
+│ created_at: timestamptz      │
+│ updated_at: timestamptz      │
+└──────────────┬───────────────┘
              │
              │ 1:N  (one definition, many sessions)
              ▼
@@ -91,9 +95,15 @@ Three entities, each with a clear role:
 
 ### Why three entities?
 
-- **eval_definitions** is the immutable anchor — content-addressed by CID.
-  If you change task or criteria, you get a new CID, a new row. Old sessions
-  still reference the old definition. Same pattern as `context_packs`.
+- **eval_definitions** is the stable anchor — one row per eval name, updated
+  in place when content changes. The CID provides integrity (you can verify
+  the content matches), while `revision` + `previous_cid` provide the audit
+  trail. Sessions reference `definition_id` (stable FK), so all scores for
+  an eval — past and present — are reachable through one ID.
+
+  Scores record `criteria_hash` at judging time, so you can always tell which
+  criteria version a score was judged against, even if the definition has
+  since been updated.
 
 - **eval_sessions** is the evaluation campaign — "test pack X on eval Y with
   model Z." It groups the two variant runs (with and without context) into a
@@ -118,10 +128,14 @@ const evalCid = await computePackCid({
 });
 ```
 
-- CID changes when content changes → new row (immutable history)
-- Same CID → idempotent upload (no-op)
-- Sessions reference `definition_id` (FK for joins), but the CID provides
-  verifiable integrity
+On upload:
+- If `name` doesn't exist → insert new row (revision=1)
+- If `name` exists and CID matches → no-op (content unchanged)
+- If `name` exists and CID differs → update row, bump revision,
+  set `previous_cid` to old CID
+
+Sessions reference `definition_id` (stable FK for joins). The `criteria_hash`
+on each eval_score provides verifiable binding to the exact criteria used.
 
 ### Session-Score relationship
 
@@ -176,10 +190,9 @@ Run once per eval version (or on criteria/task change). CID-addressed: if
 content hasn't changed, it's a no-op.
 
 ```
-POST /evals/definitions
+PUT /evals/definitions/:name
 Auth: Bearer <agent_token>  (eval:manage scope)
 Body: {
-  name: "mcp-format-uuid-validation",
   task_md: "# Add a UUID parameter...",
   criteria: { type: "weighted_checklist", checklist: [...] },
   judge_prompt: "You are an eval judge..."   // optional
@@ -187,7 +200,8 @@ Body: {
 Response: {
   definition_id: uuid,
   eval_cid: "bafy...",
-  created: true | false    // false = already existed (same CID)
+  revision: 3,
+  changed: true | false    // false = CID unchanged (content identical)
 }
 ```
 
@@ -362,7 +376,9 @@ export const evalDefinitions = pgTable(
   'eval_definitions',
   {
     id: uuid('id').defaultRandom().primaryKey(),
+    // Slug — one row per eval. UNIQUE constraint.
     name: varchar('name', { length: 255 }).notNull(),
+    // DAG-CBOR CID of current { task_md, criteria }. Changes on content update.
     evalCid: varchar('eval_cid', { length: 100 }).notNull(),
     evalCodec: varchar('eval_codec', { length: 50 })
       .default('dag-cbor')
@@ -370,16 +386,23 @@ export const evalDefinitions = pgTable(
     taskMd: text('task_md').notNull(),
     criteria: jsonb('criteria').notNull(),
     judgePrompt: text('judge_prompt'),
+    // Revision counter — bumped on each content change.
+    revision: integer('revision').default(1).notNull(),
+    // CID of the previous version (null for first revision). Audit trail.
+    previousCid: varchar('previous_cid', { length: 100 }),
     createdBy: uuid('created_by').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => ({
-    evalCidUniqueIdx: uniqueIndex('eval_definitions_eval_cid_unique_idx').on(
-      table.evalCid,
+    nameUniqueIdx: uniqueIndex('eval_definitions_name_unique_idx').on(
+      table.name,
     ),
-    nameIdx: index('eval_definitions_name_idx').on(table.name),
+    evalCidIdx: index('eval_definitions_eval_cid_idx').on(table.evalCid),
   }),
 );
 ```
@@ -629,9 +652,8 @@ if CID already exists, it's a no-op.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | /evals/definitions | eval:manage | Upload task + criteria |
-| GET | /evals/definitions/:cid | eval:read | Get by CID |
-| GET | /evals/definitions?name=... | eval:read | List by name (all CID versions) |
+| PUT | /evals/definitions/:name | eval:manage | Upsert task + criteria |
+| GET | /evals/definitions/:name | eval:read | Get current definition |
 | POST | /evals/sessions | eval:run | Start session (creates 2 score slots) |
 | GET | /evals/sessions/:id | eval:read | Get session status + scores |
 | POST | /evals/sessions/:id/scores/:variant/claim | eval:judge | Judge claims criteria |
@@ -684,6 +706,68 @@ eval:judge   — can claim criteria and submit scores
 eval:read    — can view scores and definitions
 ```
 
+## Agent Telemetry
+
+Harbor captures agent metrics in its **ATIF trajectory** (Agent Trajectory
+Interchange Format). The `final_metrics` object includes:
+
+```json
+{
+  "total_prompt_tokens": 12345,
+  "total_completion_tokens": 6789,
+  "total_cached_tokens": 1000,
+  "total_cost_usd": 0.42,
+  "total_steps": 15
+}
+```
+
+Per-step data also includes timestamps, tool calls, and model info.
+
+### The gap
+
+The ATIF trajectory is written by Harbor's trial runner **outside** the
+verifier container. The verifier (test.sh / judge.ts) only has access to:
+- `/app/*` — agent-produced artifacts
+- `/tests/*` — criteria, judge code
+- `/logs/verifier/` — where it writes reward.json
+
+The ATIF data is **not mounted** into the verifier by default.
+
+### Approach: two-phase metric collection
+
+Since `run.ts` orchestrates Harbor and has access to the trial output directory
+*after* Harbor completes, it can extract metrics from the ATIF trajectory and
+submit them in a separate call:
+
+```
+POST /evals/sessions/{session_id}/scores/{variant}/metrics
+Auth: Bearer <runner_token>
+Body: {
+  nonce: "a1b2c3...",
+  total_prompt_tokens: 12345,
+  total_completion_tokens: 6789,
+  total_cached_tokens: 1000,
+  total_cost_usd: 0.42,
+  total_steps: 15,
+  duration_ms: 45000
+}
+```
+
+**Flow:**
+1. `run.ts` starts Harbor for a variant
+2. Harbor runs agent → writes ATIF trajectory to trial output dir
+3. Harbor runs verifier → judge.ts claims/submits scores to server
+4. Harbor finishes → `run.ts` reads ATIF from trial output dir
+5. `run.ts` posts metrics to the server for that variant score
+
+This keeps the judge and metrics collection independent. The metrics endpoint
+merges into the `metadata` JSONB on the eval_score row.
+
+Alternatively, Harbor could be patched to mount the trajectory into the
+verifier at `/logs/trajectory.json` — this would let judge.ts read and submit
+metrics in one call. This would be a cleaner solution but requires an upstream
+change or a custom Harbor config.
+
 ## Open Questions
 
 1. **Spot-check frequency** — What % of local-judged submissions should the
@@ -695,9 +779,9 @@ eval:read    — can view scores and definitions
 3. **Time windows** — Session expiry (both variants): 1 hour? Claim-to-submit
    window (per variant judge): 10 min?
 
-4. **Agent telemetry** — Harbor captures trial metadata (tokens, duration, cost)
-   in its result.json. The `metadata` JSONB on eval_scores is a placeholder for
-   this. Need to confirm exactly what Harbor exposes and pipe it through.
+4. **ATIF access in verifier** — Should we pursue mounting the trajectory into
+   the verifier container (upstream Harbor change), or stick with the two-phase
+   approach from run.ts?
 
 5. **Partial sessions** — What if only one variant completes? Keep partial data
    but mark session as expired? Or discard?
