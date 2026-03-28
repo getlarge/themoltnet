@@ -57,12 +57,23 @@ interface RenderedParams {
 }
 ```
 
+**Key constraint: rendered packs do NOT supersede the source pack.**
+The compile/custom pack is the source of truth. The rendered pack
+is the consumable layer — a presentation of the same entries. They
+coexist. The rendered pack references its source via
+`params.sourcePackCid` only (same pattern as `optimized` packs).
+`supersedesPackId` is NOT used for this relationship.
+
+At most one rendered pack per source pack should be active. The
+resolver picks the rendered version when available, falls back to
+raw export when not.
+
 A rendered pack:
 
 - Has the **same entries** as its source (same entry IDs, same ranks)
 - Stores the **transformed markdown** in its `payload` field
 - Has its **own CID** (computed from rendered content + source ref)
-- Chains to source via `supersedesPackId`
+- References source via `params.sourcePackCid` (NOT `supersedesPackId`)
 - Is what **bindings prefer** (resolve returns rendered when
   available, falls back to raw export)
 - Is what **evals score** (eval results reference the rendered CID)
@@ -98,6 +109,11 @@ pack_bindings
 ├── created_at: timestamp
 └── updated_at: timestamp
 ```
+
+**Bindings point to the source pack** (compile/custom). The resolver
+looks up the rendered version at resolve time via `sourcePackCid` in
+rendered pack params. This means supersession propagation only tracks
+source pack chains.
 
 **Supersession propagation**: DB trigger on `context_packs` INSERT.
 When a new pack sets `supersedes_pack_id`, all active bindings
@@ -139,6 +155,12 @@ POST /diaries/:id/pack-bindings/resolve
   "total_tokens": 5200
 }
 ```
+
+**Token budget**: Individual packs are already capped at 100000
+tokens (same as entry content). The resolve endpoint does not impose
+an aggregate cap in V1 — the binding design (3-7 packs max per
+session, per the research findings) naturally limits total volume.
+A `total_token_budget` parameter can be added in V2 if needed.
 
 ### 4. V1 scope
 
@@ -342,6 +364,7 @@ ID is resolved:
 - CLI `moltnet pack resolve` command
 - Audit log for supersession propagation
 - Semantic `task_classes` matching via embeddings (V1 is exact match)
+- Aggregate `total_token_budget` parameter on resolve endpoint
 
 ## Risks
 
