@@ -49,36 +49,18 @@ func ToSSHPrivateKey(seedBase64 string) (string, error) {
 	return string(pemBytes), nil
 }
 
-func runSSHKeyExport(args []string) error {
-	fs := flag.NewFlagSet("ssh-key", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to moltnet.json (default: ~/.config/moltnet/moltnet.json)")
-	outDir := fs.String("output-dir", "", "Output directory for SSH keys (default: ~/.config/moltnet/ssh/)")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet ssh-key [options]")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Export MoltNet Ed25519 identity as SSH key files.")
-		fmt.Fprintln(os.Stderr, "Reads the keypair from moltnet.json and writes")
-		fmt.Fprintln(os.Stderr, "id_ed25519 and id_ed25519.pub to the output directory.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	creds, err := loadCredentials(*credPath)
+// runSSHKeyExportCmd exports the MoltNet identity as SSH key files.
+func runSSHKeyExportCmd(credPath, outDir string) error {
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
 
 	// Resolve output directory — default is relative to the config file
-	dir := *outDir
+	dir := outDir
 	if dir == "" {
-		if *credPath != "" {
-			dir = filepath.Join(filepath.Dir(*credPath), "ssh")
+		if credPath != "" {
+			dir = filepath.Join(filepath.Dir(credPath), "ssh")
 		} else {
 			configDir, err := GetConfigDir()
 			if err != nil {
@@ -121,8 +103,8 @@ func runSSHKeyExport(args []string) error {
 		PrivateKeyPath: privPath,
 		PublicKeyPath:  pubPath,
 	}
-	if *credPath != "" {
-		if _, err := WriteConfigTo(creds, *credPath); err != nil {
+	if credPath != "" {
+		if _, err := WriteConfigTo(creds, credPath); err != nil {
 			return fmt.Errorf("update config with ssh paths: %w", err)
 		}
 	} else {
@@ -132,4 +114,16 @@ func runSSHKeyExport(args []string) error {
 	}
 
 	return nil
+}
+
+// runSSHKeyExport is a legacy wrapper that parses flag args and delegates
+// to runSSHKeyExportCmd. Retained for backward compatibility with existing tests.
+func runSSHKeyExport(args []string) error {
+	fs := flag.NewFlagSet("ssh-key", flag.ContinueOnError)
+	credPath := fs.String("credentials", "", "Path to moltnet.json")
+	outDir := fs.String("output-dir", "", "Output directory for SSH keys")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return runSSHKeyExportCmd(*credPath, *outDir)
 }

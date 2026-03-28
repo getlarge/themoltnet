@@ -213,12 +213,12 @@ func TestValidateCommitFlags_MissingRequired(t *testing.T) {
 		tool      string
 		wantErr   string
 	}{
-		{"missing diary-id", "", "text", "low", "auth", "ed", "claude", "flag -diary-id is required"},
-		{"missing rationale", validID, "", "low", "auth", "ed", "claude", "flag -rationale is required"},
-		{"missing risk", validID, "text", "", "auth", "ed", "claude", "flag -risk is required"},
-		{"missing scope", validID, "text", "low", "", "ed", "claude", "flag -scope is required"},
-		{"missing operator", validID, "text", "low", "auth", "", "claude", "flag -operator is required"},
-		{"missing tool", validID, "text", "low", "auth", "ed", "", "flag -tool is required"},
+		{"missing diary-id", "", "text", "low", "auth", "ed", "claude", "flag --diary-id is required"},
+		{"missing rationale", validID, "", "low", "auth", "ed", "claude", "flag --rationale is required"},
+		{"missing risk", validID, "text", "", "auth", "ed", "claude", "flag --risk is required"},
+		{"missing scope", validID, "text", "low", "", "ed", "claude", "flag --scope is required"},
+		{"missing operator", validID, "text", "low", "auth", "", "claude", "flag --operator is required"},
+		{"missing tool", validID, "text", "low", "auth", "ed", "", "flag --tool is required"},
 	}
 
 	for _, tt := range tests {

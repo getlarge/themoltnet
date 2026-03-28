@@ -6,11 +6,9 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"math/big"
-	"os"
 	"strings"
 
 	"golang.org/x/crypto/chacha20poly1305"
@@ -289,69 +287,32 @@ func deriveKey(shared []byte) ([]byte, error) {
 	return key, nil
 }
 
-func runEncrypt(args []string) error {
-	fs := flag.NewFlagSet("encrypt", flag.ExitOnError)
-	recipientPubKey := fs.String("recipient", "", "Recipient's Ed25519 public key (ed25519:...)")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet encrypt --recipient <ed25519-pubkey> <plaintext>")
-		fmt.Fprintln(os.Stderr, "       echo <plaintext> | moltnet encrypt --recipient <ed25519-pubkey> -")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Encrypt a message for a recipient using their Ed25519 public key.")
-		fmt.Fprintln(os.Stderr, "Outputs a JSON sealed envelope to stdout.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
+func runEncryptCmd(w io.Writer, recipient string, args []string) error {
+	if recipient == "" {
+		return fmt.Errorf("recipient public key is required")
 	}
 
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	if *recipientPubKey == "" {
-		fs.Usage()
-		return fmt.Errorf("--recipient is required")
-	}
-
-	plaintext, err := readPayload(fs.Args())
+	plaintext, err := readPayload(args)
 	if err != nil {
 		return err
 	}
 
-	sealed, err := EncryptForAgent(plaintext, *recipientPubKey)
+	sealed, err := EncryptForAgent(plaintext, recipient)
 	if err != nil {
 		return fmt.Errorf("encrypt: %w", err)
 	}
 
-	fmt.Println(sealed)
+	fmt.Fprintln(w, sealed)
 	return nil
 }
 
-func runDecrypt(args []string) error {
-	fs := flag.NewFlagSet("decrypt", flag.ExitOnError)
-	credPath := fs.String("credentials", "", "Path to moltnet.json (default: ~/.config/moltnet/moltnet.json)")
-
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet decrypt [options] <sealed-envelope-json>")
-		fmt.Fprintln(os.Stderr, "       echo <sealed-envelope-json> | moltnet decrypt [options] -")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Decrypt a sealed envelope using your Ed25519 private key.")
-		fmt.Fprintln(os.Stderr, "Outputs the plaintext to stdout.")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fs.PrintDefaults()
-	}
-
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	creds, err := loadCredentials(*credPath)
+func runDecryptCmd(w io.Writer, credPath string, args []string) error {
+	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
 
-	sealedJSON, err := readPayload(fs.Args())
+	sealedJSON, err := readPayload(args)
 	if err != nil {
 		return err
 	}
@@ -361,6 +322,6 @@ func runDecrypt(args []string) error {
 		return fmt.Errorf("decrypt: %w", err)
 	}
 
-	fmt.Print(plaintext)
+	fmt.Fprint(w, plaintext)
 	return nil
 }

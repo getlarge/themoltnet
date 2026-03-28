@@ -15,48 +15,14 @@ import (
 	"github.com/google/uuid"
 )
 
-func runPack(args []string) error {
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export|provenance> [options]")
-		return fmt.Errorf("subcommand required")
-	}
-	switch args[0] {
-	case "export":
-		return runPackExport(args[1:])
-	case "provenance":
-		return runPackProvenance(args[1:])
-	default:
-		fmt.Fprintf(os.Stderr, "unknown pack subcommand: %s\n", args[0])
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack <export|provenance> [options]")
-		return fmt.Errorf("unknown subcommand: %s", args[0])
-	}
-}
-
-func runPackExport(args []string) error {
-	fs := flag.NewFlagSet("pack export", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	out := fs.String("out", "", "Output file path (default: stdout)")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack export [options] <pack-uuid>")
-		fmt.Fprintln(os.Stderr, "\nExport a context pack as markdown. The pack ID must be a UUID (not a CID).")
-		fmt.Fprintln(os.Stderr, "Use 'moltnet pack list' or the MCP packs_list tool to find pack UUIDs.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if fs.NArg() < 1 {
-		fs.Usage()
-		return fmt.Errorf("pack id argument required")
-	}
-
-	packUUID, err := uuid.Parse(fs.Arg(0))
+// runPackExportCmd is the flag-free business logic for pack export.
+func runPackExportCmd(apiURL, credPath, packID, out string) error {
+	packUUID, err := uuid.Parse(packID)
 	if err != nil {
-		return fmt.Errorf("invalid pack ID %q: %w", fs.Arg(0), err)
+		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
 	}
 
-	client, err := newClientFromCreds(*apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -81,66 +47,49 @@ func runPackExport(args []string) error {
 
 	md := renderPackMarkdown(packUUID.String(), pack)
 
-	if *out != "" {
-		if err := os.WriteFile(*out, []byte(md), 0644); err != nil {
-			return fmt.Errorf("write %s: %w", *out, err)
+	if out != "" {
+		if err := os.WriteFile(out, []byte(md), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", out, err)
 		}
-		fmt.Fprintf(os.Stderr, "[pack export] %d entries → %s\n", len(pack.Entries), *out)
+		fmt.Fprintf(os.Stderr, "[pack export] %d entries → %s\n", len(pack.Entries), out)
 	} else {
 		fmt.Print(md)
 	}
 	return nil
 }
 
-func runPackProvenance(args []string) error {
-	fs := flag.NewFlagSet("pack provenance", flag.ExitOnError)
-	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
-	packID := fs.String("pack-id", "", "Pack UUID")
-	packCID := fs.String("pack-cid", "", "Pack CID")
-	depth := fs.Int("depth", 2, "Follow pack supersession ancestry to this depth")
-	out := fs.String("out", "", "Write JSON to file instead of stdout")
-	shareURL := fs.String("share-url", "", "Print a shareable viewer URL (e.g. https://themolt.net/labs/provenance)")
-	fs.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: moltnet pack provenance [options]")
-		fmt.Fprintln(os.Stderr, "\nExport the provenance graph for a context pack as JSON.")
-		fmt.Fprintln(os.Stderr, "Provide exactly one of --pack-id or --pack-cid.")
-		fmt.Fprintln(os.Stderr, "\nOptions:")
-		fs.PrintDefaults()
-	}
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-
-	if (*packID == "") == (*packCID == "") {
-		fs.Usage()
+// runPackProvenanceCmd is the flag-free business logic for pack provenance.
+func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, out, shareURL string) error {
+	// Mutual exclusivity: exactly one of packID or packCID must be non-empty.
+	if (packID == "") == (packCID == "") {
 		return fmt.Errorf("provide exactly one of --pack-id or --pack-cid")
 	}
 
-	if *depth < 0 {
+	if depth < 0 {
 		return fmt.Errorf("--depth must be a non-negative integer")
 	}
 
 	// Validate pack-id early, before loading credentials.
 	var packUUID uuid.UUID
-	if *packID != "" {
+	if packID != "" {
 		var err error
-		packUUID, err = uuid.Parse(*packID)
+		packUUID, err = uuid.Parse(packID)
 		if err != nil {
-			return fmt.Errorf("invalid --pack-id %q: %w", *packID, err)
+			return fmt.Errorf("invalid --pack-id %q: %w", packID, err)
 		}
 	}
 
-	client, err := newClientFromCreds(*apiURL)
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
-	depthOpt := moltnetapi.NewOptInt(*depth)
+	depthOpt := moltnetapi.NewOptInt(depth)
 
 	// Both endpoints return the same shape; use any to marshal uniformly.
 	var graph any
-	if *packID != "" {
+	if packID != "" {
 		res, err := client.GetContextPackProvenanceById(ctx, moltnetapi.GetContextPackProvenanceByIdParams{
 			ID:    packUUID,
 			Depth: depthOpt,
@@ -155,7 +104,7 @@ func runPackProvenance(args []string) error {
 		graph = g
 	} else {
 		res, err := client.GetContextPackProvenanceByCid(ctx, moltnetapi.GetContextPackProvenanceByCidParams{
-			Cid:   *packCID,
+			Cid:   packCID,
 			Depth: depthOpt,
 		})
 		if err != nil {
@@ -173,7 +122,7 @@ func runPackProvenance(args []string) error {
 		return fmt.Errorf("marshal graph: %w", err)
 	}
 
-	if *shareURL != "" {
+	if shareURL != "" {
 		compact, err := json.Marshal(graph)
 		if err != nil {
 			return fmt.Errorf("compact JSON: %w", err)
@@ -185,16 +134,16 @@ func runPackProvenance(args []string) error {
 		if len(param) > 8000 {
 			fmt.Fprintf(os.Stderr, "[pack provenance] warning: URL param is %d bytes — may exceed browser limits\n", len(param))
 		}
-		viewerURL := strings.TrimRight(*shareURL, "/") + "?graph=" + param
+		viewerURL := strings.TrimRight(shareURL, "/") + "?graph=" + param
 		fmt.Println(viewerURL)
 		return nil
 	}
 
-	if *out != "" {
-		if err := os.WriteFile(*out, append(serialized, '\n'), 0644); err != nil {
-			return fmt.Errorf("write %s: %w", *out, err)
+	if out != "" {
+		if err := os.WriteFile(out, append(serialized, '\n'), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", out, err)
 		}
-		fmt.Fprintf(os.Stderr, "[pack provenance] wrote %s\n", *out)
+		fmt.Fprintf(os.Stderr, "[pack provenance] wrote %s\n", out)
 		return nil
 	}
 
@@ -249,4 +198,28 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 	}
 
 	return b.String()
+}
+
+// --- Legacy wrappers preserved for existing tests ---
+
+// runPackProvenance is the legacy flag-parsing entry point, preserved for existing tests.
+func runPackProvenance(args []string) error {
+	fs := flag.NewFlagSet("pack provenance", flag.ExitOnError)
+	apiURL := fs.String("api-url", defaultAPIURL, "API URL")
+	packID := fs.String("pack-id", "", "Pack UUID")
+	packCID := fs.String("pack-cid", "", "Pack CID")
+	depth := fs.Int("depth", 2, "Follow pack supersession ancestry to this depth")
+	out := fs.String("out", "", "Write JSON to file instead of stdout")
+	shareURL := fs.String("share-url", "", "Print a shareable viewer URL (e.g. https://themolt.net/labs/provenance)")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage: moltnet pack provenance [options]")
+		fmt.Fprintln(os.Stderr, "\nExport the provenance graph for a context pack as JSON.")
+		fmt.Fprintln(os.Stderr, "Provide exactly one of --pack-id or --pack-cid.")
+		fmt.Fprintln(os.Stderr, "\nOptions:")
+		fs.PrintDefaults()
+	}
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	return runPackProvenanceCmd(*apiURL, "", *packID, *packCID, *depth, *out, *shareURL)
 }
