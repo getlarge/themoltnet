@@ -12,6 +12,7 @@ import {
   DiaryEntryPermission,
   DiaryPermission,
   KetoNamespace,
+  TeamPermission,
 } from './keto-constants.js';
 
 export interface PermissionChecker {
@@ -28,6 +29,9 @@ export interface PermissionChecker {
     agentId: string,
   ): Promise<Map<string, boolean>>;
   canManagePack(packId: string, agentId: string): Promise<boolean>;
+  canAccessTeam(teamId: string, subjectId: string): Promise<boolean>;
+  canManageTeam(teamId: string, subjectId: string): Promise<boolean>;
+  canManageTeamMembers(teamId: string, subjectId: string): Promise<boolean>;
 }
 
 async function checkPermission(
@@ -201,6 +205,36 @@ export function createPermissionChecker(
         packId,
         ContextPackPermission.Manage,
         agentId,
+      );
+    },
+
+    canAccessTeam(teamId: string, subjectId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.Access,
+        subjectId,
+      );
+    },
+
+    canManageTeam(teamId: string, subjectId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.Manage,
+        subjectId,
+      );
+    },
+
+    canManageTeamMembers(teamId: string, subjectId: string): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.ManageMembers,
+        subjectId,
       );
     },
   };
