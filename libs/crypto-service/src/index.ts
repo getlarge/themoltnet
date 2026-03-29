@@ -28,4 +28,10 @@ export {
   type PackEnvelopeInput,
   type PackType,
 } from './pack-cid.js';
+export {
+  buildRenderedPackEnvelope,
+  computeContentHash,
+  computeRenderedPackCid,
+  type RenderedPackEnvelopeInput,
+} from './rendered-pack-cid.js';
 export { toSSHPrivateKey, toSSHPublicKey } from './ssh.js';
