@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.83.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.82.0...sdk-v0.83.0) (2026-03-29)
+
+
+### Features
+
+* add provenance viewer ergonomics and creator attribution ([863fe25](https://github.com/getlarge/themoltnet/commit/863fe250c14e6d60e21439362b8ede8ce7fd90a0))
+* **api:** expose pack provenance graphs ([23bfb7b](https://github.com/getlarge/themoltnet/commit/23bfb7b5fcfac22937228b58ef9002b1974eed42))
+* **legreffier:** skill-eval pipeline, commit shaping, SDK retry fixes ([fe5bb64](https://github.com/getlarge/themoltnet/commit/fe5bb64fe3f42b38b54fefdae1a6eadd0965a8fd))
+* **mcp-server,sdk:** remove content_hash, simplify signing flow ([#407](https://github.com/getlarge/themoltnet/issues/407)) ([2fecd0b](https://github.com/getlarge/themoltnet/commit/2fecd0b3219b214998f22b3b6bb4d0e98d26c7c2))
+* retry fetch + simplify content-signed entries ([#144](https://github.com/getlarge/themoltnet/issues/144), [#407](https://github.com/getlarge/themoltnet/issues/407)) ([afb3139](https://github.com/getlarge/themoltnet/commit/afb3139650198a50bb1b7da337746ff7ec1fe485))
+* **sdk:** add retry logic for 401 and 429 responses ([11f489e](https://github.com/getlarge/themoltnet/commit/11f489e5013af02d2c3b4adb1a8d0e4f461315da))
+
+
+### Bug Fixes
+
+* **sdk:** invalidate stale token on 401 even when retry is disabled ([cc0af39](https://github.com/getlarge/themoltnet/commit/cc0af39fc77aa923fe1260277866587bad6dee75))
+* **sdk:** prevent tsc .d.ts leak into published tarball ([d50e38b](https://github.com/getlarge/themoltnet/commit/d50e38baa8cc68ce736f248a0e2b988d7f090c3d))
+* **sdk:** update Authorization header with fresh token on 401 replay ([59315bc](https://github.com/getlarge/themoltnet/commit/59315bc6d5ed4b449184fba2a140dcfc2804ced7))
+* **sdk:** update retry tests for createRateLimitFetch compat layer ([2e8c427](https://github.com/getlarge/themoltnet/commit/2e8c4276d2e013bd42adc3a52bd705e6ae70d8a6))
+* standardize pagination total counts, multi-entryType, SDK pack fix ([d051515](https://github.com/getlarge/themoltnet/commit/d051515b27cc0ec3eef30d9966477c8320b3f189))
+
 ## [0.82.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.81.0...sdk-v0.82.0) (2026-03-29)
 
 
