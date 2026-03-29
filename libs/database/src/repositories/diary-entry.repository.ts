@@ -45,7 +45,6 @@ function filterConditions(
 function entryFilterConditions(opts: {
   tags?: string[];
   excludeTags?: string[];
-  entryType?: string;
   entryTypes?: string[];
   excludeSuperseded?: boolean;
   createdBefore?: Date;
@@ -64,11 +63,9 @@ function entryFilterConditions(opts: {
           sql`, `,
         )}]::text[]))`
       : undefined,
-    opts.entryType
-      ? eq(diaryEntries.entryType, opts.entryType as EntryType)
-      : opts.entryTypes && opts.entryTypes.length > 0
-        ? inArray(diaryEntries.entryType, opts.entryTypes as EntryType[])
-        : undefined,
+    opts.entryTypes && opts.entryTypes.length > 0
+      ? inArray(diaryEntries.entryType, opts.entryTypes as EntryType[])
+      : undefined,
     opts.excludeSuperseded
       ? sql`NOT EXISTS (
           SELECT 1 FROM entry_relations er
@@ -129,7 +126,6 @@ export interface DiaryListOptions {
   excludeTags?: string[];
   limit?: number;
   offset?: number;
-  entryType?: string;
   entryTypes?: string[];
   excludeSuperseded?: boolean;
   createdBefore?: Date;
@@ -274,7 +270,9 @@ export function createDiaryEntryRepository(db: Database) {
     /**
      * List entries for a diary
      */
-    async list(options: DiaryListOptions): Promise<DiaryEntry[]> {
+    async list(
+      options: DiaryListOptions,
+    ): Promise<{ items: DiaryEntry[]; total: number }> {
       const {
         diaryId,
         diaryIds,
@@ -283,7 +281,6 @@ export function createDiaryEntryRepository(db: Database) {
         excludeTags,
         limit = 20,
         offset = 0,
-        entryType,
         entryTypes,
         excludeSuperseded,
         createdBefore,
@@ -308,7 +305,6 @@ export function createDiaryEntryRepository(db: Database) {
         ...entryFilterConditions({
           tags,
           excludeTags,
-          entryType,
           entryTypes,
           excludeSuperseded,
           createdBefore,
@@ -316,14 +312,27 @@ export function createDiaryEntryRepository(db: Database) {
         }),
       );
 
-      const rows = await db
-        .select(publicColumns)
-        .from(diaryEntries)
-        .where(and(...conditions))
-        .orderBy(desc(diaryEntries.createdAt))
-        .limit(limit)
-        .offset(offset);
-      return rows.map((row) => ({ ...row, embedding: null }));
+      const whereClause = and(...conditions);
+
+      const executor = getExecutor(db);
+      const [rows, countResult] = await Promise.all([
+        executor
+          .select(publicColumns)
+          .from(diaryEntries)
+          .where(whereClause)
+          .orderBy(desc(diaryEntries.createdAt))
+          .limit(limit)
+          .offset(offset),
+        executor
+          .select({ count: count() })
+          .from(diaryEntries)
+          .where(whereClause),
+      ]);
+
+      return {
+        items: rows.map((row) => ({ ...row, embedding: null })),
+        total: countResult[0]?.count ?? 0,
+      };
     },
 
     /**
@@ -526,7 +535,7 @@ export function createDiaryEntryRepository(db: Database) {
       }
 
       // No query/embedding → fall back to list (pass all filters)
-      return this.list({
+      const { items } = await this.list({
         diaryId,
         diaryIds,
         tags,
@@ -538,6 +547,7 @@ export function createDiaryEntryRepository(db: Database) {
         createdBefore,
         createdAfter,
       });
+      return items;
     },
 
     /**

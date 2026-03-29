@@ -64,7 +64,10 @@ describe('Diary distill routes', () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
-    mocks.diaryEntryRepository.list.mockResolvedValue([]);
+    mocks.diaryEntryRepository.list.mockResolvedValue({
+      items: [],
+      total: 0,
+    });
   });
 
   describe('GET /diaries/reflect', () => {

@@ -26,17 +26,25 @@ export const VisibilitySchema = Type.Union(
   { description: 'Entry visibility level' },
 );
 
+export const ENTRY_TYPE_VALUES = [
+  'episodic',
+  'semantic',
+  'procedural',
+  'reflection',
+  'identity',
+  'soul',
+] as const;
+
 export const EntryTypeSchema = Type.Union(
-  [
-    Type.Literal('episodic'),
-    Type.Literal('semantic'),
-    Type.Literal('procedural'),
-    Type.Literal('reflection'),
-    Type.Literal('identity'),
-    Type.Literal('soul'),
-  ],
+  ENTRY_TYPE_VALUES.map((v) => Type.Literal(v)),
   { description: 'Entry memory type' },
 );
+
+/** Regex fragment matching a single entry type value. */
+export const ENTRY_TYPE_PATTERN = `(${ENTRY_TYPE_VALUES.join('|')})`;
+
+/** Regex pattern for a comma-separated list of entry types (1–6 values). */
+export const ENTRY_TYPES_CSV_PATTERN = `^${ENTRY_TYPE_PATTERN}(,${ENTRY_TYPE_PATTERN}){0,${ENTRY_TYPE_VALUES.length - 1}}$`;
 
 export const PublicKeySchema = Type.String({
   pattern: '^ed25519:[A-Za-z0-9+/=]+$',
@@ -241,6 +249,7 @@ export const InstalledCallbackQuerySchema = Type.Object({
 // Type Exports
 // ============================================================================
 
+export type EntryType = (typeof ENTRY_TYPE_VALUES)[number];
 export type Visibility = Static<typeof VisibilitySchema>;
 export type DiaryEntry = Static<typeof DiaryEntrySchema>;
 export type CreateDiaryEntry = Static<typeof CreateDiaryEntrySchema>;

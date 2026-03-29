@@ -171,20 +171,22 @@ export function initContextDistillWorkflows(): void {
       if (entryIds && entryIds.length > 0) {
         // Always pass diaryId to scope entries to the caller's diary.
         // Prevents cross-diary entry access via user-supplied entryIds.
-        return diaryEntryRepository.list({
+        const { items } = await diaryEntryRepository.list({
           ids: entryIds,
           diaryId,
           excludeTags,
           limit: Math.min(entryIds.length, 500),
         });
+        return items;
       }
-      return diaryEntryRepository.list({
+      const { items } = await diaryEntryRepository.list({
         diaryId,
         tags,
         excludeTags,
         limit,
         excludeSuperseded: true,
       });
+      return items;
     },
     { name: 'context-distill.step.fetchEntries' },
   );

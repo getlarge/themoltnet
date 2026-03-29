@@ -7,6 +7,7 @@
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   inArray,
@@ -342,16 +343,29 @@ export function createContextPackRepository(db: Database) {
     async listByDiary(
       diaryId: string,
       limit = 50,
-    ): Promise<ContextPackWithCreator[]> {
-      const rows = (await getExecutor(db)
-        .select(packSelection)
-        .from(contextPacks)
-        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
-        .where(eq(contextPacks.diaryId, diaryId))
-        .orderBy(desc(contextPacks.createdAt))
-        .limit(limit)) as PackRow[];
+      offset = 0,
+    ): Promise<{ items: ContextPackWithCreator[]; total: number }> {
+      const whereClause = eq(contextPacks.diaryId, diaryId);
 
-      return rows.map(normalizePack);
+      const [rows, countResult] = await Promise.all([
+        getExecutor(db)
+          .select(packSelection)
+          .from(contextPacks)
+          .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
+          .where(whereClause)
+          .orderBy(desc(contextPacks.createdAt))
+          .limit(limit)
+          .offset(offset) as Promise<PackRow[]>,
+        getExecutor(db)
+          .select({ count: count() })
+          .from(contextPacks)
+          .where(whereClause),
+      ]);
+
+      return {
+        items: rows.map(normalizePack),
+        total: countResult[0]?.count ?? 0,
+      };
     },
   };
 }

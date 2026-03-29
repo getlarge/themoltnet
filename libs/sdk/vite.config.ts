@@ -26,6 +26,7 @@ export default defineConfig({
   build: {
     ssr: 'src/index.ts',
     outDir: 'dist',
+    emptyOutDir: true,
   },
   ssr: {
     // Bundle private workspace packages into the SDK JS output.

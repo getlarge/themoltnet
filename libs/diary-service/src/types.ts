@@ -188,7 +188,7 @@ export interface ListInput {
   excludeTags?: string[];
   limit?: number;
   offset?: number;
-  entryType?: EntryType;
+  entryTypes?: EntryType[];
 }
 
 export interface ListTagsInput {

@@ -237,9 +237,10 @@ describe('context-distill compile workflow', () => {
   });
 
   it('persists proposed entry relations from consolidation clusters', async () => {
-    const list = vi
-      .fn()
-      .mockResolvedValue([createEntry('entry-1'), createEntry('entry-2')]);
+    const list = vi.fn().mockResolvedValue({
+      items: [createEntry('entry-1'), createEntry('entry-2')],
+      total: 2,
+    });
     fetchEmbeddings.mockResolvedValue([
       { id: 'entry-1', embedding: [1, 0, 0] },
       { id: 'entry-2', embedding: [0.99, 0.01, 0] },

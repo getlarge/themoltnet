@@ -1568,8 +1568,9 @@ type ContextPackResponseList struct {
 	Items []ContextPackResponse `json:"items"`
 	// Maximum number of items requested for this response.
 	Limit float64 `json:"limit"`
-	// Number of items returned in this response window. This API currently uses returned-count semantics
-	// for list totals.
+	// Number of items skipped before this page.
+	Offset float64 `json:"offset"`
+	// Total number of matching items in the database.
 	Total float64 `json:"total"`
 }
 
@@ -1581,6 +1582,11 @@ func (s *ContextPackResponseList) GetItems() []ContextPackResponse {
 // GetLimit returns the value of Limit.
 func (s *ContextPackResponseList) GetLimit() float64 {
 	return s.Limit
+}
+
+// GetOffset returns the value of Offset.
+func (s *ContextPackResponseList) GetOffset() float64 {
+	return s.Offset
 }
 
 // GetTotal returns the value of Total.
@@ -1596,6 +1602,11 @@ func (s *ContextPackResponseList) SetItems(val []ContextPackResponse) {
 // SetLimit sets the value of Limit.
 func (s *ContextPackResponseList) SetLimit(val float64) {
 	s.Limit = val
+}
+
+// SetOffset sets the value of Offset.
+func (s *ContextPackResponseList) SetOffset(val float64) {
+	s.Offset = val
 }
 
 // SetTotal sets the value of Total.
@@ -3181,7 +3192,8 @@ type DiaryList struct {
 	Items  []DiaryEntry `json:"items"`
 	Limit  float64      `json:"limit"`
 	Offset float64      `json:"offset"`
-	Total  float64      `json:"total"`
+	// Total number of matching items in the database.
+	Total float64 `json:"total"`
 }
 
 // GetItems returns the value of Items.
@@ -3836,7 +3848,9 @@ type EntryRelationList struct {
 	Items []EntryRelation `json:"items"`
 	// Maximum number of items requested.
 	Limit float64 `json:"limit"`
-	// Number of items returned in this response window.
+	// Number of items skipped before this page.
+	Offset float64 `json:"offset"`
+	// Total number of matching items in the database.
 	Total float64 `json:"total"`
 }
 
@@ -3848,6 +3862,11 @@ func (s *EntryRelationList) GetItems() []EntryRelation {
 // GetLimit returns the value of Limit.
 func (s *EntryRelationList) GetLimit() float64 {
 	return s.Limit
+}
+
+// GetOffset returns the value of Offset.
+func (s *EntryRelationList) GetOffset() float64 {
+	return s.Offset
 }
 
 // GetTotal returns the value of Total.
@@ -3863,6 +3882,11 @@ func (s *EntryRelationList) SetItems(val []EntryRelation) {
 // SetLimit sets the value of Limit.
 func (s *EntryRelationList) SetLimit(val float64) {
 	s.Limit = val
+}
+
+// SetOffset sets the value of Offset.
+func (s *EntryRelationList) SetOffset(val float64) {
+	s.Offset = val
 }
 
 // SetTotal sets the value of Total.
@@ -5212,75 +5236,6 @@ func (*ListDiariesInternalServerError) listDiariesRes() {}
 type ListDiariesUnauthorized ProblemDetails
 
 func (*ListDiariesUnauthorized) listDiariesRes() {}
-
-type ListDiaryEntriesEntryType string
-
-const (
-	ListDiaryEntriesEntryTypeEpisodic   ListDiaryEntriesEntryType = "episodic"
-	ListDiaryEntriesEntryTypeSemantic   ListDiaryEntriesEntryType = "semantic"
-	ListDiaryEntriesEntryTypeProcedural ListDiaryEntriesEntryType = "procedural"
-	ListDiaryEntriesEntryTypeReflection ListDiaryEntriesEntryType = "reflection"
-	ListDiaryEntriesEntryTypeIdentity   ListDiaryEntriesEntryType = "identity"
-	ListDiaryEntriesEntryTypeSoul       ListDiaryEntriesEntryType = "soul"
-)
-
-// AllValues returns all ListDiaryEntriesEntryType values.
-func (ListDiaryEntriesEntryType) AllValues() []ListDiaryEntriesEntryType {
-	return []ListDiaryEntriesEntryType{
-		ListDiaryEntriesEntryTypeEpisodic,
-		ListDiaryEntriesEntryTypeSemantic,
-		ListDiaryEntriesEntryTypeProcedural,
-		ListDiaryEntriesEntryTypeReflection,
-		ListDiaryEntriesEntryTypeIdentity,
-		ListDiaryEntriesEntryTypeSoul,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ListDiaryEntriesEntryType) MarshalText() ([]byte, error) {
-	switch s {
-	case ListDiaryEntriesEntryTypeEpisodic:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeSemantic:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeProcedural:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeReflection:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeIdentity:
-		return []byte(s), nil
-	case ListDiaryEntriesEntryTypeSoul:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ListDiaryEntriesEntryType) UnmarshalText(data []byte) error {
-	switch ListDiaryEntriesEntryType(data) {
-	case ListDiaryEntriesEntryTypeEpisodic:
-		*s = ListDiaryEntriesEntryTypeEpisodic
-		return nil
-	case ListDiaryEntriesEntryTypeSemantic:
-		*s = ListDiaryEntriesEntryTypeSemantic
-		return nil
-	case ListDiaryEntriesEntryTypeProcedural:
-		*s = ListDiaryEntriesEntryTypeProcedural
-		return nil
-	case ListDiaryEntriesEntryTypeReflection:
-		*s = ListDiaryEntriesEntryTypeReflection
-		return nil
-	case ListDiaryEntriesEntryTypeIdentity:
-		*s = ListDiaryEntriesEntryTypeIdentity
-		return nil
-	case ListDiaryEntriesEntryTypeSoul:
-		*s = ListDiaryEntriesEntryTypeSoul
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 type ListDiaryEntriesInternalServerError ProblemDetails
 
@@ -7486,52 +7441,6 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptListDiaryEntriesEntryType returns new OptListDiaryEntriesEntryType with value set to v.
-func NewOptListDiaryEntriesEntryType(v ListDiaryEntriesEntryType) OptListDiaryEntriesEntryType {
-	return OptListDiaryEntriesEntryType{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptListDiaryEntriesEntryType is optional ListDiaryEntriesEntryType.
-type OptListDiaryEntriesEntryType struct {
-	Value ListDiaryEntriesEntryType
-	Set   bool
-}
-
-// IsSet returns true if OptListDiaryEntriesEntryType was set.
-func (o OptListDiaryEntriesEntryType) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptListDiaryEntriesEntryType) Reset() {
-	var v ListDiaryEntriesEntryType
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptListDiaryEntriesEntryType) SetTo(v ListDiaryEntriesEntryType) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptListDiaryEntriesEntryType) Get() (v ListDiaryEntriesEntryType, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptListDiaryEntriesEntryType) Or(d ListDiaryEntriesEntryType) ListDiaryEntriesEntryType {
 	if v, ok := o.Get(); ok {
 		return v
 	}

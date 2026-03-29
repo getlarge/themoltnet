@@ -129,7 +129,10 @@ describe('Diary entry routes', () => {
   describe(`GET /diaries/${DIARY_ID}/entries`, () => {
     it('lists entries for authenticated user', async () => {
       const entries = [createMockEntry(), createMockEntry({ id: 'other-id' })];
-      mocks.diaryService.listEntries.mockResolvedValue(entries);
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: entries,
+        total: 5,
+      });
 
       const response = await app.inject({
         method: 'GET',
@@ -140,11 +143,14 @@ describe('Diary entry routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.items).toHaveLength(2);
-      expect(body.total).toBe(2);
+      expect(body.total).toBe(5);
     });
 
     it('passes query parameters through', async () => {
-      mocks.diaryService.listEntries.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
 
       await app.inject({
         method: 'GET',
@@ -158,7 +164,10 @@ describe('Diary entry routes', () => {
     });
 
     it('passes tags filter from query string', async () => {
-      mocks.diaryService.listEntries.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
 
       await app.inject({
         method: 'GET',
@@ -175,7 +184,10 @@ describe('Diary entry routes', () => {
     });
 
     it('passes single tag from query string', async () => {
-      mocks.diaryService.listEntries.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
 
       await app.inject({
         method: 'GET',
@@ -192,7 +204,10 @@ describe('Diary entry routes', () => {
     });
 
     it('passes excludeTags filter from query string', async () => {
-      mocks.diaryService.listEntries.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
 
       await app.inject({
         method: 'GET',
@@ -241,7 +256,10 @@ describe('Diary entry routes', () => {
     });
 
     it('omits tags when not in query string', async () => {
-      mocks.diaryService.listEntries.mockResolvedValue([]);
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
 
       await app.inject({
         method: 'GET',
@@ -255,6 +273,56 @@ describe('Diary entry routes', () => {
           tags: undefined,
         }),
       );
+    });
+
+    it('passes multiple entryType values as entryTypes array', async () => {
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
+
+      await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?entryType=identity,soul,semantic`,
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diaryId: DIARY_ID,
+          entryTypes: ['identity', 'soul', 'semantic'],
+        }),
+      );
+    });
+
+    it('passes single entryType value as entryTypes array', async () => {
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
+
+      await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?entryType=episodic`,
+        headers: authHeaders,
+      });
+
+      expect(mocks.diaryService.listEntries).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diaryId: DIARY_ID,
+          entryTypes: ['episodic'],
+        }),
+      );
+    });
+
+    it('rejects invalid entryType value', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries?entryType=invalid`,
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(400);
     });
   });
 
@@ -579,7 +647,10 @@ describe('Diary entry routes', () => {
         createMockEntry({ embedding: [0.1, 0.2, 0.3] }),
         createMockEntry({ id: 'other-id', embedding: [0.4, 0.5, 0.6] }),
       ];
-      mocks.diaryService.listEntries.mockResolvedValue(entries);
+      mocks.diaryService.listEntries.mockResolvedValue({
+        items: entries,
+        total: 2,
+      });
 
       const response = await app.inject({
         method: 'GET',

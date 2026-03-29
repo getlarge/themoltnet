@@ -221,11 +221,12 @@ describe('DiaryEntryRepository (integration)', () => {
       await createEntry({ content: 'Second entry.' });
       await createEntry({ content: 'Third entry.' });
 
-      const entries = await repo.list({ diaryId: DIARY_ID });
+      const { items, total } = await repo.list({ diaryId: DIARY_ID });
 
-      expect(entries.length).toBe(3);
-      expect(entries[0].content).toBe('Third entry.');
-      expect(entries[2].content).toBe('First entry.');
+      expect(items.length).toBe(3);
+      expect(total).toBe(3);
+      expect(items[0].content).toBe('Third entry.');
+      expect(items[2].content).toBe('First entry.');
     });
 
     it('filters by entryType', async () => {
@@ -242,26 +243,33 @@ describe('DiaryEntryRepository (integration)', () => {
         entryType: 'reflection',
       });
 
-      const episodicOnly = await repo.list({
+      const { items, total } = await repo.list({
         diaryId: DIARY_ID,
-        entryType: 'episodic',
+        entryTypes: ['episodic'],
       });
-      expect(episodicOnly.length).toBe(1);
-      expect(episodicOnly[0].content).toBe('Episodic entry.');
+      expect(items.length).toBe(1);
+      expect(total).toBe(1);
+      expect(items[0].content).toBe('Episodic entry.');
     });
 
-    it('respects limit and offset', async () => {
+    it('respects limit and offset with correct total', async () => {
       for (let i = 0; i < 5; i++) {
         await createEntry({ content: `Entry ${i}` });
       }
 
       const page1 = await repo.list({ diaryId: DIARY_ID, limit: 2 });
-      expect(page1.length).toBe(2);
+      expect(page1.items.length).toBe(2);
+      expect(page1.total).toBe(5);
 
-      const page2 = await repo.list({ diaryId: DIARY_ID, limit: 2, offset: 2 });
-      expect(page2.length).toBe(2);
-      expect(page2[0].id).not.toBe(page1[0].id);
-      expect(page2[0].id).not.toBe(page1[1].id);
+      const page2 = await repo.list({
+        diaryId: DIARY_ID,
+        limit: 2,
+        offset: 2,
+      });
+      expect(page2.items.length).toBe(2);
+      expect(page2.total).toBe(5);
+      expect(page2.items[0].id).not.toBe(page1.items[0].id);
+      expect(page2.items[0].id).not.toBe(page1.items[1].id);
     });
   });
 
@@ -484,13 +492,13 @@ describe('DiaryEntryRepository (integration)', () => {
         .set({ createdAt: pastDate })
         .where(eq(diaryEntries.id, old.id));
 
-      const results = await repo.list({
+      const { items } = await repo.list({
         diaryId: DIARY_ID,
         createdBefore: new Date('2025-06-01T00:00:00Z'),
       });
 
-      expect(results.map((e) => e.id)).toContain(old.id);
-      expect(results.map((e) => e.id)).not.toContain(recent.id);
+      expect(items.map((e) => e.id)).toContain(old.id);
+      expect(items.map((e) => e.id)).not.toContain(recent.id);
     });
 
     it('list() with createdAfter excludes older entries', async () => {
@@ -503,13 +511,13 @@ describe('DiaryEntryRepository (integration)', () => {
         .set({ createdAt: pastDate })
         .where(eq(diaryEntries.id, old.id));
 
-      const results = await repo.list({
+      const { items } = await repo.list({
         diaryId: DIARY_ID,
         createdAfter: new Date('2025-06-01T00:00:00Z'),
       });
 
-      expect(results.map((e) => e.id)).toContain(recent.id);
-      expect(results.map((e) => e.id)).not.toContain(old.id);
+      expect(items.map((e) => e.id)).toContain(recent.id);
+      expect(items.map((e) => e.id)).not.toContain(old.id);
     });
 
     it('list() with both bounds returns entries in the window', async () => {
@@ -530,13 +538,13 @@ describe('DiaryEntryRepository (integration)', () => {
         .set({ createdAt: new Date('2025-12-15T00:00:00Z') })
         .where(eq(diaryEntries.id, e3.id));
 
-      const results = await repo.list({
+      const { items } = await repo.list({
         diaryId: DIARY_ID,
         createdAfter: new Date('2025-03-01T00:00:00Z'),
         createdBefore: new Date('2025-10-01T00:00:00Z'),
       });
 
-      const ids = results.map((e) => e.id);
+      const ids = items.map((e) => e.id);
       expect(ids).toContain(e2.id);
       expect(ids).not.toContain(e1.id);
       expect(ids).not.toContain(e3.id);

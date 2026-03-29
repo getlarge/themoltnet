@@ -6251,6 +6251,10 @@ func (s *Server) handleListDiaryPacksRequest(args [1]string, argsEscaped bool, w
 					In:   "query",
 				}: params.Limit,
 				{
+					Name: "offset",
+					In:   "query",
+				}: params.Offset,
+				{
 					Name: "expand",
 					In:   "query",
 				}: params.Expand,
@@ -6843,6 +6847,10 @@ func (s *Server) handleListEntryRelationsRequest(args [1]string, argsEscaped boo
 					Name: "limit",
 					In:   "query",
 				}: params.Limit,
+				{
+					Name: "offset",
+					In:   "query",
+				}: params.Offset,
 				{
 					Name: "entryId",
 					In:   "path",
