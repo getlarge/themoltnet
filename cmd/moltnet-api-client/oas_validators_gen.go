@@ -1489,6 +1489,17 @@ func (s *ContextPackResponseList) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := (validate.Float{}).Validate(float64(s.Offset)); err != nil {
+			return errors.Wrap(err, "float")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "offset",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := (validate.Float{}).Validate(float64(s.Total)); err != nil {
 			return errors.Wrap(err, "float")
 		}
@@ -3304,6 +3315,17 @@ func (s *EntryRelationList) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := (validate.Float{}).Validate(float64(s.Offset)); err != nil {
+			return errors.Wrap(err, "float")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "offset",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := (validate.Float{}).Validate(float64(s.Total)); err != nil {
 			return errors.Wrap(err, "float")
 		}
@@ -4129,25 +4151,6 @@ func (s *ListDiariesUnauthorized) Validate() error {
 		return err
 	}
 	return nil
-}
-
-func (s ListDiaryEntriesEntryType) Validate() error {
-	switch s {
-	case "episodic":
-		return nil
-	case "semantic":
-		return nil
-	case "procedural":
-		return nil
-	case "reflection":
-		return nil
-	case "identity":
-		return nil
-	case "soul":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }
 
 func (s *ListDiaryEntriesInternalServerError) Validate() error {

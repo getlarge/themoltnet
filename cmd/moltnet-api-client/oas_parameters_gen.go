@@ -2052,8 +2052,9 @@ type ListDiaryEntriesParams struct {
 	Tags OptString `json:",omitempty,omitzero"`
 	// Comma-separated excluded tags filter (entry must have NONE of these tags, max 20 tags, 50 chars
 	// each).
-	ExcludeTags OptString                    `json:",omitempty,omitzero"`
-	EntryType   OptListDiaryEntriesEntryType `json:",omitempty,omitzero"`
+	ExcludeTags OptString `json:",omitempty,omitzero"`
+	// Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.
+	EntryType OptString `json:",omitempty,omitzero"`
 	// UUID v4 identifier.
 	DiaryId uuid.UUID
 }
@@ -2101,7 +2102,7 @@ func unpackListDiaryEntriesParams(packed middleware.Parameters) (params ListDiar
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.EntryType = v.(OptListDiaryEntriesEntryType)
+			params.EntryType = v.(OptString)
 		}
 	}
 	{
@@ -2394,7 +2395,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotEntryTypeVal ListDiaryEntriesEntryType
+				var paramsDotEntryTypeVal string
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
@@ -2406,7 +2407,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 						return err
 					}
 
-					paramsDotEntryTypeVal = ListDiaryEntriesEntryType(c)
+					paramsDotEntryTypeVal = c
 					return nil
 				}(); err != nil {
 					return err
@@ -2419,8 +2420,20 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 			if err := func() error {
 				if value, ok := params.EntryType.Get(); ok {
 					if err := func() error {
-						if err := value.Validate(); err != nil {
-							return err
+						if err := (validate.String{
+							MinLength:     0,
+							MinLengthSet:  false,
+							MaxLength:     100,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
 						}
 						return nil
 					}(); err != nil {
@@ -2491,6 +2504,7 @@ func decodeListDiaryEntriesParams(args [1]string, argsEscaped bool, r *http.Requ
 // ListDiaryPacksParams is parameters of listDiaryPacks operation.
 type ListDiaryPacksParams struct {
 	Limit  OptInt                  `json:",omitempty,omitzero"`
+	Offset OptInt                  `json:",omitempty,omitzero"`
 	Expand OptListDiaryPacksExpand `json:",omitempty,omitzero"`
 	// UUID v4 identifier.
 	ID uuid.UUID
@@ -2504,6 +2518,15 @@ func unpackListDiaryPacksParams(packed middleware.Parameters) (params ListDiaryP
 		}
 		if v, ok := packed[key]; ok {
 			params.Limit = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "offset",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Offset = v.(OptInt)
 		}
 	}
 	{
@@ -2589,6 +2612,72 @@ func decodeListDiaryPacksParams(args [1]string, argsEscaped bool, r *http.Reques
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "limit",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: offset.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "offset",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotOffsetVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotOffsetVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Offset.SetTo(paramsDotOffsetVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Offset.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           0,
+							MaxSet:        false,
+							Max:           0,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "offset",
 			In:   "query",
 			Err:  err,
 		}
@@ -3071,6 +3160,7 @@ type ListEntryRelationsParams struct {
 	Status    OptRelationStatus              `json:",omitempty,omitzero"`
 	Direction OptListEntryRelationsDirection `json:",omitempty,omitzero"`
 	Limit     OptInt                         `json:",omitempty,omitzero"`
+	Offset    OptInt                         `json:",omitempty,omitzero"`
 	// UUID v4 identifier.
 	EntryId uuid.UUID
 }
@@ -3110,6 +3200,15 @@ func unpackListEntryRelationsParams(packed middleware.Parameters) (params ListEn
 		}
 		if v, ok := packed[key]; ok {
 			params.Limit = v.(OptInt)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "offset",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Offset = v.(OptInt)
 		}
 	}
 	{
@@ -3354,6 +3453,72 @@ func decodeListEntryRelationsParams(args [1]string, argsEscaped bool, r *http.Re
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "limit",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: offset.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "offset",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotOffsetVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotOffsetVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Offset.SetTo(paramsDotOffsetVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.Offset.Get(); ok {
+					if err := func() error {
+						if err := (validate.Int{
+							MinSet:        true,
+							Min:           0,
+							MaxSet:        false,
+							Max:           0,
+							MinExclusive:  false,
+							MaxExclusive:  false,
+							MultipleOfSet: false,
+							MultipleOf:    0,
+							Pattern:       nil,
+						}).Validate(int64(value)); err != nil {
+							return errors.Wrap(err, "int")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "offset",
 			In:   "query",
 			Err:  err,
 		}
