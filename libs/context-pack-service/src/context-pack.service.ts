@@ -56,13 +56,16 @@ export interface ContextPackServiceDeps {
   entryFetcher: EntryFetcher;
   runTransaction: <T>(fn: () => Promise<T>) => Promise<T>;
   grantPackParent: (packId: string, diaryId: string) => Promise<void>;
+  removePackRelations: (packId: string) => Promise<void>;
+  deleteMany: (ids: string[]) => Promise<number>;
+  logger?: { error: (obj: Record<string, unknown>, msg: string) => void };
   ttlDays: number;
 }
 
 export class PackServiceError extends Error {
   constructor(
     message: string,
-    public readonly code: 'not_found' | 'conflict' | 'validation',
+    public readonly code: 'not_found' | 'conflict' | 'validation' | 'internal',
   ) {
     super(message);
     this.name = 'PackServiceError';
@@ -163,7 +166,7 @@ export class ContextPackService {
       return p;
     });
 
-    await this.deps.grantPackParent(pack.id, input.diaryId);
+    await this.grantPackParentWithCleanup(pack.id, input.diaryId);
 
     return {
       id: pack.id,
@@ -295,7 +298,7 @@ export class ContextPackService {
       return p;
     });
 
-    await this.deps.grantPackParent(pack.id, sourcePack.diaryId);
+    await this.grantPackParentWithCleanup(pack.id, sourcePack.diaryId);
 
     return {
       id: pack.id,
@@ -305,5 +308,39 @@ export class ContextPackService {
       renderMethod: input.renderMethod,
       totalTokens: estimateTokens(input.renderedMarkdown),
     };
+  }
+
+  /**
+   * Grant Keto ContextPack#parent@Diary relation with cleanup on failure.
+   * If granting fails, remove any partial Keto relations and delete the pack
+   * to avoid orphaned rows.
+   */
+  private async grantPackParentWithCleanup(
+    packId: string,
+    diaryId: string,
+  ): Promise<void> {
+    try {
+      await this.deps.grantPackParent(packId, diaryId);
+    } catch (error) {
+      this.deps.logger?.error(
+        { err: error, packId, diaryId },
+        'Failed to grant ContextPack#parent relation',
+      );
+
+      try {
+        await this.deps.removePackRelations(packId);
+        await this.deps.deleteMany([packId]);
+      } catch (cleanupError) {
+        this.deps.logger?.error(
+          { err: cleanupError, packId, diaryId },
+          'Failed to clean up pack after authorization grant failure',
+        );
+      }
+
+      throw new PackServiceError(
+        'Failed to finalize pack authorization',
+        'internal',
+      );
+    }
   }
 }

@@ -260,6 +260,10 @@ export async function registerApiRoutes(
     runTransaction: (fn) => options.dataSource.runTransaction(fn),
     grantPackParent: (packId, diaryId) =>
       options.relationshipWriter.grantPackParent(packId, diaryId),
+    removePackRelations: (packId) =>
+      options.relationshipWriter.removePackRelations(packId),
+    deleteMany: (ids) => options.contextPackRepository.deleteMany(ids),
+    logger: app.log,
     ttlDays: options.packGcConfig?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
   });
   decorateSafe('contextPackService', contextPackService);

@@ -1,12 +1,11 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import {
-  compress,
-  type CompressionLevel,
-  type DistillEntry,
-  estimateTokens,
-} from '@moltnet/context-distill';
-import { PackServiceError } from '@moltnet/context-pack-service';
+  EntryLoadError,
+  fitEntries,
+  loadSelectedEntries,
+  PackServiceError,
+} from '@moltnet/context-pack-service';
 import { computePackCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -66,40 +65,6 @@ const CustomPackBodySchema = Type.Object({
   pinned: Type.Optional(Type.Boolean()),
 });
 
-interface SelectedEntry {
-  entryId: string;
-  rank: number;
-}
-
-interface ResolvedSelection {
-  rank: number;
-  row: {
-    id: string;
-    content: string;
-    contentHash: string | null;
-    importance: number;
-    createdAt: Date;
-  };
-}
-
-interface CustomPackEntryResult {
-  entryId: string;
-  entryCidSnapshot: string;
-  rank: number;
-  compressionLevel: CompressionLevel;
-  originalTokens: number;
-  packedTokens: number;
-}
-
-interface CustomPackCompileStats {
-  totalTokens: number;
-  entriesIncluded: number;
-  entriesCompressed: number;
-  compressionRatio: number;
-  budgetUtilization: number;
-  elapsedMs: number;
-}
-
 function wantsExpandedEntries(expand?: 'entries'): boolean {
   return expand === 'entries';
 }
@@ -124,339 +89,25 @@ function translateFindDiaryError(err: DiaryServiceError): never {
   }
 }
 
-function normalizeSelection(entries: SelectedEntry[]): SelectedEntry[] {
-  const seenEntryIds = new Set<string>();
-  const seenRanks = new Set<number>();
-
-  for (const entry of entries) {
-    if (seenEntryIds.has(entry.entryId)) {
-      throw createProblem(
-        'validation-failed',
-        `Duplicate entryId "${entry.entryId}" in pack selection`,
-      );
-    }
-    if (seenRanks.has(entry.rank)) {
-      throw createProblem(
-        'validation-failed',
-        `Duplicate rank "${entry.rank}" in pack selection`,
-      );
-    }
-    seenEntryIds.add(entry.entryId);
-    seenRanks.add(entry.rank);
-  }
-
-  return [...entries].sort((a, b) => a.rank - b.rank);
-}
-
-async function loadSelectedEntries(
-  fastify: FastifyInstance,
-  diaryId: string,
-  requestedEntries: SelectedEntry[],
-): Promise<ResolvedSelection[]> {
-  const selectedEntries = normalizeSelection(requestedEntries);
-  const { items: rows } = await fastify.diaryEntryRepository.list({
-    diaryId,
-    ids: selectedEntries.map((entry) => entry.entryId),
-    limit: selectedEntries.length,
-  });
-
-  if (rows.length !== selectedEntries.length) {
-    const foundIds = new Set(rows.map((row) => row.id));
-    const missingIds = selectedEntries
-      .map((entry) => entry.entryId)
-      .filter((entryId) => !foundIds.has(entryId));
-
-    throw createProblem(
-      'validation-failed',
-      `Entries not found in diary ${diaryId}: ${missingIds.join(', ')}`,
-    );
-  }
-
-  const rowById = new Map(rows.map((row) => [row.id, row]));
-  return selectedEntries.map((entry) => {
-    const row = rowById.get(entry.entryId);
-    if (!row) {
-      throw createProblem(
-        'validation-failed',
-        `Entry ${entry.entryId} was not found in diary ${diaryId}`,
-      );
-    }
-    if (!row.contentHash) {
-      throw createProblem(
-        'validation-failed',
-        `Entry ${entry.entryId} has no contentHash and cannot be packed`,
-      );
-    }
-    return {
-      rank: entry.rank,
-      row,
-    };
-  });
-}
-
-function fitCustomPackEntries(
-  selectedEntries: ResolvedSelection[],
-  tokenBudget?: number,
-): {
-  entries: CustomPackEntryResult[];
-  stats: CustomPackCompileStats;
-} {
-  const start = performance.now();
-  const distillEntries = selectedEntries.map(
-    ({ row }): DistillEntry => ({
-      id: row.id,
-      embedding: [],
-      content: row.content,
-      tokens: estimateTokens(row.content),
-      importance: row.importance,
-      createdAt: row.createdAt.toISOString(),
-    }),
-  );
-  const distillById = new Map(distillEntries.map((entry) => [entry.id, entry]));
-  const compiledById = new Map(
-    distillEntries.map((entry) => [entry.id, compress(entry, 'full')]),
-  );
-
-  let totalTokens = Array.from(compiledById.values()).reduce(
-    (sum, entry) => sum + entry.compressedTokens,
-    0,
-  );
-
-  if (tokenBudget !== undefined && totalTokens > tokenBudget) {
-    for (
-      let index = selectedEntries.length - 1;
-      index >= 0 && totalTokens > tokenBudget;
-      index -= 1
-    ) {
-      const source = distillById.get(selectedEntries[index].row.id);
-      const current = compiledById.get(selectedEntries[index].row.id);
-      if (!source || !current || current.compressionLevel !== 'full') {
-        continue;
-      }
-
-      const summary = compress(source, 'summary');
-      totalTokens += summary.compressedTokens - current.compressedTokens;
-      compiledById.set(selectedEntries[index].row.id, summary);
-    }
-
-    for (
-      let index = selectedEntries.length - 1;
-      index >= 0 && totalTokens > tokenBudget;
-      index -= 1
-    ) {
-      const source = distillById.get(selectedEntries[index].row.id);
-      const current = compiledById.get(selectedEntries[index].row.id);
-      if (!source || !current || current.compressionLevel !== 'summary') {
-        continue;
-      }
-
-      const keywords = compress(source, 'keywords');
-      totalTokens += keywords.compressedTokens - current.compressedTokens;
-      compiledById.set(selectedEntries[index].row.id, keywords);
-    }
-
-    for (
-      let index = selectedEntries.length - 1;
-      index >= 0 && totalTokens > tokenBudget;
-      index -= 1
-    ) {
-      const current = compiledById.get(selectedEntries[index].row.id);
-      if (!current) {
-        continue;
-      }
-
-      totalTokens -= current.compressedTokens;
-      compiledById.delete(selectedEntries[index].row.id);
-    }
-  }
-
-  const resultEntries = selectedEntries
-    .map(({ rank, row }) => {
-      const compiled = compiledById.get(row.id);
-      if (!compiled || !row.contentHash) {
-        return null;
-      }
-      return {
-        entryId: row.id,
-        entryCidSnapshot: row.contentHash,
-        rank,
-        compressionLevel: compiled.compressionLevel,
-        originalTokens: compiled.originalTokens,
-        packedTokens: compiled.compressedTokens,
-      } satisfies CustomPackEntryResult;
-    })
-    .filter((entry): entry is CustomPackEntryResult => entry !== null);
-
-  const originalTotal = resultEntries.reduce(
-    (sum, entry) => sum + entry.originalTokens,
-    0,
-  );
-  const packedTotal = resultEntries.reduce(
-    (sum, entry) => sum + entry.packedTokens,
-    0,
-  );
-
-  return {
-    entries: resultEntries,
-    stats: {
-      totalTokens: packedTotal,
-      entriesIncluded: resultEntries.length,
-      entriesCompressed: resultEntries.filter(
-        (entry) => entry.compressionLevel !== 'full',
-      ).length,
-      compressionRatio: originalTotal === 0 ? 1 : packedTotal / originalTotal,
-      budgetUtilization:
-        tokenBudget === undefined
-          ? packedTotal === 0
-            ? 0
-            : 1
-          : packedTotal / tokenBudget,
-      elapsedMs: performance.now() - start,
-    },
-  };
-}
-
 export async function packRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
-  const materializeCustomPack = async (
-    request: {
-      params: { id: string };
-      body: {
-        packType: 'custom';
-        params: Record<string, unknown>;
-        entries: SelectedEntry[];
-        tokenBudget?: number;
-        pinned?: boolean;
-      };
-      authContext: {
-        identityId: string;
-      };
-    },
-    persist: boolean,
-  ) => {
-    let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
-    try {
-      diary = await fastify.diaryService.findDiary(
-        request.params.id,
-        request.authContext.identityId,
-      );
-    } catch (err) {
-      if (err instanceof DiaryServiceError) translateFindDiaryError(err);
-      throw err;
-    }
-
-    const selectedEntries = await loadSelectedEntries(
-      fastify,
-      diary.id,
-      request.body.entries,
-    );
-    const { entries, stats } = fitCustomPackEntries(
-      selectedEntries,
-      request.body.tokenBudget,
-    );
-
-    const createdAt = new Date().toISOString();
-    const payload = {
-      v: 'moltnet:pack:v1',
-      diaryId: diary.id,
-      createdBy: request.authContext.identityId,
-      createdAt,
-      packType: 'custom' as const,
-      params: request.body.params,
-      entries: entries.map((entry) => ({
-        cid: entry.entryCidSnapshot,
-        compressionLevel: entry.compressionLevel,
-        rank: entry.rank,
-      })),
-    };
-    const packCid = computePackCid({
-      diaryId: diary.id,
-      packType: 'custom',
-      params: request.body.params,
-      entries: payload.entries,
-    });
-
-    if (persist) {
-      const createdAtDate = new Date(createdAt);
-      const pinned = request.body.pinned ?? false;
-      const compileTtlDays =
-        fastify.packGcConfig?.PACK_GC_COMPILE_TTL_DAYS ?? 7;
-      const expiresAt = pinned
-        ? null
-        : new Date(
-            createdAtDate.getTime() + compileTtlDays * 24 * 60 * 60 * 1000,
-          );
-
-      // TODO(issue-456): Move custom pack persistence + Keto parent grant into
-      // a DBOS workflow with retry/compensation semantics, matching the compile
-      // flow. Keto is an external side effect and cannot be made atomic with
-      // the Postgres transaction in this route handler.
-      const pack = await fastify.dataSource.runTransaction(async () => {
-        const createdPack = await fastify.contextPackRepository.createPack({
-          diaryId: diary.id,
-          packCid,
-          packType: 'custom',
-          params: request.body.params,
-          payload,
-          createdBy: request.authContext.identityId,
-          pinned,
-          expiresAt,
-          createdAt: createdAtDate,
-        });
-
-        await fastify.contextPackRepository.addEntries(
-          entries.map((entry) => ({
-            packId: createdPack.id,
-            entryId: entry.entryId,
-            entryCidSnapshot: entry.entryCidSnapshot,
-            compressionLevel: entry.compressionLevel,
-            originalTokens: entry.originalTokens,
-            packedTokens: entry.packedTokens,
-            rank: entry.rank,
-          })),
-        );
-
-        return createdPack;
+  const entryFetcher = {
+    fetchEntries: async (diaryId: string, ids: string[]) => {
+      const { items } = await fastify.diaryEntryRepository.list({
+        diaryId,
+        ids,
+        limit: ids.length,
       });
-
-      try {
-        await fastify.relationshipWriter.grantPackParent(pack.id, diary.id);
-      } catch (error) {
-        fastify.log.error(
-          { err: error, packId: pack.id, diaryId: diary.id },
-          'Failed to grant ContextPack#parent relation for custom pack',
-        );
-
-        try {
-          await fastify.relationshipWriter.removePackRelations(pack.id);
-          await fastify.contextPackRepository.deleteMany([pack.id]);
-        } catch (cleanupError) {
-          fastify.log.error(
-            {
-              err: cleanupError,
-              packId: pack.id,
-              diaryId: diary.id,
-            },
-            'Failed to clean up custom pack after authorization grant failure',
-          );
-        }
-
-        throw createProblem(
-          'internal',
-          'Failed to finalize custom pack authorization',
-        );
-      }
-    }
-
-    return {
-      packCid,
-      packType: 'custom' as const,
-      params: request.body.params,
-      entries,
-      compileStats: stats,
-    };
+      return items.map((row) => ({
+        id: row.id,
+        content: row.content,
+        contentHash: row.contentHash,
+        importance: row.importance,
+        createdAt: row.createdAt,
+      }));
+    },
   };
 
   server.get(
@@ -665,9 +316,10 @@ export async function packRoutes(fastify: FastifyInstance) {
         return await reply.code(201).send(result);
       } catch (err) {
         if (err instanceof PackServiceError) {
-          if (err.code === 'not_found') {
+          if (err.code === 'not_found')
             throw createProblem('not-found', err.message);
-          }
+          if (err.code === 'internal')
+            throw createProblem('internal', err.message);
           throw createProblem('validation-failed', err.message);
         }
         throw err;
@@ -696,15 +348,54 @@ export async function packRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) =>
-      materializeCustomPack(
-        {
-          params: request.params,
-          body: request.body,
-          authContext: request.authContext!,
-        },
-        false,
-      ),
+    async (request) => {
+      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
+      try {
+        diary = await fastify.diaryService.findDiary(
+          request.params.id,
+          request.authContext!.identityId,
+        );
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateFindDiaryError(err);
+        throw err;
+      }
+
+      try {
+        const selectedEntries = await loadSelectedEntries(
+          entryFetcher,
+          diary.id,
+          request.body.entries,
+        );
+        const { entries, stats } = fitEntries(
+          selectedEntries,
+          request.body.tokenBudget,
+        );
+
+        const packCid = computePackCid({
+          diaryId: diary.id,
+          packType: 'custom',
+          params: request.body.params,
+          entries: entries.map((entry) => ({
+            cid: entry.entryCidSnapshot,
+            compressionLevel: entry.compressionLevel,
+            rank: entry.rank,
+          })),
+        });
+
+        return {
+          packCid,
+          packType: 'custom' as const,
+          params: request.body.params,
+          entries,
+          compileStats: stats,
+        };
+      } catch (err) {
+        if (err instanceof EntryLoadError) {
+          throw createProblem('validation-failed', err.message);
+        }
+        throw err;
+      }
+    },
   );
 
   server.post(
@@ -729,16 +420,45 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const pack = await materializeCustomPack(
-        {
-          params: request.params,
-          body: request.body,
-          authContext: request.authContext!,
-        },
-        true,
-      );
+      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
+      try {
+        diary = await fastify.diaryService.findDiary(
+          request.params.id,
+          request.authContext!.identityId,
+        );
+      } catch (err) {
+        if (err instanceof DiaryServiceError) translateFindDiaryError(err);
+        throw err;
+      }
 
-      return reply.code(201).send(pack);
+      try {
+        const result = await fastify.contextPackService.createCustomPack({
+          diaryId: diary.id,
+          entries: request.body.entries,
+          params: request.body.params,
+          tokenBudget: request.body.tokenBudget,
+          pinned: request.body.pinned,
+          createdBy: request.authContext!.identityId,
+        });
+
+        return await reply.code(201).send({
+          packCid: result.packCid,
+          packType: result.packType,
+          params: result.params,
+          entries: result.fitResult.entries,
+          compileStats: result.fitResult.stats,
+        });
+      } catch (err) {
+        if (err instanceof EntryLoadError) {
+          throw createProblem('validation-failed', err.message);
+        }
+        if (err instanceof PackServiceError) {
+          if (err.code === 'internal')
+            throw createProblem('internal', err.message);
+          throw createProblem('validation-failed', err.message);
+        }
+        throw err;
+      }
     },
   );
 
