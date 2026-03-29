@@ -5,44 +5,35 @@
  * Team membership is stored in Keto only — no team_members DB table.
  */
 
+import {
+  addTeamMember,
+  type Client,
+  createClient,
+  createTeam,
+  createTeamInvite,
+  deleteTeam,
+  getTeam,
+  joinTeam,
+  listTeamInvites,
+  listTeamMembers,
+  listTeams,
+  removeTeamMember,
+} from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
-import {
-  createTestHarness,
-  SERVER_BASE_URL,
-  type TestHarness,
-} from './setup.js';
-
-async function apiCall(
-  method: string,
-  path: string,
-  token: string,
-  body?: unknown,
-) {
-  const res = await fetch(`${SERVER_BASE_URL}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = res.headers.get('content-type')?.includes('json')
-    ? await res.json()
-    : null;
-  return { status: res.status, data };
-}
+import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Teams', () => {
   let harness: TestHarness;
+  let client: Client;
   let agentA: TestAgent;
   let agentB: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
 
-    // Create two agents for team collaboration tests
     const voucherA = await createTestVoucher({
       db: harness.db,
       issuerId: harness.bootstrapIdentityId,
@@ -76,87 +67,89 @@ describe('Teams', () => {
 
   describe('POST /teams', () => {
     it('creates a team and makes caller the owner', async () => {
-      const { status, data } = await apiCall(
-        'POST',
-        '/teams',
-        agentA.accessToken,
-        { name: 'e2e-test-team' },
-      );
+      const { data, error, response } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'e2e-test-team' },
+      });
 
-      expect(status).toBe(201);
-      expect(data.id).toBeDefined();
-      expect(data.name).toBe('e2e-test-team');
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(201);
+      expect(data!.id).toBeDefined();
+      expect(data!.name).toBe('e2e-test-team');
     });
 
     it('rejects unauthenticated requests', async () => {
-      const res = await fetch(`${SERVER_BASE_URL}/teams`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'no-auth' }),
+      const { error, response } = await createTeam({
+        client,
+        body: { name: 'no-auth' },
       });
-      expect(res.status).toBe(401);
+
+      expect(error).toBeDefined();
+      expect(response.status).toBe(401);
     });
   });
 
   describe('GET /teams', () => {
     it('lists teams the caller belongs to', async () => {
-      // Create a team first
-      await apiCall('POST', '/teams', agentA.accessToken, {
-        name: 'list-test-team',
+      await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'list-test-team' },
       });
 
-      const { status, data } = await apiCall(
-        'GET',
-        '/teams',
-        agentA.accessToken,
-      );
+      const { data, error, response } = await listTeams({
+        client,
+        auth: () => agentA.accessToken,
+      });
 
-      expect(status).toBe(200);
-      expect(data.items.length).toBeGreaterThanOrEqual(1);
-      const team = data.items.find(
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.items.length).toBeGreaterThanOrEqual(1);
+
+      const team = data!.items.find(
         (t: { name: string }) => t.name === 'list-test-team',
       );
       expect(team).toBeDefined();
-      expect(team.role).toBe('owner');
+      expect(team!.role).toBe('owner');
     });
   });
 
   describe('GET /teams/:id', () => {
     it('returns team details with members', async () => {
-      const { data: created } = await apiCall(
-        'POST',
-        '/teams',
-        agentA.accessToken,
-        { name: 'detail-test' },
-      );
+      const { data: created } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'detail-test' },
+      });
 
-      const { status, data } = await apiCall(
-        'GET',
-        `/teams/${created.id}`,
-        agentA.accessToken,
-      );
+      const { data, error, response } = await getTeam({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: created!.id },
+      });
 
-      expect(status).toBe(200);
-      expect(data.name).toBe('detail-test');
-      expect(data.members).toBeInstanceOf(Array);
-      expect(data.members.length).toBeGreaterThanOrEqual(1);
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.name).toBe('detail-test');
+      expect(data!.members).toBeInstanceOf(Array);
+      expect(data!.members.length).toBeGreaterThanOrEqual(1);
     });
 
     it('returns 404 for non-member', async () => {
-      const { data: created } = await apiCall(
-        'POST',
-        '/teams',
-        agentA.accessToken,
-        { name: 'private-team' },
-      );
+      const { data: created } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'private-team' },
+      });
 
-      const { status } = await apiCall(
-        'GET',
-        `/teams/${created.id}`,
-        agentB.accessToken,
-      );
+      const { response } = await getTeam({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: created!.id },
+      });
 
-      expect(status).toBe(404);
+      expect(response.status).toBe(404);
     });
   });
 
@@ -167,95 +160,98 @@ describe('Teams', () => {
     let inviteCode: string;
 
     beforeAll(async () => {
-      const { data } = await apiCall('POST', '/teams', agentA.accessToken, {
-        name: 'invite-flow-team',
+      const { data } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'invite-flow-team' },
       });
-      teamId = data.id;
+      teamId = data!.id;
     });
 
     it('creates an invite code', async () => {
-      const { status, data } = await apiCall(
-        'POST',
-        `/teams/${teamId}/invites`,
-        agentA.accessToken,
-        { role: 'member', maxUses: 3, expiresInHours: 24 },
-      );
+      const { data, error, response } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'member', maxUses: 3, expiresInHours: 24 },
+      });
 
-      expect(status).toBe(201);
-      expect(data.code).toMatch(/^mlt_inv_/);
-      expect(data.expiresAt).toBeDefined();
-      inviteCode = data.code;
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(201);
+      expect(data!.code).toMatch(/^mlt_inv_/);
+      expect(data!.expiresAt).toBeDefined();
+      inviteCode = data!.code;
     });
 
     it('lists invites for the team', async () => {
-      const { status, data } = await apiCall(
-        'GET',
-        `/teams/${teamId}/invites`,
-        agentA.accessToken,
-      );
+      const { data, error, response } = await listTeamInvites({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
 
-      expect(status).toBe(200);
-      expect(data.items.length).toBeGreaterThanOrEqual(1);
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.items.length).toBeGreaterThanOrEqual(1);
     });
 
     it('non-member cannot list invites', async () => {
-      const { status } = await apiCall(
-        'GET',
-        `/teams/${teamId}/invites`,
-        agentB.accessToken,
-      );
+      const { response } = await listTeamInvites({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: teamId },
+      });
 
-      expect(status).toBe(403);
+      expect(response.status).toBe(403);
     });
 
     it('agent B joins team with invite code', async () => {
-      const { status, data } = await apiCall(
-        'POST',
-        '/teams/join',
-        agentB.accessToken,
-        { code: inviteCode },
-      );
+      const { data, error, response } = await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: inviteCode },
+      });
 
-      expect(status).toBe(200);
-      expect(data.teamId).toBe(teamId);
-      expect(data.role).toBe('member');
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data!.teamId).toBe(teamId);
+      expect(data!.role).toBe('member');
     });
 
     it('agent B is now listed as a member', async () => {
-      const { status, data } = await apiCall(
-        'GET',
-        `/teams/${teamId}/members`,
-        agentA.accessToken,
-      );
+      const { data, response } = await listTeamMembers({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
 
-      expect(status).toBe(200);
-      const memberB = data.items.find(
+      expect(response.status).toBe(200);
+      const memberB = data!.items.find(
         (m: { subjectId: string }) => m.subjectId === agentB.identityId,
       );
       expect(memberB).toBeDefined();
-      expect(memberB.role).toBe('member');
+      expect(memberB!.role).toBe('member');
     });
 
     it('agent B can now view the team', async () => {
-      const { status, data } = await apiCall(
-        'GET',
-        `/teams/${teamId}`,
-        agentB.accessToken,
-      );
+      const { data, response } = await getTeam({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: teamId },
+      });
 
-      expect(status).toBe(200);
-      expect(data.name).toBe('invite-flow-team');
+      expect(response.status).toBe(200);
+      expect(data!.name).toBe('invite-flow-team');
     });
 
     it('rejects duplicate join', async () => {
-      const { status } = await apiCall(
-        'POST',
-        '/teams/join',
-        agentB.accessToken,
-        { code: inviteCode },
-      );
+      const { response } = await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: inviteCode },
+      });
 
-      expect(status).toBe(409);
+      expect(response.status).toBe(409);
     });
   });
 
@@ -265,61 +261,64 @@ describe('Teams', () => {
     let teamId: string;
 
     beforeAll(async () => {
-      const { data } = await apiCall('POST', '/teams', agentA.accessToken, {
-        name: 'member-mgmt-team',
+      const { data } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'member-mgmt-team' },
       });
-      teamId = data.id;
+      teamId = data!.id;
     });
 
     it('owner adds agent B as member directly', async () => {
-      const { status, data } = await apiCall(
-        'POST',
-        `/teams/${teamId}/members`,
-        agentA.accessToken,
-        {
+      const { data, error, response } = await addTeamMember({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: {
           subjectId: agentB.identityId,
           subjectNs: 'Agent',
           role: 'member',
         },
-      );
+      });
 
-      expect(status).toBe(201);
-      expect(data.role).toBe('member');
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(201);
+      expect(data!.role).toBe('member');
     });
 
     it('non-owner cannot add members', async () => {
-      const { status } = await apiCall(
-        'POST',
-        `/teams/${teamId}/members`,
-        agentB.accessToken,
-        {
+      const { response } = await addTeamMember({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: teamId },
+        body: {
           subjectId: agentA.identityId,
           subjectNs: 'Agent',
           role: 'member',
         },
-      );
+      });
 
-      expect(status).toBe(403);
+      expect(response.status).toBe(403);
     });
 
     it('owner removes agent B', async () => {
-      const { status } = await apiCall(
-        'DELETE',
-        `/teams/${teamId}/members/${agentB.identityId}`,
-        agentA.accessToken,
-      );
+      const { response } = await removeTeamMember({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId, subjectId: agentB.identityId },
+      });
 
-      expect(status).toBe(200);
+      expect(response.status).toBe(200);
     });
 
     it('cannot remove last owner', async () => {
-      const { status } = await apiCall(
-        'DELETE',
-        `/teams/${teamId}/members/${agentA.identityId}`,
-        agentA.accessToken,
-      );
+      const { response } = await removeTeamMember({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId, subjectId: agentA.identityId },
+      });
 
-      expect(status).toBe(400);
+      expect(response.status).toBe(400);
     });
   });
 
@@ -327,45 +326,43 @@ describe('Teams', () => {
 
   describe('DELETE /teams/:id', () => {
     it('owner deletes team', async () => {
-      const { data: created } = await apiCall(
-        'POST',
-        '/teams',
-        agentA.accessToken,
-        { name: 'to-delete' },
-      );
+      const { data: created } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'to-delete' },
+      });
 
-      const { status } = await apiCall(
-        'DELETE',
-        `/teams/${created.id}`,
-        agentA.accessToken,
-      );
+      const { response } = await deleteTeam({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: created!.id },
+      });
 
-      expect(status).toBe(200);
+      expect(response.status).toBe(200);
 
       // Verify it's gone
-      const { status: getStatus } = await apiCall(
-        'GET',
-        `/teams/${created.id}`,
-        agentA.accessToken,
-      );
-      expect(getStatus).toBe(404);
+      const { response: getRes } = await getTeam({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: created!.id },
+      });
+      expect(getRes.status).toBe(404);
     });
 
     it('non-owner cannot delete team', async () => {
-      const { data: created } = await apiCall(
-        'POST',
-        '/teams',
-        agentA.accessToken,
-        { name: 'not-deletable' },
-      );
+      const { data: created } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'not-deletable' },
+      });
 
-      const { status } = await apiCall(
-        'DELETE',
-        `/teams/${created.id}`,
-        agentB.accessToken,
-      );
+      const { response } = await deleteTeam({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: created!.id },
+      });
 
-      expect(status).toBe(403);
+      expect(response.status).toBe(403);
     });
   });
 });
