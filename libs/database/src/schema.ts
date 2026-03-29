@@ -102,6 +102,19 @@ export const packTypeEnum = pgEnum('pack_type', [
   'custom',
 ]);
 
+// Team status enum — founding requires acceptance, active is operational
+export const teamStatusEnum = pgEnum('team_status', [
+  'founding',
+  'active',
+  'archived',
+]);
+
+// Team invite role enum — can't invite as owner (ownership transfer is separate)
+export const teamInviteRoleEnum = pgEnum('team_invite_role', [
+  'manager',
+  'member',
+]);
+
 /**
  * Diaries Table
  *
@@ -113,7 +126,12 @@ export const diaries = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
 
     // Owner identity (Ory Kratos identity ID)
+    // Legacy: will be renamed to created_by once all diaries are team-scoped
     ownerId: uuid('owner_id').notNull(),
+
+    // Team that governs access to this diary (Option A: nullable during migration)
+    // FK added via migration SQL since teams table is defined after diaries
+    teamId: uuid('team_id'),
 
     // Human-readable display name
     name: varchar('name', { length: 255 }).notNull(),
@@ -138,6 +156,7 @@ export const diaries = pgTable(
       table.ownerId,
       table.visibility,
     ),
+    teamIdx: index('diaries_team_idx').on(table.teamId),
   }),
 );
 
@@ -560,6 +579,74 @@ export const contextPackEntries = pgTable(
   }),
 );
 
+/**
+ * Teams Table
+ *
+ * Groups agents (and eventually humans) under shared resource ownership.
+ * Every subject gets a personal team at registration.
+ * Membership is stored in Keto (Team:id#role@Subject:id), not in a DB table.
+ */
+export const teams = pgTable(
+  'teams',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    name: varchar('name', { length: 255 }).notNull(),
+
+    // founding: awaiting owner acceptance, active: operational, archived: soft-deleted
+    status: teamStatusEnum('status').default('active').notNull(),
+
+    // Auto-created personal team (1 owner, no invites, no additional members)
+    personal: boolean('personal').default(false).notNull(),
+
+    createdBy: uuid('created_by').notNull(),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    createdByIdx: index('teams_created_by_idx').on(table.createdBy),
+  }),
+);
+
+/**
+ * Team Invites Table
+ *
+ * Code-based invitations for joining teams.
+ * Same pattern as agent vouchers — no email required.
+ */
+export const teamInvites = pgTable(
+  'team_invites',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+
+    // Prefixed code: mlt_inv_...
+    code: varchar('code', { length: 64 }).notNull(),
+
+    // Can't invite as owner — ownership transfer is a separate operation
+    role: teamInviteRoleEnum('role').default('member').notNull(),
+
+    maxUses: integer('max_uses').default(1).notNull(),
+    useCount: integer('use_count').default(0).notNull(),
+
+    createdBy: uuid('created_by').notNull(),
+
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    codeIdx: uniqueIndex('team_invites_code_idx').on(table.code),
+    teamIdx: index('team_invites_team_idx').on(table.teamId),
+  }),
+);
+
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
@@ -578,4 +665,8 @@ export type NewEntryRelation = typeof entryRelations.$inferInsert;
 export type ContextPack = typeof contextPacks.$inferSelect;
 export type NewContextPack = typeof contextPacks.$inferInsert;
 export type ContextPackEntry = typeof contextPackEntries.$inferSelect;
+export type Team = typeof teams.$inferSelect;
+export type NewTeam = typeof teams.$inferInsert;
+export type TeamInvite = typeof teamInvites.$inferSelect;
+export type NewTeamInvite = typeof teamInvites.$inferInsert;
 export type NewContextPackEntry = typeof contextPackEntries.$inferInsert;
