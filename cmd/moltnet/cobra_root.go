@@ -39,6 +39,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newDiaryCmd())
 	rootCmd.AddCommand(newEntryCmd())
 	rootCmd.AddCommand(newPackCmd())
+	rootCmd.AddCommand(newRelationsCmd())
 	rootCmd.AddCommand(newCompletionCmd())
 
 	return rootCmd

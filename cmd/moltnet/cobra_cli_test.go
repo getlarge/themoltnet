@@ -883,6 +883,132 @@ func TestPackProvenanceHelp(t *testing.T) {
 	}
 }
 
+// --- relations command tests ---
+
+func TestRelationsNoSubcommand(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "relations")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"create", "list", "update", "delete"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected relations help to list '%s' subcommand, got: %s", sub, stdout)
+		}
+	}
+}
+
+func TestRelationsCreateRequiresFlags(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{
+			name:    "missing entry-id",
+			args:    []string{"relations", "create", "--target-id", "00000000-0000-0000-0000-000000000001", "--relation", "supersedes"},
+			wantErr: "entry-id",
+		},
+		{
+			name:    "missing target-id",
+			args:    []string{"relations", "create", "--entry-id", "00000000-0000-0000-0000-000000000001", "--relation", "supersedes"},
+			wantErr: "target-id",
+		},
+		{
+			name:    "missing relation",
+			args:    []string{"relations", "create", "--entry-id", "00000000-0000-0000-0000-000000000001", "--target-id", "00000000-0000-0000-0000-000000000002"},
+			wantErr: "relation",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := NewRootCmd("test", "")
+			_, _, err := executeCommand(root, tt.args...)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("expected error to mention %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestRelationsListRequiresEntryID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "relations", "list")
+	if err == nil {
+		t.Fatal("expected error when --entry-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "entry-id") {
+		t.Errorf("expected error to mention 'entry-id', got: %v", err)
+	}
+}
+
+func TestRelationsUpdateRequiresFlags(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{
+			name:    "missing relation-id",
+			args:    []string{"relations", "update", "--status", "accepted"},
+			wantErr: "relation-id",
+		},
+		{
+			name:    "missing status",
+			args:    []string{"relations", "update", "--relation-id", "00000000-0000-0000-0000-000000000001"},
+			wantErr: "status",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := NewRootCmd("test", "")
+			_, _, err := executeCommand(root, tt.args...)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("expected error to mention %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestRelationsDeleteRequiresRelationID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "relations", "delete")
+	if err == nil {
+		t.Fatal("expected error when --relation-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "relation-id") {
+		t.Errorf("expected error to mention 'relation-id', got: %v", err)
+	}
+}
+
+func TestRelationsCreateHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "relations", "create", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{"--entry-id", "--target-id", "--relation", "--status"} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected relations create help to contain %q, got: %s", flag, stdout)
+		}
+	}
+	if !strings.Contains(stdout, "Example") {
+		t.Errorf("expected relations create help to contain 'Example', got: %s", stdout)
+	}
+}
+
 // --- completion command tests ---
 
 func TestCompletionBash(t *testing.T) {
