@@ -8,25 +8,13 @@ import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import {
+  PackParamsSchema,
+  RenderedPackParamsSchema,
   RenderedPackPreviewSchema,
   RenderedPackResultSchema,
   RenderedPackWithContentSchema,
+  RenderPackBodySchema,
 } from '../schemas.js';
-
-const PackParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-});
-
-const RenderPackBodySchema = Type.Object({
-  renderedMarkdown: Type.String({ minLength: 1 }),
-  renderMethod: Type.String({ minLength: 1, maxLength: 100 }),
-  pinned: Type.Optional(Type.Boolean()),
-  preview: Type.Optional(Type.Boolean()),
-});
-
-const RenderedPackParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-});
 
 export async function renderedPackRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();

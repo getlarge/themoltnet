@@ -21,48 +21,16 @@ import { createProblem } from '../problems/index.js';
 import {
   ContextPackResponseListSchema,
   ContextPackResponseSchema,
+  CustomPackBodySchema,
   CustomPackResultSchema,
+  PackCidParamsSchema,
+  PackListQuerySchema,
+  PackParamsSchema,
+  PackProvenanceQuerySchema,
+  PackQuerySchema,
+  PackUpdateBodySchema,
 } from '../schemas.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
-
-const PackParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-});
-
-const PackQuerySchema = Type.Object({
-  expand: Type.Optional(Type.Literal('entries')),
-});
-
-const PackListQuerySchema = Type.Object({
-  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
-  offset: Type.Optional(Type.Integer({ minimum: 0 })),
-  expand: Type.Optional(Type.Literal('entries')),
-});
-
-const PackCidParamsSchema = Type.Object({
-  cid: Type.String(),
-});
-
-const PackProvenanceQuerySchema = Type.Object({
-  depth: Type.Optional(Type.Integer({ minimum: 0, maximum: 10 })),
-});
-
-const CustomPackBodySchema = Type.Object({
-  packType: Type.Literal('custom'),
-  params: Type.Record(
-    Type.String({ minLength: 1, maxLength: 100 }),
-    Type.Unknown(),
-  ),
-  entries: Type.Array(
-    Type.Object({
-      entryId: Type.String({ format: 'uuid' }),
-      rank: Type.Integer({ minimum: 1 }),
-    }),
-    { minItems: 1, maxItems: 500 },
-  ),
-  tokenBudget: Type.Optional(Type.Integer({ minimum: 1, maximum: 100000 })),
-  pinned: Type.Optional(Type.Boolean()),
-});
 
 function wantsExpandedEntries(expand?: 'entries'): boolean {
   return expand === 'entries';
@@ -498,11 +466,6 @@ export async function packRoutes(fastify: FastifyInstance) {
   );
 
   // ── PATCH /packs/:id ──────────────────────────────────────────
-
-  const PackUpdateBodySchema = Type.Object({
-    pinned: Type.Optional(Type.Boolean()),
-    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
-  });
 
   server.patch(
     '/packs/:id',

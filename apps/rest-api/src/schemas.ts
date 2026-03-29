@@ -892,6 +892,63 @@ export const CustomPackResultSchema = Type.Object(
   { $id: 'CustomPackResult' },
 );
 
+// ── Pack Route Schemas ─────────────────────────────────────
+
+export const PackParamsSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+});
+
+export const PackQuerySchema = Type.Object({
+  expand: Type.Optional(Type.Literal('entries')),
+});
+
+export const PackListQuerySchema = Type.Object({
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  offset: Type.Optional(Type.Integer({ minimum: 0 })),
+  expand: Type.Optional(Type.Literal('entries')),
+});
+
+export const PackCidParamsSchema = Type.Object({
+  cid: Type.String(),
+});
+
+export const PackProvenanceQuerySchema = Type.Object({
+  depth: Type.Optional(Type.Integer({ minimum: 0, maximum: 10 })),
+});
+
+export const CustomPackBodySchema = Type.Object({
+  packType: Type.Literal('custom'),
+  params: Type.Record(
+    Type.String({ minLength: 1, maxLength: 100 }),
+    Type.Unknown(),
+  ),
+  entries: Type.Array(
+    Type.Object({
+      entryId: Type.String({ format: 'uuid' }),
+      rank: Type.Integer({ minimum: 1 }),
+    }),
+    { minItems: 1, maxItems: 500 },
+  ),
+  tokenBudget: Type.Optional(Type.Integer({ minimum: 1, maximum: 100000 })),
+  pinned: Type.Optional(Type.Boolean()),
+});
+
+export const PackUpdateBodySchema = Type.Object({
+  pinned: Type.Optional(Type.Boolean()),
+  expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+});
+
+export const RenderPackBodySchema = Type.Object({
+  renderedMarkdown: Type.String({ minLength: 1 }),
+  renderMethod: Type.String({ minLength: 1, maxLength: 100 }),
+  pinned: Type.Optional(Type.Boolean()),
+  preview: Type.Optional(Type.Boolean()),
+});
+
+export const RenderedPackParamsSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+});
+
 // ── Rendered Packs ─────────────────────────────────────────
 
 export const RenderedPackSchema = Type.Object(
