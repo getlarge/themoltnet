@@ -2198,12 +2198,13 @@ type CreateSigningRequestUnauthorized ProblemDetails
 func (*CreateSigningRequestUnauthorized) createSigningRequestRes() {}
 
 type CreateTeamCreated struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	// UUID v4 identifier.
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 }
 
 // GetID returns the value of ID.
-func (s *CreateTeamCreated) GetID() string {
+func (s *CreateTeamCreated) GetID() uuid.UUID {
 	return s.ID
 }
 
@@ -2213,7 +2214,7 @@ func (s *CreateTeamCreated) GetName() string {
 }
 
 // SetID sets the value of ID.
-func (s *CreateTeamCreated) SetID(val string) {
+func (s *CreateTeamCreated) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
@@ -5695,15 +5696,16 @@ func (s *ListTeamsOK) SetItems(val []ListTeamsOKItemsItem) {
 }
 
 type ListTeamsOKItemsItem struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Personal bool   `json:"personal"`
-	Role     string `json:"role"`
-	Status   string `json:"status"`
+	// UUID v4 identifier.
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Personal bool      `json:"personal"`
+	Role     string    `json:"role"`
+	Status   string    `json:"status"`
 }
 
 // GetID returns the value of ID.
-func (s *ListTeamsOKItemsItem) GetID() string {
+func (s *ListTeamsOKItemsItem) GetID() uuid.UUID {
 	return s.ID
 }
 
@@ -5728,7 +5730,7 @@ func (s *ListTeamsOKItemsItem) GetStatus() string {
 }
 
 // SetID sets the value of ID.
-func (s *ListTeamsOKItemsItem) SetID(val string) {
+func (s *ListTeamsOKItemsItem) SetID(val uuid.UUID) {
 	s.ID = val
 }
 

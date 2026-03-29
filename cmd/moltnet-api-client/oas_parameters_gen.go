@@ -413,6 +413,7 @@ func decodeCreateEntryRelationParams(args [1]string, argsEscaped bool, r *http.R
 
 // CreateTeamInviteParams is parameters of createTeamInvite operation.
 type CreateTeamInviteParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
@@ -741,6 +742,7 @@ func decodeDeleteEntryRelationParams(args [1]string, argsEscaped bool, r *http.R
 
 // DeleteTeamParams is parameters of deleteTeam operation.
 type DeleteTeamParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
@@ -806,7 +808,9 @@ func decodeDeleteTeamParams(args [1]string, argsEscaped bool, r *http.Request) (
 
 // DeleteTeamInviteParams is parameters of deleteTeamInvite operation.
 type DeleteTeamInviteParams struct {
-	ID       uuid.UUID
+	// UUID v4 identifier.
+	ID uuid.UUID
+	// UUID v4 identifier.
 	InviteId uuid.UUID
 }
 
@@ -2119,6 +2123,7 @@ func decodeGetSigningRequestParams(args [1]string, argsEscaped bool, r *http.Req
 
 // GetTeamParams is parameters of getTeam operation.
 type GetTeamParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
@@ -4130,6 +4135,7 @@ func decodeListSigningRequestsParams(args [0]string, argsEscaped bool, r *http.R
 
 // ListTeamInvitesParams is parameters of listTeamInvites operation.
 type ListTeamInvitesParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
@@ -4195,6 +4201,7 @@ func decodeListTeamInvitesParams(args [1]string, argsEscaped bool, r *http.Reque
 
 // ListTeamMembersParams is parameters of listTeamMembers operation.
 type ListTeamMembersParams struct {
+	// UUID v4 identifier.
 	ID uuid.UUID
 }
 
@@ -4614,7 +4621,9 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 
 // RemoveTeamMemberParams is parameters of removeTeamMember operation.
 type RemoveTeamMemberParams struct {
-	ID        uuid.UUID
+	// UUID v4 identifier.
+	ID uuid.UUID
+	// UUID v4 identifier.
 	SubjectId uuid.UUID
 }
 

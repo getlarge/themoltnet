@@ -6,45 +6,23 @@
  * Mutating operations use transaction + compensation for DB/Keto consistency.
  */
 
-import { Type, type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import {
+  CreateTeamInviteSchema,
+  CreateTeamSchema,
+  JoinTeamSchema,
+  TeamInviteParamsSchema,
+  TeamInviteResponseSchema,
+  TeamListItemSchema,
+  TeamMemberParamsSchema,
+  TeamParamsSchema,
+  TeamResponseSchema,
+} from '@moltnet/models';
+import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
-
-// ── Schemas ────────────────────────────────────────────────────
-
-const TeamParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-});
-
-const CreateTeamSchema = Type.Object({
-  name: Type.String({ minLength: 1, maxLength: 255 }),
-});
-
-const CreateInviteSchema = Type.Object({
-  role: Type.Optional(
-    Type.Union([Type.Literal('manager'), Type.Literal('member')]),
-  ),
-  maxUses: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
-  expiresInHours: Type.Optional(
-    Type.Integer({ minimum: 1, maximum: 720, default: 168 }),
-  ),
-});
-
-const JoinTeamSchema = Type.Object({
-  code: Type.String({ minLength: 1 }),
-});
-
-const MemberParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-  subjectId: Type.String({ format: 'uuid' }),
-});
-
-const InviteParamsSchema = Type.Object({
-  id: Type.String({ format: 'uuid' }),
-  inviteId: Type.String({ format: 'uuid' }),
-});
 
 // ── Routes ─────────────────────────────────────────────────────
 
@@ -63,7 +41,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         body: CreateTeamSchema,
         response: {
-          201: Type.Object({ id: Type.String(), name: Type.String() }),
+          201: TeamResponseSchema,
         },
       },
     },
@@ -119,15 +97,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         response: {
           200: Type.Object({
-            items: Type.Array(
-              Type.Object({
-                id: Type.String(),
-                name: Type.String(),
-                personal: Type.Boolean(),
-                status: Type.String(),
-                role: Type.String(),
-              }),
-            ),
+            items: Type.Array(TeamListItemSchema),
           }),
         },
       },
@@ -309,7 +279,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         tags: ['teams'],
         description: 'Remove a member. Requires manage_members permission.',
         security: [{ bearerAuth: [] }],
-        params: MemberParamsSchema,
+        params: TeamMemberParamsSchema,
       },
     },
     async (request, reply) => {
@@ -339,6 +309,28 @@ export async function teamRoutes(fastify: FastifyInstance) {
         KetoNamespace.Human,
       );
 
+      // Post-delete safety check: verify we didn't race with a concurrent
+      // removal and leave the team ownerless. If so, re-grant.
+      // (Proper fix is a DBOS workflow — this is a best-effort guard.)
+      if (isRemovingOwner) {
+        const postMembers =
+          await fastify.relationshipReader.listTeamMembers(id);
+        const postOwners = postMembers.filter((m) => m.relation === 'owner');
+        if (postOwners.length === 0 && postMembers.length > 0) {
+          request.log.error(
+            { teamId: id, removedSubject: subjectId },
+            'team.last_owner_removed_race — re-granting ownership',
+          );
+          // Re-grant to the subject we just removed
+          await fastify.relationshipWriter.grantTeamOwner(
+            id,
+            subjectId,
+            KetoNamespace.Agent,
+          );
+          throw createProblem('team-last-owner');
+        }
+      }
+
       return reply.status(200).send({ removed: true });
     },
   );
@@ -354,14 +346,9 @@ export async function teamRoutes(fastify: FastifyInstance) {
           'Create an invite code. Requires manage_members permission.',
         security: [{ bearerAuth: [] }],
         params: TeamParamsSchema,
-        body: CreateInviteSchema,
+        body: CreateTeamInviteSchema,
         response: {
-          201: Type.Object({
-            code: Type.String(),
-            expiresAt: Type.Unsafe<Date | string>(
-              Type.String({ format: 'date-time' }),
-            ),
-          }),
+          201: TeamInviteResponseSchema,
         },
       },
     },
@@ -430,7 +417,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description:
           'Delete an invite code. Requires manage_members permission.',
         security: [{ bearerAuth: [] }],
-        params: InviteParamsSchema,
+        params: TeamInviteParamsSchema,
       },
     },
     async (request, reply) => {

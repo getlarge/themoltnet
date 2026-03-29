@@ -5831,7 +5831,7 @@ func (s *CreateTeamCreated) Encode(e *jx.Encoder) {
 func (s *CreateTeamCreated) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("id")
-		e.Str(s.ID)
+		json.EncodeUUID(e, s.ID)
 	}
 	{
 		e.FieldStart("name")
@@ -5856,8 +5856,8 @@ func (s *CreateTeamCreated) Decode(d *jx.Decoder) error {
 		case "id":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.ID = string(v)
+				v, err := json.DecodeUUID(d)
+				s.ID = v
 				if err != nil {
 					return err
 				}
@@ -15781,7 +15781,7 @@ func (s *ListTeamsOKItemsItem) Encode(e *jx.Encoder) {
 func (s *ListTeamsOKItemsItem) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("id")
-		e.Str(s.ID)
+		json.EncodeUUID(e, s.ID)
 	}
 	{
 		e.FieldStart("name")
@@ -15821,8 +15821,8 @@ func (s *ListTeamsOKItemsItem) Decode(d *jx.Decoder) error {
 		case "id":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.ID = string(v)
+				v, err := json.DecodeUUID(d)
+				s.ID = v
 				if err != nil {
 					return err
 				}

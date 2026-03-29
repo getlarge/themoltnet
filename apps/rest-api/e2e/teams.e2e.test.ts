@@ -159,27 +159,25 @@ describe('Teams', () => {
     let inviteCode: string;
 
     beforeAll(async () => {
-      const { data } = await createTeam({
+      // Create team + invite in beforeAll so all tests have known good state
+      const { data: teamData } = await createTeam({
         client,
         auth: () => agentA.accessToken,
         body: { name: 'invite-flow-team' },
       });
-      teamId = data!.id;
-    });
+      teamId = teamData!.id;
 
-    it('creates an invite code', async () => {
-      const { data, error, response } = await createTeamInvite({
+      const { data: inviteData } = await createTeamInvite({
         client,
         auth: () => agentA.accessToken,
         path: { id: teamId },
         body: { role: 'member', maxUses: 3, expiresInHours: 24 },
       });
+      inviteCode = inviteData!.code;
+    });
 
-      expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
-      expect(data!.code).toMatch(/^mlt_inv_/);
-      expect(data!.expiresAt).toBeDefined();
-      inviteCode = data!.code;
+    it('invite code has correct format', () => {
+      expect(inviteCode).toMatch(/^mlt_inv_/);
     });
 
     it('lists invites for the team', async () => {

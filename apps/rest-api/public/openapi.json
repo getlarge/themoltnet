@@ -8499,6 +8499,8 @@
                       "items": {
                         "properties": {
                           "id": {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
                             "type": "string"
                           },
                           "name": {
@@ -8569,6 +8571,8 @@
                 "schema": {
                   "properties": {
                     "id": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
                       "type": "string"
                     },
                     "name": {
@@ -8631,6 +8635,7 @@
         "operationId": "deleteTeam",
         "parameters": [
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "id",
             "required": true,
@@ -8657,6 +8662,7 @@
         "operationId": "getTeam",
         "parameters": [
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "id",
             "required": true,
@@ -8685,6 +8691,7 @@
         "operationId": "listTeamInvites",
         "parameters": [
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "id",
             "required": true,
@@ -8711,6 +8718,7 @@
         "operationId": "createTeamInvite",
         "parameters": [
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "id",
             "required": true,
@@ -8790,6 +8798,7 @@
         "operationId": "deleteTeamInvite",
         "parameters": [
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "id",
             "required": true,
@@ -8799,6 +8808,7 @@
             }
           },
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "inviteId",
             "required": true,
@@ -8827,6 +8837,7 @@
         "operationId": "listTeamMembers",
         "parameters": [
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "id",
             "required": true,
@@ -8855,6 +8866,7 @@
         "operationId": "removeTeamMember",
         "parameters": [
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "id",
             "required": true,
@@ -8864,6 +8876,7 @@
             }
           },
           {
+            "description": "UUID v4 identifier",
             "in": "path",
             "name": "subjectId",
             "required": true,

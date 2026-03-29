@@ -3070,6 +3070,9 @@ export type ListTeamsResponses = {
    */
   200: {
     items: Array<{
+      /**
+       * UUID v4 identifier
+       */
       id: string;
       name: string;
       personal: boolean;
@@ -3095,6 +3098,9 @@ export type CreateTeamResponses = {
    * Default Response
    */
   201: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
     name: string;
   };
@@ -3105,6 +3111,9 @@ export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
 export type DeleteTeamData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -3121,6 +3130,9 @@ export type DeleteTeamResponses = {
 export type GetTeamData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -3137,6 +3149,9 @@ export type GetTeamResponses = {
 export type ListTeamMembersData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -3153,7 +3168,13 @@ export type ListTeamMembersResponses = {
 export type RemoveTeamMemberData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
+    /**
+     * UUID v4 identifier
+     */
     subjectId: string;
   };
   query?: never;
@@ -3170,6 +3191,9 @@ export type RemoveTeamMemberResponses = {
 export type ListTeamInvitesData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -3190,6 +3214,9 @@ export type CreateTeamInviteData = {
     expiresInHours?: number;
   };
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
   };
   query?: never;
@@ -3212,7 +3239,13 @@ export type CreateTeamInviteResponse =
 export type DeleteTeamInviteData = {
   body?: never;
   path: {
+    /**
+     * UUID v4 identifier
+     */
     id: string;
+    /**
+     * UUID v4 identifier
+     */
     inviteId: string;
   };
   query?: never;
