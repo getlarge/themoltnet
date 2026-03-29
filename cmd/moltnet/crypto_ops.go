@@ -19,7 +19,7 @@ func runCryptoIdentityCmd(apiURL, credPath string) error {
 	}
 	identity, ok := res.(*moltnetapi.CryptoIdentity)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(identity)
 }
@@ -38,7 +38,7 @@ func runCryptoVerifyCmd(apiURL, credPath, signature string) error {
 	}
 	result, ok := res.(*moltnetapi.CryptoVerifyResult)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(result)
 }
