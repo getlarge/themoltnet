@@ -26,5 +26,4 @@ ALTER TABLE "team_invites" ADD CONSTRAINT "team_invites_team_id_teams_id_fk" FOR
 CREATE UNIQUE INDEX "team_invites_code_idx" ON "team_invites" USING btree ("code");--> statement-breakpoint
 CREATE INDEX "team_invites_team_idx" ON "team_invites" USING btree ("team_id");--> statement-breakpoint
 CREATE INDEX "teams_created_by_idx" ON "teams" USING btree ("created_by");--> statement-breakpoint
-CREATE INDEX "diaries_team_idx" ON "diaries" USING btree ("team_id");--> statement-breakpoint
-ALTER TABLE "diaries" ADD CONSTRAINT "diaries_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE set null ON UPDATE no action;
+CREATE INDEX "diaries_team_idx" ON "diaries" USING btree ("team_id");

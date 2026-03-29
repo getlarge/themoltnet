@@ -69,7 +69,7 @@ type Handler interface {
 	// Create an invite code. Requires manage_members permission.
 	//
 	// POST /teams/{id}/invites
-	CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) error
+	CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (*CreateTeamInviteCreated, error)
 	// DeclineDiaryInvitation implements declineDiaryInvitation operation.
 	//
 	// Decline a pending diary share invitation.

@@ -101,8 +101,8 @@ func (UnimplementedHandler) CreateTeam(ctx context.Context, req *CreateTeamReq) 
 // Create an invite code. Requires manage_members permission.
 //
 // POST /teams/{id}/invites
-func (UnimplementedHandler) CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (r *CreateTeamInviteCreated, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // DeclineDiaryInvitation implements declineDiaryInvitation operation.

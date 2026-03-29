@@ -130,7 +130,9 @@ export const requireAuth: preHandlerAsyncHookHandler =
       throw createAuthError('Invalid or expired token');
     }
 
-    // Resolve team context from X-Team-Id header or personal team fallback
+    // Resolve team context: only validate X-Team-Id when explicitly provided.
+    // When absent, currentTeamId stays null — routes that need it resolve
+    // the personal team lazily via teamResolver to avoid a DB hit on every request.
     const teamIdHeader = request.headers['x-team-id'];
     const requestedTeamId = Array.isArray(teamIdHeader)
       ? teamIdHeader[0]
@@ -148,11 +150,6 @@ export const requireAuth: preHandlerAsyncHookHandler =
         throw error;
       }
       authContext.currentTeamId = requestedTeamId;
-    } else {
-      authContext.currentTeamId =
-        await request.server.teamResolver.findPersonalTeamId(
-          authContext.identityId,
-        );
     }
 
     request.authContext = authContext;

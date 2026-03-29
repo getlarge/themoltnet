@@ -1941,7 +1941,7 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 		}
 	}()
 
-	var response *CreateTeamInviteOK
+	var response *CreateTeamInviteCreated
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -1962,7 +1962,7 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 		type (
 			Request  = OptCreateTeamInviteReq
 			Params   = CreateTeamInviteParams
-			Response = *CreateTeamInviteOK
+			Response = *CreateTeamInviteCreated
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -1973,12 +1973,12 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 			mreq,
 			unpackCreateTeamInviteParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.CreateTeamInvite(ctx, request, params)
+				response, err = s.h.CreateTeamInvite(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.CreateTeamInvite(ctx, request, params)
+		response, err = s.h.CreateTeamInvite(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

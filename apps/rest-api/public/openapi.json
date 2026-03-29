@@ -8755,7 +8755,24 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["code", "expiresAt"],
+                  "type": "object"
+                }
+              }
+            },
             "description": "Default Response"
           }
         },

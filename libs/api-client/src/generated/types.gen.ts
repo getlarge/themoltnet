@@ -3200,8 +3200,14 @@ export type CreateTeamInviteResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  201: {
+    code: string;
+    expiresAt: string;
+  };
 };
+
+export type CreateTeamInviteResponse =
+  CreateTeamInviteResponses[keyof CreateTeamInviteResponses];
 
 export type DeleteTeamInviteData = {
   body?: never;

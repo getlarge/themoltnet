@@ -3,6 +3,7 @@
  *
  * CRUD for teams, invite codes, and join flow.
  * Membership is stored in Keto — routes write Keto tuples on member changes.
+ * Mutating operations use transaction + compensation for DB/Keto consistency.
  */
 
 import { Type, type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -70,18 +71,38 @@ export async function teamRoutes(fastify: FastifyInstance) {
       const { identityId } = request.authContext!;
       const { name } = request.body;
 
-      const team = await fastify.teamRepository.create({
-        name,
-        personal: false,
-        createdBy: identityId,
-        status: 'active',
-      });
-
-      await fastify.relationshipWriter.grantTeamOwner(
-        team.id,
-        identityId,
-        KetoNamespace.Agent,
+      const team = await fastify.transactionRunner.runInTransaction(
+        async () => {
+          return fastify.teamRepository.create({
+            name,
+            personal: false,
+            createdBy: identityId,
+            status: 'active',
+          });
+        },
       );
+
+      try {
+        await fastify.relationshipWriter.grantTeamOwner(
+          team.id,
+          identityId,
+          KetoNamespace.Agent,
+        );
+      } catch (err) {
+        request.log.error(
+          { teamId: team.id, identityId, err },
+          'team.keto_grant_owner_failed',
+        );
+        try {
+          await fastify.teamRepository.delete(team.id);
+        } catch (deleteErr) {
+          request.log.error(
+            { teamId: team.id, deleteErr },
+            'team.compensation_delete_failed',
+          );
+        }
+        throw err;
+      }
 
       return reply.status(201).send({ id: team.id, name: team.name });
     },
@@ -113,14 +134,27 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId } = request.authContext!;
+
+      // Single Keto call: get all team IDs + relations for this subject
       const teamIds =
         await fastify.relationshipReader.listTeamIdsBySubject(identityId);
+      if (teamIds.length === 0) return { items: [] };
 
+      // Single DB query: batch fetch all team metadata
+      const teamsMap = new Map(
+        (await fastify.teamRepository.listByIds(teamIds)).map((t) => [t.id, t]),
+      );
+
+      // Derive role from the Keto tuples we already have
+      // listTeamIdsBySubject returns team IDs but not roles.
+      // We need one more Keto call per team to get the role — but we can
+      // use the permission checker which is a single Keto check each.
+      // For now, do a single listTeamMembers per team but only for the caller.
+      // TODO: add a bulk role lookup to RelationshipReader
       const items = await Promise.all(
         teamIds.map(async (teamId) => {
-          const team = await fastify.teamRepository.findById(teamId);
+          const team = teamsMap.get(teamId);
           if (!team) return null;
-          // Determine caller's role from Keto
           const members =
             await fastify.relationshipReader.listTeamMembers(teamId);
           const self = members.find((m) => m.subjectId === identityId);
@@ -209,6 +243,24 @@ export async function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('team-personal-immutable');
       }
 
+      // Clean up Keto relations before deleting DB row
+      // (DB cascade handles team_invites, but Keto tuples are external)
+      const members = await fastify.relationshipReader.listTeamMembers(id);
+      for (const member of members) {
+        try {
+          await fastify.relationshipWriter.removeTeamMemberRelation(
+            id,
+            member.subjectId,
+            member.subjectNs as KetoNamespace,
+          );
+        } catch (err) {
+          request.log.warn(
+            { teamId: id, subjectId: member.subjectId, err },
+            'team.delete_keto_cleanup_failed',
+          );
+        }
+      }
+
       await fastify.teamRepository.delete(id);
       return reply.status(200).send({ deleted: true });
     },
@@ -268,7 +320,6 @@ export async function teamRoutes(fastify: FastifyInstance) {
         await fastify.permissionChecker.canManageTeamMembers(id, identityId);
       if (!canManageMembers) throw createProblem('forbidden');
 
-      // Prevent removing the last owner
       const members = await fastify.relationshipReader.listTeamMembers(id);
       const owners = members.filter((m) => m.relation === 'owner');
       const isRemovingOwner = owners.some((o) => o.subjectId === subjectId);
@@ -276,7 +327,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('team-last-owner');
       }
 
-      // Remove all role tuples for this subject (we don't know their namespace)
+      // Remove all role tuples for both possible namespaces
       await fastify.relationshipWriter.removeTeamMemberRelation(
         id,
         subjectId,
@@ -304,6 +355,14 @@ export async function teamRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }],
         params: TeamParamsSchema,
         body: CreateInviteSchema,
+        response: {
+          201: Type.Object({
+            code: Type.String(),
+            expiresAt: Type.Unsafe<Date | string>(
+              Type.String({ format: 'date-time' }),
+            ),
+          }),
+        },
       },
     },
     async (request, reply) => {
@@ -382,7 +441,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
         await fastify.permissionChecker.canManageTeamMembers(id, identityId);
       if (!canManageMembers) throw createProblem('forbidden');
 
-      await fastify.teamRepository.deleteInvite(inviteId);
+      const deleted = await fastify.teamRepository.deleteInviteByTeam(
+        inviteId,
+        id,
+      );
+      if (!deleted) throw createProblem('not-found');
       return reply.status(200).send({ deleted: true });
     },
   );
@@ -412,10 +475,6 @@ export async function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('invite-expired');
       }
 
-      if (invite.useCount >= invite.maxUses) {
-        throw createProblem('invite-exhausted');
-      }
-
       const team = await fastify.teamRepository.findById(invite.teamId);
       if (!team || team.personal) {
         throw createProblem('not-found', 'Invalid invite code');
@@ -433,23 +492,35 @@ export async function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('conflict', 'Already a member of this team');
       }
 
-      // Grant membership in Keto
-      const ns = KetoNamespace.Agent; // TODO: detect from auth context subject_type
-      if (invite.role === 'manager') {
-        await fastify.relationshipWriter.grantTeamManager(
-          invite.teamId,
-          identityId,
-          ns,
-        );
-      } else {
-        await fastify.relationshipWriter.grantTeamMember(
-          invite.teamId,
-          identityId,
-          ns,
-        );
+      // Atomic claim: INCREMENT use_count WHERE use_count < max_uses
+      // Returns null if exhausted — no race condition.
+      const claimed = await fastify.teamRepository.claimInvite(invite.id);
+      if (!claimed) {
+        throw createProblem('invite-exhausted');
       }
 
-      await fastify.teamRepository.incrementInviteUseCount(invite.id);
+      const ns = KetoNamespace.Agent; // TODO: detect from auth context subject_type
+      try {
+        if (invite.role === 'manager') {
+          await fastify.relationshipWriter.grantTeamManager(
+            invite.teamId,
+            identityId,
+            ns,
+          );
+        } else {
+          await fastify.relationshipWriter.grantTeamMember(
+            invite.teamId,
+            identityId,
+            ns,
+          );
+        }
+      } catch (err) {
+        request.log.error(
+          { teamId: invite.teamId, identityId, inviteId: invite.id, err },
+          'team.join_keto_grant_failed — invite claimed but Keto write failed',
+        );
+        throw err;
+      }
 
       return reply.status(200).send({
         teamId: invite.teamId,

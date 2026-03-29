@@ -89,7 +89,7 @@ type Invoker interface {
 	// Create an invite code. Requires manage_members permission.
 	//
 	// POST /teams/{id}/invites
-	CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) error
+	CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (*CreateTeamInviteCreated, error)
 	// DeclineDiaryInvitation invokes declineDiaryInvitation operation.
 	//
 	// Decline a pending diary share invitation.
@@ -1612,12 +1612,12 @@ func (c *Client) sendCreateTeam(ctx context.Context, request *CreateTeamReq) (re
 // Create an invite code. Requires manage_members permission.
 //
 // POST /teams/{id}/invites
-func (c *Client) CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) error {
-	_, err := c.sendCreateTeamInvite(ctx, request, params)
-	return err
+func (c *Client) CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (*CreateTeamInviteCreated, error) {
+	res, err := c.sendCreateTeamInvite(ctx, request, params)
+	return res, err
 }
 
-func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (res *CreateTeamInviteOK, err error) {
+func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (res *CreateTeamInviteCreated, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createTeamInvite"),
 		semconv.HTTPRequestMethodKey.String("POST"),

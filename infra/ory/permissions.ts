@@ -29,7 +29,12 @@ class Team implements Namespace {
       this.related.owner.includes(ctx.subject) ||
       this.related.manager.includes(ctx.subject),
 
-    // Access team resources
+    // Write to team resources (owner + manager only)
+    write: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.manager.includes(ctx.subject),
+
+    // Read-only access to team resources (all roles)
     access: (ctx: Context) =>
       this.related.owner.includes(ctx.subject) ||
       this.related.manager.includes(ctx.subject) ||
@@ -64,7 +69,7 @@ class Diary implements Namespace {
     write: (ctx: Context) =>
       this.related.owner.includes(ctx.subject) ||
       this.related.writers.includes(ctx.subject) ||
-      this.related.team.traverse((t) => t.permits.access(ctx)),
+      this.related.team.traverse((t) => t.permits.write(ctx)),
 
     manage: (ctx: Context) =>
       this.related.owner.includes(ctx.subject) ||

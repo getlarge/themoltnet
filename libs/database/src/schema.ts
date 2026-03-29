@@ -130,8 +130,9 @@ export const diaries = pgTable(
     ownerId: uuid('owner_id').notNull(),
 
     // Team that governs access to this diary (Option A: nullable during migration)
-    // FK added via migration SQL since teams table is defined after diaries
-    teamId: uuid('team_id'),
+    teamId: uuid('team_id').references((): AnyPgColumn => teams.id, {
+      onDelete: 'set null',
+    }),
 
     // Human-readable display name
     name: varchar('name', { length: 255 }).notNull(),
@@ -602,6 +603,9 @@ export const teams = pgTable(
     createdBy: uuid('created_by').notNull(),
 
     createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
   },

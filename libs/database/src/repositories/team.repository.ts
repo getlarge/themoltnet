@@ -8,7 +8,7 @@
 
 import { randomBytes } from 'node:crypto';
 
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type Team, type TeamInvite, teamInvites, teams } from '../schema.js';
@@ -20,7 +20,7 @@ export interface CreateTeamInput {
   name: string;
   personal: boolean;
   createdBy: string;
-  status?: 'founding' | 'active' | 'archived';
+  status: 'founding' | 'active' | 'archived';
 }
 
 export interface CreateInviteInput {
@@ -34,6 +34,7 @@ export interface CreateInviteInput {
 export interface TeamRepository {
   create(input: CreateTeamInput): Promise<Team>;
   findById(id: string): Promise<Team | null>;
+  listByIds(ids: string[]): Promise<Team[]>;
   findPersonalByCreator(createdBy: string): Promise<Team | null>;
   updateStatus(
     id: string,
@@ -43,9 +44,12 @@ export interface TeamRepository {
 
   createInvite(input: CreateInviteInput): Promise<TeamInvite>;
   findInviteByCode(code: string): Promise<TeamInvite | null>;
+  /** Atomically increment use_count if below max_uses. Returns null if exhausted. */
+  claimInvite(id: string): Promise<TeamInvite | null>;
   incrementInviteUseCount(id: string): Promise<TeamInvite | null>;
   listInvites(teamId: string): Promise<TeamInvite[]>;
   deleteInvite(id: string): Promise<boolean>;
+  deleteInviteByTeam(inviteId: string, teamId: string): Promise<boolean>;
 }
 
 export function createTeamRepository(db: Database): TeamRepository {
@@ -57,7 +61,7 @@ export function createTeamRepository(db: Database): TeamRepository {
           name: input.name,
           personal: input.personal,
           createdBy: input.createdBy,
-          status: input.status ?? (input.personal ? 'active' : 'founding'),
+          status: input.status,
         })
         .returning();
       return team;
@@ -70,6 +74,11 @@ export function createTeamRepository(db: Database): TeamRepository {
         .where(eq(teams.id, id))
         .limit(1);
       return team ?? null;
+    },
+
+    async listByIds(ids) {
+      if (ids.length === 0) return [];
+      return db.select().from(teams).where(inArray(teams.id, ids));
     },
 
     async findPersonalByCreator(createdBy) {
@@ -123,6 +132,20 @@ export function createTeamRepository(db: Database): TeamRepository {
       return invite ?? null;
     },
 
+    async claimInvite(id) {
+      const [invite] = await getExecutor(db)
+        .update(teamInvites)
+        .set({ useCount: sql`${teamInvites.useCount} + 1` })
+        .where(
+          and(
+            eq(teamInvites.id, id),
+            sql`${teamInvites.useCount} < ${teamInvites.maxUses}`,
+          ),
+        )
+        .returning();
+      return invite ?? null;
+    },
+
     async incrementInviteUseCount(id) {
       const [invite] = await getExecutor(db)
         .update(teamInvites)
@@ -143,6 +166,16 @@ export function createTeamRepository(db: Database): TeamRepository {
       const result = await getExecutor(db)
         .delete(teamInvites)
         .where(eq(teamInvites.id, id))
+        .returning({ id: teamInvites.id });
+      return result.length > 0;
+    },
+
+    async deleteInviteByTeam(inviteId, teamId) {
+      const result = await getExecutor(db)
+        .delete(teamInvites)
+        .where(
+          and(eq(teamInvites.id, inviteId), eq(teamInvites.teamId, teamId)),
+        )
         .returning({ id: teamInvites.id });
       return result.length > 0;
     },

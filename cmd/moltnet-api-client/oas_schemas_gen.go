@@ -2222,8 +2222,30 @@ func (s *CreateTeamCreated) SetName(val string) {
 	s.Name = val
 }
 
-// CreateTeamInviteOK is response for CreateTeamInvite operation.
-type CreateTeamInviteOK struct{}
+type CreateTeamInviteCreated struct {
+	Code      string    `json:"code"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// GetCode returns the value of Code.
+func (s *CreateTeamInviteCreated) GetCode() string {
+	return s.Code
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *CreateTeamInviteCreated) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// SetCode sets the value of Code.
+func (s *CreateTeamInviteCreated) SetCode(val string) {
+	s.Code = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *CreateTeamInviteCreated) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
 
 type CreateTeamInviteReq struct {
 	ExpiresInHours OptInt                     `json:"expiresInHours"`

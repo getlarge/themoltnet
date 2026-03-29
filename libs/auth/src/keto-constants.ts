@@ -44,6 +44,7 @@ export enum TeamRelation {
 export enum TeamPermission {
   Manage = 'manage',
   ManageMembers = 'manage_members',
+  Write = 'write',
   Access = 'access',
 }
 

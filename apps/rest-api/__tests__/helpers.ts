@@ -393,14 +393,17 @@ export async function createTestApp(
     teamRepository: {
       create: vi.fn(),
       findById: vi.fn(),
+      listByIds: vi.fn().mockResolvedValue([]),
       findPersonalByCreator: vi.fn(),
       updateStatus: vi.fn(),
       delete: vi.fn(),
       createInvite: vi.fn(),
       findInviteByCode: vi.fn(),
+      claimInvite: vi.fn(),
       incrementInviteUseCount: vi.fn(),
       listInvites: vi.fn(),
       deleteInvite: vi.fn(),
+      deleteInviteByTeam: vi.fn(),
     },
     relationshipReader: {
       listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),

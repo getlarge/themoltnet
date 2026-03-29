@@ -127,6 +127,7 @@ export type {
   CreateSigningRequestResponses,
   CreateTeamData,
   CreateTeamInviteData,
+  CreateTeamInviteResponse,
   CreateTeamInviteResponses,
   CreateTeamResponse,
   CreateTeamResponses,
