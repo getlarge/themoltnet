@@ -31,7 +31,7 @@ const SHA2_256_CODE = 0x12;
 /** DAG-CBOR multicodec code */
 const DAG_CBOR_CODE = 0x71;
 
-export type PackType = 'compile' | 'optimized' | 'custom';
+export type PackType = 'compile' | 'optimized' | 'custom' | 'rendered';
 
 export type CompressionLevel = 'full' | 'summary' | 'keywords';
 
@@ -51,6 +51,13 @@ export interface OptimizedParams {
   gepaScore: number;
   teacherModel?: string;
   studentModel?: string;
+}
+
+/** Rendered pack parameters stored in the envelope. */
+export interface RenderedParams {
+  sourcePackCid: string;
+  renderMethod: string;
+  contentHash: string;
 }
 
 /** An entry reference in the pack envelope. */
@@ -78,6 +85,10 @@ export type PackEnvelopeInput =
   | (PackEnvelopeBase & {
       packType: 'custom';
       params: Record<string, unknown>;
+    })
+  | (PackEnvelopeBase & {
+      packType: 'rendered';
+      params: RenderedParams;
     });
 
 /**

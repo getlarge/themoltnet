@@ -494,6 +494,9 @@ importers:
       '@moltnet/context-distill':
         specifier: workspace:*
         version: link:../../libs/context-distill
+      '@moltnet/context-pack-service':
+        specifier: workspace:*
+        version: link:../../libs/context-pack-service
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
@@ -775,6 +778,25 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.3.6
+
+  libs/context-pack-service:
+    dependencies:
+      '@moltnet/context-distill':
+        specifier: workspace:*
+        version: link:../context-distill
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 1.8.0
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@25.1.0)(jiti@2.6.1)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
   libs/crypto-service:
     dependencies:

@@ -27,5 +27,6 @@ export {
   type PackEntryRef,
   type PackEnvelopeInput,
   type PackType,
+  type RenderedParams,
 } from './pack-cid.js';
 export { toSSHPrivateKey, toSSHPublicKey } from './ssh.js';
