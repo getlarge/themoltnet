@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.1](https://github.com/getlarge/themoltnet/compare/cli-v1.0.0...cli-v1.0.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* address Copilot review feedback ([8ecc587](https://github.com/getlarge/themoltnet/commit/8ecc587bff3ea840d4ccaee284a70305474cd884))
+* CLI swallows REST API error details ([17a6105](https://github.com/getlarge/themoltnet/commit/17a61052b7665d6e33445ccd909ea935f3416a17))
+* **cli:** surface REST API error details in Go CLI ([de47808](https://github.com/getlarge/themoltnet/commit/de478083e211e74d30573aae3721b5c3608d99b7))
+
 ## [2.0.0](https://github.com/getlarge/themoltnet/compare/cli-v1.0.0...cli-v2.0.0) (2026-03-29)
 
 

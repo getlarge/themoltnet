@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.26.2](https://github.com/getlarge/themoltnet/compare/legreffier-v0.26.1...legreffier-v0.26.2) (2026-03-29)
+
+
+### Bug Fixes
+
+* address Copilot review feedback ([8ecc587](https://github.com/getlarge/themoltnet/commit/8ecc587bff3ea840d4ccaee284a70305474cd884))
+* CLI swallows REST API error details ([17a6105](https://github.com/getlarge/themoltnet/commit/17a61052b7665d6e33445ccd909ea935f3416a17))
+* **sdk,legreffier-cli:** include API error detail in user-facing messages ([5c34095](https://github.com/getlarge/themoltnet/commit/5c340953b41dc073d3e4bee9f34c314210e88dc9))
+
 ## [0.26.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.26.0...legreffier-v0.26.1) (2026-03-27)
 
 
