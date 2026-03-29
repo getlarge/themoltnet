@@ -29,6 +29,7 @@ const MOCK_PACK = {
     publicKey: 'ed25519:test',
   },
   supersedesPackId: null,
+  sourcePackId: null,
   pinned: false,
   expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   createdAt: new Date('2026-03-22T10:00:00Z'),

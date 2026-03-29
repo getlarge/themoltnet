@@ -741,6 +741,7 @@ export const ContextPackSchema = Type.Object(
       Type.Literal('compile'),
       Type.Literal('optimized'),
       Type.Literal('custom'),
+      Type.Literal('rendered'),
     ]),
     params: Type.Unknown(),
     payload: Type.Unknown(),
@@ -750,6 +751,7 @@ export const ContextPackSchema = Type.Object(
       Type.String({ format: 'uuid' }),
       Type.Null(),
     ]),
+    sourcePackId: Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     pinned: Type.Boolean(),
     expiresAt: Type.Union([
       Type.Unsafe<Date | string>({ type: 'string', format: 'date-time' }),
@@ -837,6 +839,7 @@ export const CompileResultSchema = Type.Object(
       Type.Literal('compile'),
       Type.Literal('optimized'),
       Type.Literal('custom'),
+      Type.Literal('rendered'),
     ]),
     params: Type.Unknown(),
     payload: Type.Unknown(),
@@ -890,6 +893,26 @@ export const CustomPackResultSchema = Type.Object(
     compileStats: Type.Ref(CompileStatsSchema),
   },
   { $id: 'CustomPackResult' },
+);
+
+// ── Rendered Packs ────────────────────────────────────────
+
+export const RenderPackBodySchema = Type.Object({
+  renderedMarkdown: Type.String({ minLength: 1, maxLength: 500000 }),
+  renderMethod: Type.String({ minLength: 1, maxLength: 100 }),
+  pinned: Type.Optional(Type.Boolean()),
+});
+
+export const RenderedPackResultSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    packCid: Type.String(),
+    sourcePackId: Type.String({ format: 'uuid' }),
+    sourcePackCid: Type.String(),
+    renderMethod: Type.String(),
+    totalTokens: Type.Integer(),
+  },
+  { $id: 'RenderedPackResult' },
 );
 
 /**
@@ -948,4 +971,5 @@ export const sharedSchemas = [
   RelationStatusSchema,
   EntryRelationSchema,
   EntryRelationListSchema,
+  RenderedPackResultSchema,
 ];

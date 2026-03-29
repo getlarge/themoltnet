@@ -34,6 +34,7 @@ const MOCK_PACK = {
   createdBy: OWNER_ID,
   creator: MOCK_CREATOR,
   supersedesPackId: PACK_ID_2,
+  sourcePackId: null,
   pinned: false,
   expiresAt: new Date('2026-03-31T10:00:00Z'),
   createdAt: new Date('2026-03-24T10:00:00Z'),

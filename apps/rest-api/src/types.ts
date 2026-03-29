@@ -21,6 +21,7 @@ export type {
 } from '@moltnet/database';
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
+import type { ContextPackService } from '@moltnet/context-pack-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
@@ -54,5 +55,6 @@ declare module 'fastify' {
     dataSource: DataSource;
     transactionRunner: TransactionRunner;
     packGcConfig: PackGcConfig;
+    contextPackService: ContextPackService;
   }
 }

@@ -49,21 +49,34 @@ export async function buildPackProvenanceGraph({
 
     packs.set(next.pack.id, next.pack);
 
-    if (next.remainingDepth <= 0 || !next.pack.supersedesPackId) {
+    if (next.remainingDepth <= 0) {
       continue;
     }
 
-    const parent = await fastify.contextPackRepository.findById(
-      next.pack.supersedesPackId,
-    );
-    if (!parent) {
-      continue;
+    if (next.pack.supersedesPackId && !packs.has(next.pack.supersedesPackId)) {
+      const parent = await fastify.contextPackRepository.findById(
+        next.pack.supersedesPackId,
+      );
+      if (parent) {
+        queue.push({
+          pack: parent,
+          remainingDepth: next.remainingDepth - 1,
+        });
+      }
     }
 
-    queue.push({
-      pack: parent,
-      remainingDepth: next.remainingDepth - 1,
-    });
+    // Walk sourcePackId for rendered packs
+    if (next.pack.sourcePackId && !packs.has(next.pack.sourcePackId)) {
+      const sourcePack = await fastify.contextPackRepository.findById(
+        next.pack.sourcePackId,
+      );
+      if (sourcePack) {
+        queue.push({
+          pack: sourcePack,
+          remainingDepth: next.remainingDepth - 1,
+        });
+      }
+    }
   }
 
   const visible = await fastify.permissionChecker.canReadPacks(
@@ -118,6 +131,20 @@ export async function buildPackProvenanceGraph({
         to: packNodeId(pack.supersedesPackId),
         kind: 'supersedes',
         label: 'supersedes',
+      });
+    }
+
+    if (
+      pack.sourcePackId &&
+      (visible.get(pack.sourcePackId) ?? false) &&
+      packs.has(pack.sourcePackId)
+    ) {
+      edges.push({
+        id: `${packNodeId(pack.id)}->${packNodeId(pack.sourcePackId)}:rendered_from`,
+        from: packNodeId(pack.id),
+        to: packNodeId(pack.sourcePackId),
+        kind: 'rendered_from',
+        label: 'rendered from',
       });
     }
 

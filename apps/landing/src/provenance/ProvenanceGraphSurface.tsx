@@ -31,11 +31,11 @@ function nodeStroke(
 
 function edgeStroke(
   theme: ReturnType<typeof useTheme>,
-  kind: 'includes' | 'supersedes',
+  kind: 'includes' | 'supersedes' | 'rendered_from',
 ): string {
-  return kind === 'supersedes'
-    ? theme.color.accent.DEFAULT
-    : theme.color.primary.DEFAULT;
+  if (kind === 'supersedes') return theme.color.accent.DEFAULT;
+  if (kind === 'rendered_from') return theme.color.accent.muted;
+  return theme.color.primary.DEFAULT;
 }
 
 interface ProvenanceGraphSurfaceProps {
@@ -93,7 +93,11 @@ export function ProvenanceGraphSurface({
                 d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
                 fill="none"
                 stroke={edgeStroke(theme, edge.kind)}
-                strokeDasharray={edge.kind === 'supersedes' ? '8 6' : undefined}
+                strokeDasharray={
+                  edge.kind === 'supersedes' || edge.kind === 'rendered_from'
+                    ? '8 6'
+                    : undefined
+                }
                 strokeOpacity={0.8}
                 strokeWidth={2.5}
               />

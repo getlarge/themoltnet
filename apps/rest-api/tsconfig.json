@@ -22,6 +22,9 @@
       "path": "../../libs/context-distill"
     },
     {
+      "path": "../../libs/context-pack-service"
+    },
+    {
       "path": "../../libs/crypto-service"
     },
     {

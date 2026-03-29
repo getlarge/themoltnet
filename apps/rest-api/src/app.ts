@@ -13,6 +13,11 @@ import {
   type RelationshipWriter,
   type TokenValidator,
 } from '@moltnet/auth';
+import {
+  ContextPackService,
+  type ContextPackServiceDeps,
+  type EntryFetcher,
+} from '@moltnet/context-pack-service';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, { type FastifyInstance } from 'fastify';
 
@@ -229,6 +234,35 @@ export async function registerApiRoutes(
 
   // Expose full security config to routes
   decorateSafe('security', options.security);
+
+  // Create and decorate ContextPackService
+  const entryFetcher: EntryFetcher = {
+    fetchEntries: async (diaryId, ids) => {
+      const { items } = await options.diaryEntryRepository.list({
+        diaryId,
+        ids,
+        limit: ids.length,
+      });
+      return items.map((row) => ({
+        id: row.id,
+        content: row.content,
+        contentHash: row.contentHash,
+        importance: row.importance,
+        createdAt: row.createdAt,
+      }));
+    },
+  };
+
+  const contextPackService = new ContextPackService({
+    contextPackRepository:
+      options.contextPackRepository as unknown as ContextPackServiceDeps['contextPackRepository'],
+    entryFetcher,
+    runTransaction: (fn) => options.dataSource.runTransaction(fn),
+    grantPackParent: (packId, diaryId) =>
+      options.relationshipWriter.grantPackParent(packId, diaryId),
+    ttlDays: options.packGcConfig?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
+  });
+  decorateSafe('contextPackService', contextPackService);
 
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);

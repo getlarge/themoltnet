@@ -6,6 +6,7 @@ import {
   type DistillEntry,
   estimateTokens,
 } from '@moltnet/context-distill';
+import { PackServiceError } from '@moltnet/context-pack-service';
 import { computePackCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -21,6 +22,8 @@ import {
   ContextPackResponseListSchema,
   ContextPackResponseSchema,
   CustomPackResultSchema,
+  RenderedPackResultSchema,
+  RenderPackBodySchema,
 } from '../schemas.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
 
@@ -608,6 +611,67 @@ export async function packRoutes(fastify: FastifyInstance) {
           pack.id,
         ),
       };
+    },
+  );
+
+  server.post(
+    '/packs/:id/render',
+    {
+      schema: {
+        operationId: 'renderContextPack',
+        tags: ['diary'],
+        description:
+          'Create a rendered pack from a source pack. The rendered markdown is persisted as a new pack with its own CID.',
+        security: [{ bearerAuth: [] }],
+        params: PackParamsSchema,
+        body: RenderPackBodySchema,
+        response: {
+          201: Type.Ref(RenderedPackResultSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const sourcePack = await fastify.contextPackRepository.findById(
+        request.params.id,
+      );
+      if (!sourcePack) {
+        throw createProblem('not-found', 'Source pack not found');
+      }
+
+      const allowed = await fastify.permissionChecker.canWriteDiary(
+        sourcePack.diaryId,
+        request.authContext!.identityId,
+      );
+      if (!allowed) {
+        throw createProblem(
+          'forbidden',
+          'Not authorized to write to this diary',
+        );
+      }
+
+      try {
+        const result = await fastify.contextPackService.createRenderedPack({
+          sourcePackId: request.params.id,
+          renderedMarkdown: request.body.renderedMarkdown,
+          renderMethod: request.body.renderMethod,
+          createdBy: request.authContext!.identityId,
+          pinned: request.body.pinned,
+        });
+        return await reply.code(201).send(result);
+      } catch (err) {
+        if (err instanceof PackServiceError) {
+          if (err.code === 'not_found') {
+            throw createProblem('not-found', err.message);
+          }
+          throw createProblem('validation-failed', err.message);
+        }
+        throw err;
+      }
     },
   );
 
