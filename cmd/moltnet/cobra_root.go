@@ -37,6 +37,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newCryptoCmd())
 	rootCmd.AddCommand(newVouchCmd())
 	rootCmd.AddCommand(newDiaryCmd())
+	rootCmd.AddCommand(newEntryCmd())
 	rootCmd.AddCommand(newPackCmd())
 	rootCmd.AddCommand(newCompletionCmd())
 

@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// stubDiaryHandler implements only the diary operations used by the CLI.
+// stubDiaryHandler implements only the diary/entry operations used by the CLI.
 type stubDiaryHandler struct {
 	moltnetapi.UnimplementedHandler
 }
@@ -59,7 +59,18 @@ func (h *stubDiaryHandler) SearchDiary(_ context.Context, req moltnetapi.OptSear
 	}, nil
 }
 
-func TestDiaryCreate(t *testing.T) {
+func (h *stubDiaryHandler) UpdateDiaryEntryById(_ context.Context, req moltnetapi.OptUpdateDiaryEntryByIdReq, params moltnetapi.UpdateDiaryEntryByIdParams) (moltnetapi.UpdateDiaryEntryByIdRes, error) {
+	e := newTestEntry("updated content")
+	e.ID = params.EntryId
+	if req.Set && req.Value.Content.Set {
+		e.Content = req.Value.Content.Value
+	}
+	return e, nil
+}
+
+// --- Entry-level API client tests ---
+
+func TestEntryCreate(t *testing.T) {
 	// Arrange
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
@@ -81,7 +92,7 @@ func TestDiaryCreate(t *testing.T) {
 	}
 }
 
-func TestDiaryList(t *testing.T) {
+func TestEntryList(t *testing.T) {
 	// Arrange
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
@@ -101,7 +112,7 @@ func TestDiaryList(t *testing.T) {
 	}
 }
 
-func TestDiaryGet(t *testing.T) {
+func TestEntryGet(t *testing.T) {
 	// Arrange
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
@@ -121,7 +132,7 @@ func TestDiaryGet(t *testing.T) {
 	}
 }
 
-func TestDiaryDelete(t *testing.T) {
+func TestEntryDelete(t *testing.T) {
 	// Arrange
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
@@ -137,7 +148,7 @@ func TestDiaryDelete(t *testing.T) {
 	}
 }
 
-func TestDiarySearch(t *testing.T) {
+func TestEntrySearch(t *testing.T) {
 	// Arrange
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
@@ -159,5 +170,32 @@ func TestDiarySearch(t *testing.T) {
 	}
 	if len(results.Results) != 1 {
 		t.Errorf("expected 1 result, got %d", len(results.Results))
+	}
+}
+
+func TestEntryUpdate(t *testing.T) {
+	// Arrange
+	_, _, client := newTestServer(t, &stubDiaryHandler{})
+
+	// Act
+	res, err := client.UpdateDiaryEntryById(context.Background(),
+		moltnetapi.OptUpdateDiaryEntryByIdReq{
+			Value: moltnetapi.UpdateDiaryEntryByIdReq{
+				Content: moltnetapi.OptString{Value: "new content", Set: true},
+			},
+			Set: true,
+		},
+		moltnetapi.UpdateDiaryEntryByIdParams{EntryId: testEntryID})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("UpdateDiaryEntryById() error: %v", err)
+	}
+	entry, ok := res.(*moltnetapi.DiaryEntry)
+	if !ok {
+		t.Fatalf("expected *DiaryEntry, got %T", res)
+	}
+	if entry.Content != "new content" {
+		t.Errorf("expected content=new content, got %q", entry.Content)
 	}
 }

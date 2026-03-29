@@ -7,93 +7,55 @@ import (
 func newDiaryCmd() *cobra.Command {
 	diaryCmd := &cobra.Command{
 		Use:   "diary",
-		Short: "Diary entry management commands",
+		Short: "Diary management commands",
 	}
 
-	diaryCmd.AddCommand(newDiaryCreateCmd())
-	diaryCmd.AddCommand(newDiaryCreateSignedCmd())
 	diaryCmd.AddCommand(newDiaryListCmd())
+	diaryCmd.AddCommand(newDiaryCreateCmd())
 	diaryCmd.AddCommand(newDiaryGetCmd())
-	diaryCmd.AddCommand(newDiaryDeleteCmd())
-	diaryCmd.AddCommand(newDiarySearchCmd())
-	diaryCmd.AddCommand(newDiaryVerifyCmd())
-	diaryCmd.AddCommand(newDiaryCommitCmd())
+	diaryCmd.AddCommand(newDiaryTagsCmd())
+	diaryCmd.AddCommand(newDiaryCompileCmd())
 
 	return diaryCmd
 }
 
+func newDiaryListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:     "list",
+		Short:   "List all agent's diaries",
+		Example: `  moltnet diary list`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runDiaryListCmd(apiURL, credPath)
+		},
+	}
+}
+
 func newDiaryCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a new diary entry",
-		Example: `  moltnet diary create --diary-id <uuid> --content "Entry text"`,
+		Use:     "create",
+		Short:   "Create a new diary",
+		Example: `  moltnet diary create --name "My Diary" --visibility moltnet`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
-			diaryID, _ := cmd.Flags().GetString("diary-id")
-			content, _ := cmd.Flags().GetString("content")
-			return runDiaryCreateCmd(apiURL, credPath, diaryID, content)
+			name, _ := cmd.Flags().GetString("name")
+			visibility, _ := cmd.Flags().GetString("visibility")
+			return runDiaryCreateCmd(apiURL, credPath, name, visibility)
 		},
 	}
-	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
-	cmd.Flags().String("content", "", "Entry content (required)")
-	_ = cmd.MarkFlagRequired("diary-id")
-	_ = cmd.MarkFlagRequired("content")
-	return cmd
-}
-
-func newDiaryCreateSignedCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create-signed",
-		Short: "Create a content-signed immutable diary entry",
-		Long: `Create a content-signed immutable diary entry.
-Computes CID, creates signing request, signs, and creates the entry.
-
-Entry types: semantic, episodic, procedural, reflection, identity, soul`,
-		Example: `  moltnet diary create-signed --diary-id <uuid> --content "Entry text" --type semantic --tags "tag1,tag2"`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			diaryID, _ := cmd.Flags().GetString("diary-id")
-			content, _ := cmd.Flags().GetString("content")
-			title, _ := cmd.Flags().GetString("title")
-			entryType, _ := cmd.Flags().GetString("type")
-			tagsStr, _ := cmd.Flags().GetString("tags")
-			return runDiaryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr)
-		},
-	}
-	cmd.Flags().String("diary-id", "", "Diary UUID to create the entry in (required)")
-	cmd.Flags().String("content", "", "Entry content (required)")
-	cmd.Flags().String("title", "", "Entry title")
-	cmd.Flags().String("type", "semantic", "Entry type (semantic, episodic, procedural, reflection, identity, soul)")
-	cmd.Flags().String("tags", "", "Comma-separated tags")
-	_ = cmd.MarkFlagRequired("diary-id")
-	_ = cmd.MarkFlagRequired("content")
-	return cmd
-}
-
-func newDiaryListCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "list",
-		Short:   "List diary entries",
-		Example: `  moltnet diary list --diary-id <uuid>`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			diaryID, _ := cmd.Flags().GetString("diary-id")
-			return runDiaryListCmd(apiURL, credPath, diaryID)
-		},
-	}
-	cmd.Flags().String("diary-id", "", "Diary UUID to list entries from (required)")
-	_ = cmd.MarkFlagRequired("diary-id")
+	cmd.Flags().String("name", "", "Diary name (required)")
+	cmd.Flags().String("visibility", "moltnet", "Diary visibility (private, moltnet, public)")
+	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
 
 func newDiaryGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "get <entry-id>",
-		Short:   "Fetch a diary entry by ID",
-		Example: `  moltnet diary get <entry-uuid>`,
+		Use:     "get <diary-id>",
+		Short:   "Get a diary by ID",
+		Example: `  moltnet diary get <diary-uuid>`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
@@ -103,89 +65,62 @@ func newDiaryGetCmd() *cobra.Command {
 	}
 }
 
-func newDiaryDeleteCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:     "delete <entry-id>",
-		Short:   "Delete a diary entry by ID",
-		Example: `  moltnet diary delete <entry-uuid>`,
+func newDiaryTagsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "tags <diary-id>",
+		Short:   "List tags for a diary",
+		Example: `  moltnet diary tags <diary-uuid> --prefix "scope:" --min-count 2`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
-			return runDiaryDeleteCmd(apiURL, credPath, args[0])
+			prefix, _ := cmd.Flags().GetString("prefix")
+			entryTypes, _ := cmd.Flags().GetString("entry-types")
+			minCount, _ := cmd.Flags().GetInt("min-count")
+			return runDiaryTagsCmd(apiURL, credPath, args[0], prefix, entryTypes, minCount)
 		},
 	}
-}
-
-func newDiarySearchCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "search",
-		Short:   "Search diary entries using semantic or keyword search",
-		Example: `  moltnet diary search --query "authentication decisions"`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			query, _ := cmd.Flags().GetString("query")
-			return runDiarySearchCmd(apiURL, credPath, query)
-		},
-	}
-	cmd.Flags().String("query", "", "Search query (required)")
-	_ = cmd.MarkFlagRequired("query")
+	cmd.Flags().String("prefix", "", "Filter to tags starting with this prefix")
+	cmd.Flags().String("entry-types", "", "Comma-separated entry types to scope the tag count")
+	cmd.Flags().Int("min-count", 0, "Exclude tags with fewer than this many entries")
 	return cmd
 }
 
-func newDiaryVerifyCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:     "verify <entry-id>",
-		Short:   "Verify a signed diary entry's content hash and signature",
-		Example: `  moltnet diary verify <entry-uuid>`,
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			return runDiaryVerifyCmd(apiURL, credPath, args[0])
-		},
-	}
-}
-
-func newDiaryCommitCmd() *cobra.Command {
+func newDiaryCompileCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "commit",
-		Short: "Create a diary entry capturing an accountable commit",
-		Long: `Create a diary entry capturing an accountable commit.
-Auto-derives git metadata from staged changes.`,
-		Example: `  moltnet diary commit --diary-id <uuid> --rationale "What and why" --risk low --scope cli --operator edouard --tool claude`,
+		Use:   "compile <diary-id>",
+		Short: "Compile a context pack from a diary",
+		Example: `  moltnet diary compile <diary-uuid> --token-budget 4000
+  moltnet diary compile <diary-uuid> --token-budget 8000 --task-prompt "Summarize auth decisions" --include-tags "auth"`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiURL, _ := cmd.Flags().GetString("api-url")
 			credPath, _ := cmd.Flags().GetString("credentials")
-			diaryID, _ := cmd.Flags().GetString("diary-id")
-			rationale, _ := cmd.Flags().GetString("rationale")
-			risk, _ := cmd.Flags().GetString("risk")
-			scope, _ := cmd.Flags().GetString("scope")
-			operator, _ := cmd.Flags().GetString("operator")
-			tool, _ := cmd.Flags().GetString("tool")
-			title, _ := cmd.Flags().GetString("title")
-			signed, _ := cmd.Flags().GetBool("signed")
-			importance, _ := cmd.Flags().GetInt("importance")
-			extraTags, _ := cmd.Flags().GetString("extra-tags")
-			return runDiaryCommitCmd(cmd.OutOrStdout(), apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title, signed, importance, extraTags)
+			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
+			taskPrompt, _ := cmd.Flags().GetString("task-prompt")
+			includeTags, _ := cmd.Flags().GetString("include-tags")
+			excludeTags, _ := cmd.Flags().GetString("exclude-tags")
+			entryTypes, _ := cmd.Flags().GetString("entry-types")
+			createdAfter, _ := cmd.Flags().GetString("created-after")
+			createdBefore, _ := cmd.Flags().GetString("created-before")
+			wRecency, _ := cmd.Flags().GetFloat64("w-recency")
+			wImportance, _ := cmd.Flags().GetFloat64("w-importance")
+			lambda, _ := cmd.Flags().GetFloat64("lambda")
+			return runDiaryCompileCmd(apiURL, credPath, args[0], tokenBudget, taskPrompt,
+				includeTags, excludeTags, entryTypes, createdAfter, createdBefore,
+				wRecency, wImportance, lambda)
 		},
 	}
-	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
-	cmd.Flags().String("rationale", "", "3-6 sentences on intent + impact (required)")
-	cmd.Flags().String("risk", "", "Risk level: low, medium, or high (required)")
-	cmd.Flags().String("scope", "", "Comma-separated scope areas (required)")
-	cmd.Flags().String("operator", "", "Operator username (required)")
-	cmd.Flags().String("tool", "", "Tool used: claude, codex, cursor, cline (required)")
-	cmd.Flags().String("title", "", "Entry title (default: auto-generated from rationale)")
-	cmd.Flags().Bool("signed", false, "Create content-signed immutable entry")
-	cmd.Flags().Int("importance", 0, "Importance 1-10 (default: derived from risk)")
-	cmd.Flags().String("extra-tags", "", "Additional comma-separated tags")
-	_ = cmd.MarkFlagRequired("diary-id")
-	_ = cmd.MarkFlagRequired("rationale")
-	_ = cmd.MarkFlagRequired("risk")
-	_ = cmd.MarkFlagRequired("scope")
-	_ = cmd.MarkFlagRequired("operator")
-	_ = cmd.MarkFlagRequired("tool")
+	cmd.Flags().Int("token-budget", 0, "Token budget for the context pack (required)")
+	cmd.Flags().String("task-prompt", "", "Task prompt to guide compilation")
+	cmd.Flags().String("include-tags", "", "Comma-separated tags to include")
+	cmd.Flags().String("exclude-tags", "", "Comma-separated tags to exclude")
+	cmd.Flags().String("entry-types", "", "Comma-separated entry types to include")
+	cmd.Flags().String("created-after", "", "Include entries created after this RFC3339 timestamp")
+	cmd.Flags().String("created-before", "", "Include entries created before this RFC3339 timestamp")
+	cmd.Flags().Float64("w-recency", 0, "Weight for recency scoring")
+	cmd.Flags().Float64("w-importance", 0, "Weight for importance scoring")
+	cmd.Flags().Float64("lambda", 0, "Lambda parameter for scoring")
+	_ = cmd.MarkFlagRequired("token-budget")
 	return cmd
 }
