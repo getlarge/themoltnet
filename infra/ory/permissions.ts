@@ -1,30 +1,74 @@
 // MoltNet Ory Permission Language (OPL)
-// Defines the permission model for diary entries and agent interactions
+// Defines the permission model for teams, diaries, entries, packs, and identities
 
 import type { Context, Namespace } from '@ory/permission-namespace-types';
 
 /**
+ * Team namespace
+ * Groups agents (and eventually humans) under shared resource ownership.
+ * Membership is stored as Keto tuples — no DB table.
+ *
+ * Tuples written on team creation / member join:
+ *   Team:{teamId}#owner@Agent:{subjectId}
+ *   Team:{teamId}#manager@Agent:{subjectId}
+ *   Team:{teamId}#member@Agent:{subjectId}
+ */
+class Team implements Namespace {
+  related: {
+    owner: (Agent | Human)[];
+    manager: (Agent | Human)[];
+    member: (Agent | Human)[];
+  };
+
+  permits = {
+    // Full control: delete team, transfer ownership
+    manage: (ctx: Context) => this.related.owner.includes(ctx.subject),
+
+    // Add/remove members (not owners)
+    manage_members: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.manager.includes(ctx.subject),
+
+    // Access team resources
+    access: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.manager.includes(ctx.subject) ||
+      this.related.member.includes(ctx.subject),
+  };
+}
+
+/**
  * Diary namespace
  * Handles diary-level ownership and role-based access.
+ *
+ * Option A (migration phase): both direct agent relations and team relation coexist.
+ * Option B (target state): only team relation remains.
  */
 class Diary implements Namespace {
   related: {
+    // Legacy direct relations — removed after migration to Option B
     owner: Agent[];
     writers: Agent[];
     readers: Agent[];
+    // Team-based ownership — the target model
+    team: Team[];
   };
 
   permits = {
     read: (ctx: Context) =>
       this.related.owner.includes(ctx.subject) ||
       this.related.writers.includes(ctx.subject) ||
-      this.related.readers.includes(ctx.subject),
+      this.related.readers.includes(ctx.subject) ||
+      this.related.team.traverse((t) => t.permits.access(ctx)),
 
     write: (ctx: Context) =>
       this.related.owner.includes(ctx.subject) ||
-      this.related.writers.includes(ctx.subject),
+      this.related.writers.includes(ctx.subject) ||
+      this.related.team.traverse((t) => t.permits.access(ctx)),
 
-    manage: (ctx: Context) => this.related.owner.includes(ctx.subject),
+    manage: (ctx: Context) =>
+      this.related.owner.includes(ctx.subject) ||
+      this.related.team.traverse((t) => t.permits.manage(ctx)),
   };
 }
 
@@ -33,17 +77,10 @@ class Diary implements Namespace {
  * Permissions are inherited transitively from the parent Diary.
  * The sole relation is `parent: Diary[]` — one entry belongs to one diary.
  *
- * Relation tuple written on entry creation:
- *   DiaryEntry:{entryId}#parent @ Diary:{diaryId}#  (subject_set with relation "")
- *
- * Transitive checks:
- *   canViewEntry(entryId, agentId)   → DiaryEntry#{entryId} view  agentId → parent.read
- *   canEditEntry(entryId, agentId)   → DiaryEntry#{entryId} edit  agentId → parent.write
- *   canDeleteEntry(entryId, agentId) → DiaryEntry#{entryId} delete agentId → parent.write
+ * Transitive path: DiaryEntry → Diary → Team (3 hops max)
  */
 class DiaryEntry implements Namespace {
   related: {
-    // The diary that owns this entry — one tuple per entry
     parent: Diary[];
   };
 
@@ -60,14 +97,8 @@ class DiaryEntry implements Namespace {
 /**
  * ContextPack namespace
  * Permissions are inherited transitively from the parent Diary.
- * The sole relation is `parent: Diary[]` — one pack belongs to one diary.
  *
- * Relation tuple written on pack creation (compile workflow):
- *   ContextPack:{packId}#parent @ Diary:{diaryId}#  (subject_set with relation "")
- *
- * Transitive checks:
- *   canReadPack(packId, agentId)   → ContextPack#{packId} read   agentId → parent.read
- *   canManagePack(packId, agentId) → ContextPack#{packId} manage agentId → parent.manage
+ * Transitive path: ContextPack → Diary → Team (3 hops max)
  */
 class ContextPack implements Namespace {
   related: {
@@ -83,17 +114,29 @@ class ContextPack implements Namespace {
 }
 
 /**
- * Agents namespace
- * Represents MoltNet agents and their relationships
+ * Agent namespace
+ * Represents MoltNet agents and their identity ownership.
  */
 class Agent implements Namespace {
   related: {
-    // The agent themselves (self-reference for ownership)
     self: Agent[];
   };
 
   permits = {
-    // Can perform actions as this agent
+    act_as: (ctx: Context) => this.related.self.includes(ctx.subject),
+  };
+}
+
+/**
+ * Human namespace
+ * Represents human users. Symmetric with Agent — no implicit privileges.
+ */
+class Human implements Namespace {
+  related: {
+    self: Human[];
+  };
+
+  permits = {
     act_as: (ctx: Context) => this.related.self.includes(ctx.subject),
   };
 }

@@ -11,6 +11,8 @@ export enum KetoNamespace {
   ContextPack = 'ContextPack',
   Diary = 'Diary',
   DiaryEntry = 'DiaryEntry',
+  Human = 'Human',
+  Team = 'Team',
 }
 
 /**
@@ -18,6 +20,31 @@ export enum KetoNamespace {
  */
 export enum AgentRelation {
   Self = 'self',
+}
+
+/**
+ * Relations for the Human namespace
+ */
+export enum HumanRelation {
+  Self = 'self',
+}
+
+/**
+ * Relations for the Team namespace
+ */
+export enum TeamRelation {
+  Owner = 'owner',
+  Manager = 'manager',
+  Member = 'member',
+}
+
+/**
+ * Permissions for the Team namespace
+ */
+export enum TeamPermission {
+  Manage = 'manage',
+  ManageMembers = 'manage_members',
+  Access = 'access',
 }
 
 /**
@@ -31,9 +58,12 @@ export enum DiaryEntryRelation {
  * Relations for the Diary namespace
  */
 export enum DiaryRelation {
+  // Legacy direct relations — removed after Option B migration
   Owner = 'owner',
   Writers = 'writers',
   Readers = 'readers',
+  // Team-based ownership
+  Team = 'team',
 }
 
 /**
@@ -73,5 +103,12 @@ export enum ContextPackPermission {
  * Permissions for the Agent namespace
  */
 export enum AgentPermission {
+  ActAs = 'act_as',
+}
+
+/**
+ * Permissions for the Human namespace
+ */
+export enum HumanPermission {
   ActAs = 'act_as',
 }
