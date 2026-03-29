@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.83.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.83.0...sdk-v0.83.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* CLI swallows REST API error details ([17a6105](https://github.com/getlarge/themoltnet/commit/17a61052b7665d6e33445ccd909ea935f3416a17))
+* **sdk,legreffier-cli:** include API error detail in user-facing messages ([5c34095](https://github.com/getlarge/themoltnet/commit/5c340953b41dc073d3e4bee9f34c314210e88dc9))
+
 ## [0.83.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.82.0...sdk-v0.83.0) (2026-03-29)
 
 
