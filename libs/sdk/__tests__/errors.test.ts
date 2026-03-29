@@ -88,7 +88,9 @@ describe('problemToError', () => {
     );
 
     expect(err).toBeInstanceOf(MoltNetError);
-    expect(err.message).toBe('Invalid voucher');
+    expect(err.message).toBe(
+      'Invalid voucher: Voucher has already been redeemed',
+    );
     expect(err.code).toBe('urn:moltnet:problem:voucher-invalid');
     expect(err.statusCode).toBe(403);
     expect(err.detail).toBe('Voucher has already been redeemed');

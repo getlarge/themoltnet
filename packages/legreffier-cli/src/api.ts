@@ -3,6 +3,7 @@ import {
   getLegreffierOnboardingStatus,
   type ProblemDetails,
   startLegreffierOnboarding,
+  type ValidationProblemDetails,
 } from '@moltnet/api-client';
 import { problemToError } from '@themoltnet/sdk';
 
@@ -19,14 +20,32 @@ function isProblemDetails(err: unknown): err is ProblemDetails {
   );
 }
 
+function isValidationProblemDetails(
+  err: unknown,
+): err is ValidationProblemDetails {
+  return (
+    isProblemDetails(err) &&
+    'errors' in err &&
+    Array.isArray((err as ValidationProblemDetails).errors)
+  );
+}
+
 /**
  * Converts any thrown value to a human-readable string.
- * Handles ProblemDetails objects thrown by @hey-api on HTTP errors,
- * then falls back to Error.message, then JSON.stringify.
+ * Handles ProblemDetails and ValidationProblemDetails objects thrown by
+ * @hey-api on HTTP errors, then falls back to Error.message, then
+ * JSON.stringify.
  */
 export function toErrorMessage(err: unknown): string {
   if (err instanceof Error) {
     return err.message;
+  }
+  if (isValidationProblemDetails(err)) {
+    const base = problemToError(err, err.status).message;
+    const fieldErrors = err.errors
+      .map((e) => `  ${e.field}: ${e.message}`)
+      .join('\n');
+    return fieldErrors ? `${base}\n${fieldErrors}` : base;
   }
   if (isProblemDetails(err)) {
     return problemToError(err, err.status).message;

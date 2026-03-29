@@ -124,7 +124,7 @@ func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) 
 	}
 	req, ok := res.(*moltnetapi.SigningRequest)
 	if !ok {
-		return "", fmt.Errorf("unexpected response type: %T", res)
+		return "", formatAPIError(res)
 	}
 	if req.Status != moltnetapi.SigningRequestStatusPending {
 		return "", fmt.Errorf("signing request %s is not pending (status: %s)", requestID, req.Status)

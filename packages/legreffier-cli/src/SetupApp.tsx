@@ -12,6 +12,7 @@ import React, { useEffect, useState } from 'react';
 
 import { adapters } from './adapters/index.js';
 import type { AgentAdapterOptions } from './adapters/types.js';
+import { toErrorMessage } from './api.js';
 import { toEnvPrefix } from './setup.js';
 import { AgentSelect } from './ui/AgentSelect.js';
 import type { AgentType, UISummary } from './ui/types.js';
@@ -94,7 +95,7 @@ export function SetupApp({
         setPhase('done');
         setTimeout(() => exit(), 3000);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(toErrorMessage(err));
         setPhase('error');
         setTimeout(() => exit(new Error('Setup failed')), 3000);
       }

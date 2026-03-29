@@ -32,7 +32,7 @@ func runEntryCreateCmd(apiURL, credPath, diaryID, content string) error {
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(entry)
 }
@@ -79,7 +79,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	}
 	sigReq, ok := sigRes.(*moltnetapi.SigningRequest)
 	if !ok {
-		return fmt.Errorf("unexpected signing request response type: %T", sigRes)
+		return formatAPIError(sigRes)
 	}
 	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
 
@@ -114,7 +114,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	fmt.Fprintf(os.Stderr, "Signed entry created: %s\n", entry.ID)
 	return printJSON(entry)
@@ -153,7 +153,7 @@ func runEntryListCmd(apiURL, credPath, diaryID, tags, excludeTags, entryType str
 	}
 	list, ok := res.(*moltnetapi.DiaryList)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(list)
 }
@@ -175,7 +175,7 @@ func runEntryGetCmd(apiURL, credPath, entryID string) error {
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(entry)
 }
@@ -219,7 +219,7 @@ func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tag
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(entry)
 }
@@ -259,7 +259,7 @@ func runEntrySearchCmd(apiURL, credPath, query string) error {
 	}
 	results, ok := res.(*moltnetapi.DiarySearchResult)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(results)
 }
@@ -281,7 +281,7 @@ func runEntryVerifyCmd(apiURL, credPath, entryID string) error {
 	}
 	result, ok := res.(*moltnetapi.EntryVerifyResult)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(result)
 }

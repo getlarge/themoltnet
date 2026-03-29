@@ -290,7 +290,7 @@ func signAndCreateEntrySigned(
 	}
 	sigReq, ok := sigRes.(*moltnetapi.SigningRequest)
 	if !ok {
-		return nil, fmt.Errorf("unexpected signing request response type: %T", sigRes)
+		return nil, formatAPIError(sigRes)
 	}
 	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
 
@@ -316,7 +316,7 @@ func signAndCreateEntrySigned(
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
-		return nil, fmt.Errorf("unexpected response type: %T", res)
+		return nil, formatAPIError(res)
 	}
 	fmt.Fprintf(os.Stderr, "Signed entry created: %s\n", entry.ID)
 	return &commitResult{EntryID: entry.ID.String(), Signature: sig}, nil
@@ -339,7 +339,7 @@ func signAndCreateEntryUnsigned(
 	}
 	sigReq, ok := sigRes.(*moltnetapi.SigningRequest)
 	if !ok {
-		return nil, fmt.Errorf("unexpected signing request response type: %T", sigRes)
+		return nil, formatAPIError(sigRes)
 	}
 	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
 
@@ -363,7 +363,7 @@ func signAndCreateEntryUnsigned(
 	}
 	entry, ok := res.(*moltnetapi.DiaryEntry)
 	if !ok {
-		return nil, fmt.Errorf("unexpected response type: %T", res)
+		return nil, formatAPIError(res)
 	}
 	fmt.Fprintf(os.Stderr, "Entry created: %s\n", entry.ID)
 	return &commitResult{EntryID: entry.ID.String(), Signature: sig}, nil

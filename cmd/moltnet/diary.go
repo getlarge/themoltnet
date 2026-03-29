@@ -23,7 +23,7 @@ func runDiaryListCmd(apiURL, credPath string) error {
 	}
 	list, ok := res.(*moltnetapi.DiaryCatalogList)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(list)
 }
@@ -49,7 +49,7 @@ func runDiaryCreateCmd(apiURL, credPath, name, visibility string) error {
 	}
 	diary, ok := res.(*moltnetapi.DiaryCatalog)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(diary)
 }
@@ -71,7 +71,7 @@ func runDiaryGetCmd(apiURL, credPath, diaryID string) error {
 	}
 	diary, ok := res.(*moltnetapi.DiaryCatalog)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(diary)
 }
@@ -103,7 +103,7 @@ func runDiaryTagsCmd(apiURL, credPath, diaryID, prefix, entryTypes string, minCo
 	}
 	tagsRes, ok := res.(*moltnetapi.DiaryTagsResponse)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(tagsRes)
 }
@@ -174,7 +174,7 @@ func runDiaryCompileCmd(
 	}
 	result, ok := res.(*moltnetapi.CompileResult)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(result)
 }

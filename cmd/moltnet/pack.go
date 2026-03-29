@@ -42,7 +42,7 @@ func runPackExportCmd(apiURL, credPath, packID, out string) error {
 	}
 	pack, ok := res.(*moltnetapi.ContextPackResponse)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 
 	md := renderPackMarkdown(packUUID.String(), pack)
@@ -99,7 +99,7 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 		}
 		g, ok := res.(*moltnetapi.ProvenanceGraph)
 		if !ok {
-			return fmt.Errorf("unexpected response type: %T", res)
+			return formatAPIError(res)
 		}
 		graph = g
 	} else {
@@ -112,7 +112,7 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 		}
 		g, ok := res.(*moltnetapi.GetContextPackProvenanceByCidOK)
 		if !ok {
-			return fmt.Errorf("unexpected response type: %T", res)
+			return formatAPIError(res)
 		}
 		graph = g
 	}
@@ -258,7 +258,7 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 
 	pack, ok := res.(*moltnetapi.CustomPackResult)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 
 	return printJSON(pack)
@@ -299,7 +299,7 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 
 	pack, ok := res.(*moltnetapi.ContextPackResponse)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 
 	return printJSON(pack)
