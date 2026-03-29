@@ -60,11 +60,31 @@ export function createRelationshipReader(
     },
 
     async listTeamIdsBySubject(subjectId: string): Promise<string[]> {
-      return paginateRelationships(
-        relationshipApi,
-        { namespace: KetoNamespace.Team, subjectId },
-        (tuple) => tuple.object,
-      );
+      // Tuples are written with subject_set (Agent or Human namespace).
+      // Query both and merge.
+      const [agentTeams, humanTeams] = await Promise.all([
+        paginateRelationships(
+          relationshipApi,
+          {
+            namespace: KetoNamespace.Team,
+            subjectSetNamespace: KetoNamespace.Agent,
+            subjectSetObject: subjectId,
+            subjectSetRelation: '',
+          },
+          (tuple) => tuple.object,
+        ),
+        paginateRelationships(
+          relationshipApi,
+          {
+            namespace: KetoNamespace.Team,
+            subjectSetNamespace: KetoNamespace.Human,
+            subjectSetObject: subjectId,
+            subjectSetRelation: '',
+          },
+          (tuple) => tuple.object,
+        ),
+      ]);
+      return [...new Set([...agentTeams, ...humanTeams])];
     },
 
     async listTeamMembers(teamId: string): Promise<TeamMemberTuple[]> {
