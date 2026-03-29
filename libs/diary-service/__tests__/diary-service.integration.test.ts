@@ -400,10 +400,13 @@ describe('DiaryService (integration)', () => {
         OTHER_AGENT,
       );
 
-      const entries = await service.listEntries({ diaryId: DIARY_ID });
+      const { items, total } = await service.listEntries({
+        diaryId: DIARY_ID,
+      });
 
-      expect(entries.length).toBe(2);
-      expect(entries.every((e) => e.diaryId === DIARY_ID)).toBe(true);
+      expect(items.length).toBe(2);
+      expect(total).toBe(2);
+      expect(items.every((e) => e.diaryId === DIARY_ID)).toBe(true);
     });
   });
 

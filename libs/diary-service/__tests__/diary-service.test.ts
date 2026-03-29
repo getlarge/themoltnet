@@ -400,21 +400,22 @@ describe('DiaryService', () => {
   describe('list', () => {
     it('lists entries for a diary', async () => {
       const entries = [createMockEntry(), createMockEntry({ id: 'other-id' })];
-      repo.list.mockResolvedValue(entries);
+      repo.list.mockResolvedValue({ items: entries, total: 5 });
 
       const result = await service.listEntries({ diaryId: DIARY_ID });
 
-      expect(result).toEqual(entries);
+      expect(result).toEqual({ items: entries, total: 5 });
       expect(repo.list).toHaveBeenCalledWith({
         diaryId: DIARY_ID,
         excludeTags: undefined,
+        entryTypes: undefined,
         limit: undefined,
         offset: undefined,
       });
     });
 
     it('passes filtering options through', async () => {
-      repo.list.mockResolvedValue([]);
+      repo.list.mockResolvedValue({ items: [], total: 0 });
 
       await service.listEntries({
         diaryId: DIARY_ID,
@@ -432,7 +433,7 @@ describe('DiaryService', () => {
     });
 
     it('passes entryType filter to repository', async () => {
-      repo.list.mockResolvedValue([]);
+      repo.list.mockResolvedValue({ items: [], total: 0 });
 
       await service.listEntries({
         diaryId: DIARY_ID,
@@ -1101,7 +1102,7 @@ describe('DiaryService — tags filter', () => {
 
   describe('list', () => {
     it('passes tags filter to repository', async () => {
-      repo.list.mockResolvedValue([]);
+      repo.list.mockResolvedValue({ items: [], total: 0 });
 
       await service.listEntries({
         diaryId: DIARY_ID,
@@ -1112,13 +1113,14 @@ describe('DiaryService — tags filter', () => {
         diaryId: DIARY_ID,
         tags: ['accountable-commit'],
         excludeTags: undefined,
+        entryTypes: undefined,
         limit: undefined,
         offset: undefined,
       });
     });
 
     it('passes tags with other filters', async () => {
-      repo.list.mockResolvedValue([]);
+      repo.list.mockResolvedValue({ items: [], total: 0 });
 
       await service.listEntries({
         diaryId: DIARY_ID,
@@ -1130,6 +1132,7 @@ describe('DiaryService — tags filter', () => {
         diaryId: DIARY_ID,
         tags: ['tag-a', 'tag-b'],
         excludeTags: undefined,
+        entryTypes: undefined,
         limit: 5,
         offset: undefined,
       });

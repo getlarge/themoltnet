@@ -273,32 +273,26 @@ describe('createEntryRelationRepository', () => {
     expect(result).toBeNull();
   });
 
-  it('listByEntry returns matching relations', async () => {
-    db._chain.limit.mockResolvedValue([mockRelation]);
+  it('listByEntry returns { items, total } shape', async () => {
+    db._chain.offset.mockResolvedValue([mockRelation]);
 
     const result = await repo.listByEntry(ENTRY_ID, { limit: 1 });
 
     expect(db.select).toHaveBeenCalled();
-    expect(result).toEqual([mockRelation]);
+    expect(result).toHaveProperty('items');
+    expect(result).toHaveProperty('total');
+    expect(result.items).toEqual([mockRelation]);
   });
 
-  it('listByEntry with direction as_source only returns relations where entry is source', async () => {
-    const targetOnlyRelation = {
-      ...mockRelation,
-      id: '991e8400-e29b-41d4-a716-446655440004',
-      sourceId: '990e8400-e29b-41d4-a716-446655440004',
-      targetId: ENTRY_ID,
-    };
-    // as_source: only mockRelation (where sourceId === ENTRY_ID) should appear
-    db._chain.limit.mockResolvedValue([mockRelation]);
+  it('listByEntry with direction as_source only queries source relations', async () => {
+    db._chain.offset.mockResolvedValue([mockRelation]);
 
     const result = await repo.listByEntry(ENTRY_ID, {
       direction: 'as_source',
     });
 
     expect(db.select).toHaveBeenCalled();
-    expect(result).toEqual([mockRelation]);
-    expect(result).not.toContainEqual(targetOnlyRelation);
+    expect(result.items).toEqual([mockRelation]);
   });
 
   it('updateStatus returns the updated relation', async () => {

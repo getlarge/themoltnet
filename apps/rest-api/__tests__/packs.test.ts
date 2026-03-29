@@ -78,10 +78,10 @@ describe('Pack routes', () => {
       return null;
     });
     mocks.contextPackRepository.findByCid.mockResolvedValue(MOCK_PACK);
-    mocks.contextPackRepository.listByDiary.mockResolvedValue([
-      MOCK_PACK,
-      MOCK_PACK_2,
-    ]);
+    mocks.contextPackRepository.listByDiary.mockResolvedValue({
+      items: [MOCK_PACK, MOCK_PACK_2],
+      total: 2,
+    });
     mocks.contextPackRepository.listEntriesExpanded.mockResolvedValue([
       {
         id: 'pack-entry-1',
@@ -131,18 +131,21 @@ describe('Pack routes', () => {
         [PACK_ID_2, true],
       ]),
     );
-    mocks.diaryEntryRepository.list.mockResolvedValue([
-      createMockEntry({
-        id: '11111111-1111-4111-8111-111111111111',
-        content: LONG_ENTRY_CONTENT,
-        contentHash: ENTRY_1_HASH,
-      }),
-      createMockEntry({
-        id: '22222222-2222-4222-8222-222222222222',
-        content: LONG_ENTRY_CONTENT,
-        contentHash: ENTRY_2_HASH,
-      }),
-    ]);
+    mocks.diaryEntryRepository.list.mockResolvedValue({
+      items: [
+        createMockEntry({
+          id: '11111111-1111-4111-8111-111111111111',
+          content: LONG_ENTRY_CONTENT,
+          contentHash: ENTRY_1_HASH,
+        }),
+        createMockEntry({
+          id: '22222222-2222-4222-8222-222222222222',
+          content: LONG_ENTRY_CONTENT,
+          contentHash: ENTRY_2_HASH,
+        }),
+      ],
+      total: 2,
+    });
     mocks.contextPackRepository.createPack.mockImplementation(
       async (input) => ({
         id: PACK_ID,
@@ -250,6 +253,7 @@ describe('Pack routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().items).toHaveLength(2);
     expect(response.json().total).toBe(2);
+    expect(response.json().offset).toBe(0);
     expect(mocks.permissionChecker.canReadPacks).toHaveBeenCalledWith(
       [PACK_ID, PACK_ID_2],
       OWNER_ID,
@@ -292,7 +296,7 @@ describe('Pack routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().items).toHaveLength(1);
     expect(response.json().items[0].id).toBe(PACK_ID);
-    expect(response.json().total).toBe(1);
+    expect(response.json().total).toBe(2);
   });
 
   it('returns 500 when batch pack authorization fails', async () => {
@@ -410,12 +414,15 @@ describe('Pack routes', () => {
       new Error('Keto unavailable'),
     );
     mocks.contextPackRepository.deleteMany = vi.fn().mockResolvedValue(1);
-    mocks.diaryEntryRepository.list.mockResolvedValue([
-      createMockEntry({
-        id: '11111111-1111-4111-8111-111111111111',
-        contentHash: ENTRY_1_HASH,
-      }),
-    ]);
+    mocks.diaryEntryRepository.list.mockResolvedValue({
+      items: [
+        createMockEntry({
+          id: '11111111-1111-4111-8111-111111111111',
+          contentHash: ENTRY_1_HASH,
+        }),
+      ],
+      total: 1,
+    });
 
     const response = await app.inject({
       method: 'POST',
@@ -440,12 +447,15 @@ describe('Pack routes', () => {
   });
 
   it('rejects custom pack selections that include entries outside the diary', async () => {
-    mocks.diaryEntryRepository.list.mockResolvedValue([
-      createMockEntry({
-        id: '11111111-1111-4111-8111-111111111111',
-        contentHash: ENTRY_1_HASH,
-      }),
-    ]);
+    mocks.diaryEntryRepository.list.mockResolvedValue({
+      items: [
+        createMockEntry({
+          id: '11111111-1111-4111-8111-111111111111',
+          contentHash: ENTRY_1_HASH,
+        }),
+      ],
+      total: 1,
+    });
 
     const response = await app.inject({
       method: 'POST',

@@ -327,9 +327,10 @@ describe('entry relations from consolidation (integration)', () => {
 
       expect(created).toHaveLength(proposals.length);
 
-      const persisted = await relationRepo.listByEntry(ENTRIES[0].id, {
-        status: 'proposed',
-      });
+      const { items: persisted } = await relationRepo.listByEntry(
+        ENTRIES[0].id,
+        { status: 'proposed' },
+      );
       expect(persisted.length).toBeGreaterThan(0);
     });
 
@@ -354,9 +355,10 @@ describe('entry relations from consolidation (integration)', () => {
 
       // Query back: all proposals exist
       for (const proposal of proposals) {
-        const relations = await relationRepo.listByEntry(proposal.sourceId, {
-          status: 'proposed',
-        });
+        const { items: relations } = await relationRepo.listByEntry(
+          proposal.sourceId,
+          { status: 'proposed' },
+        );
         expect(relations.length).toBeGreaterThan(0);
       }
     });
@@ -412,17 +414,19 @@ describe('entry relations from consolidation (integration)', () => {
         metadata: {},
       });
 
-      const accepted = await relationRepo.listByEntry(ENTRIES[0].id, {
-        status: 'accepted',
-      });
+      const { items: accepted } = await relationRepo.listByEntry(
+        ENTRIES[0].id,
+        { status: 'accepted' },
+      );
       expect(accepted).toHaveLength(1);
 
-      const proposed = await relationRepo.listByEntry(ENTRIES[0].id, {
-        status: 'proposed',
-      });
+      const { items: proposed } = await relationRepo.listByEntry(
+        ENTRIES[0].id,
+        { status: 'proposed' },
+      );
       expect(proposed).toHaveLength(1);
 
-      const all = await relationRepo.listByEntry(ENTRIES[0].id);
+      const { items: all } = await relationRepo.listByEntry(ENTRIES[0].id);
       expect(all).toHaveLength(2);
     });
   });
@@ -463,7 +467,7 @@ describe('entry relations from consolidation (integration)', () => {
       let relatedPairsFound = 0;
 
       for (const entryId of compiledIds) {
-        const relations = await relationRepo.listByEntry(entryId, {
+        const { items: relations } = await relationRepo.listByEntry(entryId, {
           status: 'accepted',
         });
         if (relations.length > 0) {
