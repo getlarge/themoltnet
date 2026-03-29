@@ -624,6 +624,8 @@ func (s CompileResultPackType) Validate() error {
 		return nil
 	case "custom":
 		return nil
+	case "rendered":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -1523,6 +1525,8 @@ func (s ContextPackResponsePackType) Validate() error {
 	case "optimized":
 		return nil
 	case "custom":
+		return nil
+	case "rendered":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -3614,6 +3618,8 @@ func (s GetContextPackProvenanceByCidOKEdgesItemKind) Validate() error {
 		return nil
 	case "supersedes":
 		return nil
+	case "rendered_from":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -5134,6 +5140,8 @@ func (s ProvenanceGraphEdgesItemKind) Validate() error {
 		return nil
 	case "supersedes":
 		return nil
+	case "rendered_from":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -5702,6 +5710,104 @@ func (s RelationType) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
+}
+
+func (s *RenderContextPackBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenderContextPackForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenderContextPackInternalServerError) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenderContextPackNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenderContextPackReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.RenderMethod)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "renderMethod",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     500000,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.RenderedMarkdown)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "renderedMarkdown",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RenderContextPackUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *RequestRecoveryChallengeBadRequest) Validate() error {

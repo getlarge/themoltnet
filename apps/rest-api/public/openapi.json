@@ -183,6 +183,10 @@
               {
                 "enum": ["custom"],
                 "type": "string"
+              },
+              {
+                "enum": ["rendered"],
+                "type": "string"
               }
             ]
           },
@@ -505,6 +509,10 @@
               {
                 "enum": ["custom"],
                 "type": "string"
+              },
+              {
+                "enum": ["rendered"],
+                "type": "string"
               }
             ]
           },
@@ -512,6 +520,17 @@
           "payload": {},
           "pinned": {
             "type": "boolean"
+          },
+          "sourcePackId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "supersedesPackId": {
             "anyOf": [
@@ -536,6 +555,7 @@
           "createdBy",
           "creator",
           "supersedesPackId",
+          "sourcePackId",
           "pinned",
           "expiresAt",
           "createdAt"
@@ -606,6 +626,10 @@
               {
                 "enum": ["custom"],
                 "type": "string"
+              },
+              {
+                "enum": ["rendered"],
+                "type": "string"
               }
             ]
           },
@@ -613,6 +637,17 @@
           "payload": {},
           "pinned": {
             "type": "boolean"
+          },
+          "sourcePackId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "supersedesPackId": {
             "anyOf": [
@@ -637,6 +672,7 @@
           "createdBy",
           "creator",
           "supersedesPackId",
+          "sourcePackId",
           "pinned",
           "expiresAt",
           "createdAt",
@@ -732,6 +768,10 @@
               {
                 "enum": ["custom"],
                 "type": "string"
+              },
+              {
+                "enum": ["rendered"],
+                "type": "string"
               }
             ]
           },
@@ -739,6 +779,17 @@
           "payload": {},
           "pinned": {
             "type": "boolean"
+          },
+          "sourcePackId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "supersedesPackId": {
             "anyOf": [
@@ -763,6 +814,7 @@
           "createdBy",
           "creator",
           "supersedesPackId",
+          "sourcePackId",
           "pinned",
           "expiresAt",
           "createdAt"
@@ -2363,6 +2415,10 @@
                     {
                       "enum": ["supersedes"],
                       "type": "string"
+                    },
+                    {
+                      "enum": ["rendered_from"],
+                      "type": "string"
                     }
                   ]
                 },
@@ -2918,6 +2974,39 @@
             "type": "string"
           }
         ]
+      },
+      "RenderedPackResult": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "renderMethod": {
+            "type": "string"
+          },
+          "sourcePackCid": {
+            "type": "string"
+          },
+          "sourcePackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "totalTokens": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "packCid",
+          "sourcePackId",
+          "sourcePackCid",
+          "renderMethod",
+          "totalTokens"
+        ],
+        "type": "object"
       },
       "RotateSecretResponse": {
         "properties": {
@@ -6916,6 +7005,10 @@
                               {
                                 "enum": ["supersedes"],
                                 "type": "string"
+                              },
+                              {
+                                "enum": ["rendered_from"],
+                                "type": "string"
                               }
                             ]
                           },
@@ -7540,6 +7633,117 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProvenanceGraph"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/packs/{id}/render": {
+      "post": {
+        "description": "Create a rendered pack from a source pack. The rendered markdown is persisted as a new pack with its own CID.",
+        "operationId": "renderContextPack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "renderMethod": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "renderedMarkdown": {
+                    "maxLength": 500000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["renderedMarkdown", "renderMethod"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderedPackResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             },

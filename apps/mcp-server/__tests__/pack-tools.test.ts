@@ -6,6 +6,7 @@ import {
   handlePacksList,
   handlePacksPreview,
   handlePacksProvenance,
+  handlePacksRender,
 } from '../src/pack-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
@@ -23,6 +24,7 @@ vi.mock('@moltnet/api-client', () => ({
   getContextPackById: vi.fn(),
   listDiaryPacks: vi.fn(),
   previewDiaryCustomPack: vi.fn(),
+  renderContextPack: vi.fn(),
   getContextPackProvenanceById: vi.fn(),
   getContextPackProvenanceByCid: vi.fn(),
 }));
@@ -34,6 +36,7 @@ import {
   getContextPackProvenanceById,
   listDiaryPacks,
   previewDiaryCustomPack,
+  renderContextPack,
 } from '@moltnet/api-client';
 
 const PACK_ID = '110e8400-e29b-41d4-a716-446655440005';
@@ -512,6 +515,111 @@ describe('Pack tools', () => {
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('Diary not accessible');
+    });
+  });
+
+  describe('packs_render', () => {
+    const mockRenderedPack = {
+      ...mockPack,
+      packType: 'rendered',
+      sourcePackId: PACK_ID,
+      renderMethod: 'pack-to-docs-v1',
+      pinned: false,
+    };
+
+    it('creates a rendered pack from a source pack', async () => {
+      vi.mocked(renderContextPack).mockResolvedValue(
+        sdkOk(mockRenderedPack) as never,
+      );
+
+      const result = await handlePacksRender(
+        {
+          pack_id: PACK_ID,
+          rendered_markdown: '# Rendered\n\nContent here.',
+          render_method: 'pack-to-docs-v1',
+        },
+        deps,
+        context,
+      );
+
+      expect(renderContextPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: PACK_ID },
+          body: {
+            renderedMarkdown: '# Rendered\n\nContent here.',
+            renderMethod: 'pack-to-docs-v1',
+          },
+        }),
+      );
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('packType', 'rendered');
+      expect(parsed).toHaveProperty('sourcePackId', PACK_ID);
+    });
+
+    it('passes pinned flag when provided', async () => {
+      vi.mocked(renderContextPack).mockResolvedValue(
+        sdkOk({ ...mockRenderedPack, pinned: true }) as never,
+      );
+
+      const result = await handlePacksRender(
+        {
+          pack_id: PACK_ID,
+          rendered_markdown: '# Pinned render',
+          render_method: 'agent-refined',
+          pinned: true,
+        },
+        deps,
+        context,
+      );
+
+      expect(renderContextPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ pinned: true }),
+        }),
+      );
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed).toHaveProperty('pinned', true);
+    });
+
+    it('returns error when not authenticated', async () => {
+      const unauthContext = createMockContext(null);
+
+      const result = await handlePacksRender(
+        {
+          pack_id: PACK_ID,
+          rendered_markdown: '# Content',
+          render_method: 'pack-to-docs-v1',
+        },
+        deps,
+        unauthContext,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Not authenticated');
+    });
+
+    it('returns API error message when render fails', async () => {
+      vi.mocked(renderContextPack).mockResolvedValue(
+        sdkErr({
+          error: 'Not Found',
+          message: 'Not Found',
+          statusCode: 404,
+          detail: 'Source pack not found',
+        }) as never,
+      );
+
+      const result = await handlePacksRender(
+        {
+          pack_id: 'nonexistent',
+          rendered_markdown: '# Content',
+          render_method: 'pack-to-docs-v1',
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain('Source pack not found');
     });
   });
 });

@@ -685,6 +685,7 @@ const (
 	CompileResultPackTypeCompile   CompileResultPackType = "compile"
 	CompileResultPackTypeOptimized CompileResultPackType = "optimized"
 	CompileResultPackTypeCustom    CompileResultPackType = "custom"
+	CompileResultPackTypeRendered  CompileResultPackType = "rendered"
 )
 
 // AllValues returns all CompileResultPackType values.
@@ -693,6 +694,7 @@ func (CompileResultPackType) AllValues() []CompileResultPackType {
 		CompileResultPackTypeCompile,
 		CompileResultPackTypeOptimized,
 		CompileResultPackTypeCustom,
+		CompileResultPackTypeRendered,
 	}
 }
 
@@ -704,6 +706,8 @@ func (s CompileResultPackType) MarshalText() ([]byte, error) {
 	case CompileResultPackTypeOptimized:
 		return []byte(s), nil
 	case CompileResultPackTypeCustom:
+		return []byte(s), nil
+	case CompileResultPackTypeRendered:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -721,6 +725,9 @@ func (s *CompileResultPackType) UnmarshalText(data []byte) error {
 		return nil
 	case CompileResultPackTypeCustom:
 		*s = CompileResultPackTypeCustom
+		return nil
+	case CompileResultPackTypeRendered:
+		*s = CompileResultPackTypeRendered
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -1417,6 +1424,7 @@ type ContextPackResponse struct {
 	Params           jx.Raw                      `json:"params"`
 	Payload          jx.Raw                      `json:"payload"`
 	Pinned           bool                        `json:"pinned"`
+	SourcePackId     NilUUID                     `json:"sourcePackId"`
 	SupersedesPackId NilUUID                     `json:"supersedesPackId"`
 }
 
@@ -1483,6 +1491,11 @@ func (s *ContextPackResponse) GetPayload() jx.Raw {
 // GetPinned returns the value of Pinned.
 func (s *ContextPackResponse) GetPinned() bool {
 	return s.Pinned
+}
+
+// GetSourcePackId returns the value of SourcePackId.
+func (s *ContextPackResponse) GetSourcePackId() NilUUID {
+	return s.SourcePackId
 }
 
 // GetSupersedesPackId returns the value of SupersedesPackId.
@@ -1555,6 +1568,11 @@ func (s *ContextPackResponse) SetPinned(val bool) {
 	s.Pinned = val
 }
 
+// SetSourcePackId sets the value of SourcePackId.
+func (s *ContextPackResponse) SetSourcePackId(val NilUUID) {
+	s.SourcePackId = val
+}
+
 // SetSupersedesPackId sets the value of SupersedesPackId.
 func (s *ContextPackResponse) SetSupersedesPackId(val NilUUID) {
 	s.SupersedesPackId = val
@@ -1622,6 +1640,7 @@ const (
 	ContextPackResponsePackTypeCompile   ContextPackResponsePackType = "compile"
 	ContextPackResponsePackTypeOptimized ContextPackResponsePackType = "optimized"
 	ContextPackResponsePackTypeCustom    ContextPackResponsePackType = "custom"
+	ContextPackResponsePackTypeRendered  ContextPackResponsePackType = "rendered"
 )
 
 // AllValues returns all ContextPackResponsePackType values.
@@ -1630,6 +1649,7 @@ func (ContextPackResponsePackType) AllValues() []ContextPackResponsePackType {
 		ContextPackResponsePackTypeCompile,
 		ContextPackResponsePackTypeOptimized,
 		ContextPackResponsePackTypeCustom,
+		ContextPackResponsePackTypeRendered,
 	}
 }
 
@@ -1641,6 +1661,8 @@ func (s ContextPackResponsePackType) MarshalText() ([]byte, error) {
 	case ContextPackResponsePackTypeOptimized:
 		return []byte(s), nil
 	case ContextPackResponsePackTypeCustom:
+		return []byte(s), nil
+	case ContextPackResponsePackTypeRendered:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -1658,6 +1680,9 @@ func (s *ContextPackResponsePackType) UnmarshalText(data []byte) error {
 		return nil
 	case ContextPackResponsePackTypeCustom:
 		*s = ContextPackResponsePackTypeCustom
+		return nil
+	case ContextPackResponsePackTypeRendered:
+		*s = ContextPackResponsePackTypeRendered
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -4310,8 +4335,9 @@ func (s *GetContextPackProvenanceByCidOKEdgesItem) SetTo(val string) {
 type GetContextPackProvenanceByCidOKEdgesItemKind string
 
 const (
-	GetContextPackProvenanceByCidOKEdgesItemKindIncludes   GetContextPackProvenanceByCidOKEdgesItemKind = "includes"
-	GetContextPackProvenanceByCidOKEdgesItemKindSupersedes GetContextPackProvenanceByCidOKEdgesItemKind = "supersedes"
+	GetContextPackProvenanceByCidOKEdgesItemKindIncludes     GetContextPackProvenanceByCidOKEdgesItemKind = "includes"
+	GetContextPackProvenanceByCidOKEdgesItemKindSupersedes   GetContextPackProvenanceByCidOKEdgesItemKind = "supersedes"
+	GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom GetContextPackProvenanceByCidOKEdgesItemKind = "rendered_from"
 )
 
 // AllValues returns all GetContextPackProvenanceByCidOKEdgesItemKind values.
@@ -4319,6 +4345,7 @@ func (GetContextPackProvenanceByCidOKEdgesItemKind) AllValues() []GetContextPack
 	return []GetContextPackProvenanceByCidOKEdgesItemKind{
 		GetContextPackProvenanceByCidOKEdgesItemKindIncludes,
 		GetContextPackProvenanceByCidOKEdgesItemKindSupersedes,
+		GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom,
 	}
 }
 
@@ -4328,6 +4355,8 @@ func (s GetContextPackProvenanceByCidOKEdgesItemKind) MarshalText() ([]byte, err
 	case GetContextPackProvenanceByCidOKEdgesItemKindIncludes:
 		return []byte(s), nil
 	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
+		return []byte(s), nil
+	case GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -4342,6 +4371,9 @@ func (s *GetContextPackProvenanceByCidOKEdgesItemKind) UnmarshalText(data []byte
 		return nil
 	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
 		*s = GetContextPackProvenanceByCidOKEdgesItemKindSupersedes
+		return nil
+	case GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom:
+		*s = GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -8781,8 +8813,9 @@ func (s *ProvenanceGraphEdgesItem) SetTo(val string) {
 type ProvenanceGraphEdgesItemKind string
 
 const (
-	ProvenanceGraphEdgesItemKindIncludes   ProvenanceGraphEdgesItemKind = "includes"
-	ProvenanceGraphEdgesItemKindSupersedes ProvenanceGraphEdgesItemKind = "supersedes"
+	ProvenanceGraphEdgesItemKindIncludes     ProvenanceGraphEdgesItemKind = "includes"
+	ProvenanceGraphEdgesItemKindSupersedes   ProvenanceGraphEdgesItemKind = "supersedes"
+	ProvenanceGraphEdgesItemKindRenderedFrom ProvenanceGraphEdgesItemKind = "rendered_from"
 )
 
 // AllValues returns all ProvenanceGraphEdgesItemKind values.
@@ -8790,6 +8823,7 @@ func (ProvenanceGraphEdgesItemKind) AllValues() []ProvenanceGraphEdgesItemKind {
 	return []ProvenanceGraphEdgesItemKind{
 		ProvenanceGraphEdgesItemKindIncludes,
 		ProvenanceGraphEdgesItemKindSupersedes,
+		ProvenanceGraphEdgesItemKindRenderedFrom,
 	}
 }
 
@@ -8799,6 +8833,8 @@ func (s ProvenanceGraphEdgesItemKind) MarshalText() ([]byte, error) {
 	case ProvenanceGraphEdgesItemKindIncludes:
 		return []byte(s), nil
 	case ProvenanceGraphEdgesItemKindSupersedes:
+		return []byte(s), nil
+	case ProvenanceGraphEdgesItemKindRenderedFrom:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -8813,6 +8849,9 @@ func (s *ProvenanceGraphEdgesItemKind) UnmarshalText(data []byte) error {
 		return nil
 	case ProvenanceGraphEdgesItemKindSupersedes:
 		*s = ProvenanceGraphEdgesItemKindSupersedes
+		return nil
+	case ProvenanceGraphEdgesItemKindRenderedFrom:
+		*s = ProvenanceGraphEdgesItemKindRenderedFrom
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -10020,6 +10059,134 @@ func (s *RelationType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type RenderContextPackBadRequest ProblemDetails
+
+func (*RenderContextPackBadRequest) renderContextPackRes() {}
+
+type RenderContextPackForbidden ProblemDetails
+
+func (*RenderContextPackForbidden) renderContextPackRes() {}
+
+type RenderContextPackInternalServerError ProblemDetails
+
+func (*RenderContextPackInternalServerError) renderContextPackRes() {}
+
+type RenderContextPackNotFound ProblemDetails
+
+func (*RenderContextPackNotFound) renderContextPackRes() {}
+
+type RenderContextPackReq struct {
+	Pinned           OptBool `json:"pinned"`
+	RenderMethod     string  `json:"renderMethod"`
+	RenderedMarkdown string  `json:"renderedMarkdown"`
+}
+
+// GetPinned returns the value of Pinned.
+func (s *RenderContextPackReq) GetPinned() OptBool {
+	return s.Pinned
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *RenderContextPackReq) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetRenderedMarkdown returns the value of RenderedMarkdown.
+func (s *RenderContextPackReq) GetRenderedMarkdown() string {
+	return s.RenderedMarkdown
+}
+
+// SetPinned sets the value of Pinned.
+func (s *RenderContextPackReq) SetPinned(val OptBool) {
+	s.Pinned = val
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *RenderContextPackReq) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetRenderedMarkdown sets the value of RenderedMarkdown.
+func (s *RenderContextPackReq) SetRenderedMarkdown(val string) {
+	s.RenderedMarkdown = val
+}
+
+type RenderContextPackUnauthorized ProblemDetails
+
+func (*RenderContextPackUnauthorized) renderContextPackRes() {}
+
+// Ref: #/components/schemas/RenderedPackResult
+type RenderedPackResult struct {
+	ID            uuid.UUID `json:"id"`
+	PackCid       string    `json:"packCid"`
+	RenderMethod  string    `json:"renderMethod"`
+	SourcePackCid string    `json:"sourcePackCid"`
+	SourcePackId  uuid.UUID `json:"sourcePackId"`
+	TotalTokens   int       `json:"totalTokens"`
+}
+
+// GetID returns the value of ID.
+func (s *RenderedPackResult) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *RenderedPackResult) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *RenderedPackResult) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetSourcePackCid returns the value of SourcePackCid.
+func (s *RenderedPackResult) GetSourcePackCid() string {
+	return s.SourcePackCid
+}
+
+// GetSourcePackId returns the value of SourcePackId.
+func (s *RenderedPackResult) GetSourcePackId() uuid.UUID {
+	return s.SourcePackId
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *RenderedPackResult) GetTotalTokens() int {
+	return s.TotalTokens
+}
+
+// SetID sets the value of ID.
+func (s *RenderedPackResult) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *RenderedPackResult) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *RenderedPackResult) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetSourcePackCid sets the value of SourcePackCid.
+func (s *RenderedPackResult) SetSourcePackCid(val string) {
+	s.SourcePackCid = val
+}
+
+// SetSourcePackId sets the value of SourcePackId.
+func (s *RenderedPackResult) SetSourcePackId(val uuid.UUID) {
+	s.SourcePackId = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *RenderedPackResult) SetTotalTokens(val int) {
+	s.TotalTokens = val
+}
+
+func (*RenderedPackResult) renderContextPackRes() {}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 

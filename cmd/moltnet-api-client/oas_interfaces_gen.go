@@ -157,6 +157,10 @@ type RegisterAgentRes interface {
 	registerAgentRes()
 }
 
+type RenderContextPackRes interface {
+	renderContextPackRes()
+}
+
 type RequestRecoveryChallengeRes interface {
 	requestRecoveryChallengeRes()
 }

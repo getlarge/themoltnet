@@ -67,6 +67,7 @@ var operationRolesBearerAuth = map[string][]string{
 	ListSigningRequestsOperation:           []string{},
 	PreviewDiaryCustomPackOperation:        []string{},
 	ReflectDiaryOperation:                  []string{},
+	RenderContextPackOperation:             []string{},
 	RevokeDiaryShareOperation:              []string{},
 	RotateClientSecretOperation:            []string{},
 	SearchDiaryOperation:                   []string{},

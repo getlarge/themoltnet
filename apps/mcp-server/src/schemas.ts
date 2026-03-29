@@ -30,6 +30,7 @@ import type {
   ListEntryRelationsData,
   PreviewDiaryCustomPackData,
   ReflectDiaryData,
+  RenderContextPackData,
   SearchDiaryData,
   SearchPublicFeedData,
   SubmitSignatureData,
@@ -816,6 +817,32 @@ export type PackUpdateInput = {
   expires_at?: NonNullable<BodyOf<UpdateContextPackData>>['expiresAt'];
 };
 
+// Pack Render
+export const PackRenderSchema = Type.Object({
+  pack_id: Type.String({
+    description: 'Source pack UUID to render',
+  }),
+  rendered_markdown: Type.String({
+    description: 'Transformed markdown content for the rendered pack',
+  }),
+  render_method: Type.String({
+    description: 'Render method label (e.g. pack-to-docs-v1, agent-refined)',
+  }),
+  pinned: Type.Optional(
+    Type.Boolean({
+      description: 'Pin the rendered pack to prevent garbage collection',
+    }),
+  ),
+});
+
+type RenderPackBody = BodyOf<RenderContextPackData>;
+export type PackRenderInput = {
+  pack_id: PathOf<RenderContextPackData>['id'];
+  rendered_markdown: RenderPackBody['renderedMarkdown'];
+  render_method: RenderPackBody['renderMethod'];
+  pinned?: RenderPackBody['pinned'];
+};
+
 // --- Compile-time drift checks ---
 
 type _EntryCreateInputMatchesSchema = AssertSchemaToApi<
@@ -957,4 +984,8 @@ type _PackProvenanceInputMatchesSchema = AssertSchemaToApi<
 type _PackUpdateInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackUpdateSchema>,
   PackUpdateInput
+>;
+type _PackRenderInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackRenderSchema>,
+  PackRenderInput
 >;

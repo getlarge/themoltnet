@@ -50,6 +50,7 @@ const (
 	PreviewDiaryCustomPackOperation        OperationName = "PreviewDiaryCustomPack"
 	ReflectDiaryOperation                  OperationName = "ReflectDiary"
 	RegisterAgentOperation                 OperationName = "RegisterAgent"
+	RenderContextPackOperation             OperationName = "RenderContextPack"
 	RequestRecoveryChallengeOperation      OperationName = "RequestRecoveryChallenge"
 	RevokeDiaryShareOperation              OperationName = "RevokeDiaryShare"
 	RotateClientSecretOperation            OperationName = "RotateClientSecret"

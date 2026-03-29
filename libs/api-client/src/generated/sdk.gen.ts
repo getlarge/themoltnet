@@ -130,6 +130,9 @@ import type {
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
+  RenderContextPackData,
+  RenderContextPackErrors,
+  RenderContextPackResponses,
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
@@ -669,6 +672,26 @@ export const updateContextPack = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/packs/{id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Create a rendered pack from a source pack. The rendered markdown is persisted as a new pack with its own CID.
+ */
+export const renderContextPack = <ThrowOnError extends boolean = false>(
+  options: Options<RenderContextPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RenderContextPackResponses,
+    RenderContextPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/{id}/render',
     ...options,
     headers: {
       'Content-Type': 'application/json',

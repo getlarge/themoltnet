@@ -281,6 +281,13 @@ type Handler interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, req *RegisterAgentReq) (RegisterAgentRes, error)
+	// RenderContextPack implements renderContextPack operation.
+	//
+	// Create a rendered pack from a source pack. The rendered markdown is persisted as a new pack with
+	// its own CID.
+	//
+	// POST /packs/{id}/render
+	RenderContextPack(ctx context.Context, req *RenderContextPackReq, params RenderContextPackParams) (RenderContextPackRes, error)
 	// RequestRecoveryChallenge implements requestRecoveryChallenge operation.
 	//
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.

@@ -1692,6 +1692,8 @@ func (s *CompileResultPackType) Decode(d *jx.Decoder) error {
 		*s = CompileResultPackTypeOptimized
 	case CompileResultPackTypeCustom:
 		*s = CompileResultPackTypeCustom
+	case CompileResultPackTypeRendered:
+		*s = CompileResultPackTypeRendered
 	default:
 		*s = CompileResultPackType(v)
 	}
@@ -3475,12 +3477,16 @@ func (s *ContextPackResponse) encodeFields(e *jx.Encoder) {
 		e.Bool(s.Pinned)
 	}
 	{
+		e.FieldStart("sourcePackId")
+		s.SourcePackId.Encode(e)
+	}
+	{
 		e.FieldStart("supersedesPackId")
 		s.SupersedesPackId.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfContextPackResponse = [14]string{
+var jsonFieldsNameOfContextPackResponse = [15]string{
 	0:  "createdAt",
 	1:  "createdBy",
 	2:  "creator",
@@ -3494,7 +3500,8 @@ var jsonFieldsNameOfContextPackResponse = [14]string{
 	10: "params",
 	11: "payload",
 	12: "pinned",
-	13: "supersedesPackId",
+	13: "sourcePackId",
+	14: "supersedesPackId",
 }
 
 // Decode decodes ContextPackResponse from json.
@@ -3661,8 +3668,18 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"pinned\"")
 			}
-		case "supersedesPackId":
+		case "sourcePackId":
 			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				if err := s.SourcePackId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourcePackId\"")
+			}
+		case "supersedesPackId":
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.SupersedesPackId.Decode(d); err != nil {
 					return err
@@ -3682,7 +3699,7 @@ func (s *ContextPackResponse) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11101111,
-		0b00111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -3907,6 +3924,8 @@ func (s *ContextPackResponsePackType) Decode(d *jx.Decoder) error {
 		*s = ContextPackResponsePackTypeOptimized
 	case ContextPackResponsePackTypeCustom:
 		*s = ContextPackResponsePackTypeCustom
+	case ContextPackResponsePackTypeRendered:
+		*s = ContextPackResponsePackTypeRendered
 	default:
 		*s = ContextPackResponsePackType(v)
 	}
@@ -11280,6 +11299,8 @@ func (s *GetContextPackProvenanceByCidOKEdgesItemKind) Decode(d *jx.Decoder) err
 		*s = GetContextPackProvenanceByCidOKEdgesItemKindIncludes
 	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
 		*s = GetContextPackProvenanceByCidOKEdgesItemKindSupersedes
+	case GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom:
+		*s = GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom
 	default:
 		*s = GetContextPackProvenanceByCidOKEdgesItemKind(v)
 	}
@@ -21484,6 +21505,8 @@ func (s *ProvenanceGraphEdgesItemKind) Decode(d *jx.Decoder) error {
 		*s = ProvenanceGraphEdgesItemKindIncludes
 	case ProvenanceGraphEdgesItemKindSupersedes:
 		*s = ProvenanceGraphEdgesItemKindSupersedes
+	case ProvenanceGraphEdgesItemKindRenderedFrom:
+		*s = ProvenanceGraphEdgesItemKindRenderedFrom
 	default:
 		*s = ProvenanceGraphEdgesItemKind(v)
 	}
@@ -24519,6 +24542,507 @@ func (s RelationType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RelationType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenderContextPackBadRequest as json.
+func (s *RenderContextPackBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenderContextPackBadRequest from json.
+func (s *RenderContextPackBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderContextPackBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenderContextPackBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderContextPackBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderContextPackBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenderContextPackForbidden as json.
+func (s *RenderContextPackForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenderContextPackForbidden from json.
+func (s *RenderContextPackForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderContextPackForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenderContextPackForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderContextPackForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderContextPackForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenderContextPackInternalServerError as json.
+func (s *RenderContextPackInternalServerError) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenderContextPackInternalServerError from json.
+func (s *RenderContextPackInternalServerError) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderContextPackInternalServerError to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenderContextPackInternalServerError(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderContextPackInternalServerError) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderContextPackInternalServerError) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenderContextPackNotFound as json.
+func (s *RenderContextPackNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenderContextPackNotFound from json.
+func (s *RenderContextPackNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderContextPackNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenderContextPackNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderContextPackNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderContextPackNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RenderContextPackReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RenderContextPackReq) encodeFields(e *jx.Encoder) {
+	{
+		if s.Pinned.Set {
+			e.FieldStart("pinned")
+			s.Pinned.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("renderMethod")
+		e.Str(s.RenderMethod)
+	}
+	{
+		e.FieldStart("renderedMarkdown")
+		e.Str(s.RenderedMarkdown)
+	}
+}
+
+var jsonFieldsNameOfRenderContextPackReq = [3]string{
+	0: "pinned",
+	1: "renderMethod",
+	2: "renderedMarkdown",
+}
+
+// Decode decodes RenderContextPackReq from json.
+func (s *RenderContextPackReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderContextPackReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "pinned":
+			if err := func() error {
+				s.Pinned.Reset()
+				if err := s.Pinned.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"pinned\"")
+			}
+		case "renderMethod":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.RenderMethod = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"renderMethod\"")
+			}
+		case "renderedMarkdown":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.RenderedMarkdown = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"renderedMarkdown\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RenderContextPackReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRenderContextPackReq) {
+					name = jsonFieldsNameOfRenderContextPackReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderContextPackReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderContextPackReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenderContextPackUnauthorized as json.
+func (s *RenderContextPackUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenderContextPackUnauthorized from json.
+func (s *RenderContextPackUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderContextPackUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenderContextPackUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderContextPackUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderContextPackUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RenderedPackResult) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RenderedPackResult) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		json.EncodeUUID(e, s.ID)
+	}
+	{
+		e.FieldStart("packCid")
+		e.Str(s.PackCid)
+	}
+	{
+		e.FieldStart("renderMethod")
+		e.Str(s.RenderMethod)
+	}
+	{
+		e.FieldStart("sourcePackCid")
+		e.Str(s.SourcePackCid)
+	}
+	{
+		e.FieldStart("sourcePackId")
+		json.EncodeUUID(e, s.SourcePackId)
+	}
+	{
+		e.FieldStart("totalTokens")
+		e.Int(s.TotalTokens)
+	}
+}
+
+var jsonFieldsNameOfRenderedPackResult = [6]string{
+	0: "id",
+	1: "packCid",
+	2: "renderMethod",
+	3: "sourcePackCid",
+	4: "sourcePackId",
+	5: "totalTokens",
+}
+
+// Decode decodes RenderedPackResult from json.
+func (s *RenderedPackResult) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderedPackResult to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "packCid":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.PackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packCid\"")
+			}
+		case "renderMethod":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.RenderMethod = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"renderMethod\"")
+			}
+		case "sourcePackCid":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.SourcePackCid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourcePackCid\"")
+			}
+		case "sourcePackId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.SourcePackId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sourcePackId\"")
+			}
+		case "totalTokens":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.TotalTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalTokens\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RenderedPackResult")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRenderedPackResult) {
+					name = jsonFieldsNameOfRenderedPackResult[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderedPackResult) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderedPackResult) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

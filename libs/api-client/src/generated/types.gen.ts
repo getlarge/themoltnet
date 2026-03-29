@@ -229,12 +229,13 @@ export type ContextPack = {
   diaryId: string;
   packCid: string;
   packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'compile' | 'optimized' | 'custom' | 'rendered';
   params: unknown;
   payload: unknown;
   createdBy: string;
   creator: AgentIdentity | null;
   supersedesPackId: string | null;
+  sourcePackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
@@ -245,12 +246,13 @@ export type ContextPackExpanded = {
   diaryId: string;
   packCid: string;
   packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'compile' | 'optimized' | 'custom' | 'rendered';
   params: unknown;
   payload: unknown;
   createdBy: string;
   creator: AgentIdentity | null;
   supersedesPackId: string | null;
+  sourcePackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
@@ -262,12 +264,13 @@ export type ContextPackResponse = {
   diaryId: string;
   packCid: string;
   packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'compile' | 'optimized' | 'custom' | 'rendered';
   params: unknown;
   payload: unknown;
   createdBy: string;
   creator: AgentIdentity | null;
   supersedesPackId: string | null;
+  sourcePackId: string | null;
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
@@ -620,7 +623,7 @@ export type CompileResult = {
   diaryId: string;
   packCid: string;
   packCodec: string;
-  packType: 'compile' | 'optimized' | 'custom';
+  packType: 'compile' | 'optimized' | 'custom' | 'rendered';
   params: unknown;
   payload: unknown;
   createdBy: string;
@@ -778,7 +781,7 @@ export type ProvenanceGraph = {
     id: string;
     from: string;
     to: string;
-    kind: 'includes' | 'supersedes';
+    kind: 'includes' | 'supersedes' | 'rendered_from';
     label?: string;
     meta?: {
       [key: string]: string | number | boolean | null;
@@ -825,6 +828,15 @@ export type EntryRelationList = {
    * Number of items skipped before this page.
    */
   offset: number;
+};
+
+export type RenderedPackResult = {
+  id: string;
+  packCid: string;
+  sourcePackId: string;
+  sourcePackCid: string;
+  renderMethod: string;
+  totalTokens: number;
 };
 
 export type GetOAuth2TokenData = {
@@ -2109,7 +2121,7 @@ export type GetContextPackProvenanceByCidResponses = {
       id: string;
       from: string;
       to: string;
-      kind: 'includes' | 'supersedes';
+      kind: 'includes' | 'supersedes' | 'rendered_from';
       label?: string;
       meta?: {
         [key: string]: string | number | boolean | null;
@@ -2211,6 +2223,55 @@ export type UpdateContextPackResponses = {
 
 export type UpdateContextPackResponse =
   UpdateContextPackResponses[keyof UpdateContextPackResponses];
+
+export type RenderContextPackData = {
+  body: {
+    renderedMarkdown: string;
+    renderMethod: string;
+    pinned?: boolean;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}/render';
+};
+
+export type RenderContextPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type RenderContextPackError =
+  RenderContextPackErrors[keyof RenderContextPackErrors];
+
+export type RenderContextPackResponses = {
+  /**
+   * Default Response
+   */
+  201: RenderedPackResult;
+};
+
+export type RenderContextPackResponse =
+  RenderContextPackResponses[keyof RenderContextPackResponses];
 
 export type PreviewDiaryCustomPackData = {
   body: {
