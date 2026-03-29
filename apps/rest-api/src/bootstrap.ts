@@ -303,11 +303,13 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     agentRepository,
     cryptoService,
     voucherRepository,
+    teamRepository,
     signingRequestRepository,
     nonceRepository,
     dataSource,
     transactionRunner,
     permissionChecker,
+    relationshipReader,
     relationshipWriter,
     tokenValidator,
     teamResolver: {

@@ -390,6 +390,23 @@ export async function createTestApp(
     teamResolver: {
       findPersonalTeamId: async () => null,
     },
+    teamRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      findPersonalByCreator: vi.fn(),
+      updateStatus: vi.fn(),
+      delete: vi.fn(),
+      createInvite: vi.fn(),
+      findInviteByCode: vi.fn(),
+      incrementInviteUseCount: vi.fn(),
+      listInvites: vi.fn(),
+      deleteInvite: vi.fn(),
+    },
+    relationshipReader: {
+      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
+      listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
+      listTeamMembers: vi.fn().mockResolvedValue([]),
+    },
     hydraPublicUrl: 'http://hydra-mock:4444',
     webhookApiKey: TEST_WEBHOOK_API_KEY,
     recoverySecret: TEST_RECOVERY_SECRET,
