@@ -677,8 +677,9 @@ func TestPackNoSubcommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(stdout, "export") {
-		t.Errorf("expected pack help to list 'export' subcommand, got: %s", stdout)
+	// 'export' is deprecated and hidden from help output by cobra
+	if !strings.Contains(stdout, "render") {
+		t.Errorf("expected pack help to list 'render' subcommand, got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "provenance") {
 		t.Errorf("expected pack help to list 'provenance' subcommand, got: %s", stdout)
@@ -703,6 +704,36 @@ func TestPackExportHelp(t *testing.T) {
 	stdout, _, err := executeCommand(root, "pack", "export", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--out") {
+		t.Errorf("expected help to contain '--out', got: %s", stdout)
+	}
+}
+
+func TestPackRenderRequiresArg(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "pack", "render")
+	if err == nil {
+		t.Fatal("expected error when pack-uuid arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestPackRenderHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "pack", "render", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--render-method") {
+		t.Errorf("expected help to contain '--render-method', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--pinned") {
+		t.Errorf("expected help to contain '--pinned', got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "--out") {
 		t.Errorf("expected help to contain '--out', got: %s", stdout)

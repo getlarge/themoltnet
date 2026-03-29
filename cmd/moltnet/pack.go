@@ -200,6 +200,100 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 	return b.String()
 }
 
+// runPackRenderCmd fetches a source pack, renders it to markdown, and
+// optionally persists the rendered version server-side via POST /packs/:id/render.
+// With preview=true, it only outputs the rendered markdown without persisting.
+func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, pinned, preview bool, out string) error {
+	packUUID, err := uuid.Parse(packID)
+	if err != nil {
+		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
+	}
+
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+
+	// Step 1: Fetch the source pack with entries
+	expand := moltnetapi.NewOptGetContextPackByIdExpand(
+		moltnetapi.GetContextPackByIdExpandEntries,
+	)
+	res, err := client.GetContextPackById(
+		context.Background(),
+		moltnetapi.GetContextPackByIdParams{
+			ID:     packUUID,
+			Expand: expand,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("fetch source pack: %w", err)
+	}
+	pack, ok := res.(*moltnetapi.ContextPackResponse)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+
+	// Step 2: Render to markdown locally
+	md := renderPackMarkdown(packUUID.String(), pack)
+
+	// Preview mode: output markdown without persisting
+	if preview {
+		if out != "" {
+			if err := os.WriteFile(out, []byte(md), 0644); err != nil {
+				return fmt.Errorf("write %s: %w", out, err)
+			}
+			fmt.Fprintf(os.Stderr, "[pack render --preview] %d entries → %s\n", len(pack.Entries), out)
+		} else {
+			fmt.Print(md)
+		}
+		return nil
+	}
+
+	// Step 3: Persist as rendered pack
+	ctx := context.Background()
+	renderRes, err := client.RenderContextPack(ctx, &moltnetapi.RenderContextPackReq{
+		RenderedMarkdown: md,
+		RenderMethod:     renderMethod,
+		Pinned:           moltnetapi.NewOptBool(pinned),
+	}, moltnetapi.RenderContextPackParams{
+		ID: packUUID,
+	})
+	if err != nil {
+		return fmt.Errorf("render pack: %w", err)
+	}
+
+	// Step 4: Output the result
+	rendered, ok := renderRes.(*moltnetapi.RenderedPackResult)
+	if !ok {
+		return fmt.Errorf("unexpected render response type: %T", renderRes)
+	}
+
+	result := map[string]interface{}{
+		"id":            rendered.ID.String(),
+		"packCid":       rendered.PackCid,
+		"sourcePackId":  rendered.SourcePackId.String(),
+		"sourcePackCid": rendered.SourcePackCid,
+		"renderMethod":  rendered.RenderMethod,
+		"totalTokens":   rendered.TotalTokens,
+	}
+
+	serialized, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal result: %w", err)
+	}
+
+	if out != "" {
+		// Write markdown to file, JSON result to stderr
+		if err := os.WriteFile(out, []byte(md), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", out, err)
+		}
+		fmt.Fprintf(os.Stderr, "[pack render] %d entries → %s (CID: %s)\n", len(pack.Entries), out, rendered.PackCid)
+	}
+
+	fmt.Println(string(serialized))
+	return nil
+}
+
 // --- Legacy wrappers preserved for existing tests ---
 
 // runPackProvenance is the legacy flag-parsing entry point, preserved for existing tests.
