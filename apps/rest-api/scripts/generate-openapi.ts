@@ -44,6 +44,7 @@ async function main() {
     embeddingService: createStubService() as never,
     permissionChecker: createStubService() as never,
     tokenValidator: createStubService() as never,
+    teamResolver: createStubService() as never,
     webhookApiKey: 'stub-key-for-spec-generation',
     recoverySecret: 'stub-recovery-secret-16chars',
     oryClients: createStubService() as never,

@@ -11,6 +11,7 @@ import {
   type OryClients,
   type PermissionChecker,
   type RelationshipWriter,
+  type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
 import scalarApiReference from '@scalar/fastify-api-reference';
@@ -104,6 +105,7 @@ export interface AppOptions {
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
   tokenValidator: TokenValidator;
+  teamResolver: TeamResolver;
   hydraPublicUrl: string;
   webhookApiKey: string;
   recoverySecret: string;
@@ -187,6 +189,7 @@ export async function registerApiRoutes(
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
+    teamResolver: options.teamResolver,
   });
 
   // Register request context plugin (AFTER auth so identityId/clientId are available)

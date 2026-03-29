@@ -54,6 +54,7 @@ export const VALID_AUTH_CONTEXT: AuthContext = {
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
+  currentTeamId: null,
 };
 
 export function createMockEntry(
@@ -302,16 +303,26 @@ export function createMockServices(): MockServices {
       canReadPack: vi.fn(),
       canReadPacks: vi.fn().mockResolvedValue(new Map()),
       canManagePack: vi.fn(),
+      canAccessTeam: vi.fn(),
+      canManageTeam: vi.fn(),
+      canManageTeamMembers: vi.fn(),
     },
     relationshipWriter: {
       grantDiaryOwner: vi.fn(),
       grantDiaryWriter: vi.fn(),
       grantDiaryReader: vi.fn(),
+      grantDiaryTeam: vi.fn(),
+      removeDiaryTeam: vi.fn(),
       removeDiaryRelations: vi.fn(),
       removeDiaryRelationForAgent: vi.fn(),
       grantEntryParent: vi.fn(),
       grantPackParent: vi.fn(),
       registerAgent: vi.fn(),
+      registerHuman: vi.fn(),
+      grantTeamOwner: vi.fn(),
+      grantTeamManager: vi.fn(),
+      grantTeamMember: vi.fn(),
+      removeTeamMemberRelation: vi.fn(),
       removeEntryRelations: vi.fn(),
       removePackRelations: vi.fn(),
       removePackRelationsBatch: vi.fn(),
@@ -376,6 +387,9 @@ export async function createTestApp(
     relationshipWriter:
       mocks.relationshipWriter as unknown as RelationshipWriter,
     tokenValidator: mockTokenValidator,
+    teamResolver: {
+      findPersonalTeamId: async () => null,
+    },
     hydraPublicUrl: 'http://hydra-mock:4444',
     webhookApiKey: TEST_WEBHOOK_API_KEY,
     recoverySecret: TEST_RECOVERY_SECRET,
