@@ -139,7 +139,7 @@ func runEntryListCmd(apiURL, credPath, diaryID, tags, excludeTags, entryType str
 		params.ExcludeTags = moltnetapi.OptString{Value: excludeTags, Set: true}
 	}
 	if entryType != "" {
-		params.EntryType = moltnetapi.OptListDiaryEntriesEntryType{Value: moltnetapi.ListDiaryEntriesEntryType(entryType), Set: true}
+		params.EntryType = moltnetapi.OptString{Value: entryType, Set: true}
 	}
 	if limit > 0 {
 		params.Limit = moltnetapi.OptFloat64{Value: float64(limit), Set: true}
