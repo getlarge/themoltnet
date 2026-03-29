@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { pollStatus, pollUntil, startOnboarding } from './api.js';
+import {
+  pollStatus,
+  pollUntil,
+  startOnboarding,
+  toErrorMessage,
+} from './api.js';
 
 const BASE_URL = 'http://localhost:8000';
 
@@ -110,5 +115,56 @@ describe('pollUntil', () => {
     await expect(pollUntil(BASE_URL, 'wf-123', ['completed'])).rejects.toThrow(
       'Timed out waiting for status',
     );
+  });
+});
+
+describe('toErrorMessage', () => {
+  it('returns Error.message for Error instances', () => {
+    expect(toErrorMessage(new Error('something broke'))).toBe(
+      'something broke',
+    );
+  });
+
+  it('extracts title from ProblemDetails', () => {
+    const pd = {
+      type: 'about:blank',
+      title: 'Unauthorized',
+      status: 401,
+      code: 'UNAUTHORIZED',
+    };
+    expect(toErrorMessage(pd)).toBe('Unauthorized');
+  });
+
+  it('includes detail in ProblemDetails message', () => {
+    const pd = {
+      type: 'about:blank',
+      title: 'Not found',
+      status: 404,
+      code: 'NOT_FOUND',
+      detail: 'entry does not exist',
+    };
+    expect(toErrorMessage(pd)).toBe('Not found: entry does not exist');
+  });
+
+  it('formats ValidationProblemDetails with field errors', () => {
+    const vpd = {
+      type: 'about:blank',
+      title: 'Validation failed',
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      errors: [
+        { field: 'content', message: 'must not be empty' },
+        { field: 'diaryId', message: 'invalid UUID' },
+      ],
+    };
+    const msg = toErrorMessage(vpd);
+    expect(msg).toContain('Validation failed');
+    expect(msg).toContain('content: must not be empty');
+    expect(msg).toContain('diaryId: invalid UUID');
+  });
+
+  it('falls back to JSON.stringify for unknown objects', () => {
+    const obj = { foo: 'bar' };
+    expect(toErrorMessage(obj)).toBe('{"foo":"bar"}');
   });
 });
