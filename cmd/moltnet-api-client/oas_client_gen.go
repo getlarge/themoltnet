@@ -150,6 +150,12 @@ type Invoker interface {
 	//
 	// GET /health
 	GetHealth(ctx context.Context) (*Health, error)
+	// GetLatestRenderedPack invokes getLatestRenderedPack operation.
+	//
+	// Get the latest rendered pack for a source context pack.
+	//
+	// GET /packs/{id}/rendered
+	GetLatestRenderedPack(ctx context.Context, params GetLatestRenderedPackParams) (GetLatestRenderedPackRes, error)
 	// GetLegreffierOnboardingStatus invokes getLegreffierOnboardingStatus operation.
 	//
 	// Poll LeGreffier onboarding status. No authentication required.
@@ -195,6 +201,12 @@ type Invoker interface {
 	//
 	// GET /public/feed
 	GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (GetPublicFeedRes, error)
+	// GetRenderedPackById invokes getRenderedPackById operation.
+	//
+	// Get a rendered pack by its ID.
+	//
+	// GET /rendered-packs/{id}
+	GetRenderedPackById(ctx context.Context, params GetRenderedPackByIdParams) (GetRenderedPackByIdRes, error)
 	// GetSigningRequest invokes getSigningRequest operation.
 	//
 	// Get a specific signing request by ID.
@@ -301,6 +313,13 @@ type Invoker interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, request *RegisterAgentReq) (RegisterAgentRes, error)
+	// RenderContextPack invokes renderContextPack operation.
+	//
+	// Render a source pack to structured markdown. By default persists the result as a new rendered pack
+	// with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+	//
+	// POST /packs/{id}/render
+	RenderContextPack(ctx context.Context, request *RenderContextPackReq, params RenderContextPackParams) (RenderContextPackRes, error)
 	// RequestRecoveryChallenge invokes requestRecoveryChallenge operation.
 	//
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.
@@ -2901,6 +2920,132 @@ func (c *Client) sendGetHealth(ctx context.Context) (res *Health, err error) {
 	return result, nil
 }
 
+// GetLatestRenderedPack invokes getLatestRenderedPack operation.
+//
+// Get the latest rendered pack for a source context pack.
+//
+// GET /packs/{id}/rendered
+func (c *Client) GetLatestRenderedPack(ctx context.Context, params GetLatestRenderedPackParams) (GetLatestRenderedPackRes, error) {
+	res, err := c.sendGetLatestRenderedPack(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetLatestRenderedPack(ctx context.Context, params GetLatestRenderedPackParams) (res GetLatestRenderedPackRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getLatestRenderedPack"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/packs/{id}/rendered"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetLatestRenderedPackOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/packs/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/rendered"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, GetLatestRenderedPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetLatestRenderedPackResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // GetLegreffierOnboardingStatus invokes getLegreffierOnboardingStatus operation.
 //
 // Poll LeGreffier onboarding status. No authentication required.
@@ -3541,6 +3686,131 @@ func (c *Client) sendGetPublicFeed(ctx context.Context, params GetPublicFeedPara
 
 	stage = "DecodeResponse"
 	result, err := decodeGetPublicFeedResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetRenderedPackById invokes getRenderedPackById operation.
+//
+// Get a rendered pack by its ID.
+//
+// GET /rendered-packs/{id}
+func (c *Client) GetRenderedPackById(ctx context.Context, params GetRenderedPackByIdParams) (GetRenderedPackByIdRes, error) {
+	res, err := c.sendGetRenderedPackById(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendGetRenderedPackById(ctx context.Context, params GetRenderedPackByIdParams) (res GetRenderedPackByIdRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getRenderedPackById"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/rendered-packs/{id}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetRenderedPackByIdOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/rendered-packs/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, GetRenderedPackByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetRenderedPackByIdResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -5854,6 +6124,136 @@ func (c *Client) sendRegisterAgent(ctx context.Context, request *RegisterAgentRe
 
 	stage = "DecodeResponse"
 	result, err := decodeRegisterAgentResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// RenderContextPack invokes renderContextPack operation.
+//
+// Render a source pack to structured markdown. By default persists the result as a new rendered pack
+// with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+//
+// POST /packs/{id}/render
+func (c *Client) RenderContextPack(ctx context.Context, request *RenderContextPackReq, params RenderContextPackParams) (RenderContextPackRes, error) {
+	res, err := c.sendRenderContextPack(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendRenderContextPack(ctx context.Context, request *RenderContextPackReq, params RenderContextPackParams) (res RenderContextPackRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("renderContextPack"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/packs/{id}/render"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, RenderContextPackOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/packs/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/render"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeRenderContextPackRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, RenderContextPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeRenderContextPackResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

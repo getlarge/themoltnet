@@ -666,6 +666,54 @@ export type CustomPackResult = {
   compileStats: CompileStats;
 };
 
+export type RenderedPack = {
+  id: string;
+  packCid: string;
+  sourcePackId: string;
+  diaryId: string;
+  contentHash: string;
+  renderMethod: string;
+  totalTokens: number;
+  createdBy: string;
+  pinned: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RenderedPackResult = {
+  id: string;
+  packCid: string;
+  sourcePackId: string;
+  sourcePackCid: string;
+  diaryId: string;
+  contentHash: string;
+  renderMethod: string;
+  totalTokens: number;
+  pinned: boolean;
+};
+
+export type RenderedPackPreview = {
+  sourcePackId: string;
+  sourcePackCid: string;
+  renderMethod: string;
+  renderedMarkdown: string;
+  totalTokens: number;
+};
+
+export type RenderedPackWithContent = {
+  id: string;
+  packCid: string;
+  sourcePackId: string;
+  diaryId: string;
+  content: string;
+  contentHash: string;
+  renderMethod: string;
+  totalTokens: number;
+  pinned: boolean;
+  createdAt: string;
+};
+
 export type ProvenanceGraph = {
   metadata: {
     format: 'moltnet.provenance-graph/v1';
@@ -773,12 +821,41 @@ export type ProvenanceGraph = {
           } | null;
         };
       }
+    | {
+        id: string;
+        kind: 'rendered_pack';
+        label: string;
+        cid: string | null;
+        meta: {
+          /**
+           * UUID v4 identifier
+           */
+          renderedPackId: string;
+          /**
+           * UUID v4 identifier
+           */
+          sourcePackId: string;
+          /**
+           * UUID v4 identifier
+           */
+          diaryId: string;
+          packCid: string;
+          renderMethod: string;
+          totalTokens: number;
+          pinned: boolean;
+          /**
+           * ISO 8601 timestamp
+           */
+          createdAt: string;
+          expiresAt: string | null;
+        };
+      }
   >;
   edges: Array<{
     id: string;
     from: string;
     to: string;
-    kind: 'includes' | 'supersedes';
+    kind: 'includes' | 'supersedes' | 'rendered_from';
     label?: string;
     meta?: {
       [key: string]: string | number | boolean | null;
@@ -2104,12 +2181,41 @@ export type GetContextPackProvenanceByCidResponses = {
             } | null;
           };
         }
+      | {
+          id: string;
+          kind: 'rendered_pack';
+          label: string;
+          cid: string | null;
+          meta: {
+            /**
+             * UUID v4 identifier
+             */
+            renderedPackId: string;
+            /**
+             * UUID v4 identifier
+             */
+            sourcePackId: string;
+            /**
+             * UUID v4 identifier
+             */
+            diaryId: string;
+            packCid: string;
+            renderMethod: string;
+            totalTokens: number;
+            pinned: boolean;
+            /**
+             * ISO 8601 timestamp
+             */
+            createdAt: string;
+            expiresAt: string | null;
+          };
+        }
     >;
     edges: Array<{
       id: string;
       from: string;
       to: string;
-      kind: 'includes' | 'supersedes';
+      kind: 'includes' | 'supersedes' | 'rendered_from';
       label?: string;
       meta?: {
         [key: string]: string | number | boolean | null;
@@ -2377,6 +2483,142 @@ export type CreateDiaryCustomPackResponses = {
 
 export type CreateDiaryCustomPackResponse =
   CreateDiaryCustomPackResponses[keyof CreateDiaryCustomPackResponses];
+
+export type RenderContextPackData = {
+  body: {
+    renderedMarkdown: string;
+    renderMethod: string;
+    pinned?: boolean;
+    preview?: boolean;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}/render';
+};
+
+export type RenderContextPackErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type RenderContextPackError =
+  RenderContextPackErrors[keyof RenderContextPackErrors];
+
+export type RenderContextPackResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackPreview;
+  /**
+   * Default Response
+   */
+  201: RenderedPackResult;
+};
+
+export type RenderContextPackResponse =
+  RenderContextPackResponses[keyof RenderContextPackResponses];
+
+export type GetLatestRenderedPackData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}/rendered';
+};
+
+export type GetLatestRenderedPackErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetLatestRenderedPackError =
+  GetLatestRenderedPackErrors[keyof GetLatestRenderedPackErrors];
+
+export type GetLatestRenderedPackResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackWithContent;
+};
+
+export type GetLatestRenderedPackResponse =
+  GetLatestRenderedPackResponses[keyof GetLatestRenderedPackResponses];
+
+export type GetRenderedPackByIdData = {
+  body?: never;
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/rendered-packs/{id}';
+};
+
+export type GetRenderedPackByIdErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type GetRenderedPackByIdError =
+  GetRenderedPackByIdErrors[keyof GetRenderedPackByIdErrors];
+
+export type GetRenderedPackByIdResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackWithContent;
+};
+
+export type GetRenderedPackByIdResponse =
+  GetRenderedPackByIdResponses[keyof GetRenderedPackByIdResponses];
 
 export type ListEntryRelationsData = {
   body?: never;

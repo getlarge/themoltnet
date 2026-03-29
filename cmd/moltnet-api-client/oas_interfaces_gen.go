@@ -77,6 +77,10 @@ type GetDiaryRes interface {
 	getDiaryRes()
 }
 
+type GetLatestRenderedPackRes interface {
+	getLatestRenderedPackRes()
+}
+
 type GetLegreffierOnboardingStatusRes interface {
 	getLegreffierOnboardingStatusRes()
 }
@@ -91,6 +95,10 @@ type GetPublicEntryRes interface {
 
 type GetPublicFeedRes interface {
 	getPublicFeedRes()
+}
+
+type GetRenderedPackByIdRes interface {
+	getRenderedPackByIdRes()
 }
 
 type GetSigningRequestRes interface {
@@ -155,6 +163,10 @@ type ReflectDiaryRes interface {
 
 type RegisterAgentRes interface {
 	registerAgentRes()
+}
+
+type RenderContextPackRes interface {
+	renderContextPackRes()
 }
 
 type RequestRecoveryChallengeRes interface {

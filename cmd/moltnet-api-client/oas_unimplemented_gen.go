@@ -195,6 +195,15 @@ func (UnimplementedHandler) GetHealth(ctx context.Context) (r *Health, _ error) 
 	return r, ht.ErrNotImplemented
 }
 
+// GetLatestRenderedPack implements getLatestRenderedPack operation.
+//
+// Get the latest rendered pack for a source context pack.
+//
+// GET /packs/{id}/rendered
+func (UnimplementedHandler) GetLatestRenderedPack(ctx context.Context, params GetLatestRenderedPackParams) (r GetLatestRenderedPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetLegreffierOnboardingStatus implements getLegreffierOnboardingStatus operation.
 //
 // Poll LeGreffier onboarding status. No authentication required.
@@ -258,6 +267,15 @@ func (UnimplementedHandler) GetPublicEntry(ctx context.Context, params GetPublic
 //
 // GET /public/feed
 func (UnimplementedHandler) GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (r GetPublicFeedRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetRenderedPackById implements getRenderedPackById operation.
+//
+// Get a rendered pack by its ID.
+//
+// GET /rendered-packs/{id}
+func (UnimplementedHandler) GetRenderedPackById(ctx context.Context, params GetRenderedPackByIdParams) (r GetRenderedPackByIdRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -416,6 +434,16 @@ func (UnimplementedHandler) ReflectDiary(ctx context.Context, params ReflectDiar
 //
 // POST /auth/register
 func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgentReq) (r RegisterAgentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RenderContextPack implements renderContextPack operation.
+//
+// Render a source pack to structured markdown. By default persists the result as a new rendered pack
+// with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+//
+// POST /packs/{id}/render
+func (UnimplementedHandler) RenderContextPack(ctx context.Context, req *RenderContextPackReq, params RenderContextPackParams) (r RenderContextPackRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

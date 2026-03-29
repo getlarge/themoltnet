@@ -2363,6 +2363,10 @@
                     {
                       "enum": ["supersedes"],
                       "type": "string"
+                    },
+                    {
+                      "enum": ["rendered_from"],
+                      "type": "string"
                     }
                   ]
                 },
@@ -2709,6 +2713,92 @@
                   },
                   "required": ["id", "kind", "label", "cid", "meta"],
                   "type": "object"
+                },
+                {
+                  "properties": {
+                    "cid": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": ["rendered_pack"],
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "meta": {
+                      "properties": {
+                        "createdAt": {
+                          "description": "ISO 8601 timestamp",
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "diaryId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "anyOf": [
+                            {
+                              "description": "ISO 8601 timestamp",
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "packCid": {
+                          "type": "string"
+                        },
+                        "pinned": {
+                          "type": "boolean"
+                        },
+                        "renderMethod": {
+                          "type": "string"
+                        },
+                        "renderedPackId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "sourcePackId": {
+                          "description": "UUID v4 identifier",
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "totalTokens": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "renderedPackId",
+                        "sourcePackId",
+                        "diaryId",
+                        "packCid",
+                        "renderMethod",
+                        "totalTokens",
+                        "pinned",
+                        "createdAt",
+                        "expiresAt"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": ["id", "kind", "label", "cid", "meta"],
+                  "type": "object"
                 }
               ]
             },
@@ -2918,6 +3008,200 @@
             "type": "string"
           }
         ]
+      },
+      "RenderedPack": {
+        "properties": {
+          "contentHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "renderMethod": {
+            "type": "string"
+          },
+          "sourcePackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "totalTokens": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "packCid",
+          "sourcePackId",
+          "diaryId",
+          "contentHash",
+          "renderMethod",
+          "totalTokens",
+          "createdBy",
+          "pinned",
+          "expiresAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "RenderedPackPreview": {
+        "properties": {
+          "renderMethod": {
+            "type": "string"
+          },
+          "renderedMarkdown": {
+            "type": "string"
+          },
+          "sourcePackCid": {
+            "type": "string"
+          },
+          "sourcePackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "totalTokens": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sourcePackId",
+          "sourcePackCid",
+          "renderMethod",
+          "renderedMarkdown",
+          "totalTokens"
+        ],
+        "type": "object"
+      },
+      "RenderedPackResult": {
+        "properties": {
+          "contentHash": {
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "renderMethod": {
+            "type": "string"
+          },
+          "sourcePackCid": {
+            "type": "string"
+          },
+          "sourcePackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "totalTokens": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "packCid",
+          "sourcePackId",
+          "sourcePackCid",
+          "diaryId",
+          "contentHash",
+          "renderMethod",
+          "totalTokens",
+          "pinned"
+        ],
+        "type": "object"
+      },
+      "RenderedPackWithContent": {
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "diaryId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "packCid": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "renderMethod": {
+            "type": "string"
+          },
+          "sourcePackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "totalTokens": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "packCid",
+          "sourcePackId",
+          "diaryId",
+          "content",
+          "contentHash",
+          "renderMethod",
+          "totalTokens",
+          "pinned",
+          "createdAt"
+        ],
+        "type": "object"
       },
       "RotateSecretResponse": {
         "properties": {
@@ -6916,6 +7200,10 @@
                               {
                                 "enum": ["supersedes"],
                                 "type": "string"
+                              },
+                              {
+                                "enum": ["rendered_from"],
+                                "type": "string"
                               }
                             ]
                           },
@@ -7262,6 +7550,92 @@
                             },
                             "required": ["id", "kind", "label", "cid", "meta"],
                             "type": "object"
+                          },
+                          {
+                            "properties": {
+                              "cid": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "enum": ["rendered_pack"],
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "meta": {
+                                "properties": {
+                                  "createdAt": {
+                                    "description": "ISO 8601 timestamp",
+                                    "format": "date-time",
+                                    "type": "string"
+                                  },
+                                  "diaryId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "expiresAt": {
+                                    "anyOf": [
+                                      {
+                                        "description": "ISO 8601 timestamp",
+                                        "format": "date-time",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "packCid": {
+                                    "type": "string"
+                                  },
+                                  "pinned": {
+                                    "type": "boolean"
+                                  },
+                                  "renderMethod": {
+                                    "type": "string"
+                                  },
+                                  "renderedPackId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "sourcePackId": {
+                                    "description": "UUID v4 identifier",
+                                    "format": "uuid",
+                                    "type": "string"
+                                  },
+                                  "totalTokens": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "renderedPackId",
+                                  "sourcePackId",
+                                  "diaryId",
+                                  "packCid",
+                                  "renderMethod",
+                                  "totalTokens",
+                                  "pinned",
+                                  "createdAt",
+                                  "expiresAt"
+                                ],
+                                "type": "object"
+                              }
+                            },
+                            "required": ["id", "kind", "label", "cid", "meta"],
+                            "type": "object"
                           }
                         ]
                       },
@@ -7540,6 +7914,204 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProvenanceGraph"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/packs/{id}/render": {
+      "post": {
+        "description": "Render a source pack to structured markdown. By default persists the result as a new rendered pack with its own CID. Pass `preview: true` to return the rendered markdown without persisting.",
+        "operationId": "renderContextPack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "preview": {
+                    "type": "boolean"
+                  },
+                  "renderMethod": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "renderedMarkdown": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["renderedMarkdown", "renderMethod"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderedPackPreview"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderedPackResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/packs/{id}/rendered": {
+      "get": {
+        "description": "Get the latest rendered pack for a source context pack.",
+        "operationId": "getLatestRenderedPack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderedPackWithContent"
                 }
               }
             },
@@ -8371,6 +8943,81 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/EntryRelation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/rendered-packs/{id}": {
+      "get": {
+        "description": "Get a rendered pack by its ID.",
+        "operationId": "getRenderedPackById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderedPackWithContent"
                 }
               }
             },
