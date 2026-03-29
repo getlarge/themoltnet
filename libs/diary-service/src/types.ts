@@ -189,6 +189,7 @@ export interface ListInput {
   limit?: number;
   offset?: number;
   entryType?: EntryType;
+  entryTypes?: EntryType[];
 }
 
 export interface ListTagsInput {
