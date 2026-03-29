@@ -34,6 +34,7 @@ const PackQuerySchema = Type.Object({
 
 const PackListQuerySchema = Type.Object({
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  offset: Type.Optional(Type.Integer({ minimum: 0 })),
   expand: Type.Optional(Type.Literal('entries')),
 });
 
@@ -100,14 +101,13 @@ function wantsExpandedEntries(expand?: 'entries'): boolean {
   return expand === 'entries';
 }
 
-function toListResponse<T>(items: T[], limit: number) {
-  return {
-    items,
-    // `total` follows the existing REST list convention in this API:
-    // it reports the number of items returned in this response window.
-    total: items.length,
-    limit,
-  };
+function toListResponse<T>(
+  items: T[],
+  total: number,
+  limit: number,
+  offset: number,
+) {
+  return { items, total, limit, offset };
 }
 
 function translateFindDiaryError(err: DiaryServiceError): never {
@@ -151,7 +151,7 @@ async function loadSelectedEntries(
   requestedEntries: SelectedEntry[],
 ): Promise<ResolvedSelection[]> {
   const selectedEntries = normalizeSelection(requestedEntries);
-  const rows = await fastify.diaryEntryRepository.list({
+  const { items: rows } = await fastify.diaryEntryRepository.list({
     diaryId,
     ids: selectedEntries.map((entry) => entry.entryId),
     limit: selectedEntries.length,
@@ -710,10 +710,13 @@ export async function packRoutes(fastify: FastifyInstance) {
         throw err;
       }
       const limit = request.query.limit ?? 20;
-      const packs = await fastify.contextPackRepository.listByDiary(
-        diary.id,
-        limit,
-      );
+      const offset = request.query.offset ?? 0;
+      const { items: packs, total } =
+        await fastify.contextPackRepository.listByDiary(
+          diary.id,
+          limit,
+          offset,
+        );
       let allowedPackIds: Map<string, boolean>;
       try {
         allowedPackIds = await fastify.permissionChecker.canReadPacks(
@@ -732,7 +735,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       );
 
       if (!wantsExpandedEntries(request.query.expand)) {
-        return toListResponse(visiblePacks, limit);
+        return toListResponse(visiblePacks, total, limit, offset);
       }
 
       const entriesByPack =
@@ -745,7 +748,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         entries: entriesByPack.get(pack.id) ?? [],
       }));
 
-      return toListResponse(items, limit);
+      return toListResponse(items, total, limit, offset);
     },
   );
 

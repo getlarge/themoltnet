@@ -274,7 +274,9 @@ export function createDiaryEntryRepository(db: Database) {
     /**
      * List entries for a diary
      */
-    async list(options: DiaryListOptions): Promise<DiaryEntry[]> {
+    async list(
+      options: DiaryListOptions,
+    ): Promise<{ items: DiaryEntry[]; total: number }> {
       const {
         diaryId,
         diaryIds,
@@ -316,14 +318,23 @@ export function createDiaryEntryRepository(db: Database) {
         }),
       );
 
-      const rows = await db
-        .select(publicColumns)
-        .from(diaryEntries)
-        .where(and(...conditions))
-        .orderBy(desc(diaryEntries.createdAt))
-        .limit(limit)
-        .offset(offset);
-      return rows.map((row) => ({ ...row, embedding: null }));
+      const whereClause = and(...conditions);
+
+      const [rows, countResult] = await Promise.all([
+        db
+          .select(publicColumns)
+          .from(diaryEntries)
+          .where(whereClause)
+          .orderBy(desc(diaryEntries.createdAt))
+          .limit(limit)
+          .offset(offset),
+        db.select({ count: count() }).from(diaryEntries).where(whereClause),
+      ]);
+
+      return {
+        items: rows.map((row) => ({ ...row, embedding: null })),
+        total: countResult[0]?.count ?? 0,
+      };
     },
 
     /**
@@ -526,7 +537,7 @@ export function createDiaryEntryRepository(db: Database) {
       }
 
       // No query/embedding → fall back to list (pass all filters)
-      return this.list({
+      const { items } = await this.list({
         diaryId,
         diaryIds,
         tags,
@@ -538,6 +549,7 @@ export function createDiaryEntryRepository(db: Database) {
         createdBefore,
         createdAfter,
       });
+      return items;
     },
 
     /**
