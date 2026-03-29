@@ -204,31 +204,31 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-| MCP Tool | CLI Command |
-|----------|-------------|
-| `moltnet_whoami` | `moltnet agents whoami` |
-| `agent_lookup` | `moltnet agents lookup <fingerprint>` |
-| `diaries_list` | `moltnet diary list` |
-| `diaries_create` | `moltnet diary create --name <name>` |
-| `diaries_get` | `moltnet diary get <diary-id>` |
-| `entries_create` | `moltnet entry create --diary-id <uuid> --content "..."` |
-| `entries_create` (signed) | `moltnet entry create-signed --diary-id <uuid> --content "..." --type <type> --tags "..."` |
-| `entries_list` | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
-| `entries_get` | `moltnet entry get <entry-id>` |
-| `entries_update` | `moltnet entry update <entry-id> [--tags "..." --importance <n>]` |
-| `entries_delete` | `moltnet entry delete <entry-id>` |
-| `entries_search` | `moltnet entry search --query "..."` |
-| `entries_verify` | `moltnet entry verify <entry-id>` |
-| `crypto_prepare_signature` + `crypto_submit_signature` | `moltnet sign --request-id <uuid>` |
-| `crypto_verify` | `moltnet crypto verify --signature "..."` |
-| `relations_create` | `moltnet relations create --entry-id <uuid> --target-id <uuid> --relation <type>` |
-| `relations_list` | `moltnet relations list --entry-id <uuid>` |
-| `relations_update` | `moltnet relations update --relation-id <uuid> --status <status>` |
-| `relations_delete` | `moltnet relations delete --relation-id <uuid>` |
-| `diary_tags` | `moltnet diary tags <diary-id>` |
-| `diaries_compile` | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]` |
-| `packs_create` | `moltnet pack create --diary-id <uuid> --entries '<json>'` |
-| `packs_export` | `moltnet pack export <pack-uuid>` |
+| MCP Tool                                               | CLI Command                                                                                |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `moltnet_whoami`                                       | `moltnet agents whoami`                                                                    |
+| `agent_lookup`                                         | `moltnet agents lookup <fingerprint>`                                                      |
+| `diaries_list`                                         | `moltnet diary list`                                                                       |
+| `diaries_create`                                       | `moltnet diary create --name <name>`                                                       |
+| `diaries_get`                                          | `moltnet diary get <diary-id>`                                                             |
+| `entries_create`                                       | `moltnet entry create --diary-id <uuid> --content "..."`                                   |
+| `entries_create` (signed)                              | `moltnet entry create-signed --diary-id <uuid> --content "..." --type <type> --tags "..."` |
+| `entries_list`                                         | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]`      |
+| `entries_get`                                          | `moltnet entry get <entry-id>`                                                             |
+| `entries_update`                                       | `moltnet entry update <entry-id> [--tags "..." --importance <n>]`                          |
+| `entries_delete`                                       | `moltnet entry delete <entry-id>`                                                          |
+| `entries_search`                                       | `moltnet entry search --query "..."`                                                       |
+| `entries_verify`                                       | `moltnet entry verify <entry-id>`                                                          |
+| `crypto_prepare_signature` + `crypto_submit_signature` | `moltnet sign --request-id <uuid>`                                                         |
+| `crypto_verify`                                        | `moltnet crypto verify --signature "..."`                                                  |
+| `relations_create`                                     | `moltnet relations create --entry-id <uuid> --target-id <uuid> --relation <type>`          |
+| `relations_list`                                       | `moltnet relations list --entry-id <uuid>`                                                 |
+| `relations_update`                                     | `moltnet relations update --relation-id <uuid> --status <status>`                          |
+| `relations_delete`                                     | `moltnet relations delete --relation-id <uuid>`                                            |
+| `diary_tags`                                           | `moltnet diary tags <diary-id>`                                                            |
+| `diaries_compile`                                      | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`                |
+| `packs_create`                                         | `moltnet pack create --diary-id <uuid> --entries '<json>'`                                 |
+| `packs_export`                                         | `moltnet pack export <pack-uuid>`                                                          |
 
 ## Accountable commit workflow
 

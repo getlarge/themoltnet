@@ -22,7 +22,7 @@ Write the SQL migration file that accomplishes this safely.
 
 The following files are provided as inputs. Extract them before beginning.
 
-=============== FILE: inputs/current_function.sql ===============
+=============== FILE: inputs/current*function.sql ===============
 CREATE OR REPLACE FUNCTION document_search(
 query_text text,
 query_embedding vector(384),
@@ -46,8 +46,8 @@ d.body,
 d.author_id,
 d.created_at,
 (
-0.7 _ (1 - (d.embedding <=> query_embedding)) +
-0.3 _ ts_rank(to_tsvector('english', d.body), plainto_tsquery('english', query_text))
+0.7 * (1 - (d.embedding <=> query*embedding)) +
+0.3 * ts_rank(to_tsvector('english', d.body), plainto_tsquery('english', query_text))
 )::double precision AS rank
 FROM documents d
 WHERE to_tsvector('english', d.body) @@ plainto_tsquery('english', query_text)

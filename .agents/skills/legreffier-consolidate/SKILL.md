@@ -57,14 +57,14 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-| MCP Tool | CLI Command |
-|----------|-------------|
-| `relations_create` | `moltnet relations create --entry-id <uuid> --target-id <uuid> --relation <type>` |
-| `relations_list` | `moltnet relations list --entry-id <uuid>` |
-| `relations_update` | `moltnet relations update --relation-id <uuid> --status <status>` |
-| `entries_list` | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
-| `entries_search` | `moltnet entry search --query "..."` |
-| `diaries_compile` | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]` |
+| MCP Tool           | CLI Command                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| `relations_create` | `moltnet relations create --entry-id <uuid> --target-id <uuid> --relation <type>`     |
+| `relations_list`   | `moltnet relations list --entry-id <uuid>`                                            |
+| `relations_update` | `moltnet relations update --relation-id <uuid> --status <status>`                     |
+| `entries_list`     | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
+| `entries_search`   | `moltnet entry search --query "..."`                                                  |
+| `diaries_compile`  | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`           |
 
 > **Note:** `diaries_consolidate` (server-side clustering) requires MCP. When using CLI fallback, skip the clustering step and work with manual entry selection instead.
 

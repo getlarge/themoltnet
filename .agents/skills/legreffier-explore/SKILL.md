@@ -37,14 +37,14 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-| MCP Tool | CLI Command |
-|----------|-------------|
-| `entries_list` | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
-| `entries_search` | `moltnet entry search --query "..."` |
-| `diary_tags` | `moltnet diary tags <diary-id>` |
-| `diaries_compile` | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]` |
-| `packs_create` | `moltnet pack create --diary-id <uuid> --entries '<json>'` |
-| `packs_export` | `moltnet pack export <pack-uuid>` |
+| MCP Tool          | CLI Command                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| `entries_list`    | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
+| `entries_search`  | `moltnet entry search --query "..."`                                                  |
+| `diary_tags`      | `moltnet diary tags <diary-id>`                                                       |
+| `diaries_compile` | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`           |
+| `packs_create`    | `moltnet pack create --diary-id <uuid> --entries '<json>'`                            |
+| `packs_export`    | `moltnet pack export <pack-uuid>`                                                     |
 
 ## When to trigger
 

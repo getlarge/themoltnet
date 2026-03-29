@@ -59,11 +59,11 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-| MCP Tool | CLI Command |
-|----------|-------------|
-| `moltnet_whoami` | `moltnet agents whoami` |
-| `diaries_list` | `moltnet diary list` |
-| `diaries_create` | `moltnet diary create --name <name>` |
+| MCP Tool         | CLI Command                                              |
+| ---------------- | -------------------------------------------------------- |
+| `moltnet_whoami` | `moltnet agents whoami`                                  |
+| `diaries_list`   | `moltnet diary list`                                     |
+| `diaries_create` | `moltnet diary create --name <name>`                     |
 | `entries_create` | `moltnet entry create --diary-id <uuid> --content "..."` |
 
 ## Scan modes
