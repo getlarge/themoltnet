@@ -197,9 +197,10 @@ describe('Entry relation routes', () => {
     it('returns 200 with items/total/limit shape', async () => {
       // Arrange
       mocks.permissionChecker.canViewEntry.mockResolvedValue(true);
-      mocks.entryRelationRepository.listByEntry.mockResolvedValue([
-        MOCK_RELATION,
-      ]);
+      mocks.entryRelationRepository.listByEntry.mockResolvedValue({
+        items: [MOCK_RELATION],
+        total: 5,
+      });
 
       // Act
       const response = await app.inject({
@@ -212,8 +213,9 @@ describe('Entry relation routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body).toHaveProperty('items');
-      expect(body).toHaveProperty('total', 1);
+      expect(body).toHaveProperty('total', 5);
       expect(body).toHaveProperty('limit');
+      expect(body).toHaveProperty('offset', 0);
       expect(body.items[0]).toHaveProperty('id', RELATION_ID);
     });
 
@@ -235,12 +237,15 @@ describe('Entry relation routes', () => {
     it('passes query params to listByEntry', async () => {
       // Arrange
       mocks.permissionChecker.canViewEntry.mockResolvedValue(true);
-      mocks.entryRelationRepository.listByEntry.mockResolvedValue([]);
+      mocks.entryRelationRepository.listByEntry.mockResolvedValue({
+        items: [],
+        total: 0,
+      });
 
       // Act
       const response = await app.inject({
         method: 'GET',
-        url: `/entries/${ENTRY_ID}/relations?relation=supersedes&status=accepted&direction=as_source&limit=10`,
+        url: `/entries/${ENTRY_ID}/relations?relation=supersedes&status=accepted&direction=as_source&limit=10&offset=5`,
         headers: authHeaders,
       });
 
@@ -253,10 +258,12 @@ describe('Entry relation routes', () => {
           status: 'accepted',
           direction: 'as_source',
           limit: 10,
+          offset: 5,
         },
       );
       const body = response.json();
       expect(body.limit).toBe(10);
+      expect(body.offset).toBe(5);
     });
   });
 

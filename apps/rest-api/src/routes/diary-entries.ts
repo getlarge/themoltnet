@@ -5,9 +5,10 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
-import type { ListTagsInput } from '@moltnet/diary-service';
+import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  ENTRY_TYPES_CSV_PATTERN,
   EntryParamsSchema,
   NestedDiaryParamsSchema,
   ProblemDetailsSchema,
@@ -248,14 +249,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             }),
           ),
           entryType: Type.Optional(
-            Type.Union([
-              Type.Literal('episodic'),
-              Type.Literal('semantic'),
-              Type.Literal('procedural'),
-              Type.Literal('reflection'),
-              Type.Literal('identity'),
-              Type.Literal('soul'),
-            ]),
+            Type.String({
+              pattern: ENTRY_TYPES_CSV_PATTERN,
+              maxLength: 100,
+              description:
+                'Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.',
+            }),
           ),
         }),
         response: {
@@ -287,19 +286,22 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const excludedTagsFilter = excludeTags
         ? excludeTags.split(',').map((t) => t.trim())
         : undefined;
+      const entryTypesParsed = entryType
+        ? (entryType.split(',').map((t) => t.trim()) as ListInput['entryTypes'])
+        : undefined;
 
-      const entries = await fastify.diaryService.listEntries({
+      const { items, total } = await fastify.diaryService.listEntries({
         diaryId: diary.id,
         tags: tagsFilter,
         excludeTags: excludedTagsFilter,
         limit,
         offset,
-        entryType,
+        entryTypes: entryTypesParsed,
       });
 
       return {
-        items: entries,
-        total: entries.length,
+        items,
+        total,
         limit: limit ?? 20,
         offset: offset ?? 0,
       };

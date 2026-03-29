@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "composite": true,
+    "declarationDir": "dist/.dts",
     "outDir": "dist",
     "rootDir": "src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./dist/.dts/tsconfig.tsbuildinfo"
   },
   "exclude": ["node_modules", "dist"],
   "extends": "../../tsconfig.json",

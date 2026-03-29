@@ -656,12 +656,16 @@
             "description": "Maximum number of items requested for this response.",
             "type": "number"
           },
+          "offset": {
+            "description": "Number of items skipped before this page.",
+            "type": "number"
+          },
           "total": {
-            "description": "Number of items returned in this response window. This API currently uses returned-count semantics for list totals.",
+            "description": "Total number of matching items in the database.",
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit"],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "ContextPackResponse": {
@@ -777,12 +781,16 @@
             "description": "Maximum number of items requested for this response.",
             "type": "number"
           },
+          "offset": {
+            "description": "Number of items skipped before this page.",
+            "type": "number"
+          },
           "total": {
-            "description": "Number of items returned in this response window. This API currently uses returned-count semantics for list totals.",
+            "description": "Total number of matching items in the database.",
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit"],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "CryptoIdentity": {
@@ -1256,6 +1264,7 @@
             "type": "number"
           },
           "total": {
+            "description": "Total number of matching items in the database.",
             "type": "number"
           }
         },
@@ -1584,12 +1593,16 @@
             "description": "Maximum number of items requested.",
             "type": "number"
           },
+          "offset": {
+            "description": "Number of items skipped before this page.",
+            "type": "number"
+          },
           "total": {
-            "description": "Number of items returned in this response window.",
+            "description": "Total number of matching items in the database.",
             "type": "number"
           }
         },
-        "required": ["items", "total", "limit"],
+        "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
       "EntryType": {
@@ -4583,36 +4596,14 @@
             }
           },
           {
+            "description": "Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.",
             "in": "query",
             "name": "entryType",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "enum": ["episodic"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["semantic"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["procedural"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["reflection"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["identity"],
-                  "type": "string"
-                },
-                {
-                  "enum": ["soul"],
-                  "type": "string"
-                }
-              ]
+              "maxLength": 100,
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$",
+              "type": "string"
             }
           },
           {
@@ -5771,6 +5762,15 @@
           },
           {
             "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
             "name": "expand",
             "required": false,
             "schema": {
@@ -6457,6 +6457,15 @@
             "schema": {
               "maximum": 100,
               "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "minimum": 0,
               "type": "integer"
             }
           },

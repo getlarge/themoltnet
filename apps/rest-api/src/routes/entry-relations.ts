@@ -68,6 +68,7 @@ const ListRelationsQuerySchema = Type.Object({
     ]),
   ),
   limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  offset: Type.Optional(Type.Integer({ minimum: 0 })),
 });
 
 const UpdateRelationStatusBodySchema = Type.Object({
@@ -185,7 +186,13 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
     async (request) => {
       const identityId = request.authContext!.identityId;
       const { entryId } = request.params;
-      const { relation, status, direction, limit = 50 } = request.query;
+      const {
+        relation,
+        status,
+        direction,
+        limit = 50,
+        offset = 0,
+      } = request.query;
 
       const allowed = await fastify.permissionChecker.canViewEntry(
         entryId,
@@ -195,17 +202,20 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         throw createProblem('forbidden', 'Not authorized to view this entry');
       }
 
-      const items = await fastify.entryRelationRepository.listByEntry(entryId, {
-        relation,
-        status,
-        direction,
-        limit,
-      });
+      const { items, total } =
+        await fastify.entryRelationRepository.listByEntry(entryId, {
+          relation,
+          status,
+          direction,
+          limit,
+          offset,
+        });
 
       return {
         items: items.map(toRelationResponse),
-        total: items.length,
+        total,
         limit,
+        offset,
       };
     },
   );

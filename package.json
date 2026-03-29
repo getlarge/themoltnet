@@ -10,8 +10,8 @@
   },
   "packageManager": "pnpm@10.28.1",
   "scripts": {
-    "claude": "GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig claude",
-    "codex": "set -a && . .moltnet/legreffier/env && set +a && GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig codex",
+    "claude": "DIARY_ID=6e4d9948-8ec5-4f59-b82a-3acbc4bbc396 GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig claude",
+    "codex": "set -a && . .moltnet/legreffier/env && set +a && DIARY_ID=6e4d9948-8ec5-4f59-b82a-3acbc4bbc396 GIT_CONFIG_GLOBAL=.moltnet/legreffier/gitconfig codex",
     "build": "pnpm -r run build",
     "build:cli": "cd cmd/moltnet && go build -o ../../dist/moltnet .",
     "go:build": "cd cmd/moltnet && go build -o ../../dist/moltnet .",

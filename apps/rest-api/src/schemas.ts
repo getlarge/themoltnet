@@ -86,7 +86,9 @@ export const DiaryEntrySchema = Type.Object(
 export const DiaryListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(DiaryEntrySchema)),
-    total: Type.Number(),
+    total: Type.Number({
+      description: 'Total number of matching items in the database.',
+    }),
     limit: Type.Number(),
     offset: Type.Number(),
   },
@@ -688,10 +690,13 @@ export const EntryRelationListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(EntryRelationSchema)),
     total: Type.Number({
-      description: 'Number of items returned in this response window.',
+      description: 'Total number of matching items in the database.',
     }),
     limit: Type.Number({
       description: 'Maximum number of items requested.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped before this page.',
     }),
   },
   { $id: 'EntryRelationList' },
@@ -782,11 +787,13 @@ export const ContextPackListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(ContextPackSchema)),
     total: Type.Number({
-      description:
-        'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
+      description: 'Total number of matching items in the database.',
     }),
     limit: Type.Number({
       description: 'Maximum number of items requested for this response.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped before this page.',
     }),
   },
   { $id: 'ContextPackList' },
@@ -796,11 +803,13 @@ export const ContextPackResponseListSchema = Type.Object(
   {
     items: Type.Array(Type.Ref(ContextPackResponseSchema)),
     total: Type.Number({
-      description:
-        'Number of items returned in this response window. This API currently uses returned-count semantics for list totals.',
+      description: 'Total number of matching items in the database.',
     }),
     limit: Type.Number({
       description: 'Maximum number of items requested for this response.',
+    }),
+    offset: Type.Number({
+      description: 'Number of items skipped before this page.',
     }),
   },
   { $id: 'ContextPackResponseList' },

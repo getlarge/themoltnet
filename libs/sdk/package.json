@@ -21,7 +21,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/.dts"
   ],
   "scripts": {
     "build": "vite build",
