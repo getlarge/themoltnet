@@ -21,7 +21,7 @@ func formatAPIError(res any) error {
 	}
 
 	var pd moltnetapi.ProblemDetails
-	if err := json.Unmarshal(data, &pd); err != nil || pd.Title == "" {
+	if err := json.Unmarshal(data, &pd); err != nil || pd.Title == "" || pd.Status == 0 {
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 

@@ -45,7 +45,7 @@ export function toErrorMessage(err: unknown): string {
     const fieldErrors = err.errors
       .map((e) => `  ${e.field}: ${e.message}`)
       .join('\n');
-    return `${base}\n${fieldErrors}`;
+    return fieldErrors ? `${base}\n${fieldErrors}` : base;
   }
   if (isProblemDetails(err)) {
     return problemToError(err, err.status).message;
