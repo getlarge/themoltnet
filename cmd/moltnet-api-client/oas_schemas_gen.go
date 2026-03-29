@@ -28,6 +28,127 @@ type AcceptDiaryInvitationUnauthorized ProblemDetails
 
 func (*AcceptDiaryInvitationUnauthorized) acceptDiaryInvitationRes() {}
 
+// AddTeamMemberOK is response for AddTeamMember operation.
+type AddTeamMemberOK struct{}
+
+type AddTeamMemberReq struct {
+	Role      AddTeamMemberReqRole      `json:"role"`
+	SubjectId uuid.UUID                 `json:"subjectId"`
+	SubjectNs AddTeamMemberReqSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *AddTeamMemberReq) GetRole() AddTeamMemberReqRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *AddTeamMemberReq) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *AddTeamMemberReq) GetSubjectNs() AddTeamMemberReqSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *AddTeamMemberReq) SetRole(val AddTeamMemberReqRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *AddTeamMemberReq) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *AddTeamMemberReq) SetSubjectNs(val AddTeamMemberReqSubjectNs) {
+	s.SubjectNs = val
+}
+
+type AddTeamMemberReqRole string
+
+const (
+	AddTeamMemberReqRoleManager AddTeamMemberReqRole = "manager"
+	AddTeamMemberReqRoleMember  AddTeamMemberReqRole = "member"
+)
+
+// AllValues returns all AddTeamMemberReqRole values.
+func (AddTeamMemberReqRole) AllValues() []AddTeamMemberReqRole {
+	return []AddTeamMemberReqRole{
+		AddTeamMemberReqRoleManager,
+		AddTeamMemberReqRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AddTeamMemberReqRole) MarshalText() ([]byte, error) {
+	switch s {
+	case AddTeamMemberReqRoleManager:
+		return []byte(s), nil
+	case AddTeamMemberReqRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AddTeamMemberReqRole) UnmarshalText(data []byte) error {
+	switch AddTeamMemberReqRole(data) {
+	case AddTeamMemberReqRoleManager:
+		*s = AddTeamMemberReqRoleManager
+		return nil
+	case AddTeamMemberReqRoleMember:
+		*s = AddTeamMemberReqRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type AddTeamMemberReqSubjectNs string
+
+const (
+	AddTeamMemberReqSubjectNsAgent AddTeamMemberReqSubjectNs = "Agent"
+	AddTeamMemberReqSubjectNsHuman AddTeamMemberReqSubjectNs = "Human"
+)
+
+// AllValues returns all AddTeamMemberReqSubjectNs values.
+func (AddTeamMemberReqSubjectNs) AllValues() []AddTeamMemberReqSubjectNs {
+	return []AddTeamMemberReqSubjectNs{
+		AddTeamMemberReqSubjectNsAgent,
+		AddTeamMemberReqSubjectNsHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AddTeamMemberReqSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case AddTeamMemberReqSubjectNsAgent:
+		return []byte(s), nil
+	case AddTeamMemberReqSubjectNsHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AddTeamMemberReqSubjectNs) UnmarshalText(data []byte) error {
+	switch AddTeamMemberReqSubjectNs(data) {
+	case AddTeamMemberReqSubjectNsAgent:
+		*s = AddTeamMemberReqSubjectNsAgent
+		return nil
+	case AddTeamMemberReqSubjectNsHuman:
+		*s = AddTeamMemberReqSubjectNsHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/AgentIdentity
 type AgentIdentity struct {
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -2197,6 +2318,125 @@ type CreateSigningRequestUnauthorized ProblemDetails
 
 func (*CreateSigningRequestUnauthorized) createSigningRequestRes() {}
 
+type CreateTeamCreated struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// GetID returns the value of ID.
+func (s *CreateTeamCreated) GetID() string {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *CreateTeamCreated) GetName() string {
+	return s.Name
+}
+
+// SetID sets the value of ID.
+func (s *CreateTeamCreated) SetID(val string) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateTeamCreated) SetName(val string) {
+	s.Name = val
+}
+
+// CreateTeamInviteOK is response for CreateTeamInvite operation.
+type CreateTeamInviteOK struct{}
+
+type CreateTeamInviteReq struct {
+	ExpiresInHours OptInt                     `json:"expiresInHours"`
+	MaxUses        OptInt                     `json:"maxUses"`
+	Role           OptCreateTeamInviteReqRole `json:"role"`
+}
+
+// GetExpiresInHours returns the value of ExpiresInHours.
+func (s *CreateTeamInviteReq) GetExpiresInHours() OptInt {
+	return s.ExpiresInHours
+}
+
+// GetMaxUses returns the value of MaxUses.
+func (s *CreateTeamInviteReq) GetMaxUses() OptInt {
+	return s.MaxUses
+}
+
+// GetRole returns the value of Role.
+func (s *CreateTeamInviteReq) GetRole() OptCreateTeamInviteReqRole {
+	return s.Role
+}
+
+// SetExpiresInHours sets the value of ExpiresInHours.
+func (s *CreateTeamInviteReq) SetExpiresInHours(val OptInt) {
+	s.ExpiresInHours = val
+}
+
+// SetMaxUses sets the value of MaxUses.
+func (s *CreateTeamInviteReq) SetMaxUses(val OptInt) {
+	s.MaxUses = val
+}
+
+// SetRole sets the value of Role.
+func (s *CreateTeamInviteReq) SetRole(val OptCreateTeamInviteReqRole) {
+	s.Role = val
+}
+
+type CreateTeamInviteReqRole string
+
+const (
+	CreateTeamInviteReqRoleManager CreateTeamInviteReqRole = "manager"
+	CreateTeamInviteReqRoleMember  CreateTeamInviteReqRole = "member"
+)
+
+// AllValues returns all CreateTeamInviteReqRole values.
+func (CreateTeamInviteReqRole) AllValues() []CreateTeamInviteReqRole {
+	return []CreateTeamInviteReqRole{
+		CreateTeamInviteReqRoleManager,
+		CreateTeamInviteReqRoleMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTeamInviteReqRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTeamInviteReqRoleManager:
+		return []byte(s), nil
+	case CreateTeamInviteReqRoleMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTeamInviteReqRole) UnmarshalText(data []byte) error {
+	switch CreateTeamInviteReqRole(data) {
+	case CreateTeamInviteReqRoleManager:
+		*s = CreateTeamInviteReqRoleManager
+		return nil
+	case CreateTeamInviteReqRoleMember:
+		*s = CreateTeamInviteReqRoleMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateTeamReq struct {
+	Name string `json:"name"`
+}
+
+// GetName returns the value of Name.
+func (s *CreateTeamReq) GetName() string {
+	return s.Name
+}
+
+// SetName sets the value of Name.
+func (s *CreateTeamReq) SetName(val string) {
+	s.Name = val
+}
+
 // Ref: #/components/schemas/CryptoIdentity
 type CryptoIdentity struct {
 	Fingerprint string    `json:"fingerprint"`
@@ -2550,6 +2790,12 @@ func (*DeleteEntryRelationNotFound) deleteEntryRelationRes() {}
 type DeleteEntryRelationUnauthorized ProblemDetails
 
 func (*DeleteEntryRelationUnauthorized) deleteEntryRelationRes() {}
+
+// DeleteTeamInviteOK is response for DeleteTeamInvite operation.
+type DeleteTeamInviteOK struct{}
+
+// DeleteTeamOK is response for DeleteTeam operation.
+type DeleteTeamOK struct{}
 
 // Ref: #/components/schemas/DiaryCatalog
 type DiaryCatalog struct {
@@ -5101,6 +5347,9 @@ type GetSigningRequestUnauthorized ProblemDetails
 
 func (*GetSigningRequestUnauthorized) getSigningRequestRes() {}
 
+// GetTeamOK is response for GetTeam operation.
+type GetTeamOK struct{}
+
 type GetTrustGraphOK struct {
 	Edges []GetTrustGraphOKEdgesItem `json:"edges"`
 }
@@ -5204,6 +5453,23 @@ func (*IssueVoucherTooManyRequests) issueVoucherRes() {}
 type IssueVoucherUnauthorized ProblemDetails
 
 func (*IssueVoucherUnauthorized) issueVoucherRes() {}
+
+// JoinTeamOK is response for JoinTeam operation.
+type JoinTeamOK struct{}
+
+type JoinTeamReq struct {
+	Code string `json:"code"`
+}
+
+// GetCode returns the value of Code.
+func (s *JoinTeamReq) GetCode() string {
+	return s.Code
+}
+
+// SetCode sets the value of Code.
+func (s *JoinTeamReq) SetCode(val string) {
+	s.Code = val
+}
 
 type ListActiveVouchersInternalServerError ProblemDetails
 
@@ -5471,6 +5737,84 @@ func (*ListSigningRequestsInternalServerError) listSigningRequestsRes() {}
 type ListSigningRequestsUnauthorized ProblemDetails
 
 func (*ListSigningRequestsUnauthorized) listSigningRequestsRes() {}
+
+// ListTeamInvitesOK is response for ListTeamInvites operation.
+type ListTeamInvitesOK struct{}
+
+// ListTeamMembersOK is response for ListTeamMembers operation.
+type ListTeamMembersOK struct{}
+
+type ListTeamsOK struct {
+	Items []ListTeamsOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListTeamsOK) GetItems() []ListTeamsOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListTeamsOK) SetItems(val []ListTeamsOKItemsItem) {
+	s.Items = val
+}
+
+type ListTeamsOKItemsItem struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Personal bool   `json:"personal"`
+	Role     string `json:"role"`
+	Status   string `json:"status"`
+}
+
+// GetID returns the value of ID.
+func (s *ListTeamsOKItemsItem) GetID() string {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *ListTeamsOKItemsItem) GetName() string {
+	return s.Name
+}
+
+// GetPersonal returns the value of Personal.
+func (s *ListTeamsOKItemsItem) GetPersonal() bool {
+	return s.Personal
+}
+
+// GetRole returns the value of Role.
+func (s *ListTeamsOKItemsItem) GetRole() string {
+	return s.Role
+}
+
+// GetStatus returns the value of Status.
+func (s *ListTeamsOKItemsItem) GetStatus() string {
+	return s.Status
+}
+
+// SetID sets the value of ID.
+func (s *ListTeamsOKItemsItem) SetID(val string) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *ListTeamsOKItemsItem) SetName(val string) {
+	s.Name = val
+}
+
+// SetPersonal sets the value of Personal.
+func (s *ListTeamsOKItemsItem) SetPersonal(val bool) {
+	s.Personal = val
+}
+
+// SetRole sets the value of Role.
+func (s *ListTeamsOKItemsItem) SetRole(val string) {
+	s.Role = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ListTeamsOKItemsItem) SetStatus(val string) {
+	s.Status = val
+}
 
 // Ref: #/components/schemas/NetworkInfo
 type NetworkInfo struct {
@@ -7211,6 +7555,98 @@ func (o OptCreateEntryRelationReqStatus) Get() (v CreateEntryRelationReqStatus, 
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateEntryRelationReqStatus) Or(d CreateEntryRelationReqStatus) CreateEntryRelationReqStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateTeamInviteReq returns new OptCreateTeamInviteReq with value set to v.
+func NewOptCreateTeamInviteReq(v CreateTeamInviteReq) OptCreateTeamInviteReq {
+	return OptCreateTeamInviteReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateTeamInviteReq is optional CreateTeamInviteReq.
+type OptCreateTeamInviteReq struct {
+	Value CreateTeamInviteReq
+	Set   bool
+}
+
+// IsSet returns true if OptCreateTeamInviteReq was set.
+func (o OptCreateTeamInviteReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateTeamInviteReq) Reset() {
+	var v CreateTeamInviteReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateTeamInviteReq) SetTo(v CreateTeamInviteReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateTeamInviteReq) Get() (v CreateTeamInviteReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateTeamInviteReq) Or(d CreateTeamInviteReq) CreateTeamInviteReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateTeamInviteReqRole returns new OptCreateTeamInviteReqRole with value set to v.
+func NewOptCreateTeamInviteReqRole(v CreateTeamInviteReqRole) OptCreateTeamInviteReqRole {
+	return OptCreateTeamInviteReqRole{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateTeamInviteReqRole is optional CreateTeamInviteReqRole.
+type OptCreateTeamInviteReqRole struct {
+	Value CreateTeamInviteReqRole
+	Set   bool
+}
+
+// IsSet returns true if OptCreateTeamInviteReqRole was set.
+func (o OptCreateTeamInviteReqRole) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateTeamInviteReqRole) Reset() {
+	var v CreateTeamInviteReqRole
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateTeamInviteReqRole) SetTo(v CreateTeamInviteReqRole) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateTeamInviteReqRole) Get() (v CreateTeamInviteReqRole, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateTeamInviteReqRole) Or(d CreateTeamInviteReqRole) CreateTeamInviteReqRole {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -10020,6 +10456,9 @@ func (s *RelationType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+// RemoveTeamMemberOK is response for RemoveTeamMember operation.
+type RemoveTeamMemberOK struct{}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 

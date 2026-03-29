@@ -14,6 +14,12 @@ type Handler interface {
 	//
 	// POST /diaries/invitations/{id}/accept
 	AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error)
+	// AddTeamMember implements addTeamMember operation.
+	//
+	// Add a member directly. Requires manage_members permission.
+	//
+	// POST /teams/{id}/members
+	AddTeamMember(ctx context.Context, req *AddTeamMemberReq, params AddTeamMemberParams) error
 	// CompileDiary implements compileDiary operation.
 	//
 	// Compile a token-budget-fitted context pack from diary entries.
@@ -58,6 +64,18 @@ type Handler interface {
 	//
 	// POST /crypto/signing-requests
 	CreateSigningRequest(ctx context.Context, req *CreateSigningRequestReq) (CreateSigningRequestRes, error)
+	// CreateTeam implements createTeam operation.
+	//
+	// Create a new project team. Caller becomes owner.
+	//
+	// POST /teams
+	CreateTeam(ctx context.Context, req *CreateTeamReq) (*CreateTeamCreated, error)
+	// CreateTeamInvite implements createTeamInvite operation.
+	//
+	// Create an invite code. Requires manage_members permission.
+	//
+	// POST /teams/{id}/invites
+	CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) error
 	// DeclineDiaryInvitation implements declineDiaryInvitation operation.
 	//
 	// Decline a pending diary share invitation.
@@ -82,6 +100,18 @@ type Handler interface {
 	//
 	// DELETE /relations/{id}
 	DeleteEntryRelation(ctx context.Context, params DeleteEntryRelationParams) (DeleteEntryRelationRes, error)
+	// DeleteTeam implements deleteTeam operation.
+	//
+	// Delete a team. Requires manage permission (owner only).
+	//
+	// DELETE /teams/{id}
+	DeleteTeam(ctx context.Context, params DeleteTeamParams) error
+	// DeleteTeamInvite implements deleteTeamInvite operation.
+	//
+	// Delete an invite code. Requires manage_members permission.
+	//
+	// DELETE /teams/{id}/invites/{inviteId}
+	DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) error
 	// GetAgentProfile implements getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -181,6 +211,12 @@ type Handler interface {
 	//
 	// GET /crypto/signing-requests/{id}
 	GetSigningRequest(ctx context.Context, params GetSigningRequestParams) (GetSigningRequestRes, error)
+	// GetTeam implements getTeam operation.
+	//
+	// Get team details. Requires team access.
+	//
+	// GET /teams/{id}
+	GetTeam(ctx context.Context, params GetTeamParams) error
 	// GetTrustGraph implements getTrustGraph operation.
 	//
 	// Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key
@@ -201,6 +237,12 @@ type Handler interface {
 	//
 	// POST /vouch
 	IssueVoucher(ctx context.Context) (IssueVoucherRes, error)
+	// JoinTeam implements joinTeam operation.
+	//
+	// Join a team using an invite code.
+	//
+	// POST /teams/join
+	JoinTeam(ctx context.Context, req *JoinTeamReq) error
 	// ListActiveVouchers implements listActiveVouchers operation.
 	//
 	// List your active (unredeemed, unexpired) voucher codes.
@@ -261,6 +303,24 @@ type Handler interface {
 	//
 	// GET /crypto/signing-requests
 	ListSigningRequests(ctx context.Context, params ListSigningRequestsParams) (ListSigningRequestsRes, error)
+	// ListTeamInvites implements listTeamInvites operation.
+	//
+	// List invite codes. Requires manage_members permission.
+	//
+	// GET /teams/{id}/invites
+	ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) error
+	// ListTeamMembers implements listTeamMembers operation.
+	//
+	// List team members. Requires team access.
+	//
+	// GET /teams/{id}/members
+	ListTeamMembers(ctx context.Context, params ListTeamMembersParams) error
+	// ListTeams implements listTeams operation.
+	//
+	// List teams the caller belongs to.
+	//
+	// GET /teams
+	ListTeams(ctx context.Context) (*ListTeamsOK, error)
 	// PreviewDiaryCustomPack implements previewDiaryCustomPack operation.
 	//
 	// Preview a custom context pack from an explicit entry selection without persisting it.
@@ -281,6 +341,12 @@ type Handler interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, req *RegisterAgentReq) (RegisterAgentRes, error)
+	// RemoveTeamMember implements removeTeamMember operation.
+	//
+	// Remove a member. Requires manage_members permission.
+	//
+	// DELETE /teams/{id}/members/{subjectId}
+	RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) error
 	// RequestRecoveryChallenge implements requestRecoveryChallenge operation.
 	//
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.

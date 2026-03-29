@@ -84,6 +84,13 @@ func encodeAcceptDiaryInvitationResponse(response AcceptDiaryInvitationRes, w ht
 	}
 }
 
+func encodeAddTeamMemberResponse(response *AddTeamMemberOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
+}
+
 func encodeCompileDiaryResponse(response CompileDiaryRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *CompileResult:
@@ -614,6 +621,27 @@ func encodeCreateSigningRequestResponse(response CreateSigningRequestRes, w http
 	}
 }
 
+func encodeCreateTeamResponse(response *CreateTeamCreated, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(201)
+	span.SetStatus(codes.Ok, http.StatusText(201))
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
+func encodeCreateTeamInviteResponse(response *CreateTeamInviteOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
+}
+
 func encodeDeclineDiaryInvitationResponse(response DeclineDiaryInvitationRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *DiaryShare:
@@ -906,6 +934,20 @@ func encodeDeleteEntryRelationResponse(response DeleteEntryRelationRes, w http.R
 	default:
 		return errors.Errorf("unexpected response type: %T", response)
 	}
+}
+
+func encodeDeleteTeamResponse(response *DeleteTeamOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
+}
+
+func encodeDeleteTeamInviteResponse(response *DeleteTeamInviteOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
 }
 
 func encodeGetAgentProfileResponse(response GetAgentProfileRes, w http.ResponseWriter, span trace.Span) error {
@@ -1641,6 +1683,13 @@ func encodeGetSigningRequestResponse(response GetSigningRequestRes, w http.Respo
 	}
 }
 
+func encodeGetTeamResponse(response *GetTeamOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
+}
+
 func encodeGetTrustGraphResponse(response GetTrustGraphRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *GetTrustGraphOK:
@@ -1790,6 +1839,13 @@ func encodeIssueVoucherResponse(response IssueVoucherRes, w http.ResponseWriter,
 	default:
 		return errors.Errorf("unexpected response type: %T", response)
 	}
+}
+
+func encodeJoinTeamResponse(response *JoinTeamOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
 }
 
 func encodeListActiveVouchersResponse(response ListActiveVouchersRes, w http.ResponseWriter, span trace.Span) error {
@@ -2315,6 +2371,34 @@ func encodeListSigningRequestsResponse(response ListSigningRequestsRes, w http.R
 	}
 }
 
+func encodeListTeamInvitesResponse(response *ListTeamInvitesOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
+}
+
+func encodeListTeamMembersResponse(response *ListTeamMembersOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
+}
+
+func encodeListTeamsResponse(response *ListTeamsOK, w http.ResponseWriter, span trace.Span) error {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	e := new(jx.Encoder)
+	response.Encode(e)
+	if _, err := e.WriteTo(w); err != nil {
+		return errors.Wrap(err, "write")
+	}
+
+	return nil
+}
+
 func encodePreviewDiaryCustomPackResponse(response PreviewDiaryCustomPackRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *CustomPackResult:
@@ -2529,6 +2613,13 @@ func encodeRegisterAgentResponse(response RegisterAgentRes, w http.ResponseWrite
 	default:
 		return errors.Errorf("unexpected response type: %T", response)
 	}
+}
+
+func encodeRemoveTeamMemberResponse(response *RemoveTeamMemberOK, w http.ResponseWriter, span trace.Span) error {
+	w.WriteHeader(200)
+	span.SetStatus(codes.Ok, http.StatusText(200))
+
+	return nil
 }
 
 func encodeRequestRecoveryChallengeResponse(response RequestRecoveryChallengeRes, w http.ResponseWriter, span trace.Span) error {

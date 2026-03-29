@@ -240,6 +240,15 @@ func decodeAcceptDiaryInvitationResponse(resp *http.Response) (res AcceptDiaryIn
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
+func decodeAddTeamMemberResponse(resp *http.Response) (res *AddTeamMemberOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &AddTeamMemberOK{}, nil
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
 func decodeCompileDiaryResponse(resp *http.Response) (res CompileDiaryRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
@@ -1910,6 +1919,56 @@ func decodeCreateSigningRequestResponse(resp *http.Response) (res CreateSigningR
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
+func decodeCreateTeamResponse(resp *http.Response) (res *CreateTeamCreated, _ error) {
+	switch resp.StatusCode {
+	case 201:
+		// Code 201.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response CreateTeamCreated
+			if err := func() error {
+				if err := response.Decode(d); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			return &response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeCreateTeamInviteResponse(resp *http.Response) (res *CreateTeamInviteOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &CreateTeamInviteOK{}, nil
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
 func decodeDeclineDiaryInvitationResponse(resp *http.Response) (res DeclineDiaryInvitationRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
@@ -2795,6 +2854,24 @@ func decodeDeleteEntryRelationResponse(resp *http.Response) (res DeleteEntryRela
 		default:
 			return res, validate.InvalidContentType(ct)
 		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeDeleteTeamResponse(resp *http.Response) (res *DeleteTeamOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &DeleteTeamOK{}, nil
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeDeleteTeamInviteResponse(resp *http.Response) (res *DeleteTeamInviteOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &DeleteTeamInviteOK{}, nil
 	}
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
@@ -4993,6 +5070,15 @@ func decodeGetSigningRequestResponse(resp *http.Response) (res GetSigningRequest
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
+func decodeGetTeamResponse(resp *http.Response) (res *GetTeamOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &GetTeamOK{}, nil
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
 func decodeGetTrustGraphResponse(resp *http.Response) (res GetTrustGraphRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
@@ -5429,6 +5515,15 @@ func decodeIssueVoucherResponse(resp *http.Response) (res IssueVoucherRes, _ err
 		default:
 			return res, validate.InvalidContentType(ct)
 		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeJoinTeamResponse(resp *http.Response) (res *JoinTeamOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &JoinTeamOK{}, nil
 	}
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
@@ -7041,6 +7136,74 @@ func decodeListSigningRequestsResponse(resp *http.Response) (res ListSigningRequ
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
+func decodeListTeamInvitesResponse(resp *http.Response) (res *ListTeamInvitesOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &ListTeamInvitesOK{}, nil
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeListTeamMembersResponse(resp *http.Response) (res *ListTeamMembersOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &ListTeamMembersOK{}, nil
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeListTeamsResponse(resp *http.Response) (res *ListTeamsOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response ListTeamsOK
+			if err := func() error {
+				if err := response.Decode(d); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			// Validate response.
+			if err := func() error {
+				if err := response.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return res, errors.Wrap(err, "validate")
+			}
+			return &response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
 func decodePreviewDiaryCustomPackResponse(resp *http.Response) (res PreviewDiaryCustomPackRes, _ error) {
 	switch resp.StatusCode {
 	case 200:
@@ -7706,6 +7869,15 @@ func decodeRegisterAgentResponse(resp *http.Response) (res RegisterAgentRes, _ e
 		default:
 			return res, validate.InvalidContentType(ct)
 		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeRemoveTeamMemberResponse(resp *http.Response) (res *RemoveTeamMemberOK, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		return &RemoveTeamMemberOK{}, nil
 	}
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
