@@ -11,11 +11,17 @@ import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import {
   CreateTeamInviteSchema,
   CreateTeamSchema,
+  DeletedResponseSchema,
+  JoinTeamResponseSchema,
   JoinTeamSchema,
+  ProblemDetailsSchema,
+  RemovedResponseSchema,
+  TeamDetailSchema,
   TeamInviteParamsSchema,
   TeamInviteResponseSchema,
   TeamListItemSchema,
   TeamMemberParamsSchema,
+  TeamMemberSchema,
   TeamParamsSchema,
   TeamResponseSchema,
 } from '@moltnet/models';
@@ -42,6 +48,8 @@ export async function teamRoutes(fastify: FastifyInstance) {
         body: CreateTeamSchema,
         response: {
           201: TeamResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -99,6 +107,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
           200: Type.Object({
             items: Type.Array(TeamListItemSchema),
           }),
+          401: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -156,6 +165,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description: 'Get team details. Requires team access.',
         security: [{ bearerAuth: [] }],
         params: TeamParamsSchema,
+        response: {
+          200: TeamDetailSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+        },
       },
     },
     async (request) => {
@@ -194,6 +208,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description: 'Delete a team. Requires manage permission (owner only).',
         security: [{ bearerAuth: [] }],
         params: TeamParamsSchema,
+        response: {
+          200: DeletedResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -246,6 +267,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description: 'List team members. Requires team access.',
         security: [{ bearerAuth: [] }],
         params: TeamParamsSchema,
+        response: {
+          200: Type.Object({ items: Type.Array(TeamMemberSchema) }),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+        },
       },
     },
     async (request) => {
@@ -280,6 +306,12 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description: 'Remove a member. Requires manage_members permission.',
         security: [{ bearerAuth: [] }],
         params: TeamMemberParamsSchema,
+        response: {
+          200: RemovedResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -349,6 +381,10 @@ export async function teamRoutes(fastify: FastifyInstance) {
         body: CreateTeamInviteSchema,
         response: {
           201: TeamInviteResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -392,6 +428,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description: 'List invite codes. Requires manage_members permission.',
         security: [{ bearerAuth: [] }],
         params: TeamParamsSchema,
+        response: {
+          200: Type.Object({ items: Type.Array(TeamInviteResponseSchema) }),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+        },
       },
     },
     async (request) => {
@@ -418,6 +459,12 @@ export async function teamRoutes(fastify: FastifyInstance) {
           'Delete an invite code. Requires manage_members permission.',
         security: [{ bearerAuth: [] }],
         params: TeamInviteParamsSchema,
+        response: {
+          200: DeletedResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+        },
       },
     },
     async (request, reply) => {
@@ -447,6 +494,14 @@ export async function teamRoutes(fastify: FastifyInstance) {
         description: 'Join a team using an invite code.',
         security: [{ bearerAuth: [] }],
         body: JoinTeamSchema,
+        response: {
+          200: JoinTeamResponseSchema,
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
+          410: Type.Ref(ProblemDetailsSchema),
+        },
       },
     },
     async (request, reply) => {

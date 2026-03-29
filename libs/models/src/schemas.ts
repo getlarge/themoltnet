@@ -330,6 +330,34 @@ export const TeamListItemSchema = Type.Object({
   role: Type.String(),
 });
 
+const DateTimeUnsafe = Type.Unsafe<Date | string>(
+  Type.String({ format: 'date-time' }),
+);
+
+export const TeamDetailSchema = Type.Object({
+  id: UuidSchema,
+  name: Type.String(),
+  status: Type.String(),
+  personal: Type.Boolean(),
+  createdBy: UuidSchema,
+  createdAt: DateTimeUnsafe,
+  updatedAt: DateTimeUnsafe,
+  members: Type.Array(TeamMemberSchema),
+});
+
+export const JoinTeamResponseSchema = Type.Object({
+  teamId: UuidSchema,
+  role: Type.String(),
+});
+
+export const DeletedResponseSchema = Type.Object({
+  deleted: Type.Boolean(),
+});
+
+export const RemovedResponseSchema = Type.Object({
+  removed: Type.Boolean(),
+});
+
 export type TeamParams = Static<typeof TeamParamsSchema>;
 export type TeamMemberParams = Static<typeof TeamMemberParamsSchema>;
 export type TeamInviteParams = Static<typeof TeamInviteParamsSchema>;

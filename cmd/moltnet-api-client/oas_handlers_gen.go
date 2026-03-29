@@ -1744,7 +1744,7 @@ func (s *Server) handleCreateTeamRequest(args [0]string, argsEscaped bool, w htt
 		}
 	}()
 
-	var response *CreateTeamCreated
+	var response CreateTeamRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -1760,7 +1760,7 @@ func (s *Server) handleCreateTeamRequest(args [0]string, argsEscaped bool, w htt
 		type (
 			Request  = *CreateTeamReq
 			Params   = struct{}
-			Response = *CreateTeamCreated
+			Response = CreateTeamRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -1941,7 +1941,7 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 		}
 	}()
 
-	var response *CreateTeamInviteCreated
+	var response CreateTeamInviteRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -1962,7 +1962,7 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 		type (
 			Request  = OptCreateTeamInviteReq
 			Params   = CreateTeamInviteParams
-			Response = *CreateTeamInviteCreated
+			Response = CreateTeamInviteRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -2876,7 +2876,7 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 
 	var rawBody []byte
 
-	var response *DeleteTeamOK
+	var response DeleteTeamRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -2897,7 +2897,7 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 		type (
 			Request  = struct{}
 			Params   = DeleteTeamParams
-			Response = *DeleteTeamOK
+			Response = DeleteTeamRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -2908,12 +2908,12 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 			mreq,
 			unpackDeleteTeamParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.DeleteTeam(ctx, params)
+				response, err = s.h.DeleteTeam(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.DeleteTeam(ctx, params)
+		response, err = s.h.DeleteTeam(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -3063,7 +3063,7 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 
 	var rawBody []byte
 
-	var response *DeleteTeamInviteOK
+	var response DeleteTeamInviteRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -3088,7 +3088,7 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 		type (
 			Request  = struct{}
 			Params   = DeleteTeamInviteParams
-			Response = *DeleteTeamInviteOK
+			Response = DeleteTeamInviteRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -3099,12 +3099,12 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 			mreq,
 			unpackDeleteTeamInviteParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.DeleteTeamInvite(ctx, params)
+				response, err = s.h.DeleteTeamInvite(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.DeleteTeamInvite(ctx, params)
+		response, err = s.h.DeleteTeamInvite(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -5786,7 +5786,7 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 
 	var rawBody []byte
 
-	var response *GetTeamOK
+	var response GetTeamRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -5807,7 +5807,7 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 		type (
 			Request  = struct{}
 			Params   = GetTeamParams
-			Response = *GetTeamOK
+			Response = GetTeamRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -5818,12 +5818,12 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 			mreq,
 			unpackGetTeamParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.GetTeam(ctx, params)
+				response, err = s.h.GetTeam(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.GetTeam(ctx, params)
+		response, err = s.h.GetTeam(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -6472,7 +6472,7 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 		}
 	}()
 
-	var response *JoinTeamOK
+	var response JoinTeamRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -6488,7 +6488,7 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 		type (
 			Request  = *JoinTeamReq
 			Params   = struct{}
-			Response = *JoinTeamOK
+			Response = JoinTeamRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -6499,12 +6499,12 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 			mreq,
 			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.JoinTeam(ctx, request)
+				response, err = s.h.JoinTeam(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.JoinTeam(ctx, request)
+		response, err = s.h.JoinTeam(ctx, request)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -8488,7 +8488,7 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 
 	var rawBody []byte
 
-	var response *ListTeamInvitesOK
+	var response ListTeamInvitesRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -8509,7 +8509,7 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 		type (
 			Request  = struct{}
 			Params   = ListTeamInvitesParams
-			Response = *ListTeamInvitesOK
+			Response = ListTeamInvitesRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -8520,12 +8520,12 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 			mreq,
 			unpackListTeamInvitesParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.ListTeamInvites(ctx, params)
+				response, err = s.h.ListTeamInvites(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.ListTeamInvites(ctx, params)
+		response, err = s.h.ListTeamInvites(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -8675,7 +8675,7 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 
 	var rawBody []byte
 
-	var response *ListTeamMembersOK
+	var response ListTeamMembersRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -8696,7 +8696,7 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 		type (
 			Request  = struct{}
 			Params   = ListTeamMembersParams
-			Response = *ListTeamMembersOK
+			Response = ListTeamMembersRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -8707,12 +8707,12 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 			mreq,
 			unpackListTeamMembersParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.ListTeamMembers(ctx, params)
+				response, err = s.h.ListTeamMembers(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.ListTeamMembers(ctx, params)
+		response, err = s.h.ListTeamMembers(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -8852,7 +8852,7 @@ func (s *Server) handleListTeamsRequest(args [0]string, argsEscaped bool, w http
 
 	var rawBody []byte
 
-	var response *ListTeamsOK
+	var response ListTeamsRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -8868,7 +8868,7 @@ func (s *Server) handleListTeamsRequest(args [0]string, argsEscaped bool, w http
 		type (
 			Request  = struct{}
 			Params   = struct{}
-			Response = *ListTeamsOK
+			Response = ListTeamsRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -9580,7 +9580,7 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 
 	var rawBody []byte
 
-	var response *RemoveTeamMemberOK
+	var response RemoveTeamMemberRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -9605,7 +9605,7 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 		type (
 			Request  = struct{}
 			Params   = RemoveTeamMemberParams
-			Response = *RemoveTeamMemberOK
+			Response = RemoveTeamMemberRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -9616,12 +9616,12 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 			mreq,
 			unpackRemoveTeamMemberParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.RemoveTeamMember(ctx, params)
+				response, err = s.h.RemoveTeamMember(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.RemoveTeamMember(ctx, params)
+		response, err = s.h.RemoveTeamMember(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

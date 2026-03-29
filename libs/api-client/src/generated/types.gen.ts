@@ -3064,6 +3064,15 @@ export type ListTeamsData = {
   url: '/teams';
 };
 
+export type ListTeamsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+};
+
+export type ListTeamsError = ListTeamsErrors[keyof ListTeamsErrors];
+
 export type ListTeamsResponses = {
   /**
    * Default Response
@@ -3093,6 +3102,19 @@ export type CreateTeamData = {
   url: '/teams';
 };
 
+export type CreateTeamErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateTeamError = CreateTeamErrors[keyof CreateTeamErrors];
+
 export type CreateTeamResponses = {
   /**
    * Default Response
@@ -3120,12 +3142,37 @@ export type DeleteTeamData = {
   url: '/teams/{id}';
 };
 
+export type DeleteTeamErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteTeamError = DeleteTeamErrors[keyof DeleteTeamErrors];
+
 export type DeleteTeamResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    deleted: boolean;
+  };
 };
+
+export type DeleteTeamResponse = DeleteTeamResponses[keyof DeleteTeamResponses];
 
 export type GetTeamData = {
   body?: never;
@@ -3139,12 +3186,49 @@ export type GetTeamData = {
   url: '/teams/{id}';
 };
 
+export type GetTeamErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetTeamError = GetTeamErrors[keyof GetTeamErrors];
+
 export type GetTeamResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    name: string;
+    status: string;
+    personal: boolean;
+    /**
+     * UUID v4 identifier
+     */
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    members: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+      role: string;
+    }>;
+  };
 };
+
+export type GetTeamResponse = GetTeamResponses[keyof GetTeamResponses];
 
 export type ListTeamMembersData = {
   body?: never;
@@ -3158,12 +3242,38 @@ export type ListTeamMembersData = {
   url: '/teams/{id}/members';
 };
 
+export type ListTeamMembersErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListTeamMembersError =
+  ListTeamMembersErrors[keyof ListTeamMembersErrors];
+
 export type ListTeamMembersResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+      role: string;
+    }>;
+  };
 };
+
+export type ListTeamMembersResponse =
+  ListTeamMembersResponses[keyof ListTeamMembersResponses];
 
 export type RemoveTeamMemberData = {
   body?: never;
@@ -3181,12 +3291,35 @@ export type RemoveTeamMemberData = {
   url: '/teams/{id}/members/{subjectId}';
 };
 
+export type RemoveTeamMemberErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type RemoveTeamMemberError =
+  RemoveTeamMemberErrors[keyof RemoveTeamMemberErrors];
+
 export type RemoveTeamMemberResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    removed: boolean;
+  };
 };
+
+export type RemoveTeamMemberResponse =
+  RemoveTeamMemberResponses[keyof RemoveTeamMemberResponses];
 
 export type ListTeamInvitesData = {
   body?: never;
@@ -3200,12 +3333,34 @@ export type ListTeamInvitesData = {
   url: '/teams/{id}/invites';
 };
 
+export type ListTeamInvitesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type ListTeamInvitesError =
+  ListTeamInvitesErrors[keyof ListTeamInvitesErrors];
+
 export type ListTeamInvitesResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    items: Array<{
+      code: string;
+      expiresAt: string;
+    }>;
+  };
 };
+
+export type ListTeamInvitesResponse =
+  ListTeamInvitesResponses[keyof ListTeamInvitesResponses];
 
 export type CreateTeamInviteData = {
   body?: {
@@ -3222,6 +3377,28 @@ export type CreateTeamInviteData = {
   query?: never;
   url: '/teams/{id}/invites';
 };
+
+export type CreateTeamInviteErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type CreateTeamInviteError =
+  CreateTeamInviteErrors[keyof CreateTeamInviteErrors];
 
 export type CreateTeamInviteResponses = {
   /**
@@ -3252,12 +3429,35 @@ export type DeleteTeamInviteData = {
   url: '/teams/{id}/invites/{inviteId}';
 };
 
+export type DeleteTeamInviteErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteTeamInviteError =
+  DeleteTeamInviteErrors[keyof DeleteTeamInviteErrors];
+
 export type DeleteTeamInviteResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    deleted: boolean;
+  };
 };
+
+export type DeleteTeamInviteResponse =
+  DeleteTeamInviteResponses[keyof DeleteTeamInviteResponses];
 
 export type JoinTeamData = {
   body: {
@@ -3268,12 +3468,45 @@ export type JoinTeamData = {
   url: '/teams/join';
 };
 
+export type JoinTeamErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  410: ProblemDetails;
+};
+
+export type JoinTeamError = JoinTeamErrors[keyof JoinTeamErrors];
+
 export type JoinTeamResponses = {
   /**
    * Default Response
    */
-  200: unknown;
+  200: {
+    /**
+     * UUID v4 identifier
+     */
+    teamId: string;
+    role: string;
+  };
 };
+
+export type JoinTeamResponse = JoinTeamResponses[keyof JoinTeamResponses];
 
 export type IssueVoucherData = {
   body?: never;

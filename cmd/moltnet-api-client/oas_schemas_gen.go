@@ -2223,6 +2223,16 @@ func (s *CreateTeamCreated) SetName(val string) {
 	s.Name = val
 }
 
+func (*CreateTeamCreated) createTeamRes() {}
+
+type CreateTeamInternalServerError ProblemDetails
+
+func (*CreateTeamInternalServerError) createTeamRes() {}
+
+type CreateTeamInviteBadRequest ProblemDetails
+
+func (*CreateTeamInviteBadRequest) createTeamInviteRes() {}
+
 type CreateTeamInviteCreated struct {
 	Code      string    `json:"code"`
 	ExpiresAt time.Time `json:"expiresAt"`
@@ -2247,6 +2257,16 @@ func (s *CreateTeamInviteCreated) SetCode(val string) {
 func (s *CreateTeamInviteCreated) SetExpiresAt(val time.Time) {
 	s.ExpiresAt = val
 }
+
+func (*CreateTeamInviteCreated) createTeamInviteRes() {}
+
+type CreateTeamInviteForbidden ProblemDetails
+
+func (*CreateTeamInviteForbidden) createTeamInviteRes() {}
+
+type CreateTeamInviteNotFound ProblemDetails
+
+func (*CreateTeamInviteNotFound) createTeamInviteRes() {}
 
 type CreateTeamInviteReq struct {
 	ExpiresInHours OptInt                     `json:"expiresInHours"`
@@ -2325,6 +2345,10 @@ func (s *CreateTeamInviteReqRole) UnmarshalText(data []byte) error {
 	}
 }
 
+type CreateTeamInviteUnauthorized ProblemDetails
+
+func (*CreateTeamInviteUnauthorized) createTeamInviteRes() {}
+
 type CreateTeamReq struct {
 	Name string `json:"name"`
 }
@@ -2338,6 +2362,10 @@ func (s *CreateTeamReq) GetName() string {
 func (s *CreateTeamReq) SetName(val string) {
 	s.Name = val
 }
+
+type CreateTeamUnauthorized ProblemDetails
+
+func (*CreateTeamUnauthorized) createTeamRes() {}
 
 // Ref: #/components/schemas/CryptoIdentity
 type CryptoIdentity struct {
@@ -2693,11 +2721,65 @@ type DeleteEntryRelationUnauthorized ProblemDetails
 
 func (*DeleteEntryRelationUnauthorized) deleteEntryRelationRes() {}
 
-// DeleteTeamInviteOK is response for DeleteTeamInvite operation.
-type DeleteTeamInviteOK struct{}
+type DeleteTeamBadRequest ProblemDetails
 
-// DeleteTeamOK is response for DeleteTeam operation.
-type DeleteTeamOK struct{}
+func (*DeleteTeamBadRequest) deleteTeamRes() {}
+
+type DeleteTeamForbidden ProblemDetails
+
+func (*DeleteTeamForbidden) deleteTeamRes() {}
+
+type DeleteTeamInviteForbidden ProblemDetails
+
+func (*DeleteTeamInviteForbidden) deleteTeamInviteRes() {}
+
+type DeleteTeamInviteNotFound ProblemDetails
+
+func (*DeleteTeamInviteNotFound) deleteTeamInviteRes() {}
+
+type DeleteTeamInviteOK struct {
+	Deleted bool `json:"deleted"`
+}
+
+// GetDeleted returns the value of Deleted.
+func (s *DeleteTeamInviteOK) GetDeleted() bool {
+	return s.Deleted
+}
+
+// SetDeleted sets the value of Deleted.
+func (s *DeleteTeamInviteOK) SetDeleted(val bool) {
+	s.Deleted = val
+}
+
+func (*DeleteTeamInviteOK) deleteTeamInviteRes() {}
+
+type DeleteTeamInviteUnauthorized ProblemDetails
+
+func (*DeleteTeamInviteUnauthorized) deleteTeamInviteRes() {}
+
+type DeleteTeamNotFound ProblemDetails
+
+func (*DeleteTeamNotFound) deleteTeamRes() {}
+
+type DeleteTeamOK struct {
+	Deleted bool `json:"deleted"`
+}
+
+// GetDeleted returns the value of Deleted.
+func (s *DeleteTeamOK) GetDeleted() bool {
+	return s.Deleted
+}
+
+// SetDeleted sets the value of Deleted.
+func (s *DeleteTeamOK) SetDeleted(val bool) {
+	s.Deleted = val
+}
+
+func (*DeleteTeamOK) deleteTeamRes() {}
+
+type DeleteTeamUnauthorized ProblemDetails
+
+func (*DeleteTeamUnauthorized) deleteTeamRes() {}
 
 // Ref: #/components/schemas/DiaryCatalog
 type DiaryCatalog struct {
@@ -5284,8 +5366,145 @@ type GetSigningRequestUnauthorized ProblemDetails
 
 func (*GetSigningRequestUnauthorized) getSigningRequestRes() {}
 
-// GetTeamOK is response for GetTeam operation.
-type GetTeamOK struct{}
+type GetTeamNotFound ProblemDetails
+
+func (*GetTeamNotFound) getTeamRes() {}
+
+type GetTeamOK struct {
+	CreatedAt time.Time `json:"createdAt"`
+	// UUID v4 identifier.
+	CreatedBy uuid.UUID `json:"createdBy"`
+	// UUID v4 identifier.
+	ID        uuid.UUID              `json:"id"`
+	Members   []GetTeamOKMembersItem `json:"members"`
+	Name      string                 `json:"name"`
+	Personal  bool                   `json:"personal"`
+	Status    string                 `json:"status"`
+	UpdatedAt time.Time              `json:"updatedAt"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *GetTeamOK) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *GetTeamOK) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
+}
+
+// GetID returns the value of ID.
+func (s *GetTeamOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetMembers returns the value of Members.
+func (s *GetTeamOK) GetMembers() []GetTeamOKMembersItem {
+	return s.Members
+}
+
+// GetName returns the value of Name.
+func (s *GetTeamOK) GetName() string {
+	return s.Name
+}
+
+// GetPersonal returns the value of Personal.
+func (s *GetTeamOK) GetPersonal() bool {
+	return s.Personal
+}
+
+// GetStatus returns the value of Status.
+func (s *GetTeamOK) GetStatus() string {
+	return s.Status
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *GetTeamOK) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *GetTeamOK) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *GetTeamOK) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
+}
+
+// SetID sets the value of ID.
+func (s *GetTeamOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetMembers sets the value of Members.
+func (s *GetTeamOK) SetMembers(val []GetTeamOKMembersItem) {
+	s.Members = val
+}
+
+// SetName sets the value of Name.
+func (s *GetTeamOK) SetName(val string) {
+	s.Name = val
+}
+
+// SetPersonal sets the value of Personal.
+func (s *GetTeamOK) SetPersonal(val bool) {
+	s.Personal = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GetTeamOK) SetStatus(val string) {
+	s.Status = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *GetTeamOK) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+func (*GetTeamOK) getTeamRes() {}
+
+type GetTeamOKMembersItem struct {
+	Role string `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID `json:"subjectId"`
+	SubjectNs string    `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *GetTeamOKMembersItem) GetRole() string {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *GetTeamOKMembersItem) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *GetTeamOKMembersItem) GetSubjectNs() string {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *GetTeamOKMembersItem) SetRole(val string) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *GetTeamOKMembersItem) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *GetTeamOKMembersItem) SetSubjectNs(val string) {
+	s.SubjectNs = val
+}
+
+type GetTeamUnauthorized ProblemDetails
+
+func (*GetTeamUnauthorized) getTeamRes() {}
 
 type GetTrustGraphOK struct {
 	Edges []GetTrustGraphOKEdgesItem `json:"edges"`
@@ -5391,8 +5610,49 @@ type IssueVoucherUnauthorized ProblemDetails
 
 func (*IssueVoucherUnauthorized) issueVoucherRes() {}
 
-// JoinTeamOK is response for JoinTeam operation.
-type JoinTeamOK struct{}
+type JoinTeamBadRequest ProblemDetails
+
+func (*JoinTeamBadRequest) joinTeamRes() {}
+
+type JoinTeamConflict ProblemDetails
+
+func (*JoinTeamConflict) joinTeamRes() {}
+
+type JoinTeamGone ProblemDetails
+
+func (*JoinTeamGone) joinTeamRes() {}
+
+type JoinTeamNotFound ProblemDetails
+
+func (*JoinTeamNotFound) joinTeamRes() {}
+
+type JoinTeamOK struct {
+	Role string `json:"role"`
+	// UUID v4 identifier.
+	TeamId uuid.UUID `json:"teamId"`
+}
+
+// GetRole returns the value of Role.
+func (s *JoinTeamOK) GetRole() string {
+	return s.Role
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *JoinTeamOK) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// SetRole sets the value of Role.
+func (s *JoinTeamOK) SetRole(val string) {
+	s.Role = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *JoinTeamOK) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+func (*JoinTeamOK) joinTeamRes() {}
 
 type JoinTeamReq struct {
 	Code string `json:"code"`
@@ -5407,6 +5667,10 @@ func (s *JoinTeamReq) GetCode() string {
 func (s *JoinTeamReq) SetCode(val string) {
 	s.Code = val
 }
+
+type JoinTeamUnauthorized ProblemDetails
+
+func (*JoinTeamUnauthorized) joinTeamRes() {}
 
 type ListActiveVouchersInternalServerError ProblemDetails
 
@@ -5675,11 +5939,115 @@ type ListSigningRequestsUnauthorized ProblemDetails
 
 func (*ListSigningRequestsUnauthorized) listSigningRequestsRes() {}
 
-// ListTeamInvitesOK is response for ListTeamInvites operation.
-type ListTeamInvitesOK struct{}
+type ListTeamInvitesForbidden ProblemDetails
 
-// ListTeamMembersOK is response for ListTeamMembers operation.
-type ListTeamMembersOK struct{}
+func (*ListTeamInvitesForbidden) listTeamInvitesRes() {}
+
+type ListTeamInvitesOK struct {
+	Items []ListTeamInvitesOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListTeamInvitesOK) GetItems() []ListTeamInvitesOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListTeamInvitesOK) SetItems(val []ListTeamInvitesOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListTeamInvitesOK) listTeamInvitesRes() {}
+
+type ListTeamInvitesOKItemsItem struct {
+	Code      string    `json:"code"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// GetCode returns the value of Code.
+func (s *ListTeamInvitesOKItemsItem) GetCode() string {
+	return s.Code
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ListTeamInvitesOKItemsItem) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// SetCode sets the value of Code.
+func (s *ListTeamInvitesOKItemsItem) SetCode(val string) {
+	s.Code = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ListTeamInvitesOKItemsItem) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+type ListTeamInvitesUnauthorized ProblemDetails
+
+func (*ListTeamInvitesUnauthorized) listTeamInvitesRes() {}
+
+type ListTeamMembersNotFound ProblemDetails
+
+func (*ListTeamMembersNotFound) listTeamMembersRes() {}
+
+type ListTeamMembersOK struct {
+	Items []ListTeamMembersOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListTeamMembersOK) GetItems() []ListTeamMembersOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListTeamMembersOK) SetItems(val []ListTeamMembersOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListTeamMembersOK) listTeamMembersRes() {}
+
+type ListTeamMembersOKItemsItem struct {
+	Role string `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID `json:"subjectId"`
+	SubjectNs string    `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *ListTeamMembersOKItemsItem) GetRole() string {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *ListTeamMembersOKItemsItem) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *ListTeamMembersOKItemsItem) GetSubjectNs() string {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *ListTeamMembersOKItemsItem) SetRole(val string) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *ListTeamMembersOKItemsItem) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *ListTeamMembersOKItemsItem) SetSubjectNs(val string) {
+	s.SubjectNs = val
+}
+
+type ListTeamMembersUnauthorized ProblemDetails
+
+func (*ListTeamMembersUnauthorized) listTeamMembersRes() {}
 
 type ListTeamsOK struct {
 	Items []ListTeamsOKItemsItem `json:"items"`
@@ -5694,6 +6062,8 @@ func (s *ListTeamsOK) GetItems() []ListTeamsOKItemsItem {
 func (s *ListTeamsOK) SetItems(val []ListTeamsOKItemsItem) {
 	s.Items = val
 }
+
+func (*ListTeamsOK) listTeamsRes() {}
 
 type ListTeamsOKItemsItem struct {
 	// UUID v4 identifier.
@@ -8903,6 +9273,7 @@ func (s *ProblemDetails) SetType(val url.URL) {
 
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
 func (*ProblemDetails) getTrustGraphRes()                 {}
+func (*ProblemDetails) listTeamsRes()                     {}
 func (*ProblemDetails) verifyCryptoSignatureRes()         {}
 
 type ProblemDetailsCode string
@@ -10430,8 +10801,33 @@ func (s *RelationType) UnmarshalText(data []byte) error {
 	}
 }
 
-// RemoveTeamMemberOK is response for RemoveTeamMember operation.
-type RemoveTeamMemberOK struct{}
+type RemoveTeamMemberBadRequest ProblemDetails
+
+func (*RemoveTeamMemberBadRequest) removeTeamMemberRes() {}
+
+type RemoveTeamMemberForbidden ProblemDetails
+
+func (*RemoveTeamMemberForbidden) removeTeamMemberRes() {}
+
+type RemoveTeamMemberOK struct {
+	Removed bool `json:"removed"`
+}
+
+// GetRemoved returns the value of Removed.
+func (s *RemoveTeamMemberOK) GetRemoved() bool {
+	return s.Removed
+}
+
+// SetRemoved sets the value of Removed.
+func (s *RemoveTeamMemberOK) SetRemoved(val bool) {
+	s.Removed = val
+}
+
+func (*RemoveTeamMemberOK) removeTeamMemberRes() {}
+
+type RemoveTeamMemberUnauthorized ProblemDetails
+
+func (*RemoveTeamMemberUnauthorized) removeTeamMemberRes() {}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 

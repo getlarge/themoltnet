@@ -33,6 +33,14 @@ type CreateSigningRequestRes interface {
 	createSigningRequestRes()
 }
 
+type CreateTeamInviteRes interface {
+	createTeamInviteRes()
+}
+
+type CreateTeamRes interface {
+	createTeamRes()
+}
+
 type DeclineDiaryInvitationRes interface {
 	declineDiaryInvitationRes()
 }
@@ -47,6 +55,14 @@ type DeleteDiaryRes interface {
 
 type DeleteEntryRelationRes interface {
 	deleteEntryRelationRes()
+}
+
+type DeleteTeamInviteRes interface {
+	deleteTeamInviteRes()
+}
+
+type DeleteTeamRes interface {
+	deleteTeamRes()
 }
 
 type GetAgentProfileRes interface {
@@ -97,6 +113,10 @@ type GetSigningRequestRes interface {
 	getSigningRequestRes()
 }
 
+type GetTeamRes interface {
+	getTeamRes()
+}
+
 type GetTrustGraphRes interface {
 	getTrustGraphRes()
 }
@@ -107,6 +127,10 @@ type GetWhoamiRes interface {
 
 type IssueVoucherRes interface {
 	issueVoucherRes()
+}
+
+type JoinTeamRes interface {
+	joinTeamRes()
 }
 
 type ListActiveVouchersRes interface {
@@ -145,6 +169,18 @@ type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
 }
 
+type ListTeamInvitesRes interface {
+	listTeamInvitesRes()
+}
+
+type ListTeamMembersRes interface {
+	listTeamMembersRes()
+}
+
+type ListTeamsRes interface {
+	listTeamsRes()
+}
+
 type PreviewDiaryCustomPackRes interface {
 	previewDiaryCustomPackRes()
 }
@@ -155,6 +191,10 @@ type ReflectDiaryRes interface {
 
 type RegisterAgentRes interface {
 	registerAgentRes()
+}
+
+type RemoveTeamMemberRes interface {
+	removeTeamMemberRes()
 }
 
 type RequestRecoveryChallengeRes interface {

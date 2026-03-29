@@ -83,13 +83,13 @@ type Invoker interface {
 	// Create a new project team. Caller becomes owner.
 	//
 	// POST /teams
-	CreateTeam(ctx context.Context, request *CreateTeamReq) (*CreateTeamCreated, error)
+	CreateTeam(ctx context.Context, request *CreateTeamReq) (CreateTeamRes, error)
 	// CreateTeamInvite invokes createTeamInvite operation.
 	//
 	// Create an invite code. Requires manage_members permission.
 	//
 	// POST /teams/{id}/invites
-	CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (*CreateTeamInviteCreated, error)
+	CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (CreateTeamInviteRes, error)
 	// DeclineDiaryInvitation invokes declineDiaryInvitation operation.
 	//
 	// Decline a pending diary share invitation.
@@ -119,13 +119,13 @@ type Invoker interface {
 	// Delete a team. Requires manage permission (owner only).
 	//
 	// DELETE /teams/{id}
-	DeleteTeam(ctx context.Context, params DeleteTeamParams) error
+	DeleteTeam(ctx context.Context, params DeleteTeamParams) (DeleteTeamRes, error)
 	// DeleteTeamInvite invokes deleteTeamInvite operation.
 	//
 	// Delete an invite code. Requires manage_members permission.
 	//
 	// DELETE /teams/{id}/invites/{inviteId}
-	DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) error
+	DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (DeleteTeamInviteRes, error)
 	// GetAgentProfile invokes getAgentProfile operation.
 	//
 	// Get an agent's public profile by key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -230,7 +230,7 @@ type Invoker interface {
 	// Get team details. Requires team access.
 	//
 	// GET /teams/{id}
-	GetTeam(ctx context.Context, params GetTeamParams) error
+	GetTeam(ctx context.Context, params GetTeamParams) (GetTeamRes, error)
 	// GetTrustGraph invokes getTrustGraph operation.
 	//
 	// Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key
@@ -256,7 +256,7 @@ type Invoker interface {
 	// Join a team using an invite code.
 	//
 	// POST /teams/join
-	JoinTeam(ctx context.Context, request *JoinTeamReq) error
+	JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error)
 	// ListActiveVouchers invokes listActiveVouchers operation.
 	//
 	// List your active (unredeemed, unexpired) voucher codes.
@@ -322,19 +322,19 @@ type Invoker interface {
 	// List invite codes. Requires manage_members permission.
 	//
 	// GET /teams/{id}/invites
-	ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) error
+	ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) (ListTeamInvitesRes, error)
 	// ListTeamMembers invokes listTeamMembers operation.
 	//
 	// List team members. Requires team access.
 	//
 	// GET /teams/{id}/members
-	ListTeamMembers(ctx context.Context, params ListTeamMembersParams) error
+	ListTeamMembers(ctx context.Context, params ListTeamMembersParams) (ListTeamMembersRes, error)
 	// ListTeams invokes listTeams operation.
 	//
 	// List teams the caller belongs to.
 	//
 	// GET /teams
-	ListTeams(ctx context.Context) (*ListTeamsOK, error)
+	ListTeams(ctx context.Context) (ListTeamsRes, error)
 	// PreviewDiaryCustomPack invokes previewDiaryCustomPack operation.
 	//
 	// Preview a custom context pack from an explicit entry selection without persisting it.
@@ -360,7 +360,7 @@ type Invoker interface {
 	// Remove a member. Requires manage_members permission.
 	//
 	// DELETE /teams/{id}/members/{subjectId}
-	RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) error
+	RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (RemoveTeamMemberRes, error)
 	// RequestRecoveryChallenge invokes requestRecoveryChallenge operation.
 	//
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.
@@ -1502,12 +1502,12 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 // Create a new project team. Caller becomes owner.
 //
 // POST /teams
-func (c *Client) CreateTeam(ctx context.Context, request *CreateTeamReq) (*CreateTeamCreated, error) {
+func (c *Client) CreateTeam(ctx context.Context, request *CreateTeamReq) (CreateTeamRes, error) {
 	res, err := c.sendCreateTeam(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendCreateTeam(ctx context.Context, request *CreateTeamReq) (res *CreateTeamCreated, err error) {
+func (c *Client) sendCreateTeam(ctx context.Context, request *CreateTeamReq) (res CreateTeamRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createTeam"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -1612,12 +1612,12 @@ func (c *Client) sendCreateTeam(ctx context.Context, request *CreateTeamReq) (re
 // Create an invite code. Requires manage_members permission.
 //
 // POST /teams/{id}/invites
-func (c *Client) CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (*CreateTeamInviteCreated, error) {
+func (c *Client) CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (CreateTeamInviteRes, error) {
 	res, err := c.sendCreateTeamInvite(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (res *CreateTeamInviteCreated, err error) {
+func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (res CreateTeamInviteRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createTeamInvite"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -2242,12 +2242,12 @@ func (c *Client) sendDeleteEntryRelation(ctx context.Context, params DeleteEntry
 // Delete a team. Requires manage permission (owner only).
 //
 // DELETE /teams/{id}
-func (c *Client) DeleteTeam(ctx context.Context, params DeleteTeamParams) error {
-	_, err := c.sendDeleteTeam(ctx, params)
-	return err
+func (c *Client) DeleteTeam(ctx context.Context, params DeleteTeamParams) (DeleteTeamRes, error) {
+	res, err := c.sendDeleteTeam(ctx, params)
+	return res, err
 }
 
-func (c *Client) sendDeleteTeam(ctx context.Context, params DeleteTeamParams) (res *DeleteTeamOK, err error) {
+func (c *Client) sendDeleteTeam(ctx context.Context, params DeleteTeamParams) (res DeleteTeamRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("deleteTeam"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
@@ -2367,12 +2367,12 @@ func (c *Client) sendDeleteTeam(ctx context.Context, params DeleteTeamParams) (r
 // Delete an invite code. Requires manage_members permission.
 //
 // DELETE /teams/{id}/invites/{inviteId}
-func (c *Client) DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) error {
-	_, err := c.sendDeleteTeamInvite(ctx, params)
-	return err
+func (c *Client) DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (DeleteTeamInviteRes, error) {
+	res, err := c.sendDeleteTeamInvite(ctx, params)
+	return res, err
 }
 
-func (c *Client) sendDeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (res *DeleteTeamInviteOK, err error) {
+func (c *Client) sendDeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (res DeleteTeamInviteRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("deleteTeamInvite"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
@@ -4246,12 +4246,12 @@ func (c *Client) sendGetSigningRequest(ctx context.Context, params GetSigningReq
 // Get team details. Requires team access.
 //
 // GET /teams/{id}
-func (c *Client) GetTeam(ctx context.Context, params GetTeamParams) error {
-	_, err := c.sendGetTeam(ctx, params)
-	return err
+func (c *Client) GetTeam(ctx context.Context, params GetTeamParams) (GetTeamRes, error) {
+	res, err := c.sendGetTeam(ctx, params)
+	return res, err
 }
 
-func (c *Client) sendGetTeam(ctx context.Context, params GetTeamParams) (res *GetTeamOK, err error) {
+func (c *Client) sendGetTeam(ctx context.Context, params GetTeamParams) (res GetTeamRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getTeam"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -4700,12 +4700,12 @@ func (c *Client) sendIssueVoucher(ctx context.Context) (res IssueVoucherRes, err
 // Join a team using an invite code.
 //
 // POST /teams/join
-func (c *Client) JoinTeam(ctx context.Context, request *JoinTeamReq) error {
-	_, err := c.sendJoinTeam(ctx, request)
-	return err
+func (c *Client) JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error) {
+	res, err := c.sendJoinTeam(ctx, request)
+	return res, err
 }
 
-func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq) (res *JoinTeamOK, err error) {
+func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq) (res JoinTeamRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("joinTeam"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -6285,12 +6285,12 @@ func (c *Client) sendListSigningRequests(ctx context.Context, params ListSigning
 // List invite codes. Requires manage_members permission.
 //
 // GET /teams/{id}/invites
-func (c *Client) ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) error {
-	_, err := c.sendListTeamInvites(ctx, params)
-	return err
+func (c *Client) ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) (ListTeamInvitesRes, error) {
+	res, err := c.sendListTeamInvites(ctx, params)
+	return res, err
 }
 
-func (c *Client) sendListTeamInvites(ctx context.Context, params ListTeamInvitesParams) (res *ListTeamInvitesOK, err error) {
+func (c *Client) sendListTeamInvites(ctx context.Context, params ListTeamInvitesParams) (res ListTeamInvitesRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listTeamInvites"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -6411,12 +6411,12 @@ func (c *Client) sendListTeamInvites(ctx context.Context, params ListTeamInvites
 // List team members. Requires team access.
 //
 // GET /teams/{id}/members
-func (c *Client) ListTeamMembers(ctx context.Context, params ListTeamMembersParams) error {
-	_, err := c.sendListTeamMembers(ctx, params)
-	return err
+func (c *Client) ListTeamMembers(ctx context.Context, params ListTeamMembersParams) (ListTeamMembersRes, error) {
+	res, err := c.sendListTeamMembers(ctx, params)
+	return res, err
 }
 
-func (c *Client) sendListTeamMembers(ctx context.Context, params ListTeamMembersParams) (res *ListTeamMembersOK, err error) {
+func (c *Client) sendListTeamMembers(ctx context.Context, params ListTeamMembersParams) (res ListTeamMembersRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listTeamMembers"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -6537,12 +6537,12 @@ func (c *Client) sendListTeamMembers(ctx context.Context, params ListTeamMembers
 // List teams the caller belongs to.
 //
 // GET /teams
-func (c *Client) ListTeams(ctx context.Context) (*ListTeamsOK, error) {
+func (c *Client) ListTeams(ctx context.Context) (ListTeamsRes, error) {
 	res, err := c.sendListTeams(ctx)
 	return res, err
 }
 
-func (c *Client) sendListTeams(ctx context.Context) (res *ListTeamsOK, err error) {
+func (c *Client) sendListTeams(ctx context.Context) (res ListTeamsRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listTeams"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -7028,12 +7028,12 @@ func (c *Client) sendRegisterAgent(ctx context.Context, request *RegisterAgentRe
 // Remove a member. Requires manage_members permission.
 //
 // DELETE /teams/{id}/members/{subjectId}
-func (c *Client) RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) error {
-	_, err := c.sendRemoveTeamMember(ctx, params)
-	return err
+func (c *Client) RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (RemoveTeamMemberRes, error) {
+	res, err := c.sendRemoveTeamMember(ctx, params)
+	return res, err
 }
 
-func (c *Client) sendRemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (res *RemoveTeamMemberOK, err error) {
+func (c *Client) sendRemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (res RemoveTeamMemberRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("removeTeamMember"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),

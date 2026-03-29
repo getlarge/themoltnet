@@ -92,7 +92,7 @@ func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *Creat
 // Create a new project team. Caller becomes owner.
 //
 // POST /teams
-func (UnimplementedHandler) CreateTeam(ctx context.Context, req *CreateTeamReq) (r *CreateTeamCreated, _ error) {
+func (UnimplementedHandler) CreateTeam(ctx context.Context, req *CreateTeamReq) (r CreateTeamRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -101,7 +101,7 @@ func (UnimplementedHandler) CreateTeam(ctx context.Context, req *CreateTeamReq) 
 // Create an invite code. Requires manage_members permission.
 //
 // POST /teams/{id}/invites
-func (UnimplementedHandler) CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (r *CreateTeamInviteCreated, _ error) {
+func (UnimplementedHandler) CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (r CreateTeamInviteRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -146,8 +146,8 @@ func (UnimplementedHandler) DeleteEntryRelation(ctx context.Context, params Dele
 // Delete a team. Requires manage permission (owner only).
 //
 // DELETE /teams/{id}
-func (UnimplementedHandler) DeleteTeam(ctx context.Context, params DeleteTeamParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) DeleteTeam(ctx context.Context, params DeleteTeamParams) (r DeleteTeamRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // DeleteTeamInvite implements deleteTeamInvite operation.
@@ -155,8 +155,8 @@ func (UnimplementedHandler) DeleteTeam(ctx context.Context, params DeleteTeamPar
 // Delete an invite code. Requires manage_members permission.
 //
 // DELETE /teams/{id}/invites/{inviteId}
-func (UnimplementedHandler) DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (r DeleteTeamInviteRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // GetAgentProfile implements getAgentProfile operation.
@@ -311,8 +311,8 @@ func (UnimplementedHandler) GetSigningRequest(ctx context.Context, params GetSig
 // Get team details. Requires team access.
 //
 // GET /teams/{id}
-func (UnimplementedHandler) GetTeam(ctx context.Context, params GetTeamParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) GetTeam(ctx context.Context, params GetTeamParams) (r GetTeamRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // GetTrustGraph implements getTrustGraph operation.
@@ -350,8 +350,8 @@ func (UnimplementedHandler) IssueVoucher(ctx context.Context) (r IssueVoucherRes
 // Join a team using an invite code.
 //
 // POST /teams/join
-func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq) (r JoinTeamRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // ListActiveVouchers implements listActiveVouchers operation.
@@ -449,8 +449,8 @@ func (UnimplementedHandler) ListSigningRequests(ctx context.Context, params List
 // List invite codes. Requires manage_members permission.
 //
 // GET /teams/{id}/invites
-func (UnimplementedHandler) ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) (r ListTeamInvitesRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // ListTeamMembers implements listTeamMembers operation.
@@ -458,8 +458,8 @@ func (UnimplementedHandler) ListTeamInvites(ctx context.Context, params ListTeam
 // List team members. Requires team access.
 //
 // GET /teams/{id}/members
-func (UnimplementedHandler) ListTeamMembers(ctx context.Context, params ListTeamMembersParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) ListTeamMembers(ctx context.Context, params ListTeamMembersParams) (r ListTeamMembersRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // ListTeams implements listTeams operation.
@@ -467,7 +467,7 @@ func (UnimplementedHandler) ListTeamMembers(ctx context.Context, params ListTeam
 // List teams the caller belongs to.
 //
 // GET /teams
-func (UnimplementedHandler) ListTeams(ctx context.Context) (r *ListTeamsOK, _ error) {
+func (UnimplementedHandler) ListTeams(ctx context.Context) (r ListTeamsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -505,8 +505,8 @@ func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgen
 // Remove a member. Requires manage_members permission.
 //
 // DELETE /teams/{id}/members/{subjectId}
-func (UnimplementedHandler) RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (r RemoveTeamMemberRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // RequestRecoveryChallenge implements requestRecoveryChallenge operation.
