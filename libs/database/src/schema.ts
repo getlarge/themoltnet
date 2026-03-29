@@ -96,10 +96,12 @@ export const compressionLevelEnum = pgEnum('compression_level', [
 // compile: server-generated via /compile endpoint
 // optimized: GEPA-refined version of a compile pack
 // custom: agent-submitted with opaque params
+// rendered: markdown-rendered snapshot of another pack
 export const packTypeEnum = pgEnum('pack_type', [
   'compile',
   'optimized',
   'custom',
+  'rendered',
 ]);
 
 /**
@@ -475,6 +477,7 @@ export const entryRelations = pgTable(
  * - compile: { tokenBudget, lambda?, taskPromptHash?, wRecency?, wImportance? }
  * - optimized: { sourcePackCid, gepaTrials, gepaScore, teacherModel?, studentModel? }
  * - custom: agent-defined (opaque JSONB, validated as object only)
+ * - rendered: markdown-rendered snapshot of another pack (sourcePackId required)
  */
 export const contextPacks = pgTable(
   'context_packs',
@@ -502,6 +505,9 @@ export const contextPacks = pgTable(
     supersedesPackId: uuid('supersedes_pack_id').references(
       (): AnyPgColumn => contextPacks.id,
     ),
+    sourcePackId: uuid('source_pack_id').references(
+      (): AnyPgColumn => contextPacks.id,
+    ),
     pinned: boolean('pinned').default(false).notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).default(
       sql`(now() + interval '7 days')`,
@@ -520,6 +526,9 @@ export const contextPacks = pgTable(
       .on(table.expiresAt)
       .where(sql`pinned = false`),
     pinnedIdx: index('context_packs_pinned_idx').on(table.pinned),
+    renderedUniqueIdx: uniqueIndex('context_packs_rendered_unique_idx')
+      .on(table.sourcePackId)
+      .where(sql`pack_type = 'rendered' AND source_pack_id IS NOT NULL`),
   }),
 );
 

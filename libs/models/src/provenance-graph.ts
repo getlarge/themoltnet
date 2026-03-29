@@ -17,6 +17,7 @@ export const ProvenanceGraphNodeKindSchema = Type.Union([
 export const ProvenanceGraphEdgeKindSchema = Type.Union([
   Type.Literal('includes'),
   Type.Literal('supersedes'),
+  Type.Literal('rendered_from'),
 ]);
 
 export const ProvenanceGraphPackMetaSchema = Type.Object({

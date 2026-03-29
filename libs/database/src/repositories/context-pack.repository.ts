@@ -42,6 +42,7 @@ const packSelection = {
   creatorFingerprint: agentKeys.fingerprint,
   creatorPublicKey: agentKeys.publicKey,
   supersedesPackId: contextPacks.supersedesPackId,
+  sourcePackId: contextPacks.sourcePackId,
   pinned: contextPacks.pinned,
   expiresAt: contextPacks.expiresAt,
   createdAt: contextPacks.createdAt,
@@ -101,6 +102,7 @@ function normalizePack(row: PackRow): ContextPackWithCreator {
           }
         : null,
     supersedesPackId: row.supersedesPackId,
+    sourcePackId: row.sourcePackId,
     pinned: row.pinned,
     expiresAt: row.expiresAt,
     createdAt: row.createdAt,
@@ -338,6 +340,30 @@ export function createContextPackRepository(db: Database) {
         .returning({ id: contextPacks.id });
 
       return rows.length;
+    },
+
+    async findRenderedBySourcePackId(
+      sourcePackId: string,
+    ): Promise<ContextPackWithCreator | null> {
+      const [row] = (await getExecutor(db)
+        .select(packSelection)
+        .from(contextPacks)
+        .leftJoin(agentKeys, eq(contextPacks.createdBy, agentKeys.identityId))
+        .where(
+          and(
+            eq(contextPacks.sourcePackId, sourcePackId),
+            eq(contextPacks.packType, 'rendered'),
+          ),
+        )
+        .limit(1)) as PackRow[];
+      return row ? normalizePack(row) : null;
+    },
+
+    async clearSourcePackId(packId: string): Promise<void> {
+      await getExecutor(db)
+        .update(contextPacks)
+        .set({ sourcePackId: null })
+        .where(eq(contextPacks.id, packId));
     },
 
     async listByDiary(
