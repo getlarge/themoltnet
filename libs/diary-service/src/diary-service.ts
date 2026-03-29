@@ -567,7 +567,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
         excludeTags: input.excludeTags,
         limit: input.limit,
         offset: input.offset,
-        entryType: input.entryType,
         entryTypes: input.entryTypes,
       });
     },

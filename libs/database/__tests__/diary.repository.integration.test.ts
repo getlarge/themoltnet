@@ -245,7 +245,7 @@ describe('DiaryEntryRepository (integration)', () => {
 
       const { items, total } = await repo.list({
         diaryId: DIARY_ID,
-        entryType: 'episodic',
+        entryTypes: ['episodic'],
       });
       expect(items.length).toBe(1);
       expect(total).toBe(1);

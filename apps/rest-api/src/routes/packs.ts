@@ -733,9 +733,14 @@ export async function packRoutes(fastify: FastifyInstance) {
       const visiblePacks = packs.filter(
         (pack) => allowedPackIds.get(pack.id) ?? false,
       );
+      // Adjust total to account for permission-filtered packs on this page.
+      // Packs on other pages may also be denied, so this is a best-effort
+      // lower bound — but far more useful than the raw DB count.
+      const deniedOnPage = packs.length - visiblePacks.length;
+      const adjustedTotal = total - deniedOnPage;
 
       if (!wantsExpandedEntries(request.query.expand)) {
-        return toListResponse(visiblePacks, total, limit, offset);
+        return toListResponse(visiblePacks, adjustedTotal, limit, offset);
       }
 
       const entriesByPack =
@@ -748,7 +753,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         entries: entriesByPack.get(pack.id) ?? [],
       }));
 
-      return toListResponse(items, total, limit, offset);
+      return toListResponse(items, adjustedTotal, limit, offset);
     },
   );
 

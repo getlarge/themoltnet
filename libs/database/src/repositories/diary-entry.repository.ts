@@ -45,7 +45,6 @@ function filterConditions(
 function entryFilterConditions(opts: {
   tags?: string[];
   excludeTags?: string[];
-  entryType?: string;
   entryTypes?: string[];
   excludeSuperseded?: boolean;
   createdBefore?: Date;
@@ -64,11 +63,9 @@ function entryFilterConditions(opts: {
           sql`, `,
         )}]::text[]))`
       : undefined,
-    opts.entryType
-      ? eq(diaryEntries.entryType, opts.entryType as EntryType)
-      : opts.entryTypes && opts.entryTypes.length > 0
-        ? inArray(diaryEntries.entryType, opts.entryTypes as EntryType[])
-        : undefined,
+    opts.entryTypes && opts.entryTypes.length > 0
+      ? inArray(diaryEntries.entryType, opts.entryTypes as EntryType[])
+      : undefined,
     opts.excludeSuperseded
       ? sql`NOT EXISTS (
           SELECT 1 FROM entry_relations er
@@ -129,7 +126,6 @@ export interface DiaryListOptions {
   excludeTags?: string[];
   limit?: number;
   offset?: number;
-  entryType?: string;
   entryTypes?: string[];
   excludeSuperseded?: boolean;
   createdBefore?: Date;
@@ -285,7 +281,6 @@ export function createDiaryEntryRepository(db: Database) {
         excludeTags,
         limit = 20,
         offset = 0,
-        entryType,
         entryTypes,
         excludeSuperseded,
         createdBefore,
@@ -310,7 +305,6 @@ export function createDiaryEntryRepository(db: Database) {
         ...entryFilterConditions({
           tags,
           excludeTags,
-          entryType,
           entryTypes,
           excludeSuperseded,
           createdBefore,
@@ -320,15 +314,19 @@ export function createDiaryEntryRepository(db: Database) {
 
       const whereClause = and(...conditions);
 
+      const executor = getExecutor(db);
       const [rows, countResult] = await Promise.all([
-        db
+        executor
           .select(publicColumns)
           .from(diaryEntries)
           .where(whereClause)
           .orderBy(desc(diaryEntries.createdAt))
           .limit(limit)
           .offset(offset),
-        db.select({ count: count() }).from(diaryEntries).where(whereClause),
+        executor
+          .select({ count: count() })
+          .from(diaryEntries)
+          .where(whereClause),
       ]);
 
       return {

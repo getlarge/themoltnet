@@ -8,6 +8,7 @@ import { computeContentCid } from '@moltnet/crypto-service';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
+  ENTRY_TYPES_CSV_PATTERN,
   EntryParamsSchema,
   NestedDiaryParamsSchema,
   ProblemDetailsSchema,
@@ -249,8 +250,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           ),
           entryType: Type.Optional(
             Type.String({
-              pattern:
-                '^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$',
+              pattern: ENTRY_TYPES_CSV_PATTERN,
               maxLength: 100,
               description:
                 'Comma-separated entry types filter (e.g. identity,soul,semantic). Single value also accepted.',

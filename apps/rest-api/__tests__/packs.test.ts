@@ -296,7 +296,8 @@ describe('Pack routes', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json().items).toHaveLength(1);
     expect(response.json().items[0].id).toBe(PACK_ID);
-    expect(response.json().total).toBe(2);
+    // total adjusted: 2 DB rows - 1 denied on page = 1
+    expect(response.json().total).toBe(1);
   });
 
   it('returns 500 when batch pack authorization fails', async () => {

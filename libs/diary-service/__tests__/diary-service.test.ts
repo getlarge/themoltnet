@@ -432,18 +432,18 @@ describe('DiaryService', () => {
       );
     });
 
-    it('passes entryType filter to repository', async () => {
+    it('passes entryTypes filter to repository', async () => {
       repo.list.mockResolvedValue({ items: [], total: 0 });
 
       await service.listEntries({
         diaryId: DIARY_ID,
-        entryType: 'reflection',
+        entryTypes: ['reflection'],
       });
 
       expect(repo.list).toHaveBeenCalledWith(
         expect.objectContaining({
           diaryId: DIARY_ID,
-          entryType: 'reflection',
+          entryTypes: ['reflection'],
         }),
       );
     });
