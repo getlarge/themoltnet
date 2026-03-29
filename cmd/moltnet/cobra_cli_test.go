@@ -816,6 +816,12 @@ func TestPackNoSubcommand(t *testing.T) {
 	if !strings.Contains(stdout, "provenance") {
 		t.Errorf("expected pack help to list 'provenance' subcommand, got: %s", stdout)
 	}
+	if !strings.Contains(stdout, "create") {
+		t.Errorf("expected pack help to list 'create' subcommand, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "update") {
+		t.Errorf("expected pack help to list 'update' subcommand, got: %s", stdout)
+	}
 }
 
 func TestPackExportRequiresArg(t *testing.T) {
@@ -880,6 +886,60 @@ func TestPackProvenanceHelp(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "--share-url") {
 		t.Errorf("expected help to contain '--share-url', got: %s", stdout)
+	}
+}
+
+func TestPackCreateRequiresFlags(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "pack", "create")
+	if err == nil {
+		t.Fatal("expected error when --diary-id and --entries are missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "--diary-id") {
+		t.Errorf("expected error to mention '--diary-id', got: %v", err)
+	}
+}
+
+func TestPackCreateHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "pack", "create", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--entries") {
+		t.Errorf("expected help to contain '--entries', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "entryId") {
+		t.Errorf("expected help to show JSON format with 'entryId', got: %s", stdout)
+	}
+}
+
+func TestPackUpdateRequiresPackID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "pack", "update")
+	if err == nil {
+		t.Fatal("expected error when --pack-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "--pack-id") {
+		t.Errorf("expected error to mention '--pack-id', got: %v", err)
+	}
+}
+
+func TestPackUpdateHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "pack", "update", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--pinned") {
+		t.Errorf("expected help to contain '--pinned', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--expires-at") {
+		t.Errorf("expected help to contain '--expires-at', got: %s", stdout)
 	}
 }
 
