@@ -24,6 +24,10 @@ function entryNodeId(entryId: string): string {
   return `entry:${entryId}`;
 }
 
+function renderedPackNodeId(renderedPackId: string): string {
+  return `rendered_pack:${renderedPackId}`;
+}
+
 interface BuildPackProvenanceGraphOptions {
   fastify: FastifyInstance;
   rootPack: ContextPackWithCreator;
@@ -136,6 +140,38 @@ export async function buildPackProvenanceGraph({
           packedTokens: item.packedTokens,
           rank: item.rank,
         },
+      });
+    }
+  }
+
+  // Walk rendered packs for each visible context pack
+  for (const packId of visiblePackIds) {
+    const renderedPacks =
+      await fastify.renderedPackRepository.listBySourcePackId(packId);
+    for (const rp of renderedPacks) {
+      nodes.push({
+        id: renderedPackNodeId(rp.id),
+        kind: 'rendered_pack',
+        label: `rendered ${rp.renderMethod} ${rp.id.slice(0, 8)}`,
+        cid: rp.packCid,
+        meta: {
+          renderedPackId: rp.id,
+          sourcePackId: rp.sourcePackId,
+          diaryId: rp.diaryId,
+          packCid: rp.packCid,
+          renderMethod: rp.renderMethod,
+          totalTokens: rp.totalTokens,
+          pinned: rp.pinned,
+          createdAt: rp.createdAt.toISOString(),
+          expiresAt: rp.expiresAt?.toISOString() ?? null,
+        },
+      });
+      edges.push({
+        id: `${renderedPackNodeId(rp.id)}->${packNodeId(rp.sourcePackId)}:rendered_from`,
+        from: renderedPackNodeId(rp.id),
+        to: packNodeId(rp.sourcePackId),
+        kind: 'rendered_from',
+        label: rp.renderMethod,
       });
     }
   }

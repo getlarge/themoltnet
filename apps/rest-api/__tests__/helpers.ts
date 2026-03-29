@@ -167,6 +167,24 @@ export interface MockServices {
     deleteMany: ReturnType<typeof vi.fn>;
     listByDiary: ReturnType<typeof vi.fn>;
   };
+  renderedPackRepository: {
+    create: ReturnType<typeof vi.fn>;
+    findById: ReturnType<typeof vi.fn>;
+    findByCid: ReturnType<typeof vi.fn>;
+    findLatestBySourcePackId: ReturnType<typeof vi.fn>;
+    listBySourcePackId: ReturnType<typeof vi.fn>;
+    listByDiary: ReturnType<typeof vi.fn>;
+    listExpiredUnpinned: ReturnType<typeof vi.fn>;
+    pin: ReturnType<typeof vi.fn>;
+    unpin: ReturnType<typeof vi.fn>;
+    updateExpiry: ReturnType<typeof vi.fn>;
+    deleteById: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+  };
+  contextPackService: {
+    createCustomPack: ReturnType<typeof vi.fn>;
+    createRenderedPack: ReturnType<typeof vi.fn>;
+  };
   entryRelationRepository: {
     create: ReturnType<typeof vi.fn>;
     createMany: ReturnType<typeof vi.fn>;
@@ -235,6 +253,24 @@ export function createMockServices(): MockServices {
       updateExpiry: vi.fn(),
       deleteMany: vi.fn(),
       listByDiary: vi.fn().mockResolvedValue([]),
+    },
+    renderedPackRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      findByCid: vi.fn().mockResolvedValue(null),
+      findLatestBySourcePackId: vi.fn().mockResolvedValue(null),
+      listBySourcePackId: vi.fn().mockResolvedValue([]),
+      listByDiary: vi.fn().mockResolvedValue([]),
+      listExpiredUnpinned: vi.fn().mockResolvedValue([]),
+      pin: vi.fn(),
+      unpin: vi.fn(),
+      updateExpiry: vi.fn(),
+      deleteById: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    contextPackService: {
+      createCustomPack: vi.fn(),
+      createRenderedPack: vi.fn(),
     },
     entryRelationRepository: {
       create: vi.fn(),
@@ -362,6 +398,8 @@ export async function createTestApp(
     diaryEntryRepository:
       mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
     contextPackRepository: mocks.contextPackRepository as never,
+    renderedPackRepository: mocks.renderedPackRepository as never,
+    contextPackService: mocks.contextPackService as never,
     entryRelationRepository: mocks.entryRelationRepository as never,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,

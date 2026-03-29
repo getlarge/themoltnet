@@ -26,7 +26,9 @@ function isValidNode(node: unknown): node is ProvenanceGraph['nodes'][number] {
     !isRecord(node) ||
     typeof node.id !== 'string' ||
     typeof node.label !== 'string' ||
-    (node.kind !== 'pack' && node.kind !== 'entry') ||
+    (node.kind !== 'pack' &&
+      node.kind !== 'entry' &&
+      node.kind !== 'rendered_pack') ||
     !(typeof node.cid === 'string' || node.cid === null) ||
     !isRecord(node.meta)
   ) {
@@ -47,6 +49,20 @@ function isValidNode(node: unknown): node is ProvenanceGraph['nodes'][number] {
       (typeof node.meta.supersedesPackId === 'string' ||
         node.meta.supersedesPackId === null) &&
       isCreator(node.meta.creator)
+    );
+  }
+
+  if (node.kind === 'rendered_pack') {
+    return (
+      typeof node.meta.renderedPackId === 'string' &&
+      typeof node.meta.sourcePackId === 'string' &&
+      typeof node.meta.diaryId === 'string' &&
+      typeof node.meta.packCid === 'string' &&
+      typeof node.meta.renderMethod === 'string' &&
+      typeof node.meta.totalTokens === 'number' &&
+      typeof node.meta.pinned === 'boolean' &&
+      typeof node.meta.createdAt === 'string' &&
+      (typeof node.meta.expiresAt === 'string' || node.meta.expiresAt === null)
     );
   }
 
@@ -71,7 +87,9 @@ function isValidEdge(edge: unknown): edge is ProvenanceGraph['edges'][number] {
     typeof edge.id !== 'string' ||
     typeof edge.from !== 'string' ||
     typeof edge.to !== 'string' ||
-    (edge.kind !== 'includes' && edge.kind !== 'supersedes')
+    (edge.kind !== 'includes' &&
+      edge.kind !== 'supersedes' &&
+      edge.kind !== 'rendered_from')
   ) {
     return false;
   }

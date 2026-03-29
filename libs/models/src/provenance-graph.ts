@@ -12,11 +12,13 @@ import {
 export const ProvenanceGraphNodeKindSchema = Type.Union([
   Type.Literal('pack'),
   Type.Literal('entry'),
+  Type.Literal('rendered_pack'),
 ]);
 
 export const ProvenanceGraphEdgeKindSchema = Type.Union([
   Type.Literal('includes'),
   Type.Literal('supersedes'),
+  Type.Literal('rendered_from'),
 ]);
 
 export const ProvenanceGraphPackMetaSchema = Type.Object({
@@ -75,9 +77,30 @@ export const ProvenanceGraphEntryNodeSchema = Type.Object({
   meta: ProvenanceGraphEntryMetaSchema,
 });
 
+export const ProvenanceGraphRenderedPackMetaSchema = Type.Object({
+  renderedPackId: UuidSchema,
+  sourcePackId: UuidSchema,
+  diaryId: UuidSchema,
+  packCid: Type.String(),
+  renderMethod: Type.String(),
+  totalTokens: Type.Number(),
+  pinned: Type.Boolean(),
+  createdAt: TimestampSchema,
+  expiresAt: Type.Union([TimestampSchema, Type.Null()]),
+});
+
+export const ProvenanceGraphRenderedPackNodeSchema = Type.Object({
+  id: Type.String(),
+  kind: Type.Literal('rendered_pack'),
+  label: Type.String(),
+  cid: Type.Union([Type.String(), Type.Null()]),
+  meta: ProvenanceGraphRenderedPackMetaSchema,
+});
+
 export const ProvenanceGraphNodeSchema = Type.Union([
   ProvenanceGraphPackNodeSchema,
   ProvenanceGraphEntryNodeSchema,
+  ProvenanceGraphRenderedPackNodeSchema,
 ]);
 
 export const ProvenanceGraphEdgeSchema = Type.Object({
@@ -130,5 +153,8 @@ export type ProvenanceGraphNode = Static<typeof ProvenanceGraphNodeSchema>;
 export type ProvenanceGraphEdge = Static<typeof ProvenanceGraphEdgeSchema>;
 export type ProvenanceGraphMetadata = Static<
   typeof ProvenanceGraphMetadataSchema
+>;
+export type ProvenanceGraphRenderedPackMeta = Static<
+  typeof ProvenanceGraphRenderedPackMetaSchema
 >;
 export type ProvenanceGraph = Static<typeof ProvenanceGraphSchema>;

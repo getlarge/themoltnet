@@ -41,7 +41,9 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
       if (edge.from !== current) continue;
 
       const nextLevel =
-        edge.kind === 'supersedes' ? currentLevel + 1 : currentLevel + 2;
+        edge.kind === 'supersedes' || edge.kind === 'rendered_from'
+          ? currentLevel + 1
+          : currentLevel + 2;
       const previous = levels.get(edge.to);
       if (previous === undefined || nextLevel < previous) {
         levels.set(edge.to, nextLevel);

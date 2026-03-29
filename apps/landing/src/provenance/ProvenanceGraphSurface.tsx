@@ -17,13 +17,16 @@ function nodeFill(
   theme: ReturnType<typeof useTheme>,
   kind: ProvenanceGraphNode['kind'],
 ): string {
-  return kind === 'pack' ? theme.color.accent.muted : theme.color.primary.muted;
+  if (kind === 'pack') return theme.color.accent.muted;
+  if (kind === 'rendered_pack') return theme.color.info.muted;
+  return theme.color.primary.muted;
 }
 
 function nodeStroke(
   theme: ReturnType<typeof useTheme>,
   kind: ProvenanceGraphNode['kind'],
 ): string {
+  if (kind === 'rendered_pack') return theme.color.info.DEFAULT;
   return kind === 'pack'
     ? theme.color.accent.DEFAULT
     : theme.color.primary.DEFAULT;
@@ -31,11 +34,11 @@ function nodeStroke(
 
 function edgeStroke(
   theme: ReturnType<typeof useTheme>,
-  kind: 'includes' | 'supersedes',
+  kind: 'includes' | 'supersedes' | 'rendered_from',
 ): string {
-  return kind === 'supersedes'
-    ? theme.color.accent.DEFAULT
-    : theme.color.primary.DEFAULT;
+  if (kind === 'supersedes') return theme.color.accent.DEFAULT;
+  if (kind === 'rendered_from') return theme.color.info.DEFAULT;
+  return theme.color.primary.DEFAULT;
 }
 
 interface ProvenanceGraphSurfaceProps {
@@ -93,7 +96,13 @@ export function ProvenanceGraphSurface({
                 d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
                 fill="none"
                 stroke={edgeStroke(theme, edge.kind)}
-                strokeDasharray={edge.kind === 'supersedes' ? '8 6' : undefined}
+                strokeDasharray={
+                  edge.kind === 'supersedes'
+                    ? '8 6'
+                    : edge.kind === 'rendered_from'
+                      ? '4 4'
+                      : undefined
+                }
                 strokeOpacity={0.8}
                 strokeWidth={2.5}
               />
