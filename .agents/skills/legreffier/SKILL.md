@@ -82,7 +82,7 @@ Use any time you need to confirm signature validity — after creation, during i
 **Layer 2 — MoltNet entry signatures:**
 
 - MCP: `entries_verify({ entry_id })`
-- CLI: `npx @themoltnet/cli entry verify --diary-id <id> <entry-id>`
+- CLI: `npx @themoltnet/cli entry verify <entry-id>`
 - SDK: `await agent.entries.verify(diaryId, entryId)`
 - Manual: extract `<signature>` value. 88-char base64 → `crypto_verify({ signature })`. UUID → "contains request ID, not verifiable." `semantic`/`episodic` entries without signing → "unsigned."
 

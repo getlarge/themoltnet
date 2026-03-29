@@ -106,9 +106,12 @@ func newDiaryCompileCmd() *cobra.Command {
 			wRecency, _ := cmd.Flags().GetFloat64("w-recency")
 			wImportance, _ := cmd.Flags().GetFloat64("w-importance")
 			lambda, _ := cmd.Flags().GetFloat64("lambda")
+			wRecencyChanged := cmd.Flags().Changed("w-recency")
+			wImportanceChanged := cmd.Flags().Changed("w-importance")
+			lambdaChanged := cmd.Flags().Changed("lambda")
 			return runDiaryCompileCmd(apiURL, credPath, args[0], tokenBudget, taskPrompt,
 				includeTags, excludeTags, entryTypes, createdAfter, createdBefore,
-				wRecency, wImportance, lambda)
+				wRecency, wImportance, lambda, wRecencyChanged, wImportanceChanged, lambdaChanged)
 		},
 	}
 	cmd.Flags().Int("token-budget", 0, "Token budget for the context pack (required)")

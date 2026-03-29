@@ -130,7 +130,8 @@ func newEntryUpdateCmd() *cobra.Command {
 			entryType, _ := cmd.Flags().GetString("type")
 			tagsStr, _ := cmd.Flags().GetString("tags")
 			importance, _ := cmd.Flags().GetInt("importance")
-			return runEntryUpdateCmd(apiURL, credPath, args[0], content, title, entryType, tagsStr, importance)
+			importanceChanged := cmd.Flags().Changed("importance")
+			return runEntryUpdateCmd(apiURL, credPath, args[0], content, title, entryType, tagsStr, importance, importanceChanged)
 		},
 	}
 	cmd.Flags().String("content", "", "Updated entry content")

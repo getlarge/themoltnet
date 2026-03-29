@@ -896,8 +896,8 @@ func TestPackCreateRequiresFlags(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when --diary-id and --entries are missing, got nil")
 	}
-	if !strings.Contains(err.Error(), "--diary-id") {
-		t.Errorf("expected error to mention '--diary-id', got: %v", err)
+	if !strings.Contains(err.Error(), "diary-id") {
+		t.Errorf("expected error to mention 'diary-id', got: %v", err)
 	}
 }
 
@@ -923,8 +923,8 @@ func TestPackUpdateRequiresPackID(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when --pack-id is missing, got nil")
 	}
-	if !strings.Contains(err.Error(), "--pack-id") {
-		t.Errorf("expected error to mention '--pack-id', got: %v", err)
+	if !strings.Contains(err.Error(), "pack-id") {
+		t.Errorf("expected error to mention 'pack-id', got: %v", err)
 	}
 }
 

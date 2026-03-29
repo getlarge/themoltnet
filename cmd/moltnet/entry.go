@@ -181,7 +181,7 @@ func runEntryGetCmd(apiURL, credPath, entryID string) error {
 }
 
 // runEntryUpdateCmd updates a diary entry by ID.
-func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tagsStr string, importance int) error {
+func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tagsStr string, importance int, importanceChanged bool) error {
 	entryUUID, err := uuid.Parse(entryID)
 	if err != nil {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
@@ -207,7 +207,7 @@ func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tag
 	if tagsStr != "" {
 		req.Tags = splitAndTrim(tagsStr, ",")
 	}
-	if importance > 0 {
+	if importanceChanged {
 		req.Importance = moltnetapi.OptInt{Value: importance, Set: true}
 	}
 

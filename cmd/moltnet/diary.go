@@ -116,6 +116,7 @@ func runDiaryCompileCmd(
 	includeTags, excludeTags, entryTypes string,
 	createdAfter, createdBefore string,
 	wRecency, wImportance, lambda float64,
+	wRecencyChanged, wImportanceChanged, lambdaChanged bool,
 ) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
@@ -157,13 +158,13 @@ func runDiaryCompileCmd(
 		}
 		req.CreatedBefore = moltnetapi.OptDateTime{Value: t, Set: true}
 	}
-	if wRecency > 0 {
+	if wRecencyChanged {
 		req.WRecency = moltnetapi.OptFloat64{Value: wRecency, Set: true}
 	}
-	if wImportance > 0 {
+	if wImportanceChanged {
 		req.WImportance = moltnetapi.OptFloat64{Value: wImportance, Set: true}
 	}
-	if lambda > 0 {
+	if lambdaChanged {
 		req.Lambda = moltnetapi.OptFloat64{Value: lambda, Set: true}
 	}
 

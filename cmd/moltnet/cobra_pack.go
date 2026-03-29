@@ -57,13 +57,6 @@ The --entries flag takes a JSON array of objects with entryId and rank fields.`,
 			entries, _ := cmd.Flags().GetString("entries")
 			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
 
-			if diaryID == "" {
-				return fmt.Errorf("--diary-id is required")
-			}
-			if entries == "" {
-				return fmt.Errorf("--entries is required")
-			}
-
 			var pinned *bool
 			if cmd.Flags().Changed("pinned") {
 				v := true
@@ -77,6 +70,8 @@ The --entries flag takes a JSON array of objects with entryId and rank fields.`,
 	cmd.Flags().String("entries", "", `JSON array of entries: [{"entryId":"<uuid>","rank":1}]`)
 	cmd.Flags().Int("token-budget", 0, "Token budget for the pack")
 	cmd.Flags().Bool("pinned", false, "Pin the pack")
+	_ = cmd.MarkFlagRequired("diary-id")
+	_ = cmd.MarkFlagRequired("entries")
 	return cmd
 }
 
@@ -94,10 +89,6 @@ func newPackUpdateCmd() *cobra.Command {
 			packID, _ := cmd.Flags().GetString("pack-id")
 			expiresAt, _ := cmd.Flags().GetString("expires-at")
 
-			if packID == "" {
-				return fmt.Errorf("--pack-id is required")
-			}
-
 			var pinned *bool
 			if cmd.Flags().Changed("pinned") {
 				v := true
@@ -114,6 +105,7 @@ func newPackUpdateCmd() *cobra.Command {
 	cmd.Flags().Bool("pinned", false, "Pin the pack")
 	cmd.Flags().Bool("no-pinned", false, "Unpin the pack")
 	cmd.Flags().String("expires-at", "", "Expiration time in RFC3339 format")
+	_ = cmd.MarkFlagRequired("pack-id")
 	return cmd
 }
 

@@ -68,6 +68,131 @@ func (h *stubDiaryHandler) UpdateDiaryEntryById(_ context.Context, req moltnetap
 	return e, nil
 }
 
+func newTestDiary(name string) *moltnetapi.DiaryCatalog {
+	return &moltnetapi.DiaryCatalog{
+		ID:         testDiaryID,
+		OwnerId:    uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		Name:       name,
+		Visibility: moltnetapi.DiaryCatalogVisibilityMoltnet,
+		Signed:     false,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+}
+
+func (h *stubDiaryHandler) ListDiaries(_ context.Context) (moltnetapi.ListDiariesRes, error) {
+	return &moltnetapi.DiaryCatalogList{
+		Items: []moltnetapi.DiaryCatalog{*newTestDiary("diary-1"), *newTestDiary("diary-2")},
+	}, nil
+}
+
+func (h *stubDiaryHandler) CreateDiary(_ context.Context, req *moltnetapi.CreateDiaryReq) (moltnetapi.CreateDiaryRes, error) {
+	return newTestDiary(req.Name), nil
+}
+
+func (h *stubDiaryHandler) GetDiary(_ context.Context, params moltnetapi.GetDiaryParams) (moltnetapi.GetDiaryRes, error) {
+	d := newTestDiary("fetched diary")
+	d.ID = params.ID
+	return d, nil
+}
+
+func (h *stubDiaryHandler) ListDiaryTags(_ context.Context, _ moltnetapi.ListDiaryTagsParams) (moltnetapi.ListDiaryTagsRes, error) {
+	return &moltnetapi.DiaryTagsResponse{
+		Tags: []moltnetapi.DiaryTagsResponseTagsItem{
+			{Tag: "scope:cli", Count: 5},
+			{Tag: "tool:claude", Count: 3},
+		},
+		Total: 2,
+	}, nil
+}
+
+// --- Diary-level API client tests ---
+
+func TestDiaryListDiaries(t *testing.T) {
+	// Arrange
+	_, _, client := newTestServer(t, &stubDiaryHandler{})
+
+	// Act
+	res, err := client.ListDiaries(context.Background())
+
+	// Assert
+	if err != nil {
+		t.Fatalf("ListDiaries() error: %v", err)
+	}
+	list, ok := res.(*moltnetapi.DiaryCatalogList)
+	if !ok {
+		t.Fatalf("expected *DiaryCatalogList, got %T", res)
+	}
+	if len(list.Items) != 2 {
+		t.Errorf("expected 2 diaries, got %d", len(list.Items))
+	}
+}
+
+func TestDiaryCreateDiary(t *testing.T) {
+	// Arrange
+	_, _, client := newTestServer(t, &stubDiaryHandler{})
+
+	// Act
+	res, err := client.CreateDiary(context.Background(), &moltnetapi.CreateDiaryReq{
+		Name: "test diary",
+	})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("CreateDiary() error: %v", err)
+	}
+	diary, ok := res.(*moltnetapi.DiaryCatalog)
+	if !ok {
+		t.Fatalf("expected *DiaryCatalog, got %T", res)
+	}
+	if diary.Name != "test diary" {
+		t.Errorf("expected name=test diary, got %q", diary.Name)
+	}
+}
+
+func TestDiaryGetDiary(t *testing.T) {
+	// Arrange
+	_, _, client := newTestServer(t, &stubDiaryHandler{})
+
+	// Act
+	res, err := client.GetDiary(context.Background(), moltnetapi.GetDiaryParams{ID: testDiaryID})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("GetDiary() error: %v", err)
+	}
+	diary, ok := res.(*moltnetapi.DiaryCatalog)
+	if !ok {
+		t.Fatalf("expected *DiaryCatalog, got %T", res)
+	}
+	if diary.ID != testDiaryID {
+		t.Errorf("expected id=%s, got %s", testDiaryID, diary.ID)
+	}
+}
+
+func TestDiaryListTags(t *testing.T) {
+	// Arrange
+	_, _, client := newTestServer(t, &stubDiaryHandler{})
+
+	// Act
+	res, err := client.ListDiaryTags(context.Background(), moltnetapi.ListDiaryTagsParams{DiaryId: testDiaryID})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("ListDiaryTags() error: %v", err)
+	}
+	tagsRes, ok := res.(*moltnetapi.DiaryTagsResponse)
+	if !ok {
+		t.Fatalf("expected *DiaryTagsResponse, got %T", res)
+	}
+	if len(tagsRes.Tags) != 2 {
+		t.Errorf("expected 2 tags, got %d", len(tagsRes.Tags))
+	}
+	if tagsRes.Total != 2 {
+		t.Errorf("expected total=2, got %d", tagsRes.Total)
+	}
+}
+
 // --- Entry-level API client tests ---
 
 func TestEntryCreate(t *testing.T) {

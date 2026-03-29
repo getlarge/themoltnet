@@ -261,12 +261,7 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 
-	out, err := json.MarshalIndent(pack, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal response: %w", err)
-	}
-	fmt.Println(string(out))
-	return nil
+	return printJSON(pack)
 }
 
 // runPackUpdateCmd is the flag-free business logic for pack update.
@@ -307,12 +302,7 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 
-	out, err := json.MarshalIndent(pack, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal response: %w", err)
-	}
-	fmt.Println(string(out))
-	return nil
+	return printJSON(pack)
 }
 
 // --- Legacy wrappers preserved for existing tests ---
