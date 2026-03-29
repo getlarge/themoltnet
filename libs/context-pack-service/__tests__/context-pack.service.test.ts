@@ -196,6 +196,8 @@ describe('ContextPackService', () => {
           findByCid: vi.fn().mockResolvedValue({
             id: 'existing-rendered',
             packCid: 'bafyr-existing-rendered',
+            totalTokens: 10,
+            pinned: false,
           }),
           findLatestBySourcePackId: vi.fn().mockResolvedValue(null),
         },

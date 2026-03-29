@@ -173,6 +173,7 @@ export interface MockServices {
     findByCid: ReturnType<typeof vi.fn>;
     findLatestBySourcePackId: ReturnType<typeof vi.fn>;
     listBySourcePackId: ReturnType<typeof vi.fn>;
+    listBySourcePackIds: ReturnType<typeof vi.fn>;
     listByDiary: ReturnType<typeof vi.fn>;
     listExpiredUnpinned: ReturnType<typeof vi.fn>;
     pin: ReturnType<typeof vi.fn>;
@@ -260,6 +261,7 @@ export function createMockServices(): MockServices {
       findByCid: vi.fn().mockResolvedValue(null),
       findLatestBySourcePackId: vi.fn().mockResolvedValue(null),
       listBySourcePackId: vi.fn().mockResolvedValue([]),
+      listBySourcePackIds: vi.fn().mockResolvedValue([]),
       listByDiary: vi.fn().mockResolvedValue([]),
       listExpiredUnpinned: vi.fn().mockResolvedValue([]),
       pin: vi.fn(),

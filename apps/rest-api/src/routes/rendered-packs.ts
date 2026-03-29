@@ -53,15 +53,16 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Source pack not found');
       }
 
-      const allowed = await fastify.permissionChecker.canReadPack(
-        sourcePack.id,
-        request.authContext!.identityId,
-      );
-      if (!allowed) {
-        throw createProblem('forbidden', 'Not authorized to read this pack');
-      }
-
       if (request.body.preview) {
+        // Preview only requires read permission
+        const canRead = await fastify.permissionChecker.canReadPack(
+          sourcePack.id,
+          request.authContext!.identityId,
+        );
+        if (!canRead) {
+          throw createProblem('forbidden', 'Not authorized to read this pack');
+        }
+
         return reply.code(200).send({
           sourcePackId: sourcePack.id,
           sourcePackCid: sourcePack.packCid,
@@ -69,6 +70,15 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           renderedMarkdown: request.body.renderedMarkdown,
           totalTokens: estimateTokens(request.body.renderedMarkdown),
         });
+      }
+
+      // Persistence requires manage permission
+      const canManage = await fastify.permissionChecker.canManagePack(
+        sourcePack.id,
+        request.authContext!.identityId,
+      );
+      if (!canManage) {
+        throw createProblem('forbidden', 'Not authorized to manage this pack');
       }
 
       try {

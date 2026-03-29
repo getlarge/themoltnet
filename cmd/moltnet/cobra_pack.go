@@ -63,7 +63,7 @@ Use --preview to return the rendered markdown without persisting.`,
 
 			var pinned *bool
 			if cmd.Flags().Changed("pinned") {
-				v := true
+				v, _ := cmd.Flags().GetBool("pinned")
 				pinned = &v
 			}
 

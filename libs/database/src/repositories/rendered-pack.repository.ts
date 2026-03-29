@@ -72,6 +72,18 @@ export function createRenderedPackRepository(db: Database) {
         .limit(limit);
     },
 
+    async listBySourcePackIds(
+      sourcePackIds: string[],
+    ): Promise<RenderedPack[]> {
+      if (sourcePackIds.length === 0) return [];
+
+      return getExecutor(db)
+        .select()
+        .from(renderedPacks)
+        .where(inArray(renderedPacks.sourcePackId, sourcePackIds))
+        .orderBy(desc(renderedPacks.createdAt));
+    },
+
     async listByDiary(diaryId: string, limit = 50): Promise<RenderedPack[]> {
       return getExecutor(db)
         .select()

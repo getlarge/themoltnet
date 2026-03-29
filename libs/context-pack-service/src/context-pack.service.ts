@@ -90,7 +90,12 @@ export interface ContextPackServiceDeps {
       pinned: boolean;
       createdAt: Date;
     }>;
-    findByCid: (cid: string) => Promise<{ id: string; packCid: string } | null>;
+    findByCid: (cid: string) => Promise<{
+      id: string;
+      packCid: string;
+      totalTokens: number;
+      pinned: boolean;
+    } | null>;
     findLatestBySourcePackId: (sourcePackId: string) => Promise<{
       id: string;
       packCid: string;
@@ -245,7 +250,7 @@ export class ContextPackService {
       contentHash,
     });
 
-    // Idempotency: return existing if CID matches
+    // Idempotency: return existing if CID matches (use stored values)
     const existing = await this.deps.renderedPackRepository.findByCid(packCid);
     if (existing) {
       return {
@@ -256,8 +261,8 @@ export class ContextPackService {
         diaryId: sourcePack.diaryId,
         contentHash,
         renderMethod: input.renderMethod,
-        totalTokens: estimateTokens(input.renderedMarkdown),
-        pinned: input.pinned ?? false,
+        totalTokens: existing.totalTokens,
+        pinned: existing.pinned,
       };
     }
 
