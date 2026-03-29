@@ -6,6 +6,7 @@
   "include-v-in-tag": true,
   "packages": {
     "cmd/moltnet": {
+      "bump-minor-pre-major": true,
       "component": "cli",
       "extra-files": [
         {
@@ -17,6 +18,7 @@
       "release-type": "go"
     },
     "cmd/moltnet-api-client": {
+      "bump-minor-pre-major": true,
       "component": "moltnet-api-client",
       "release-type": "go"
     },
