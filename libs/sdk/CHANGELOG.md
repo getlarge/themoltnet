@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.79.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.79.0...sdk-v0.79.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* **sdk:** prevent tsc .d.ts leak into published tarball ([d50e38b](https://github.com/getlarge/themoltnet/commit/d50e38baa8cc68ce736f248a0e2b988d7f090c3d))
+* standardize pagination total counts, multi-entryType, SDK pack fix ([d051515](https://github.com/getlarge/themoltnet/commit/d051515b27cc0ec3eef30d9966477c8320b3f189))
+
 ## [0.79.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.78.0...sdk-v0.79.0) (2026-03-20)
 
 

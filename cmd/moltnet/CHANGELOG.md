@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.83.1](https://github.com/getlarge/themoltnet/compare/cli-v0.83.0...cli-v0.83.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* **cli:** address review — printJSON, MarkFlagRequired, zero-values, skill docs ([c5f6953](https://github.com/getlarge/themoltnet/commit/c5f69535e257439090e37d1e280ee94e89e378b0))
+* **cli:** use OptString for entry list --entry-type (matches current API client) ([69b4b28](https://github.com/getlarge/themoltnet/commit/69b4b285950292cca7c9911bcb3abab763448b9d))
+
 ## [0.83.0](https://github.com/getlarge/themoltnet/compare/cli-v0.82.0...cli-v0.83.0) (2026-03-29)
 
 
