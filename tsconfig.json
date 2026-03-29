@@ -45,6 +45,9 @@
       "path": "libs/context-evals"
     },
     {
+      "path": "libs/context-pack-service"
+    },
+    {
       "path": "libs/crypto-service"
     },
     {

@@ -560,6 +560,58 @@ export const contextPackEntries = pgTable(
   }),
 );
 
+/**
+ * Rendered Packs Table
+ *
+ * Immutable, CID-addressed rendered versions of context packs. Each row
+ * stores the rendered markdown content and its DAG-CBOR CID. Append-only:
+ * re-rendering creates a new row (new CID), not an upsert.
+ *
+ * Uses the same pinned + expiresAt GC pattern as context_packs.
+ * ON DELETE CASCADE from source_pack_id cleans up when the source is GC'd.
+ */
+export const renderedPacks = pgTable(
+  'rendered_packs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    packCid: varchar('pack_cid', { length: 100 }).notNull(),
+    sourcePackId: uuid('source_pack_id')
+      .notNull()
+      .references(() => contextPacks.id, { onDelete: 'cascade' }),
+    diaryId: uuid('diary_id')
+      .notNull()
+      .references(() => diaries.id, { onDelete: 'cascade' }),
+    content: text('content').notNull(),
+    contentHash: varchar('content_hash', { length: 100 }).notNull(),
+    renderMethod: varchar('render_method', { length: 100 }).notNull(),
+    totalTokens: integer('total_tokens').notNull(),
+    createdBy: uuid('created_by').notNull(),
+    pinned: boolean('pinned').default(false).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).default(
+      sql`(now() + interval '7 days')`,
+    ),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    packCidUniqueIdx: uniqueIndex('rendered_packs_pack_cid_unique_idx').on(
+      table.packCid,
+    ),
+    sourcePackIdx: index('rendered_packs_source_pack_idx').on(
+      table.sourcePackId,
+    ),
+    diaryIdx: index('rendered_packs_diary_idx').on(table.diaryId),
+    expiresAtIdx: index('rendered_packs_expires_at_idx')
+      .on(table.expiresAt)
+      .where(sql`pinned = false`),
+    pinnedIdx: index('rendered_packs_pinned_idx').on(table.pinned),
+  }),
+);
+
 // Type exports for use in services
 export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
@@ -579,3 +631,5 @@ export type ContextPack = typeof contextPacks.$inferSelect;
 export type NewContextPack = typeof contextPacks.$inferInsert;
 export type ContextPackEntry = typeof contextPackEntries.$inferSelect;
 export type NewContextPackEntry = typeof contextPackEntries.$inferInsert;
+export type RenderedPack = typeof renderedPacks.$inferSelect;
+export type NewRenderedPack = typeof renderedPacks.$inferInsert;

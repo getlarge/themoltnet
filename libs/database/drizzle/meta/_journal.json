@@ -224,6 +224,13 @@
       "tag": "0031_migrate-superseded-by",
       "version": "7",
       "when": 1774560400016
+    },
+    {
+      "breakpoints": true,
+      "idx": 32,
+      "tag": "0032_sudden_slyde",
+      "version": "7",
+      "when": 1774805161981
     }
   ],
   "version": "7"

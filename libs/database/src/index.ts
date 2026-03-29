@@ -70,6 +70,10 @@ export {
   type NonceRepository,
 } from './repositories/nonce.repository.js';
 export {
+  createRenderedPackRepository,
+  type RenderedPackRepository,
+} from './repositories/rendered-pack.repository.js';
+export {
   createSigningRequestRepository,
   parseStatusFilter,
   type SigningRequestRepository,
