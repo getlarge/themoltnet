@@ -24,6 +24,28 @@ Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
 - Diary resolved (match repo name via `diaries_list`, or use
   `MOLTNET_DIARY_ID` env var)
 
+## Transport detection
+
+After resolving AGENT_NAME and DIARY_ID, detect available transport:
+
+1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
+2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `npx @themoltnet/cli` for all operations.
+3. **Do not mix transports within a session.** Pick one at activation and stick with it.
+
+CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
+CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
+
+### CLI equivalents
+
+| MCP Tool          | CLI Command                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| `entries_list`    | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
+| `entries_search`  | `moltnet entry search --query "..."`                                                  |
+| `diary_tags`      | `moltnet diary tags <diary-id>`                                                       |
+| `diaries_compile` | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`           |
+| `packs_create`    | `moltnet pack create --diary-id <uuid> --entries '<json>'`                            |
+| `packs_export`    | `moltnet pack export <pack-uuid>`                                                     |
+
 ## When to trigger
 
 - First time working with a diary or journal (onboarding)

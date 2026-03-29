@@ -901,6 +901,7 @@ export const RenderPackBodySchema = Type.Object({
   renderedMarkdown: Type.String({ minLength: 1, maxLength: 500000 }),
   renderMethod: Type.String({ minLength: 1, maxLength: 100 }),
   pinned: Type.Optional(Type.Boolean()),
+  preview: Type.Optional(Type.Boolean()),
 });
 
 export const RenderedPackResultSchema = Type.Object(
@@ -913,6 +914,17 @@ export const RenderedPackResultSchema = Type.Object(
     totalTokens: Type.Integer(),
   },
   { $id: 'RenderedPackResult' },
+);
+
+export const RenderedPackPreviewSchema = Type.Object(
+  {
+    sourcePackId: Type.String({ format: 'uuid' }),
+    sourcePackCid: Type.String(),
+    renderMethod: Type.String(),
+    renderedMarkdown: Type.String(),
+    totalTokens: Type.Integer(),
+  },
+  { $id: 'RenderedPackPreview' },
 );
 
 /**
@@ -972,4 +984,5 @@ export const sharedSchemas = [
   EntryRelationSchema,
   EntryRelationListSchema,
   RenderedPackResultSchema,
+  RenderedPackPreviewSchema,
 ];

@@ -46,6 +46,26 @@ Visual source of truth:
 - When a user explicitly asks to scan or bootstrap the diary
 - When onboarding a new design partner repo
 
+## Transport detection
+
+After resolving AGENT_NAME and DIARY_ID, detect available transport:
+
+1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
+2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `npx @themoltnet/cli` for all operations.
+3. **Do not mix transports within a session.** Pick one at activation and stick with it.
+
+CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
+CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
+
+### CLI equivalents
+
+| MCP Tool         | CLI Command                                              |
+| ---------------- | -------------------------------------------------------- |
+| `moltnet_whoami` | `moltnet agents whoami`                                  |
+| `diaries_list`   | `moltnet diary list`                                     |
+| `diaries_create` | `moltnet diary create --name <name>`                     |
+| `entries_create` | `moltnet entry create --diary-id <uuid> --content "..."` |
+
 ## Scan modes
 
 ### Bootstrap (default)

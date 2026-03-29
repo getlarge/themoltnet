@@ -15,6 +15,8 @@ func newPackCmd() *cobra.Command {
 	packCmd.AddCommand(newPackExportCmd())
 	packCmd.AddCommand(newPackRenderCmd())
 	packCmd.AddCommand(newPackProvenanceCmd())
+	packCmd.AddCommand(newPackCreateCmd())
+	packCmd.AddCommand(newPackUpdateCmd())
 
 	return packCmd
 }
@@ -68,6 +70,75 @@ Use --preview to render locally without persisting (replaces 'pack export').`,
 	cmd.Flags().Bool("pinned", false, "Pin the rendered pack to prevent garbage collection")
 	cmd.Flags().Bool("preview", false, "Render locally without persisting (replaces 'pack export')")
 	cmd.Flags().String("out", "", "Write rendered markdown to file (default: stdout in preview mode)")
+	return cmd
+}
+
+func newPackCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a custom context pack for a diary",
+		Long: `Create a custom context pack by specifying diary entries and their ranks.
+The --entries flag takes a JSON array of objects with entryId and rank fields.`,
+		Example: fmt.Sprintf(`  moltnet pack create --diary-id <uuid> --entries '%s'
+  moltnet pack create --diary-id <uuid> --entries '%s' --token-budget 4096 --pinned`,
+			`[{"entryId":"<uuid>","rank":1}]`,
+			`[{"entryId":"<uuid>","rank":1},{"entryId":"<uuid>","rank":2}]`),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			diaryID, _ := cmd.Flags().GetString("diary-id")
+			entries, _ := cmd.Flags().GetString("entries")
+			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
+
+			var pinned *bool
+			if cmd.Flags().Changed("pinned") {
+				v := true
+				pinned = &v
+			}
+
+			return runPackCreateCmd(apiURL, credPath, diaryID, entries, tokenBudget, pinned)
+		},
+	}
+	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
+	cmd.Flags().String("entries", "", `JSON array of entries: [{"entryId":"<uuid>","rank":1}]`)
+	cmd.Flags().Int("token-budget", 0, "Token budget for the pack")
+	cmd.Flags().Bool("pinned", false, "Pin the pack")
+	_ = cmd.MarkFlagRequired("diary-id")
+	_ = cmd.MarkFlagRequired("entries")
+	return cmd
+}
+
+func newPackUpdateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update",
+		Short: "Update a context pack",
+		Long:  `Update a context pack's pinned status or expiration time.`,
+		Example: `  moltnet pack update --pack-id <uuid> --pinned
+  moltnet pack update --pack-id <uuid> --no-pinned
+  moltnet pack update --pack-id <uuid> --expires-at 2026-04-01T00:00:00Z`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiURL, _ := cmd.Flags().GetString("api-url")
+			credPath, _ := cmd.Flags().GetString("credentials")
+			packID, _ := cmd.Flags().GetString("pack-id")
+			expiresAt, _ := cmd.Flags().GetString("expires-at")
+
+			var pinned *bool
+			if cmd.Flags().Changed("pinned") {
+				v := true
+				pinned = &v
+			} else if cmd.Flags().Changed("no-pinned") {
+				v := false
+				pinned = &v
+			}
+
+			return runPackUpdateCmd(apiURL, credPath, packID, pinned, expiresAt)
+		},
+	}
+	cmd.Flags().String("pack-id", "", "Pack UUID (required)")
+	cmd.Flags().Bool("pinned", false, "Pin the pack")
+	cmd.Flags().Bool("no-pinned", false, "Unpin the pack")
+	cmd.Flags().String("expires-at", "", "Expiration time in RFC3339 format")
+	_ = cmd.MarkFlagRequired("pack-id")
 	return cmd
 }
 

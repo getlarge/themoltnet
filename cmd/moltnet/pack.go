@@ -283,7 +283,6 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, pinned, pre
 	}
 
 	if out != "" {
-		// Write markdown to file, JSON result to stderr
 		if err := os.WriteFile(out, []byte(md), 0644); err != nil {
 			return fmt.Errorf("write %s: %w", out, err)
 		}
@@ -292,6 +291,111 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, pinned, pre
 
 	fmt.Println(string(serialized))
 	return nil
+}
+
+// runPackCreateCmd is the flag-free business logic for pack create.
+func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget int, pinned *bool) error {
+	diaryUUID, err := uuid.Parse(diaryID)
+	if err != nil {
+		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
+	}
+
+	var items []struct {
+		EntryID string `json:"entryId"`
+		Rank    int    `json:"rank"`
+	}
+	if err := json.Unmarshal([]byte(entriesJSON), &items); err != nil {
+		return fmt.Errorf("invalid --entries JSON: %w", err)
+	}
+	if len(items) == 0 {
+		return fmt.Errorf("--entries must contain at least one entry")
+	}
+
+	entries := make([]moltnetapi.CreateDiaryCustomPackReqEntriesItem, len(items))
+	for i, item := range items {
+		entryUUID, err := uuid.Parse(item.EntryID)
+		if err != nil {
+			return fmt.Errorf("invalid entryId %q at index %d: %w", item.EntryID, i, err)
+		}
+		entries[i] = moltnetapi.CreateDiaryCustomPackReqEntriesItem{
+			EntryId: entryUUID,
+			Rank:    item.Rank,
+		}
+	}
+
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+
+	req := &moltnetapi.CreateDiaryCustomPackReq{
+		Entries:  entries,
+		PackType: moltnetapi.CreateDiaryCustomPackReqPackTypeCustom,
+		Params:   moltnetapi.CreateDiaryCustomPackReqParams{},
+	}
+	if tokenBudget > 0 {
+		req.TokenBudget = moltnetapi.NewOptInt(tokenBudget)
+	}
+	if pinned != nil {
+		req.Pinned = moltnetapi.NewOptBool(*pinned)
+	}
+
+	createRes, err := client.CreateDiaryCustomPack(
+		context.Background(),
+		req,
+		moltnetapi.CreateDiaryCustomPackParams{ID: diaryUUID},
+	)
+	if err != nil {
+		return fmt.Errorf("pack create: %w", err)
+	}
+
+	customPack, ok := createRes.(*moltnetapi.CustomPackResult)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", createRes)
+	}
+
+	return printJSON(customPack)
+}
+
+// runPackUpdateCmd is the flag-free business logic for pack update.
+func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt string) error {
+	packUUID, err := uuid.Parse(packID)
+	if err != nil {
+		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
+	}
+
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+
+	req := moltnetapi.UpdateContextPackReq{}
+	if pinned != nil {
+		req.Pinned = moltnetapi.NewOptBool(*pinned)
+	}
+	if expiresAt != "" {
+		t, err := time.Parse(time.RFC3339, expiresAt)
+		if err != nil {
+			return fmt.Errorf("invalid --expires-at %q: %w", expiresAt, err)
+		}
+		req.ExpiresAt = moltnetapi.NewOptDateTime(t)
+	}
+
+	updateRes, err := client.UpdateContextPack(
+		context.Background(),
+		moltnetapi.OptUpdateContextPackReq{Value: req, Set: true},
+		moltnetapi.UpdateContextPackParams{ID: packUUID},
+	)
+	if err != nil {
+		return fmt.Errorf("pack update: %w", err)
+	}
+
+	updatedPack, ok := updateRes.(*moltnetapi.ContextPackResponse)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", updateRes)
+	}
+
+	return printJSON(updatedPack)
 }
 
 // --- Legacy wrappers preserved for existing tests ---

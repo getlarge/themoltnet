@@ -3,260 +3,178 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
+	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/cmd/moltnet-api-client"
 	"github.com/google/uuid"
 )
 
-// --- Parameterized business logic (called by Cobra commands) ---
+// --- Diary-level business logic ---
 
-// runDiaryCreateCmd is the flag-free business logic for diary create.
-func runDiaryCreateCmd(apiURL, credPath, diaryID, content string) error {
-	diaryUUID, err := uuid.Parse(diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
-	}
-
+// runDiaryListCmd lists all agent's diaries.
+func runDiaryListCmd(apiURL, credPath string) error {
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
-	req := &moltnetapi.CreateDiaryEntryReq{
-		Content: content,
-	}
-	res, err := client.CreateDiaryEntry(context.Background(), req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
-	if err != nil {
-		return fmt.Errorf("diary create: %w", err)
-	}
-	entry, ok := res.(*moltnetapi.DiaryEntry)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	return printJSON(entry)
-}
-
-// runDiaryCreateSignedCmd is the flag-free business logic for diary create-signed.
-func runDiaryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryType, tagsStr string) error {
-	diaryUUID, err := uuid.Parse(diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
-	}
-
-	var tags []string
-	if tagsStr != "" {
-		for _, t := range splitAndTrim(tagsStr, ",") {
-			if t != "" {
-				tags = append(tags, t)
-			}
-		}
-	}
-
-	// Step 1: Compute CID locally
-	cid, err := computeContentCid(entryType, title, content, tags)
-	if err != nil {
-		return fmt.Errorf("compute CID: %w", err)
-	}
-	fmt.Fprintf(os.Stderr, "Computed CID: %s\n", cid)
-
-	// Step 2: Load credentials and create client
-	creds, err := loadCredentials(credPath)
-	if err != nil {
-		return err
-	}
-	client, err := newClientFromCreds(apiURL, credPath)
-	if err != nil {
-		return err
-	}
-
-	// Step 3: Create signing request with CID as message
-	sigRes, err := client.CreateSigningRequest(context.Background(), &moltnetapi.CreateSigningRequestReq{
-		Message: cid,
-	})
-	if err != nil {
-		return fmt.Errorf("create signing request: %w", err)
-	}
-	sigReq, ok := sigRes.(*moltnetapi.SigningRequest)
-	if !ok {
-		return fmt.Errorf("unexpected signing request response type: %T", sigRes)
-	}
-	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
-
-	// Step 4: Sign and submit
-	_, err = signWithRequestID(client, sigReq.ID.String(), creds.Keys.PrivateKey)
-	if err != nil {
-		return fmt.Errorf("sign and submit: %w", err)
-	}
-	fmt.Fprintf(os.Stderr, "Signature submitted\n")
-
-	// Step 5: Create signed entry
-	req := &moltnetapi.CreateDiaryEntryReq{
-		Content:          content,
-		ContentHash:      moltnetapi.OptString{Value: cid, Set: true},
-		SigningRequestId: moltnetapi.OptUUID{Value: sigReq.ID, Set: true},
-		Tags:             tags,
-	}
-	if title != "" {
-		req.Title = moltnetapi.OptString{Value: title, Set: true}
-	}
-	if entryType != "" {
-		et, err := parseEntryType(entryType)
-		if err != nil {
-			return err
-		}
-		req.EntryType = moltnetapi.OptCreateDiaryEntryReqEntryType{Value: et, Set: true}
-	}
-
-	res, err := client.CreateDiaryEntry(context.Background(), req, moltnetapi.CreateDiaryEntryParams{DiaryId: diaryUUID})
-	if err != nil {
-		return fmt.Errorf("diary create-signed: %w", err)
-	}
-	entry, ok := res.(*moltnetapi.DiaryEntry)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-	fmt.Fprintf(os.Stderr, "Signed entry created: %s\n", entry.ID)
-	return printJSON(entry)
-}
-
-// runDiaryListCmd is the flag-free business logic for diary list.
-func runDiaryListCmd(apiURL, credPath, diaryID string) error {
-	diaryUUID, err := uuid.Parse(diaryID)
-	if err != nil {
-		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
-	}
-
-	client, err := newClientFromCreds(apiURL, credPath)
-	if err != nil {
-		return err
-	}
-	res, err := client.ListDiaryEntries(context.Background(), moltnetapi.ListDiaryEntriesParams{DiaryId: diaryUUID})
+	res, err := client.ListDiaries(context.Background())
 	if err != nil {
 		return fmt.Errorf("diary list: %w", err)
 	}
-	list, ok := res.(*moltnetapi.DiaryList)
+	list, ok := res.(*moltnetapi.DiaryCatalogList)
 	if !ok {
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 	return printJSON(list)
 }
 
-// runDiaryGetCmd is the flag-free business logic for diary get.
-func runDiaryGetCmd(apiURL, credPath, entryID string) error {
-	entryUUID, err := uuid.Parse(entryID)
+// runDiaryCreateCmd creates a new diary.
+func runDiaryCreateCmd(apiURL, credPath, name, visibility string) error {
+	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
-		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
+		return err
+	}
+	req := &moltnetapi.CreateDiaryReq{
+		Name: name,
+	}
+	if visibility != "" {
+		req.Visibility = moltnetapi.OptCreateDiaryReqVisibility{
+			Value: moltnetapi.CreateDiaryReqVisibility(visibility),
+			Set:   true,
+		}
+	}
+	res, err := client.CreateDiary(context.Background(), req)
+	if err != nil {
+		return fmt.Errorf("diary create: %w", err)
+	}
+	diary, ok := res.(*moltnetapi.DiaryCatalog)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+	return printJSON(diary)
+}
+
+// runDiaryGetCmd fetches a diary by ID.
+func runDiaryGetCmd(apiURL, credPath, diaryID string) error {
+	diaryUUID, err := uuid.Parse(diaryID)
+	if err != nil {
+		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
-	res, err := client.GetDiaryEntryById(context.Background(), moltnetapi.GetDiaryEntryByIdParams{EntryId: entryUUID})
+	res, err := client.GetDiary(context.Background(), moltnetapi.GetDiaryParams{ID: diaryUUID})
 	if err != nil {
 		return fmt.Errorf("diary get: %w", err)
 	}
-	entry, ok := res.(*moltnetapi.DiaryEntry)
+	diary, ok := res.(*moltnetapi.DiaryCatalog)
 	if !ok {
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
-	return printJSON(entry)
+	return printJSON(diary)
 }
 
-// runDiaryDeleteCmd is the flag-free business logic for diary delete.
-func runDiaryDeleteCmd(apiURL, credPath, entryID string) error {
-	entryUUID, err := uuid.Parse(entryID)
+// runDiaryTagsCmd lists tags for a diary.
+func runDiaryTagsCmd(apiURL, credPath, diaryID, prefix, entryTypes string, minCount int) error {
+	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
-		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
+		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
-	if _, err := client.DeleteDiaryEntryById(context.Background(), moltnetapi.DeleteDiaryEntryByIdParams{EntryId: entryUUID}); err != nil {
-		return fmt.Errorf("diary delete: %w", err)
+	params := moltnetapi.ListDiaryTagsParams{DiaryId: diaryUUID}
+	if prefix != "" {
+		params.Prefix = moltnetapi.OptString{Value: prefix, Set: true}
 	}
-	fmt.Fprintf(os.Stderr, "Entry %s deleted.\n", entryID)
-	return nil
-}
-
-// runDiarySearchCmd is the flag-free business logic for diary search.
-func runDiarySearchCmd(apiURL, credPath, query string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	if entryTypes != "" {
+		params.EntryTypes = moltnetapi.OptString{Value: entryTypes, Set: true}
+	}
+	if minCount > 0 {
+		params.MinCount = moltnetapi.OptInt{Value: minCount, Set: true}
+	}
+	res, err := client.ListDiaryTags(context.Background(), params)
 	if err != nil {
-		return err
+		return fmt.Errorf("diary tags: %w", err)
 	}
-	res, err := client.SearchDiary(context.Background(), moltnetapi.OptSearchDiaryReq{
-		Value: moltnetapi.SearchDiaryReq{
-			Query: moltnetapi.OptString{Value: query, Set: true},
-		},
-		Set: true,
-	})
-	if err != nil {
-		return fmt.Errorf("diary search: %w", err)
-	}
-	results, ok := res.(*moltnetapi.DiarySearchResult)
+	tagsRes, ok := res.(*moltnetapi.DiaryTagsResponse)
 	if !ok {
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
-	return printJSON(results)
+	return printJSON(tagsRes)
 }
 
-// runDiaryVerifyCmd is the flag-free business logic for diary verify.
-func runDiaryVerifyCmd(apiURL, credPath, entryID string) error {
-	entryUUID, err := uuid.Parse(entryID)
+// runDiaryCompileCmd compiles a context pack from a diary.
+func runDiaryCompileCmd(
+	apiURL, credPath, diaryID string,
+	tokenBudget int,
+	taskPrompt string,
+	includeTags, excludeTags, entryTypes string,
+	createdAfter, createdBefore string,
+	wRecency, wImportance, lambda float64,
+	wRecencyChanged, wImportanceChanged, lambdaChanged bool,
+) error {
+	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
-		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
+		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
-	res, err := client.VerifyDiaryEntryById(context.Background(), moltnetapi.VerifyDiaryEntryByIdParams{EntryId: entryUUID})
-	if err != nil {
-		return fmt.Errorf("diary verify: %w", err)
+	req := &moltnetapi.CompileDiaryReq{
+		TokenBudget: tokenBudget,
 	}
-	result, ok := res.(*moltnetapi.EntryVerifyResult)
+	if taskPrompt != "" {
+		req.TaskPrompt = moltnetapi.OptString{Value: taskPrompt, Set: true}
+	}
+	if includeTags != "" {
+		req.IncludeTags = splitAndTrim(includeTags, ",")
+	}
+	if excludeTags != "" {
+		req.ExcludeTags = splitAndTrim(excludeTags, ",")
+	}
+	if entryTypes != "" {
+		for _, et := range splitAndTrim(entryTypes, ",") {
+			req.EntryTypes = append(req.EntryTypes, moltnetapi.CompileDiaryReqEntryTypesItem(et))
+		}
+	}
+	if createdAfter != "" {
+		t, err := time.Parse(time.RFC3339, createdAfter)
+		if err != nil {
+			return fmt.Errorf("invalid --created-after %q: %w", createdAfter, err)
+		}
+		req.CreatedAfter = moltnetapi.OptDateTime{Value: t, Set: true}
+	}
+	if createdBefore != "" {
+		t, err := time.Parse(time.RFC3339, createdBefore)
+		if err != nil {
+			return fmt.Errorf("invalid --created-before %q: %w", createdBefore, err)
+		}
+		req.CreatedBefore = moltnetapi.OptDateTime{Value: t, Set: true}
+	}
+	if wRecencyChanged {
+		req.WRecency = moltnetapi.OptFloat64{Value: wRecency, Set: true}
+	}
+	if wImportanceChanged {
+		req.WImportance = moltnetapi.OptFloat64{Value: wImportance, Set: true}
+	}
+	if lambdaChanged {
+		req.Lambda = moltnetapi.OptFloat64{Value: lambda, Set: true}
+	}
+
+	res, err := client.CompileDiary(context.Background(), req, moltnetapi.CompileDiaryParams{ID: diaryUUID})
+	if err != nil {
+		return fmt.Errorf("diary compile: %w", err)
+	}
+	result, ok := res.(*moltnetapi.CompileResult)
 	if !ok {
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 	return printJSON(result)
 }
-
-// --- Utility functions ---
-
-// splitAndTrim splits a string by sep and trims whitespace from each part.
-func splitAndTrim(s, sep string) []string {
-	parts := make([]string, 0)
-	for _, p := range strings.Split(s, sep) {
-		trimmed := strings.TrimSpace(p)
-		if trimmed != "" {
-			parts = append(parts, trimmed)
-		}
-	}
-	return parts
-}
-
-// parseEntryType converts a string to the API entry type enum.
-func parseEntryType(s string) (moltnetapi.CreateDiaryEntryReqEntryType, error) {
-	switch s {
-	case "semantic":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeSemantic, nil
-	case "episodic":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeEpisodic, nil
-	case "procedural":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeProcedural, nil
-	case "reflection":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeReflection, nil
-	case "identity":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeIdentity, nil
-	case "soul":
-		return moltnetapi.CreateDiaryEntryReqEntryTypeSoul, nil
-	default:
-		return "", fmt.Errorf("unknown entry type %q (valid: semantic, episodic, procedural, reflection, identity, soul)", s)
-	}
-}
-

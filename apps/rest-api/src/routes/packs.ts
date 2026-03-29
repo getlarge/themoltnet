@@ -1,5 +1,6 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
+import { estimateTokens } from '@moltnet/context-distill';
 import {
   EntryLoadError,
   fitEntries,
@@ -21,6 +22,7 @@ import {
   ContextPackResponseListSchema,
   ContextPackResponseSchema,
   CustomPackResultSchema,
+  RenderedPackPreviewSchema,
   RenderedPackResultSchema,
   RenderPackBodySchema,
 } from '../schemas.js';
@@ -272,11 +274,14 @@ export async function packRoutes(fastify: FastifyInstance) {
         operationId: 'renderContextPack',
         tags: ['diary'],
         description:
-          'Create a rendered pack from a source pack. The rendered markdown is persisted as a new pack with its own CID.',
+          'Render a source pack to structured markdown. By default persists ' +
+          'the result as a new rendered pack with its own CID. Pass ' +
+          '`preview: true` to return the rendered markdown without persisting.',
         security: [{ bearerAuth: [] }],
         params: PackParamsSchema,
         body: RenderPackBodySchema,
         response: {
+          200: Type.Ref(RenderedPackPreviewSchema),
           201: Type.Ref(RenderedPackResultSchema),
           400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -292,6 +297,26 @@ export async function packRoutes(fastify: FastifyInstance) {
       );
       if (!sourcePack) {
         throw createProblem('not-found', 'Source pack not found');
+      }
+
+      // Preview only needs read permission; persist needs write
+      const preview = request.body.preview === true;
+      if (preview) {
+        const allowed = await fastify.permissionChecker.canReadDiary(
+          sourcePack.diaryId,
+          request.authContext!.identityId,
+        );
+        if (!allowed) {
+          throw createProblem('forbidden', 'Not authorized to read this diary');
+        }
+
+        return reply.code(200).send({
+          sourcePackId: request.params.id,
+          sourcePackCid: sourcePack.packCid,
+          renderMethod: request.body.renderMethod,
+          renderedMarkdown: request.body.renderedMarkdown,
+          totalTokens: estimateTokens(request.body.renderedMarkdown),
+        });
       }
 
       const allowed = await fastify.permissionChecker.canWriteDiary(
