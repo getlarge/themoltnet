@@ -8425,6 +8425,457 @@
         "tags": ["diary"]
       }
     },
+    "/teams": {
+      "get": {
+        "description": "List teams the caller belongs to.",
+        "operationId": "listTeams",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "personal": {
+                            "type": "boolean"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "personal",
+                          "status",
+                          "role"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["items"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      },
+      "post": {
+        "description": "Create a new project team. Caller becomes owner.",
+        "operationId": "createTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["name"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/join": {
+      "post": {
+        "description": "Join a team using an invite code.",
+        "operationId": "joinTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["code"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}": {
+      "delete": {
+        "description": "Delete a team. Requires manage permission (owner only).",
+        "operationId": "deleteTeam",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      },
+      "get": {
+        "description": "Get team details. Requires team access.",
+        "operationId": "getTeam",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/invites": {
+      "get": {
+        "description": "List invite codes. Requires manage_members permission.",
+        "operationId": "listTeamInvites",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      },
+      "post": {
+        "description": "Create an invite code. Requires manage_members permission.",
+        "operationId": "createTeamInvite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "expiresInHours": {
+                    "default": 168,
+                    "maximum": 720,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "maxUses": {
+                    "default": 1,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "role": {
+                    "anyOf": [
+                      {
+                        "enum": ["manager"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["member"],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/invites/{inviteId}": {
+      "delete": {
+        "description": "Delete an invite code. Requires manage_members permission.",
+        "operationId": "deleteTeamInvite",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "inviteId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/members": {
+      "get": {
+        "description": "List team members. Requires team access.",
+        "operationId": "listTeamMembers",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      },
+      "post": {
+        "description": "Add a member directly. Requires manage_members permission.",
+        "operationId": "addTeamMember",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "enum": ["manager"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["member"],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "subjectId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "subjectNs": {
+                    "anyOf": [
+                      {
+                        "enum": ["Agent"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["Human"],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": ["subjectId", "subjectNs", "role"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/members/{subjectId}": {
+      "delete": {
+        "description": "Remove a member. Requires manage_members permission.",
+        "operationId": "removeTeamMember",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "subjectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
     "/vouch": {
       "post": {
         "description": "Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.",
