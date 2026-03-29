@@ -35,12 +35,6 @@ const JoinTeamSchema = Type.Object({
   code: Type.String({ minLength: 1 }),
 });
 
-const AddMemberSchema = Type.Object({
-  subjectId: Type.String({ format: 'uuid' }),
-  subjectNs: Type.Union([Type.Literal('Agent'), Type.Literal('Human')]),
-  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
-});
-
 const MemberParamsSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   subjectId: Type.String({ format: 'uuid' }),
@@ -212,10 +206,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!team) throw createProblem('not-found');
 
       if (team.personal) {
-        throw createProblem(
-          'validation-failed',
-          'Cannot delete a personal team',
-        );
+        throw createProblem('team-personal-immutable');
       }
 
       await fastify.teamRepository.delete(id);
@@ -257,51 +248,6 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // ── Add Member (direct) ──────────────────────────────────────
-  server.post(
-    '/teams/:id/members',
-    {
-      schema: {
-        operationId: 'addTeamMember',
-        tags: ['teams'],
-        description:
-          'Add a member directly. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }],
-        params: TeamParamsSchema,
-        body: AddMemberSchema,
-      },
-    },
-    async (request, reply) => {
-      const { id } = request.params;
-      const { identityId } = request.authContext!;
-      const { subjectId, subjectNs, role } = request.body;
-
-      const canManageMembers =
-        await fastify.permissionChecker.canManageTeamMembers(id, identityId);
-      if (!canManageMembers) throw createProblem('forbidden');
-
-      const team = await fastify.teamRepository.findById(id);
-      if (!team) throw createProblem('not-found');
-
-      if (team.personal) {
-        throw createProblem(
-          'validation-failed',
-          'Cannot add members to a personal team',
-        );
-      }
-
-      const ns =
-        subjectNs === 'Agent' ? KetoNamespace.Agent : KetoNamespace.Human;
-      if (role === 'manager') {
-        await fastify.relationshipWriter.grantTeamManager(id, subjectId, ns);
-      } else {
-        await fastify.relationshipWriter.grantTeamMember(id, subjectId, ns);
-      }
-
-      return reply.status(201).send({ teamId: id, subjectId, role });
-    },
-  );
-
   // ── Remove Member ────────────────────────────────────────────
   server.delete(
     '/teams/:id/members/:subjectId',
@@ -327,10 +273,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       const owners = members.filter((m) => m.relation === 'owner');
       const isRemovingOwner = owners.some((o) => o.subjectId === subjectId);
       if (isRemovingOwner && owners.length <= 1) {
-        throw createProblem(
-          'validation-failed',
-          'Cannot remove the last owner',
-        );
+        throw createProblem('team-last-owner');
       }
 
       // Remove all role tuples for this subject (we don't know their namespace)
@@ -375,10 +318,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!team) throw createProblem('not-found');
 
       if (team.personal) {
-        throw createProblem(
-          'validation-failed',
-          'Cannot create invites for a personal team',
-        );
+        throw createProblem('team-personal-immutable');
       }
 
       const expiresInHours = request.body.expiresInHours ?? 168;
@@ -469,14 +409,11 @@ export async function teamRoutes(fastify: FastifyInstance) {
       }
 
       if (invite.expiresAt < new Date()) {
-        throw createProblem('validation-failed', 'Invite code has expired');
+        throw createProblem('invite-expired');
       }
 
       if (invite.useCount >= invite.maxUses) {
-        throw createProblem(
-          'validation-failed',
-          'Invite code has been fully used',
-        );
+        throw createProblem('invite-exhausted');
       }
 
       const team = await fastify.teamRepository.findById(invite.teamId);
@@ -485,7 +422,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       }
 
       if (team.status !== 'active') {
-        throw createProblem('validation-failed', 'Team is not active');
+        throw createProblem('team-not-active');
       }
 
       // Check if already a member

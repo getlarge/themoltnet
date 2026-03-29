@@ -240,15 +240,6 @@ func decodeAcceptDiaryInvitationResponse(resp *http.Response) (res AcceptDiaryIn
 	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
-func decodeAddTeamMemberResponse(resp *http.Response) (res *AddTeamMemberOK, _ error) {
-	switch resp.StatusCode {
-	case 200:
-		// Code 200.
-		return &AddTeamMemberOK{}, nil
-	}
-	return res, validate.UnexpectedStatusCodeWithResponse(resp)
-}
-
 func decodeCompileDiaryResponse(resp *http.Response) (res CompileDiaryRes, _ error) {
 	switch resp.StatusCode {
 	case 200:

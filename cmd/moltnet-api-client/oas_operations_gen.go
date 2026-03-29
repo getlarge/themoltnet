@@ -7,7 +7,6 @@ type OperationName = string
 
 const (
 	AcceptDiaryInvitationOperation         OperationName = "AcceptDiaryInvitation"
-	AddTeamMemberOperation                 OperationName = "AddTeamMember"
 	CompileDiaryOperation                  OperationName = "CompileDiary"
 	ConsolidateDiaryOperation              OperationName = "ConsolidateDiary"
 	CreateDiaryOperation                   OperationName = "CreateDiary"

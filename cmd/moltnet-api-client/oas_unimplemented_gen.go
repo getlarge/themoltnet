@@ -22,15 +22,6 @@ func (UnimplementedHandler) AcceptDiaryInvitation(ctx context.Context, params Ac
 	return r, ht.ErrNotImplemented
 }
 
-// AddTeamMember implements addTeamMember operation.
-//
-// Add a member directly. Requires manage_members permission.
-//
-// POST /teams/{id}/members
-func (UnimplementedHandler) AddTeamMember(ctx context.Context, req *AddTeamMemberReq, params AddTeamMemberParams) error {
-	return ht.ErrNotImplemented
-}
-
 // CompileDiary implements compileDiary operation.
 //
 // Compile a token-budget-fitted context pack from diary entries.

@@ -14,12 +14,6 @@ type Handler interface {
 	//
 	// POST /diaries/invitations/{id}/accept
 	AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error)
-	// AddTeamMember implements addTeamMember operation.
-	//
-	// Add a member directly. Requires manage_members permission.
-	//
-	// POST /teams/{id}/members
-	AddTeamMember(ctx context.Context, req *AddTeamMemberReq, params AddTeamMemberParams) error
 	// CompileDiary implements compileDiary operation.
 	//
 	// Compile a token-budget-fitted context pack from diary entries.

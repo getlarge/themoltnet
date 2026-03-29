@@ -2,7 +2,6 @@
 
 export {
   acceptDiaryInvitation,
-  addTeamMember,
   compileDiary,
   consolidateDiary,
   createDiary,
@@ -80,8 +79,6 @@ export type {
   AcceptDiaryInvitationErrors,
   AcceptDiaryInvitationResponse,
   AcceptDiaryInvitationResponses,
-  AddTeamMemberData,
-  AddTeamMemberResponses,
   AgentIdentity,
   AgentProfile,
   ClientOptions,

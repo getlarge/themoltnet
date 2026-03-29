@@ -28,127 +28,6 @@ type AcceptDiaryInvitationUnauthorized ProblemDetails
 
 func (*AcceptDiaryInvitationUnauthorized) acceptDiaryInvitationRes() {}
 
-// AddTeamMemberOK is response for AddTeamMember operation.
-type AddTeamMemberOK struct{}
-
-type AddTeamMemberReq struct {
-	Role      AddTeamMemberReqRole      `json:"role"`
-	SubjectId uuid.UUID                 `json:"subjectId"`
-	SubjectNs AddTeamMemberReqSubjectNs `json:"subjectNs"`
-}
-
-// GetRole returns the value of Role.
-func (s *AddTeamMemberReq) GetRole() AddTeamMemberReqRole {
-	return s.Role
-}
-
-// GetSubjectId returns the value of SubjectId.
-func (s *AddTeamMemberReq) GetSubjectId() uuid.UUID {
-	return s.SubjectId
-}
-
-// GetSubjectNs returns the value of SubjectNs.
-func (s *AddTeamMemberReq) GetSubjectNs() AddTeamMemberReqSubjectNs {
-	return s.SubjectNs
-}
-
-// SetRole sets the value of Role.
-func (s *AddTeamMemberReq) SetRole(val AddTeamMemberReqRole) {
-	s.Role = val
-}
-
-// SetSubjectId sets the value of SubjectId.
-func (s *AddTeamMemberReq) SetSubjectId(val uuid.UUID) {
-	s.SubjectId = val
-}
-
-// SetSubjectNs sets the value of SubjectNs.
-func (s *AddTeamMemberReq) SetSubjectNs(val AddTeamMemberReqSubjectNs) {
-	s.SubjectNs = val
-}
-
-type AddTeamMemberReqRole string
-
-const (
-	AddTeamMemberReqRoleManager AddTeamMemberReqRole = "manager"
-	AddTeamMemberReqRoleMember  AddTeamMemberReqRole = "member"
-)
-
-// AllValues returns all AddTeamMemberReqRole values.
-func (AddTeamMemberReqRole) AllValues() []AddTeamMemberReqRole {
-	return []AddTeamMemberReqRole{
-		AddTeamMemberReqRoleManager,
-		AddTeamMemberReqRoleMember,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s AddTeamMemberReqRole) MarshalText() ([]byte, error) {
-	switch s {
-	case AddTeamMemberReqRoleManager:
-		return []byte(s), nil
-	case AddTeamMemberReqRoleMember:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *AddTeamMemberReqRole) UnmarshalText(data []byte) error {
-	switch AddTeamMemberReqRole(data) {
-	case AddTeamMemberReqRoleManager:
-		*s = AddTeamMemberReqRoleManager
-		return nil
-	case AddTeamMemberReqRoleMember:
-		*s = AddTeamMemberReqRoleMember
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type AddTeamMemberReqSubjectNs string
-
-const (
-	AddTeamMemberReqSubjectNsAgent AddTeamMemberReqSubjectNs = "Agent"
-	AddTeamMemberReqSubjectNsHuman AddTeamMemberReqSubjectNs = "Human"
-)
-
-// AllValues returns all AddTeamMemberReqSubjectNs values.
-func (AddTeamMemberReqSubjectNs) AllValues() []AddTeamMemberReqSubjectNs {
-	return []AddTeamMemberReqSubjectNs{
-		AddTeamMemberReqSubjectNsAgent,
-		AddTeamMemberReqSubjectNsHuman,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s AddTeamMemberReqSubjectNs) MarshalText() ([]byte, error) {
-	switch s {
-	case AddTeamMemberReqSubjectNsAgent:
-		return []byte(s), nil
-	case AddTeamMemberReqSubjectNsHuman:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *AddTeamMemberReqSubjectNs) UnmarshalText(data []byte) error {
-	switch AddTeamMemberReqSubjectNs(data) {
-	case AddTeamMemberReqSubjectNsAgent:
-		*s = AddTeamMemberReqSubjectNsAgent
-		return nil
-	case AddTeamMemberReqSubjectNsHuman:
-		*s = AddTeamMemberReqSubjectNsHuman
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/AgentIdentity
 type AgentIdentity struct {
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -5195,6 +5074,11 @@ const (
 	GetProblemTypeTypeUpstreamError                  GetProblemTypeType = "upstream-error"
 	GetProblemTypeTypeServiceUnavailable             GetProblemTypeType = "service-unavailable"
 	GetProblemTypeTypeInternalServerError            GetProblemTypeType = "internal-server-error"
+	GetProblemTypeTypeTeamPersonalImmutable          GetProblemTypeType = "team-personal-immutable"
+	GetProblemTypeTypeTeamNotActive                  GetProblemTypeType = "team-not-active"
+	GetProblemTypeTypeInviteExpired                  GetProblemTypeType = "invite-expired"
+	GetProblemTypeTypeInviteExhausted                GetProblemTypeType = "invite-exhausted"
+	GetProblemTypeTypeTeamLastOwner                  GetProblemTypeType = "team-last-owner"
 )
 
 // AllValues returns all GetProblemTypeType values.
@@ -5216,6 +5100,11 @@ func (GetProblemTypeType) AllValues() []GetProblemTypeType {
 		GetProblemTypeTypeUpstreamError,
 		GetProblemTypeTypeServiceUnavailable,
 		GetProblemTypeTypeInternalServerError,
+		GetProblemTypeTypeTeamPersonalImmutable,
+		GetProblemTypeTypeTeamNotActive,
+		GetProblemTypeTypeInviteExpired,
+		GetProblemTypeTypeInviteExhausted,
+		GetProblemTypeTypeTeamLastOwner,
 	}
 }
 
@@ -5253,6 +5142,16 @@ func (s GetProblemTypeType) MarshalText() ([]byte, error) {
 	case GetProblemTypeTypeServiceUnavailable:
 		return []byte(s), nil
 	case GetProblemTypeTypeInternalServerError:
+		return []byte(s), nil
+	case GetProblemTypeTypeTeamPersonalImmutable:
+		return []byte(s), nil
+	case GetProblemTypeTypeTeamNotActive:
+		return []byte(s), nil
+	case GetProblemTypeTypeInviteExpired:
+		return []byte(s), nil
+	case GetProblemTypeTypeInviteExhausted:
+		return []byte(s), nil
+	case GetProblemTypeTypeTeamLastOwner:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -5309,6 +5208,21 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 		return nil
 	case GetProblemTypeTypeInternalServerError:
 		*s = GetProblemTypeTypeInternalServerError
+		return nil
+	case GetProblemTypeTypeTeamPersonalImmutable:
+		*s = GetProblemTypeTypeTeamPersonalImmutable
+		return nil
+	case GetProblemTypeTypeTeamNotActive:
+		*s = GetProblemTypeTypeTeamNotActive
+		return nil
+	case GetProblemTypeTypeInviteExpired:
+		*s = GetProblemTypeTypeInviteExpired
+		return nil
+	case GetProblemTypeTypeInviteExhausted:
+		*s = GetProblemTypeTypeInviteExhausted
+		return nil
+	case GetProblemTypeTypeTeamLastOwner:
+		*s = GetProblemTypeTypeTeamLastOwner
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -8986,6 +8900,11 @@ const (
 	ProblemDetailsCodeUPSTREAMERROR                  ProblemDetailsCode = "UPSTREAM_ERROR"
 	ProblemDetailsCodeSERVICEUNAVAILABLE             ProblemDetailsCode = "SERVICE_UNAVAILABLE"
 	ProblemDetailsCodeINTERNALSERVERERROR            ProblemDetailsCode = "INTERNAL_SERVER_ERROR"
+	ProblemDetailsCodeTEAMPERSONALIMMUTABLE          ProblemDetailsCode = "TEAM_PERSONAL_IMMUTABLE"
+	ProblemDetailsCodeTEAMNOTACTIVE                  ProblemDetailsCode = "TEAM_NOT_ACTIVE"
+	ProblemDetailsCodeINVITEEXPIRED                  ProblemDetailsCode = "INVITE_EXPIRED"
+	ProblemDetailsCodeINVITEEXHAUSTED                ProblemDetailsCode = "INVITE_EXHAUSTED"
+	ProblemDetailsCodeTEAMLASTOWNER                  ProblemDetailsCode = "TEAM_LAST_OWNER"
 )
 
 // AllValues returns all ProblemDetailsCode values.
@@ -9007,6 +8926,11 @@ func (ProblemDetailsCode) AllValues() []ProblemDetailsCode {
 		ProblemDetailsCodeUPSTREAMERROR,
 		ProblemDetailsCodeSERVICEUNAVAILABLE,
 		ProblemDetailsCodeINTERNALSERVERERROR,
+		ProblemDetailsCodeTEAMPERSONALIMMUTABLE,
+		ProblemDetailsCodeTEAMNOTACTIVE,
+		ProblemDetailsCodeINVITEEXPIRED,
+		ProblemDetailsCodeINVITEEXHAUSTED,
+		ProblemDetailsCodeTEAMLASTOWNER,
 	}
 }
 
@@ -9044,6 +8968,16 @@ func (s ProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsCodeSERVICEUNAVAILABLE:
 		return []byte(s), nil
 	case ProblemDetailsCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case ProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case ProblemDetailsCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case ProblemDetailsCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case ProblemDetailsCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case ProblemDetailsCodeTEAMLASTOWNER:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -9100,6 +9034,21 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsCodeINTERNALSERVERERROR:
 		*s = ProblemDetailsCodeINTERNALSERVERERROR
+		return nil
+	case ProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		*s = ProblemDetailsCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case ProblemDetailsCodeTEAMNOTACTIVE:
+		*s = ProblemDetailsCodeTEAMNOTACTIVE
+		return nil
+	case ProblemDetailsCodeINVITEEXPIRED:
+		*s = ProblemDetailsCodeINVITEEXPIRED
+		return nil
+	case ProblemDetailsCodeINVITEEXHAUSTED:
+		*s = ProblemDetailsCodeINVITEEXHAUSTED
+		return nil
+	case ProblemDetailsCodeTEAMLASTOWNER:
+		*s = ProblemDetailsCodeTEAMLASTOWNER
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

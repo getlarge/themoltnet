@@ -6,7 +6,6 @@
  */
 
 import {
-  addTeamMember,
   type Client,
   createClient,
   createTeam,
@@ -255,50 +254,32 @@ describe('Teams', () => {
     });
   });
 
-  // ── Member Management ──────────────────────────────────────────
+  // ── Member Removal ──────────────────────────────────────────────
 
-  describe('member management', () => {
+  describe('member removal', () => {
     let teamId: string;
 
     beforeAll(async () => {
+      // Create team and add agent B via invite
       const { data } = await createTeam({
         client,
         auth: () => agentA.accessToken,
-        body: { name: 'member-mgmt-team' },
+        body: { name: 'member-removal-team' },
       });
       teamId = data!.id;
-    });
 
-    it('owner adds agent B as member directly', async () => {
-      const { data, error, response } = await addTeamMember({
+      const { data: inviteData } = await createTeamInvite({
         client,
         auth: () => agentA.accessToken,
         path: { id: teamId },
-        body: {
-          subjectId: agentB.identityId,
-          subjectNs: 'Agent',
-          role: 'member',
-        },
+        body: { role: 'member' },
       });
 
-      expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
-      expect(data!.role).toBe('member');
-    });
-
-    it('non-owner cannot add members', async () => {
-      const { response } = await addTeamMember({
+      await joinTeam({
         client,
         auth: () => agentB.accessToken,
-        path: { id: teamId },
-        body: {
-          subjectId: agentA.identityId,
-          subjectNs: 'Agent',
-          role: 'member',
-        },
+        body: { code: inviteData!.code },
       });
-
-      expect(response.status).toBe(403);
     });
 
     it('owner removes agent B', async () => {

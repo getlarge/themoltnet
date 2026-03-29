@@ -2318,6 +2318,26 @@
               {
                 "enum": ["INTERNAL_SERVER_ERROR"],
                 "type": "string"
+              },
+              {
+                "enum": ["TEAM_PERSONAL_IMMUTABLE"],
+                "type": "string"
+              },
+              {
+                "enum": ["TEAM_NOT_ACTIVE"],
+                "type": "string"
+              },
+              {
+                "enum": ["INVITE_EXPIRED"],
+                "type": "string"
+              },
+              {
+                "enum": ["INVITE_EXHAUSTED"],
+                "type": "string"
+              },
+              {
+                "enum": ["TEAM_LAST_OWNER"],
+                "type": "string"
               }
             ]
           },
@@ -3133,6 +3153,26 @@
                   },
                   {
                     "enum": ["INTERNAL_SERVER_ERROR"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["TEAM_PERSONAL_IMMUTABLE"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["TEAM_NOT_ACTIVE"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["INVITE_EXPIRED"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["INVITE_EXHAUSTED"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["TEAM_LAST_OWNER"],
                     "type": "string"
                   }
                 ]
@@ -7714,6 +7754,26 @@
                 {
                   "enum": ["internal-server-error"],
                   "type": "string"
+                },
+                {
+                  "enum": ["team-personal-immutable"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["team-not-active"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["invite-expired"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["invite-exhausted"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["team-last-owner"],
+                  "type": "string"
                 }
               ]
             }
@@ -8759,73 +8819,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Default Response"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "tags": ["teams"]
-      },
-      "post": {
-        "description": "Add a member directly. Requires manage_members permission.",
-        "operationId": "addTeamMember",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "role": {
-                    "anyOf": [
-                      {
-                        "enum": ["manager"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["member"],
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  "subjectId": {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "subjectNs": {
-                    "anyOf": [
-                      {
-                        "enum": ["Agent"],
-                        "type": "string"
-                      },
-                      {
-                        "enum": ["Human"],
-                        "type": "string"
-                      }
-                    ]
-                  }
-                },
-                "required": ["subjectId", "subjectNs", "role"],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "Default Response"

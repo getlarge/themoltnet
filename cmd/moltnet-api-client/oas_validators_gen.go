@@ -41,62 +41,6 @@ func (s *AcceptDiaryInvitationUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *AddTeamMemberReq) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Role.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "role",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.SubjectNs.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "subjectNs",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s AddTeamMemberReqRole) Validate() error {
-	switch s {
-	case "manager":
-		return nil
-	case "member":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s AddTeamMemberReqSubjectNs) Validate() error {
-	switch s {
-	case "Agent":
-		return nil
-	case "Human":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
 func (s *AgentIdentity) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -4146,6 +4090,16 @@ func (s GetProblemTypeType) Validate() error {
 		return nil
 	case "internal-server-error":
 		return nil
+	case "team-personal-immutable":
+		return nil
+	case "team-not-active":
+		return nil
+	case "invite-expired":
+		return nil
+	case "invite-exhausted":
+		return nil
+	case "team-last-owner":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -5266,6 +5220,16 @@ func (s ProblemDetailsCode) Validate() error {
 	case "SERVICE_UNAVAILABLE":
 		return nil
 	case "INTERNAL_SERVER_ERROR":
+		return nil
+	case "TEAM_PERSONAL_IMMUTABLE":
+		return nil
+	case "TEAM_NOT_ACTIVE":
+		return nil
+	case "INVITE_EXPIRED":
+		return nil
+	case "INVITE_EXHAUSTED":
+		return nil
+	case "TEAM_LAST_OWNER":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
