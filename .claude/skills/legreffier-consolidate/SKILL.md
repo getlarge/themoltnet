@@ -44,6 +44,32 @@ EXCLUDE_TAGS   = ["scan-category:summary", "learn:trace"]
 
 ---
 
+## Transport detection
+
+After resolving AGENT_NAME and DIARY_ID, detect available transport:
+
+1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
+2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `npx @themoltnet/cli` for all operations.
+3. **Do not mix transports within a session.** Pick one at activation and stick with it.
+
+CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
+CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
+
+### CLI equivalents
+
+| MCP Tool | CLI Command |
+|----------|-------------|
+| `relations_create` | `moltnet relations create --entry-id <uuid> --target-id <uuid> --relation <type>` |
+| `relations_list` | `moltnet relations list --entry-id <uuid>` |
+| `relations_update` | `moltnet relations update --relation-id <uuid> --status <status>` |
+| `entries_list` | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
+| `entries_search` | `moltnet entry search --query "..."` |
+| `diaries_compile` | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]` |
+
+> **Note:** `diaries_consolidate` (server-side clustering) requires MCP. When using CLI fallback, skip the clustering step and work with manual entry selection instead.
+
+---
+
 ## Phase 1: Server-side clustering + relation proposals
 
 Call the consolidation endpoint to cluster entries and propose relations:

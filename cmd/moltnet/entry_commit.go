@@ -14,8 +14,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// runDiaryCommitCmd is the parameterized business logic for diary commit.
-func runDiaryCommitCmd(w io.Writer, apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title string, signed bool, importance int, extraTags string) error {
+// runEntryCommitCmd is the parameterized business logic for entry commit.
+func runEntryCommitCmd(w io.Writer, apiURL, credPath, diaryID, rationale, risk, scope, operator, tool, title string, signed bool, importance int, extraTags string) error {
 	if err := validateCommitFlags(diaryID, rationale, risk, scope, operator, tool, importance); err != nil {
 		return err
 	}

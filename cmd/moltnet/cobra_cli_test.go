@@ -483,7 +483,7 @@ func TestVouchListNoCreds(t *testing.T) {
 	}
 }
 
-// --- diary command tests ---
+// --- diary command tests (diary-level) ---
 
 func TestDiaryNoSubcommand(t *testing.T) {
 	t.Parallel()
@@ -492,46 +492,34 @@ func TestDiaryNoSubcommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, sub := range []string{"create", "create-signed", "list", "get", "delete", "search", "verify", "commit"} {
+	for _, sub := range []string{"list", "create", "get", "tags", "compile"} {
 		if !strings.Contains(stdout, sub) {
 			t.Errorf("expected diary help to list '%s' subcommand, got: %s", sub, stdout)
 		}
 	}
 }
 
-func TestDiaryCreateRequiresDiaryID(t *testing.T) {
+func TestDiaryListHelp(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "diary", "create", "--content", "hello")
-	if err == nil {
-		t.Fatal("expected error when --diary-id is missing, got nil")
+	stdout, _, err := executeCommand(root, "diary", "list", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(err.Error(), "diary-id") {
-		t.Errorf("expected error to mention 'diary-id', got: %v", err)
+	if !strings.Contains(stdout, "List all") {
+		t.Errorf("expected diary list help to mention listing, got: %s", stdout)
 	}
 }
 
-func TestDiaryCreateRequiresContent(t *testing.T) {
+func TestDiaryCreateRequiresName(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "diary", "create", "--diary-id", "00000000-0000-0000-0000-000000000001")
+	_, _, err := executeCommand(root, "diary", "create")
 	if err == nil {
-		t.Fatal("expected error when --content is missing, got nil")
+		t.Fatal("expected error when --name is missing, got nil")
 	}
-	if !strings.Contains(err.Error(), "content") {
-		t.Errorf("expected error to mention 'content', got: %v", err)
-	}
-}
-
-func TestDiaryListRequiresDiaryID(t *testing.T) {
-	t.Parallel()
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "diary", "list")
-	if err == nil {
-		t.Fatal("expected error when --diary-id is missing, got nil")
-	}
-	if !strings.Contains(err.Error(), "diary-id") {
-		t.Errorf("expected error to mention 'diary-id', got: %v", err)
+	if !strings.Contains(err.Error(), "name") {
+		t.Errorf("expected error to mention 'name', got: %v", err)
 	}
 }
 
@@ -540,17 +528,124 @@ func TestDiaryGetRequiresArg(t *testing.T) {
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "diary", "get")
 	if err == nil {
-		t.Fatal("expected error when entry-id arg is missing, got nil")
+		t.Fatal("expected error when diary-id arg is missing, got nil")
 	}
 	if !strings.Contains(err.Error(), "accepts 1 arg") {
 		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
 	}
 }
 
-func TestDiaryDeleteRequiresArg(t *testing.T) {
+func TestDiaryTagsRequiresArg(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "diary", "delete")
+	_, _, err := executeCommand(root, "diary", "tags")
+	if err == nil {
+		t.Fatal("expected error when diary-id arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestDiaryCompileRequiresBudget(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "diary", "compile", "00000000-0000-0000-0000-000000000001")
+	if err == nil {
+		t.Fatal("expected error when --token-budget is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "token-budget") {
+		t.Errorf("expected error to mention 'token-budget', got: %v", err)
+	}
+}
+
+func TestDiaryCompileHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "diary", "compile", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{"--token-budget", "--task-prompt", "--include-tags", "--exclude-tags"} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected compile help to contain %q, got: %s", flag, stdout)
+		}
+	}
+	if !strings.Contains(stdout, "Example") {
+		t.Errorf("expected compile help to contain 'Example', got: %s", stdout)
+	}
+}
+
+// --- entry command tests (entry-level) ---
+
+func TestEntryNoSubcommand(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "entry")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"create", "create-signed", "list", "get", "update", "delete", "search", "verify", "commit"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected entry help to list '%s' subcommand, got: %s", sub, stdout)
+		}
+	}
+}
+
+func TestEntryCreateRequiresDiaryID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "entry", "create", "--content", "hello")
+	if err == nil {
+		t.Fatal("expected error when --diary-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "diary-id") {
+		t.Errorf("expected error to mention 'diary-id', got: %v", err)
+	}
+}
+
+func TestEntryCreateRequiresContent(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "entry", "create", "--diary-id", "00000000-0000-0000-0000-000000000001")
+	if err == nil {
+		t.Fatal("expected error when --content is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "content") {
+		t.Errorf("expected error to mention 'content', got: %v", err)
+	}
+}
+
+func TestEntryListRequiresDiaryID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "entry", "list")
+	if err == nil {
+		t.Fatal("expected error when --diary-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "diary-id") {
+		t.Errorf("expected error to mention 'diary-id', got: %v", err)
+	}
+}
+
+func TestEntryListHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "entry", "list", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{"--diary-id", "--tags", "--exclude-tags", "--entry-type", "--limit", "--offset"} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected entry list help to contain %q, got: %s", flag, stdout)
+		}
+	}
+}
+
+func TestEntryGetRequiresArg(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "entry", "get")
 	if err == nil {
 		t.Fatal("expected error when entry-id arg is missing, got nil")
 	}
@@ -559,10 +654,48 @@ func TestDiaryDeleteRequiresArg(t *testing.T) {
 	}
 }
 
-func TestDiarySearchRequiresQuery(t *testing.T) {
+func TestEntryUpdateRequiresArg(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "diary", "search")
+	_, _, err := executeCommand(root, "entry", "update")
+	if err == nil {
+		t.Fatal("expected error when entry-id arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestEntryUpdateHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "entry", "update", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{"--content", "--title", "--type", "--tags", "--importance"} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected entry update help to contain %q, got: %s", flag, stdout)
+		}
+	}
+}
+
+func TestEntryDeleteRequiresArg(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "entry", "delete")
+	if err == nil {
+		t.Fatal("expected error when entry-id arg is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "accepts 1 arg") {
+		t.Errorf("expected error to mention 'accepts 1 arg', got: %v", err)
+	}
+}
+
+func TestEntrySearchRequiresQuery(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "entry", "search")
 	if err == nil {
 		t.Fatal("expected error when --query is missing, got nil")
 	}
@@ -571,10 +704,10 @@ func TestDiarySearchRequiresQuery(t *testing.T) {
 	}
 }
 
-func TestDiaryVerifyRequiresArg(t *testing.T) {
+func TestEntryVerifyRequiresArg(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "diary", "verify")
+	_, _, err := executeCommand(root, "entry", "verify")
 	if err == nil {
 		t.Fatal("expected error when entry-id arg is missing, got nil")
 	}
@@ -583,7 +716,7 @@ func TestDiaryVerifyRequiresArg(t *testing.T) {
 	}
 }
 
-func TestDiaryCommitRequiresAllFlags(t *testing.T) {
+func TestEntryCommitRequiresAllFlags(t *testing.T) {
 	t.Parallel()
 	// Each test omits one required flag
 	tests := []struct {
@@ -593,32 +726,32 @@ func TestDiaryCommitRequiresAllFlags(t *testing.T) {
 	}{
 		{
 			name:    "missing diary-id",
-			args:    []string{"diary", "commit", "--rationale", "text", "--risk", "low", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
+			args:    []string{"entry", "commit", "--rationale", "text", "--risk", "low", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
 			wantErr: "diary-id",
 		},
 		{
 			name:    "missing rationale",
-			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--risk", "low", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
+			args:    []string{"entry", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--risk", "low", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
 			wantErr: "rationale",
 		},
 		{
 			name:    "missing risk",
-			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
+			args:    []string{"entry", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--scope", "cli", "--operator", "ed", "--tool", "claude"},
 			wantErr: "risk",
 		},
 		{
 			name:    "missing scope",
-			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--operator", "ed", "--tool", "claude"},
+			args:    []string{"entry", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--operator", "ed", "--tool", "claude"},
 			wantErr: "scope",
 		},
 		{
 			name:    "missing operator",
-			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--scope", "cli", "--tool", "claude"},
+			args:    []string{"entry", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--scope", "cli", "--tool", "claude"},
 			wantErr: "operator",
 		},
 		{
 			name:    "missing tool",
-			args:    []string{"diary", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--scope", "cli", "--operator", "ed"},
+			args:    []string{"entry", "commit", "--diary-id", "00000000-0000-0000-0000-000000000001", "--rationale", "text", "--risk", "low", "--scope", "cli", "--operator", "ed"},
 			wantErr: "tool",
 		},
 	}
@@ -637,10 +770,10 @@ func TestDiaryCommitRequiresAllFlags(t *testing.T) {
 	}
 }
 
-func TestDiaryCommitHelpShowsExamples(t *testing.T) {
+func TestEntryCommitHelpShowsExamples(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "diary", "commit", "--help")
+	stdout, _, err := executeCommand(root, "entry", "commit", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -654,10 +787,10 @@ func TestDiaryCommitHelpShowsExamples(t *testing.T) {
 	}
 }
 
-func TestDiaryCreateSignedHelpShowsTypes(t *testing.T) {
+func TestEntryCreateSignedHelpShowsTypes(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "diary", "create-signed", "--help")
+	stdout, _, err := executeCommand(root, "entry", "create-signed", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -682,6 +815,12 @@ func TestPackNoSubcommand(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "provenance") {
 		t.Errorf("expected pack help to list 'provenance' subcommand, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "create") {
+		t.Errorf("expected pack help to list 'create' subcommand, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "update") {
+		t.Errorf("expected pack help to list 'update' subcommand, got: %s", stdout)
 	}
 }
 
@@ -750,6 +889,186 @@ func TestPackProvenanceHelp(t *testing.T) {
 	}
 }
 
+func TestPackCreateRequiresFlags(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "pack", "create")
+	if err == nil {
+		t.Fatal("expected error when --diary-id and --entries are missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "diary-id") {
+		t.Errorf("expected error to mention 'diary-id', got: %v", err)
+	}
+}
+
+func TestPackCreateHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "pack", "create", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--entries") {
+		t.Errorf("expected help to contain '--entries', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "entryId") {
+		t.Errorf("expected help to show JSON format with 'entryId', got: %s", stdout)
+	}
+}
+
+func TestPackUpdateRequiresPackID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "pack", "update")
+	if err == nil {
+		t.Fatal("expected error when --pack-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "pack-id") {
+		t.Errorf("expected error to mention 'pack-id', got: %v", err)
+	}
+}
+
+func TestPackUpdateHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "pack", "update", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "--pinned") {
+		t.Errorf("expected help to contain '--pinned', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--expires-at") {
+		t.Errorf("expected help to contain '--expires-at', got: %s", stdout)
+	}
+}
+
+// --- relations command tests ---
+
+func TestRelationsNoSubcommand(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "relations")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"create", "list", "update", "delete"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected relations help to list '%s' subcommand, got: %s", sub, stdout)
+		}
+	}
+}
+
+func TestRelationsCreateRequiresFlags(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{
+			name:    "missing entry-id",
+			args:    []string{"relations", "create", "--target-id", "00000000-0000-0000-0000-000000000001", "--relation", "supersedes"},
+			wantErr: "entry-id",
+		},
+		{
+			name:    "missing target-id",
+			args:    []string{"relations", "create", "--entry-id", "00000000-0000-0000-0000-000000000001", "--relation", "supersedes"},
+			wantErr: "target-id",
+		},
+		{
+			name:    "missing relation",
+			args:    []string{"relations", "create", "--entry-id", "00000000-0000-0000-0000-000000000001", "--target-id", "00000000-0000-0000-0000-000000000002"},
+			wantErr: "relation",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := NewRootCmd("test", "")
+			_, _, err := executeCommand(root, tt.args...)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("expected error to mention %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestRelationsListRequiresEntryID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "relations", "list")
+	if err == nil {
+		t.Fatal("expected error when --entry-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "entry-id") {
+		t.Errorf("expected error to mention 'entry-id', got: %v", err)
+	}
+}
+
+func TestRelationsUpdateRequiresFlags(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{
+			name:    "missing relation-id",
+			args:    []string{"relations", "update", "--status", "accepted"},
+			wantErr: "relation-id",
+		},
+		{
+			name:    "missing status",
+			args:    []string{"relations", "update", "--relation-id", "00000000-0000-0000-0000-000000000001"},
+			wantErr: "status",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := NewRootCmd("test", "")
+			_, _, err := executeCommand(root, tt.args...)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("expected error to mention %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestRelationsDeleteRequiresRelationID(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "relations", "delete")
+	if err == nil {
+		t.Fatal("expected error when --relation-id is missing, got nil")
+	}
+	if !strings.Contains(err.Error(), "relation-id") {
+		t.Errorf("expected error to mention 'relation-id', got: %v", err)
+	}
+}
+
+func TestRelationsCreateHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "relations", "create", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{"--entry-id", "--target-id", "--relation", "--status"} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected relations create help to contain %q, got: %s", flag, stdout)
+		}
+	}
+	if !strings.Contains(stdout, "Example") {
+		t.Errorf("expected relations create help to contain 'Example', got: %s", stdout)
+	}
+}
+
 // --- completion command tests ---
 
 func TestCompletionBash(t *testing.T) {
@@ -785,16 +1104,16 @@ func TestCompletionInvalidShell(t *testing.T) {
 	}
 }
 
-// --- Issue 1: diary commit output goes through io.Writer, not os.Stdout ---
+// --- Issue 1: entry commit output goes through io.Writer, not os.Stdout ---
 
-func TestDiaryCommitAcceptsWriter(t *testing.T) {
+func TestEntryCommitAcceptsWriter(t *testing.T) {
 	t.Parallel()
-	// Verify runDiaryCommitCmd accepts an io.Writer as first parameter.
+	// Verify runEntryCommitCmd accepts an io.Writer as first parameter.
 	// We can't call it without a real API, but we can verify the function
 	// signature compiles correctly by calling with invalid input that fails
 	// before reaching the API.
 	var buf strings.Builder
-	err := runDiaryCommitCmd(&buf, "http://127.0.0.1:1", "", "not-a-uuid", "rationale", "low", "cli", "ed", "claude", "", false, 0, "")
+	err := runEntryCommitCmd(&buf, "http://127.0.0.1:1", "", "not-a-uuid", "rationale", "low", "cli", "ed", "claude", "", false, 0, "")
 	if err == nil {
 		t.Fatal("expected error for invalid diary ID")
 	}
@@ -865,7 +1184,7 @@ func TestCredentialsFlagPlumbedToVouchList(t *testing.T) {
 	}
 }
 
-func TestCredentialsFlagPlumbedToDiaryCreate(t *testing.T) {
+func TestCredentialsFlagPlumbedToEntryCreate(t *testing.T) {
 	kp, err := GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("generate keypair: %v", err)
@@ -882,7 +1201,7 @@ func TestCredentialsFlagPlumbedToDiaryCreate(t *testing.T) {
 
 	t.Setenv("HOME", t.TempDir())
 	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "diary", "create",
+	_, _, err = executeCommand(root, "entry", "create",
 		"--diary-id", "00000000-0000-0000-0000-000000000001",
 		"--content", "test",
 		"--credentials", credPath,
