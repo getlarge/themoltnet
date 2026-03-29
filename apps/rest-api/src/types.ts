@@ -7,6 +7,7 @@
  * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
+export type { ContextPackService } from '@moltnet/context-pack-service';
 export type { CryptoService } from '@moltnet/crypto-service';
 export type {
   AgentRepository,
@@ -15,12 +16,14 @@ export type {
   DiaryEntryRepository,
   EntryRelationRepository,
   NonceRepository,
+  RenderedPackRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
+import type { ContextPackService } from '@moltnet/context-pack-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
   AgentRepository,
@@ -28,6 +31,7 @@ import type {
   DataSource,
   DiaryEntryRepository,
   EntryRelationRepository,
+  RenderedPackRepository,
   SigningRequestRepository,
   TransactionRunner,
   VoucherRepository,
@@ -44,6 +48,8 @@ declare module 'fastify' {
     /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
     diaryEntryRepository: DiaryEntryRepository;
     contextPackRepository: ContextPackRepository;
+    renderedPackRepository: RenderedPackRepository;
+    contextPackService: ContextPackService;
     entryRelationRepository: EntryRelationRepository;
     embeddingService: EmbeddingService;
     agentRepository: AgentRepository;

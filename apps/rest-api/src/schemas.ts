@@ -892,6 +892,68 @@ export const CustomPackResultSchema = Type.Object(
   { $id: 'CustomPackResult' },
 );
 
+// ── Rendered Packs ─────────────────────────────────────────
+
+export const RenderedPackSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    packCid: Type.String(),
+    sourcePackId: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
+    contentHash: Type.String(),
+    renderMethod: Type.String(),
+    totalTokens: Type.Integer(),
+    createdBy: Type.String({ format: 'uuid' }),
+    pinned: Type.Boolean(),
+    expiresAt: Type.Union([DateTime, Type.Null()]),
+    createdAt: DateTime,
+    updatedAt: DateTime,
+  },
+  { $id: 'RenderedPack' },
+);
+
+export const RenderedPackResultSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    packCid: Type.String(),
+    sourcePackId: Type.String({ format: 'uuid' }),
+    sourcePackCid: Type.String(),
+    diaryId: Type.String({ format: 'uuid' }),
+    contentHash: Type.String(),
+    renderMethod: Type.String(),
+    totalTokens: Type.Integer(),
+    pinned: Type.Boolean(),
+  },
+  { $id: 'RenderedPackResult' },
+);
+
+export const RenderedPackPreviewSchema = Type.Object(
+  {
+    sourcePackId: Type.String({ format: 'uuid' }),
+    sourcePackCid: Type.String(),
+    renderMethod: Type.String(),
+    renderedMarkdown: Type.String(),
+    totalTokens: Type.Integer(),
+  },
+  { $id: 'RenderedPackPreview' },
+);
+
+export const RenderedPackWithContentSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    packCid: Type.String(),
+    sourcePackId: Type.String({ format: 'uuid' }),
+    diaryId: Type.String({ format: 'uuid' }),
+    content: Type.String(),
+    contentHash: Type.String(),
+    renderMethod: Type.String(),
+    totalTokens: Type.Integer(),
+    pinned: Type.Boolean(),
+    createdAt: DateTime,
+  },
+  { $id: 'RenderedPackWithContent' },
+);
+
 /**
  * All schemas that should be registered with app.addSchema()
  * for $ref resolution in @fastify/swagger.
@@ -943,6 +1005,10 @@ export const sharedSchemas = [
   CompileResultSchema,
   CustomPackEntryResultSchema,
   CustomPackResultSchema,
+  RenderedPackSchema,
+  RenderedPackResultSchema,
+  RenderedPackPreviewSchema,
+  RenderedPackWithContentSchema,
   ProvenanceGraphSchema,
   RelationTypeSchema,
   RelationStatusSchema,

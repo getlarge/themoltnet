@@ -494,6 +494,9 @@ importers:
       '@moltnet/context-distill':
         specifier: workspace:*
         version: link:../../libs/context-distill
+      '@moltnet/context-pack-service':
+        specifier: workspace:*
+        version: link:../../libs/context-pack-service
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service

@@ -1,5 +1,6 @@
 import { estimateTokens } from '@moltnet/context-distill';
 import {
+  type CompressionLevel,
   computeContentHash,
   computePackCid,
   computeRenderedPackCid,
@@ -18,10 +19,28 @@ import type {
 
 export interface ContextPackServiceDeps {
   contextPackRepository: {
-    createPack: (
-      input: Record<string, unknown>,
-    ) => Promise<{ id: string; packCid: string }>;
-    addEntries: (entries: Array<Record<string, unknown>>) => Promise<unknown[]>;
+    createPack: (input: {
+      diaryId: string;
+      packCid: string;
+      packType: 'compile' | 'optimized' | 'custom';
+      params: unknown;
+      payload: unknown;
+      createdBy: string;
+      pinned: boolean;
+      expiresAt: Date | null;
+      createdAt: Date;
+    }) => Promise<{ id: string; packCid: string }>;
+    addEntries: (
+      entries: Array<{
+        packId: string;
+        entryId: string;
+        entryCidSnapshot: string;
+        compressionLevel: CompressionLevel;
+        originalTokens: number;
+        packedTokens: number;
+        rank: number;
+      }>,
+    ) => Promise<unknown[]>;
     findById: (id: string) => Promise<{
       id: string;
       diaryId: string;
@@ -48,7 +67,19 @@ export interface ContextPackServiceDeps {
     >;
   };
   renderedPackRepository: {
-    create: (input: Record<string, unknown>) => Promise<{
+    create: (input: {
+      packCid: string;
+      sourcePackId: string;
+      diaryId: string;
+      content: string;
+      contentHash: string;
+      renderMethod: string;
+      totalTokens: number;
+      createdBy: string;
+      pinned: boolean;
+      expiresAt: Date | null;
+      createdAt: Date;
+    }) => Promise<{
       id: string;
       packCid: string;
       sourcePackId: string;
