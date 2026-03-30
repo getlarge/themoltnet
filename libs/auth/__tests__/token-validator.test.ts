@@ -36,6 +36,7 @@ const EXPECTED_AUTH_CONTEXT = {
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
   clientId: VALID_CLIENT_ID,
   scopes: ['diary:read', 'diary:write'],
+  currentTeamId: null,
 };
 
 // Generate a test RSA keypair for JWT signing

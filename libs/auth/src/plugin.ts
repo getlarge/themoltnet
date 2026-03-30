@@ -18,10 +18,16 @@ import type { RelationshipWriter } from './relationship-writer.js';
 import type { TokenValidator } from './token-validator.js';
 import type { AuthContext } from './types.js';
 
+export interface TeamResolver {
+  /** Find the personal team ID for a subject. Returns null if none exists yet. */
+  findPersonalTeamId(subjectId: string): Promise<string | null>;
+}
+
 export interface AuthPluginOptions {
   tokenValidator: TokenValidator;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
+  teamResolver: TeamResolver;
 }
 
 declare module 'fastify' {
@@ -29,6 +35,7 @@ declare module 'fastify' {
     tokenValidator: TokenValidator;
     permissionChecker: PermissionChecker;
     relationshipWriter: RelationshipWriter;
+    teamResolver: TeamResolver;
   }
   interface FastifyRequest {
     authContext: AuthContext | null;
@@ -61,6 +68,7 @@ export const authPlugin = fp(
     decorateSafe('tokenValidator', opts.tokenValidator);
     decorateSafe('permissionChecker', opts.permissionChecker);
     decorateSafe('relationshipWriter', opts.relationshipWriter);
+    decorateSafe('teamResolver', opts.teamResolver);
   },
   {
     name: '@moltnet/auth',
@@ -120,6 +128,28 @@ export const requireAuth: preHandlerAsyncHookHandler =
         'auth: invalid or expired token',
       );
       throw createAuthError('Invalid or expired token');
+    }
+
+    // Resolve team context: only validate X-Team-Id when explicitly provided.
+    // When absent, currentTeamId stays null — routes that need it resolve
+    // the personal team lazily via teamResolver to avoid a DB hit on every request.
+    const teamIdHeader = request.headers['x-team-id'];
+    const requestedTeamId = Array.isArray(teamIdHeader)
+      ? teamIdHeader[0]
+      : teamIdHeader;
+
+    if (requestedTeamId) {
+      const canAccess = await request.server.permissionChecker.canAccessTeam(
+        requestedTeamId,
+        authContext.identityId,
+      );
+      if (!canAccess) {
+        const error = createAuthError('Not a member of the requested team');
+        error.statusCode = 403;
+        error.code = 'FORBIDDEN';
+        throw error;
+      }
+      authContext.currentTeamId = requestedTeamId;
     }
 
     request.authContext = authContext;

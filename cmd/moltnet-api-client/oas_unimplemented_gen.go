@@ -87,6 +87,24 @@ func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *Creat
 	return r, ht.ErrNotImplemented
 }
 
+// CreateTeam implements createTeam operation.
+//
+// Create a new project team. Caller becomes owner.
+//
+// POST /teams
+func (UnimplementedHandler) CreateTeam(ctx context.Context, req *CreateTeamReq) (r CreateTeamRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateTeamInvite implements createTeamInvite operation.
+//
+// Create an invite code. Requires manage_members permission.
+//
+// POST /teams/{id}/invites
+func (UnimplementedHandler) CreateTeamInvite(ctx context.Context, req OptCreateTeamInviteReq, params CreateTeamInviteParams) (r CreateTeamInviteRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // DeclineDiaryInvitation implements declineDiaryInvitation operation.
 //
 // Decline a pending diary share invitation.
@@ -120,6 +138,24 @@ func (UnimplementedHandler) DeleteDiaryEntryById(ctx context.Context, params Del
 //
 // DELETE /relations/{id}
 func (UnimplementedHandler) DeleteEntryRelation(ctx context.Context, params DeleteEntryRelationParams) (r DeleteEntryRelationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteTeam implements deleteTeam operation.
+//
+// Delete a team. Requires manage permission (owner only).
+//
+// DELETE /teams/{id}
+func (UnimplementedHandler) DeleteTeam(ctx context.Context, params DeleteTeamParams) (r DeleteTeamRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteTeamInvite implements deleteTeamInvite operation.
+//
+// Delete an invite code. Requires manage_members permission.
+//
+// DELETE /teams/{id}/invites/{inviteId}
+func (UnimplementedHandler) DeleteTeamInvite(ctx context.Context, params DeleteTeamInviteParams) (r DeleteTeamInviteRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -270,6 +306,15 @@ func (UnimplementedHandler) GetSigningRequest(ctx context.Context, params GetSig
 	return r, ht.ErrNotImplemented
 }
 
+// GetTeam implements getTeam operation.
+//
+// Get team details. Requires team access.
+//
+// GET /teams/{id}
+func (UnimplementedHandler) GetTeam(ctx context.Context, params GetTeamParams) (r GetTeamRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetTrustGraph implements getTrustGraph operation.
 //
 // Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key
@@ -297,6 +342,15 @@ func (UnimplementedHandler) GetWhoami(ctx context.Context) (r GetWhoamiRes, _ er
 //
 // POST /vouch
 func (UnimplementedHandler) IssueVoucher(ctx context.Context) (r IssueVoucherRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// JoinTeam implements joinTeam operation.
+//
+// Join a team using an invite code.
+//
+// POST /teams/join
+func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq) (r JoinTeamRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -390,6 +444,33 @@ func (UnimplementedHandler) ListSigningRequests(ctx context.Context, params List
 	return r, ht.ErrNotImplemented
 }
 
+// ListTeamInvites implements listTeamInvites operation.
+//
+// List invite codes. Requires manage_members permission.
+//
+// GET /teams/{id}/invites
+func (UnimplementedHandler) ListTeamInvites(ctx context.Context, params ListTeamInvitesParams) (r ListTeamInvitesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListTeamMembers implements listTeamMembers operation.
+//
+// List team members. Requires team access.
+//
+// GET /teams/{id}/members
+func (UnimplementedHandler) ListTeamMembers(ctx context.Context, params ListTeamMembersParams) (r ListTeamMembersRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListTeams implements listTeams operation.
+//
+// List teams the caller belongs to.
+//
+// GET /teams
+func (UnimplementedHandler) ListTeams(ctx context.Context) (r ListTeamsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // PreviewDiaryCustomPack implements previewDiaryCustomPack operation.
 //
 // Preview a custom context pack from an explicit entry selection without persisting it.
@@ -416,6 +497,15 @@ func (UnimplementedHandler) ReflectDiary(ctx context.Context, params ReflectDiar
 //
 // POST /auth/register
 func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgentReq) (r RegisterAgentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RemoveTeamMember implements removeTeamMember operation.
+//
+// Remove a member. Requires manage_members permission.
+//
+// DELETE /teams/{id}/members/{subjectId}
+func (UnimplementedHandler) RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (r RemoveTeamMemberRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

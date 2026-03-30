@@ -224,6 +224,20 @@
       "tag": "0031_migrate-superseded-by",
       "version": "7",
       "when": 1774560400016
+    },
+    {
+      "breakpoints": true,
+      "idx": 32,
+      "tag": "0032_rare_spirit",
+      "version": "7",
+      "when": 1774801622493
+    },
+    {
+      "breakpoints": true,
+      "idx": 33,
+      "tag": "0033_faithful_lenny_balinger",
+      "version": "7",
+      "when": 1774810363105
     }
   ],
   "version": "7"

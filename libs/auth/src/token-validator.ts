@@ -65,6 +65,7 @@ function extractAuthContextFromClaims(
     fingerprint,
     clientId,
     scopes,
+    currentTeamId: null, // resolved later by auth plugin
   };
 }
 
@@ -97,6 +98,7 @@ async function fetchClientMetadata(
       fingerprint: metaFingerprint,
       clientId,
       scopes,
+      currentTeamId: null, // resolved later by auth plugin
     };
   } catch {
     return null;

@@ -8,11 +8,17 @@
 export {
   AgentPermission,
   AgentRelation,
+  ContextPackPermission,
+  ContextPackRelation,
   DiaryEntryPermission,
   DiaryEntryRelation,
   DiaryPermission,
   DiaryRelation,
+  HumanPermission,
+  HumanRelation,
   KetoNamespace,
+  TeamPermission,
+  TeamRelation,
 } from './keto-constants.js';
 export {
   createOryClients,
@@ -29,10 +35,12 @@ export {
   optionalAuth,
   requireAuth,
   requireScopes,
+  type TeamResolver,
 } from './plugin.js';
 export {
   createRelationshipReader,
   type RelationshipReader,
+  type TeamMemberTuple,
 } from './relationship-reader.js';
 export {
   createRelationshipWriter,

@@ -18,6 +18,11 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('UPSTREAM_ERROR'),
   Type.Literal('SERVICE_UNAVAILABLE'),
   Type.Literal('INTERNAL_SERVER_ERROR'),
+  Type.Literal('TEAM_PERSONAL_IMMUTABLE'),
+  Type.Literal('TEAM_NOT_ACTIVE'),
+  Type.Literal('INVITE_EXPIRED'),
+  Type.Literal('INVITE_EXHAUSTED'),
+  Type.Literal('TEAM_LAST_OWNER'),
 ]);
 
 export type ProblemCode = Static<typeof ProblemCodeSchema>;

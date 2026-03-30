@@ -28,6 +28,7 @@ import {
   createEntryRelationRepository,
   createNonceRepository,
   createSigningRequestRepository,
+  createTeamRepository,
   createVoucherRepository,
   type DatabaseConnection,
   getDataSource,
@@ -166,6 +167,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const agentRepository = createAgentRepository(dbConnection.db);
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const diaryEntryRepository = createDiaryEntryRepository(dbConnection.db);
+  const teamRepository = createTeamRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
@@ -301,13 +303,21 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     agentRepository,
     cryptoService,
     voucherRepository,
+    teamRepository,
     signingRequestRepository,
     nonceRepository,
     dataSource,
     transactionRunner,
     permissionChecker,
+    relationshipReader,
     relationshipWriter,
     tokenValidator,
+    teamResolver: {
+      findPersonalTeamId: async (subjectId: string) => {
+        const team = await teamRepository.findPersonalByCreator(subjectId);
+        return team?.id ?? null;
+      },
+    },
     hydraPublicUrl: oryUrls.hydraPublicUrl,
     webhookApiKey: config.webhook.ORY_ACTION_API_KEY,
     recoverySecret: config.recovery.RECOVERY_CHALLENGE_SECRET,

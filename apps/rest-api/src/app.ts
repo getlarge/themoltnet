@@ -10,7 +10,9 @@ import {
   authPlugin,
   type OryClients,
   type PermissionChecker,
+  type RelationshipReader,
   type RelationshipWriter,
+  type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
 import scalarApiReference from '@scalar/fastify-api-reference';
@@ -37,6 +39,7 @@ import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
+import { teamRoutes } from './routes/teams.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
 import type {
@@ -50,6 +53,7 @@ import type {
   EntryRelationRepository,
   NonceRepository,
   SigningRequestRepository,
+  TeamRepository,
   TransactionRunner,
   VoucherRepository,
 } from './types.js';
@@ -95,6 +99,7 @@ export interface AppOptions {
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   voucherRepository: VoucherRepository;
+  teamRepository: TeamRepository;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
   nonceRepository: NonceRepository;
@@ -102,8 +107,10 @@ export interface AppOptions {
   transactionRunner: TransactionRunner;
   signingTimeoutSeconds?: number;
   permissionChecker: PermissionChecker;
+  relationshipReader: RelationshipReader;
   relationshipWriter: RelationshipWriter;
   tokenValidator: TokenValidator;
+  teamResolver: TeamResolver;
   hydraPublicUrl: string;
   webhookApiKey: string;
   recoverySecret: string;
@@ -187,6 +194,7 @@ export async function registerApiRoutes(
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
+    teamResolver: options.teamResolver,
   });
 
   // Register request context plugin (AFTER auth so identityId/clientId are available)
@@ -221,6 +229,8 @@ export async function registerApiRoutes(
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('voucherRepository', options.voucherRepository);
+  decorateSafe('teamRepository', options.teamRepository);
+  decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
@@ -254,6 +264,7 @@ export async function registerApiRoutes(
     nonceRepository: options.nonceRepository,
   });
   await app.register(registrationRoutes);
+  await app.register(teamRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(problemRoutes);

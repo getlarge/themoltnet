@@ -197,6 +197,62 @@ export const problemTypes: Record<string, ProblemType> = {
       'Database connection failure',
     ],
   },
+  'team-personal-immutable': {
+    slug: 'team-personal-immutable',
+    code: 'TEAM_PERSONAL_IMMUTABLE',
+    status: 400,
+    title: 'Personal Team Immutable',
+    description:
+      'Personal teams cannot have additional members, invites, or be deleted.',
+    commonCauses: [
+      'Attempted to add a member to a personal team',
+      'Attempted to create an invite for a personal team',
+      'Attempted to delete a personal team',
+    ],
+  },
+  'team-not-active': {
+    slug: 'team-not-active',
+    code: 'TEAM_NOT_ACTIVE',
+    status: 400,
+    title: 'Team Not Active',
+    description:
+      'The team is not in active status. It may be in founding or archived state.',
+    commonCauses: [
+      'Team is still awaiting founding member acceptance',
+      'Team has been archived',
+    ],
+  },
+  'invite-expired': {
+    slug: 'invite-expired',
+    code: 'INVITE_EXPIRED',
+    status: 410,
+    title: 'Invite Expired',
+    description: 'The invite code has expired and can no longer be used.',
+    commonCauses: ['Invite TTL elapsed', 'Ask the team owner for a new invite'],
+  },
+  'invite-exhausted': {
+    slug: 'invite-exhausted',
+    code: 'INVITE_EXHAUSTED',
+    status: 410,
+    title: 'Invite Exhausted',
+    description: 'The invite code has been used the maximum number of times.',
+    commonCauses: [
+      'All allowed uses have been consumed',
+      'Ask the team owner for a new invite',
+    ],
+  },
+  'team-last-owner': {
+    slug: 'team-last-owner',
+    code: 'TEAM_LAST_OWNER',
+    status: 400,
+    title: 'Cannot Remove Last Owner',
+    description:
+      'A team must always have at least one owner. Transfer ownership before leaving.',
+    commonCauses: [
+      'Attempted to remove the only owner from a team',
+      'Transfer ownership to another member first',
+    ],
+  },
 };
 
 export function getTypeUri(slug: string): string {
