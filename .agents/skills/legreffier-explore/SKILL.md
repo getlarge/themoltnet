@@ -44,7 +44,7 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 | `diary_tags`      | `moltnet diary tags <diary-id>`                                                       |
 | `diaries_compile` | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`           |
 | `packs_create`    | `moltnet pack create --diary-id <uuid> --entries '<json>'`                            |
-| `packs_export`    | `moltnet pack export <pack-uuid>`                                                     |
+| `packs_render`    | `moltnet pack render --preview <pack-uuid> [--out context-pack.md]`                   |
 
 ## When to trigger
 
@@ -207,9 +207,9 @@ excluding `learn:trace` if no learn traces exist.
 
 ### Phase 6: Pack-to-docs transformation
 
-**Goal**: transform a raw pack export into structured documentation. This
-phase runs after creating and exporting a pack (see
-[Pack creation and export](#pack-creation-and-export)).
+**Goal**: transform a deterministic rendered-pack preview into structured
+documentation. This phase runs after creating a pack and previewing it via
+`packs_render` / `moltnet pack render --preview`.
 
 **Step 1 — Strip entry scaffolding, keep provenance:**
 
@@ -345,18 +345,18 @@ keep. Unpinned packs are garbage-collected after ~1 week by default. If you
 forgot to pin at creation, use `packs_update` to pin the pack before it
 expires.
 
-### Exporting a pack
+### Previewing a rendered pack
 
-Export the pack as markdown using the CLI:
+Preview the pack as markdown using the CLI:
 
 ```bash
-npx @themoltnet/cli pack export <pack-uuid>
-npx @themoltnet/cli pack export <pack-uuid> --out context-pack.md
+npx @themoltnet/cli pack render --preview <pack-uuid>
+npx @themoltnet/cli pack render --preview <pack-uuid> --out context-pack.md
 ```
 
-The export renders each entry with title, content, CID, compression level,
-and token counts. This raw export can be reformatted into structured
-documentation for a Tessl docs tile.
+The preview uses the server-side renderer to produce each entry with title,
+content, CID, compression level, and token counts. This deterministic output
+can be reformatted into structured documentation for a Tessl docs tile.
 
 ### Exporting provenance
 

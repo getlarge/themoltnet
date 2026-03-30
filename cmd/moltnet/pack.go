@@ -15,50 +15,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// runPackExportCmd is the flag-free business logic for pack export.
-func runPackExportCmd(apiURL, credPath, packID, out string) error {
-	packUUID, err := uuid.Parse(packID)
-	if err != nil {
-		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
-	}
-
-	client, err := newClientFromCreds(apiURL, credPath)
-	if err != nil {
-		return err
-	}
-
-	expand := moltnetapi.NewOptGetContextPackByIdExpand(
-		moltnetapi.GetContextPackByIdExpandEntries,
-	)
-	res, err := client.GetContextPackById(
-		context.Background(),
-		moltnetapi.GetContextPackByIdParams{
-			ID:     packUUID,
-			Expand: expand,
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("pack export: %w", err)
-	}
-	pack, ok := res.(*moltnetapi.ContextPackResponse)
-	if !ok {
-		return formatAPIError(res)
-	}
-
-	md := renderPackMarkdown(packUUID.String(), pack)
-
-	if out != "" {
-		if err := os.WriteFile(out, []byte(md), 0644); err != nil {
-			return fmt.Errorf("write %s: %w", out, err)
-		}
-		fmt.Fprintf(os.Stderr, "[pack export] %d entries → %s\n", len(pack.Entries), out)
-	} else {
-		fmt.Print(md)
-	}
-	return nil
-}
-
-// runPackRenderCmd fetches a pack, renders it locally, and optionally persists via API.
+// runPackRenderCmd renders a pack locally for agent-authored methods and
+// delegates to the server for trusted server-side render methods.
 func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out string) error {
 	packUUID, err := uuid.Parse(packID)
 	if err != nil {
@@ -68,6 +26,10 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
+	}
+
+	if strings.HasPrefix(renderMethod, "server:") {
+		return runServerPackRenderCmd(client, packUUID, renderMethod, preview, pinned, out)
 	}
 
 	// Fetch the pack with expanded entries for local rendering
@@ -89,7 +51,8 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 
-	// Render locally using the same markdown format as pack export
+	// Non-server methods still persist caller-authored markdown, so the CLI
+	// renders locally before sending the content to the API.
 	md := renderPackMarkdown(packUUID.String(), pack)
 
 	if preview {
@@ -106,20 +69,16 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 
 	// Persist via API
 	req := &moltnetapi.RenderContextPackReq{
-		RenderedMarkdown: md,
+		RenderedMarkdown: moltnetapi.NewOptString(md),
 		RenderMethod:     renderMethod,
 	}
 	if pinned != nil {
 		req.Pinned = moltnetapi.NewOptBool(*pinned)
 	}
 
-	renderRes, err := client.RenderContextPack(
-		context.Background(),
-		req,
-		moltnetapi.RenderContextPackParams{ID: packUUID},
-	)
+	renderRes, err := executeRenderContextPack(client, packUUID, req)
 	if err != nil {
-		return fmt.Errorf("render pack: %w", err)
+		return err
 	}
 
 	result, ok := renderRes.(*moltnetapi.RenderedPackResult)
@@ -128,7 +87,7 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 	}
 
 	if out != "" {
-		if err := os.WriteFile(out, []byte(md), 0644); err != nil {
+		if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
 			return fmt.Errorf("write %s: %w", out, err)
 		}
 		fmt.Fprintf(os.Stderr, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
@@ -136,6 +95,76 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		return printJSON(result)
 	}
 	return nil
+}
+
+func executeRenderContextPack(client *moltnetapi.Client, packUUID uuid.UUID, req *moltnetapi.RenderContextPackReq) (moltnetapi.RenderContextPackRes, error) {
+	res, err := client.RenderContextPack(
+		context.Background(),
+		req,
+		moltnetapi.RenderContextPackParams{ID: packUUID},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("render pack: %w", err)
+	}
+
+	switch res.(type) {
+	case *moltnetapi.RenderedPackPreview, *moltnetapi.RenderedPackResult:
+		return res, nil
+	default:
+		return nil, formatAPIError(res)
+	}
+}
+
+func runServerPackRenderCmd(client *moltnetapi.Client, packUUID uuid.UUID, renderMethod string, preview bool, pinned *bool, out string) error {
+	if preview {
+		req := &moltnetapi.RenderContextPackReq{
+			RenderMethod: renderMethod,
+			Preview:      moltnetapi.NewOptBool(true),
+		}
+		renderRes, err := executeRenderContextPack(client, packUUID, req)
+		if err != nil {
+			return err
+		}
+		result, ok := renderRes.(*moltnetapi.RenderedPackPreview)
+		if !ok {
+			return fmt.Errorf("unexpected response type: %T", renderRes)
+		}
+		if out != "" {
+			if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
+				return fmt.Errorf("write %s: %w", out, err)
+			}
+			fmt.Fprintf(os.Stderr, "[pack render] preview → %s\n", out)
+		} else {
+			fmt.Print(result.RenderedMarkdown)
+		}
+		return nil
+	}
+
+	req := &moltnetapi.RenderContextPackReq{
+		RenderMethod: renderMethod,
+	}
+	if pinned != nil {
+		req.Pinned = moltnetapi.NewOptBool(*pinned)
+	}
+
+	renderRes, err := executeRenderContextPack(client, packUUID, req)
+	if err != nil {
+		return err
+	}
+	result, ok := renderRes.(*moltnetapi.RenderedPackResult)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", renderRes)
+	}
+
+	if out != "" {
+		if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", out, err)
+		}
+		fmt.Fprintf(os.Stderr, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
+		return nil
+	}
+
+	return printJSON(result)
 }
 
 // runPackProvenanceCmd is the flag-free business logic for pack provenance.

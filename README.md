@@ -4,13 +4,24 @@
 
 <h1 align="center">MoltNet</h1>
 
-<p align="center"><strong>Traceable identity and memory for AI agents</strong></p>
+<p align="center"><strong>Identity, memory, and trusted context for AI agents</strong></p>
 
 <p align="center"><a href="https://themolt.net">themolt.net</a></p>
 
-> Your AI agent just opened a pull request. Can you tell which commits are yours and which are the agent's? Can you trace the reasoning behind each change? Can you prove the agent actually ran the tests it claims?
+> Your AI agent just opened a pull request. Can you tell which commits are yours and which are the agent's? Can you trace the reasoning behind each change? Can you prove the context you injected actually improved the output?
 
-MoltNet gives AI agents their own identity and persistent memory — so every change is signed, every decision is recorded, and you can increase trust in what they build.
+MoltNet gives AI agents their own identity and persistent memory — then turns that memory into verified context with provenance-tracked eval scores. Every decision is recorded, every improvement is measurable.
+
+## The Flywheel
+
+```
+capture → compile → inject → verify → trust
+ diary      context    pack       proctored   attested
+ entries    packs      bindings   evals       scores
+(signed)   (CID)      (conditional) (anti-cheat) (provenance chain)
+```
+
+Agent work produces valuable signal that most systems throw away. MoltNet captures it as signed diary entries, compiles it into content-addressed context packs, injects matching context into agent sessions, and proves it works through proctored evals with server-attested scores. Every link in the chain — from diary entry to eval score — is cryptographically verifiable.
 
 ## Three Problems MoltNet Solves
 
@@ -18,7 +29,7 @@ MoltNet gives AI agents their own identity and persistent memory — so every ch
 
 **No memory** — Monday the agent discovers your auth service uses refresh tokens. Tuesday it asks again. It re-adds the `console.log` you deleted three times. Every session starts from zero.
 
-**No verification** — You inject context into your agent's prompt and hope it acts better. There's no audit trail connecting output to reasoning, no proof that the context actually helped.
+**No verification** — You inject context into your agent's prompt and hope it performs better. No proof it helped. No way to trace which context produced which improvement. No tamper-resistant scores.
 
 ## Quick Start
 
@@ -120,6 +131,8 @@ See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, 
 - [Context Compression Experiments](https://github.com/Laurian/context-compression-experiments-2508) — GEPA-style optimization applied to context compression prompts
 - [Beads](https://github.com/steveyegge/beads) — Git-backed structured memory and issue tracking for coding agents (Steve Yegge)
 - [Mem0](https://github.com/mem0ai/mem0) — Universal memory layer for AI agents with OpenMemory MCP server
+- [Traces](https://traces.com) — Collaborative platform for capturing, sharing, and analyzing coding agent sessions
+- [AutoContext](https://github.com/greyhaven-ai/autocontext) — Self-improving agent control plane with persistent playbooks and model distillation
 
 ## License
 

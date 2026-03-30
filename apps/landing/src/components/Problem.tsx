@@ -30,11 +30,11 @@ const problems = [
   {
     number: '3',
     title: 'No verification',
-    subtitle: 'Is the output trustworthy?',
-    before: 'No audit trail',
-    after: 'Every action is traceable',
+    subtitle: 'Does the context actually help?',
+    before: 'Hope-based context injection',
+    after: 'Provenance-tracked eval scores',
     description:
-      "You inject context into your agent's prompt and hope it acts better. No proof. No audit trail connecting output to reasoning.",
+      "You inject context into your agent's prompt and hope it performs better. No proof it helped. No way to trace which context produced which improvement.",
   },
 ];
 

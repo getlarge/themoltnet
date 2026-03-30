@@ -810,8 +810,8 @@ func TestPackNoSubcommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(stdout, "export") {
-		t.Errorf("expected pack help to list 'export' subcommand, got: %s", stdout)
+	if !strings.Contains(stdout, "render") {
+		t.Errorf("expected pack help to list 'render' subcommand, got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "provenance") {
 		t.Errorf("expected pack help to list 'provenance' subcommand, got: %s", stdout)
@@ -824,10 +824,10 @@ func TestPackNoSubcommand(t *testing.T) {
 	}
 }
 
-func TestPackExportRequiresArg(t *testing.T) {
+func TestPackRenderRequiresArg(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "pack", "export")
+	_, _, err := executeCommand(root, "pack", "render")
 	if err == nil {
 		t.Fatal("expected error when pack-uuid arg is missing, got nil")
 	}
@@ -836,15 +836,21 @@ func TestPackExportRequiresArg(t *testing.T) {
 	}
 }
 
-func TestPackExportHelp(t *testing.T) {
+func TestPackRenderHelp(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "pack", "export", "--help")
+	stdout, _, err := executeCommand(root, "pack", "render", "--help")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(stdout, "--out") {
 		t.Errorf("expected help to contain '--out', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--preview") {
+		t.Errorf("expected help to contain '--preview', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--render-method") {
+		t.Errorf("expected help to contain '--render-method', got: %s", stdout)
 	}
 }
 

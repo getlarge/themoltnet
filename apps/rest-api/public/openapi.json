@@ -3143,6 +3143,9 @@
           "renderMethod": {
             "type": "string"
           },
+          "renderedMarkdown": {
+            "type": "string"
+          },
           "sourcePackCid": {
             "type": "string"
           },
@@ -3162,6 +3165,7 @@
           "diaryId",
           "contentHash",
           "renderMethod",
+          "renderedMarkdown",
           "totalTokens",
           "pinned"
         ],
@@ -8021,7 +8025,23 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "example1": {
+                  "value": {
+                    "preview": true,
+                    "renderMethod": "server:pack-to-docs-v1"
+                  }
+                },
+                "example2": {
+                  "value": {
+                    "renderMethod": "agent:pack-to-docs-v1",
+                    "renderedMarkdown": "# Rendered Pack\n"
+                  }
+                }
+              },
               "schema": {
+                "additionalProperties": false,
+                "description": "Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
                 "properties": {
                   "pinned": {
                     "type": "boolean"
@@ -8030,21 +8050,25 @@
                     "type": "boolean"
                   },
                   "renderMethod": {
+                    "description": "Render method label. Trusted server render methods start with \"server:\" and must omit renderedMarkdown.",
+                    "example": "server:pack-to-docs-v1",
                     "maxLength": 100,
                     "minLength": 1,
                     "type": "string"
                   },
                   "renderedMarkdown": {
+                    "description": "Caller-authored markdown. Required unless renderMethod starts with \"server:\".",
                     "maxLength": 500000,
                     "minLength": 1,
                     "type": "string"
                   }
                 },
-                "required": ["renderedMarkdown", "renderMethod"],
+                "required": ["renderMethod"],
                 "type": "object"
               }
             }
           },
+          "description": "Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
           "required": true
         },
         "responses": {
@@ -8063,6 +8087,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RenderedPackResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             },

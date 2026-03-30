@@ -6,6 +6,7 @@ import {
   handlePacksList,
   handlePacksPreview,
   handlePacksProvenance,
+  handlePacksRender,
 } from '../src/pack-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
@@ -25,6 +26,7 @@ vi.mock('@moltnet/api-client', () => ({
   previewDiaryCustomPack: vi.fn(),
   getContextPackProvenanceById: vi.fn(),
   getContextPackProvenanceByCid: vi.fn(),
+  renderContextPack: vi.fn(),
 }));
 
 import {
@@ -34,6 +36,7 @@ import {
   getContextPackProvenanceById,
   listDiaryPacks,
   previewDiaryCustomPack,
+  renderContextPack,
 } from '@moltnet/api-client';
 
 const PACK_ID = '110e8400-e29b-41d4-a716-446655440005';
@@ -512,6 +515,82 @@ describe('Pack tools', () => {
 
       expect(result.isError).toBe(true);
       expect(getTextContent(result)).toContain('Diary not accessible');
+    });
+  });
+
+  describe('packs_render', () => {
+    it('omits renderedMarkdown for server render methods', async () => {
+      vi.mocked(renderContextPack).mockResolvedValue(
+        sdkOk({
+          sourcePackId: PACK_ID,
+          sourcePackCid: PACK_CID,
+          renderMethod: 'server:pack-to-docs-v1',
+          renderedMarkdown: '# Context Pack',
+          totalTokens: 12,
+        }) as never,
+      );
+
+      const result = await handlePacksRender(
+        {
+          pack_id: PACK_ID,
+          render_method: 'server:pack-to-docs-v1',
+          preview: true,
+        },
+        deps,
+        context,
+      );
+
+      expect(renderContextPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: PACK_ID },
+          body: {
+            renderMethod: 'server:pack-to-docs-v1',
+            preview: true,
+            pinned: undefined,
+          },
+        }),
+      );
+
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed.renderMethod).toBe('server:pack-to-docs-v1');
+    });
+
+    it('passes through renderedMarkdown for server render methods and surfaces API validation', async () => {
+      vi.mocked(renderContextPack).mockResolvedValue(
+        sdkErr({
+          error: 'Bad Request',
+          message: 'Bad Request',
+          statusCode: 400,
+          detail:
+            'renderedMarkdown must not be provided for server render methods',
+        }) as never,
+      );
+
+      const result = await handlePacksRender(
+        {
+          pack_id: PACK_ID,
+          render_method: 'server:pack-to-docs-v1',
+          rendered_markdown: '# Caller markdown',
+        },
+        deps,
+        context,
+      );
+
+      expect(renderContextPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: PACK_ID },
+          body: {
+            renderMethod: 'server:pack-to-docs-v1',
+            renderedMarkdown: '# Caller markdown',
+            pinned: undefined,
+            preview: undefined,
+          },
+        }),
+      );
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'renderedMarkdown must not be provided for server render methods',
+      );
     });
   });
 });
