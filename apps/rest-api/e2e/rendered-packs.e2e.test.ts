@@ -17,6 +17,7 @@ import {
   getContextPackById,
   getLatestRenderedPack,
   getRenderedPackById,
+  listDiaryEntries,
   listDiaryPacks,
   renderContextPack,
   type RenderedPackPreview,
