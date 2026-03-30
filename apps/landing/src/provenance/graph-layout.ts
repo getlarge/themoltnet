@@ -40,10 +40,10 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
     for (const edge of graph.edges) {
       if (edge.from !== current) continue;
 
-      const nextLevel =
-        edge.kind === 'supersedes' || edge.kind === 'rendered_from'
-          ? currentLevel + 1
-          : currentLevel + 2;
+      // Sibling edges (supersedes, rendered_from) stay on the same tier;
+      // composition edges (includes) drop two tiers to separate visually.
+      const sametier = edge.kind !== 'includes';
+      const nextLevel = currentLevel + (sametier ? 1 : 2);
       const previous = levels.get(edge.to);
       if (previous === undefined || nextLevel < previous) {
         levels.set(edge.to, nextLevel);

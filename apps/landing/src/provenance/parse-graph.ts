@@ -1,5 +1,8 @@
 import type { ProvenanceGraph } from '@moltnet/models';
 
+const validNodeKinds = new Set(['pack', 'entry', 'rendered_pack']);
+const validEdgeKinds = new Set(['includes', 'supersedes', 'rendered_from']);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -26,9 +29,7 @@ function isValidNode(node: unknown): node is ProvenanceGraph['nodes'][number] {
     !isRecord(node) ||
     typeof node.id !== 'string' ||
     typeof node.label !== 'string' ||
-    (node.kind !== 'pack' &&
-      node.kind !== 'entry' &&
-      node.kind !== 'rendered_pack') ||
+    !validNodeKinds.has(node.kind as string) ||
     !(typeof node.cid === 'string' || node.cid === null) ||
     !isRecord(node.meta)
   ) {
@@ -87,9 +88,7 @@ function isValidEdge(edge: unknown): edge is ProvenanceGraph['edges'][number] {
     typeof edge.id !== 'string' ||
     typeof edge.from !== 'string' ||
     typeof edge.to !== 'string' ||
-    (edge.kind !== 'includes' &&
-      edge.kind !== 'supersedes' &&
-      edge.kind !== 'rendered_from')
+    !validEdgeKinds.has(edge.kind as string)
   ) {
     return false;
   }
