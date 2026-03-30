@@ -16,6 +16,9 @@ import {
   listDiaryEntries,
   listDiaryPacks,
   renderContextPack,
+  type RenderedPackPreview,
+  type RenderedPackResult,
+  type RenderedPackWithContent,
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -151,10 +154,10 @@ describe('Rendered packs', () => {
 
     expect(error, `preview failed: ${JSON.stringify(error)}`).toBeUndefined();
     expect(response.status).toBe(200);
-    expect(data).toHaveProperty('sourcePackId');
-    expect(data).toHaveProperty('sourcePackCid');
-    expect(data).toHaveProperty('totalTokens');
-    expect((data as { totalTokens: number }).totalTokens).toBeGreaterThan(0);
+    const preview = data as RenderedPackPreview;
+    expect(preview.sourcePackId).toBeDefined();
+    expect(preview.sourcePackCid).toBeDefined();
+    expect(preview.totalTokens).toBeGreaterThan(0);
   });
 
   it('creates a rendered pack with CID', async () => {
@@ -172,16 +175,13 @@ describe('Rendered packs', () => {
 
     expect(error, `render failed: ${JSON.stringify(error)}`).toBeUndefined();
     expect(response.status).toBe(201);
-    expect(data).toHaveProperty('id');
-    expect(data).toHaveProperty('packCid');
-    expect((data as { packCid: string }).packCid).toMatch(/^bafyr/);
-    expect(data).toHaveProperty('sourcePackId', sourcePackId);
-    expect(data).toHaveProperty('contentHash');
-    expect((data as { contentHash: string }).contentHash).toMatch(
-      /^[0-9a-f]{64}$/,
-    );
-    expect(data).toHaveProperty('renderMethod', 'pack-to-docs-v1');
-    expect((data as { totalTokens: number }).totalTokens).toBeGreaterThan(0);
+    const result = data as RenderedPackResult;
+    expect(result.id).toBeDefined();
+    expect(result.packCid).toMatch(/^bafyr/);
+    expect(result.sourcePackId).toBe(sourcePackId);
+    expect(result.contentHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(result.renderMethod).toBe('pack-to-docs-v1');
+    expect(result.totalTokens).toBeGreaterThan(0);
   });
 
   it('returns existing pack on idempotent re-render with same content', async () => {
@@ -208,8 +208,8 @@ describe('Rendered packs', () => {
       },
     });
 
-    expect((first as { packCid: string }).packCid).toBe(
-      (second as { packCid: string }).packCid,
+    expect((first as RenderedPackResult).packCid).toBe(
+      (second as RenderedPackResult).packCid,
     );
   });
 
@@ -234,8 +234,8 @@ describe('Rendered packs', () => {
       },
     });
 
-    expect((v1 as { packCid: string }).packCid).not.toBe(
-      (v2 as { packCid: string }).packCid,
+    expect((v1 as RenderedPackResult).packCid).not.toBe(
+      (v2 as RenderedPackResult).packCid,
     );
   });
 
@@ -248,43 +248,43 @@ describe('Rendered packs', () => {
 
     expect(error, `getLatest failed: ${JSON.stringify(error)}`).toBeUndefined();
     expect(response.status).toBe(200);
-    expect(data).toHaveProperty('id');
-    expect(data).toHaveProperty('packCid');
-    expect(data).toHaveProperty('content');
-    expect((data as { content: string }).content).toContain('Version 2');
+    const latest = data as RenderedPackWithContent;
+    expect(latest.id).toBeDefined();
+    expect(latest.packCid).toBeDefined();
+    expect(latest.content).toContain('Version 2');
   });
 
   it('fetches a rendered pack by ID', async () => {
-    const { data: latest } = await getLatestRenderedPack({
+    const { data: latestData } = await getLatestRenderedPack({
       client,
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
     });
+    const latest = latestData as RenderedPackWithContent;
 
     const { data, error, response } = await getRenderedPackById({
       client,
       auth: () => agentA.accessToken,
-      path: { id: (latest as { id: string }).id },
+      path: { id: latest.id },
     });
 
     expect(error, `getById failed: ${JSON.stringify(error)}`).toBeUndefined();
     expect(response.status).toBe(200);
-    expect((data as { packCid: string }).packCid).toBe(
-      (latest as { packCid: string }).packCid,
-    );
+    expect((data as RenderedPackWithContent).packCid).toBe(latest.packCid);
   });
 
   it('returns 403 when another agent tries to read a rendered pack', async () => {
-    const { data: latest } = await getLatestRenderedPack({
+    const { data: latestData } = await getLatestRenderedPack({
       client,
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
     });
+    const latest = latestData as RenderedPackWithContent;
 
     const { error, response } = await getRenderedPackById({
       client,
       auth: () => agentB.accessToken,
-      path: { id: (latest as { id: string }).id },
+      path: { id: latest.id },
     });
 
     expect(error).toBeDefined();
