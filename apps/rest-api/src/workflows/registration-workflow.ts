@@ -353,8 +353,8 @@ export function initRegistrationWorkflow(): void {
         );
         await grantPersonalTeamOwnerStep(personalTeamId, identityId);
 
-        // Step 6: Create private diary
-        await createPrivateDiaryStep(identityId);
+        // Step 6: Create private diary (linked to personal team)
+        await createPrivateDiaryStep(identityId, personalTeamId);
 
         // Step 7: Create OAuth2 client
         const { clientId, clientSecret } = await createOAuth2ClientStep(
