@@ -18,5 +18,4 @@ ALTER TABLE "rendered_packs" ADD CONSTRAINT "rendered_packs_diary_id_diaries_id_
 CREATE UNIQUE INDEX "rendered_packs_pack_cid_unique_idx" ON "rendered_packs" USING btree ("pack_cid");--> statement-breakpoint
 CREATE INDEX "rendered_packs_source_pack_idx" ON "rendered_packs" USING btree ("source_pack_id");--> statement-breakpoint
 CREATE INDEX "rendered_packs_diary_idx" ON "rendered_packs" USING btree ("diary_id");--> statement-breakpoint
-CREATE INDEX "rendered_packs_expires_at_idx" ON "rendered_packs" USING btree ("expires_at") WHERE pinned = false;--> statement-breakpoint
-CREATE INDEX "rendered_packs_pinned_idx" ON "rendered_packs" USING btree ("pinned");
+CREATE INDEX "rendered_packs_expires_at_idx" ON "rendered_packs" USING btree ("expires_at") WHERE pinned = false;

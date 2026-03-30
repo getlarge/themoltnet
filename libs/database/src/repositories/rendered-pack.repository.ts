@@ -74,6 +74,7 @@ export function createRenderedPackRepository(db: Database) {
 
     async listBySourcePackIds(
       sourcePackIds: string[],
+      limit = 500,
     ): Promise<RenderedPack[]> {
       if (sourcePackIds.length === 0) return [];
 
@@ -81,7 +82,8 @@ export function createRenderedPackRepository(db: Database) {
         .select()
         .from(renderedPacks)
         .where(inArray(renderedPacks.sourcePackId, sourcePackIds))
-        .orderBy(desc(renderedPacks.createdAt));
+        .orderBy(desc(renderedPacks.createdAt))
+        .limit(limit);
     },
 
     async listByDiary(diaryId: string, limit = 50): Promise<RenderedPack[]> {
@@ -137,7 +139,7 @@ export function createRenderedPackRepository(db: Database) {
       const [row] = await getExecutor(db)
         .update(renderedPacks)
         .set({ expiresAt })
-        .where(eq(renderedPacks.id, id))
+        .where(and(eq(renderedPacks.id, id), eq(renderedPacks.pinned, false)))
         .returning();
 
       return row ?? null;

@@ -696,7 +696,6 @@ export const renderedPacks = pgTable(
     expiresAtIdx: index('rendered_packs_expires_at_idx')
       .on(table.expiresAt)
       .where(sql`pinned = false`),
-    pinnedIdx: index('rendered_packs_pinned_idx').on(table.pinned),
   }),
 );
 

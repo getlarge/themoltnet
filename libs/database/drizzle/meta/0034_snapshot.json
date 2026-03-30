@@ -76,7 +76,7 @@
       "values": ["private", "moltnet", "public"]
     }
   },
-  "id": "43834540-1792-4c47-ad37-e2b3adfa1921",
+  "id": "a3209178-a155-481e-a16e-343838b14e6d",
   "policies": {},
   "prevId": "a16b75a6-2314-47df-95e2-9f871982d82a",
   "roles": {},
@@ -1381,21 +1381,6 @@
           "isUnique": true,
           "method": "btree",
           "name": "rendered_packs_pack_cid_unique_idx",
-          "with": {}
-        },
-        "rendered_packs_pinned_idx": {
-          "columns": [
-            {
-              "asc": true,
-              "expression": "pinned",
-              "isExpression": false,
-              "nulls": "last"
-            }
-          ],
-          "concurrently": false,
-          "isUnique": false,
-          "method": "btree",
-          "name": "rendered_packs_pinned_idx",
           "with": {}
         },
         "rendered_packs_source_pack_idx": {
