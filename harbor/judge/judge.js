@@ -106,13 +106,13 @@ const maxTotal = scored.reduce((sum, c) => sum + c.max_score, 0);
 const normalizedReward = maxTotal > 0 ? totalScore / maxTotal : 0;
 
 /** @type {Record<string, number>} */
-const reward = { reward: normalizedReward };
+const details = {};
 for (const c of scored) {
   const key = c.name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_|_$/g, '');
-  reward[key] = c.max_score > 0 ? c.score / c.max_score : 0;
+  details[key] = c.max_score > 0 ? c.score / c.max_score : 0;
 }
 
 console.log('Scores:');
@@ -123,4 +123,6 @@ console.log(
   `\nTotal: ${totalScore}/${maxTotal} (${(normalizedReward * 100).toFixed(1)}%)`,
 );
 
-await writeReward(reward);
+// Harbor's mean metric expects exactly one key in reward.json
+await writeReward({ reward: normalizedReward });
+await writeFile('/logs/verifier/scores.json', JSON.stringify(details, null, 2));
