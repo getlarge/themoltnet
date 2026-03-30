@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { KetoNamespace } from '../src/keto-constants.js';
 import {
   createPermissionChecker,
   type PermissionChecker,
@@ -34,14 +35,21 @@ describe('PermissionChecker', () => {
         allowed: true,
       });
 
-      const result = await checker.canReadDiary(DIARY_ID, AGENT_ID);
+      const result = await checker.canReadDiary(
+        DIARY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
         namespace: 'Diary',
         object: DIARY_ID,
         relation: 'read',
-        subjectId: AGENT_ID,
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
       });
     });
 
@@ -50,14 +58,21 @@ describe('PermissionChecker', () => {
         allowed: true,
       });
 
-      const result = await checker.canWriteDiary(DIARY_ID, AGENT_ID);
+      const result = await checker.canWriteDiary(
+        DIARY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
         namespace: 'Diary',
         object: DIARY_ID,
         relation: 'write',
-        subjectId: AGENT_ID,
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
       });
     });
 
@@ -66,14 +81,21 @@ describe('PermissionChecker', () => {
         allowed: false,
       });
 
-      const result = await checker.canManageDiary(DIARY_ID, OTHER_AGENT_ID);
+      const result = await checker.canManageDiary(
+        DIARY_ID,
+        OTHER_AGENT_ID,
+        KetoNamespace.Human,
+      );
 
       expect(result).toBe(false);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
         namespace: 'Diary',
         object: DIARY_ID,
         relation: 'manage',
-        subjectId: OTHER_AGENT_ID,
+        subjectId: undefined,
+        subjectSetNamespace: 'Human',
+        subjectSetObject: OTHER_AGENT_ID,
+        subjectSetRelation: '',
       });
     });
   });
@@ -84,14 +106,21 @@ describe('PermissionChecker', () => {
         allowed: true,
       });
 
-      const result = await checker.canViewEntry(ENTRY_ID, AGENT_ID);
+      const result = await checker.canViewEntry(
+        ENTRY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
         namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'view',
-        subjectId: AGENT_ID,
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
       });
     });
 
@@ -100,7 +129,11 @@ describe('PermissionChecker', () => {
         allowed: false,
       });
 
-      const result = await checker.canViewEntry(ENTRY_ID, AGENT_ID);
+      const result = await checker.canViewEntry(
+        ENTRY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(false);
     });
@@ -110,7 +143,11 @@ describe('PermissionChecker', () => {
         new Error('Keto unavailable'),
       );
 
-      const result = await checker.canViewEntry(ENTRY_ID, AGENT_ID);
+      const result = await checker.canViewEntry(
+        ENTRY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(false);
     });
@@ -122,14 +159,21 @@ describe('PermissionChecker', () => {
         allowed: true,
       });
 
-      const result = await checker.canEditEntry(ENTRY_ID, AGENT_ID);
+      const result = await checker.canEditEntry(
+        ENTRY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
         namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'edit',
-        subjectId: AGENT_ID,
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
       });
     });
 
@@ -138,7 +182,11 @@ describe('PermissionChecker', () => {
         allowed: false,
       });
 
-      const result = await checker.canEditEntry(ENTRY_ID, OTHER_AGENT_ID);
+      const result = await checker.canEditEntry(
+        ENTRY_ID,
+        OTHER_AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(false);
     });
@@ -150,14 +198,21 @@ describe('PermissionChecker', () => {
         allowed: true,
       });
 
-      const result = await checker.canDeleteEntry(ENTRY_ID, AGENT_ID);
+      const result = await checker.canDeleteEntry(
+        ENTRY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(true);
       expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
         namespace: 'DiaryEntry',
         object: ENTRY_ID,
         relation: 'delete',
-        subjectId: AGENT_ID,
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
       });
     });
   });
@@ -168,7 +223,11 @@ describe('PermissionChecker', () => {
         results: [{ allowed: true }, { allowed: false }],
       });
 
-      const result = await checker.canReadPacks([DIARY_ID, ENTRY_ID], AGENT_ID);
+      const result = await checker.canReadPacks(
+        [DIARY_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toEqual(
         new Map([
@@ -183,13 +242,21 @@ describe('PermissionChecker', () => {
               namespace: 'ContextPack',
               object: DIARY_ID,
               relation: 'read',
-              subject_id: AGENT_ID,
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
             },
             {
               namespace: 'ContextPack',
               object: ENTRY_ID,
               relation: 'read',
-              subject_id: AGENT_ID,
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
             },
           ],
         },
@@ -202,7 +269,11 @@ describe('PermissionChecker', () => {
       );
 
       await expect(
-        checker.canReadPacks([DIARY_ID, ENTRY_ID], AGENT_ID),
+        checker.canReadPacks(
+          [DIARY_ID, ENTRY_ID],
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
       ).rejects.toThrow('Keto unavailable');
     });
 
@@ -215,7 +286,11 @@ describe('PermissionChecker', () => {
       });
 
       await expect(
-        checker.canReadPacks([DIARY_ID, ENTRY_ID], AGENT_ID),
+        checker.canReadPacks(
+          [DIARY_ID, ENTRY_ID],
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
       ).rejects.toThrow(
         `batch permission check failed for ${ENTRY_ID}: resolution failed`,
       );

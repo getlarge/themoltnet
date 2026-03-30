@@ -40,6 +40,7 @@ export {
 export {
   createRelationshipReader,
   type RelationshipReader,
+  type TeamIdWithRole,
   type TeamMemberTuple,
 } from './relationship-reader.js';
 export {
@@ -56,5 +57,6 @@ export type {
   IntrospectionResult,
   IntrospectionResultActive,
   IntrospectionResultInactive,
+  SubjectType,
 } from './types.js';
 export type { OAuth2Client } from '@ory/client-fetch';

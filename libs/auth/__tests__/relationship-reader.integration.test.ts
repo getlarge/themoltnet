@@ -125,7 +125,7 @@ describe('RelationshipReader (integration)', () => {
   });
 
   it('returns empty array when agent has no diary relationships', async () => {
-    const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
     expect(ids).toEqual([]);
   });
 
@@ -136,12 +136,16 @@ describe('RelationshipReader (integration)', () => {
         namespace: KetoNamespace.Diary,
         object: DIARY_ID_1,
         relation: DiaryRelation.Owner,
-        subject_id: AGENT_ID,
+        subject_set: {
+          namespace: KetoNamespace.Agent,
+          object: AGENT_ID,
+          relation: '',
+        },
       },
     });
 
     // Act
-    const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
 
     // Assert
     expect(ids).toContain(DIARY_ID_1);
@@ -154,12 +158,16 @@ describe('RelationshipReader (integration)', () => {
         namespace: KetoNamespace.Diary,
         object: DIARY_ID_2,
         relation: DiaryRelation.Writers,
-        subject_id: AGENT_ID,
+        subject_set: {
+          namespace: KetoNamespace.Agent,
+          object: AGENT_ID,
+          relation: '',
+        },
       },
     });
 
     // Act
-    const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
 
     // Assert: both diaries returned across owner + writers relations
     expect(ids).toContain(DIARY_ID_1);
@@ -173,12 +181,16 @@ describe('RelationshipReader (integration)', () => {
         namespace: KetoNamespace.Diary,
         object: DIARY_ID_1,
         relation: DiaryRelation.Writers,
-        subject_id: AGENT_ID,
+        subject_set: {
+          namespace: KetoNamespace.Agent,
+          object: AGENT_ID,
+          relation: '',
+        },
       },
     });
 
     // Act
-    const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+    const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
 
     // Assert: DIARY_ID_1 appears only once
     expect(ids.filter((id) => id === DIARY_ID_1)).toHaveLength(1);
