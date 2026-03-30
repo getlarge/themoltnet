@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.0.1...moltnet-api-client-v1.1.0) (2026-03-30)
+
+
+### Features
+
+* teams foundation — schema, Keto OPL, auth layer ([753e8ac](https://github.com/getlarge/themoltnet/commit/753e8ac56a9af6feb63c37edfef81699870444a2))
+
 ## [1.0.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.0.0...moltnet-api-client-v1.0.1) (2026-03-29)
 
 
