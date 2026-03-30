@@ -1,11 +1,14 @@
 import { estimateTokens } from '@moltnet/context-distill';
 import {
-  type CompressionLevel,
   computeContentHash,
   computePackCid,
   computeRenderedPackCid,
   type PackEntryRef,
 } from '@moltnet/crypto-service';
+import type {
+  ContextPackRepository,
+  RenderedPackRepository,
+} from '@moltnet/database';
 
 import { fitEntries } from './entry-fitter.js';
 import type { EntryFetcher } from './entry-loader.js';
@@ -18,93 +21,19 @@ import type {
 } from './types.js';
 
 export interface ContextPackServiceDeps {
-  contextPackRepository: {
-    createPack: (input: {
-      diaryId: string;
-      packCid: string;
-      packType: 'compile' | 'optimized' | 'custom';
-      params: unknown;
-      payload: unknown;
-      createdBy: string;
-      pinned: boolean;
-      expiresAt: Date | null;
-      createdAt: Date;
-    }) => Promise<{ id: string; packCid: string }>;
-    addEntries: (
-      entries: Array<{
-        packId: string;
-        entryId: string;
-        entryCidSnapshot: string;
-        compressionLevel: CompressionLevel;
-        originalTokens: number;
-        packedTokens: number;
-        rank: number;
-      }>,
-    ) => Promise<unknown[]>;
-    findById: (id: string) => Promise<{
-      id: string;
-      diaryId: string;
-      packCid: string;
-      packType: string;
-      params: unknown;
-      payload: unknown;
-      createdBy: string;
-    } | null>;
-    findByCid: (cid: string) => Promise<{ id: string; packCid: string } | null>;
-    listByDiary: (
-      diaryId: string,
-      limit?: number,
-    ) => Promise<{ items: unknown[]; total: number }>;
-    listEntriesExpanded: (packId: string) => Promise<
-      Array<{
-        entryId: string;
-        entryCidSnapshot: string;
-        compressionLevel: string;
-        originalTokens: number | null;
-        packedTokens: number | null;
-        rank: number | null;
-      }>
-    >;
-  };
-  renderedPackRepository: {
-    create: (input: {
-      packCid: string;
-      sourcePackId: string;
-      diaryId: string;
-      content: string;
-      contentHash: string;
-      renderMethod: string;
-      totalTokens: number;
-      createdBy: string;
-      pinned: boolean;
-      expiresAt: Date | null;
-      createdAt: Date;
-    }) => Promise<{
-      id: string;
-      packCid: string;
-      sourcePackId: string;
-      diaryId: string;
-      contentHash: string;
-      renderMethod: string;
-      totalTokens: number;
-      pinned: boolean;
-      createdAt: Date;
-    }>;
-    findByCid: (cid: string) => Promise<{
-      id: string;
-      packCid: string;
-      totalTokens: number;
-      pinned: boolean;
-    } | null>;
-    findLatestBySourcePackId: (sourcePackId: string) => Promise<{
-      id: string;
-      packCid: string;
-      content: string;
-      contentHash: string;
-      renderMethod: string;
-      totalTokens: number;
-    } | null>;
-  };
+  contextPackRepository: Pick<
+    ContextPackRepository,
+    | 'createPack'
+    | 'addEntries'
+    | 'findById'
+    | 'findByCid'
+    | 'listByDiary'
+    | 'listEntriesExpanded'
+  >;
+  renderedPackRepository: Pick<
+    RenderedPackRepository,
+    'create' | 'findByCid' | 'findLatestBySourcePackId'
+  >;
   entryFetcher: EntryFetcher;
   runTransaction: <T>(fn: () => Promise<T>) => Promise<T>;
   grantPackParent: (packId: string, diaryId: string) => Promise<void>;

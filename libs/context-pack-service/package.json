@@ -22,6 +22,7 @@
   "dependencies": {
     "@moltnet/context-distill": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
     "@noble/hashes": "catalog:"
   },
   "devDependencies": {
