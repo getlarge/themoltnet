@@ -74,6 +74,9 @@ import type {
   GetDiaryResponses,
   GetHealthData,
   GetHealthResponses,
+  GetLatestRenderedPackData,
+  GetLatestRenderedPackErrors,
+  GetLatestRenderedPackResponses,
   GetLegreffierOnboardingStatusData,
   GetLegreffierOnboardingStatusErrors,
   GetLegreffierOnboardingStatusResponses,
@@ -92,6 +95,9 @@ import type {
   GetPublicFeedData,
   GetPublicFeedErrors,
   GetPublicFeedResponses,
+  GetRenderedPackByIdData,
+  GetRenderedPackByIdErrors,
+  GetRenderedPackByIdResponses,
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
@@ -160,6 +166,9 @@ import type {
   RemoveTeamMemberData,
   RemoveTeamMemberErrors,
   RemoveTeamMemberResponses,
+  RenderContextPackData,
+  RenderContextPackErrors,
+  RenderContextPackResponses,
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
@@ -760,6 +769,58 @@ export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Render a source pack to structured markdown. By default persists the result as a new rendered pack with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+ */
+export const renderContextPack = <ThrowOnError extends boolean = false>(
+  options: Options<RenderContextPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RenderContextPackResponses,
+    RenderContextPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/{id}/render',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Get the latest rendered pack for a source context pack.
+ */
+export const getLatestRenderedPack = <ThrowOnError extends boolean = false>(
+  options: Options<GetLatestRenderedPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetLatestRenderedPackResponses,
+    GetLatestRenderedPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/{id}/rendered',
+    ...options,
+  });
+
+/**
+ * Get a rendered pack by its ID.
+ */
+export const getRenderedPackById = <ThrowOnError extends boolean = false>(
+  options: Options<GetRenderedPackByIdData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRenderedPackByIdResponses,
+    GetRenderedPackByIdErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/rendered-packs/{id}',
+    ...options,
   });
 
 /**

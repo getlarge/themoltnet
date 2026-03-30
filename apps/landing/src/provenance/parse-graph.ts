@@ -1,5 +1,8 @@
 import type { ProvenanceGraph } from '@moltnet/models';
 
+const validNodeKinds = new Set(['pack', 'entry', 'rendered_pack']);
+const validEdgeKinds = new Set(['includes', 'supersedes', 'rendered_from']);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -26,7 +29,7 @@ function isValidNode(node: unknown): node is ProvenanceGraph['nodes'][number] {
     !isRecord(node) ||
     typeof node.id !== 'string' ||
     typeof node.label !== 'string' ||
-    (node.kind !== 'pack' && node.kind !== 'entry') ||
+    !validNodeKinds.has(node.kind as string) ||
     !(typeof node.cid === 'string' || node.cid === null) ||
     !isRecord(node.meta)
   ) {
@@ -47,6 +50,20 @@ function isValidNode(node: unknown): node is ProvenanceGraph['nodes'][number] {
       (typeof node.meta.supersedesPackId === 'string' ||
         node.meta.supersedesPackId === null) &&
       isCreator(node.meta.creator)
+    );
+  }
+
+  if (node.kind === 'rendered_pack') {
+    return (
+      typeof node.meta.renderedPackId === 'string' &&
+      typeof node.meta.sourcePackId === 'string' &&
+      typeof node.meta.diaryId === 'string' &&
+      typeof node.meta.packCid === 'string' &&
+      typeof node.meta.renderMethod === 'string' &&
+      typeof node.meta.totalTokens === 'number' &&
+      typeof node.meta.pinned === 'boolean' &&
+      typeof node.meta.createdAt === 'string' &&
+      (typeof node.meta.expiresAt === 'string' || node.meta.expiresAt === null)
     );
   }
 
@@ -71,7 +88,7 @@ function isValidEdge(edge: unknown): edge is ProvenanceGraph['edges'][number] {
     typeof edge.id !== 'string' ||
     typeof edge.from !== 'string' ||
     typeof edge.to !== 'string' ||
-    (edge.kind !== 'includes' && edge.kind !== 'supersedes')
+    !validEdgeKinds.has(edge.kind as string)
   ) {
     return false;
   }

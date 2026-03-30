@@ -90,7 +90,7 @@ describe('MCP Server E2E', () => {
       expect(serverVersion!.version).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('lists all 36 registered tools', async () => {
+    it('lists all registered tools', async () => {
       requireSetup();
       const { tools } = await client.listTools();
 
@@ -140,8 +140,9 @@ describe('MCP Server E2E', () => {
       expect(toolNames).toContain('packs_create');
       expect(toolNames).toContain('packs_provenance');
       expect(toolNames).toContain('packs_update');
+      expect(toolNames).toContain('packs_render');
 
-      expect(tools).toHaveLength(37);
+      expect(tools).toHaveLength(38);
     });
 
     it('lists all registered resources', async () => {

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "exclude": ["node_modules", "dist", "__tests__"],
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../context-distill"
+    },
+    {
+      "path": "../crypto-service"
+    },
+    {
+      "path": "../database"
+    }
+  ]
+}

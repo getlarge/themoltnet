@@ -72,7 +72,7 @@ export function splitIntoLines(value: string, maxChars: number): string[] {
 export function countEdges(
   graph: ProvenanceGraph | null,
   nodeId: string,
-  kind: 'includes' | 'supersedes',
+  kind: 'includes' | 'supersedes' | 'rendered_from',
 ): number {
   if (!graph) return 0;
   return graph.edges.filter(

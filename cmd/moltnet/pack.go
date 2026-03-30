@@ -58,6 +58,86 @@ func runPackExportCmd(apiURL, credPath, packID, out string) error {
 	return nil
 }
 
+// runPackRenderCmd fetches a pack, renders it locally, and optionally persists via API.
+func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out string) error {
+	packUUID, err := uuid.Parse(packID)
+	if err != nil {
+		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
+	}
+
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+
+	// Fetch the pack with expanded entries for local rendering
+	expand := moltnetapi.NewOptGetContextPackByIdExpand(
+		moltnetapi.GetContextPackByIdExpandEntries,
+	)
+	res, err := client.GetContextPackById(
+		context.Background(),
+		moltnetapi.GetContextPackByIdParams{
+			ID:     packUUID,
+			Expand: expand,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("fetch pack: %w", err)
+	}
+	pack, ok := res.(*moltnetapi.ContextPackResponse)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", res)
+	}
+
+	// Render locally using the same markdown format as pack export
+	md := renderPackMarkdown(packUUID.String(), pack)
+
+	if preview {
+		if out != "" {
+			if err := os.WriteFile(out, []byte(md), 0644); err != nil {
+				return fmt.Errorf("write %s: %w", out, err)
+			}
+			fmt.Fprintf(os.Stderr, "[pack render] preview → %s\n", out)
+		} else {
+			fmt.Print(md)
+		}
+		return nil
+	}
+
+	// Persist via API
+	req := &moltnetapi.RenderContextPackReq{
+		RenderedMarkdown: md,
+		RenderMethod:     renderMethod,
+	}
+	if pinned != nil {
+		req.Pinned = moltnetapi.NewOptBool(*pinned)
+	}
+
+	renderRes, err := client.RenderContextPack(
+		context.Background(),
+		req,
+		moltnetapi.RenderContextPackParams{ID: packUUID},
+	)
+	if err != nil {
+		return fmt.Errorf("render pack: %w", err)
+	}
+
+	result, ok := renderRes.(*moltnetapi.RenderedPackResult)
+	if !ok {
+		return fmt.Errorf("unexpected response type: %T", renderRes)
+	}
+
+	if out != "" {
+		if err := os.WriteFile(out, []byte(md), 0644); err != nil {
+			return fmt.Errorf("write %s: %w", out, err)
+		}
+		fmt.Fprintf(os.Stderr, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
+	} else {
+		return printJSON(result)
+	}
+	return nil
+}
+
 // runPackProvenanceCmd is the flag-free business logic for pack provenance.
 func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, out, shareURL string) error {
 	// Mutual exclusivity: exactly one of packID or packCID must be non-empty.

@@ -15,6 +15,7 @@ import {
   type DataSource,
   DBOS,
   type NonceRepository,
+  type RenderedPackRepository,
 } from '@moltnet/database';
 import type { FastifyBaseLogger } from 'fastify';
 
@@ -25,6 +26,7 @@ import type { PackGcConfig } from '../config.js';
 export interface MaintenanceDeps {
   nonceRepository: NonceRepository;
   contextPackRepository: ContextPackRepository;
+  renderedPackRepository: RenderedPackRepository;
   dataSource: DataSource;
   relationshipWriter: RelationshipWriter;
   logger: FastifyBaseLogger;
@@ -142,5 +144,46 @@ export function initMaintenanceWorkflows(packGcConfig: PackGcConfig): void {
       await DBOS.startWorkflow(packGcWorkflow)({ batchSize });
     },
     { name: 'maintenance.packGcScheduler', crontab: cron },
+  );
+
+  // ── Rendered Pack GC ────────────────────────────────────────
+  // Rendered packs with pinned source packs won't be cleaned by
+  // ON DELETE CASCADE. This GC pass handles their own expiresAt.
+
+  const listExpiredRenderedStep = DBOS.registerStep(
+    async (now: Date, limit: number) => {
+      const { renderedPackRepository } = getDeps();
+      return renderedPackRepository.listExpiredUnpinned(now, limit);
+    },
+    { name: 'maintenance.renderedPackGc.listExpired' },
+  );
+
+  const renderedPackGcWorkflow = DBOS.registerWorkflow(
+    async (input: { batchSize: number }) => {
+      const { logger, renderedPackRepository } = getDeps();
+      const expired = await listExpiredRenderedStep(
+        new Date(),
+        input.batchSize,
+      );
+
+      if (expired.length === 0) {
+        logger.info('maintenance: rendered pack GC — no expired packs');
+        return { deleted: 0 };
+      }
+
+      const ids = expired.map((p) => p.id);
+      const deleted = await renderedPackRepository.deleteMany(ids);
+
+      logger.info({ deleted }, 'maintenance: rendered pack GC complete');
+      return { deleted };
+    },
+    { name: 'maintenance.renderedPackGc' },
+  );
+
+  DBOS.registerScheduled(
+    async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
+      await DBOS.startWorkflow(renderedPackGcWorkflow)({ batchSize });
+    },
+    { name: 'maintenance.renderedPackGcScheduler', crontab: cron },
   );
 }

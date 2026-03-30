@@ -4540,8 +4540,9 @@ func (s *GetContextPackProvenanceByCidOKEdgesItem) SetTo(val string) {
 type GetContextPackProvenanceByCidOKEdgesItemKind string
 
 const (
-	GetContextPackProvenanceByCidOKEdgesItemKindIncludes   GetContextPackProvenanceByCidOKEdgesItemKind = "includes"
-	GetContextPackProvenanceByCidOKEdgesItemKindSupersedes GetContextPackProvenanceByCidOKEdgesItemKind = "supersedes"
+	GetContextPackProvenanceByCidOKEdgesItemKindIncludes     GetContextPackProvenanceByCidOKEdgesItemKind = "includes"
+	GetContextPackProvenanceByCidOKEdgesItemKindSupersedes   GetContextPackProvenanceByCidOKEdgesItemKind = "supersedes"
+	GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom GetContextPackProvenanceByCidOKEdgesItemKind = "rendered_from"
 )
 
 // AllValues returns all GetContextPackProvenanceByCidOKEdgesItemKind values.
@@ -4549,6 +4550,7 @@ func (GetContextPackProvenanceByCidOKEdgesItemKind) AllValues() []GetContextPack
 	return []GetContextPackProvenanceByCidOKEdgesItemKind{
 		GetContextPackProvenanceByCidOKEdgesItemKindIncludes,
 		GetContextPackProvenanceByCidOKEdgesItemKindSupersedes,
+		GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom,
 	}
 }
 
@@ -4558,6 +4560,8 @@ func (s GetContextPackProvenanceByCidOKEdgesItemKind) MarshalText() ([]byte, err
 	case GetContextPackProvenanceByCidOKEdgesItemKindIncludes:
 		return []byte(s), nil
 	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
+		return []byte(s), nil
+	case GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -4572,6 +4576,9 @@ func (s *GetContextPackProvenanceByCidOKEdgesItemKind) UnmarshalText(data []byte
 		return nil
 	case GetContextPackProvenanceByCidOKEdgesItemKindSupersedes:
 		*s = GetContextPackProvenanceByCidOKEdgesItemKindSupersedes
+		return nil
+	case GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom:
+		*s = GetContextPackProvenanceByCidOKEdgesItemKindRenderedFrom
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -4685,9 +4692,10 @@ func (s *GetContextPackProvenanceByCidOKMetadataFormat) UnmarshalText(data []byt
 
 // GetContextPackProvenanceByCidOKNodesItem represents sum type.
 type GetContextPackProvenanceByCidOKNodesItem struct {
-	Type                     GetContextPackProvenanceByCidOKNodesItemType // switch on this field
-	ProvenanceGraphPackNode  ProvenanceGraphPackNode
-	ProvenanceGraphEntryNode ProvenanceGraphEntryNode
+	Type                            GetContextPackProvenanceByCidOKNodesItemType // switch on this field
+	ProvenanceGraphPackNode         ProvenanceGraphPackNode
+	ProvenanceGraphEntryNode        ProvenanceGraphEntryNode
+	ProvenanceGraphRenderedPackNode ProvenanceGraphRenderedPackNode
 }
 
 // GetContextPackProvenanceByCidOKNodesItemType is oneOf type of GetContextPackProvenanceByCidOKNodesItem.
@@ -4695,8 +4703,9 @@ type GetContextPackProvenanceByCidOKNodesItemType string
 
 // Possible values for GetContextPackProvenanceByCidOKNodesItemType.
 const (
-	ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem  GetContextPackProvenanceByCidOKNodesItemType = "pack"
-	ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem GetContextPackProvenanceByCidOKNodesItemType = "entry"
+	ProvenanceGraphPackNodeGetContextPackProvenanceByCidOKNodesItem         GetContextPackProvenanceByCidOKNodesItemType = "pack"
+	ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem        GetContextPackProvenanceByCidOKNodesItemType = "entry"
+	ProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem GetContextPackProvenanceByCidOKNodesItemType = "rendered_pack"
 )
 
 // IsProvenanceGraphPackNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphPackNode.
@@ -4707,6 +4716,11 @@ func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphPackNode() bo
 // IsProvenanceGraphEntryNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphEntryNode.
 func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphEntryNode() bool {
 	return s.Type == ProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem
+}
+
+// IsProvenanceGraphRenderedPackNode reports whether GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphRenderedPackNode.
+func (s GetContextPackProvenanceByCidOKNodesItem) IsProvenanceGraphRenderedPackNode() bool {
+	return s.Type == ProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem
 }
 
 // SetProvenanceGraphPackNode sets GetContextPackProvenanceByCidOKNodesItem to ProvenanceGraphPackNode.
@@ -4748,6 +4762,27 @@ func (s GetContextPackProvenanceByCidOKNodesItem) GetProvenanceGraphEntryNode() 
 func NewProvenanceGraphEntryNodeGetContextPackProvenanceByCidOKNodesItem(v ProvenanceGraphEntryNode) GetContextPackProvenanceByCidOKNodesItem {
 	var s GetContextPackProvenanceByCidOKNodesItem
 	s.SetProvenanceGraphEntryNode(v)
+	return s
+}
+
+// SetProvenanceGraphRenderedPackNode sets GetContextPackProvenanceByCidOKNodesItem to ProvenanceGraphRenderedPackNode.
+func (s *GetContextPackProvenanceByCidOKNodesItem) SetProvenanceGraphRenderedPackNode(v ProvenanceGraphRenderedPackNode) {
+	s.Type = ProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem
+	s.ProvenanceGraphRenderedPackNode = v
+}
+
+// GetProvenanceGraphRenderedPackNode returns ProvenanceGraphRenderedPackNode and true boolean if GetContextPackProvenanceByCidOKNodesItem is ProvenanceGraphRenderedPackNode.
+func (s GetContextPackProvenanceByCidOKNodesItem) GetProvenanceGraphRenderedPackNode() (v ProvenanceGraphRenderedPackNode, ok bool) {
+	if !s.IsProvenanceGraphRenderedPackNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphRenderedPackNode, true
+}
+
+// NewProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem returns new GetContextPackProvenanceByCidOKNodesItem from ProvenanceGraphRenderedPackNode.
+func NewProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem(v ProvenanceGraphRenderedPackNode) GetContextPackProvenanceByCidOKNodesItem {
+	var s GetContextPackProvenanceByCidOKNodesItem
+	s.SetProvenanceGraphRenderedPackNode(v)
 	return s
 }
 
@@ -4806,6 +4841,22 @@ func (*GetDiaryNotFound) getDiaryRes() {}
 type GetDiaryUnauthorized ProblemDetails
 
 func (*GetDiaryUnauthorized) getDiaryRes() {}
+
+type GetLatestRenderedPackForbidden ProblemDetails
+
+func (*GetLatestRenderedPackForbidden) getLatestRenderedPackRes() {}
+
+type GetLatestRenderedPackInternalServerError ProblemDetails
+
+func (*GetLatestRenderedPackInternalServerError) getLatestRenderedPackRes() {}
+
+type GetLatestRenderedPackNotFound ProblemDetails
+
+func (*GetLatestRenderedPackNotFound) getLatestRenderedPackRes() {}
+
+type GetLatestRenderedPackUnauthorized ProblemDetails
+
+func (*GetLatestRenderedPackUnauthorized) getLatestRenderedPackRes() {}
 
 type GetLegreffierOnboardingStatusOK struct {
 	ClientId     OptString                             `json:"clientId"`
@@ -5353,6 +5404,22 @@ func (*GetPublicFeedBadRequest) getPublicFeedRes() {}
 type GetPublicFeedInternalServerError ProblemDetails
 
 func (*GetPublicFeedInternalServerError) getPublicFeedRes() {}
+
+type GetRenderedPackByIdForbidden ProblemDetails
+
+func (*GetRenderedPackByIdForbidden) getRenderedPackByIdRes() {}
+
+type GetRenderedPackByIdInternalServerError ProblemDetails
+
+func (*GetRenderedPackByIdInternalServerError) getRenderedPackByIdRes() {}
+
+type GetRenderedPackByIdNotFound ProblemDetails
+
+func (*GetRenderedPackByIdNotFound) getRenderedPackByIdRes() {}
+
+type GetRenderedPackByIdUnauthorized ProblemDetails
+
+func (*GetRenderedPackByIdUnauthorized) getRenderedPackByIdRes() {}
 
 type GetSigningRequestInternalServerError ProblemDetails
 
@@ -9561,8 +9628,9 @@ func (s *ProvenanceGraphEdgesItem) SetTo(val string) {
 type ProvenanceGraphEdgesItemKind string
 
 const (
-	ProvenanceGraphEdgesItemKindIncludes   ProvenanceGraphEdgesItemKind = "includes"
-	ProvenanceGraphEdgesItemKindSupersedes ProvenanceGraphEdgesItemKind = "supersedes"
+	ProvenanceGraphEdgesItemKindIncludes     ProvenanceGraphEdgesItemKind = "includes"
+	ProvenanceGraphEdgesItemKindSupersedes   ProvenanceGraphEdgesItemKind = "supersedes"
+	ProvenanceGraphEdgesItemKindRenderedFrom ProvenanceGraphEdgesItemKind = "rendered_from"
 )
 
 // AllValues returns all ProvenanceGraphEdgesItemKind values.
@@ -9570,6 +9638,7 @@ func (ProvenanceGraphEdgesItemKind) AllValues() []ProvenanceGraphEdgesItemKind {
 	return []ProvenanceGraphEdgesItemKind{
 		ProvenanceGraphEdgesItemKindIncludes,
 		ProvenanceGraphEdgesItemKindSupersedes,
+		ProvenanceGraphEdgesItemKindRenderedFrom,
 	}
 }
 
@@ -9579,6 +9648,8 @@ func (s ProvenanceGraphEdgesItemKind) MarshalText() ([]byte, error) {
 	case ProvenanceGraphEdgesItemKindIncludes:
 		return []byte(s), nil
 	case ProvenanceGraphEdgesItemKindSupersedes:
+		return []byte(s), nil
+	case ProvenanceGraphEdgesItemKindRenderedFrom:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -9593,6 +9664,9 @@ func (s *ProvenanceGraphEdgesItemKind) UnmarshalText(data []byte) error {
 		return nil
 	case ProvenanceGraphEdgesItemKindSupersedes:
 		*s = ProvenanceGraphEdgesItemKindSupersedes
+		return nil
+	case ProvenanceGraphEdgesItemKindRenderedFrom:
+		*s = ProvenanceGraphEdgesItemKindRenderedFrom
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -10026,9 +10100,10 @@ func (s *ProvenanceGraphMetadataFormat) UnmarshalText(data []byte) error {
 
 // ProvenanceGraphNodesItem represents sum type.
 type ProvenanceGraphNodesItem struct {
-	Type                     ProvenanceGraphNodesItemType // switch on this field
-	ProvenanceGraphPackNode  ProvenanceGraphPackNode
-	ProvenanceGraphEntryNode ProvenanceGraphEntryNode
+	Type                            ProvenanceGraphNodesItemType // switch on this field
+	ProvenanceGraphPackNode         ProvenanceGraphPackNode
+	ProvenanceGraphEntryNode        ProvenanceGraphEntryNode
+	ProvenanceGraphRenderedPackNode ProvenanceGraphRenderedPackNode
 }
 
 // ProvenanceGraphNodesItemType is oneOf type of ProvenanceGraphNodesItem.
@@ -10036,8 +10111,9 @@ type ProvenanceGraphNodesItemType string
 
 // Possible values for ProvenanceGraphNodesItemType.
 const (
-	ProvenanceGraphPackNodeProvenanceGraphNodesItem  ProvenanceGraphNodesItemType = "pack"
-	ProvenanceGraphEntryNodeProvenanceGraphNodesItem ProvenanceGraphNodesItemType = "entry"
+	ProvenanceGraphPackNodeProvenanceGraphNodesItem         ProvenanceGraphNodesItemType = "pack"
+	ProvenanceGraphEntryNodeProvenanceGraphNodesItem        ProvenanceGraphNodesItemType = "entry"
+	ProvenanceGraphRenderedPackNodeProvenanceGraphNodesItem ProvenanceGraphNodesItemType = "rendered_pack"
 )
 
 // IsProvenanceGraphPackNode reports whether ProvenanceGraphNodesItem is ProvenanceGraphPackNode.
@@ -10048,6 +10124,11 @@ func (s ProvenanceGraphNodesItem) IsProvenanceGraphPackNode() bool {
 // IsProvenanceGraphEntryNode reports whether ProvenanceGraphNodesItem is ProvenanceGraphEntryNode.
 func (s ProvenanceGraphNodesItem) IsProvenanceGraphEntryNode() bool {
 	return s.Type == ProvenanceGraphEntryNodeProvenanceGraphNodesItem
+}
+
+// IsProvenanceGraphRenderedPackNode reports whether ProvenanceGraphNodesItem is ProvenanceGraphRenderedPackNode.
+func (s ProvenanceGraphNodesItem) IsProvenanceGraphRenderedPackNode() bool {
+	return s.Type == ProvenanceGraphRenderedPackNodeProvenanceGraphNodesItem
 }
 
 // SetProvenanceGraphPackNode sets ProvenanceGraphNodesItem to ProvenanceGraphPackNode.
@@ -10089,6 +10170,27 @@ func (s ProvenanceGraphNodesItem) GetProvenanceGraphEntryNode() (v ProvenanceGra
 func NewProvenanceGraphEntryNodeProvenanceGraphNodesItem(v ProvenanceGraphEntryNode) ProvenanceGraphNodesItem {
 	var s ProvenanceGraphNodesItem
 	s.SetProvenanceGraphEntryNode(v)
+	return s
+}
+
+// SetProvenanceGraphRenderedPackNode sets ProvenanceGraphNodesItem to ProvenanceGraphRenderedPackNode.
+func (s *ProvenanceGraphNodesItem) SetProvenanceGraphRenderedPackNode(v ProvenanceGraphRenderedPackNode) {
+	s.Type = ProvenanceGraphRenderedPackNodeProvenanceGraphNodesItem
+	s.ProvenanceGraphRenderedPackNode = v
+}
+
+// GetProvenanceGraphRenderedPackNode returns ProvenanceGraphRenderedPackNode and true boolean if ProvenanceGraphNodesItem is ProvenanceGraphRenderedPackNode.
+func (s ProvenanceGraphNodesItem) GetProvenanceGraphRenderedPackNode() (v ProvenanceGraphRenderedPackNode, ok bool) {
+	if !s.IsProvenanceGraphRenderedPackNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphRenderedPackNode, true
+}
+
+// NewProvenanceGraphRenderedPackNodeProvenanceGraphNodesItem returns new ProvenanceGraphNodesItem from ProvenanceGraphRenderedPackNode.
+func NewProvenanceGraphRenderedPackNodeProvenanceGraphNodesItem(v ProvenanceGraphRenderedPackNode) ProvenanceGraphNodesItem {
+	var s ProvenanceGraphNodesItem
+	s.SetProvenanceGraphRenderedPackNode(v)
 	return s
 }
 
@@ -10340,6 +10442,206 @@ func (s *ProvenanceGraphPackNodeMetaCreator) SetIdentityId(val uuid.UUID) {
 // SetPublicKey sets the value of PublicKey.
 func (s *ProvenanceGraphPackNodeMetaCreator) SetPublicKey(val string) {
 	s.PublicKey = val
+}
+
+// Ref: #/components/schemas/ProvenanceGraphRendered_packNode
+type ProvenanceGraphRenderedPackNode struct {
+	Cid   NilString                           `json:"cid"`
+	ID    string                              `json:"id"`
+	Kind  ProvenanceGraphRenderedPackNodeKind `json:"kind"`
+	Label string                              `json:"label"`
+	Meta  ProvenanceGraphRenderedPackNodeMeta `json:"meta"`
+}
+
+// GetCid returns the value of Cid.
+func (s *ProvenanceGraphRenderedPackNode) GetCid() NilString {
+	return s.Cid
+}
+
+// GetID returns the value of ID.
+func (s *ProvenanceGraphRenderedPackNode) GetID() string {
+	return s.ID
+}
+
+// GetKind returns the value of Kind.
+func (s *ProvenanceGraphRenderedPackNode) GetKind() ProvenanceGraphRenderedPackNodeKind {
+	return s.Kind
+}
+
+// GetLabel returns the value of Label.
+func (s *ProvenanceGraphRenderedPackNode) GetLabel() string {
+	return s.Label
+}
+
+// GetMeta returns the value of Meta.
+func (s *ProvenanceGraphRenderedPackNode) GetMeta() ProvenanceGraphRenderedPackNodeMeta {
+	return s.Meta
+}
+
+// SetCid sets the value of Cid.
+func (s *ProvenanceGraphRenderedPackNode) SetCid(val NilString) {
+	s.Cid = val
+}
+
+// SetID sets the value of ID.
+func (s *ProvenanceGraphRenderedPackNode) SetID(val string) {
+	s.ID = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ProvenanceGraphRenderedPackNode) SetKind(val ProvenanceGraphRenderedPackNodeKind) {
+	s.Kind = val
+}
+
+// SetLabel sets the value of Label.
+func (s *ProvenanceGraphRenderedPackNode) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetMeta sets the value of Meta.
+func (s *ProvenanceGraphRenderedPackNode) SetMeta(val ProvenanceGraphRenderedPackNodeMeta) {
+	s.Meta = val
+}
+
+type ProvenanceGraphRenderedPackNodeKind string
+
+const (
+	ProvenanceGraphRenderedPackNodeKindRenderedPack ProvenanceGraphRenderedPackNodeKind = "rendered_pack"
+)
+
+// AllValues returns all ProvenanceGraphRenderedPackNodeKind values.
+func (ProvenanceGraphRenderedPackNodeKind) AllValues() []ProvenanceGraphRenderedPackNodeKind {
+	return []ProvenanceGraphRenderedPackNodeKind{
+		ProvenanceGraphRenderedPackNodeKindRenderedPack,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphRenderedPackNodeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphRenderedPackNodeKindRenderedPack:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphRenderedPackNodeKind) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphRenderedPackNodeKind(data) {
+	case ProvenanceGraphRenderedPackNodeKindRenderedPack:
+		*s = ProvenanceGraphRenderedPackNodeKindRenderedPack
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ProvenanceGraphRenderedPackNodeMeta struct {
+	// ISO 8601 timestamp.
+	CreatedAt time.Time `json:"createdAt"`
+	// UUID v4 identifier.
+	DiaryId uuid.UUID `json:"diaryId"`
+	// ISO 8601 timestamp.
+	ExpiresAt    NilDateTime `json:"expiresAt"`
+	PackCid      string      `json:"packCid"`
+	Pinned       bool        `json:"pinned"`
+	RenderMethod string      `json:"renderMethod"`
+	// UUID v4 identifier.
+	RenderedPackId uuid.UUID `json:"renderedPackId"`
+	// UUID v4 identifier.
+	SourcePackId uuid.UUID `json:"sourcePackId"`
+	TotalTokens  float64   `json:"totalTokens"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPinned returns the value of Pinned.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetRenderedPackId returns the value of RenderedPackId.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetRenderedPackId() uuid.UUID {
+	return s.RenderedPackId
+}
+
+// GetSourcePackId returns the value of SourcePackId.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetSourcePackId() uuid.UUID {
+	return s.SourcePackId
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *ProvenanceGraphRenderedPackNodeMeta) GetTotalTokens() float64 {
+	return s.TotalTokens
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetRenderedPackId sets the value of RenderedPackId.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetRenderedPackId(val uuid.UUID) {
+	s.RenderedPackId = val
+}
+
+// SetSourcePackId sets the value of SourcePackId.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetSourcePackId(val uuid.UUID) {
+	s.SourcePackId = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *ProvenanceGraphRenderedPackNodeMeta) SetTotalTokens(val float64) {
+	s.TotalTokens = val
 }
 
 // Ref: #/components/schemas/PublicFeedEntry
@@ -10828,6 +11130,356 @@ func (*RemoveTeamMemberOK) removeTeamMemberRes() {}
 type RemoveTeamMemberUnauthorized ProblemDetails
 
 func (*RemoveTeamMemberUnauthorized) removeTeamMemberRes() {}
+
+type RenderContextPackConflict ProblemDetails
+
+func (*RenderContextPackConflict) renderContextPackRes() {}
+
+type RenderContextPackForbidden ProblemDetails
+
+func (*RenderContextPackForbidden) renderContextPackRes() {}
+
+type RenderContextPackInternalServerError ProblemDetails
+
+func (*RenderContextPackInternalServerError) renderContextPackRes() {}
+
+type RenderContextPackNotFound ProblemDetails
+
+func (*RenderContextPackNotFound) renderContextPackRes() {}
+
+type RenderContextPackReq struct {
+	Pinned           OptBool `json:"pinned"`
+	Preview          OptBool `json:"preview"`
+	RenderMethod     string  `json:"renderMethod"`
+	RenderedMarkdown string  `json:"renderedMarkdown"`
+}
+
+// GetPinned returns the value of Pinned.
+func (s *RenderContextPackReq) GetPinned() OptBool {
+	return s.Pinned
+}
+
+// GetPreview returns the value of Preview.
+func (s *RenderContextPackReq) GetPreview() OptBool {
+	return s.Preview
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *RenderContextPackReq) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetRenderedMarkdown returns the value of RenderedMarkdown.
+func (s *RenderContextPackReq) GetRenderedMarkdown() string {
+	return s.RenderedMarkdown
+}
+
+// SetPinned sets the value of Pinned.
+func (s *RenderContextPackReq) SetPinned(val OptBool) {
+	s.Pinned = val
+}
+
+// SetPreview sets the value of Preview.
+func (s *RenderContextPackReq) SetPreview(val OptBool) {
+	s.Preview = val
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *RenderContextPackReq) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetRenderedMarkdown sets the value of RenderedMarkdown.
+func (s *RenderContextPackReq) SetRenderedMarkdown(val string) {
+	s.RenderedMarkdown = val
+}
+
+type RenderContextPackUnauthorized ProblemDetails
+
+func (*RenderContextPackUnauthorized) renderContextPackRes() {}
+
+// Ref: #/components/schemas/RenderedPackPreview
+type RenderedPackPreview struct {
+	RenderMethod     string    `json:"renderMethod"`
+	RenderedMarkdown string    `json:"renderedMarkdown"`
+	SourcePackCid    string    `json:"sourcePackCid"`
+	SourcePackId     uuid.UUID `json:"sourcePackId"`
+	TotalTokens      int       `json:"totalTokens"`
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *RenderedPackPreview) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetRenderedMarkdown returns the value of RenderedMarkdown.
+func (s *RenderedPackPreview) GetRenderedMarkdown() string {
+	return s.RenderedMarkdown
+}
+
+// GetSourcePackCid returns the value of SourcePackCid.
+func (s *RenderedPackPreview) GetSourcePackCid() string {
+	return s.SourcePackCid
+}
+
+// GetSourcePackId returns the value of SourcePackId.
+func (s *RenderedPackPreview) GetSourcePackId() uuid.UUID {
+	return s.SourcePackId
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *RenderedPackPreview) GetTotalTokens() int {
+	return s.TotalTokens
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *RenderedPackPreview) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetRenderedMarkdown sets the value of RenderedMarkdown.
+func (s *RenderedPackPreview) SetRenderedMarkdown(val string) {
+	s.RenderedMarkdown = val
+}
+
+// SetSourcePackCid sets the value of SourcePackCid.
+func (s *RenderedPackPreview) SetSourcePackCid(val string) {
+	s.SourcePackCid = val
+}
+
+// SetSourcePackId sets the value of SourcePackId.
+func (s *RenderedPackPreview) SetSourcePackId(val uuid.UUID) {
+	s.SourcePackId = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *RenderedPackPreview) SetTotalTokens(val int) {
+	s.TotalTokens = val
+}
+
+func (*RenderedPackPreview) renderContextPackRes() {}
+
+// Ref: #/components/schemas/RenderedPackResult
+type RenderedPackResult struct {
+	ContentHash   string    `json:"contentHash"`
+	DiaryId       uuid.UUID `json:"diaryId"`
+	ID            uuid.UUID `json:"id"`
+	PackCid       string    `json:"packCid"`
+	Pinned        bool      `json:"pinned"`
+	RenderMethod  string    `json:"renderMethod"`
+	SourcePackCid string    `json:"sourcePackCid"`
+	SourcePackId  uuid.UUID `json:"sourcePackId"`
+	TotalTokens   int       `json:"totalTokens"`
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *RenderedPackResult) GetContentHash() string {
+	return s.ContentHash
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *RenderedPackResult) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetID returns the value of ID.
+func (s *RenderedPackResult) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *RenderedPackResult) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPinned returns the value of Pinned.
+func (s *RenderedPackResult) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *RenderedPackResult) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetSourcePackCid returns the value of SourcePackCid.
+func (s *RenderedPackResult) GetSourcePackCid() string {
+	return s.SourcePackCid
+}
+
+// GetSourcePackId returns the value of SourcePackId.
+func (s *RenderedPackResult) GetSourcePackId() uuid.UUID {
+	return s.SourcePackId
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *RenderedPackResult) GetTotalTokens() int {
+	return s.TotalTokens
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *RenderedPackResult) SetContentHash(val string) {
+	s.ContentHash = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *RenderedPackResult) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetID sets the value of ID.
+func (s *RenderedPackResult) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *RenderedPackResult) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *RenderedPackResult) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *RenderedPackResult) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetSourcePackCid sets the value of SourcePackCid.
+func (s *RenderedPackResult) SetSourcePackCid(val string) {
+	s.SourcePackCid = val
+}
+
+// SetSourcePackId sets the value of SourcePackId.
+func (s *RenderedPackResult) SetSourcePackId(val uuid.UUID) {
+	s.SourcePackId = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *RenderedPackResult) SetTotalTokens(val int) {
+	s.TotalTokens = val
+}
+
+func (*RenderedPackResult) renderContextPackRes() {}
+
+// Ref: #/components/schemas/RenderedPackWithContent
+type RenderedPackWithContent struct {
+	Content      string    `json:"content"`
+	ContentHash  string    `json:"contentHash"`
+	CreatedAt    time.Time `json:"createdAt"`
+	DiaryId      uuid.UUID `json:"diaryId"`
+	ID           uuid.UUID `json:"id"`
+	PackCid      string    `json:"packCid"`
+	Pinned       bool      `json:"pinned"`
+	RenderMethod string    `json:"renderMethod"`
+	SourcePackId uuid.UUID `json:"sourcePackId"`
+	TotalTokens  int       `json:"totalTokens"`
+}
+
+// GetContent returns the value of Content.
+func (s *RenderedPackWithContent) GetContent() string {
+	return s.Content
+}
+
+// GetContentHash returns the value of ContentHash.
+func (s *RenderedPackWithContent) GetContentHash() string {
+	return s.ContentHash
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RenderedPackWithContent) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDiaryId returns the value of DiaryId.
+func (s *RenderedPackWithContent) GetDiaryId() uuid.UUID {
+	return s.DiaryId
+}
+
+// GetID returns the value of ID.
+func (s *RenderedPackWithContent) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetPackCid returns the value of PackCid.
+func (s *RenderedPackWithContent) GetPackCid() string {
+	return s.PackCid
+}
+
+// GetPinned returns the value of Pinned.
+func (s *RenderedPackWithContent) GetPinned() bool {
+	return s.Pinned
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *RenderedPackWithContent) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetSourcePackId returns the value of SourcePackId.
+func (s *RenderedPackWithContent) GetSourcePackId() uuid.UUID {
+	return s.SourcePackId
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *RenderedPackWithContent) GetTotalTokens() int {
+	return s.TotalTokens
+}
+
+// SetContent sets the value of Content.
+func (s *RenderedPackWithContent) SetContent(val string) {
+	s.Content = val
+}
+
+// SetContentHash sets the value of ContentHash.
+func (s *RenderedPackWithContent) SetContentHash(val string) {
+	s.ContentHash = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RenderedPackWithContent) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDiaryId sets the value of DiaryId.
+func (s *RenderedPackWithContent) SetDiaryId(val uuid.UUID) {
+	s.DiaryId = val
+}
+
+// SetID sets the value of ID.
+func (s *RenderedPackWithContent) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetPackCid sets the value of PackCid.
+func (s *RenderedPackWithContent) SetPackCid(val string) {
+	s.PackCid = val
+}
+
+// SetPinned sets the value of Pinned.
+func (s *RenderedPackWithContent) SetPinned(val bool) {
+	s.Pinned = val
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *RenderedPackWithContent) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetSourcePackId sets the value of SourcePackId.
+func (s *RenderedPackWithContent) SetSourcePackId(val uuid.UUID) {
+	s.SourcePackId = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *RenderedPackWithContent) SetTotalTokens(val int) {
+	s.TotalTokens = val
+}
+
+func (*RenderedPackWithContent) getLatestRenderedPackRes() {}
+func (*RenderedPackWithContent) getRenderedPackByIdRes()   {}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 

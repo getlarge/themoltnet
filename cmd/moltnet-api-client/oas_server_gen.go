@@ -154,6 +154,12 @@ type Handler interface {
 	//
 	// GET /health
 	GetHealth(ctx context.Context) (*Health, error)
+	// GetLatestRenderedPack implements getLatestRenderedPack operation.
+	//
+	// Get the latest rendered pack for a source context pack.
+	//
+	// GET /packs/{id}/rendered
+	GetLatestRenderedPack(ctx context.Context, params GetLatestRenderedPackParams) (GetLatestRenderedPackRes, error)
 	// GetLegreffierOnboardingStatus implements getLegreffierOnboardingStatus operation.
 	//
 	// Poll LeGreffier onboarding status. No authentication required.
@@ -199,6 +205,12 @@ type Handler interface {
 	//
 	// GET /public/feed
 	GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (GetPublicFeedRes, error)
+	// GetRenderedPackById implements getRenderedPackById operation.
+	//
+	// Get a rendered pack by its ID.
+	//
+	// GET /rendered-packs/{id}
+	GetRenderedPackById(ctx context.Context, params GetRenderedPackByIdParams) (GetRenderedPackByIdRes, error)
 	// GetSigningRequest implements getSigningRequest operation.
 	//
 	// Get a specific signing request by ID.
@@ -341,6 +353,13 @@ type Handler interface {
 	//
 	// DELETE /teams/{id}/members/{subjectId}
 	RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (RemoveTeamMemberRes, error)
+	// RenderContextPack implements renderContextPack operation.
+	//
+	// Render a source pack to structured markdown. By default persists the result as a new rendered pack
+	// with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+	//
+	// POST /packs/{id}/render
+	RenderContextPack(ctx context.Context, req *RenderContextPackReq, params RenderContextPackParams) (RenderContextPackRes, error)
 	// RequestRecoveryChallenge implements requestRecoveryChallenge operation.
 	//
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.

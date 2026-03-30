@@ -30,6 +30,7 @@ import type {
   ListEntryRelationsData,
   PreviewDiaryCustomPackData,
   ReflectDiaryData,
+  RenderContextPackData,
   SearchDiaryData,
   SearchPublicFeedData,
   SubmitSignatureData,
@@ -816,6 +817,43 @@ export type PackUpdateInput = {
   expires_at?: NonNullable<BodyOf<UpdateContextPackData>>['expiresAt'];
 };
 
+export const PackRenderSchema = Type.Object({
+  pack_id: Type.String({
+    format: 'uuid',
+    description: 'Source context pack UUID to render',
+  }),
+  rendered_markdown: Type.String({
+    minLength: 1,
+    description: 'The rendered markdown content',
+  }),
+  render_method: Type.String({
+    minLength: 1,
+    maxLength: 100,
+    description: 'Render method label, e.g. "pack-to-docs-v1", "agent-refined"',
+  }),
+  pinned: Type.Optional(
+    Type.Boolean({
+      description: 'Pin the rendered pack to protect from GC',
+    }),
+  ),
+  preview: Type.Optional(
+    Type.Boolean({
+      description:
+        'Return rendered markdown without persisting (default: false)',
+    }),
+  ),
+});
+
+export type PackRenderInput = {
+  pack_id: PathOf<RenderContextPackData>['id'];
+  rendered_markdown: NonNullable<
+    BodyOf<RenderContextPackData>
+  >['renderedMarkdown'];
+  render_method: NonNullable<BodyOf<RenderContextPackData>>['renderMethod'];
+  pinned?: NonNullable<BodyOf<RenderContextPackData>>['pinned'];
+  preview?: NonNullable<BodyOf<RenderContextPackData>>['preview'];
+};
+
 // --- Compile-time drift checks ---
 
 type _EntryCreateInputMatchesSchema = AssertSchemaToApi<
@@ -957,4 +995,8 @@ type _PackProvenanceInputMatchesSchema = AssertSchemaToApi<
 type _PackUpdateInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackUpdateSchema>,
   PackUpdateInput
+>;
+type _PackRenderInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackRenderSchema>,
+  PackRenderInput
 >;

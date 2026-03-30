@@ -13,29 +13,50 @@ const LABEL_X_NO_AVATAR = 18;
 const LABEL_MAX_WIDTH_WITH_AVATAR = NODE_WIDTH - LABEL_X_WITH_AVATAR - 14;
 const LABEL_MAX_WIDTH_NO_AVATAR = NODE_WIDTH - LABEL_X_NO_AVATAR - 14;
 
-function nodeFill(
-  theme: ReturnType<typeof useTheme>,
-  kind: ProvenanceGraphNode['kind'],
-): string {
-  return kind === 'pack' ? theme.color.accent.muted : theme.color.primary.muted;
+type NodeKind = ProvenanceGraphNode['kind'];
+type EdgeKind = 'includes' | 'supersedes' | 'rendered_from';
+type ThemeColors = ReturnType<typeof useTheme>['color'];
+
+const nodeColorScale: Record<NodeKind, (c: ThemeColors) => string> = {
+  pack: (c) => c.accent.muted,
+  entry: (c) => c.primary.muted,
+  rendered_pack: (c) => c.info.muted,
+};
+
+const nodeStrokeScale: Record<NodeKind, (c: ThemeColors) => string> = {
+  pack: (c) => c.accent.DEFAULT,
+  entry: (c) => c.primary.DEFAULT,
+  rendered_pack: (c) => c.info.DEFAULT,
+};
+
+const edgeColorScale: Record<EdgeKind, (c: ThemeColors) => string> = {
+  includes: (c) => c.primary.DEFAULT,
+  supersedes: (c) => c.accent.DEFAULT,
+  rendered_from: (c) => c.info.DEFAULT,
+};
+
+const edgeDash: Record<EdgeKind, string | undefined> = {
+  includes: undefined,
+  supersedes: '8 6',
+  rendered_from: '4 4',
+};
+
+function nodeFill(theme: ReturnType<typeof useTheme>, kind: NodeKind): string {
+  return nodeColorScale[kind](theme.color);
 }
 
 function nodeStroke(
   theme: ReturnType<typeof useTheme>,
-  kind: ProvenanceGraphNode['kind'],
+  kind: NodeKind,
 ): string {
-  return kind === 'pack'
-    ? theme.color.accent.DEFAULT
-    : theme.color.primary.DEFAULT;
+  return nodeStrokeScale[kind](theme.color);
 }
 
 function edgeStroke(
   theme: ReturnType<typeof useTheme>,
-  kind: 'includes' | 'supersedes',
+  kind: EdgeKind,
 ): string {
-  return kind === 'supersedes'
-    ? theme.color.accent.DEFAULT
-    : theme.color.primary.DEFAULT;
+  return edgeColorScale[kind](theme.color);
 }
 
 interface ProvenanceGraphSurfaceProps {
@@ -93,7 +114,7 @@ export function ProvenanceGraphSurface({
                 d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
                 fill="none"
                 stroke={edgeStroke(theme, edge.kind)}
-                strokeDasharray={edge.kind === 'supersedes' ? '8 6' : undefined}
+                strokeDasharray={edgeDash[edge.kind]}
                 strokeOpacity={0.8}
                 strokeWidth={2.5}
               />

@@ -323,7 +323,7 @@ export function createContextPackRepository(db: Database) {
       const [row] = await getExecutor(db)
         .update(contextPacks)
         .set({ expiresAt })
-        .where(eq(contextPacks.id, id))
+        .where(and(eq(contextPacks.id, id), eq(contextPacks.pinned, false)))
         .returning();
 
       return row ?? null;

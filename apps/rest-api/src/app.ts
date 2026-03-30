@@ -38,6 +38,7 @@ import { problemRoutes } from './routes/problems.js';
 import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
+import { renderedPackRoutes } from './routes/rendered-packs.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { teamRoutes } from './routes/teams.js';
 import { vouchRoutes } from './routes/vouch.js';
@@ -45,6 +46,7 @@ import { sharedSchemas } from './schemas.js';
 import type {
   AgentRepository,
   ContextPackRepository,
+  ContextPackService,
   CryptoService,
   DataSource,
   DiaryEntryRepository,
@@ -52,6 +54,7 @@ import type {
   EmbeddingService,
   EntryRelationRepository,
   NonceRepository,
+  RenderedPackRepository,
   SigningRequestRepository,
   TeamRepository,
   TransactionRunner,
@@ -94,6 +97,8 @@ export interface AppOptions {
   /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
   diaryEntryRepository: DiaryEntryRepository;
   contextPackRepository: ContextPackRepository;
+  renderedPackRepository: RenderedPackRepository;
+  contextPackService: ContextPackService;
   entryRelationRepository: EntryRelationRepository;
   embeddingService: EmbeddingService;
   agentRepository: AgentRepository;
@@ -224,6 +229,8 @@ export async function registerApiRoutes(
   decorateSafe('diaryService', options.diaryService);
   decorateSafe('diaryEntryRepository', options.diaryEntryRepository);
   decorateSafe('contextPackRepository', options.contextPackRepository);
+  decorateSafe('renderedPackRepository', options.renderedPackRepository);
+  decorateSafe('contextPackService', options.contextPackService);
   decorateSafe('entryRelationRepository', options.entryRelationRepository);
   decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('agentRepository', options.agentRepository);
@@ -254,6 +261,7 @@ export async function registerApiRoutes(
   await app.register(diaryEntryRoutes);
   await app.register(diaryDistillRoutes);
   await app.register(packRoutes);
+  await app.register(renderedPackRoutes);
   await app.register(entryRelationRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);
