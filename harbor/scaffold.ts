@@ -44,6 +44,7 @@ async function scaffoldTask(
 ): Promise<void> {
   const variant = withContext ? `${name}-with-context` : name;
   const taskDir = join(TASKS_DIR, variant);
+  const judgeDir = join(HARBOR_DIR, 'judge');
 
   await rm(taskDir, { recursive: true, force: true });
   await mkdir(join(taskDir, 'environment'), { recursive: true });
@@ -57,6 +58,18 @@ async function scaffoldTask(
   await writeFile(
     join(taskDir, 'environment', 'Dockerfile'),
     templates.dockerfile,
+  );
+
+  // Copy judge into environment/ so the Dockerfile can bake it into the image
+  // with pre-installed deps (avoids permission + network issues at runtime).
+  await mkdir(join(taskDir, 'environment', 'judge'), { recursive: true });
+  await copyFile(
+    join(judgeDir, 'package.json'),
+    join(taskDir, 'environment', 'judge', 'package.json'),
+  );
+  await copyFile(
+    join(judgeDir, 'judge.js'),
+    join(taskDir, 'environment', 'judge', 'judge.js'),
   );
 
   if (withContext) {
@@ -77,14 +90,13 @@ async function scaffoldTask(
     mode: 0o755,
   });
 
-  const judgeDir = join(HARBOR_DIR, 'judge');
   await copyFile(
     join(judgeDir, 'package.json'),
     join(taskDir, 'tests', 'judge', 'package.json'),
   );
   await copyFile(
-    join(judgeDir, 'judge.ts'),
-    join(taskDir, 'tests', 'judge', 'judge.ts'),
+    join(judgeDir, 'judge.js'),
+    join(taskDir, 'tests', 'judge', 'judge.js'),
   );
 
   console.log(`  ${variant}`);
