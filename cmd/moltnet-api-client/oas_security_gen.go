@@ -77,6 +77,7 @@ var operationRolesBearerAuth = map[string][]string{
 	ListTeamMembersOperation:               []string{},
 	ListTeamsOperation:                     []string{},
 	PreviewDiaryCustomPackOperation:        []string{},
+	PreviewRenderedPackOperation:           []string{},
 	ReflectDiaryOperation:                  []string{},
 	RemoveTeamMemberOperation:              []string{},
 	RenderContextPackOperation:             []string{},

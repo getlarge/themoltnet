@@ -19,6 +19,7 @@ import {
   getRenderedPackById,
   listDiaryEntries,
   listDiaryPacks,
+  previewRenderedPack,
   renderContextPack,
   type RenderedPackPreview,
   type RenderedPackResult,
@@ -183,13 +184,12 @@ describe('Rendered packs', () => {
   });
 
   it('previews a rendered pack without persisting', async () => {
-    const { data, error, response } = await renderContextPack({
+    const { data, error, response } = await previewRenderedPack({
       client,
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
       body: {
         renderMethod: 'server:pack-to-docs-v1',
-        preview: true,
       },
     });
 

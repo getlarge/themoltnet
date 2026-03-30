@@ -193,6 +193,10 @@ type PreviewDiaryCustomPackRes interface {
 	previewDiaryCustomPackRes()
 }
 
+type PreviewRenderedPackRes interface {
+	previewRenderedPackRes()
+}
+
 type ReflectDiaryRes interface {
 	reflectDiaryRes()
 }

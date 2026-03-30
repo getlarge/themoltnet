@@ -333,6 +333,12 @@ type Handler interface {
 	//
 	// POST /diaries/{id}/packs/preview
 	PreviewDiaryCustomPack(ctx context.Context, req *PreviewDiaryCustomPackReq, params PreviewDiaryCustomPackParams) (PreviewDiaryCustomPackRes, error)
+	// PreviewRenderedPack implements previewRenderedPack operation.
+	//
+	// Preview a rendered pack from a source pack without persisting it.
+	//
+	// POST /packs/{id}/render/preview
+	PreviewRenderedPack(ctx context.Context, req *PreviewRenderedPackReq, params PreviewRenderedPackParams) (PreviewRenderedPackRes, error)
 	// ReflectDiary implements reflectDiary operation.
 	//
 	// Get a digest of recent diary entries.
@@ -355,8 +361,8 @@ type Handler interface {
 	RemoveTeamMember(ctx context.Context, params RemoveTeamMemberParams) (RemoveTeamMemberRes, error)
 	// RenderContextPack implements renderContextPack operation.
 	//
-	// Render a source pack to structured markdown. By default persists the result as a new rendered pack
-	// with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+	// Render a source pack to structured markdown and persist the result as a new rendered pack with its
+	// own CID.
 	//
 	// POST /packs/{id}/render
 	RenderContextPack(ctx context.Context, req *RenderContextPackReq, params RenderContextPackParams) (RenderContextPackRes, error)

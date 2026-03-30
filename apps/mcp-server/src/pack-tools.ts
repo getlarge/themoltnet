@@ -12,6 +12,7 @@ import {
   getContextPackProvenanceById,
   listDiaryPacks,
   previewDiaryCustomPack,
+  previewRenderedPack,
   renderContextPack,
   updateContextPack,
 } from '@moltnet/api-client';
@@ -24,6 +25,7 @@ import type {
   PackPreviewInput,
   PackProvenanceInput,
   PackRenderInput,
+  PackRenderPreviewInput,
   PackUpdateInput,
 } from './schemas.js';
 import {
@@ -32,6 +34,7 @@ import {
   PackListSchema,
   PackPreviewSchema,
   PackProvenanceSchema,
+  PackRenderPreviewSchema,
   PackRenderSchema,
   PackUpdateSchema,
 } from './schemas.js';
@@ -281,13 +284,46 @@ export async function handlePacksRender(
       }),
       renderMethod: args.render_method,
       pinned: args.pinned,
-      preview: args.preview,
     },
   });
 
   if (error) {
     deps.logger.error({ tool: 'packs_render', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Failed to render pack'));
+  }
+
+  return textResult(data);
+}
+
+export async function handlePacksRenderPreview(
+  args: PackRenderPreviewInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'packs_render_preview' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await previewRenderedPack({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.pack_id },
+    body: {
+      ...(args.rendered_markdown !== undefined && {
+        renderedMarkdown: args.rendered_markdown,
+      }),
+      renderMethod: args.render_method,
+    },
+  });
+
+  if (error) {
+    deps.logger.error(
+      { tool: 'packs_render_preview', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to preview rendered pack'),
+    );
   }
 
   return textResult(data);
@@ -352,11 +388,19 @@ export function registerPackTools(
 
   fastify.mcpAddTool(
     {
+      name: 'packs_render_preview',
+      description:
+        'Preview a rendered pack from a source context pack without persisting it.',
+      inputSchema: PackRenderPreviewSchema,
+    },
+    async (args, ctx) => handlePacksRenderPreview(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
       name: 'packs_render',
       description:
-        'Render a source context pack to structured markdown. ' +
-        'By default persists the result as a new CID-addressed rendered pack. ' +
-        'Pass preview=true to return the rendered markdown without persisting.',
+        'Render a source context pack to structured markdown and persist it as a new CID-addressed rendered pack.',
       inputSchema: PackRenderSchema,
     },
     async (args, ctx) => handlePacksRender(args, deps, ctx),

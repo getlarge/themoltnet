@@ -157,6 +157,9 @@ import type {
   PreviewDiaryCustomPackData,
   PreviewDiaryCustomPackErrors,
   PreviewDiaryCustomPackResponses,
+  PreviewRenderedPackData,
+  PreviewRenderedPackErrors,
+  PreviewRenderedPackResponses,
   ReflectDiaryData,
   ReflectDiaryErrors,
   ReflectDiaryResponses,
@@ -772,7 +775,27 @@ export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Render a source pack to structured markdown. By default persists the result as a new rendered pack with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+ * Preview a rendered pack from a source pack without persisting it.
+ */
+export const previewRenderedPack = <ThrowOnError extends boolean = false>(
+  options: Options<PreviewRenderedPackData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    PreviewRenderedPackResponses,
+    PreviewRenderedPackErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/packs/{id}/render/preview',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.
  */
 export const renderContextPack = <ThrowOnError extends boolean = false>(
   options: Options<RenderContextPackData, ThrowOnError>,

@@ -498,6 +498,15 @@ func (UnimplementedHandler) PreviewDiaryCustomPack(ctx context.Context, req *Pre
 	return r, ht.ErrNotImplemented
 }
 
+// PreviewRenderedPack implements previewRenderedPack operation.
+//
+// Preview a rendered pack from a source pack without persisting it.
+//
+// POST /packs/{id}/render/preview
+func (UnimplementedHandler) PreviewRenderedPack(ctx context.Context, req *PreviewRenderedPackReq, params PreviewRenderedPackParams) (r PreviewRenderedPackRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ReflectDiary implements reflectDiary operation.
 //
 // Get a digest of recent diary entries.
@@ -529,8 +538,8 @@ func (UnimplementedHandler) RemoveTeamMember(ctx context.Context, params RemoveT
 
 // RenderContextPack implements renderContextPack operation.
 //
-// Render a source pack to structured markdown. By default persists the result as a new rendered pack
-// with its own CID. Pass `preview: true` to return the rendered markdown without persisting.
+// Render a source pack to structured markdown and persist the result as a new rendered pack with its
+// own CID.
 //
 // POST /packs/{id}/render
 func (UnimplementedHandler) RenderContextPack(ctx context.Context, req *RenderContextPackReq, params RenderContextPackParams) (r RenderContextPackRes, _ error) {
