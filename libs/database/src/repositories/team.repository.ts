@@ -47,6 +47,8 @@ export interface TeamRepository {
   /** Atomically increment use_count if below max_uses. Returns null if exhausted. */
   claimInvite(id: string): Promise<TeamInvite | null>;
   incrementInviteUseCount(id: string): Promise<TeamInvite | null>;
+  /** Decrement use_count by 1 (floor at 0). Used to compensate a claimed invite when Keto grant fails. */
+  revertInviteClaim(id: string): Promise<TeamInvite | null>;
   listInvites(teamId: string): Promise<TeamInvite[]>;
   deleteInvite(id: string): Promise<boolean>;
   deleteInviteByTeam(inviteId: string, teamId: string): Promise<boolean>;
@@ -150,6 +152,17 @@ export function createTeamRepository(db: Database): TeamRepository {
       const [invite] = await getExecutor(db)
         .update(teamInvites)
         .set({ useCount: sql`${teamInvites.useCount} + 1` })
+        .where(eq(teamInvites.id, id))
+        .returning();
+      return invite ?? null;
+    },
+
+    async revertInviteClaim(id) {
+      const [invite] = await getExecutor(db)
+        .update(teamInvites)
+        .set({
+          useCount: sql`GREATEST(${teamInvites.useCount} - 1, 0)`,
+        })
         .where(eq(teamInvites.id, id))
         .returning();
       return invite ?? null;

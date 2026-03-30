@@ -27,6 +27,7 @@
  * Keto relationship writes happen inside the transaction.
  */
 
+import { KetoNamespace } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
 
 import type {
@@ -59,14 +60,23 @@ export interface DiaryService {
     opts?: { withinTransaction?: boolean },
   ): Promise<Diary>;
   listDiaries(ownerId: string): Promise<Diary[]>;
-  findDiary(id: string, agentId: string): Promise<Diary>;
+  findDiary(
+    id: string,
+    agentId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<Diary>;
   findOwnedDiary(agentId: string, id: string): Promise<Diary | null>;
   updateDiary(
     id: string,
     agentId: string,
+    subjectNs: KetoNamespace,
     updates: UpdateDiaryInput,
   ): Promise<Diary | null>;
-  deleteDiary(id: string, agentId: string): Promise<boolean>;
+  deleteDiary(
+    id: string,
+    agentId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
 
   // ── Sharing operations ───────────────────────────────────────
   listShares(diaryId: string): Promise<DiaryShare[]>;
@@ -88,30 +98,43 @@ export interface DiaryService {
   ): Promise<void>;
 
   // ── Entry operations ─────────────────────────────────────────
-  createEntry(input: CreateEntryInput, agentId: string): Promise<DiaryEntry>;
-  getEntryById(
-    id: string,
-    diaryId: string,
+  createEntry(
+    input: CreateEntryInput,
     agentId: string,
+    subjectNs: KetoNamespace,
   ): Promise<DiaryEntry>;
   getEntryById(
     id: string,
     agentId: string,
+    subjectNs: KetoNamespace,
     opts?: { diaryId?: string },
   ): Promise<DiaryEntry>;
   listEntries(
     input: ListInput,
   ): Promise<{ items: DiaryEntry[]; total: number }>;
-  listTags(input: ListTagsInput, agentId: string): Promise<TagCount[]>;
-  searchEntries(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
+  listTags(
+    input: ListTagsInput,
+    agentId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<TagCount[]>;
+  searchEntries(
+    input: SearchInput,
+    agentId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<DiaryEntry[]>;
   searchOwned(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
   updateEntry(
     id: string,
     agentId: string,
+    subjectNs: KetoNamespace,
     updates: UpdateEntryInput,
   ): Promise<DiaryEntry | null>;
-  deleteEntry(id: string, agentId: string): Promise<boolean>;
+  deleteEntry(
+    id: string,
+    agentId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
   reflect(input: ReflectInput): Promise<Digest>;
 }
 
@@ -162,16 +185,6 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     }
   };
 
-  const resolveGetEntryArgs = (
-    second: string,
-    third?: string | { diaryId?: string },
-  ): { agentId: string; diaryId?: string } => {
-    if (typeof third === 'string') {
-      return { diaryId: second, agentId: third };
-    }
-    return { agentId: second, diaryId: third?.diaryId };
-  };
-
   return {
     // ── Diary container operations ─────────────────────────────
 
@@ -185,9 +198,19 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           ownerId: input.ownerId,
           name: input.name,
           visibility: input.visibility ?? 'private',
+          teamId: input.teamId,
         });
         try {
-          await relationshipWriter.grantDiaryOwner(diary.id, input.ownerId);
+          // Option A: always write legacy owner relation
+          await relationshipWriter.grantDiaryOwner(
+            diary.id,
+            input.ownerId,
+            input.subjectNs ?? KetoNamespace.Agent,
+          );
+          // If team context is provided, also write the team relation
+          if (input.teamId) {
+            await relationshipWriter.grantDiaryTeam(diary.id, input.teamId);
+          }
         } catch (err) {
           // Keto write failed — compensate by removing the DB row so the
           // diary is not left in a state where it exists in DB but has no
@@ -209,7 +232,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           throw err;
         }
         logger.info(
-          { diaryId: diary.id, agentId: input.ownerId },
+          { diaryId: diary.id, agentId: input.ownerId, teamId: input.teamId },
           'diary.created',
         );
         return diary;
@@ -224,12 +247,20 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     },
 
     async listDiaries(agentId: string): Promise<Diary[]> {
-      const ids = await relationshipReader.listDiaryIdsByAgent(agentId);
+      const ids = await relationshipReader.listDiaryIdsBySubject(agentId);
       return diaryRepository.listByIds(ids);
     },
 
-    async findDiary(id: string, agentId: string): Promise<Diary> {
-      const allowed = await permissionChecker.canReadDiary(id, agentId);
+    async findDiary(
+      id: string,
+      agentId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<Diary> {
+      const allowed = await permissionChecker.canReadDiary(
+        id,
+        agentId,
+        subjectNs,
+      );
 
       if (allowed) {
         const diary = await diaryRepository.findById(id);
@@ -250,21 +281,34 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async updateDiary(
       id: string,
       agentId: string,
+      subjectNs: KetoNamespace,
       updates: UpdateDiaryInput,
     ): Promise<Diary | null> {
       const diary = await diaryRepository.findById(id);
       if (!diary) return null;
-      const allowed = await permissionChecker.canManageDiary(diary.id, agentId);
+      const allowed = await permissionChecker.canManageDiary(
+        diary.id,
+        agentId,
+        subjectNs,
+      );
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
       return diaryRepository.update(id, updates);
     },
 
-    async deleteDiary(id: string, agentId: string): Promise<boolean> {
+    async deleteDiary(
+      id: string,
+      agentId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
       const diary = await diaryRepository.findById(id);
       if (!diary) return false;
 
-      const allowed = await permissionChecker.canManageDiary(diary.id, agentId);
+      const allowed = await permissionChecker.canManageDiary(
+        diary.id,
+        agentId,
+        subjectNs,
+      );
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
@@ -399,11 +443,13 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
             await relationshipWriter.grantDiaryWriter(
               accepted.diaryId,
               agentId,
+              KetoNamespace.Agent,
             );
           } else {
             await relationshipWriter.grantDiaryReader(
               accepted.diaryId,
               agentId,
+              KetoNamespace.Agent,
             );
           }
 
@@ -469,6 +515,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
           await relationshipWriter.removeDiaryRelationForAgent(
             diary.id,
             targetAgent.identityId,
+            KetoNamespace.Agent,
           );
         },
         { name: 'diary.revoke-share' },
@@ -480,6 +527,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async createEntry(
       input: CreateEntryInput,
       agentId: string,
+      subjectNs: KetoNamespace,
     ): Promise<DiaryEntry> {
       const diary = await diaryRepository.findById(input.diaryId);
       if (!diary) {
@@ -488,6 +536,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       const allowed = await permissionChecker.canWriteDiary(
         input.diaryId,
         agentId,
+        subjectNs,
       );
       if (!allowed) {
         throw new DiaryServiceError(
@@ -543,15 +592,20 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
     async getEntryById(
       id: string,
-      second: string,
-      third?: string | { diaryId?: string },
+      agentId: string,
+      subjectNs: KetoNamespace,
+      opts?: { diaryId?: string },
     ): Promise<DiaryEntry> {
-      const { agentId, diaryId } = resolveGetEntryArgs(second, third);
+      const diaryId = opts?.diaryId;
       const entry = await diaryEntryRepository.findById(id);
       if (!entry || (diaryId && entry.diaryId !== diaryId)) {
         throw new DiaryServiceError('not_found', 'Diary entry not found');
       }
-      const allowed = await permissionChecker.canViewEntry(id, agentId);
+      const allowed = await permissionChecker.canViewEntry(
+        id,
+        agentId,
+        subjectNs,
+      );
       if (!allowed) {
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
       }
@@ -571,8 +625,12 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       });
     },
 
-    async listTags(input: ListTagsInput, agentId: string): Promise<TagCount[]> {
-      await this.findDiary(input.diaryId, agentId);
+    async listTags(
+      input: ListTagsInput,
+      agentId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<TagCount[]> {
+      await this.findDiary(input.diaryId, agentId, subjectNs);
       return diaryEntryRepository.listTags({
         diaryId: input.diaryId,
         prefix: input.prefix,
@@ -584,9 +642,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async searchEntries(
       input: SearchInput,
       agentId: string,
+      subjectNs: KetoNamespace,
     ): Promise<DiaryEntry[]> {
       if (input.diaryId) {
-        await this.findDiary(input.diaryId, agentId); // also checks access
+        await this.findDiary(input.diaryId, agentId, subjectNs); // also checks access
       }
       const results = await diaryEntryRepository.search({
         ...input,
@@ -641,13 +700,18 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async updateEntry(
       id: string,
       agentId: string,
+      subjectNs: KetoNamespace,
       updates: UpdateEntryInput,
     ): Promise<DiaryEntry | null> {
       // Strip contentHash from external input — only the service computes it
       const { contentHash: _stripped, ...sanitizedUpdates } = updates;
       updates = sanitizedUpdates;
 
-      const allowed = await permissionChecker.canEditEntry(id, agentId);
+      const allowed = await permissionChecker.canEditEntry(
+        id,
+        agentId,
+        subjectNs,
+      );
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 
@@ -757,8 +821,16 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return updated;
     },
 
-    async deleteEntry(id: string, agentId: string): Promise<boolean> {
-      const allowed = await permissionChecker.canDeleteEntry(id, agentId);
+    async deleteEntry(
+      id: string,
+      agentId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      const allowed = await permissionChecker.canDeleteEntry(
+        id,
+        agentId,
+        subjectNs,
+      );
       if (!allowed)
         throw new DiaryServiceError('forbidden', 'Insufficient permissions');
 

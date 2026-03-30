@@ -2,10 +2,11 @@
  * @moltnet/diary-service — Type Definitions
  */
 
-import type {
-  PermissionChecker,
-  RelationshipReader,
-  RelationshipWriter,
+import type { KetoNamespace } from '@moltnet/auth';
+import {
+  type PermissionChecker,
+  type RelationshipReader,
+  type RelationshipWriter,
 } from '@moltnet/auth';
 import type {
   AgentRepository,
@@ -121,6 +122,9 @@ export interface CreateDiaryInput {
   ownerId: string;
   name: string;
   visibility?: DiaryVisibility;
+  teamId?: string;
+  /** Keto subject namespace for the owner (defaults to Agent) */
+  subjectNs?: KetoNamespace;
 }
 
 export interface UpdateDiaryInput {

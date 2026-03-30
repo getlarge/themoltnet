@@ -3,7 +3,7 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
@@ -114,7 +114,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         contentHash,
         signingRequestId,
       } = request.body;
-      const agentId = request.authContext!.identityId;
+      const { identityId: agentId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       try {
         let contentSignature: string | undefined;
@@ -195,6 +197,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
             signingNonce,
           },
           agentId,
+          subjectNs,
         );
         return await reply.status(201).send(entry);
       } catch (err) {
@@ -268,12 +271,16 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { diaryId } = request.params;
       const { limit, offset, tags, excludeTags, entryType } = request.query;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
         diary = await fastify.diaryService.findDiary(
           diaryId,
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
@@ -352,6 +359,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { diaryId } = request.params;
       const { prefix, minCount, entryTypes } = request.query;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       try {
         const tags = await fastify.diaryService.listTags(
@@ -365,7 +375,8 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
                   .map((t) => t.trim()) as ListTagsInput['entryTypes'])
               : undefined,
           },
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
 
         return { tags, total: tags.length };
@@ -398,12 +409,16 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   const getEntry = async (
     entryId: string,
     agentId: string,
+    subjectNs: KetoNamespace,
     diaryId?: string,
   ) => {
     try {
-      return await fastify.diaryService.getEntryById(entryId, agentId, {
-        diaryId,
-      });
+      return await fastify.diaryService.getEntryById(
+        entryId,
+        agentId,
+        subjectNs,
+        { diaryId },
+      );
     } catch (err) {
       if (err instanceof DiaryServiceError) translateServiceError(err);
       throw err;
@@ -413,9 +428,10 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   const verifyEntry = async (
     entryId: string,
     agentId: string,
+    subjectNs: KetoNamespace,
     diaryId?: string,
   ) => {
-    const entry = await getEntry(entryId, agentId, diaryId);
+    const entry = await getEntry(entryId, agentId, subjectNs, diaryId);
 
     if (!entry.contentSignature || !entry.contentHash) {
       return {
@@ -473,6 +489,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   const updateEntry = async (
     entryId: string,
     agentId: string,
+    subjectNs: KetoNamespace,
     updates: {
       title?: string;
       content?: string;
@@ -491,6 +508,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const entry = await fastify.diaryService.updateEntry(
         entryId,
         agentId,
+        subjectNs,
         updates,
       );
 
@@ -505,9 +523,17 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     }
   };
 
-  const deleteEntry = async (entryId: string, agentId: string) => {
+  const deleteEntry = async (
+    entryId: string,
+    agentId: string,
+    subjectNs: KetoNamespace,
+  ) => {
     try {
-      const deleted = await fastify.diaryService.deleteEntry(entryId, agentId);
+      const deleted = await fastify.diaryService.deleteEntry(
+        entryId,
+        agentId,
+        subjectNs,
+      );
 
       if (!deleted) {
         throw createProblem('not-found', 'Entry not found');
@@ -539,8 +565,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) =>
-      getEntry(request.params.entryId, request.authContext!.identityId),
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      return getEntry(request.params.entryId, identityId, subjectNs);
+    },
   );
 
   // ── Verify Entry ──────────────────────────────────────────
@@ -562,8 +592,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) =>
-      verifyEntry(request.params.entryId, request.authContext!.identityId),
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      return verifyEntry(request.params.entryId, identityId, subjectNs);
+    },
   );
 
   // ── Update Entry ───────────────────────────────────────────
@@ -587,12 +621,17 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) =>
-      updateEntry(
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      return updateEntry(
         request.params.entryId,
-        request.authContext!.identityId,
+        identityId,
+        subjectNs,
         request.body,
-      ),
+      );
+    },
   );
 
   // ── Delete Entry ───────────────────────────────────────────
@@ -614,8 +653,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) =>
-      deleteEntry(request.params.entryId, request.authContext!.identityId),
+    async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      return deleteEntry(request.params.entryId, identityId, subjectNs);
+    },
   );
 
   // ── Search ─────────────────────────────────────────────────
@@ -687,7 +730,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         excludeSuperseded,
       } = request.body;
 
-      const agentId = request.authContext!.identityId;
+      const { identityId: agentId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const searchInput = {
         diaryId,
         query,
@@ -708,6 +753,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           results = await fastify.diaryService.searchEntries(
             searchInput,
             agentId,
+            subjectNs,
           );
         } else if (includeShared) {
           results = await fastify.diaryService.searchAccessible(

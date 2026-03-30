@@ -8,7 +8,7 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import type { EntryRelation } from '@moltnet/database';
 import { EntryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -103,13 +103,16 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const identityId = request.authContext!.identityId;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { entryId } = request.params;
       const { targetId, relation, status = 'proposed' } = request.body;
 
       const allowed = await fastify.permissionChecker.canEditEntry(
         entryId,
         identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to edit this entry');
@@ -184,7 +187,9 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const identityId = request.authContext!.identityId;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { entryId } = request.params;
       const {
         relation,
@@ -197,6 +202,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       const allowed = await fastify.permissionChecker.canViewEntry(
         entryId,
         identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to view this entry');
@@ -241,7 +247,9 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const identityId = request.authContext!.identityId;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { id } = request.params;
       const { status } = request.body;
 
@@ -253,6 +261,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       const allowed = await fastify.permissionChecker.canEditAnyEntry(
         [relation.sourceId, relation.targetId],
         identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem(
@@ -293,7 +302,9 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const identityId = request.authContext!.identityId;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { id } = request.params;
 
       const relation = await fastify.entryRelationRepository.findById(id);
@@ -304,6 +315,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       const allowed = await fastify.permissionChecker.canEditAnyEntry(
         [relation.sourceId, relation.targetId],
         identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem(

@@ -294,6 +294,7 @@ describe('Entry relation routes', () => {
       expect(mocks.permissionChecker.canEditAnyEntry).toHaveBeenCalledWith(
         [ENTRY_ID, TARGET_ENTRY_ID],
         OWNER_ID,
+        'Agent',
       );
     });
 

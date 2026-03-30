@@ -1,12 +1,11 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import {
-  type EntryFetcher,
-  EntryLoadError,
-  fitEntries,
-  loadSelectedEntries,
-  PackServiceError,
-} from '@moltnet/context-pack-service';
+  compress,
+  type CompressionLevel,
+  type DistillEntry,
+  estimateTokens,
+} from '@moltnet/context-distill';
 import { computePackCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -21,16 +20,82 @@ import { createProblem } from '../problems/index.js';
 import {
   ContextPackResponseListSchema,
   ContextPackResponseSchema,
-  CustomPackBodySchema,
   CustomPackResultSchema,
-  PackCidParamsSchema,
-  PackListQuerySchema,
-  PackParamsSchema,
-  PackProvenanceQuerySchema,
-  PackQuerySchema,
-  PackUpdateBodySchema,
 } from '../schemas.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
+
+const PackParamsSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+});
+
+const PackQuerySchema = Type.Object({
+  expand: Type.Optional(Type.Literal('entries')),
+});
+
+const PackListQuerySchema = Type.Object({
+  limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+  offset: Type.Optional(Type.Integer({ minimum: 0 })),
+  expand: Type.Optional(Type.Literal('entries')),
+});
+
+const PackCidParamsSchema = Type.Object({
+  cid: Type.String(),
+});
+
+const PackProvenanceQuerySchema = Type.Object({
+  depth: Type.Optional(Type.Integer({ minimum: 0, maximum: 10 })),
+});
+
+const CustomPackBodySchema = Type.Object({
+  packType: Type.Literal('custom'),
+  params: Type.Record(
+    Type.String({ minLength: 1, maxLength: 100 }),
+    Type.Unknown(),
+  ),
+  entries: Type.Array(
+    Type.Object({
+      entryId: Type.String({ format: 'uuid' }),
+      rank: Type.Integer({ minimum: 1 }),
+    }),
+    { minItems: 1, maxItems: 500 },
+  ),
+  tokenBudget: Type.Optional(Type.Integer({ minimum: 1, maximum: 100000 })),
+  pinned: Type.Optional(Type.Boolean()),
+});
+
+interface SelectedEntry {
+  entryId: string;
+  rank: number;
+}
+
+interface ResolvedSelection {
+  rank: number;
+  row: {
+    id: string;
+    content: string;
+    contentHash: string | null;
+    importance: number;
+    createdAt: Date;
+  };
+}
+
+interface CustomPackEntryResult {
+  entryId: string;
+  entryCidSnapshot: string;
+  rank: number;
+  compressionLevel: CompressionLevel;
+  originalTokens: number;
+  packedTokens: number;
+}
+
+interface CustomPackCompileStats {
+  totalTokens: number;
+  entriesIncluded: number;
+  entriesCompressed: number;
+  compressionRatio: number;
+  budgetUtilization: number;
+  elapsedMs: number;
+}
 
 function wantsExpandedEntries(expand?: 'entries'): boolean {
   return expand === 'entries';
@@ -56,35 +121,194 @@ function translateFindDiaryError(err: DiaryServiceError): never {
   }
 }
 
-function translateServiceError(err: unknown): never {
-  if (err instanceof EntryLoadError) {
-    throw createProblem('validation-failed', err.message);
-  }
-  if (err instanceof PackServiceError) {
-    switch (err.code) {
-      case 'not_found':
-        throw createProblem('not-found', err.message);
-      case 'conflict':
-        throw createProblem('conflict', err.message);
-      case 'validation':
-        throw createProblem('validation-failed', err.message);
-      default:
-        throw createProblem('internal', err.message);
+function normalizeSelection(entries: SelectedEntry[]): SelectedEntry[] {
+  const seenEntryIds = new Set<string>();
+  const seenRanks = new Set<number>();
+
+  for (const entry of entries) {
+    if (seenEntryIds.has(entry.entryId)) {
+      throw createProblem(
+        'validation-failed',
+        `Duplicate entryId "${entry.entryId}" in pack selection`,
+      );
     }
+    if (seenRanks.has(entry.rank)) {
+      throw createProblem(
+        'validation-failed',
+        `Duplicate rank "${entry.rank}" in pack selection`,
+      );
+    }
+    seenEntryIds.add(entry.entryId);
+    seenRanks.add(entry.rank);
   }
-  throw err;
+
+  return [...entries].sort((a, b) => a.rank - b.rank);
 }
 
-/** Build an EntryFetcher that delegates to the diary entry repository. */
-function makeEntryFetcher(fastify: FastifyInstance): EntryFetcher {
+async function loadSelectedEntries(
+  fastify: FastifyInstance,
+  diaryId: string,
+  requestedEntries: SelectedEntry[],
+): Promise<ResolvedSelection[]> {
+  const selectedEntries = normalizeSelection(requestedEntries);
+  const { items: rows } = await fastify.diaryEntryRepository.list({
+    diaryId,
+    ids: selectedEntries.map((entry) => entry.entryId),
+    limit: selectedEntries.length,
+  });
+
+  if (rows.length !== selectedEntries.length) {
+    const foundIds = new Set(rows.map((row) => row.id));
+    const missingIds = selectedEntries
+      .map((entry) => entry.entryId)
+      .filter((entryId) => !foundIds.has(entryId));
+
+    throw createProblem(
+      'validation-failed',
+      `Entries not found in diary ${diaryId}: ${missingIds.join(', ')}`,
+    );
+  }
+
+  const rowById = new Map(rows.map((row) => [row.id, row]));
+  return selectedEntries.map((entry) => {
+    const row = rowById.get(entry.entryId);
+    if (!row) {
+      throw createProblem(
+        'validation-failed',
+        `Entry ${entry.entryId} was not found in diary ${diaryId}`,
+      );
+    }
+    if (!row.contentHash) {
+      throw createProblem(
+        'validation-failed',
+        `Entry ${entry.entryId} has no contentHash and cannot be packed`,
+      );
+    }
+    return {
+      rank: entry.rank,
+      row,
+    };
+  });
+}
+
+function fitCustomPackEntries(
+  selectedEntries: ResolvedSelection[],
+  tokenBudget?: number,
+): {
+  entries: CustomPackEntryResult[];
+  stats: CustomPackCompileStats;
+} {
+  const start = performance.now();
+  const distillEntries = selectedEntries.map(
+    ({ row }): DistillEntry => ({
+      id: row.id,
+      embedding: [],
+      content: row.content,
+      tokens: estimateTokens(row.content),
+      importance: row.importance,
+      createdAt: row.createdAt.toISOString(),
+    }),
+  );
+  const distillById = new Map(distillEntries.map((entry) => [entry.id, entry]));
+  const compiledById = new Map(
+    distillEntries.map((entry) => [entry.id, compress(entry, 'full')]),
+  );
+
+  let totalTokens = Array.from(compiledById.values()).reduce(
+    (sum, entry) => sum + entry.compressedTokens,
+    0,
+  );
+
+  if (tokenBudget !== undefined && totalTokens > tokenBudget) {
+    for (
+      let index = selectedEntries.length - 1;
+      index >= 0 && totalTokens > tokenBudget;
+      index -= 1
+    ) {
+      const source = distillById.get(selectedEntries[index].row.id);
+      const current = compiledById.get(selectedEntries[index].row.id);
+      if (!source || !current || current.compressionLevel !== 'full') {
+        continue;
+      }
+
+      const summary = compress(source, 'summary');
+      totalTokens += summary.compressedTokens - current.compressedTokens;
+      compiledById.set(selectedEntries[index].row.id, summary);
+    }
+
+    for (
+      let index = selectedEntries.length - 1;
+      index >= 0 && totalTokens > tokenBudget;
+      index -= 1
+    ) {
+      const source = distillById.get(selectedEntries[index].row.id);
+      const current = compiledById.get(selectedEntries[index].row.id);
+      if (!source || !current || current.compressionLevel !== 'summary') {
+        continue;
+      }
+
+      const keywords = compress(source, 'keywords');
+      totalTokens += keywords.compressedTokens - current.compressedTokens;
+      compiledById.set(selectedEntries[index].row.id, keywords);
+    }
+
+    for (
+      let index = selectedEntries.length - 1;
+      index >= 0 && totalTokens > tokenBudget;
+      index -= 1
+    ) {
+      const current = compiledById.get(selectedEntries[index].row.id);
+      if (!current) {
+        continue;
+      }
+
+      totalTokens -= current.compressedTokens;
+      compiledById.delete(selectedEntries[index].row.id);
+    }
+  }
+
+  const resultEntries = selectedEntries
+    .map(({ rank, row }) => {
+      const compiled = compiledById.get(row.id);
+      if (!compiled || !row.contentHash) {
+        return null;
+      }
+      return {
+        entryId: row.id,
+        entryCidSnapshot: row.contentHash,
+        rank,
+        compressionLevel: compiled.compressionLevel,
+        originalTokens: compiled.originalTokens,
+        packedTokens: compiled.compressedTokens,
+      } satisfies CustomPackEntryResult;
+    })
+    .filter((entry): entry is CustomPackEntryResult => entry !== null);
+
+  const originalTotal = resultEntries.reduce(
+    (sum, entry) => sum + entry.originalTokens,
+    0,
+  );
+  const packedTotal = resultEntries.reduce(
+    (sum, entry) => sum + entry.packedTokens,
+    0,
+  );
+
   return {
-    fetchEntries: async (diaryId: string, ids: string[]) => {
-      const { items } = await fastify.diaryEntryRepository.list({
-        diaryId,
-        ids,
-        limit: ids.length,
-      });
-      return items;
+    entries: resultEntries,
+    stats: {
+      totalTokens: packedTotal,
+      entriesIncluded: resultEntries.length,
+      entriesCompressed: resultEntries.filter(
+        (entry) => entry.compressionLevel !== 'full',
+      ).length,
+      compressionRatio: originalTotal === 0 ? 1 : packedTotal / originalTotal,
+      budgetUtilization:
+        tokenBudget === undefined
+          ? packedTotal === 0
+            ? 0
+            : 1
+          : packedTotal / tokenBudget,
+      elapsedMs: performance.now() - start,
     },
   };
 }
@@ -93,44 +317,149 @@ export async function packRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
-  const entryFetcher = makeEntryFetcher(fastify);
-
-  /**
-   * Preview a custom pack: load entries, fit to budget, compute CID.
-   * No persistence, no Keto grants.
-   */
-  const previewCustomPack = async (
-    diaryId: string,
-    body: {
-      params: Record<string, unknown>;
-      entries: Array<{ entryId: string; rank: number }>;
-      tokenBudget?: number;
+  const materializeCustomPack = async (
+    request: {
+      params: { id: string };
+      body: {
+        packType: 'custom';
+        params: Record<string, unknown>;
+        entries: SelectedEntry[];
+        tokenBudget?: number;
+        pinned?: boolean;
+      };
+      authContext: {
+        identityId: string;
+        subjectType: 'agent' | 'human';
+      };
     },
+    persist: boolean,
   ) => {
-    const selectedEntries = await loadSelectedEntries(
-      entryFetcher,
-      diaryId,
-      body.entries,
-    );
-    const fitResult = fitEntries(selectedEntries, body.tokenBudget);
+    const subjectNs =
+      request.authContext.subjectType === 'human'
+        ? KetoNamespace.Human
+        : KetoNamespace.Agent;
 
-    const packCid = computePackCid({
-      diaryId,
-      packType: 'custom',
-      params: body.params,
-      entries: fitResult.entries.map((e) => ({
-        cid: e.entryCidSnapshot,
-        compressionLevel: e.compressionLevel,
-        rank: e.rank,
+    let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
+    try {
+      diary = await fastify.diaryService.findDiary(
+        request.params.id,
+        request.authContext.identityId,
+        subjectNs,
+      );
+    } catch (err) {
+      if (err instanceof DiaryServiceError) translateFindDiaryError(err);
+      throw err;
+    }
+
+    const selectedEntries = await loadSelectedEntries(
+      fastify,
+      diary.id,
+      request.body.entries,
+    );
+    const { entries, stats } = fitCustomPackEntries(
+      selectedEntries,
+      request.body.tokenBudget,
+    );
+
+    const createdAt = new Date().toISOString();
+    const payload = {
+      v: 'moltnet:pack:v1',
+      diaryId: diary.id,
+      createdBy: request.authContext.identityId,
+      createdAt,
+      packType: 'custom' as const,
+      params: request.body.params,
+      entries: entries.map((entry) => ({
+        cid: entry.entryCidSnapshot,
+        compressionLevel: entry.compressionLevel,
+        rank: entry.rank,
       })),
+    };
+    const packCid = computePackCid({
+      diaryId: diary.id,
+      packType: 'custom',
+      params: request.body.params,
+      entries: payload.entries,
     });
+
+    if (persist) {
+      const createdAtDate = new Date(createdAt);
+      const pinned = request.body.pinned ?? false;
+      const compileTtlDays =
+        fastify.packGcConfig?.PACK_GC_COMPILE_TTL_DAYS ?? 7;
+      const expiresAt = pinned
+        ? null
+        : new Date(
+            createdAtDate.getTime() + compileTtlDays * 24 * 60 * 60 * 1000,
+          );
+
+      // TODO(issue-456): Move custom pack persistence + Keto parent grant into
+      // a DBOS workflow with retry/compensation semantics, matching the compile
+      // flow. Keto is an external side effect and cannot be made atomic with
+      // the Postgres transaction in this route handler.
+      const pack = await fastify.dataSource.runTransaction(async () => {
+        const createdPack = await fastify.contextPackRepository.createPack({
+          diaryId: diary.id,
+          packCid,
+          packType: 'custom',
+          params: request.body.params,
+          payload,
+          createdBy: request.authContext.identityId,
+          pinned,
+          expiresAt,
+          createdAt: createdAtDate,
+        });
+
+        await fastify.contextPackRepository.addEntries(
+          entries.map((entry) => ({
+            packId: createdPack.id,
+            entryId: entry.entryId,
+            entryCidSnapshot: entry.entryCidSnapshot,
+            compressionLevel: entry.compressionLevel,
+            originalTokens: entry.originalTokens,
+            packedTokens: entry.packedTokens,
+            rank: entry.rank,
+          })),
+        );
+
+        return createdPack;
+      });
+
+      try {
+        await fastify.relationshipWriter.grantPackParent(pack.id, diary.id);
+      } catch (error) {
+        fastify.log.error(
+          { err: error, packId: pack.id, diaryId: diary.id },
+          'Failed to grant ContextPack#parent relation for custom pack',
+        );
+
+        try {
+          await fastify.relationshipWriter.removePackRelations(pack.id);
+          await fastify.contextPackRepository.deleteMany([pack.id]);
+        } catch (cleanupError) {
+          fastify.log.error(
+            {
+              err: cleanupError,
+              packId: pack.id,
+              diaryId: diary.id,
+            },
+            'Failed to clean up custom pack after authorization grant failure',
+          );
+        }
+
+        throw createProblem(
+          'internal',
+          'Failed to finalize custom pack authorization',
+        );
+      }
+    }
 
     return {
       packCid,
       packType: 'custom' as const,
-      params: body.params,
-      entries: fitResult.entries,
-      compileStats: fitResult.stats,
+      params: request.body.params,
+      entries,
+      compileStats: stats,
     };
   };
 
@@ -155,6 +484,10 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       const pack = await fastify.contextPackRepository.findById(
         request.params.id,
       );
@@ -164,7 +497,8 @@ export async function packRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canReadPack(
         pack.id,
-        request.authContext!.identityId,
+        identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to read this pack');
@@ -175,7 +509,8 @@ export async function packRoutes(fastify: FastifyInstance) {
           fastify,
           rootPack: pack,
           depth: request.query.depth ?? 2,
-          identityId: request.authContext!.identityId,
+          identityId,
+          subjectNs,
         });
       } catch (error) {
         request.log.error(
@@ -208,6 +543,10 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       const pack = await fastify.contextPackRepository.findByCid(
         request.params.cid,
       );
@@ -217,7 +556,8 @@ export async function packRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canReadPack(
         pack.id,
-        request.authContext!.identityId,
+        identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to read this pack');
@@ -228,7 +568,8 @@ export async function packRoutes(fastify: FastifyInstance) {
           fastify,
           rootPack: pack,
           depth: request.query.depth ?? 2,
-          identityId: request.authContext!.identityId,
+          identityId,
+          subjectNs,
         });
       } catch (error) {
         request.log.error(
@@ -261,6 +602,10 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       const pack = await fastify.contextPackRepository.findById(
         request.params.id,
       );
@@ -270,7 +615,8 @@ export async function packRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canReadPack(
         pack.id,
-        request.authContext!.identityId,
+        identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to read this pack');
@@ -310,24 +656,15 @@ export async function packRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
-      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
-      try {
-        diary = await fastify.diaryService.findDiary(
-          request.params.id,
-          request.authContext!.identityId,
-        );
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateFindDiaryError(err);
-        throw err;
-      }
-
-      try {
-        return await previewCustomPack(diary.id, request.body);
-      } catch (err) {
-        translateServiceError(err);
-      }
-    },
+    async (request) =>
+      materializeCustomPack(
+        {
+          params: request.params,
+          body: request.body,
+          authContext: request.authContext!,
+        },
+        false,
+      ),
   );
 
   server.post(
@@ -352,37 +689,16 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
-      try {
-        diary = await fastify.diaryService.findDiary(
-          request.params.id,
-          request.authContext!.identityId,
-        );
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateFindDiaryError(err);
-        throw err;
-      }
+      const pack = await materializeCustomPack(
+        {
+          params: request.params,
+          body: request.body,
+          authContext: request.authContext!,
+        },
+        true,
+      );
 
-      try {
-        const result = await fastify.contextPackService.createCustomPack({
-          diaryId: diary.id,
-          entries: request.body.entries,
-          params: request.body.params,
-          tokenBudget: request.body.tokenBudget,
-          pinned: request.body.pinned,
-          createdBy: request.authContext!.identityId,
-        });
-
-        return await reply.code(201).send({
-          packCid: result.packCid,
-          packType: result.packType,
-          params: request.body.params,
-          entries: result.fitResult.entries,
-          compileStats: result.fitResult.stats,
-        });
-      } catch (err) {
-        translateServiceError(err);
-      }
+      return reply.code(201).send(pack);
     },
   );
 
@@ -407,11 +723,16 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
         diary = await fastify.diaryService.findDiary(
           request.params.id,
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
       } catch (err) {
         if (err instanceof DiaryServiceError) translateFindDiaryError(err);
@@ -429,7 +750,8 @@ export async function packRoutes(fastify: FastifyInstance) {
       try {
         allowedPackIds = await fastify.permissionChecker.canReadPacks(
           packs.map((pack) => pack.id),
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
       } catch (error) {
         request.log.error(
@@ -467,6 +789,11 @@ export async function packRoutes(fastify: FastifyInstance) {
 
   // ── PATCH /packs/:id ──────────────────────────────────────────
 
+  const PackUpdateBodySchema = Type.Object({
+    pinned: Type.Optional(Type.Boolean()),
+    expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
+  });
+
   server.patch(
     '/packs/:id',
     {
@@ -489,6 +816,10 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       const pack = await fastify.contextPackRepository.findById(
         request.params.id,
       );
@@ -498,7 +829,8 @@ export async function packRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canManagePack(
         pack.id,
-        request.authContext!.identityId,
+        identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to manage this pack');

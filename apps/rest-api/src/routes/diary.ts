@@ -3,7 +3,7 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   DiaryParamsSchema,
@@ -77,12 +77,17 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { name, visibility } = request.body;
 
       const diary = await fastify.diaryService.createDiary({
-        ownerId: request.authContext!.identityId,
+        ownerId: identityId,
         name,
         visibility,
+        teamId: request.authContext!.currentTeamId ?? undefined,
+        subjectNs,
       });
 
       return reply.status(201).send(diary);
@@ -133,10 +138,14 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         const diary = await fastify.diaryService.findDiary(
           id,
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
         return diary;
       } catch (err) {
@@ -177,11 +186,15 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       try {
         const diary = await fastify.diaryService.updateDiary(
           id,
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
           request.body,
         );
 
@@ -220,11 +233,15 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       try {
         const deleted = await fastify.diaryService.deleteDiary(
           id,
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
 
         if (!deleted) {

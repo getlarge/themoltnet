@@ -15,6 +15,7 @@
  * vector embeddings and hybrid search testing.
  */
 
+import { KetoNamespace } from '@moltnet/auth';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import {
@@ -108,7 +109,7 @@ describe('DiaryService (integration)', () => {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
   let relationshipReader: {
-    listDiaryIdsByAgent: ReturnType<typeof vi.fn>;
+    listDiaryIdsBySubject: ReturnType<typeof vi.fn>;
   };
   let relationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
@@ -157,7 +158,7 @@ describe('DiaryService (integration)', () => {
     };
 
     relationshipReader = {
-      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
+      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
     };
 
     relationshipWriter = {
@@ -362,7 +363,12 @@ describe('DiaryService (integration)', () => {
       );
 
       permissions.canViewEntry.mockResolvedValue(true);
-      const found = await service.getEntryById(created.id, DIARY_ID, OWNER_ID);
+      const found = await service.getEntryById(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+        { diaryId: DIARY_ID },
+      );
       expect(found).not.toBeNull();
       expect(found!.content).toBe('Private thought.');
     });
@@ -378,7 +384,9 @@ describe('DiaryService (integration)', () => {
 
       permissions.canViewEntry.mockResolvedValue(false);
       await expect(
-        service.getEntryById(created.id, DIARY_ID, OTHER_AGENT),
+        service.getEntryById(created.id, OTHER_AGENT, KetoNamespace.Agent, {
+          diaryId: DIARY_ID,
+        }),
       ).rejects.toThrow(DiaryServiceError);
     });
   });
@@ -515,10 +523,15 @@ describe('DiaryService (integration)', () => {
       );
 
       permissions.canEditEntry.mockResolvedValue(true);
-      const updated = await service.updateEntry(created.id, OWNER_ID, {
-        title: 'Updated Title',
-        content: 'New content.',
-      });
+      const updated = await service.updateEntry(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+        {
+          title: 'Updated Title',
+          content: 'New content.',
+        },
+      );
 
       expect(updated).not.toBeNull();
       expect(updated!.title).toBe('Updated Title');
@@ -534,9 +547,14 @@ describe('DiaryService (integration)', () => {
       expect(originalHash).toBeDefined();
 
       permissions.canEditEntry.mockResolvedValue(true);
-      const updated = await service.updateEntry(created.id, OWNER_ID, {
-        content: 'Updated content',
-      });
+      const updated = await service.updateEntry(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+        {
+          content: 'Updated content',
+        },
+      );
 
       expect(updated).not.toBeNull();
       expect(updated!.contentHash).toBeDefined();
@@ -551,7 +569,7 @@ describe('DiaryService (integration)', () => {
 
       permissions.canEditEntry.mockResolvedValue(false);
       await expect(
-        service.updateEntry(created.id, OTHER_AGENT, {
+        service.updateEntry(created.id, OTHER_AGENT, KetoNamespace.Agent, {
           title: 'Hacked',
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -568,7 +586,11 @@ describe('DiaryService (integration)', () => {
       );
 
       permissions.canDeleteEntry.mockResolvedValue(true);
-      const deleted = await service.deleteEntry(created.id, OWNER_ID);
+      const deleted = await service.deleteEntry(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
       expect(deleted).toBe(true);
       expect(relationshipWriter.removeEntryRelations).toHaveBeenCalledWith(
         created.id,
@@ -576,7 +598,9 @@ describe('DiaryService (integration)', () => {
 
       permissions.canViewEntry.mockResolvedValue(true);
       await expect(
-        service.getEntryById(created.id, DIARY_ID, OWNER_ID),
+        service.getEntryById(created.id, OWNER_ID, KetoNamespace.Agent, {
+          diaryId: DIARY_ID,
+        }),
       ).rejects.toThrow(DiaryServiceError);
     });
 
@@ -588,7 +612,7 @@ describe('DiaryService (integration)', () => {
 
       permissions.canDeleteEntry.mockResolvedValue(false);
       await expect(
-        service.deleteEntry(created.id, OTHER_AGENT),
+        service.deleteEntry(created.id, OTHER_AGENT, KetoNamespace.Agent),
       ).rejects.toThrow(DiaryServiceError);
       expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
     });

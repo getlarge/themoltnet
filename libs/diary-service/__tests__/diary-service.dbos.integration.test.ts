@@ -54,7 +54,7 @@ describe('DiaryService (DBOS integration)', () => {
     diaries: Awaited<ReturnType<typeof setupDatabase>>['diaries'];
   };
   let mockRelationshipReader: {
-    listDiaryIdsByAgent: ReturnType<typeof vi.fn>;
+    listDiaryIdsBySubject: ReturnType<typeof vi.fn>;
   };
   let mockRelationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
@@ -132,7 +132,7 @@ describe('DiaryService (DBOS integration)', () => {
     initDiaryWorkflows();
 
     mockRelationshipReader = {
-      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
+      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
     };
 
     mockRelationshipWriter = {

@@ -1,3 +1,4 @@
+import type { KetoNamespace } from '@moltnet/auth';
 import type {
   ContextPackWithCreator,
   ExpandedPackEntry,
@@ -24,15 +25,12 @@ function entryNodeId(entryId: string): string {
   return `entry:${entryId}`;
 }
 
-function renderedPackNodeId(renderedPackId: string): string {
-  return `rendered_pack:${renderedPackId}`;
-}
-
 interface BuildPackProvenanceGraphOptions {
   fastify: FastifyInstance;
   rootPack: ContextPackWithCreator;
   depth: number;
   identityId: string;
+  subjectNs: KetoNamespace;
 }
 
 export async function buildPackProvenanceGraph({
@@ -40,6 +38,7 @@ export async function buildPackProvenanceGraph({
   rootPack,
   depth,
   identityId,
+  subjectNs,
 }: BuildPackProvenanceGraphOptions): Promise<ProvenanceGraph> {
   const packs = new Map<string, ContextPackWithCreator>();
   const queue: Array<{ pack: ContextPackWithCreator; remainingDepth: number }> =
@@ -73,6 +72,7 @@ export async function buildPackProvenanceGraph({
   const visible = await fastify.permissionChecker.canReadPacks(
     Array.from(packs.keys()),
     identityId,
+    subjectNs,
   );
   const visiblePackIds = Array.from(packs.keys()).filter(
     (packId) => visible.get(packId) ?? false,
@@ -142,38 +142,6 @@ export async function buildPackProvenanceGraph({
         },
       });
     }
-  }
-
-  // Batch-fetch rendered packs for all visible context packs (avoids N+1).
-  // Auth: rendered packs inherit permissions from their source pack — if the
-  // source pack is visible, its rendered versions are too.
-  const allRenderedPacks =
-    await fastify.renderedPackRepository.listBySourcePackIds(visiblePackIds);
-  for (const rp of allRenderedPacks) {
-    nodes.push({
-      id: renderedPackNodeId(rp.id),
-      kind: 'rendered_pack',
-      label: `rendered ${rp.renderMethod} ${rp.id.slice(0, 8)}`,
-      cid: rp.packCid,
-      meta: {
-        renderedPackId: rp.id,
-        sourcePackId: rp.sourcePackId,
-        diaryId: rp.diaryId,
-        packCid: rp.packCid,
-        renderMethod: rp.renderMethod,
-        totalTokens: rp.totalTokens,
-        pinned: rp.pinned,
-        createdAt: rp.createdAt.toISOString(),
-        expiresAt: rp.expiresAt?.toISOString() ?? null,
-      },
-    });
-    edges.push({
-      id: `${renderedPackNodeId(rp.id)}->${packNodeId(rp.sourcePackId)}:rendered_from`,
-      from: renderedPackNodeId(rp.id),
-      to: packNodeId(rp.sourcePackId),
-      kind: 'rendered_from',
-      label: rp.renderMethod,
-    });
   }
 
   return {
