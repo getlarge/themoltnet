@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.1.0...moltnet-api-client-v1.1.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* **ci:** repair rendered-pack validation and generated clients ([3d4a05d](https://github.com/getlarge/themoltnet/commit/3d4a05dadb96d878fc6431b8e3be8ff4039d85f5))
+* **packs:** return rendered markdown from persisted renders ([5acec13](https://github.com/getlarge/themoltnet/commit/5acec1304b249186cb54557b9d16383dc28dbeaa))
+
 ## [1.1.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.0.1...moltnet-api-client-v1.1.0) (2026-03-30)
 
 
