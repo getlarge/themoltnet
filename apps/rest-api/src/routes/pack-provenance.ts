@@ -144,7 +144,9 @@ export async function buildPackProvenanceGraph({
     }
   }
 
-  // Batch-fetch rendered packs for all visible context packs (avoids N+1)
+  // Batch-fetch rendered packs for all visible context packs (avoids N+1).
+  // Auth: rendered packs inherit permissions from their source pack — if the
+  // source pack is visible, its rendered versions are too.
   const allRenderedPacks =
     await fastify.renderedPackRepository.listBySourcePackIds(visiblePackIds);
   for (const rp of allRenderedPacks) {

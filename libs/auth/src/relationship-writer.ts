@@ -12,22 +12,52 @@ import {
   ContextPackRelation,
   DiaryEntryRelation,
   DiaryRelation,
+  HumanRelation,
   KetoNamespace,
+  TeamRelation,
 } from './keto-constants.js';
 
 export interface RelationshipWriter {
+  // Diary relations (legacy direct + team-based)
   grantDiaryOwner(diaryId: string, agentId: string): Promise<void>;
   grantDiaryWriter(diaryId: string, agentId: string): Promise<void>;
   grantDiaryReader(diaryId: string, agentId: string): Promise<void>;
+  grantDiaryTeam(diaryId: string, teamId: string): Promise<void>;
+  removeDiaryTeam(diaryId: string): Promise<void>;
   removeDiaryRelations(diaryId: string): Promise<void>;
   removeDiaryRelationForAgent(diaryId: string, agentId: string): Promise<void>;
+  // Entry + pack relations
   grantEntryParent(entryId: string, diaryId: string): Promise<void>;
   grantPackParent(packId: string, diaryId: string): Promise<void>;
-  registerAgent(agentId: string): Promise<void>;
   removeEntryRelations(entryId: string): Promise<void>;
   removePackRelations(packId: string): Promise<void>;
   removePackRelationsBatch(
     packs: Array<{ id: string; diaryId: string }>,
+  ): Promise<void>;
+  // Identity relations
+  registerAgent(agentId: string): Promise<void>;
+  registerHuman(humanId: string): Promise<void>;
+  // Team membership (Keto is the sole membership store)
+  // subjectNs: KetoNamespace.Agent or KetoNamespace.Human
+  grantTeamOwner(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  grantTeamManager(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  grantTeamMember(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  removeTeamMemberRelation(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
   ): Promise<void>;
 }
 
@@ -152,6 +182,29 @@ export function createRelationshipWriter(
       });
     },
 
+    async grantDiaryTeam(diaryId: string, teamId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Diary,
+          object: diaryId,
+          relation: DiaryRelation.Team,
+          subject_set: {
+            namespace: KetoNamespace.Team,
+            object: teamId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async removeDiaryTeam(diaryId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Diary,
+        object: diaryId,
+        relation: DiaryRelation.Team,
+      });
+    },
+
     async registerAgent(agentId: string): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {
@@ -160,6 +213,100 @@ export function createRelationshipWriter(
           relation: AgentRelation.Self,
           subject_id: agentId,
         },
+      });
+    },
+
+    async registerHuman(humanId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Human,
+          object: humanId,
+          relation: HumanRelation.Self,
+          subject_id: humanId,
+        },
+      });
+    },
+
+    async grantTeamOwner(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Team,
+          object: teamId,
+          relation: TeamRelation.Owner,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async grantTeamManager(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Team,
+          object: teamId,
+          relation: TeamRelation.Manager,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async grantTeamMember(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Team,
+          object: teamId,
+          relation: TeamRelation.Member,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async removeTeamMemberRelation(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.patchRelationships({
+        relationshipPatch: [
+          TeamRelation.Owner,
+          TeamRelation.Manager,
+          TeamRelation.Member,
+        ].map((relation) => ({
+          action: 'delete' as const,
+          relation_tuple: {
+            namespace: KetoNamespace.Team,
+            object: teamId,
+            relation,
+            subject_set: {
+              namespace: subjectNs,
+              object: subjectId,
+              relation: '',
+            },
+          },
+        })),
       });
     },
 

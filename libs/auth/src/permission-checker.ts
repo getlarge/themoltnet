@@ -12,6 +12,7 @@ import {
   DiaryEntryPermission,
   DiaryPermission,
   KetoNamespace,
+  TeamPermission,
 } from './keto-constants.js';
 
 export interface PermissionChecker {
@@ -28,6 +29,9 @@ export interface PermissionChecker {
     agentId: string,
   ): Promise<Map<string, boolean>>;
   canManagePack(packId: string, agentId: string): Promise<boolean>;
+  canAccessTeam(teamId: string, subjectId: string): Promise<boolean>;
+  canManageTeam(teamId: string, subjectId: string): Promise<boolean>;
+  canManageTeamMembers(teamId: string, subjectId: string): Promise<boolean>;
 }
 
 async function checkPermission(
@@ -43,6 +47,30 @@ async function checkPermission(
       object,
       relation,
       subjectId,
+    });
+    return data.allowed;
+  } catch {
+    return false;
+  }
+}
+
+async function checkPermissionWithSubjectSet(
+  permissionApi: PermissionApi,
+  namespace: string,
+  object: string,
+  relation: string,
+  subjectSetNamespace: string,
+  subjectSetObject: string,
+): Promise<boolean> {
+  try {
+    const data = await permissionApi.checkPermission({
+      namespace,
+      object,
+      relation,
+      subjectId: undefined,
+      subjectSetNamespace,
+      subjectSetObject,
+      subjectSetRelation: '',
     });
     return data.allowed;
   } catch {
@@ -201,6 +229,71 @@ export function createPermissionChecker(
         packId,
         ContextPackPermission.Manage,
         agentId,
+      );
+    },
+
+    async canAccessTeam(teamId: string, subjectId: string): Promise<boolean> {
+      // Tuples are written with subject_set (Agent or Human namespace).
+      // Try Agent first (most common), fall back to Human.
+      const asAgent = await checkPermissionWithSubjectSet(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.Access,
+        KetoNamespace.Agent,
+        subjectId,
+      );
+      if (asAgent) return true;
+      return checkPermissionWithSubjectSet(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.Access,
+        KetoNamespace.Human,
+        subjectId,
+      );
+    },
+
+    async canManageTeam(teamId: string, subjectId: string): Promise<boolean> {
+      const asAgent = await checkPermissionWithSubjectSet(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.Manage,
+        KetoNamespace.Agent,
+        subjectId,
+      );
+      if (asAgent) return true;
+      return checkPermissionWithSubjectSet(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.Manage,
+        KetoNamespace.Human,
+        subjectId,
+      );
+    },
+
+    async canManageTeamMembers(
+      teamId: string,
+      subjectId: string,
+    ): Promise<boolean> {
+      const asAgent = await checkPermissionWithSubjectSet(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.ManageMembers,
+        KetoNamespace.Agent,
+        subjectId,
+      );
+      if (asAgent) return true;
+      return checkPermissionWithSubjectSet(
+        permissionApi,
+        KetoNamespace.Team,
+        teamId,
+        TeamPermission.ManageMembers,
+        KetoNamespace.Human,
+        subjectId,
       );
     },
   };

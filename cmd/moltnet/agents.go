@@ -21,7 +21,7 @@ func runAgentsWhoamiCmd(apiURL, credPath string) error {
 	}
 	whoami, ok := res.(*moltnetapi.Whoami)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(whoami)
 }
@@ -40,7 +40,7 @@ func runAgentsLookupCmd(apiURL, credPath, fingerprint string) error {
 	}
 	profile, ok := res.(*moltnetapi.AgentProfile)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(profile)
 }

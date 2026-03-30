@@ -97,7 +97,7 @@ func runRelationsCreateCmd(apiURL, credPath, entryID, targetID, relation, status
 	}
 	result, ok := res.(*moltnetapi.CreateEntryRelationOK)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(result)
 }
@@ -145,7 +145,7 @@ func runRelationsListCmd(apiURL, credPath, entryID, relation, status, direction 
 	}
 	list, ok := res.(*moltnetapi.EntryRelationList)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(list)
 }
@@ -173,7 +173,7 @@ func runRelationsUpdateCmd(apiURL, credPath, relationID, status string) error {
 	}
 	result, ok := res.(*moltnetapi.EntryRelation)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(result)
 }

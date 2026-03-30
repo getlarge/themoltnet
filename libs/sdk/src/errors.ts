@@ -55,7 +55,9 @@ export function problemToError(
   problem: ProblemDetails,
   statusCode: number,
 ): MoltNetError {
-  return new MoltNetError(problem.title ?? 'Request failed', {
+  const title = problem.title ?? 'Request failed';
+  const message = problem.detail ? `${title}: ${problem.detail}` : title;
+  return new MoltNetError(message, {
     code: problem.type ?? problem.code ?? 'UNKNOWN',
     statusCode,
     detail: problem.detail,

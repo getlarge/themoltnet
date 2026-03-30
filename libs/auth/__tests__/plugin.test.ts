@@ -16,6 +16,7 @@ const VALID_AUTH_CONTEXT: AuthContext = {
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
+  currentTeamId: null,
 };
 
 function createMockTokenValidator() {
@@ -65,7 +66,8 @@ describe('authPlugin', () => {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
       relationshipWriter: mockRelationshipWriter,
-    });
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    } as never);
   });
 
   it('decorates request with authContext (null by default)', async () => {
@@ -138,7 +140,8 @@ describe('requireAuth preHandler', () => {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
       relationshipWriter: mockRelationshipWriter,
-    });
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    } as never);
   });
 
   it('sets authContext on request when token is valid', async () => {
@@ -259,7 +262,8 @@ describe('optionalAuth preHandler', () => {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
       relationshipWriter: mockRelationshipWriter,
-    });
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    } as never);
   });
 
   it('sets authContext when valid token provided', async () => {
@@ -327,7 +331,8 @@ describe('requireScopes preHandler', () => {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
       relationshipWriter: mockRelationshipWriter,
-    });
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    } as never);
   });
 
   it('allows request when all required scopes are present', async () => {

@@ -939,7 +939,7 @@ export const PackUpdateBodySchema = Type.Object({
 });
 
 export const RenderPackBodySchema = Type.Object({
-  renderedMarkdown: Type.String({ minLength: 1 }),
+  renderedMarkdown: Type.String({ minLength: 1, maxLength: 500_000 }),
   renderMethod: Type.String({ minLength: 1, maxLength: 100 }),
   pinned: Type.Optional(Type.Boolean()),
   preview: Type.Optional(Type.Boolean()),
@@ -964,7 +964,6 @@ export const RenderedPackSchema = Type.Object(
     pinned: Type.Boolean(),
     expiresAt: Type.Union([DateTime, Type.Null()]),
     createdAt: DateTime,
-    updatedAt: DateTime,
   },
   { $id: 'RenderedPack' },
 );

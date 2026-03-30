@@ -2318,6 +2318,26 @@
               {
                 "enum": ["INTERNAL_SERVER_ERROR"],
                 "type": "string"
+              },
+              {
+                "enum": ["TEAM_PERSONAL_IMMUTABLE"],
+                "type": "string"
+              },
+              {
+                "enum": ["TEAM_NOT_ACTIVE"],
+                "type": "string"
+              },
+              {
+                "enum": ["INVITE_EXPIRED"],
+                "type": "string"
+              },
+              {
+                "enum": ["INVITE_EXHAUSTED"],
+                "type": "string"
+              },
+              {
+                "enum": ["TEAM_LAST_OWNER"],
+                "type": "string"
               }
             ]
           },
@@ -3417,6 +3437,26 @@
                   },
                   {
                     "enum": ["INTERNAL_SERVER_ERROR"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["TEAM_PERSONAL_IMMUTABLE"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["TEAM_NOT_ACTIVE"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["INVITE_EXPIRED"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["INVITE_EXHAUSTED"],
+                    "type": "string"
+                  },
+                  {
+                    "enum": ["TEAM_LAST_OWNER"],
                     "type": "string"
                   }
                 ]
@@ -8286,6 +8326,26 @@
                 {
                   "enum": ["internal-server-error"],
                   "type": "string"
+                },
+                {
+                  "enum": ["team-personal-immutable"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["team-not-active"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["invite-expired"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["invite-exhausted"],
+                  "type": "string"
+                },
+                {
+                  "enum": ["team-last-owner"],
+                  "type": "string"
                 }
               ]
             }
@@ -9070,6 +9130,879 @@
           }
         ],
         "tags": ["diary"]
+      }
+    },
+    "/teams": {
+      "get": {
+        "description": "List teams the caller belongs to.",
+        "operationId": "listTeams",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "personal": {
+                            "type": "boolean"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "personal",
+                          "status",
+                          "role"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["items"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      },
+      "post": {
+        "description": "Create a new project team. Caller becomes owner.",
+        "operationId": "createTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["name"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/join": {
+      "post": {
+        "description": "Join a team using an invite code.",
+        "operationId": "joinTeam",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "code": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["code"],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "role": {
+                      "type": "string"
+                    },
+                    "teamId": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["teamId", "role"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}": {
+      "delete": {
+        "description": "Delete a team. Requires manage permission (owner only).",
+        "operationId": "deleteTeam",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["deleted"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      },
+      "get": {
+        "description": "Get team details. Requires team access.",
+        "operationId": "getTeam",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "createdBy": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "id": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "members": {
+                      "items": {
+                        "properties": {
+                          "role": {
+                            "type": "string"
+                          },
+                          "subjectId": {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "subjectNs": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["subjectId", "subjectNs", "role"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "personal": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "personal",
+                    "createdBy",
+                    "createdAt",
+                    "updatedAt",
+                    "members"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/invites": {
+      "get": {
+        "description": "List invite codes. Requires manage_members permission.",
+        "operationId": "listTeamInvites",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "expiresAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": ["code", "expiresAt"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["items"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      },
+      "post": {
+        "description": "Create an invite code. Requires manage_members permission.",
+        "operationId": "createTeamInvite",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "expiresInHours": {
+                    "default": 168,
+                    "maximum": 720,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "maxUses": {
+                    "default": 1,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "role": {
+                    "anyOf": [
+                      {
+                        "enum": ["manager"],
+                        "type": "string"
+                      },
+                      {
+                        "enum": ["member"],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "required": ["code", "expiresAt"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/invites/{inviteId}": {
+      "delete": {
+        "description": "Delete an invite code. Requires manage_members permission.",
+        "operationId": "deleteTeamInvite",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "inviteId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["deleted"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/members": {
+      "get": {
+        "description": "List team members. Requires team access.",
+        "operationId": "listTeamMembers",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "role": {
+                            "type": "string"
+                          },
+                          "subjectId": {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "subjectNs": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["subjectId", "subjectNs", "role"],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": ["items"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
+      }
+    },
+    "/teams/{id}/members/{subjectId}": {
+      "delete": {
+        "description": "Remove a member. Requires manage_members permission.",
+        "operationId": "removeTeamMember",
+        "parameters": [
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID v4 identifier",
+            "in": "path",
+            "name": "subjectId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "removed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["removed"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["teams"]
       }
     },
     "/vouch": {

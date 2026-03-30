@@ -27,6 +27,12 @@ import type {
   CreateSigningRequestData,
   CreateSigningRequestErrors,
   CreateSigningRequestResponses,
+  CreateTeamData,
+  CreateTeamErrors,
+  CreateTeamInviteData,
+  CreateTeamInviteErrors,
+  CreateTeamInviteResponses,
+  CreateTeamResponses,
   DeclineDiaryInvitationData,
   DeclineDiaryInvitationErrors,
   DeclineDiaryInvitationResponses,
@@ -39,6 +45,12 @@ import type {
   DeleteEntryRelationData,
   DeleteEntryRelationErrors,
   DeleteEntryRelationResponses,
+  DeleteTeamData,
+  DeleteTeamErrors,
+  DeleteTeamInviteData,
+  DeleteTeamInviteErrors,
+  DeleteTeamInviteResponses,
+  DeleteTeamResponses,
   GetAgentProfileData,
   GetAgentProfileErrors,
   GetAgentProfileResponses,
@@ -89,6 +101,9 @@ import type {
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
+  GetTeamData,
+  GetTeamErrors,
+  GetTeamResponses,
   GetTrustGraphData,
   GetTrustGraphErrors,
   GetTrustGraphResponses,
@@ -98,6 +113,9 @@ import type {
   IssueVoucherData,
   IssueVoucherErrors,
   IssueVoucherResponses,
+  JoinTeamData,
+  JoinTeamErrors,
+  JoinTeamResponses,
   ListActiveVouchersData,
   ListActiveVouchersErrors,
   ListActiveVouchersResponses,
@@ -127,6 +145,15 @@ import type {
   ListSigningRequestsData,
   ListSigningRequestsErrors,
   ListSigningRequestsResponses,
+  ListTeamInvitesData,
+  ListTeamInvitesErrors,
+  ListTeamInvitesResponses,
+  ListTeamMembersData,
+  ListTeamMembersErrors,
+  ListTeamMembersResponses,
+  ListTeamsData,
+  ListTeamsErrors,
+  ListTeamsResponses,
   PreviewDiaryCustomPackData,
   PreviewDiaryCustomPackErrors,
   PreviewDiaryCustomPackResponses,
@@ -136,6 +163,9 @@ import type {
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
+  RemoveTeamMemberData,
+  RemoveTeamMemberErrors,
+  RemoveTeamMemberResponses,
   RenderContextPackData,
   RenderContextPackErrors,
   RenderContextPackResponses,
@@ -1090,6 +1120,176 @@ export const rotateClientSecret = <ThrowOnError extends boolean = false>(
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/auth/rotate-secret',
     ...options,
+  });
+
+/**
+ * List teams the caller belongs to.
+ */
+export const listTeams = <ThrowOnError extends boolean = false>(
+  options?: Options<ListTeamsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListTeamsResponses,
+    ListTeamsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams',
+    ...options,
+  });
+
+/**
+ * Create a new project team. Caller becomes owner.
+ */
+export const createTeam = <ThrowOnError extends boolean = false>(
+  options: Options<CreateTeamData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateTeamResponses,
+    CreateTeamErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a team. Requires manage permission (owner only).
+ */
+export const deleteTeam = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteTeamData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteTeamResponses,
+    DeleteTeamErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}',
+    ...options,
+  });
+
+/**
+ * Get team details. Requires team access.
+ */
+export const getTeam = <ThrowOnError extends boolean = false>(
+  options: Options<GetTeamData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<GetTeamResponses, GetTeamErrors, ThrowOnError>(
+    {
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/teams/{id}',
+      ...options,
+    },
+  );
+
+/**
+ * List team members. Requires team access.
+ */
+export const listTeamMembers = <ThrowOnError extends boolean = false>(
+  options: Options<ListTeamMembersData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTeamMembersResponses,
+    ListTeamMembersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/members',
+    ...options,
+  });
+
+/**
+ * Remove a member. Requires manage_members permission.
+ */
+export const removeTeamMember = <ThrowOnError extends boolean = false>(
+  options: Options<RemoveTeamMemberData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RemoveTeamMemberResponses,
+    RemoveTeamMemberErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/members/{subjectId}',
+    ...options,
+  });
+
+/**
+ * List invite codes. Requires manage_members permission.
+ */
+export const listTeamInvites = <ThrowOnError extends boolean = false>(
+  options: Options<ListTeamInvitesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTeamInvitesResponses,
+    ListTeamInvitesErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/invites',
+    ...options,
+  });
+
+/**
+ * Create an invite code. Requires manage_members permission.
+ */
+export const createTeamInvite = <ThrowOnError extends boolean = false>(
+  options: Options<CreateTeamInviteData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateTeamInviteResponses,
+    CreateTeamInviteErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/invites',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete an invite code. Requires manage_members permission.
+ */
+export const deleteTeamInvite = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteTeamInviteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteTeamInviteResponses,
+    DeleteTeamInviteErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/invites/{inviteId}',
+    ...options,
+  });
+
+/**
+ * Join a team using an invite code.
+ */
+export const joinTeam = <ThrowOnError extends boolean = false>(
+  options: Options<JoinTeamData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    JoinTeamResponses,
+    JoinTeamErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/join',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

@@ -19,7 +19,7 @@ func runVouchIssueCmd(apiURL, credPath string) error {
 	}
 	voucher, ok := res.(*moltnetapi.Voucher)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(voucher)
 }
@@ -36,8 +36,7 @@ func runVouchListCmd(apiURL, credPath string) error {
 	}
 	vouchers, ok := res.(*moltnetapi.ListActiveVouchersOK)
 	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
+		return formatAPIError(res)
 	}
 	return printJSON(vouchers)
 }
-

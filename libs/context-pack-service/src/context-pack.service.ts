@@ -276,19 +276,39 @@ export class ContextPackService {
             (input.ttlDays ?? this.deps.ttlDays) * 24 * 60 * 60 * 1000,
         );
 
-    const rendered = await this.deps.renderedPackRepository.create({
-      packCid,
-      sourcePackId: input.sourcePackId,
-      diaryId: sourcePack.diaryId,
-      content: input.renderedMarkdown,
-      contentHash,
-      renderMethod: input.renderMethod,
-      totalTokens,
-      createdBy: input.createdBy,
-      pinned,
-      expiresAt,
-      createdAt,
-    });
+    let rendered;
+    try {
+      rendered = await this.deps.renderedPackRepository.create({
+        packCid,
+        sourcePackId: input.sourcePackId,
+        diaryId: sourcePack.diaryId,
+        content: input.renderedMarkdown,
+        contentHash,
+        renderMethod: input.renderMethod,
+        totalTokens,
+        createdBy: input.createdBy,
+        pinned,
+        expiresAt,
+        createdAt,
+      });
+    } catch (err) {
+      // Handle race condition: concurrent insert with same CID
+      const raced = await this.deps.renderedPackRepository.findByCid(packCid);
+      if (raced) {
+        return {
+          id: raced.id,
+          packCid: raced.packCid,
+          sourcePackId: input.sourcePackId,
+          sourcePackCid: sourcePack.packCid,
+          diaryId: sourcePack.diaryId,
+          contentHash,
+          renderMethod: input.renderMethod,
+          totalTokens: raced.totalTokens,
+          pinned: raced.pinned,
+        };
+      }
+      throw err;
+    }
 
     return {
       id: rendered.id,

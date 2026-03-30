@@ -18,11 +18,13 @@ export type {
   NonceRepository,
   RenderedPackRepository,
   SigningRequestRepository,
+  TeamRepository,
   TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
+import type { RelationshipReader } from '@moltnet/auth';
 import type { ContextPackService } from '@moltnet/context-pack-service';
 import type { CryptoService } from '@moltnet/crypto-service';
 import type {
@@ -33,6 +35,7 @@ import type {
   EntryRelationRepository,
   RenderedPackRepository,
   SigningRequestRepository,
+  TeamRepository,
   TransactionRunner,
   VoucherRepository,
 } from '@moltnet/database';
@@ -55,6 +58,8 @@ declare module 'fastify' {
     agentRepository: AgentRepository;
     cryptoService: CryptoService;
     voucherRepository: VoucherRepository;
+    teamRepository: TeamRepository;
+    relationshipReader: RelationshipReader;
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;

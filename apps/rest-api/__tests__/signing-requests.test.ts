@@ -161,6 +161,16 @@ function createApp(
       removeEntryRelations: vi.fn(),
     } as unknown as RelationshipWriter,
     tokenValidator: mockTokenValidator,
+    teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    teamRepository: new Proxy(
+      {},
+      { get: () => vi.fn().mockResolvedValue(null) },
+    ) as never,
+    relationshipReader: {
+      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
+      listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
+      listTeamMembers: vi.fn().mockResolvedValue([]),
+    } as never,
     webhookApiKey: 'test-webhook-api-key',
     recoverySecret: 'test-recovery-secret-at-least-16-chars',
     oryClients: {

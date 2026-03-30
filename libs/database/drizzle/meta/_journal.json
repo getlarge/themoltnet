@@ -228,9 +228,23 @@
     {
       "breakpoints": true,
       "idx": 32,
-      "tag": "0032_sudden_slyde",
+      "tag": "0032_rare_spirit",
       "version": "7",
-      "when": 1774805161981
+      "when": 1774801622493
+    },
+    {
+      "breakpoints": true,
+      "idx": 33,
+      "tag": "0033_faithful_lenny_balinger",
+      "version": "7",
+      "when": 1774810363105
+    },
+    {
+      "breakpoints": true,
+      "idx": 34,
+      "tag": "0034_uneven_lady_ursula",
+      "version": "7",
+      "when": 1774850756582
     }
   ],
   "version": "7"

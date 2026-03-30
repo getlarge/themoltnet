@@ -79,6 +79,12 @@ export {
   type SigningRequestRepository,
 } from './repositories/signing-request.repository.js';
 export {
+  type CreateInviteInput,
+  type CreateTeamInput,
+  createTeamRepository,
+  type TeamRepository,
+} from './repositories/team.repository.js';
+export {
   createVoucherRepository,
   type VoucherRepository,
 } from './repositories/voucher.repository.js';

@@ -34,7 +34,12 @@ export type ProblemDetails = {
     | 'REGISTRATION_FAILED'
     | 'UPSTREAM_ERROR'
     | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR';
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER';
   detail?: string;
   instance?: string;
 };
@@ -59,7 +64,12 @@ export type ValidationProblemDetails = {
     | 'REGISTRATION_FAILED'
     | 'UPSTREAM_ERROR'
     | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR';
+    | 'INTERNAL_SERVER_ERROR'
+    | 'TEAM_PERSONAL_IMMUTABLE'
+    | 'TEAM_NOT_ACTIVE'
+    | 'INVITE_EXPIRED'
+    | 'INVITE_EXHAUSTED'
+    | 'TEAM_LAST_OWNER';
   detail?: string;
   instance?: string;
 } & {
@@ -3289,6 +3299,457 @@ export type RotateClientSecretResponses = {
 export type RotateClientSecretResponse =
   RotateClientSecretResponses[keyof RotateClientSecretResponses];
 
+export type ListTeamsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/teams';
+};
+
+export type ListTeamsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+};
+
+export type ListTeamsError = ListTeamsErrors[keyof ListTeamsErrors];
+
+export type ListTeamsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      id: string;
+      name: string;
+      personal: boolean;
+      status: string;
+      role: string;
+    }>;
+  };
+};
+
+export type ListTeamsResponse = ListTeamsResponses[keyof ListTeamsResponses];
+
+export type CreateTeamData = {
+  body: {
+    name: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/teams';
+};
+
+export type CreateTeamErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type CreateTeamError = CreateTeamErrors[keyof CreateTeamErrors];
+
+export type CreateTeamResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    name: string;
+  };
+};
+
+export type CreateTeamResponse = CreateTeamResponses[keyof CreateTeamResponses];
+
+export type DeleteTeamData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}';
+};
+
+export type DeleteTeamErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteTeamError = DeleteTeamErrors[keyof DeleteTeamErrors];
+
+export type DeleteTeamResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    deleted: boolean;
+  };
+};
+
+export type DeleteTeamResponse = DeleteTeamResponses[keyof DeleteTeamResponses];
+
+export type GetTeamData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}';
+};
+
+export type GetTeamErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetTeamError = GetTeamErrors[keyof GetTeamErrors];
+
+export type GetTeamResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    name: string;
+    status: string;
+    personal: boolean;
+    /**
+     * UUID v4 identifier
+     */
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+    members: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+      role: string;
+    }>;
+  };
+};
+
+export type GetTeamResponse = GetTeamResponses[keyof GetTeamResponses];
+
+export type ListTeamMembersData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/members';
+};
+
+export type ListTeamMembersErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListTeamMembersError =
+  ListTeamMembersErrors[keyof ListTeamMembersErrors];
+
+export type ListTeamMembersResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+      role: string;
+    }>;
+  };
+};
+
+export type ListTeamMembersResponse =
+  ListTeamMembersResponses[keyof ListTeamMembersResponses];
+
+export type RemoveTeamMemberData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+  };
+  query?: never;
+  url: '/teams/{id}/members/{subjectId}';
+};
+
+export type RemoveTeamMemberErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type RemoveTeamMemberError =
+  RemoveTeamMemberErrors[keyof RemoveTeamMemberErrors];
+
+export type RemoveTeamMemberResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    removed: boolean;
+  };
+};
+
+export type RemoveTeamMemberResponse =
+  RemoveTeamMemberResponses[keyof RemoveTeamMemberResponses];
+
+export type ListTeamInvitesData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/invites';
+};
+
+export type ListTeamInvitesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type ListTeamInvitesError =
+  ListTeamInvitesErrors[keyof ListTeamInvitesErrors];
+
+export type ListTeamInvitesResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      code: string;
+      expiresAt: string;
+    }>;
+  };
+};
+
+export type ListTeamInvitesResponse =
+  ListTeamInvitesResponses[keyof ListTeamInvitesResponses];
+
+export type CreateTeamInviteData = {
+  body?: {
+    role?: 'manager' | 'member';
+    maxUses?: number;
+    expiresInHours?: number;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/invites';
+};
+
+export type CreateTeamInviteErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type CreateTeamInviteError =
+  CreateTeamInviteErrors[keyof CreateTeamInviteErrors];
+
+export type CreateTeamInviteResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    code: string;
+    expiresAt: string;
+  };
+};
+
+export type CreateTeamInviteResponse =
+  CreateTeamInviteResponses[keyof CreateTeamInviteResponses];
+
+export type DeleteTeamInviteData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    /**
+     * UUID v4 identifier
+     */
+    inviteId: string;
+  };
+  query?: never;
+  url: '/teams/{id}/invites/{inviteId}';
+};
+
+export type DeleteTeamInviteErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteTeamInviteError =
+  DeleteTeamInviteErrors[keyof DeleteTeamInviteErrors];
+
+export type DeleteTeamInviteResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    deleted: boolean;
+  };
+};
+
+export type DeleteTeamInviteResponse =
+  DeleteTeamInviteResponses[keyof DeleteTeamInviteResponses];
+
+export type JoinTeamData = {
+  body: {
+    code: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/teams/join';
+};
+
+export type JoinTeamErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  410: ProblemDetails;
+};
+
+export type JoinTeamError = JoinTeamErrors[keyof JoinTeamErrors];
+
+export type JoinTeamResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    /**
+     * UUID v4 identifier
+     */
+    teamId: string;
+    role: string;
+  };
+};
+
+export type JoinTeamResponse = JoinTeamResponses[keyof JoinTeamResponses];
+
 export type IssueVoucherData = {
   body?: never;
   path?: never;
@@ -3674,7 +4135,12 @@ export type GetProblemTypeData = {
       | 'registration-failed'
       | 'upstream-error'
       | 'service-unavailable'
-      | 'internal-server-error';
+      | 'internal-server-error'
+      | 'team-personal-immutable'
+      | 'team-not-active'
+      | 'invite-expired'
+      | 'invite-exhausted'
+      | 'team-last-owner';
   };
   query?: never;
   url: '/problems/{type}';

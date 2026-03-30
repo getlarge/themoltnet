@@ -75,20 +75,22 @@ export function fitEntries(
     }
   }
 
-  const resultEntries = selectedEntries
-    .map(({ rank, row }) => {
-      const compiled = compiledById.get(row.id);
-      if (!compiled || !row.contentHash) return null;
-      return {
-        entryId: row.id,
-        entryCidSnapshot: row.contentHash,
-        rank,
-        compressionLevel: compiled.compressionLevel as CompressionLevel,
-        originalTokens: compiled.originalTokens,
-        packedTokens: compiled.compressedTokens,
-      } satisfies FittedEntry;
-    })
-    .filter((e): e is FittedEntry => e !== null);
+  const resultEntries: FittedEntry[] = [];
+  for (const { rank, row } of selectedEntries) {
+    const compiled = compiledById.get(row.id);
+    if (!compiled) continue; // dropped during budget fitting
+    if (!row.contentHash) {
+      throw new Error(`Entry ${row.id} has no contentHash — cannot be packed`);
+    }
+    resultEntries.push({
+      entryId: row.id,
+      entryCidSnapshot: row.contentHash,
+      rank,
+      compressionLevel: compiled.compressionLevel as CompressionLevel,
+      originalTokens: compiled.originalTokens,
+      packedTokens: compiled.compressedTokens,
+    });
+  }
 
   const originalTotal = resultEntries.reduce(
     (sum, e) => sum + e.originalTokens,

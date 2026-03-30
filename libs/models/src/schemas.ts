@@ -269,3 +269,98 @@ export type EntryParams = Static<typeof EntryParamsSchema>;
 export type DiaryParams = Static<typeof DiaryParamsSchema>;
 export type DiaryShareParams = Static<typeof DiaryShareParamsSchema>;
 export type InvitationIdParams = Static<typeof InvitationIdParamsSchema>;
+
+// ============================================================================
+// Team Schemas
+// ============================================================================
+
+export const TeamParamsSchema = Type.Object({
+  id: UuidSchema,
+});
+
+export const TeamMemberParamsSchema = Type.Object({
+  id: UuidSchema,
+  subjectId: UuidSchema,
+});
+
+export const TeamInviteParamsSchema = Type.Object({
+  id: UuidSchema,
+  inviteId: UuidSchema,
+});
+
+export const CreateTeamSchema = Type.Object({
+  name: Type.String({ minLength: 1, maxLength: 255 }),
+});
+
+export const CreateTeamInviteSchema = Type.Object({
+  role: Type.Optional(
+    Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+  ),
+  maxUses: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
+  expiresInHours: Type.Optional(
+    Type.Integer({ minimum: 1, maximum: 720, default: 168 }),
+  ),
+});
+
+export const JoinTeamSchema = Type.Object({
+  code: Type.String({ minLength: 1 }),
+});
+
+export const TeamResponseSchema = Type.Object({
+  id: UuidSchema,
+  name: Type.String(),
+});
+
+export const TeamInviteResponseSchema = Type.Object({
+  code: Type.String(),
+  expiresAt: Type.Unsafe<Date | string>(Type.String({ format: 'date-time' })),
+});
+
+export const TeamMemberSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: Type.String(),
+  role: Type.String(),
+});
+
+export const TeamListItemSchema = Type.Object({
+  id: UuidSchema,
+  name: Type.String(),
+  personal: Type.Boolean(),
+  status: Type.String(),
+  role: Type.String(),
+});
+
+const DateTimeUnsafe = Type.Unsafe<Date | string>(
+  Type.String({ format: 'date-time' }),
+);
+
+export const TeamDetailSchema = Type.Object({
+  id: UuidSchema,
+  name: Type.String(),
+  status: Type.String(),
+  personal: Type.Boolean(),
+  createdBy: UuidSchema,
+  createdAt: DateTimeUnsafe,
+  updatedAt: DateTimeUnsafe,
+  members: Type.Array(TeamMemberSchema),
+});
+
+export const JoinTeamResponseSchema = Type.Object({
+  teamId: UuidSchema,
+  role: Type.String(),
+});
+
+export const DeletedResponseSchema = Type.Object({
+  deleted: Type.Boolean(),
+});
+
+export const RemovedResponseSchema = Type.Object({
+  removed: Type.Boolean(),
+});
+
+export type TeamParams = Static<typeof TeamParamsSchema>;
+export type TeamMemberParams = Static<typeof TeamMemberParamsSchema>;
+export type TeamInviteParams = Static<typeof TeamInviteParamsSchema>;
+export type CreateTeam = Static<typeof CreateTeamSchema>;
+export type CreateTeamInvite = Static<typeof CreateTeamInviteSchema>;
+export type JoinTeam = Static<typeof JoinTeamSchema>;

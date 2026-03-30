@@ -10,8 +10,7 @@ CREATE TABLE "rendered_packs" (
 	"created_by" uuid NOT NULL,
 	"pinned" boolean DEFAULT false NOT NULL,
 	"expires_at" timestamp with time zone DEFAULT (now() + interval '7 days'),
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "rendered_packs" ADD CONSTRAINT "rendered_packs_source_pack_id_context_packs_id_fk" FOREIGN KEY ("source_pack_id") REFERENCES "public"."context_packs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
