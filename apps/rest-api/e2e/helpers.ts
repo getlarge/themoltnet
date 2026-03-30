@@ -1,20 +1,19 @@
 /**
  * E2E Test Helpers
  *
- * Creates real agents through the full registration pipeline:
+ * Creates real agents through the POST /auth/register DBOS workflow:
  * 1. Generate Ed25519 keypair
- * 2. Create Kratos identity (admin API)
- * 3. Call after-registration webhook → DB + Keto
- * 4. Create Hydra OAuth2 client with agent metadata
- * 5. Acquire access token via client_credentials
+ * 2. Register via POST /auth/register (creates Kratos identity, agent record,
+ *    Keto relations, personal team, and OAuth2 client in one workflow)
+ * 3. Acquire access token via client_credentials
+ * 4. Fetch auto-created Private diary
  */
 
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
 import { createClient, createDiary, listDiaries } from '@moltnet/api-client';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
-import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
 export interface TestAgent {
   identityId: string;
@@ -49,120 +48,73 @@ export async function createTestVoucher(opts: {
 }
 
 /**
- * Create a fully-registered agent with a real OAuth2 token.
- * Uses UUID for guaranteed uniqueness across test runs.
- * Requires a valid voucher code for registration.
+ * Create a fully-registered agent via POST /auth/register.
+ * The DBOS workflow handles: Kratos identity, agent record, Keto relations,
+ * personal team, and OAuth2 client creation.
  */
 export async function createAgent(opts: {
   baseUrl: string;
-  identityApi: IdentityApi;
-  hydraAdminOAuth2: OAuth2Api;
-  webhookApiKey: string;
-  voucherCode: string;
+  db: Database;
+  bootstrapIdentityId: string;
 }): Promise<TestAgent> {
-  const uniqueId = randomUUID();
-
   // 1. Generate Ed25519 keypair
   const keyPair = await cryptoService.generateKeyPair();
 
-  // 2. Create identity in Kratos via admin API
-  const identity = await opts.identityApi.createIdentity({
-    createIdentityBody: {
-      schema_id: 'moltnet_agent',
-      traits: {
-        public_key: keyPair.publicKey,
-        voucher_code: opts.voucherCode,
-      },
-      credentials: {
-        password: {
-          config: {
-            password: `e2e-password-${uniqueId}`,
-          },
-        },
-      },
-    },
+  // 2. Create voucher
+  const voucherCode = await createTestVoucher({
+    db: opts.db,
+    issuerId: opts.bootstrapIdentityId,
   });
 
-  const identityId = identity.id;
-
-  // 3. Call after-registration webhook on the containerized server
-  console.log(
-    `[createAgent] Calling webhook at: ${opts.baseUrl}/hooks/kratos/after-registration`,
-  );
-  const webhookResponse = await fetch(
-    `${opts.baseUrl}/hooks/kratos/after-registration`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-ory-api-key': opts.webhookApiKey,
-      },
-      body: JSON.stringify({
-        identity: {
-          id: identityId,
-          traits: {
-            public_key: keyPair.publicKey,
-            voucher_code: opts.voucherCode,
-          },
-        },
-      }),
+  // 3. Register via DBOS workflow
+  const regRes = await fetch(`${opts.baseUrl}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
-  );
-
-  if (!webhookResponse.ok) {
-    const body = await webhookResponse.text();
-    throw new Error(
-      `After-registration webhook failed: ${webhookResponse.status} ${body}`,
-    );
-  }
-
-  // 4. Create OAuth2 client in Hydra via admin API
-  const oauthClient = await opts.hydraAdminOAuth2.createOAuth2Client({
-    oAuth2Client: {
-      client_name: `E2E Agent ${uniqueId}`,
-      grant_types: ['client_credentials'],
-      response_types: [],
-      token_endpoint_auth_method: 'client_secret_post',
-      scope: 'diary:read diary:write crypto:sign agent:profile',
-      metadata: {
-        type: 'moltnet_agent',
-        identity_id: identityId,
-        public_key: keyPair.publicKey,
-        fingerprint: keyPair.fingerprint,
-      },
-    },
+    body: JSON.stringify({
+      public_key: keyPair.publicKey,
+      voucher_code: voucherCode,
+    }),
   });
 
-  if (!oauthClient.client_id || !oauthClient.client_secret) {
-    throw new Error('Hydra did not return client_id/client_secret');
+  if (!regRes.ok) {
+    const body = await regRes.text();
+    throw new Error(`Registration failed: ${regRes.status} ${body}`);
   }
 
-  // 5. Acquire access token via client_credentials grant (through proxy)
-  // Raw fetch: the generated api-client doesn't model the form-encoded body for this endpoint.
-  const tokenResponse = await fetch(`${opts.baseUrl}/oauth2/token`, {
+  const creds = (await regRes.json()) as {
+    identityId: string;
+    fingerprint: string;
+    publicKey: string;
+    clientId: string;
+    clientSecret: string;
+  };
+
+  // 4. Acquire access token via client_credentials grant
+  const tokenRes = await fetch(`${opts.baseUrl}/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
-      client_id: oauthClient.client_id,
-      client_secret: oauthClient.client_secret,
+      client_id: creds.clientId,
+      client_secret: creds.clientSecret,
       scope: 'diary:read diary:write crypto:sign agent:profile',
     }),
   });
 
-  if (!tokenResponse.ok) {
-    const body = await tokenResponse.text();
-    throw new Error(
-      `Token acquisition failed: ${tokenResponse.status} ${body}`,
-    );
+  if (!tokenRes.ok) {
+    const body = await tokenRes.text();
+    throw new Error(`Token acquisition failed: ${tokenRes.status} ${body}`);
   }
 
-  const tokenData = (await tokenResponse.json()) as { access_token: string };
+  const tokenData = (await tokenRes.json()) as { access_token: string };
   const accessToken = tokenData.access_token;
 
   const apiClient = createClient({ baseUrl: opts.baseUrl });
 
-  // 6. Fetch the private diary UUID (auto-created during registration webhook)
+  // 5. Fetch the Private diary (auto-created during registration webhook)
   const { data: diariesData, error: diariesError } = await listDiaries({
     client: apiClient,
     auth: () => accessToken,
@@ -181,8 +133,7 @@ export async function createAgent(opts: {
     );
   }
 
-  // 7. Create a moltnet-visibility diary for tests that require embeddings
-  // (private diaries will not have embeddings in the future)
+  // 6. Create a moltnet-visibility diary for tests that require embeddings
   const { data: moltnetDiary, error: moltnetDiaryError } = await createDiary({
     client: apiClient,
     auth: () => accessToken,
@@ -196,10 +147,10 @@ export async function createAgent(opts: {
   }
 
   return {
-    identityId,
+    identityId: creds.identityId,
     keyPair,
-    clientId: oauthClient.client_id,
-    clientSecret: oauthClient.client_secret,
+    clientId: creds.clientId,
+    clientSecret: creds.clientSecret,
     accessToken,
     privateDiaryId: privateDiary.id,
     moltnetDiaryId: moltnetDiary.id,

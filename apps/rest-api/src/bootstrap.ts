@@ -16,7 +16,6 @@ import {
   createRelationshipWriter,
   createTokenValidator,
 } from '@moltnet/auth';
-import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
   createAgentRepository,
@@ -28,7 +27,6 @@ import {
   createDiaryShareRepository,
   createEntryRelationRepository,
   createNonceRepository,
-  createRenderedPackRepository,
   createSigningRequestRepository,
   createTeamRepository,
   createVoucherRepository,
@@ -175,7 +173,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const contextPackRepository = createContextPackRepository(dbConnection.db);
-  const renderedPackRepository = createRenderedPackRepository(dbConnection.db);
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
@@ -230,6 +227,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           identityApi: oryClients.identity,
           oauth2Api: oryClients.oauth2,
           agentRepository,
+          diaryRepository,
+          teamRepository,
           voucherRepository,
           relationshipWriter,
           dataSource,
@@ -267,7 +266,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         setMaintenanceDeps({
           nonceRepository,
           contextPackRepository,
-          renderedPackRepository,
           dataSource: getDataSource(),
           relationshipWriter,
           logger: app.log,
@@ -293,30 +291,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     transactionRunner,
   });
 
-  const compileTtlDays = config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7;
-  const contextPackService = new ContextPackService({
-    contextPackRepository,
-    renderedPackRepository,
-    entryFetcher: {
-      fetchEntries: async (diaryId: string, ids: string[]) => {
-        const { items } = await diaryEntryRepository.list({
-          diaryId,
-          ids,
-          limit: ids.length,
-        });
-        return items;
-      },
-    },
-    runTransaction: <T>(fn: () => Promise<T>) => dataSource.runTransaction(fn),
-    grantPackParent: (packId: string, diaryId: string) =>
-      relationshipWriter.grantPackParent(packId, diaryId),
-    removePackRelations: (packId: string) =>
-      relationshipWriter.removePackRelations(packId),
-    deleteMany: (ids: string[]) => contextPackRepository.deleteMany(ids),
-    logger: app.log,
-    ttlDays: compileTtlDays,
-  });
-
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
   });
@@ -326,8 +300,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     diaryService,
     diaryEntryRepository,
     contextPackRepository,
-    renderedPackRepository,
-    contextPackService,
     entryRelationRepository,
     embeddingService,
     agentRepository,
