@@ -68,17 +68,10 @@ describe('Concurrency and Atomicity', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
   });
 
@@ -179,16 +172,10 @@ describe('Concurrency and Atomicity', () => {
       { retry: 2 },
       async () => {
         // Create a fresh agent so its voucher count starts at 0
-        const freshVoucher = await createTestVoucher({
-          db: harness.db,
-          issuerId: harness.bootstrapIdentityId,
-        });
         const freshAgent = await createAgent({
           baseUrl: harness.baseUrl,
-          identityApi: harness.identityApi,
-          hydraAdminOAuth2: harness.hydraAdminOAuth2,
-          webhookApiKey: harness.webhookApiKey,
-          voucherCode: freshVoucher,
+          db: harness.db,
+          bootstrapIdentityId: harness.bootstrapIdentityId,
         });
 
         // Issue 4 vouchers sequentially
