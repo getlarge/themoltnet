@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"compress/flate"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -15,54 +18,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// runPackExportCmd is the flag-free business logic for pack export.
-func runPackExportCmd(apiURL, credPath, packID, out string) error {
-	packUUID, err := uuid.Parse(packID)
-	if err != nil {
-		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
-	}
-
-	client, err := newClientFromCreds(apiURL, credPath)
-	if err != nil {
-		return err
-	}
-
-	expand := moltnetapi.NewOptGetContextPackByIdExpand(
-		moltnetapi.GetContextPackByIdExpandEntries,
-	)
-	res, err := client.GetContextPackById(
-		context.Background(),
-		moltnetapi.GetContextPackByIdParams{
-			ID:     packUUID,
-			Expand: expand,
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("pack export: %w", err)
-	}
-	pack, ok := res.(*moltnetapi.ContextPackResponse)
-	if !ok {
-		return formatAPIError(res)
-	}
-
-	md := renderPackMarkdown(packUUID.String(), pack)
-
-	if out != "" {
-		if err := os.WriteFile(out, []byte(md), 0644); err != nil {
-			return fmt.Errorf("write %s: %w", out, err)
-		}
-		fmt.Fprintf(os.Stderr, "[pack export] %d entries → %s\n", len(pack.Entries), out)
-	} else {
-		fmt.Print(md)
-	}
-	return nil
-}
-
 // runPackRenderCmd fetches a pack, renders it locally, and optionally persists via API.
 func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out string) error {
 	packUUID, err := uuid.Parse(packID)
 	if err != nil {
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
+	}
+
+	if strings.HasPrefix(renderMethod, "server:") {
+		return runServerPackRenderCmd(apiURL, credPath, packUUID, renderMethod, preview, pinned, out)
 	}
 
 	client, err := newClientFromCreds(apiURL, credPath)
@@ -89,7 +53,8 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		return fmt.Errorf("unexpected response type: %T", res)
 	}
 
-	// Render locally using the same markdown format as pack export
+	// Non-server methods still persist caller-authored markdown, so the CLI
+	// renders locally before sending the content to the API.
 	md := renderPackMarkdown(packUUID.String(), pack)
 
 	if preview {
@@ -136,6 +101,122 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		return printJSON(result)
 	}
 	return nil
+}
+
+type renderContextPackRequest struct {
+	Pinned           *bool   `json:"pinned,omitempty"`
+	Preview          *bool   `json:"preview,omitempty"`
+	RenderMethod     string  `json:"renderMethod"`
+	RenderedMarkdown *string `json:"renderedMarkdown,omitempty"`
+}
+
+func runServerPackRenderCmd(apiURL, credPath string, packUUID uuid.UUID, renderMethod string, preview bool, pinned *bool, out string) error {
+	creds, err := loadCredentials(credPath)
+	if err != nil {
+		return err
+	}
+	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
+		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
+	}
+
+	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
+	token, err := tm.GetToken()
+	if err != nil {
+		return fmt.Errorf("get token: %w", err)
+	}
+
+	reqBody := renderContextPackRequest{
+		RenderMethod: renderMethod,
+		Pinned:       pinned,
+	}
+	if preview {
+		reqBody.Preview = &preview
+	}
+
+	payload, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("marshal render request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		strings.TrimRight(apiURL, "/")+"/packs/"+packUUID.String()+"/render",
+		bytes.NewReader(payload),
+	)
+	if err != nil {
+		return fmt.Errorf("build render request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := tm.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("render pack: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read render response: %w", err)
+	}
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return formatRenderHTTPError(resp.StatusCode, body)
+	}
+
+	if preview {
+		var result moltnetapi.RenderedPackPreview
+		if err := json.Unmarshal(body, &result); err != nil {
+			return fmt.Errorf("decode render preview: %w", err)
+		}
+		if out != "" {
+			if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
+				return fmt.Errorf("write %s: %w", out, err)
+			}
+			fmt.Fprintf(os.Stderr, "[pack render] preview → %s\n", out)
+		} else {
+			fmt.Print(result.RenderedMarkdown)
+		}
+		return nil
+	}
+
+	var result moltnetapi.RenderedPackResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return fmt.Errorf("decode render result: %w", err)
+	}
+
+	if out != "" {
+		if err := os.WriteFile(out, body, 0644); err != nil {
+			return fmt.Errorf("write %s: %w", out, err)
+		}
+		fmt.Fprintf(os.Stderr, "[pack render] persisted CID=%s → %s\n", result.PackCid, out)
+		return nil
+	}
+
+	return printJSON(result)
+}
+
+func formatRenderHTTPError(status int, body []byte) error {
+	var problem struct {
+		Title  string `json:"title"`
+		Detail string `json:"detail"`
+	}
+	if err := json.Unmarshal(body, &problem); err == nil {
+		switch {
+		case problem.Detail != "":
+			return fmt.Errorf("API error (HTTP %d): %s", status, problem.Detail)
+		case problem.Title != "":
+			return fmt.Errorf("API error (HTTP %d): %s", status, problem.Title)
+		}
+	}
+
+	trimmed := strings.TrimSpace(string(body))
+	if trimmed == "" {
+		return fmt.Errorf("API error (HTTP %d)", status)
+	}
+
+	return fmt.Errorf("API error (HTTP %d): %s", status, trimmed)
 }
 
 // runPackProvenanceCmd is the flag-free business logic for pack provenance.

@@ -12,7 +12,6 @@ func newPackCmd() *cobra.Command {
 		Short: "Context pack commands",
 	}
 
-	packCmd.AddCommand(newPackExportCmd())
 	packCmd.AddCommand(newPackRenderCmd())
 	packCmd.AddCommand(newPackProvenanceCmd())
 	packCmd.AddCommand(newPackCreateCmd())
@@ -21,32 +20,13 @@ func newPackCmd() *cobra.Command {
 	return packCmd
 }
 
-func newPackExportCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "export <pack-uuid>",
-		Short: "Export a context pack as markdown",
-		Long: `Export a context pack as markdown. The pack ID must be a UUID (not a CID).
-Use 'moltnet pack list' or the MCP packs_list tool to find pack UUIDs.`,
-		Example: `  moltnet pack export <pack-uuid>
-  moltnet pack export --out pack.md <pack-uuid>`,
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			apiURL, _ := cmd.Flags().GetString("api-url")
-			credPath, _ := cmd.Flags().GetString("credentials")
-			out, _ := cmd.Flags().GetString("out")
-			return runPackExportCmd(apiURL, credPath, args[0], out)
-		},
-	}
-	cmd.Flags().String("out", "", "Output file path (default: stdout)")
-	return cmd
-}
-
 func newPackRenderCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "render <pack-uuid>",
 		Short: "Render a context pack to structured markdown",
-		Long: `Render a context pack to structured markdown. By default, fetches the
-pack, renders it locally, and persists the rendered pack via the API.
+		Long: `Render a context pack to structured markdown. By default, uses the
+server-side renderer and persists the rendered pack via the API.
+Use a non-server render method to persist caller-rendered markdown instead.
 Use --preview to return the rendered markdown without persisting.`,
 		Example: `  moltnet pack render <pack-uuid>
   moltnet pack render --preview <pack-uuid>
@@ -70,7 +50,7 @@ Use --preview to return the rendered markdown without persisting.`,
 			return runPackRenderCmd(apiURL, credPath, args[0], renderMethod, preview, pinned, out)
 		},
 	}
-	cmd.Flags().String("render-method", "pack-to-docs-v1", "Render method label")
+	cmd.Flags().String("render-method", "server:pack-to-docs-v1", "Render method label")
 	cmd.Flags().Bool("preview", false, "Preview without persisting")
 	cmd.Flags().Bool("pinned", false, "Pin the rendered pack")
 	cmd.Flags().String("out", "", "Output file path (default: stdout)")
