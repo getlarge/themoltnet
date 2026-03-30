@@ -93,9 +93,16 @@ function createMockPermissionChecker(): {
     canViewEntry: vi.fn().mockResolvedValue(true),
     canEditEntry: vi.fn().mockResolvedValue(true),
     canDeleteEntry: vi.fn().mockResolvedValue(true),
+    canEditAnyEntry: vi.fn().mockResolvedValue(false),
     canReadDiary: vi.fn().mockResolvedValue(true),
     canWriteDiary: vi.fn().mockResolvedValue(true),
     canManageDiary: vi.fn().mockResolvedValue(true),
+    canReadPack: vi.fn().mockResolvedValue(false),
+    canReadPacks: vi.fn().mockResolvedValue(new Map()),
+    canManagePack: vi.fn().mockResolvedValue(false),
+    canAccessTeam: vi.fn().mockResolvedValue(false),
+    canManageTeam: vi.fn().mockResolvedValue(false),
+    canManageTeamMembers: vi.fn().mockResolvedValue(false),
   };
 }
 
@@ -104,6 +111,9 @@ function createMockRelationshipReader(): {
 } {
   return {
     listDiaryIdsBySubject: vi.fn().mockResolvedValue([DIARY_ID]),
+    listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
+    listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
+    listTeamMembers: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -113,12 +123,22 @@ function createMockRelationshipWriter(): {
   return {
     grantEntryParent: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
+    registerHuman: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
     grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
     grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
     grantDiaryReader: vi.fn().mockResolvedValue(undefined),
+    grantDiaryTeam: vi.fn().mockResolvedValue(undefined),
+    removeDiaryTeam: vi.fn().mockResolvedValue(undefined),
     removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
     removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
+    grantPackParent: vi.fn().mockResolvedValue(undefined),
+    removePackRelations: vi.fn().mockResolvedValue(undefined),
+    removePackRelationsBatch: vi.fn().mockResolvedValue(undefined),
+    grantTeamOwner: vi.fn().mockResolvedValue(undefined),
+    grantTeamManager: vi.fn().mockResolvedValue(undefined),
+    grantTeamMember: vi.fn().mockResolvedValue(undefined),
+    removeTeamMemberRelation: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -251,7 +271,11 @@ describe('DiaryService', () => {
         importance: 8,
         entryType: 'identity' as const,
       };
-      const result = await service.createEntry(input, OWNER_ID);
+      const result = await service.createEntry(
+        input,
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toEqual(mockEntry);
       expect(diaryWorkflows.createEntry).toHaveBeenCalledWith({
@@ -277,6 +301,7 @@ describe('DiaryService', () => {
             contentHash: 'bafkreibadcid',
           },
           OWNER_ID,
+          KetoNamespace.Agent,
         ),
       ).rejects.toThrow(DiaryServiceError);
 
@@ -289,7 +314,11 @@ describe('DiaryService', () => {
       );
 
       await expect(
-        service.createEntry({ diaryId: DIARY_ID, content: 'Test' }, OWNER_ID),
+        service.createEntry(
+          { diaryId: DIARY_ID, content: 'Test' },
+          OWNER_ID,
+          KetoNamespace.Agent,
+        ),
       ).rejects.toThrow('Failed to grant ownership after entry creation');
     });
   });
@@ -475,6 +504,7 @@ describe('DiaryService', () => {
           query: 'find relevant entries',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(result).toEqual(entries);
@@ -494,7 +524,11 @@ describe('DiaryService', () => {
       repo.search.mockResolvedValue([]);
 
       permissions.canReadDiary.mockResolvedValue(true);
-      await service.searchEntries({ diaryId: DIARY_ID }, OWNER_ID);
+      await service.searchEntries(
+        { diaryId: DIARY_ID },
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(embeddings.embedQuery).not.toHaveBeenCalled();
       expect(repo.search).toHaveBeenCalledWith(
@@ -518,6 +552,7 @@ describe('DiaryService', () => {
           excludeSuperseded: true,
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(repo.search).toHaveBeenCalledWith(
@@ -542,6 +577,7 @@ describe('DiaryService', () => {
           query: 'test query',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(repo.search).toHaveBeenCalledWith(
@@ -832,7 +868,7 @@ describe('DiaryService', () => {
       repo.countSignedByDiary.mockResolvedValue(1);
 
       const err = await service
-        .deleteDiary(DIARY_ID, OWNER_ID)
+        .deleteDiary(DIARY_ID, OWNER_ID, KetoNamespace.Agent)
         .catch((e: unknown) => e);
       expect(err).toBeInstanceOf(DiaryServiceError);
       expect((err as DiaryServiceError).message).toContain(
@@ -846,7 +882,11 @@ describe('DiaryService', () => {
       repo.countSignedByDiary.mockResolvedValue(0);
       diaryRepo.delete.mockResolvedValue(true);
 
-      const result = await service.deleteDiary(DIARY_ID, OWNER_ID);
+      const result = await service.deleteDiary(
+        DIARY_ID,
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
 
       expect(result).toBe(true);
     });
@@ -1186,6 +1226,7 @@ describe('DiaryService — tags filter', () => {
           tags: ['accountable-commit'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(repo.search).toHaveBeenCalledWith({
@@ -1207,6 +1248,7 @@ describe('DiaryService — tags filter', () => {
           tags: ['high-risk'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(repo.search).toHaveBeenCalledWith(
@@ -1225,6 +1267,7 @@ describe('DiaryService — tags filter', () => {
           excludeTags: ['incident'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(repo.search).toHaveBeenCalledWith(

@@ -235,15 +235,17 @@ export function initRegistrationWorkflow(): void {
   const createPrivateDiaryStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
       const { diaryRepository, relationshipWriter } = getDeps();
-      // Idempotent: check if a Private diary already exists
+      // Idempotent: reuse existing diary, always ensure Keto tuple
       const owned = await diaryRepository.listByOwner(identityId);
-      if (owned.some((d) => d.name === 'Private')) return;
-
-      const diary = await diaryRepository.create({
-        ownerId: identityId,
-        name: 'Private',
-        visibility: 'private',
-      });
+      const existing = owned.find((d) => d.name === 'Private');
+      const diary =
+        existing ??
+        (await diaryRepository.create({
+          ownerId: identityId,
+          name: 'Private',
+          visibility: 'private',
+        }));
+      // Keto PUT is idempotent — safe to re-grant on retry
       await relationshipWriter.grantDiaryOwner(
         diary.id,
         identityId,

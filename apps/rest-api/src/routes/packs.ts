@@ -393,6 +393,18 @@ export async function packRoutes(fastify: FastifyInstance) {
             createdAtDate.getTime() + compileTtlDays * 24 * 60 * 60 * 1000,
           );
 
+      // Idempotent: return existing pack if CID already exists (retry/double-submit)
+      const existing = await fastify.contextPackRepository.findByCid(packCid);
+      if (existing) {
+        return {
+          packCid: existing.packCid,
+          packType: 'custom' as const,
+          params: request.body.params,
+          entries,
+          compileStats: stats,
+        };
+      }
+
       // TODO(issue-456): Move custom pack persistence + Keto parent grant into
       // a DBOS workflow with retry/compensation semantics, matching the compile
       // flow. Keto is an external side effect and cannot be made atomic with

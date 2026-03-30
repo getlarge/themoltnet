@@ -360,6 +360,8 @@ describe('Pack routes', () => {
   });
 
   it('creates and persists a custom pack', async () => {
+    // findByCid returns null so the idempotency check doesn't short-circuit
+    mocks.contextPackRepository.findByCid.mockResolvedValueOnce(null);
     const response = await app.inject({
       method: 'POST',
       url: `/diaries/${DIARY_ID}/packs`,
@@ -413,6 +415,8 @@ describe('Pack routes', () => {
   });
 
   it('cleans up a persisted custom pack if Keto parent grant fails', async () => {
+    // findByCid returns null so idempotency check doesn't short-circuit
+    mocks.contextPackRepository.findByCid.mockResolvedValueOnce(null);
     mocks.relationshipWriter.grantPackParent.mockRejectedValue(
       new Error('Keto unavailable'),
     );
