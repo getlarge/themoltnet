@@ -228,7 +228,7 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 | `diary_tags`                                           | `moltnet diary tags <diary-id>`                                                            |
 | `diaries_compile`                                      | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`                |
 | `packs_create`                                         | `moltnet pack create --diary-id <uuid> --entries '<json>'`                                 |
-| `packs_export`                                         | `moltnet pack export <pack-uuid>`                                                          |
+| `packs_render`                                         | `moltnet pack render --preview <pack-uuid> [--out context-pack.md]`                        |
 
 ## Accountable commit workflow
 
@@ -264,6 +264,19 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
    Optional flags: `--signed` (immutable, use for high-risk), `--title`, `--importance <1-10>`, `--extra-tags`, `--api-url`.
    Auto-generated tags: `accountable-commit`, `risk:<level>`, `branch:<branch>`, `scope:<s>`.
    Auto-derived metadata: signer, branch, files-changed, refs, timestamp.
+
+   If this commit group was preceded by a `semantic` entry, immediately link the
+   new `procedural` entry to it:
+
+   ```bash
+   moltnet relations create \
+     --entry-id <procedural-entry-id> \
+     --target-id <semantic-entry-id> \
+     --relation references
+   ```
+
+   This relation is part of the accountable chain: the signed commit entry
+   should point back to the design decision it implements.
 
    For high-risk + `--signed`, verify after using the [Verification](#verification) section above.
    **Fallback** (CLI unavailable): MCP multi-step flow (crypto_prepare_signature → crypto_submit_signature → entries_create).

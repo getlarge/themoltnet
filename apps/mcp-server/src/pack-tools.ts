@@ -276,7 +276,9 @@ export async function handlePacksRender(
     auth: () => token,
     path: { id: args.pack_id },
     body: {
-      renderedMarkdown: args.rendered_markdown,
+      ...(args.rendered_markdown !== undefined && {
+        renderedMarkdown: args.rendered_markdown,
+      }),
       renderMethod: args.render_method,
       pinned: args.pinned,
       preview: args.preview,

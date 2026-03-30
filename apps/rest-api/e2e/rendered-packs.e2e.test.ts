@@ -6,11 +6,15 @@
  * fetch by ID, permission checks, and preview mode.
  */
 
+import { createHash } from 'node:crypto';
+
 import {
   type Client,
+  type ContextPackResponse,
   createClient,
   createDiaryCustomPack,
   createDiaryEntry,
+  getContextPackById,
   getLatestRenderedPack,
   getRenderedPackById,
   listDiaryEntries,
@@ -25,12 +29,48 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
+// Intentionally duplicates the server formatter so this remains a contract test
+// for the exact markdown shape persisted by trusted server render methods.
+function renderExpectedMarkdown(pack: ContextPackResponse): string {
+  const entries = [...(pack.entries ?? [])].sort(
+    (a, b) =>
+      (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER),
+  );
+  const lines: string[] = [];
+
+  lines.push(`# Context Pack ${pack.id}`);
+  lines.push('');
+  lines.push(`- Created: ${pack.createdAt}`);
+  lines.push(`- Entries: ${entries.length}`);
+  lines.push('');
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const heading = entry.entry.title ?? `Entry ${i + 1}`;
+    lines.push(`### ${heading}`);
+    lines.push('');
+    lines.push(`- Entry ID: \`${entry.entryId}\``);
+    lines.push(`- CID: \`${entry.entryCidSnapshot}\``);
+    lines.push(`- Compression: \`${entry.compressionLevel}\``);
+    lines.push(
+      `- Tokens: ${entry.packedTokens ?? '?'}/${entry.originalTokens ?? '?'}`,
+    );
+    lines.push('');
+    lines.push(entry.entry.content);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
 describe('Rendered packs', () => {
   let harness: TestHarness;
   let client: Client;
   let agentA: TestAgent;
   let agentB: TestAgent;
   let sourcePackId: string;
+  let sourcePack: ContextPackResponse;
+  let expectedServerMarkdown: string;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -60,38 +100,30 @@ describe('Rendered packs', () => {
       voucherCode: voucherB,
     });
 
-    // Create diary entries for pack content
-    await Promise.all([
-      createDiaryEntry({
-        client,
-        auth: () => agentA.accessToken,
-        path: { diaryId: agentA.moltnetDiaryId },
-        body: {
-          content: 'Authentication middleware uses RS256 JWT tokens from Ory.',
-          tags: ['auth', 'middleware'],
-          title: 'Auth middleware notes',
-        },
-      }),
-      createDiaryEntry({
-        client,
-        auth: () => agentA.accessToken,
-        path: { diaryId: agentA.moltnetDiaryId },
-        body: {
-          content:
-            'Keto permission checks use relation tuples for diary access.',
-          tags: ['auth', 'keto'],
-          title: 'Keto permission model',
-        },
-      }),
-    ]);
-
-    // Create a custom pack as the source for rendering
-    const { data: entries } = await listDiaryEntries({
+    // Create diary entries for pack content in a fixed order so the expected
+    // server-rendered markdown is deterministic.
+    const { data: firstEntry } = await createDiaryEntry({
       client,
       auth: () => agentA.accessToken,
       path: { diaryId: agentA.moltnetDiaryId },
-      query: { limit: 10 },
+      body: {
+        content: 'Authentication middleware uses RS256 JWT tokens from Ory.',
+        tags: ['auth', 'middleware'],
+        title: 'Auth middleware notes',
+      },
     });
+    const { data: secondEntry } = await createDiaryEntry({
+      client,
+      auth: () => agentA.accessToken,
+      path: { diaryId: agentA.moltnetDiaryId },
+      body: {
+        content: 'Keto permission checks use relation tuples for diary access.',
+        tags: ['auth', 'keto'],
+        title: 'Keto permission model',
+      },
+    });
+    expect(firstEntry).toBeDefined();
+    expect(secondEntry).toBeDefined();
 
     const { data: packData } = await createDiaryCustomPack({
       client,
@@ -100,10 +132,10 @@ describe('Rendered packs', () => {
       body: {
         packType: 'custom',
         params: { recipe: 'render-test' },
-        entries: entries!.items.map((e, i) => ({
-          entryId: e.id,
-          rank: i + 1,
-        })),
+        entries: [
+          { entryId: firstEntry!.id, rank: 1 },
+          { entryId: secondEntry!.id, rank: 2 },
+        ],
         pinned: true,
       },
     });
@@ -118,6 +150,17 @@ describe('Rendered packs', () => {
     const match = packs!.items.find((p) => p.packCid === packData!.packCid);
     expect(match).toBeDefined();
     sourcePackId = match!.id;
+
+    const { data: expandedPack } = await getContextPackById({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: sourcePackId },
+      query: { expand: 'entries' },
+    });
+    expect(expandedPack).toBeDefined();
+    expect(expandedPack?.entries).toHaveLength(2);
+    sourcePack = expandedPack as ContextPackResponse;
+    expectedServerMarkdown = renderExpectedMarkdown(sourcePack);
   }, 60_000);
 
   afterAll(async () => {
@@ -131,8 +174,7 @@ describe('Rendered packs', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          renderedMarkdown: '# Hello',
-          renderMethod: 'pack-to-docs-v1',
+          renderMethod: 'server:pack-to-docs-v1',
         }),
       },
     );
@@ -146,8 +188,7 @@ describe('Rendered packs', () => {
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
       body: {
-        renderedMarkdown: '# Preview content\n\nThis is a preview.',
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'server:pack-to-docs-v1',
         preview: true,
       },
     });
@@ -155,21 +196,20 @@ describe('Rendered packs', () => {
     expect(error, `preview failed: ${JSON.stringify(error)}`).toBeUndefined();
     expect(response.status).toBe(200);
     const preview = data as RenderedPackPreview;
-    expect(preview.sourcePackId).toBeDefined();
-    expect(preview.sourcePackCid).toBeDefined();
+    expect(preview.sourcePackId).toBe(sourcePackId);
+    expect(preview.sourcePackCid).toBe(sourcePack.packCid);
+    expect(preview.renderMethod).toBe('server:pack-to-docs-v1');
+    expect(preview.renderedMarkdown).toBe(expectedServerMarkdown);
     expect(preview.totalTokens).toBeGreaterThan(0);
   });
 
-  it('creates a rendered pack with CID', async () => {
-    const markdown =
-      '# Auth Middleware\n\nRS256 JWT from Ory.\n\n# Keto\n\nRelation tuples.';
+  it('creates a server-rendered pack with CID', async () => {
     const { data, error, response } = await renderContextPack({
       client,
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
       body: {
-        renderedMarkdown: markdown,
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'server:pack-to-docs-v1',
       },
     });
 
@@ -179,22 +219,39 @@ describe('Rendered packs', () => {
     expect(result.id).toBeDefined();
     expect(result.packCid).toMatch(/^bafyr/);
     expect(result.sourcePackId).toBe(sourcePackId);
-    expect(result.contentHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(result.renderMethod).toBe('pack-to-docs-v1');
+    expect(result.sourcePackCid).toBe(sourcePack.packCid);
+    expect(result.contentHash).toBe(
+      createHash('sha256').update(expectedServerMarkdown).digest('hex'),
+    );
+    expect(result.renderMethod).toBe('server:pack-to-docs-v1');
+    expect(result.renderedMarkdown).toBe(expectedServerMarkdown);
     expect(result.totalTokens).toBeGreaterThan(0);
   });
 
-  it('returns existing pack on idempotent re-render with same content', async () => {
-    const markdown =
-      '# Auth Middleware\n\nRS256 JWT from Ory.\n\n# Keto\n\nRelation tuples.';
+  it('persists the exact server-rendered markdown for later injection', async () => {
+    const { data, error, response } = await getLatestRenderedPack({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: sourcePackId },
+    });
 
+    expect(error, `getLatest failed: ${JSON.stringify(error)}`).toBeUndefined();
+    expect(response.status).toBe(200);
+    const latest = data as RenderedPackWithContent;
+    expect(latest.renderMethod).toBe('server:pack-to-docs-v1');
+    expect(latest.content).toBe(expectedServerMarkdown);
+    expect(latest.contentHash).toBe(
+      createHash('sha256').update(expectedServerMarkdown).digest('hex'),
+    );
+  });
+
+  it('returns existing pack on idempotent server re-render', async () => {
     const { data: first } = await renderContextPack({
       client,
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
       body: {
-        renderedMarkdown: markdown,
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'server:pack-to-docs-v1',
       },
     });
 
@@ -203,24 +260,26 @@ describe('Rendered packs', () => {
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
       body: {
-        renderedMarkdown: markdown,
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'server:pack-to-docs-v1',
       },
     });
 
     expect((first as RenderedPackResult).packCid).toBe(
       (second as RenderedPackResult).packCid,
     );
+    expect((first as RenderedPackResult).id).toBe(
+      (second as RenderedPackResult).id,
+    );
   });
 
-  it('creates a new version when content changes (append-only)', async () => {
+  it('creates a new version when agent-rendered content changes', async () => {
     const { data: v1 } = await renderContextPack({
       client,
       auth: () => agentA.accessToken,
       path: { id: sourcePackId },
       body: {
         renderedMarkdown: '# Version 1\n\nOriginal content.',
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'agent-refined',
       },
     });
 
@@ -230,7 +289,7 @@ describe('Rendered packs', () => {
       path: { id: sourcePackId },
       body: {
         renderedMarkdown: '# Version 2\n\nUpdated content with new info.',
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'agent-refined',
       },
     });
 
@@ -297,8 +356,7 @@ describe('Rendered packs', () => {
       auth: () => agentB.accessToken,
       path: { id: sourcePackId },
       body: {
-        renderedMarkdown: '# Unauthorized',
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'server:pack-to-docs-v1',
       },
     });
 
@@ -312,13 +370,41 @@ describe('Rendered packs', () => {
       auth: () => agentA.accessToken,
       path: { id: '00000000-0000-0000-0000-000000000000' },
       body: {
-        renderedMarkdown: '# Hello',
-        renderMethod: 'pack-to-docs-v1',
+        renderMethod: 'server:pack-to-docs-v1',
       },
     });
 
     expect(error).toBeDefined();
     expect(response.status).toBe(404);
+  });
+
+  it('returns 400 when server render methods receive renderedMarkdown', async () => {
+    const { error, response } = await renderContextPack({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: sourcePackId },
+      body: {
+        renderedMarkdown: '# Should be ignored',
+        renderMethod: 'server:pack-to-docs-v1',
+      },
+    });
+
+    expect(error).toBeDefined();
+    expect(response.status).toBe(400);
+  });
+
+  it('returns 400 when non-server render methods omit renderedMarkdown', async () => {
+    const { error, response } = await renderContextPack({
+      client,
+      auth: () => agentA.accessToken,
+      path: { id: sourcePackId },
+      body: {
+        renderMethod: 'agent-refined',
+      },
+    });
+
+    expect(error).toBeDefined();
+    expect(response.status).toBe(400);
   });
 
   it('returns 404 for latest rendered of a pack with no renders', async () => {

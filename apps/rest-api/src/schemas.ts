@@ -938,12 +938,42 @@ export const PackUpdateBodySchema = Type.Object({
   expiresAt: Type.Optional(Type.String({ format: 'date-time' })),
 });
 
-export const RenderPackBodySchema = Type.Object({
-  renderedMarkdown: Type.String({ minLength: 1, maxLength: 500_000 }),
-  renderMethod: Type.String({ minLength: 1, maxLength: 100 }),
-  pinned: Type.Optional(Type.Boolean()),
-  preview: Type.Optional(Type.Boolean()),
-});
+export const RenderPackBodySchema = Type.Object(
+  {
+    renderedMarkdown: Type.Optional(
+      Type.String({
+        minLength: 1,
+        maxLength: 500_000,
+        description:
+          'Caller-authored markdown. Required unless renderMethod starts with "server:".',
+      }),
+    ),
+    renderMethod: Type.String({
+      minLength: 1,
+      maxLength: 100,
+      description:
+        'Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.',
+      examples: ['server:pack-to-docs-v1', 'agent:pack-to-docs-v1'],
+    }),
+    pinned: Type.Optional(Type.Boolean()),
+    preview: Type.Optional(Type.Boolean()),
+  },
+  {
+    additionalProperties: false,
+    description:
+      'Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.',
+    examples: [
+      {
+        renderMethod: 'server:pack-to-docs-v1',
+        preview: true,
+      },
+      {
+        renderMethod: 'agent:pack-to-docs-v1',
+        renderedMarkdown: '# Rendered Pack\n',
+      },
+    ],
+  },
+);
 
 export const RenderedPackParamsSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
@@ -977,6 +1007,7 @@ export const RenderedPackResultSchema = Type.Object(
     diaryId: Type.String({ format: 'uuid' }),
     contentHash: Type.String(),
     renderMethod: Type.String(),
+    renderedMarkdown: Type.String(),
     totalTokens: Type.Integer(),
     pinned: Type.Boolean(),
   },

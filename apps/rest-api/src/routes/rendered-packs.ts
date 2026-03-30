@@ -1,6 +1,5 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { estimateTokens } from '@moltnet/context-distill';
 import { PackServiceError } from '@moltnet/context-pack-service';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -37,6 +36,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         response: {
           200: Type.Ref(RenderedPackPreviewSchema),
           201: Type.Ref(RenderedPackResultSchema),
+          400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
@@ -52,39 +52,48 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       if (!sourcePack) {
         throw createProblem('not-found', 'Source pack not found');
       }
+      const renderedMarkdown =
+        'renderedMarkdown' in request.body
+          ? request.body.renderedMarkdown
+          : undefined;
 
-      if (request.body.preview) {
-        // Preview only requires read permission
-        const canRead = await fastify.permissionChecker.canReadPack(
+      try {
+        if (request.body.preview) {
+          const canRead = await fastify.permissionChecker.canReadPack(
+            sourcePack.id,
+            request.authContext!.identityId,
+          );
+          if (!canRead) {
+            throw createProblem(
+              'forbidden',
+              'Not authorized to read this pack',
+            );
+          }
+
+          const result = await fastify.contextPackService.previewRenderedPack({
+            sourcePackId: request.params.id,
+            renderedMarkdown,
+            renderMethod: request.body.renderMethod,
+          });
+
+          return await reply.code(200).send(result);
+        }
+
+        // Persistence requires manage permission
+        const canManage = await fastify.permissionChecker.canManagePack(
           sourcePack.id,
           request.authContext!.identityId,
         );
-        if (!canRead) {
-          throw createProblem('forbidden', 'Not authorized to read this pack');
+        if (!canManage) {
+          throw createProblem(
+            'forbidden',
+            'Not authorized to manage this pack',
+          );
         }
 
-        return reply.code(200).send({
-          sourcePackId: sourcePack.id,
-          sourcePackCid: sourcePack.packCid,
-          renderMethod: request.body.renderMethod,
-          renderedMarkdown: request.body.renderedMarkdown,
-          totalTokens: estimateTokens(request.body.renderedMarkdown),
-        });
-      }
-
-      // Persistence requires manage permission
-      const canManage = await fastify.permissionChecker.canManagePack(
-        sourcePack.id,
-        request.authContext!.identityId,
-      );
-      if (!canManage) {
-        throw createProblem('forbidden', 'Not authorized to manage this pack');
-      }
-
-      try {
         const result = await fastify.contextPackService.createRenderedPack({
           sourcePackId: request.params.id,
-          renderedMarkdown: request.body.renderedMarkdown,
+          renderedMarkdown,
           renderMethod: request.body.renderMethod,
           createdBy: request.authContext!.identityId,
           pinned: request.body.pinned,
@@ -93,6 +102,9 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         return await reply.code(201).send(result);
       } catch (err) {
         if (err instanceof PackServiceError) {
+          if (err.code === 'validation') {
+            throw createProblem('validation-failed', err.message);
+          }
           if (err.code === 'not_found') {
             throw createProblem('not-found', err.message);
           }

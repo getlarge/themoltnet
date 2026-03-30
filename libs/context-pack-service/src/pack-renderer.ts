@@ -4,7 +4,7 @@ export interface RenderablePackEntry {
   compressionLevel: string;
   originalTokens: number | null;
   packedTokens: number | null;
-  rank: number;
+  rank: number | null;
   entry: {
     title: string | null;
     content: string;
@@ -25,7 +25,11 @@ export interface RenderablePackInput {
  * compression level, token counts, and content.
  */
 export function renderPackToMarkdown(input: RenderablePackInput): string {
-  const sorted = [...input.entries].sort((a, b) => a.rank - b.rank);
+  const sorted = [...input.entries].sort(
+    (a, b) =>
+      (a.rank ?? Number.MAX_SAFE_INTEGER) -
+      (b.rank ?? Number.MAX_SAFE_INTEGER),
+  );
   const lines: string[] = [];
 
   lines.push(`# Context Pack ${input.packId}`);

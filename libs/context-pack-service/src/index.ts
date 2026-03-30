@@ -21,6 +21,8 @@ export type {
   FitResult,
   FitStats,
   FittedEntry,
+  PreviewRenderedPackInput,
+  RenderedPackPreview,
   RenderedPackResult,
   ResolvedSelection,
   SelectedEntry,
