@@ -698,6 +698,7 @@ export type RenderedPackResult = {
   diaryId: string;
   contentHash: string;
   renderMethod: string;
+  renderedMarkdown: string;
   totalTokens: number;
   pinned: boolean;
 };
@@ -2494,8 +2495,17 @@ export type CreateDiaryCustomPackResponse =
   CreateDiaryCustomPackResponses[keyof CreateDiaryCustomPackResponses];
 
 export type RenderContextPackData = {
+  /**
+   * Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+   */
   body: {
+    /**
+     * Caller-authored markdown. Required unless renderMethod starts with "server:".
+     */
     renderedMarkdown?: string;
+    /**
+     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     */
     renderMethod: string;
     pinned?: boolean;
     preview?: boolean;

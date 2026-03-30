@@ -29,6 +29,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
+// Intentionally duplicates the server formatter so this remains a contract test
+// for the exact markdown shape persisted by trusted server render methods.
 function renderExpectedMarkdown(pack: ContextPackResponse): string {
   const entries = [...(pack.entries ?? [])].sort(
     (a, b) =>
@@ -217,10 +219,12 @@ describe('Rendered packs', () => {
     expect(result.id).toBeDefined();
     expect(result.packCid).toMatch(/^bafyr/);
     expect(result.sourcePackId).toBe(sourcePackId);
+    expect(result.sourcePackCid).toBe(sourcePack.packCid);
     expect(result.contentHash).toBe(
       createHash('sha256').update(expectedServerMarkdown).digest('hex'),
     );
     expect(result.renderMethod).toBe('server:pack-to-docs-v1');
+    expect(result.renderedMarkdown).toBe(expectedServerMarkdown);
     expect(result.totalTokens).toBeGreaterThan(0);
   });
 

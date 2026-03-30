@@ -554,5 +554,43 @@ describe('Pack tools', () => {
       const parsed = parseResult<Record<string, unknown>>(result);
       expect(parsed.renderMethod).toBe('server:pack-to-docs-v1');
     });
+
+    it('passes through renderedMarkdown for server render methods and surfaces API validation', async () => {
+      vi.mocked(renderContextPack).mockResolvedValue(
+        sdkErr({
+          error: 'Bad Request',
+          message: 'Bad Request',
+          statusCode: 400,
+          detail:
+            'renderedMarkdown must not be provided for server render methods',
+        }) as never,
+      );
+
+      const result = await handlePacksRender(
+        {
+          pack_id: PACK_ID,
+          render_method: 'server:pack-to-docs-v1',
+          rendered_markdown: '# Caller markdown',
+        },
+        deps,
+        context,
+      );
+
+      expect(renderContextPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: PACK_ID },
+          body: {
+            renderMethod: 'server:pack-to-docs-v1',
+            renderedMarkdown: '# Caller markdown',
+            pinned: undefined,
+            preview: undefined,
+          },
+        }),
+      );
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'renderedMarkdown must not be provided for server render methods',
+      );
+    });
   });
 });

@@ -28737,7 +28737,7 @@ func (s *RenderContextPackReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"renderedMarkdown\"")
 			}
 		default:
-			return d.Skip()
+			return errors.Errorf("unexpected field %q", k)
 		}
 		return nil
 	}); err != nil {
@@ -29028,6 +29028,10 @@ func (s *RenderedPackResult) encodeFields(e *jx.Encoder) {
 		e.Str(s.RenderMethod)
 	}
 	{
+		e.FieldStart("renderedMarkdown")
+		e.Str(s.RenderedMarkdown)
+	}
+	{
 		e.FieldStart("sourcePackCid")
 		e.Str(s.SourcePackCid)
 	}
@@ -29041,16 +29045,17 @@ func (s *RenderedPackResult) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRenderedPackResult = [9]string{
+var jsonFieldsNameOfRenderedPackResult = [10]string{
 	0: "contentHash",
 	1: "diaryId",
 	2: "id",
 	3: "packCid",
 	4: "pinned",
 	5: "renderMethod",
-	6: "sourcePackCid",
-	7: "sourcePackId",
-	8: "totalTokens",
+	6: "renderedMarkdown",
+	7: "sourcePackCid",
+	8: "sourcePackId",
+	9: "totalTokens",
 }
 
 // Decode decodes RenderedPackResult from json.
@@ -29134,8 +29139,20 @@ func (s *RenderedPackResult) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"renderMethod\"")
 			}
-		case "sourcePackCid":
+		case "renderedMarkdown":
 			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.RenderedMarkdown = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"renderedMarkdown\"")
+			}
+		case "sourcePackCid":
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.SourcePackCid = string(v)
@@ -29147,7 +29164,7 @@ func (s *RenderedPackResult) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourcePackCid\"")
 			}
 		case "sourcePackId":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.SourcePackId = v
@@ -29159,7 +29176,7 @@ func (s *RenderedPackResult) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sourcePackId\"")
 			}
 		case "totalTokens":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalTokens = int(v)
@@ -29181,7 +29198,7 @@ func (s *RenderedPackResult) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000001,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

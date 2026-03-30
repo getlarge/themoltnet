@@ -72,6 +72,7 @@ export interface RenderedPackResult {
   diaryId: string;
   contentHash: string;
   renderMethod: string;
+  renderedMarkdown: string;
   totalTokens: number;
   pinned: boolean;
 }

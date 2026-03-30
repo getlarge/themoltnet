@@ -164,6 +164,7 @@ describe('ContextPackService', () => {
       expect(result.sourcePackCid).toBe(SOURCE_PACK_CID);
       expect(result.diaryId).toBe('diary-uuid');
       expect(result.renderMethod).toBe('pack-to-docs-v1');
+      expect(result.renderedMarkdown).toBe('# Hello\n\nThis is rendered content.');
       expect(result.contentHash).toMatch(/^[0-9a-f]{64}$/);
       expect(result.totalTokens).toBeGreaterThan(0);
       expect(deps.renderedPackRepository.create).toHaveBeenCalledOnce();
@@ -207,7 +208,7 @@ describe('ContextPackService', () => {
       });
       const service = new ContextPackService(deps);
 
-      await service.createRenderedPack({
+      const createResult = await service.createRenderedPack({
         sourcePackId: 'pack-uuid',
         renderMethod: 'server:pack-to-docs-v1',
         createdBy: 'identity-uuid',
@@ -216,6 +217,8 @@ describe('ContextPackService', () => {
       expect(deps.contextPackRepository.listEntriesExpanded).toHaveBeenCalledWith(
         'pack-uuid',
       );
+      expect(createResult.renderedMarkdown).toContain('# Context Pack pack-uuid');
+      expect(createResult.renderedMarkdown).toContain('Auth middleware notes');
       const createCall = vi.mocked(deps.renderedPackRepository.create).mock
         .calls[0][0] as Record<string, unknown>;
       expect(createCall.content).toContain('# Context Pack pack-uuid');

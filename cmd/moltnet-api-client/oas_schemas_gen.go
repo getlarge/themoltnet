@@ -11151,10 +11151,15 @@ type RenderContextPackNotFound ProblemDetails
 
 func (*RenderContextPackNotFound) renderContextPackRes() {}
 
+// Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server
+// derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
 type RenderContextPackReq struct {
-	Pinned           OptBool   `json:"pinned"`
-	Preview          OptBool   `json:"preview"`
-	RenderMethod     string    `json:"renderMethod"`
+	Pinned  OptBool `json:"pinned"`
+	Preview OptBool `json:"preview"`
+	// Render method label. Trusted server render methods start with "server:" and must omit
+	// renderedMarkdown.
+	RenderMethod string `json:"renderMethod"`
+	// Caller-authored markdown. Required unless renderMethod starts with "server:".
 	RenderedMarkdown OptString `json:"renderedMarkdown"`
 }
 
@@ -11265,15 +11270,16 @@ func (*RenderedPackPreview) renderContextPackRes() {}
 
 // Ref: #/components/schemas/RenderedPackResult
 type RenderedPackResult struct {
-	ContentHash   string    `json:"contentHash"`
-	DiaryId       uuid.UUID `json:"diaryId"`
-	ID            uuid.UUID `json:"id"`
-	PackCid       string    `json:"packCid"`
-	Pinned        bool      `json:"pinned"`
-	RenderMethod  string    `json:"renderMethod"`
-	SourcePackCid string    `json:"sourcePackCid"`
-	SourcePackId  uuid.UUID `json:"sourcePackId"`
-	TotalTokens   int       `json:"totalTokens"`
+	ContentHash      string    `json:"contentHash"`
+	DiaryId          uuid.UUID `json:"diaryId"`
+	ID               uuid.UUID `json:"id"`
+	PackCid          string    `json:"packCid"`
+	Pinned           bool      `json:"pinned"`
+	RenderMethod     string    `json:"renderMethod"`
+	RenderedMarkdown string    `json:"renderedMarkdown"`
+	SourcePackCid    string    `json:"sourcePackCid"`
+	SourcePackId     uuid.UUID `json:"sourcePackId"`
+	TotalTokens      int       `json:"totalTokens"`
 }
 
 // GetContentHash returns the value of ContentHash.
@@ -11304,6 +11310,11 @@ func (s *RenderedPackResult) GetPinned() bool {
 // GetRenderMethod returns the value of RenderMethod.
 func (s *RenderedPackResult) GetRenderMethod() string {
 	return s.RenderMethod
+}
+
+// GetRenderedMarkdown returns the value of RenderedMarkdown.
+func (s *RenderedPackResult) GetRenderedMarkdown() string {
+	return s.RenderedMarkdown
 }
 
 // GetSourcePackCid returns the value of SourcePackCid.
@@ -11349,6 +11360,11 @@ func (s *RenderedPackResult) SetPinned(val bool) {
 // SetRenderMethod sets the value of RenderMethod.
 func (s *RenderedPackResult) SetRenderMethod(val string) {
 	s.RenderMethod = val
+}
+
+// SetRenderedMarkdown sets the value of RenderedMarkdown.
+func (s *RenderedPackResult) SetRenderedMarkdown(val string) {
+	s.RenderedMarkdown = val
 }
 
 // SetSourcePackCid sets the value of SourcePackCid.

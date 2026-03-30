@@ -199,6 +199,7 @@ export class ContextPackService {
         diaryId: sourcePack.diaryId,
         contentHash,
         renderMethod: input.renderMethod,
+        renderedMarkdown,
         totalTokens: existing.totalTokens,
         pinned: existing.pinned,
       };
@@ -241,6 +242,7 @@ export class ContextPackService {
           diaryId: sourcePack.diaryId,
           contentHash,
           renderMethod: input.renderMethod,
+          renderedMarkdown,
           totalTokens: raced.totalTokens,
           pinned: raced.pinned,
         };
@@ -256,6 +258,7 @@ export class ContextPackService {
       diaryId: rendered.diaryId,
       contentHash: rendered.contentHash,
       renderMethod: rendered.renderMethod,
+      renderedMarkdown,
       totalTokens: rendered.totalTokens,
       pinned: rendered.pinned,
     };

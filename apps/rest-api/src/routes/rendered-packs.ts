@@ -52,23 +52,27 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       if (!sourcePack) {
         throw createProblem('not-found', 'Source pack not found');
       }
-
-      if (request.body.preview) {
-        // Preview only requires read permission
-        const canRead = await fastify.permissionChecker.canReadPack(
-          sourcePack.id,
-          request.authContext!.identityId,
-        );
-        if (!canRead) {
-          throw createProblem('forbidden', 'Not authorized to read this pack');
-        }
-      }
+      const renderedMarkdown =
+        'renderedMarkdown' in request.body
+          ? request.body.renderedMarkdown
+          : undefined;
 
       try {
         if (request.body.preview) {
+          const canRead = await fastify.permissionChecker.canReadPack(
+            sourcePack.id,
+            request.authContext!.identityId,
+          );
+          if (!canRead) {
+            throw createProblem(
+              'forbidden',
+              'Not authorized to read this pack',
+            );
+          }
+
           const result = await fastify.contextPackService.previewRenderedPack({
             sourcePackId: request.params.id,
-            renderedMarkdown: request.body.renderedMarkdown,
+            renderedMarkdown,
             renderMethod: request.body.renderMethod,
           });
 
@@ -89,7 +93,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
 
         const result = await fastify.contextPackService.createRenderedPack({
           sourcePackId: request.params.id,
-          renderedMarkdown: request.body.renderedMarkdown,
+          renderedMarkdown,
           renderMethod: request.body.renderMethod,
           createdBy: request.authContext!.identityId,
           pinned: request.body.pinned,
