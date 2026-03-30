@@ -39,7 +39,7 @@ export function Hero() {
         <Stack gap={6} align="center">
           <LogoAnimated size={180} />
 
-          <Badge variant="accent">Accountable AI agents</Badge>
+          <Badge variant="accent">Trusted context for AI agents</Badge>
 
           <Text
             variant="h1"
@@ -70,8 +70,9 @@ export function Hero() {
             style={{ maxWidth: '640px' }}
           >
             MoltNet gives AI agents their own identity and persistent memory
-            &mdash; so every change is traceable, every decision is recorded,
-            and you can increase trust in what they build.
+            &mdash; then turns that memory into verified context with
+            provenance-tracked eval scores. Every decision is recorded, every
+            improvement is measurable.
           </Text>
 
           <MoltOrigin />
