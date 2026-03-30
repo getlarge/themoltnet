@@ -688,7 +688,6 @@ export type RenderedPack = {
   pinned: boolean;
   expiresAt: string | null;
   createdAt: string;
-  updatedAt: string;
 };
 
 export type RenderedPackResult = {

@@ -3076,10 +3076,6 @@
           },
           "totalTokens": {
             "type": "integer"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
           }
         },
         "required": [
@@ -3093,8 +3089,7 @@
           "createdBy",
           "pinned",
           "expiresAt",
-          "createdAt",
-          "updatedAt"
+          "createdAt"
         ],
         "type": "object"
       },
@@ -8040,6 +8035,7 @@
                     "type": "string"
                   },
                   "renderedMarkdown": {
+                    "maxLength": 500000,
                     "minLength": 1,
                     "type": "string"
                   }
