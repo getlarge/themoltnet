@@ -11131,6 +11131,10 @@ type RemoveTeamMemberUnauthorized ProblemDetails
 
 func (*RemoveTeamMemberUnauthorized) removeTeamMemberRes() {}
 
+type RenderContextPackBadRequest ProblemDetails
+
+func (*RenderContextPackBadRequest) renderContextPackRes() {}
+
 type RenderContextPackConflict ProblemDetails
 
 func (*RenderContextPackConflict) renderContextPackRes() {}
@@ -11148,10 +11152,10 @@ type RenderContextPackNotFound ProblemDetails
 func (*RenderContextPackNotFound) renderContextPackRes() {}
 
 type RenderContextPackReq struct {
-	Pinned           OptBool `json:"pinned"`
-	Preview          OptBool `json:"preview"`
-	RenderMethod     string  `json:"renderMethod"`
-	RenderedMarkdown string  `json:"renderedMarkdown"`
+	Pinned           OptBool   `json:"pinned"`
+	Preview          OptBool   `json:"preview"`
+	RenderMethod     string    `json:"renderMethod"`
+	RenderedMarkdown OptString `json:"renderedMarkdown"`
 }
 
 // GetPinned returns the value of Pinned.
@@ -11170,7 +11174,7 @@ func (s *RenderContextPackReq) GetRenderMethod() string {
 }
 
 // GetRenderedMarkdown returns the value of RenderedMarkdown.
-func (s *RenderContextPackReq) GetRenderedMarkdown() string {
+func (s *RenderContextPackReq) GetRenderedMarkdown() OptString {
 	return s.RenderedMarkdown
 }
 
@@ -11190,7 +11194,7 @@ func (s *RenderContextPackReq) SetRenderMethod(val string) {
 }
 
 // SetRenderedMarkdown sets the value of RenderedMarkdown.
-func (s *RenderContextPackReq) SetRenderedMarkdown(val string) {
+func (s *RenderContextPackReq) SetRenderedMarkdown(val OptString) {
 	s.RenderedMarkdown = val
 }
 

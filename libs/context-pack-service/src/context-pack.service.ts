@@ -13,6 +13,7 @@ import type {
 import { fitEntries } from './entry-fitter.js';
 import type { EntryFetcher } from './entry-loader.js';
 import { loadSelectedEntries } from './entry-loader.js';
+import { renderPackToMarkdown } from './pack-renderer.js';
 import type {
   CreateCustomPackInput,
   CreateRenderedPackInput,
@@ -21,7 +22,6 @@ import type {
   RenderedPackPreview,
   RenderedPackResult,
 } from './types.js';
-import { renderPackToMarkdown } from './pack-renderer.js';
 
 export interface ContextPackServiceDeps {
   contextPackRepository: Pick<

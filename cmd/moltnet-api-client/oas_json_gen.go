@@ -28455,6 +28455,44 @@ func (s *RemoveTeamMemberUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes RenderContextPackBadRequest as json.
+func (s *RenderContextPackBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenderContextPackBadRequest from json.
+func (s *RenderContextPackBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenderContextPackBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenderContextPackBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenderContextPackBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenderContextPackBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes RenderContextPackConflict as json.
 func (s *RenderContextPackConflict) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -28633,8 +28671,10 @@ func (s *RenderContextPackReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.RenderMethod)
 	}
 	{
-		e.FieldStart("renderedMarkdown")
-		e.Str(s.RenderedMarkdown)
+		if s.RenderedMarkdown.Set {
+			e.FieldStart("renderedMarkdown")
+			s.RenderedMarkdown.Encode(e)
+		}
 	}
 }
 
@@ -28687,11 +28727,9 @@ func (s *RenderContextPackReq) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"renderMethod\"")
 			}
 		case "renderedMarkdown":
-			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.RenderedMarkdown = string(v)
-				if err != nil {
+				s.RenderedMarkdown.Reset()
+				if err := s.RenderedMarkdown.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -28708,7 +28746,7 @@ func (s *RenderContextPackReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001100,
+		0b00000100,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

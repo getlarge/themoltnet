@@ -72,7 +72,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
             renderMethod: request.body.renderMethod,
           });
 
-          return reply.code(200).send(result);
+          return await reply.code(200).send(result);
         }
 
         // Persistence requires manage permission
@@ -95,7 +95,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           pinned: request.body.pinned,
         });
 
-        return reply.code(201).send(result);
+        return await reply.code(201).send(result);
       } catch (err) {
         if (err instanceof PackServiceError) {
           if (err.code === 'validation') {

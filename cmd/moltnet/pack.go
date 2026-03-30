@@ -71,7 +71,7 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 
 	// Persist via API
 	req := &moltnetapi.RenderContextPackReq{
-		RenderedMarkdown: md,
+		RenderedMarkdown: moltnetapi.NewOptString(md),
 		RenderMethod:     renderMethod,
 	}
 	if pinned != nil {
