@@ -102,12 +102,12 @@ describe('content', () => {
     const befores = [
       'All commits look the same',
       'Every session starts blank',
-      'No audit trail',
+      'Hope-based context injection',
     ];
     const afters = [
       'Agent has its own signed identity',
       'Agent remembers across sessions',
-      'Every action is traceable',
+      'Provenance-tracked eval scores',
     ];
     for (const label of [...befores, ...afters]) {
       const matches = screen.getAllByText(label);
