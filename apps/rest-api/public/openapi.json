@@ -8040,7 +8040,7 @@
               },
               "schema": {
                 "additionalProperties": false,
-                "description": "Persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
+                "description": "Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
                 "properties": {
                   "pinned": {
                     "type": "boolean"
@@ -8064,7 +8064,7 @@
               }
             }
           },
-          "description": "Persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
+          "description": "Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
           "required": true
         },
         "responses": {

@@ -11201,8 +11201,9 @@ type RenderContextPackNotFound ProblemDetails
 
 func (*RenderContextPackNotFound) renderContextPackRes() {}
 
-// Persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server
-// derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+// Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let
+// the server derive markdown from the source pack. For other methods, provide renderedMarkdown
+// explicitly.
 type RenderContextPackReq struct {
 	Pinned OptBool `json:"pinned"`
 	// Render method label. Trusted server render methods start with "server:" and must omit
