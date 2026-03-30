@@ -822,14 +822,18 @@ export const PackRenderSchema = Type.Object({
     format: 'uuid',
     description: 'Source context pack UUID to render',
   }),
-  rendered_markdown: Type.String({
-    minLength: 1,
-    description: 'The rendered markdown content',
-  }),
+  rendered_markdown: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description:
+        'The rendered markdown content. Omit this when render_method starts with "server:".',
+    }),
+  ),
   render_method: Type.String({
     minLength: 1,
     maxLength: 100,
-    description: 'Render method label, e.g. "pack-to-docs-v1", "agent-refined"',
+    description:
+      'Render method label, e.g. "server:pack-to-docs-v1", "agent-refined"',
   }),
   pinned: Type.Optional(
     Type.Boolean({
@@ -846,9 +850,7 @@ export const PackRenderSchema = Type.Object({
 
 export type PackRenderInput = {
   pack_id: PathOf<RenderContextPackData>['id'];
-  rendered_markdown: NonNullable<
-    BodyOf<RenderContextPackData>
-  >['renderedMarkdown'];
+  rendered_markdown?: BodyOf<RenderContextPackData>['renderedMarkdown'];
   render_method: NonNullable<BodyOf<RenderContextPackData>>['renderMethod'];
   pinned?: NonNullable<BodyOf<RenderContextPackData>>['pinned'];
   preview?: NonNullable<BodyOf<RenderContextPackData>>['preview'];

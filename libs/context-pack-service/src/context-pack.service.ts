@@ -17,8 +17,11 @@ import type {
   CreateCustomPackInput,
   CreateRenderedPackInput,
   FitResult,
+  PreviewRenderedPackInput,
+  RenderedPackPreview,
   RenderedPackResult,
 } from './types.js';
+import { renderPackToMarkdown } from './pack-renderer.js';
 
 export interface ContextPackServiceDeps {
   contextPackRepository: Pick<
@@ -172,7 +175,13 @@ export class ContextPackService {
       );
     }
 
-    const contentHash = computeContentHash(input.renderedMarkdown);
+    const renderedMarkdown = await this.resolveRenderedMarkdown(
+      sourcePack.id,
+      sourcePack.createdAt,
+      input.renderMethod,
+      input.renderedMarkdown,
+    );
+    const contentHash = computeContentHash(renderedMarkdown);
     const packCid = computeRenderedPackCid({
       sourcePackCid: sourcePack.packCid,
       renderMethod: input.renderMethod,
@@ -195,7 +204,7 @@ export class ContextPackService {
       };
     }
 
-    const totalTokens = estimateTokens(input.renderedMarkdown);
+    const totalTokens = estimateTokens(renderedMarkdown);
     const pinned = input.pinned ?? false;
     const createdAt = new Date();
     const expiresAt = pinned
@@ -211,7 +220,7 @@ export class ContextPackService {
         packCid,
         sourcePackId: input.sourcePackId,
         diaryId: sourcePack.diaryId,
-        content: input.renderedMarkdown,
+        content: renderedMarkdown,
         contentHash,
         renderMethod: input.renderMethod,
         totalTokens,
@@ -250,6 +259,70 @@ export class ContextPackService {
       totalTokens: rendered.totalTokens,
       pinned: rendered.pinned,
     };
+  }
+
+  async previewRenderedPack(
+    input: PreviewRenderedPackInput,
+  ): Promise<RenderedPackPreview> {
+    const sourcePack = await this.deps.contextPackRepository.findById(
+      input.sourcePackId,
+    );
+    if (!sourcePack) {
+      throw new PackServiceError(
+        `Source pack ${input.sourcePackId} not found`,
+        'not_found',
+      );
+    }
+
+    const renderedMarkdown = await this.resolveRenderedMarkdown(
+      sourcePack.id,
+      sourcePack.createdAt,
+      input.renderMethod,
+      input.renderedMarkdown,
+    );
+
+    return {
+      sourcePackId: sourcePack.id,
+      sourcePackCid: sourcePack.packCid,
+      renderMethod: input.renderMethod,
+      renderedMarkdown,
+      totalTokens: estimateTokens(renderedMarkdown),
+    };
+  }
+
+  private async resolveRenderedMarkdown(
+    sourcePackId: string,
+    createdAt: Date,
+    renderMethod: string,
+    renderedMarkdown?: string,
+  ): Promise<string> {
+    if (renderMethod.startsWith('server:')) {
+      if (renderedMarkdown !== undefined) {
+        throw new PackServiceError(
+          'renderedMarkdown must not be provided for server render methods',
+          'validation',
+        );
+      }
+
+      const entries = await this.deps.contextPackRepository.listEntriesExpanded(
+        sourcePackId,
+      );
+
+      return renderPackToMarkdown({
+        packId: sourcePackId,
+        createdAt: createdAt.toISOString(),
+        entries,
+      });
+    }
+
+    if (renderedMarkdown === undefined) {
+      throw new PackServiceError(
+        'renderedMarkdown is required for non-server render methods',
+        'validation',
+      );
+    }
+
+    return renderedMarkdown;
   }
 
   /**

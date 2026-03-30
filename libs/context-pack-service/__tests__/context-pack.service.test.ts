@@ -169,6 +169,59 @@ describe('ContextPackService', () => {
       expect(deps.renderedPackRepository.create).toHaveBeenCalledOnce();
     });
 
+    it('renders server methods from source pack entries', async () => {
+      const deps = makeDeps({
+        contextPackRepository: {
+          ...makeDeps().contextPackRepository,
+          listEntriesExpanded: vi.fn().mockResolvedValue([
+            {
+              id: 'pack-entry-1',
+              packId: 'pack-uuid',
+              entryId: 'entry-1',
+              entryCidSnapshot: ENTRY_CID,
+              compressionLevel: 'full',
+              originalTokens: 12,
+              packedTokens: 12,
+              rank: 1,
+              createdAt: new Date('2026-03-29'),
+              entry: {
+                id: 'entry-1',
+                diaryId: 'diary-uuid',
+                title: 'Auth middleware notes',
+                content: 'Authentication middleware uses RS256 JWT tokens.',
+                tags: ['auth'],
+                injectionRisk: false,
+                importance: 5,
+                accessCount: 0,
+                lastAccessedAt: null,
+                entryType: 'semantic',
+                contentHash: ENTRY_CID,
+                contentSignature: null,
+                createdAt: new Date('2026-03-29'),
+                updatedAt: new Date('2026-03-29'),
+                creator: null,
+              },
+            },
+          ]),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await service.createRenderedPack({
+        sourcePackId: 'pack-uuid',
+        renderMethod: 'server:pack-to-docs-v1',
+        createdBy: 'identity-uuid',
+      });
+
+      expect(deps.contextPackRepository.listEntriesExpanded).toHaveBeenCalledWith(
+        'pack-uuid',
+      );
+      const createCall = vi.mocked(deps.renderedPackRepository.create).mock
+        .calls[0][0] as Record<string, unknown>;
+      expect(createCall.content).toContain('# Context Pack pack-uuid');
+      expect(createCall.content).toContain('Auth middleware notes');
+    });
+
     it('throws not_found when source pack does not exist', async () => {
       const deps = makeDeps({
         contextPackRepository: {
@@ -215,6 +268,41 @@ describe('ContextPackService', () => {
       expect(deps.renderedPackRepository.create).not.toHaveBeenCalled();
     });
 
+    it('rejects renderedMarkdown for server render methods', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.createRenderedPack({
+          sourcePackId: 'pack-uuid',
+          renderedMarkdown: '# Hello',
+          renderMethod: 'server:pack-to-docs-v1',
+          createdBy: 'identity-uuid',
+        }),
+      ).rejects.toMatchObject({
+        code: 'validation',
+        message:
+          'renderedMarkdown must not be provided for server render methods',
+      });
+    });
+
+    it('requires renderedMarkdown for non-server render methods', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.createRenderedPack({
+          sourcePackId: 'pack-uuid',
+          renderMethod: 'agent-refined',
+          createdBy: 'identity-uuid',
+        }),
+      ).rejects.toMatchObject({
+        code: 'validation',
+        message:
+          'renderedMarkdown is required for non-server render methods',
+      });
+    });
+
     it('respects pinned flag', async () => {
       const deps = makeDeps();
       const service = new ContextPackService(deps);
@@ -231,6 +319,54 @@ describe('ContextPackService', () => {
         .calls[0][0] as Record<string, unknown>;
       expect(createCall.pinned).toBe(true);
       expect(createCall.expiresAt).toBeNull();
+    });
+
+    it('previews server-rendered markdown without persisting', async () => {
+      const deps = makeDeps({
+        contextPackRepository: {
+          ...makeDeps().contextPackRepository,
+          listEntriesExpanded: vi.fn().mockResolvedValue([
+            {
+              id: 'pack-entry-1',
+              packId: 'pack-uuid',
+              entryId: 'entry-1',
+              entryCidSnapshot: ENTRY_CID,
+              compressionLevel: 'summary',
+              originalTokens: 12,
+              packedTokens: 6,
+              rank: 1,
+              createdAt: new Date('2026-03-29'),
+              entry: {
+                id: 'entry-1',
+                diaryId: 'diary-uuid',
+                title: null,
+                content: 'Keto permission checks use relation tuples.',
+                tags: ['auth'],
+                injectionRisk: false,
+                importance: 5,
+                accessCount: 0,
+                lastAccessedAt: null,
+                entryType: 'semantic',
+                contentHash: ENTRY_CID,
+                contentSignature: null,
+                createdAt: new Date('2026-03-29'),
+                updatedAt: new Date('2026-03-29'),
+                creator: null,
+              },
+            },
+          ]),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      const result = await service.previewRenderedPack({
+        sourcePackId: 'pack-uuid',
+        renderMethod: 'server:pack-to-docs-v1',
+      });
+
+      expect(result.renderedMarkdown).toContain('# Context Pack pack-uuid');
+      expect(result.renderedMarkdown).toContain('Keto permission checks');
+      expect(deps.renderedPackRepository.create).not.toHaveBeenCalled();
     });
   });
 });

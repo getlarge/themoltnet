@@ -939,7 +939,9 @@ export const PackUpdateBodySchema = Type.Object({
 });
 
 export const RenderPackBodySchema = Type.Object({
-  renderedMarkdown: Type.String({ minLength: 1, maxLength: 500_000 }),
+  renderedMarkdown: Type.Optional(
+    Type.String({ minLength: 1, maxLength: 500_000 }),
+  ),
   renderMethod: Type.String({ minLength: 1, maxLength: 100 }),
   pinned: Type.Optional(Type.Boolean()),
   preview: Type.Optional(Type.Boolean()),

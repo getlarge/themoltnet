@@ -51,11 +51,17 @@ export interface CreateCustomPackInput {
 
 export interface CreateRenderedPackInput {
   sourcePackId: string;
-  renderedMarkdown: string;
+  renderedMarkdown?: string;
   renderMethod: string;
   createdBy: string;
   pinned?: boolean;
   ttlDays?: number;
+}
+
+export interface PreviewRenderedPackInput {
+  sourcePackId: string;
+  renderedMarkdown?: string;
+  renderMethod: string;
 }
 
 export interface RenderedPackResult {
@@ -68,4 +74,12 @@ export interface RenderedPackResult {
   renderMethod: string;
   totalTokens: number;
   pinned: boolean;
+}
+
+export interface RenderedPackPreview {
+  sourcePackId: string;
+  sourcePackCid: string;
+  renderMethod: string;
+  renderedMarkdown: string;
+  totalTokens: number;
 }
