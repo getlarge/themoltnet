@@ -6,6 +6,7 @@ import type {
   AuthContext,
   OryClients,
   PermissionChecker,
+  RelationshipReader,
   RelationshipWriter,
   TokenValidator,
 } from '@moltnet/auth';
@@ -21,8 +22,10 @@ import type {
   DiaryEntryRepository,
   DiaryService,
   EmbeddingService,
+  GroupRepository,
   NonceRepository,
   SigningRequestRepository,
+  TeamRepository,
   TransactionRunner,
   VoucherRepository,
 } from '../src/types.js';
@@ -177,6 +180,11 @@ export interface MockServices {
     updateStatus: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
+  groupRepository: { [K in keyof GroupRepository]: ReturnType<typeof vi.fn> };
+  teamRepository: { [K in keyof TeamRepository]: ReturnType<typeof vi.fn> };
+  relationshipReader: {
+    [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
+  };
 }
 
 export function createMockServices(): MockServices {
@@ -244,6 +252,12 @@ export function createMockServices(): MockServices {
       findById: vi.fn(),
       listByEntry: vi.fn().mockResolvedValue([]),
       updateStatus: vi.fn(),
+      delete: vi.fn(),
+    },
+    groupRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      listByTeamId: vi.fn().mockResolvedValue([]),
       delete: vi.fn(),
     },
     agentRepository: {
@@ -324,6 +338,10 @@ export function createMockServices(): MockServices {
       grantTeamManager: vi.fn(),
       grantTeamMember: vi.fn(),
       removeTeamMemberRelation: vi.fn(),
+      grantGroupParent: vi.fn(),
+      grantGroupMember: vi.fn(),
+      removeGroupMember: vi.fn(),
+      removeGroupRelations: vi.fn(),
       removeEntryRelations: vi.fn(),
       removePackRelations: vi.fn(),
       removePackRelationsBatch: vi.fn(),
@@ -334,6 +352,29 @@ export function createMockServices(): MockServices {
     },
     transactionRunner: {
       runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
+    },
+    teamRepository: {
+      create: vi.fn(),
+      findById: vi.fn(),
+      listByIds: vi.fn().mockResolvedValue([]),
+      findPersonalByCreator: vi.fn(),
+      updateStatus: vi.fn(),
+      delete: vi.fn(),
+      createInvite: vi.fn(),
+      findInviteByCode: vi.fn(),
+      claimInvite: vi.fn(),
+      incrementInviteUseCount: vi.fn(),
+      listInvites: vi.fn(),
+      deleteInvite: vi.fn(),
+      deleteInviteByTeam: vi.fn(),
+      revertInviteClaim: vi.fn().mockResolvedValue(null),
+    },
+    relationshipReader: {
+      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
+      listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
+      listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
+      listTeamMembers: vi.fn().mockResolvedValue([]),
+      listGroupMembers: vi.fn().mockResolvedValue([]),
     },
   };
 }
@@ -401,28 +442,9 @@ export async function createTestApp(
     teamResolver: {
       findPersonalTeamId: async () => null,
     },
-    teamRepository: {
-      create: vi.fn(),
-      findById: vi.fn(),
-      listByIds: vi.fn().mockResolvedValue([]),
-      findPersonalByCreator: vi.fn(),
-      updateStatus: vi.fn(),
-      delete: vi.fn(),
-      createInvite: vi.fn(),
-      findInviteByCode: vi.fn(),
-      claimInvite: vi.fn(),
-      incrementInviteUseCount: vi.fn(),
-      listInvites: vi.fn(),
-      deleteInvite: vi.fn(),
-      deleteInviteByTeam: vi.fn(),
-      revertInviteClaim: vi.fn().mockResolvedValue(null),
-    },
-    relationshipReader: {
-      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
-      listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
-      listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
-      listTeamMembers: vi.fn().mockResolvedValue([]),
-    },
+    teamRepository: mocks.teamRepository as never,
+    groupRepository: mocks.groupRepository as never,
+    relationshipReader: mocks.relationshipReader as never,
     hydraPublicUrl: 'http://hydra-mock:4444',
     webhookApiKey: TEST_WEBHOOK_API_KEY,
     recoverySecret: TEST_RECOVERY_SECRET,

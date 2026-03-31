@@ -6,6 +6,9 @@ import type {
   AcceptDiaryInvitationData,
   AcceptDiaryInvitationErrors,
   AcceptDiaryInvitationResponses,
+  AddGroupMemberData,
+  AddGroupMemberErrors,
+  AddGroupMemberResponses,
   CompileDiaryData,
   CompileDiaryErrors,
   CompileDiaryResponses,
@@ -24,6 +27,9 @@ import type {
   CreateEntryRelationData,
   CreateEntryRelationErrors,
   CreateEntryRelationResponses,
+  CreateGroupData,
+  CreateGroupErrors,
+  CreateGroupResponses,
   CreateSigningRequestData,
   CreateSigningRequestErrors,
   CreateSigningRequestResponses,
@@ -45,6 +51,9 @@ import type {
   DeleteEntryRelationData,
   DeleteEntryRelationErrors,
   DeleteEntryRelationResponses,
+  DeleteGroupData,
+  DeleteGroupErrors,
+  DeleteGroupResponses,
   DeleteTeamData,
   DeleteTeamErrors,
   DeleteTeamInviteData,
@@ -72,6 +81,9 @@ import type {
   GetDiaryEntryByIdResponses,
   GetDiaryErrors,
   GetDiaryResponses,
+  GetGroupData,
+  GetGroupErrors,
+  GetGroupResponses,
   GetHealthData,
   GetHealthResponses,
   GetLatestRenderedPackData,
@@ -140,6 +152,12 @@ import type {
   ListEntryRelationsData,
   ListEntryRelationsErrors,
   ListEntryRelationsResponses,
+  ListGroupMembersData,
+  ListGroupMembersErrors,
+  ListGroupMembersResponses,
+  ListGroupsData,
+  ListGroupsErrors,
+  ListGroupsResponses,
   ListProblemTypesData,
   ListProblemTypesResponses,
   ListSigningRequestsData,
@@ -166,6 +184,9 @@ import type {
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
+  RemoveGroupMemberData,
+  RemoveGroupMemberErrors,
+  RemoveGroupMemberResponses,
   RemoveTeamMemberData,
   RemoveTeamMemberErrors,
   RemoveTeamMemberResponses,
@@ -1313,6 +1334,126 @@ export const joinTeam = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * List groups within a team. Requires team access.
+ */
+export const listGroups = <ThrowOnError extends boolean = false>(
+  options: Options<ListGroupsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListGroupsResponses,
+    ListGroupsErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/groups',
+    ...options,
+  });
+
+/**
+ * Create a group within a team. Requires manage_members permission.
+ */
+export const createGroup = <ThrowOnError extends boolean = false>(
+  options: Options<CreateGroupData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateGroupResponses,
+    CreateGroupErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/teams/{id}/groups',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a group. Requires manage_members permission.
+ */
+export const deleteGroup = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteGroupData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteGroupResponses,
+    DeleteGroupErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/groups/{groupId}',
+    ...options,
+  });
+
+/**
+ * Get group details. Requires team access.
+ */
+export const getGroup = <ThrowOnError extends boolean = false>(
+  options: Options<GetGroupData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetGroupResponses,
+    GetGroupErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/groups/{groupId}',
+    ...options,
+  });
+
+/**
+ * List group members. Requires team access.
+ */
+export const listGroupMembers = <ThrowOnError extends boolean = false>(
+  options: Options<ListGroupMembersData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListGroupMembersResponses,
+    ListGroupMembersErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/groups/{groupId}/members',
+    ...options,
+  });
+
+/**
+ * Add a member to a group. Requires manage_members permission.
+ */
+export const addGroupMember = <ThrowOnError extends boolean = false>(
+  options: Options<AddGroupMemberData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AddGroupMemberResponses,
+    AddGroupMemberErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/groups/{groupId}/members',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Remove a member from a group. Requires manage_members permission.
+ */
+export const removeGroupMember = <ThrowOnError extends boolean = false>(
+  options: Options<RemoveGroupMemberData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RemoveGroupMemberResponses,
+    RemoveGroupMemberErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/groups/{groupId}/members/{subjectId}',
+    ...options,
   });
 
 /**
