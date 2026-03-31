@@ -6,6 +6,7 @@ import (
 	osExec "os/exec"
 	"path/filepath"
 	"sort"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -33,9 +34,31 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, dryRun bool)
 		return fmt.Errorf("%q not found in PATH", target)
 	}
 
-	// Build environment: current env + agent env vars (agent vars override)
-	env := os.Environ()
+	// Resolve relative paths in env vars against the .moltnet directory's
+	// parent (repo root). This ensures paths like .moltnet/<agent>/gitconfig
+	// work correctly when launched from a linked worktree where .moltnet/
+	// was resolved from the main worktree.
+	repoRoot := filepath.Dir(moltnetDir)
 	for k, v := range vars {
+		if k == "GIT_CONFIG_GLOBAL" && v != "" && !filepath.IsAbs(v) {
+			vars[k] = filepath.Join(repoRoot, v)
+		}
+	}
+
+	// Build environment: current env with agent env vars replacing any
+	// inherited duplicates. Appending would leave stale values from a
+	// previous session visible to the child process.
+	envMap := make(map[string]string)
+	for _, entry := range os.Environ() {
+		if idx := strings.IndexByte(entry, '='); idx > 0 {
+			envMap[entry[:idx]] = entry[idx+1:]
+		}
+	}
+	for k, v := range vars {
+		envMap[k] = v
+	}
+	env := make([]string, 0, len(envMap))
+	for k, v := range envMap {
 		env = append(env, k+"="+v)
 	}
 

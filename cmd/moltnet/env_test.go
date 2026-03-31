@@ -283,8 +283,10 @@ func TestStartDryRun(t *testing.T) {
 	if !strings.Contains(stdout, "MY_VAR=hello") {
 		t.Errorf("expected MY_VAR in dry-run output, got: %s", stdout)
 	}
-	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL=") {
-		t.Errorf("expected GIT_CONFIG_GLOBAL in dry-run output, got: %s", stdout)
+	// GIT_CONFIG_GLOBAL should be resolved to an absolute path
+	absGitconfig := filepath.Join(dir, ".moltnet", "test-agent", "gitconfig")
+	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL="+absGitconfig) {
+		t.Errorf("expected absolute GIT_CONFIG_GLOBAL path, got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "echo") {
 		t.Errorf("expected target command in dry-run output, got: %s", stdout)
