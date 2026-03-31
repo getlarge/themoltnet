@@ -36,6 +36,7 @@ type trialScores struct {
 	name    string
 	reward  float64
 	details map[string]float64
+	err     string // non-empty if the trial failed
 }
 
 // evalResult holds the outcome for one eval task.
@@ -279,9 +280,41 @@ func extractResults(jobDir string) ([]evalResult, error) {
 }
 
 func readTrialScores(trialDir string) (*trialScores, error) {
+	scores := &trialScores{}
+
+	// Check for trial-level errors first
+	resultPath := filepath.Join(trialDir, "result.json")
+	if data, err := os.ReadFile(resultPath); err == nil {
+		var result struct {
+			ExceptionInfo *struct {
+				Type    string `json:"exception_type"`
+				Message string `json:"exception_message"`
+			} `json:"exception_info"`
+		}
+		if err := json.Unmarshal(data, &result); err == nil && result.ExceptionInfo != nil {
+			scores.err = result.ExceptionInfo.Type
+			// Try to extract a short reason from the message
+			if msg := result.ExceptionInfo.Message; len(msg) > 0 {
+				// Look for common patterns
+				if strings.Contains(msg, "Not logged in") {
+					scores.err += ": OAuth token expired — re-authenticate and retry"
+				} else if strings.Contains(msg, "ECONNRESET") || strings.Contains(msg, "TLS connect error") {
+					scores.err += ": TLS connection failed — check Docker networking"
+				} else if strings.Contains(msg, "timed out") {
+					scores.err += ": agent timed out"
+				}
+			}
+		}
+	}
+
+	// Try to read reward even if there was an error (judge may have run)
 	rewardPath := filepath.Join(trialDir, "verifier", "reward.json")
 	rewardData, err := os.ReadFile(rewardPath)
 	if err != nil {
+		if scores.err != "" {
+			// No reward but we have error context — return what we have
+			return scores, nil
+		}
 		return nil, fmt.Errorf("reading reward.json: %w", err)
 	}
 
@@ -291,8 +324,7 @@ func readTrialScores(trialDir string) (*trialScores, error) {
 	if err := json.Unmarshal(rewardData, &reward); err != nil {
 		return nil, fmt.Errorf("parsing reward.json: %w", err)
 	}
-
-	scores := &trialScores{reward: reward.Reward}
+	scores.reward = reward.Reward
 
 	// scores.json is optional
 	scoresPath := filepath.Join(trialDir, "verifier", "scores.json")
@@ -316,34 +348,50 @@ func printSummary(results []evalResult, model string) {
 	printBatchSummary(results, model)
 }
 
+func printVariantLine(label string, s *trialScores) {
+	if s == nil {
+		return
+	}
+	if s.err != "" {
+		fmt.Printf("  %-18s  FAILED — %s\n", label+":", s.err)
+	} else {
+		fmt.Printf("  %-18s  %.2f  (%.1f%%)\n", label+":", s.reward, s.reward*100)
+	}
+}
+
 func printSingleSummary(r evalResult, model string) {
 	fmt.Printf("Eval: %s\n", r.taskName)
 	fmt.Printf("Model: %s\n\n", model)
 
-	if r.withoutContext != nil {
-		fmt.Printf("  Without context:  %.2f  (%.1f%%)\n", r.withoutContext.reward, r.withoutContext.reward*100)
-	}
-	if r.withContext != nil {
-		fmt.Printf("  With context:     %.2f  (%.1f%%)\n", r.withContext.reward, r.withContext.reward*100)
-	}
-	if r.withoutContext != nil && r.withContext != nil {
+	printVariantLine("Without context", r.withoutContext)
+	printVariantLine("With context", r.withContext)
+
+	if r.withoutContext != nil && r.withContext != nil &&
+		r.withoutContext.err == "" && r.withContext.err == "" {
 		delta := r.withContext.reward - r.withoutContext.reward
-		fmt.Printf("  Delta:           %+.2f  (%+.1f%%)\n", delta, delta*100)
+		fmt.Printf("  Delta:              %+.2f  (%+.1f%%)\n", delta, delta*100)
 	}
 
 	// Print per-criterion details for the best variant
 	best := r.withContext
-	if best == nil {
+	if best == nil || best.err != "" {
 		best = r.withoutContext
 	}
-	if best != nil && len(best.details) > 0 {
+	if best != nil && best.err == "" && len(best.details) > 0 {
 		label := "with context"
-		if r.withContext == nil {
+		if r.withContext == nil || r.withContext.err != "" {
 			label = "without context"
 		}
 		fmt.Printf("\n  Criteria (%s):\n", label)
 		for name, score := range best.details {
 			fmt.Printf("    %.0f%%  %s\n", score*100, name)
+		}
+	}
+
+	// Show log paths for failed trials
+	for _, s := range []*trialScores{r.withoutContext, r.withContext} {
+		if s != nil && s.err != "" && s.name != "" {
+			fmt.Printf("\n  Logs: %s/\n", s.name)
 		}
 	}
 	fmt.Println()
@@ -362,18 +410,36 @@ func printBatchSummary(results []evalResult, model string) {
 		delta := "—"
 
 		if r.withoutContext != nil {
-			without = fmt.Sprintf("%.1f%%", r.withoutContext.reward*100)
+			if r.withoutContext.err != "" {
+				without = "FAILED"
+			} else {
+				without = fmt.Sprintf("%.1f%%", r.withoutContext.reward*100)
+			}
 		}
 		if r.withContext != nil {
-			with = fmt.Sprintf("%.1f%%", r.withContext.reward*100)
+			if r.withContext.err != "" {
+				with = "FAILED"
+			} else {
+				with = fmt.Sprintf("%.1f%%", r.withContext.reward*100)
+			}
 		}
-		if r.withoutContext != nil && r.withContext != nil {
+		if r.withoutContext != nil && r.withContext != nil &&
+			r.withoutContext.err == "" && r.withContext.err == "" {
 			d := r.withContext.reward - r.withoutContext.reward
 			delta = fmt.Sprintf("%+.1f%%", d*100)
 			deltas = append(deltas, d)
 		}
 
 		fmt.Printf("  %-30s  %-9s  %-9s  %s\n", r.taskName, without, with, delta)
+	}
+
+	// Show error details for failed trials
+	for _, r := range results {
+		for _, s := range []*trialScores{r.withoutContext, r.withContext} {
+			if s != nil && s.err != "" {
+				fmt.Printf("\n  %s: %s", s.name, s.err)
+			}
+		}
 	}
 
 	if len(deltas) > 0 {
