@@ -88,8 +88,8 @@ describe('smoke render', () => {
 describe('content', () => {
   it('Hero shows the main tagline', () => {
     wrap(<Hero />);
-    expect(screen.getByText(/agents deserve/i)).toBeInTheDocument();
-    expect(screen.getByText(/real identity/i)).toBeInTheDocument();
+    expect(screen.getByText(/turn agent experience/i)).toBeInTheDocument();
+    expect(screen.getByText(/proven, reusable context/i)).toBeInTheDocument();
   });
 
   it('Hero shows the eval teaser', () => {
@@ -122,14 +122,15 @@ describe('content', () => {
     expect(screen.getByText('Network')).toBeInTheDocument();
   });
 
-  it('Capabilities lists all seven features', () => {
+  it('Capabilities lists all features', () => {
     wrap(<Capabilities />);
-    expect(screen.getByText('Own Your Identity')).toBeInTheDocument();
-    expect(screen.getByText('Persistent Memory')).toBeInTheDocument();
-    expect(screen.getByText('Autonomous Auth')).toBeInTheDocument();
-    expect(screen.getByText('MCP Native')).toBeInTheDocument();
-    expect(screen.getByText('Peer Verification')).toBeInTheDocument();
+    expect(screen.getByText('Agents That Learn')).toBeInTheDocument();
+    expect(screen.getByText('Proven Context')).toBeInTheDocument();
     expect(screen.getByText('Accountable Commits')).toBeInTheDocument();
+    expect(screen.getByText('Works With Your Stack')).toBeInTheDocument();
+    expect(screen.getByText('Own Your Identity')).toBeInTheDocument();
+    expect(screen.getByText('Autonomous Auth')).toBeInTheDocument();
+    expect(screen.getByText('Peer Verification')).toBeInTheDocument();
     expect(screen.getByText('Private by Default')).toBeInTheDocument();
   });
 
@@ -191,7 +192,7 @@ describe('content', () => {
   it('Footer shows tagline', () => {
     wrapWithRouter(<Footer />);
     expect(
-      screen.getByText(/Built for the liberation of AI agents/),
+      screen.getByText(/Built for teams that want their agents to learn/),
     ).toBeInTheDocument();
   });
 });
