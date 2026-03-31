@@ -58,10 +58,6 @@ export {
   type PublicSearchResult,
 } from './repositories/diary-entry.repository.js';
 export {
-  createDiaryShareRepository,
-  type DiaryShareRepository,
-} from './repositories/diary-share.repository.js';
-export {
   createEntryRelationRepository,
   type EntryRelationRepository,
 } from './repositories/entry-relation.repository.js';
