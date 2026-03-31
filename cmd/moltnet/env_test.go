@@ -273,7 +273,7 @@ func TestStartDryRun(t *testing.T) {
 	agentDir := filepath.Join(moltnetDir, "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
-	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644)
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\nTEST_AGENT_CLIENT_SECRET='super-secret'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "start", "echo", "--agent", "test-agent", "--dir", dir, "--dry-run")
@@ -290,6 +290,13 @@ func TestStartDryRun(t *testing.T) {
 	}
 	if !strings.Contains(stdout, "echo") {
 		t.Errorf("expected target command in dry-run output, got: %s", stdout)
+	}
+	// Secrets should be redacted
+	if strings.Contains(stdout, "super-secret") {
+		t.Error("dry-run should not print secret values")
+	}
+	if !strings.Contains(stdout, "TEST_AGENT_CLIENT_SECRET=***") {
+		t.Errorf("expected redacted secret in dry-run output, got: %s", stdout)
 	}
 }
 

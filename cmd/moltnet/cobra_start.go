@@ -11,10 +11,11 @@ import "github.com/spf13/cobra"
 // the Use line and examples below.
 func newStartCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start <claude|codex>",
+		Use:   "start <target>",
 		Short: "Start an agent session with resolved credentials",
-		Long: `Start a Claude or Codex session with the resolved agent's environment.
-Sources the agent's .moltnet/<agent>/env file and exec's into the target.`,
+		Long: `Start an agent session with the resolved agent's environment.
+Sources the agent's .moltnet/<agent>/env file and exec's into the target binary.
+Common targets: claude, codex.`,
 		Example: `  moltnet start claude
   moltnet start codex
   moltnet start claude --agent legreffier

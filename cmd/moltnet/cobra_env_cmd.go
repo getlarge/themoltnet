@@ -13,6 +13,7 @@ func newEnvCmd() *cobra.Command {
 		Short: "Validate agent env file against required variables",
 		Example: `  moltnet env check
   moltnet env check --agent legreffier`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, _ := cmd.Flags().GetString("dir")
 			agent, _ := cmd.Flags().GetString("agent")

@@ -72,11 +72,21 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, dryRun bool)
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			fmt.Fprintf(cmd.OutOrStdout(), "  %s=%s\n", k, vars[k])
+			v := vars[k]
+			if isSecretKey(k) {
+				v = "***"
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "  %s=%s\n", k, v)
 		}
 		return nil
 	}
 
 	// exec replaces the current process
 	return syscall.Exec(targetPath, []string{target}, env)
+}
+
+// isSecretKey returns true for env var names that likely contain secrets.
+func isSecretKey(key string) bool {
+	return strings.HasSuffix(key, "_CLIENT_SECRET") ||
+		strings.Contains(key, "_PRIVATE_KEY")
 }
