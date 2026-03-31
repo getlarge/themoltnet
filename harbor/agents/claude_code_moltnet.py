@@ -57,14 +57,25 @@ class ClaudeCodeMoltNet(ClaudeCode):
         if not project_root.is_dir():
             return None
 
+        candidates = []
         for project_dir in project_root.iterdir():
             if not project_dir.is_dir():
                 continue
             # Only look for top-level JSONL files (not in subagent dirs)
             jsonl_files = list(project_dir.glob("*.jsonl"))
             if jsonl_files:
-                return project_dir
+                candidates.append(project_dir)
 
+        if len(candidates) == 1:
+            return candidates[0]
+        if len(candidates) > 1:
+            # Pick most recently modified; log for debuggability
+            picked = max(candidates, key=lambda d: d.stat().st_mtime)
+            print(
+                f"Multiple project dirs with sessions: "
+                f"{[d.name for d in candidates]}, using {picked.name}"
+            )
+            return picked
         return None
 
     async def _wait_for_api_connectivity(
@@ -79,7 +90,7 @@ class ClaudeCodeMoltNet(ClaudeCode):
         for attempt in range(1, _CONNECTIVITY_MAX_ATTEMPTS + 1):
             result = await environment.exec(
                 "curl -sS --tls-max 1.2 --max-time 5 "
-                f"-o /dev/null https://{_API_HOST}/ 2>&1",
+                f"-o /dev/null https://{_API_HOST}/",
             )
             if result.return_code == 0:
                 logger.info(
@@ -88,11 +99,9 @@ class ClaudeCodeMoltNet(ClaudeCode):
                     _CONNECTIVITY_MAX_ATTEMPTS,
                 )
                 return
-            error_line = ""
-            for line in (result.stdout or "").splitlines():
-                if "error" in line.lower() or "curl:" in line:
-                    error_line = line.strip()
-                    break
+            # Harbor merges stderr into stdout; -sS errors appear there
+            output = (result.stdout or "").strip()
+            error_line = output.split("\n")[-1] if output else ""
             logger.warning(
                 "API connectivity check failed (attempt %d/%d, rc=%d), "
                 "retrying in %.1fs — %s",

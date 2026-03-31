@@ -48,7 +48,7 @@ async function scaffoldTask(
 
   await rm(taskDir, { recursive: true, force: true });
   await mkdir(join(taskDir, 'environment'), { recursive: true });
-  await mkdir(join(taskDir, 'tests', 'judge'), { recursive: true });
+  await mkdir(join(taskDir, 'tests'), { recursive: true });
 
   await writeFile(join(taskDir, 'task.toml'), templates.taskToml);
 
@@ -89,15 +89,6 @@ async function scaffoldTask(
   await writeFile(join(taskDir, 'tests', 'test.sh'), templates.testSh, {
     mode: 0o755,
   });
-
-  await copyFile(
-    join(judgeDir, 'package.json'),
-    join(taskDir, 'tests', 'judge', 'package.json'),
-  );
-  await copyFile(
-    join(judgeDir, 'judge.js'),
-    join(taskDir, 'tests', 'judge', 'judge.js'),
-  );
 
   console.log(`  ${variant}`);
 }
