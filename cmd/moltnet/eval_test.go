@@ -137,7 +137,7 @@ func TestExtractResults(t *testing.T) {
 
 	// Create mock trial dirs matching Harbor's naming convention
 	trial1 := filepath.Join(dir, "codegen-chain__abc123")
-	trial2 := filepath.Join(dir, "codegen-chain-with-conte__def456")
+	trial2 := filepath.Join(dir, "codegen-chain-with-con__def456")
 
 	for _, td := range []string{trial1, trial2} {
 		os.MkdirAll(filepath.Join(td, "verifier"), 0o755)

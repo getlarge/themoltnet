@@ -241,15 +241,16 @@ func extractResults(jobDir string) ([]evalResult, error) {
 		}
 		trialName := parts[0]
 
-		// Determine if this is a with-context variant
-		isContext := strings.HasSuffix(trialName, "-with-conte") ||
-			strings.HasSuffix(trialName, "-with-context")
+		// Determine if this is a with-context variant.
+		// Harbor truncates long task names, so "-with-context" may appear
+		// as "-with-conte", "-with-con", etc.
+		isContext := strings.Contains(trialName, "-with-con")
 
 		baseName := trialName
 		if isContext {
-			// Strip the -with-conte(xt) suffix to get the base task name
-			baseName = strings.TrimSuffix(baseName, "-with-conte")
-			baseName = strings.TrimSuffix(baseName, "-with-context")
+			// Strip everything from "-with-con" onward to get the base name
+			idx := strings.Index(baseName, "-with-con")
+			baseName = baseName[:idx]
 		}
 
 		groups[baseName] = append(groups[baseName], trialInfo{
