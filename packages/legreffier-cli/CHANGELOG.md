@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.26.2...legreffier-v0.27.0) (2026-03-31)
+
+
+### Features
+
+* **cli:** session launcher — moltnet start, use, env check ([7e564f5](https://github.com/getlarge/themoltnet/commit/7e564f5ba21f3d20c9218ecf3098baf9d40079f1))
+
 ## [0.26.2](https://github.com/getlarge/themoltnet/compare/legreffier-v0.26.1...legreffier-v0.26.2) (2026-03-29)
 
 
