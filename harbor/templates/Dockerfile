@@ -18,6 +18,15 @@ RUN mkdir -p /home/agent/.claude && \
     echo '{"hasCompletedOnboarding":true}' > /home/agent/.claude.json && \
     chown -R agent:agent /home/agent/.claude /home/agent/.claude.json
 
+# Pre-install judge with dependencies. test.sh runs from /opt/judge
+# where node_modules are already present (no network or write access needed).
+COPY judge/ /opt/judge/
+RUN cd /opt/judge && npm install --ignore-scripts
+
+# Docker Desktop macOS VM fails TLS 1.3 handshakes with Cloudflare edge IPs
+# (api.anthropic.com). Force TLS 1.2 max for Node.js (Claude CLI + judge).
+ENV NODE_OPTIONS="--tls-max-v1.2"
+
 USER agent
 
 WORKDIR /app

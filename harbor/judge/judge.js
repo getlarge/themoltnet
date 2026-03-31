@@ -3,24 +3,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
 
-interface Criterion {
-  name: string;
-  description: string;
-  max_score: number;
-}
-
-interface Criteria {
-  type: string;
-  context: string;
-  checklist: Criterion[];
-}
-
-interface ScoredCriterion {
-  name: string;
-  score: number;
-  max_score: number;
-  evidence: string;
-}
+/**
+ * @typedef {{ name: string; description: string; max_score: number }} Criterion
+ * @typedef {{ type: string; context: string; checklist: Criterion[] }} Criteria
+ * @typedef {{ name: string; score: number; max_score: number; evidence: string }} ScoredCriterion
+ */
 
 /**
  * Build a clean env for the Claude Code subprocess spawned by the SDK.
@@ -28,16 +15,30 @@ interface ScoredCriterion {
  * Only strips CLAUDECODE (nested-session guard). Keeps CLAUDE_CODE_OAUTH_TOKEN
  * because inside the Harbor Docker container it's the primary auth credential
  * (via docker/sandbox-templates:claude-code with apiKeyHelper stripped).
+ * @returns {Record<string, string | undefined>}
  */
-function getRuntimeEnv(): Record<string, string | undefined> {
+function getRuntimeEnv() {
   const env = { ...process.env };
   delete env.CLAUDECODE;
   return env;
 }
 
-async function main(): Promise<void> {
-  const criteriaRaw = await readFile('/tests/criteria.json', 'utf-8');
-  const criteria: Criteria = JSON.parse(criteriaRaw);
+/**
+ * @param {Record<string, number>} reward
+ */
+async function writeReward(reward) {
+  await mkdir('/logs/verifier', { recursive: true });
+  await writeFile(
+    '/logs/verifier/reward.json',
+    JSON.stringify(reward, null, 2),
+  );
+}
+
+try {
+  /** @type {Criteria} */
+  const criteria = JSON.parse(
+    await readFile('/tests/criteria.json', 'utf-8'),
+  );
 
   const prompt = `You are an eval judge. Read all files the agent produced in /app.
 
@@ -58,9 +59,6 @@ After reading the files, output ONLY a JSON array — one object per criterion:
 No markdown fences. No explanation outside the JSON.`;
 
   const runtimeEnv = getRuntimeEnv();
-
-  // Resolve claude binary — in docker/sandbox-templates:claude-code it's
-  // at /home/agent/.local/bin/claude, matching Harbor's agent-phase invocation.
   const claudePath =
     process.env.CLAUDE_CODE_EXECUTABLE || '/home/agent/.local/bin/claude';
 
@@ -89,14 +87,8 @@ No markdown fences. No explanation outside the JSON.`;
   let lastText = '';
   for await (const message of conversation) {
     if (message.type === 'assistant') {
-      const payload = message as unknown as {
-        message: { content: Array<{ type: string; text?: string }> };
-      };
-      const texts = payload.message.content
-        .filter(
-          (b): b is { type: 'text'; text: string } =>
-            b.type === 'text' && typeof b.text === 'string',
-        )
+      const texts = message.message.content
+        .filter((b) => b.type === 'text' && typeof b.text === 'string')
         .map((b) => b.text);
       if (texts.length > 0) lastText = texts.join('\n');
     }
@@ -110,18 +102,20 @@ No markdown fences. No explanation outside the JSON.`;
     process.exit(1);
   }
 
-  const scored: ScoredCriterion[] = JSON.parse(jsonMatch[0]);
+  /** @type {ScoredCriterion[]} */
+  const scored = JSON.parse(jsonMatch[0]);
   const totalScore = scored.reduce((sum, c) => sum + c.score, 0);
   const maxTotal = scored.reduce((sum, c) => sum + c.max_score, 0);
   const normalizedReward = maxTotal > 0 ? totalScore / maxTotal : 0;
 
-  const reward: Record<string, number> = { reward: normalizedReward };
+  /** @type {Record<string, number>} */
+  const details = {};
   for (const c of scored) {
     const key = c.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_|_$/g, '');
-    reward[key] = c.max_score > 0 ? c.score / c.max_score : 0;
+    details[key] = c.max_score > 0 ? c.score / c.max_score : 0;
   }
 
   console.log('Scores:');
@@ -132,18 +126,14 @@ No markdown fences. No explanation outside the JSON.`;
     `\nTotal: ${totalScore}/${maxTotal} (${(normalizedReward * 100).toFixed(1)}%)`,
   );
 
-  await writeReward(reward);
-}
-
-async function writeReward(reward: Record<string, number>): Promise<void> {
-  await mkdir('/logs/verifier', { recursive: true });
+  // Harbor's mean metric expects exactly one key in reward.json
+  await writeReward({ reward: normalizedReward });
   await writeFile(
-    '/logs/verifier/reward.json',
-    JSON.stringify(reward, null, 2),
+    '/logs/verifier/scores.json',
+    JSON.stringify(details, null, 2),
   );
-}
-
-main().catch((err) => {
+} catch (err) {
   console.error('Judge failed:', err);
-  writeReward({ reward: 0 }).then(() => process.exit(1));
-});
+  await writeReward({ reward: 0 });
+  process.exit(1);
+}
