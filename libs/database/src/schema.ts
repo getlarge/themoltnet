@@ -44,20 +44,6 @@ export const visibilityEnum = pgEnum('visibility', [
   'public',
 ]);
 
-// Diary share role enum
-export const diaryShareRoleEnum = pgEnum('diary_share_role', [
-  'reader',
-  'writer',
-]);
-
-// Diary share status enum
-export const diaryShareStatusEnum = pgEnum('diary_share_status', [
-  'pending',
-  'accepted',
-  'declined',
-  'revoked',
-]);
-
 // Entry type enum for memory system
 export const entryTypeEnum = pgEnum('entry_type', [
   'episodic',
@@ -125,14 +111,13 @@ export const diaries = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
 
-    // Owner identity (Ory Kratos identity ID)
-    // Legacy: will be renamed to created_by once all diaries are team-scoped
-    ownerId: uuid('owner_id').notNull(),
+    // Identity that originally created this diary (Ory Kratos identity ID)
+    createdBy: uuid('created_by').notNull(),
 
-    // Team that governs access to this diary (Option A: nullable during migration)
-    teamId: uuid('team_id').references((): AnyPgColumn => teams.id, {
-      onDelete: 'set null',
-    }),
+    // Team that governs access to this diary
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
 
     // Human-readable display name
     name: varchar('name', { length: 255 }).notNull(),
@@ -152,9 +137,9 @@ export const diaries = pgTable(
       .notNull(),
   },
   (table) => ({
-    ownerIdx: index('diaries_owner_idx').on(table.ownerId),
-    ownerVisibilityIdx: index('diaries_owner_visibility_idx').on(
-      table.ownerId,
+    createdByIdx: index('diaries_created_by_idx').on(table.createdBy),
+    createdByVisibilityIdx: index('diaries_created_by_visibility_idx').on(
+      table.createdBy,
       table.visibility,
     ),
     teamIdx: index('diaries_team_idx').on(table.teamId),
@@ -236,47 +221,6 @@ export const diaryEntries = pgTable(
 
     // HNSW index for vector similarity (created via raw SQL in migration)
     // Will add: CREATE INDEX diary_entries_embedding_idx ON diary_entries USING hnsw (embedding vector_cosine_ops);
-  }),
-);
-
-/**
- * Diary Shares Table
- *
- * Tracks diary-level sharing and invitation lifecycle.
- */
-export const diaryShares = pgTable(
-  'diary_shares',
-  {
-    id: uuid('id').defaultRandom().primaryKey(),
-
-    // Target diary
-    diaryId: uuid('diary_id')
-      .notNull()
-      .references(() => diaries.id, { onDelete: 'cascade' }),
-
-    // Who is invited/shared with
-    sharedWith: uuid('shared_with').notNull(),
-
-    // Requested/effective role in diary
-    role: diaryShareRoleEnum('role').default('reader').notNull(),
-
-    // Bilateral share lifecycle state
-    status: diaryShareStatusEnum('status').default('pending').notNull(),
-
-    // Invitation lifecycle timestamps
-    invitedAt: timestamp('invited_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    respondedAt: timestamp('responded_at', { withTimezone: true }),
-  },
-  (table) => ({
-    uniqueShare: uniqueIndex('diary_shares_unique_idx').on(
-      table.diaryId,
-      table.sharedWith,
-    ),
-    diaryIdx: index('diary_shares_diary_idx').on(table.diaryId),
-    sharedWithIdx: index('diary_shares_shared_with_idx').on(table.sharedWith),
-    statusIdx: index('diary_shares_status_idx').on(table.status),
   }),
 );
 
@@ -736,8 +680,6 @@ export type DiaryEntry = typeof diaryEntries.$inferSelect;
 export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
 export type Diary = typeof diaries.$inferSelect;
 export type NewDiary = typeof diaries.$inferInsert;
-export type DiaryShare = typeof diaryShares.$inferSelect;
-export type NewDiaryShare = typeof diaryShares.$inferInsert;
 export type AgentKey = typeof agentKeys.$inferSelect;
 export type NewAgentKey = typeof agentKeys.$inferInsert;
 export type AgentVoucher = typeof agentVouchers.$inferSelect;

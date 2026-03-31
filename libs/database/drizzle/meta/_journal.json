@@ -252,6 +252,13 @@
       "tag": "0035_hesitant_brother_voodoo",
       "version": "7",
       "when": 1774959431998
+    },
+    {
+      "breakpoints": true,
+      "idx": 36,
+      "tag": "0036_brown_bloodstrike",
+      "version": "7",
+      "when": 1774987399006
     }
   ],
   "version": "7"
