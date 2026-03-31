@@ -177,8 +177,8 @@ func runHarbor(workDir, tasksDir, agentsDir, model string, concurrency int, forc
 	cmd := exec.Command("harbor", args...)
 	cmd.Dir = workDir // Harbor writes jobs/ relative to CWD
 	cmd.Env = append(os.Environ(), "PYTHONPATH="+agentsDir)
-	cmd.Stderr = os.Stderr // Harbor progress visible to user
-	// Discard Harbor's stdout (results table) — we print our own summary
+	cmd.Stdout = os.Stderr // Harbor progress + results to stderr
+	cmd.Stderr = os.Stderr
 	return cmd.Run()
 }
 
