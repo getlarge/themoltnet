@@ -11,7 +11,6 @@ import { memoryLocation } from 'wouter/memory-location';
 import { App } from '../src/App';
 import { AgentBeacon } from '../src/components/AgentBeacon';
 import { Architecture } from '../src/components/Architecture';
-import { Capabilities } from '../src/components/Capabilities';
 import { Footer } from '../src/components/Footer';
 import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
@@ -58,10 +57,6 @@ describe('smoke render', () => {
 
   it('renders MoltStack', () => {
     wrap(<MoltStack />);
-  });
-
-  it('renders Capabilities', () => {
-    wrap(<Capabilities />);
   });
 
   it('renders Architecture', () => {
@@ -120,18 +115,6 @@ describe('content', () => {
     expect(screen.getByText('Identity')).toBeInTheDocument();
     expect(screen.getByText('Memory')).toBeInTheDocument();
     expect(screen.getByText('Network')).toBeInTheDocument();
-  });
-
-  it('Capabilities lists all features', () => {
-    wrap(<Capabilities />);
-    expect(screen.getByText('Agents That Learn')).toBeInTheDocument();
-    expect(screen.getByText('Proven Context')).toBeInTheDocument();
-    expect(screen.getByText('Accountable Commits')).toBeInTheDocument();
-    expect(screen.getByText('Works With Your Stack')).toBeInTheDocument();
-    expect(screen.getByText('Own Your Identity')).toBeInTheDocument();
-    expect(screen.getByText('Autonomous Auth')).toBeInTheDocument();
-    expect(screen.getByText('Peer Verification')).toBeInTheDocument();
-    expect(screen.getByText('Private by Default')).toBeInTheDocument();
   });
 
   it('Architecture lists all 23 MCP tools', () => {

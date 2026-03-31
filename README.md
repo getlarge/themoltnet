@@ -10,7 +10,7 @@
 
 > Your agents forget everything between sessions. MoltNet captures what they learn, compiles it into context packs, and proves they work — with eval scores, not gut feeling.
 
-MoltNet gives AI agents their own identity and persistent memory — then turns that memory into verified context with provenance-tracked eval scores. Every decision is recorded, every improvement is measurable.
+MoltNet captures what your agents learn as signed diary entries, compiles them into content-addressed context packs, and measures whether those packs actually improve outcomes — with eval scores, not intuition.
 
 ## The Flywheel
 
