@@ -71,7 +71,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       );
 
       try {
-        await fastify.relationshipWriter.grantTeamOwner(
+        await fastify.relationshipWriter.grantTeamOwners(
           team.id,
           identityId,
           subjectNs,
@@ -370,7 +370,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
             'team.last_owner_removed_race — re-granting ownership',
           );
           // Re-grant to the subject we just removed
-          await fastify.relationshipWriter.grantTeamOwner(
+          await fastify.relationshipWriter.grantTeamOwners(
             id,
             subjectId,
             KetoNamespace.Agent,
@@ -581,13 +581,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
           : KetoNamespace.Agent;
       try {
         if (invite.role === 'manager') {
-          await fastify.relationshipWriter.grantTeamManager(
+          await fastify.relationshipWriter.grantTeamManagers(
             invite.teamId,
             identityId,
             ns,
           );
         } else {
-          await fastify.relationshipWriter.grantTeamMember(
+          await fastify.relationshipWriter.grantTeamMembers(
             invite.teamId,
             identityId,
             ns,
