@@ -2290,6 +2290,10 @@ type CreateGroupBadRequest ProblemDetails
 
 func (*CreateGroupBadRequest) createGroupRes() {}
 
+type CreateGroupConflict ProblemDetails
+
+func (*CreateGroupConflict) createGroupRes() {}
+
 type CreateGroupCreated struct {
 	// UUID v4 identifier.
 	ID   uuid.UUID `json:"id"`
@@ -2333,10 +2337,6 @@ func (*CreateGroupCreated) createGroupRes() {}
 type CreateGroupForbidden ProblemDetails
 
 func (*CreateGroupForbidden) createGroupRes() {}
-
-type CreateGroupInternalServerError ProblemDetails
-
-func (*CreateGroupInternalServerError) createGroupRes() {}
 
 type CreateGroupNotFound ProblemDetails
 

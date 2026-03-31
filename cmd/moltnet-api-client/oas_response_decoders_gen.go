@@ -2202,8 +2202,8 @@ func decodeCreateGroupResponse(resp *http.Response) (res CreateGroupRes, _ error
 		default:
 			return res, validate.InvalidContentType(ct)
 		}
-	case 500:
-		// Code 500.
+	case 409:
+		// Code 409.
 		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 		if err != nil {
 			return res, errors.Wrap(err, "parse media type")
@@ -2216,7 +2216,7 @@ func decodeCreateGroupResponse(resp *http.Response) (res CreateGroupRes, _ error
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateGroupInternalServerError
+			var response CreateGroupConflict
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

@@ -3895,7 +3895,7 @@ export type CreateGroupErrors = {
   /**
    * Default Response
    */
-  500: ProblemDetails;
+  409: ProblemDetails;
 };
 
 export type CreateGroupError = CreateGroupErrors[keyof CreateGroupErrors];

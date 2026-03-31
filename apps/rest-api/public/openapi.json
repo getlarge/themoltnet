@@ -10340,7 +10340,7 @@
             },
             "description": "Default Response"
           },
-          "500": {
+          "409": {
             "content": {
               "application/json": {
                 "schema": {

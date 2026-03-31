@@ -2225,7 +2225,7 @@ func (s *CreateGroupBadRequest) Validate() error {
 	return nil
 }
 
-func (s *CreateGroupForbidden) Validate() error {
+func (s *CreateGroupConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -2233,7 +2233,7 @@ func (s *CreateGroupForbidden) Validate() error {
 	return nil
 }
 
-func (s *CreateGroupInternalServerError) Validate() error {
+func (s *CreateGroupForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
