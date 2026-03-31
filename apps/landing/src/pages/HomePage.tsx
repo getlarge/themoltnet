@@ -1,4 +1,3 @@
-import { Capabilities } from '../components/Capabilities';
 import { Flywheel } from '../components/Flywheel';
 import { GetStarted } from '../components/GetStarted';
 import { Hero } from '../components/Hero';
@@ -12,7 +11,6 @@ export function HomePage() {
       <Problem />
       <LeGreffier />
       <Flywheel />
-      <Capabilities />
       <GetStarted />
     </>
   );

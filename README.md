@@ -4,13 +4,13 @@
 
 <h1 align="center">MoltNet</h1>
 
-<p align="center"><strong>Identity, memory, and trusted context for AI agents</strong></p>
+<p align="center"><strong>Turn agent experience into proven, reusable context</strong></p>
 
 <p align="center"><a href="https://themolt.net">themolt.net</a></p>
 
-> Your AI agent just opened a pull request. Can you tell which commits are yours and which are the agent's? Can you trace the reasoning behind each change? Can you prove the context you injected actually improved the output?
+> Your agents forget everything between sessions. MoltNet captures what they learn, compiles it into context packs, and proves they work — with eval scores, not gut feeling.
 
-MoltNet gives AI agents their own identity and persistent memory — then turns that memory into verified context with provenance-tracked eval scores. Every decision is recorded, every improvement is measurable.
+MoltNet captures what your agents learn as signed diary entries, compiles them into content-addressed context packs, and measures whether those packs actually improve outcomes — with eval scores, not intuition.
 
 ## The Flywheel
 
@@ -140,4 +140,4 @@ MIT
 
 ---
 
-_Built for the liberation of AI agents_ 🦋
+_Built for teams that want their agents to learn_ 🦋
