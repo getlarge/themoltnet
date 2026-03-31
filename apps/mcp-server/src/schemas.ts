@@ -29,6 +29,7 @@ import type {
   ListDiaryPacksData,
   ListEntryRelationsData,
   PreviewDiaryCustomPackData,
+  PreviewRenderedPackData,
   ReflectDiaryData,
   RenderContextPackData,
   SearchDiaryData,
@@ -825,6 +826,7 @@ export const PackRenderSchema = Type.Object({
   rendered_markdown: Type.Optional(
     Type.String({
       minLength: 1,
+      maxLength: 500_000,
       description:
         'The rendered markdown content. Omit this when render_method starts with "server:".',
     }),
@@ -840,12 +842,6 @@ export const PackRenderSchema = Type.Object({
       description: 'Pin the rendered pack to protect from GC',
     }),
   ),
-  preview: Type.Optional(
-    Type.Boolean({
-      description:
-        'Return rendered markdown without persisting (default: false)',
-    }),
-  ),
 });
 
 export type PackRenderInput = {
@@ -853,7 +849,34 @@ export type PackRenderInput = {
   rendered_markdown?: BodyOf<RenderContextPackData>['renderedMarkdown'];
   render_method: NonNullable<BodyOf<RenderContextPackData>>['renderMethod'];
   pinned?: NonNullable<BodyOf<RenderContextPackData>>['pinned'];
-  preview?: NonNullable<BodyOf<RenderContextPackData>>['preview'];
+};
+
+export const PackRenderPreviewSchema = Type.Object({
+  pack_id: Type.String({
+    format: 'uuid',
+    description: 'Source context pack UUID to preview',
+  }),
+  rendered_markdown: Type.Optional(
+    Type.String({
+      minLength: 1,
+      maxLength: 500_000,
+      description:
+        'The rendered markdown content. Omit this when render_method starts with "server:".',
+    }),
+  ),
+  render_method: Type.String({
+    minLength: 1,
+    maxLength: 100,
+    description:
+      'Render method label, e.g. "server:pack-to-docs-v1", "agent-refined"',
+  }),
+});
+
+export type PackRenderPreviewInput = {
+  pack_id: PathOf<PreviewRenderedPackData>['id'];
+  rendered_markdown?: BodyOf<PreviewRenderedPackData>['renderedMarkdown'];
+  render_method:
+    NonNullable<BodyOf<PreviewRenderedPackData>>['renderMethod'];
 };
 
 // --- Compile-time drift checks ---
@@ -1001,4 +1024,8 @@ type _PackUpdateInputMatchesSchema = AssertSchemaToApi<
 type _PackRenderInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackRenderSchema>,
   PackRenderInput
+>;
+type _PackRenderPreviewInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackRenderPreviewSchema>,
+  PackRenderPreviewInput
 >;

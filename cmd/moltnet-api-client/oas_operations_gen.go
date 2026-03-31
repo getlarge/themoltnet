@@ -59,6 +59,7 @@ const (
 	ListTeamMembersOperation               OperationName = "ListTeamMembers"
 	ListTeamsOperation                     OperationName = "ListTeams"
 	PreviewDiaryCustomPackOperation        OperationName = "PreviewDiaryCustomPack"
+	PreviewRenderedPackOperation           OperationName = "PreviewRenderedPack"
 	ReflectDiaryOperation                  OperationName = "ReflectDiary"
 	RegisterAgentOperation                 OperationName = "RegisterAgent"
 	RemoveTeamMemberOperation              OperationName = "RemoveTeamMember"

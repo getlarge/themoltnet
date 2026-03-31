@@ -8009,7 +8009,7 @@
     },
     "/packs/{id}/render": {
       "post": {
-        "description": "Render a source pack to structured markdown. By default persists the result as a new rendered pack with its own CID. Pass `preview: true` to return the rendered markdown without persisting.",
+        "description": "Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.",
         "operationId": "renderContextPack",
         "parameters": [
           {
@@ -8028,7 +8028,6 @@
               "examples": {
                 "example1": {
                   "value": {
-                    "preview": true,
                     "renderMethod": "server:pack-to-docs-v1"
                   }
                 },
@@ -8041,12 +8040,9 @@
               },
               "schema": {
                 "additionalProperties": false,
-                "description": "Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
+                "description": "Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
                 "properties": {
                   "pinned": {
-                    "type": "boolean"
-                  },
-                  "preview": {
                     "type": "boolean"
                   },
                   "renderMethod": {
@@ -8068,20 +8064,10 @@
               }
             }
           },
-          "description": "Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
+          "description": "Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
           "required": true
         },
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RenderedPackPreview"
-                }
-              }
-            },
-            "description": "Default Response"
-          },
           "201": {
             "content": {
               "application/json": {
@@ -8133,6 +8119,133 @@
             "description": "Default Response"
           },
           "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/packs/{id}/render/preview": {
+      "post": {
+        "description": "Preview a rendered pack from a source pack without persisting it.",
+        "operationId": "previewRenderedPack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "example1": {
+                  "value": {
+                    "renderMethod": "server:pack-to-docs-v1"
+                  }
+                },
+                "example2": {
+                  "value": {
+                    "renderMethod": "agent:pack-to-docs-v1",
+                    "renderedMarkdown": "# Rendered Pack\n"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "description": "Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
+                "properties": {
+                  "renderMethod": {
+                    "description": "Render method label. Trusted server render methods start with \"server:\" and must omit renderedMarkdown.",
+                    "example": "server:pack-to-docs-v1",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "renderedMarkdown": {
+                    "description": "Caller-authored markdown. Required unless renderMethod starts with \"server:\".",
+                    "maxLength": 500000,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": ["renderMethod"],
+                "type": "object"
+              }
+            }
+          },
+          "description": "Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenderedPackPreview"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
             "content": {
               "application/json": {
                 "schema": {

@@ -2494,9 +2494,66 @@ export type CreateDiaryCustomPackResponses = {
 export type CreateDiaryCustomPackResponse =
   CreateDiaryCustomPackResponses[keyof CreateDiaryCustomPackResponses];
 
+export type PreviewRenderedPackData = {
+  /**
+   * Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+   */
+  body: {
+    /**
+     * Caller-authored markdown. Required unless renderMethod starts with "server:".
+     */
+    renderedMarkdown?: string;
+    /**
+     * Render method label. Trusted server render methods start with "server:" and must omit renderedMarkdown.
+     */
+    renderMethod: string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/packs/{id}/render/preview';
+};
+
+export type PreviewRenderedPackErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+};
+
+export type PreviewRenderedPackError =
+  PreviewRenderedPackErrors[keyof PreviewRenderedPackErrors];
+
+export type PreviewRenderedPackResponses = {
+  /**
+   * Default Response
+   */
+  200: RenderedPackPreview;
+};
+
+export type PreviewRenderedPackResponse =
+  PreviewRenderedPackResponses[keyof PreviewRenderedPackResponses];
+
 export type RenderContextPackData = {
   /**
-   * Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+   * Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
    */
   body: {
     /**
@@ -2508,7 +2565,6 @@ export type RenderContextPackData = {
      */
     renderMethod: string;
     pinned?: boolean;
-    preview?: boolean;
   };
   path: {
     id: string;
@@ -2548,10 +2604,6 @@ export type RenderContextPackError =
   RenderContextPackErrors[keyof RenderContextPackErrors];
 
 export type RenderContextPackResponses = {
-  /**
-   * Default Response
-   */
-  200: RenderedPackPreview;
   /**
    * Default Response
    */

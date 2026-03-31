@@ -9268,6 +9268,56 @@ type PreviewDiaryCustomPackUnauthorized ProblemDetails
 
 func (*PreviewDiaryCustomPackUnauthorized) previewDiaryCustomPackRes() {}
 
+type PreviewRenderedPackBadRequest ProblemDetails
+
+func (*PreviewRenderedPackBadRequest) previewRenderedPackRes() {}
+
+type PreviewRenderedPackForbidden ProblemDetails
+
+func (*PreviewRenderedPackForbidden) previewRenderedPackRes() {}
+
+type PreviewRenderedPackInternalServerError ProblemDetails
+
+func (*PreviewRenderedPackInternalServerError) previewRenderedPackRes() {}
+
+type PreviewRenderedPackNotFound ProblemDetails
+
+func (*PreviewRenderedPackNotFound) previewRenderedPackRes() {}
+
+// Preview request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server
+// derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+type PreviewRenderedPackReq struct {
+	// Render method label. Trusted server render methods start with "server:" and must omit
+	// renderedMarkdown.
+	RenderMethod string `json:"renderMethod"`
+	// Caller-authored markdown. Required unless renderMethod starts with "server:".
+	RenderedMarkdown OptString `json:"renderedMarkdown"`
+}
+
+// GetRenderMethod returns the value of RenderMethod.
+func (s *PreviewRenderedPackReq) GetRenderMethod() string {
+	return s.RenderMethod
+}
+
+// GetRenderedMarkdown returns the value of RenderedMarkdown.
+func (s *PreviewRenderedPackReq) GetRenderedMarkdown() OptString {
+	return s.RenderedMarkdown
+}
+
+// SetRenderMethod sets the value of RenderMethod.
+func (s *PreviewRenderedPackReq) SetRenderMethod(val string) {
+	s.RenderMethod = val
+}
+
+// SetRenderedMarkdown sets the value of RenderedMarkdown.
+func (s *PreviewRenderedPackReq) SetRenderedMarkdown(val OptString) {
+	s.RenderedMarkdown = val
+}
+
+type PreviewRenderedPackUnauthorized ProblemDetails
+
+func (*PreviewRenderedPackUnauthorized) previewRenderedPackRes() {}
+
 // Ref: #/components/schemas/ProblemDetails
 type ProblemDetails struct {
 	Code     ProblemDetailsCode `json:"code"`
@@ -11151,11 +11201,11 @@ type RenderContextPackNotFound ProblemDetails
 
 func (*RenderContextPackNotFound) renderContextPackRes() {}
 
-// Render request. For trusted server methods (`server:*`), omit renderedMarkdown and let the server
-// derive markdown from the source pack. For other methods, provide renderedMarkdown explicitly.
+// Render and persist request. For trusted server methods (`server:*`), omit renderedMarkdown and let
+// the server derive markdown from the source pack. For other methods, provide renderedMarkdown
+// explicitly.
 type RenderContextPackReq struct {
-	Pinned  OptBool `json:"pinned"`
-	Preview OptBool `json:"preview"`
+	Pinned OptBool `json:"pinned"`
 	// Render method label. Trusted server render methods start with "server:" and must omit
 	// renderedMarkdown.
 	RenderMethod string `json:"renderMethod"`
@@ -11166,11 +11216,6 @@ type RenderContextPackReq struct {
 // GetPinned returns the value of Pinned.
 func (s *RenderContextPackReq) GetPinned() OptBool {
 	return s.Pinned
-}
-
-// GetPreview returns the value of Preview.
-func (s *RenderContextPackReq) GetPreview() OptBool {
-	return s.Preview
 }
 
 // GetRenderMethod returns the value of RenderMethod.
@@ -11186,11 +11231,6 @@ func (s *RenderContextPackReq) GetRenderedMarkdown() OptString {
 // SetPinned sets the value of Pinned.
 func (s *RenderContextPackReq) SetPinned(val OptBool) {
 	s.Pinned = val
-}
-
-// SetPreview sets the value of Preview.
-func (s *RenderContextPackReq) SetPreview(val OptBool) {
-	s.Preview = val
 }
 
 // SetRenderMethod sets the value of RenderMethod.
@@ -11266,7 +11306,7 @@ func (s *RenderedPackPreview) SetTotalTokens(val int) {
 	s.TotalTokens = val
 }
 
-func (*RenderedPackPreview) renderContextPackRes() {}
+func (*RenderedPackPreview) previewRenderedPackRes() {}
 
 // Ref: #/components/schemas/RenderedPackResult
 type RenderedPackResult struct {

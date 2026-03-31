@@ -13,13 +13,78 @@ import {
   RenderedPackResultSchema,
   RenderedPackWithContentSchema,
   RenderPackBodySchema,
+  RenderPackPreviewBodySchema,
 } from '../schemas.js';
 
 export async function renderedPackRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
-  // POST /packs/:id/render — Create rendered pack (or preview)
+  // POST /packs/:id/render/preview — Preview a rendered pack without persisting
+  server.post(
+    '/packs/:id/render/preview',
+    {
+      schema: {
+        operationId: 'previewRenderedPack',
+        tags: ['diary'],
+        description:
+          'Preview a rendered pack from a source pack without persisting it.',
+        security: [{ bearerAuth: [] }],
+        params: PackParamsSchema,
+        body: RenderPackPreviewBodySchema,
+        response: {
+          200: Type.Ref(RenderedPackPreviewSchema),
+          400: Type.Ref(ProblemDetailsSchema),
+          401: Type.Ref(ProblemDetailsSchema),
+          403: Type.Ref(ProblemDetailsSchema),
+          404: Type.Ref(ProblemDetailsSchema),
+          500: Type.Ref(ProblemDetailsSchema),
+        },
+      },
+    },
+    async (request, reply) => {
+      const sourcePack = await fastify.contextPackRepository.findById(
+        request.params.id,
+      );
+      if (!sourcePack) {
+        throw createProblem('not-found', 'Source pack not found');
+      }
+      const renderedMarkdown =
+        'renderedMarkdown' in request.body
+          ? request.body.renderedMarkdown
+          : undefined;
+
+      try {
+        const canRead = await fastify.permissionChecker.canReadPack(
+          sourcePack.id,
+          request.authContext!.identityId,
+        );
+        if (!canRead) {
+          throw createProblem('forbidden', 'Not authorized to read this pack');
+        }
+
+        const result = await fastify.contextPackService.previewRenderedPack({
+          sourcePackId: request.params.id,
+          renderedMarkdown,
+          renderMethod: request.body.renderMethod,
+        });
+
+        return await reply.code(200).send(result);
+      } catch (err) {
+        if (err instanceof PackServiceError) {
+          if (err.code === 'validation') {
+            throw createProblem('validation-failed', err.message);
+          }
+          if (err.code === 'not_found') {
+            throw createProblem('not-found', err.message);
+          }
+        }
+        throw err;
+      }
+    },
+  );
+
+  // POST /packs/:id/render — Create rendered pack
   server.post(
     '/packs/:id/render',
     {
@@ -27,14 +92,11 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         operationId: 'renderContextPack',
         tags: ['diary'],
         description:
-          'Render a source pack to structured markdown. By default persists ' +
-          'the result as a new rendered pack with its own CID. Pass ' +
-          '`preview: true` to return the rendered markdown without persisting.',
+          'Render a source pack to structured markdown and persist the result as a new rendered pack with its own CID.',
         security: [{ bearerAuth: [] }],
         params: PackParamsSchema,
         body: RenderPackBodySchema,
         response: {
-          200: Type.Ref(RenderedPackPreviewSchema),
           201: Type.Ref(RenderedPackResultSchema),
           400: Type.Ref(ProblemDetailsSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -58,28 +120,6 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           : undefined;
 
       try {
-        if (request.body.preview) {
-          const canRead = await fastify.permissionChecker.canReadPack(
-            sourcePack.id,
-            request.authContext!.identityId,
-          );
-          if (!canRead) {
-            throw createProblem(
-              'forbidden',
-              'Not authorized to read this pack',
-            );
-          }
-
-          const result = await fastify.contextPackService.previewRenderedPack({
-            sourcePackId: request.params.id,
-            renderedMarkdown,
-            renderMethod: request.body.renderMethod,
-          });
-
-          return await reply.code(200).send(result);
-        }
-
-        // Persistence requires manage permission
         const canManage = await fastify.permissionChecker.canManagePack(
           sourcePack.id,
           request.authContext!.identityId,
