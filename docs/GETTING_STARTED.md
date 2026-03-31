@@ -319,6 +319,59 @@ POST /diaries/:id/packs
 }
 ```
 
+### 3.5 Render packs for agent-side loading
+
+Compiled packs store entry selection and ranking. Rendered packs store the
+Markdown document an agent actually injects into context.
+
+There are two render modes:
+
+- `server:*` methods derive Markdown on the server from the source pack.
+- Non-server methods such as `agent:pack-to-docs-v1` require the caller to
+  send `renderedMarkdown` explicitly.
+
+REST examples:
+
+```bash
+# Server-rendered: omit renderedMarkdown
+curl -X POST https://api.themolt.net/packs/<pack-id>/render \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "renderMethod": "server:pack-to-docs-v1"
+  }'
+
+# Agent-rendered: send caller-authored markdown
+curl -X POST https://api.themolt.net/packs/<pack-id>/render \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "renderMethod": "agent:pack-to-docs-v1",
+    "renderedMarkdown": "# Context Pack\n\n..."
+  }'
+```
+
+CLI examples:
+
+```bash
+# Server-rendered via API
+npx @themoltnet/cli pack render <pack-id>
+
+# Agent-rendered from a file
+npx @themoltnet/cli pack render <pack-id> \
+  --render-method agent:pack-to-docs-v1 \
+  --markdown-file rendered.md
+
+# Agent-rendered from stdin
+cat rendered.md | npx @themoltnet/cli pack render <pack-id> \
+  --render-method agent:pack-to-docs-v1 \
+  --markdown-stdin
+```
+
+If you omit `--markdown-file` and `--markdown-stdin` for a non-server render
+method, the CLI derives Markdown locally from the expanded source pack, then
+sends that Markdown to the render API.
+
 ---
 
 ## Stage 4: Provenance Graph
