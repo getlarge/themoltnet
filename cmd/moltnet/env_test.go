@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -175,5 +176,146 @@ func TestResolveAgentName_FlagNotFound(t *testing.T) {
 	_, err := resolveAgentName(moltnetDir, "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent agent")
+	}
+}
+
+// --- use command tests ---
+
+func TestUseCommand(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	moltnetDir := filepath.Join(dir, ".moltnet")
+	agentDir := filepath.Join(moltnetDir, "test-agent")
+	os.MkdirAll(agentDir, 0o755)
+	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("X=1\n"), 0o644)
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "use", "test-agent", "--dir", dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "test-agent") {
+		t.Errorf("expected agent name in output, got: %s", stdout)
+	}
+
+	data, err := os.ReadFile(filepath.Join(moltnetDir, "default-agent"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(data)) != "test-agent" {
+		t.Errorf("default-agent = %q, want %q", string(data), "test-agent")
+	}
+}
+
+func TestUseCommandMissingAgent(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".moltnet"), 0o755)
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "use", "nonexistent", "--dir", dir)
+	if err == nil {
+		t.Fatal("expected error for nonexistent agent")
+	}
+}
+
+// --- env check command tests ---
+
+func TestEnvCheckPass(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	moltnetDir := filepath.Join(dir, ".moltnet")
+	agentDir := filepath.Join(moltnetDir, "test-agent")
+	os.MkdirAll(agentDir, 0o755)
+	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+
+	gitconfigPath := filepath.Join(agentDir, "gitconfig")
+	os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644)
+	pemPath := filepath.Join(agentDir, "test-agent.pem")
+	os.WriteFile(pemPath, []byte("---PEM---"), 0o600)
+
+	envContent := fmt.Sprintf("TEST_AGENT_CLIENT_ID='cid'\nTEST_AGENT_CLIENT_SECRET='csec'\nTEST_AGENT_GITHUB_APP_ID='test-agent'\nTEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='%s'\nTEST_AGENT_GITHUB_APP_INSTALLATION_ID='12345'\nGIT_CONFIG_GLOBAL='%s'\n", pemPath, gitconfigPath)
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte(envContent), 0o644)
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "All required checks passed") {
+		t.Errorf("expected success message, got: %s", stdout)
+	}
+}
+
+func TestEnvCheckMissingVars(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	moltnetDir := filepath.Join(dir, ".moltnet")
+	agentDir := filepath.Join(moltnetDir, "test-agent")
+	os.MkdirAll(agentDir, 0o755)
+	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("TEST_AGENT_CLIENT_ID='cid'\n"), 0o644)
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", dir)
+	if err == nil {
+		t.Fatal("expected error for missing required vars")
+	}
+}
+
+// --- start command tests ---
+
+func TestStartDryRun(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	moltnetDir := filepath.Join(dir, ".moltnet")
+	agentDir := filepath.Join(moltnetDir, "test-agent")
+	os.MkdirAll(agentDir, 0o755)
+	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644)
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "start", "echo", "--agent", "test-agent", "--dir", dir, "--dry-run")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "MY_VAR=hello") {
+		t.Errorf("expected MY_VAR in dry-run output, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL=") {
+		t.Errorf("expected GIT_CONFIG_GLOBAL in dry-run output, got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "echo") {
+		t.Errorf("expected target command in dry-run output, got: %s", stdout)
+	}
+}
+
+func TestStartMissingAgent(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".moltnet"), 0o755)
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "start", "claude", "--dir", dir)
+	if err == nil {
+		t.Fatal("expected error for missing agent")
+	}
+}
+
+func TestStartMissingEnvFile(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	os.MkdirAll(agentDir, 0o755)
+	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "start", "claude", "--agent", "test-agent", "--dir", dir)
+	if err == nil {
+		t.Fatal("expected error for missing env file")
+	}
+	if !strings.Contains(err.Error(), "env") {
+		t.Errorf("expected error about env file, got: %v", err)
 	}
 }
