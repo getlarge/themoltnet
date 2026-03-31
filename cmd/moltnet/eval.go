@@ -161,7 +161,7 @@ func setupAgentsDir(baseDir string) (string, error) {
 	return baseDir, nil
 }
 
-func runHarbor(tasksDir, agentsDir, model string, concurrency int, forceBuild bool) error {
+func runHarbor(workDir, tasksDir, agentsDir, model string, concurrency int, forceBuild bool) error {
 	args := []string{
 		"run",
 		"-p", tasksDir,
@@ -175,9 +175,10 @@ func runHarbor(tasksDir, agentsDir, model string, concurrency int, forceBuild bo
 	}
 
 	cmd := exec.Command("harbor", args...)
+	cmd.Dir = workDir // Harbor writes jobs/ relative to CWD
 	cmd.Env = append(os.Environ(), "PYTHONPATH="+agentsDir)
-	cmd.Stdout = os.Stderr // Harbor progress goes to stderr
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = os.Stderr // Harbor progress visible to user
+	// Discard Harbor's stdout (results table) — we print our own summary
 	return cmd.Run()
 }
 
@@ -502,7 +503,7 @@ func runEval(runs []evalRun, taskNames []string, taskMDs, criteriaJSONs [][]byte
 
 	// Run Harbor
 	fmt.Fprintf(os.Stderr, "Running %d eval task(s) with model %s...\n", len(taskNames), opts.model)
-	if err := runHarbor(tasksDir, agentsDir, opts.model, opts.concurrency, opts.forceBuild); err != nil {
+	if err := runHarbor(workDir, tasksDir, agentsDir, opts.model, opts.concurrency, opts.forceBuild); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: harbor exited with error (some trials may have failed): %v\n", err)
 	}
 
