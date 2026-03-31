@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.1](https://github.com/getlarge/themoltnet/compare/github-agent-v0.22.0...github-agent-v0.22.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.22.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.21.0...github-agent-v0.22.0) (2026-03-14)
 
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.27.0...legreffier-v0.28.0) (2026-03-31)
+
+
+### Features
+
+* **cli:** add `moltnet diary commit` command ([01a8af6](https://github.com/getlarge/themoltnet/commit/01a8af657c172e7e289fad20abf45da39d66bac8))
+* **cli:** download scan + explore skills alongside main legreffier skill ([50930f9](https://github.com/getlarge/themoltnet/commit/50930f93c44d98bad3f90efb1ac0e0ed89aa761a))
+* **cli:** session launcher — moltnet start, use, env check ([7e564f5](https://github.com/getlarge/themoltnet/commit/7e564f5ba21f3d20c9218ecf3098baf9d40079f1))
+* **skills:** add legreffier-explore diary discovery skill ([936bc58](https://github.com/getlarge/themoltnet/commit/936bc587361e7f3819daa06245b368fb1f406190))
+
+
+### Bug Fixes
+
+* address Copilot review feedback ([8ecc587](https://github.com/getlarge/themoltnet/commit/8ecc587bff3ea840d4ccaee284a70305474cd884))
+* CLI swallows REST API error details ([17a6105](https://github.com/getlarge/themoltnet/commit/17a61052b7665d6e33445ccd909ea935f3416a17))
+* follow up legreffier skill bundle review comments ([df19ad9](https://github.com/getlarge/themoltnet/commit/df19ad9c709913ebd7b77e0b3a32c1949ab3fbb8))
+* **legreffier-cli:** ship scan skill companion docs ([d1e3860](https://github.com/getlarge/themoltnet/commit/d1e38602362c014e231d241103c96429fd33f8a7))
+* **legreffier-explore:** ship adjacent template bundle ([7e4f722](https://github.com/getlarge/themoltnet/commit/7e4f7227c4066fa68ff388b1cf2ed445ccfded0a))
+* **sdk,legreffier-cli:** include API error detail in user-facing messages ([5c34095](https://github.com/getlarge/themoltnet/commit/5c340953b41dc073d3e4bee9f34c314210e88dc9))
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.26.2...legreffier-v0.27.0) (2026-03-31)
 
 

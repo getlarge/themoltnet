@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/getlarge/themoltnet/compare/design-system-v0.3.0...design-system-v0.3.1) (2026-03-31)
+
+
+### Bug Fixes
+
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.2.0...design-system-v0.3.0) (2026-03-12)
 
 

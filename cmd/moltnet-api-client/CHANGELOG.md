@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.3.0...moltnet-api-client-v1.4.0) (2026-03-31)
+
+
+### Features
+
+* add Group entity — teams/groups chunk 1 ([8e79714](https://github.com/getlarge/themoltnet/commit/8e79714519eec8767b9f3ab77c40f4ff64dc4004))
+
 ## [1.3.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.2.0...moltnet-api-client-v1.3.0) (2026-03-31)
 
 
