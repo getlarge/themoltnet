@@ -5,9 +5,6 @@ USER root
 # System packages (rarely changes)
 RUN apt-get update && apt-get install -y jq && rm -rf /var/lib/apt/lists/*
 
-# Codex CLI for agent (changes with version bumps, after stable apt layer)
-RUN npm install -g @openai/codex@latest
-
 # Strip apiKeyHelper so CLAUDE_CODE_OAUTH_TOKEN works
 # (base image defaults to "apiKeyHelper": "echo proxy-managed" which overrides OAuth)
 RUN mkdir -p /home/agent/.claude && \

@@ -153,6 +153,17 @@ func validateTaskDir(dir string) error {
 
 // --- Scaffolding ---
 
+func dockerfileTemplateForAgent(agent string) ([]byte, error) {
+	switch agent {
+	case "claude":
+		return dockerfileClaudeTemplate, nil
+	case "codex":
+		return dockerfileCodexTemplate, nil
+	default:
+		return nil, fmt.Errorf("unknown agent %q (must be claude or codex)", agent)
+	}
+}
+
 func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withContext bool, tmplData templateData, agent string) error {
 	dirs := []string{
 		filepath.Join(dir, "environment", "judge"),
@@ -174,6 +185,10 @@ func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withCo
 	testSh, err := renderTemplate(testShTmpl, tmplData)
 	if err != nil {
 		return fmt.Errorf("render test.sh: %w", err)
+	}
+	dockerfileTemplate, err := dockerfileTemplateForAgent(agent)
+	if err != nil {
+		return err
 	}
 
 	files := map[string][]byte{

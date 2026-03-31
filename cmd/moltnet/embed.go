@@ -11,8 +11,11 @@ var taskTomlTmplSrc string
 //go:embed embed/templates/test.sh.tmpl
 var testShTmplSrc string
 
-//go:embed embed/templates/Dockerfile
-var dockerfileTemplate []byte
+//go:embed embed/templates/Dockerfile.claude
+var dockerfileClaudeTemplate []byte
+
+//go:embed embed/templates/Dockerfile.codex
+var dockerfileCodexTemplate []byte
 
 //go:embed embed/judge/judge.js
 var judgeJS []byte

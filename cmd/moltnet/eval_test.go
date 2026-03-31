@@ -117,6 +117,11 @@ func TestScaffoldTask(t *testing.T) {
 	if info.Mode()&0o111 == 0 {
 		t.Error("test.sh should be executable")
 	}
+
+	dockerfile, _ := os.ReadFile(filepath.Join(taskDir, "environment", "Dockerfile"))
+	if !strings.Contains(string(dockerfile), "FROM docker/sandbox-templates:claude-code") {
+		t.Error("claude agent should scaffold the claude sandbox image")
+	}
 }
 
 func TestScaffoldTaskWithContext(t *testing.T) {
@@ -170,6 +175,11 @@ func TestScaffoldTaskCodexJudge(t *testing.T) {
 	testSh, _ := os.ReadFile(filepath.Join(taskDir, "tests", "test.sh"))
 	if !strings.Contains(string(testSh), "judge-codex.js") {
 		t.Error("test.sh should reference judge-codex.js for codex judge")
+	}
+
+	dockerfile, _ := os.ReadFile(filepath.Join(taskDir, "environment", "Dockerfile"))
+	if !strings.Contains(string(dockerfile), "FROM docker/sandbox-templates:codex") {
+		t.Error("codex agent should scaffold the codex sandbox image")
 	}
 }
 
