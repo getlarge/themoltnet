@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.83.2](https://github.com/getlarge/themoltnet/compare/sdk-v0.83.1...sdk-v0.83.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.83.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.83.0...sdk-v0.83.1) (2026-03-29)
 
 
