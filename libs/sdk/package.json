@@ -29,8 +29,8 @@
     "typecheck": "tsc -b --emitDeclarationOnly",
     "test": "vitest run",
     "lint": "eslint src/",
-    "check:pack": "tsx ../../scripts/check-pack.ts --package .",
-    "check:types-isolation": "tsx ../../scripts/check-sdk-types-isolation.ts"
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
+    "check:types-isolation": "tsx ../../tools/src/check-sdk-types-isolation.ts"
   },
   "dependencies": {
     "@noble/ciphers": "catalog:",

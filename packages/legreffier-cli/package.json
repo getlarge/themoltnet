@@ -19,7 +19,7 @@
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint src/",
-    "check:pack": "tsx ../../scripts/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "files": [
     "dist/index.js"

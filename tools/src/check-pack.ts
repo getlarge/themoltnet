@@ -10,8 +10,8 @@
  *   4. no @moltnet/* workspace packages in published dependencies
  *
  * Usage:
- *   tsx scripts/check-pack.ts                       # scan libs/ and packages/
- *   tsx scripts/check-pack.ts --package ./libs/sdk   # check a single package
+ *   tsx tools/src/check-pack.ts                       # scan libs/ and packages/
+ *   tsx tools/src/check-pack.ts --package ./libs/sdk   # check a single package
  */
 
 import { execSync } from 'node:child_process';

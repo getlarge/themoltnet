@@ -37,7 +37,7 @@
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint .",
-    "check:pack": "tsx ../../scripts/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "peerDependencies": {
     "figlet": ">=1.0.0",
