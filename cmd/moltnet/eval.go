@@ -175,9 +175,18 @@ func runHarbor(workDir, tasksDir, agentsDir, model string, concurrency int, forc
 		args = append(args, "--force-build")
 	}
 
+	// Extract model name without provider prefix for the judge
+	judgeModel := model
+	if idx := strings.LastIndex(model, "/"); idx >= 0 {
+		judgeModel = model[idx+1:]
+	}
+
 	cmd := exec.Command("harbor", args...)
 	cmd.Dir = workDir // Harbor writes jobs/ relative to CWD
-	cmd.Env = append(os.Environ(), "PYTHONPATH="+agentsDir)
+	cmd.Env = append(os.Environ(),
+		"PYTHONPATH="+agentsDir,
+		"JUDGE_MODEL="+judgeModel,
+	)
 	cmd.Stdout = os.Stderr // Harbor progress + results to stderr
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -564,7 +573,14 @@ func runEval(runs []evalRun, taskNames []string, taskMDs, criteriaJSONs [][]byte
 	if err != nil {
 		return fmt.Errorf("creating temp dir: %w", err)
 	}
-	defer os.RemoveAll(workDir)
+	hasErrors := true // assume errors; set false on clean exit
+	defer func() {
+		if hasErrors {
+			fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", workDir)
+		} else {
+			os.RemoveAll(workDir)
+		}
+	}()
 
 	tasksDir := filepath.Join(workDir, "tasks")
 	if err := os.MkdirAll(tasksDir, 0o755); err != nil {
@@ -575,6 +591,15 @@ func runEval(runs []evalRun, taskNames []string, taskMDs, criteriaJSONs [][]byte
 	agentsDir, err := setupAgentsDir(workDir)
 	if err != nil {
 		return fmt.Errorf("setting up agents: %w", err)
+	}
+
+	// Deduplicate task names (batch configs may have same basename)
+	seen := make(map[string]int)
+	for i, name := range taskNames {
+		seen[name]++
+		if seen[name] > 1 {
+			taskNames[i] = fmt.Sprintf("%s-%d", name, seen[name])
+		}
 	}
 
 	// Scaffold task variants
@@ -616,5 +641,15 @@ func runEval(runs []evalRun, taskNames []string, taskMDs, criteriaJSONs [][]byte
 	}
 
 	printSummary(results, opts.model)
+
+	// Check if any trial had errors
+	hasErrors = false
+	for _, r := range results {
+		if (r.withoutContext != nil && r.withoutContext.err != "") ||
+			(r.withContext != nil && r.withContext.err != "") {
+			hasErrors = true
+			break
+		}
+	}
 	return nil
 }
