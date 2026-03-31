@@ -72,6 +72,7 @@ function createMockDeps() {
       registerAgent: vi.fn(),
       grantTeamOwner: vi.fn(),
       grantDiaryOwner: vi.fn(),
+      grantDiaryTeam: vi.fn(),
     },
     dataSource: {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
