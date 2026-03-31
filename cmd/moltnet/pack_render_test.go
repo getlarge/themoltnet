@@ -156,8 +156,6 @@ func TestResolvePackRenderMarkdown_ReadsFile(t *testing.T) {
 }
 
 func TestResolvePackRenderMarkdown_ReadsStdin(t *testing.T) {
-	t.Parallel()
-
 	want := "# Caller Markdown From Stdin\n"
 	restore := replaceStdin(t, want)
 	defer restore()
@@ -214,8 +212,6 @@ func TestRunPackRenderCmd_PreviewsCallerMarkdownFromFile(t *testing.T) {
 }
 
 func TestRunPackRenderCmd_PersistsCallerMarkdownFromStdin(t *testing.T) {
-	t.Parallel()
-
 	packID := "00000000-0000-0000-0000-000000000001"
 	handler := &stubRenderPackHandler{}
 	apiSrv := newCombinedRenderServer(t, handler)
