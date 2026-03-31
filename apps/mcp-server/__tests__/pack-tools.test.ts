@@ -7,6 +7,7 @@ import {
   handlePacksPreview,
   handlePacksProvenance,
   handlePacksRender,
+  handlePacksRenderPreview,
 } from '../src/pack-tools.js';
 import type { HandlerContext, McpDeps } from '../src/types.js';
 import {
@@ -24,6 +25,7 @@ vi.mock('@moltnet/api-client', () => ({
   getContextPackById: vi.fn(),
   listDiaryPacks: vi.fn(),
   previewDiaryCustomPack: vi.fn(),
+  previewRenderedPack: vi.fn(),
   getContextPackProvenanceById: vi.fn(),
   getContextPackProvenanceByCid: vi.fn(),
   renderContextPack: vi.fn(),
@@ -36,6 +38,7 @@ import {
   getContextPackProvenanceById,
   listDiaryPacks,
   previewDiaryCustomPack,
+  previewRenderedPack,
   renderContextPack,
 } from '@moltnet/api-client';
 
@@ -518,9 +521,9 @@ describe('Pack tools', () => {
     });
   });
 
-  describe('packs_render', () => {
+  describe('packs_render_preview', () => {
     it('omits renderedMarkdown for server render methods', async () => {
-      vi.mocked(renderContextPack).mockResolvedValue(
+      vi.mocked(previewRenderedPack).mockResolvedValue(
         sdkOk({
           sourcePackId: PACK_ID,
           sourcePackCid: PACK_CID,
@@ -530,23 +533,20 @@ describe('Pack tools', () => {
         }) as never,
       );
 
-      const result = await handlePacksRender(
+      const result = await handlePacksRenderPreview(
         {
           pack_id: PACK_ID,
           render_method: 'server:pack-to-docs-v1',
-          preview: true,
         },
         deps,
         context,
       );
 
-      expect(renderContextPack).toHaveBeenCalledWith(
+      expect(previewRenderedPack).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { id: PACK_ID },
           body: {
             renderMethod: 'server:pack-to-docs-v1',
-            preview: true,
-            pinned: undefined,
           },
         }),
       );
@@ -556,7 +556,7 @@ describe('Pack tools', () => {
     });
 
     it('passes through renderedMarkdown for server render methods and surfaces API validation', async () => {
-      vi.mocked(renderContextPack).mockResolvedValue(
+      vi.mocked(previewRenderedPack).mockResolvedValue(
         sdkErr({
           error: 'Bad Request',
           message: 'Bad Request',
@@ -566,11 +566,53 @@ describe('Pack tools', () => {
         }) as never,
       );
 
-      const result = await handlePacksRender(
+      const result = await handlePacksRenderPreview(
         {
           pack_id: PACK_ID,
           render_method: 'server:pack-to-docs-v1',
           rendered_markdown: '# Caller markdown',
+        },
+        deps,
+        context,
+      );
+
+      expect(previewRenderedPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: PACK_ID },
+          body: {
+            renderMethod: 'server:pack-to-docs-v1',
+            renderedMarkdown: '# Caller markdown',
+          },
+        }),
+      );
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'renderedMarkdown must not be provided for server render methods',
+      );
+    });
+  });
+
+  describe('packs_render', () => {
+    it('persists a rendered pack without preview semantics', async () => {
+      vi.mocked(renderContextPack).mockResolvedValue(
+        sdkOk({
+          id: PACK_ID,
+          packCid: PACK_CID,
+          sourcePackId: PACK_ID,
+          sourcePackCid: PACK_CID,
+          diaryId: DIARY_ID,
+          contentHash: 'abc123',
+          renderMethod: 'server:pack-to-docs-v1',
+          renderedMarkdown: '# Context Pack',
+          totalTokens: 12,
+          pinned: false,
+        }) as never,
+      );
+
+      const result = await handlePacksRender(
+        {
+          pack_id: PACK_ID,
+          render_method: 'server:pack-to-docs-v1',
         },
         deps,
         context,
@@ -581,16 +623,13 @@ describe('Pack tools', () => {
           path: { id: PACK_ID },
           body: {
             renderMethod: 'server:pack-to-docs-v1',
-            renderedMarkdown: '# Caller markdown',
             pinned: undefined,
-            preview: undefined,
           },
         }),
       );
-      expect(result.isError).toBe(true);
-      expect(getTextContent(result)).toContain(
-        'renderedMarkdown must not be provided for server render methods',
-      );
+
+      const parsed = parseResult<Record<string, unknown>>(result);
+      expect(parsed.renderMethod).toBe('server:pack-to-docs-v1');
     });
   });
 });

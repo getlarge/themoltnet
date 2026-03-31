@@ -108,7 +108,25 @@ func executeRenderContextPack(client *moltnetapi.Client, packUUID uuid.UUID, req
 	}
 
 	switch res.(type) {
-	case *moltnetapi.RenderedPackPreview, *moltnetapi.RenderedPackResult:
+	case *moltnetapi.RenderedPackResult:
+		return res, nil
+	default:
+		return nil, formatAPIError(res)
+	}
+}
+
+func executePreviewRenderedPack(client *moltnetapi.Client, packUUID uuid.UUID, req *moltnetapi.PreviewRenderedPackReq) (moltnetapi.PreviewRenderedPackRes, error) {
+	res, err := client.PreviewRenderedPack(
+		context.Background(),
+		req,
+		moltnetapi.PreviewRenderedPackParams{ID: packUUID},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("preview rendered pack: %w", err)
+	}
+
+	switch res.(type) {
+	case *moltnetapi.RenderedPackPreview:
 		return res, nil
 	default:
 		return nil, formatAPIError(res)
@@ -117,11 +135,10 @@ func executeRenderContextPack(client *moltnetapi.Client, packUUID uuid.UUID, req
 
 func runServerPackRenderCmd(client *moltnetapi.Client, packUUID uuid.UUID, renderMethod string, preview bool, pinned *bool, out string) error {
 	if preview {
-		req := &moltnetapi.RenderContextPackReq{
+		req := &moltnetapi.PreviewRenderedPackReq{
 			RenderMethod: renderMethod,
-			Preview:      moltnetapi.NewOptBool(true),
 		}
-		renderRes, err := executeRenderContextPack(client, packUUID, req)
+		renderRes, err := executePreviewRenderedPack(client, packUUID, req)
 		if err != nil {
 			return err
 		}

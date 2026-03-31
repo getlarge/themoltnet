@@ -20,22 +20,7 @@ type stubRenderPackHandler struct {
 
 func (h *stubRenderPackHandler) RenderContextPack(_ context.Context, req *moltnetapi.RenderContextPackReq, params moltnetapi.RenderContextPackParams) (moltnetapi.RenderContextPackRes, error) {
 	if _, ok := req.RenderedMarkdown.Get(); ok {
-		if req.Preview.Or(false) {
-			h.previewIncludedMarkdown = true
-		} else {
-			h.persistIncludedMarkdown = true
-		}
-	}
-
-	if req.Preview.Or(false) {
-		h.previewCalls++
-		return &moltnetapi.RenderedPackPreview{
-			RenderMethod:     req.RenderMethod,
-			RenderedMarkdown: "# Server Markdown\n",
-			SourcePackCid:    "bafy-source",
-			SourcePackId:     params.ID,
-			TotalTokens:      3,
-		}, nil
+		h.persistIncludedMarkdown = true
 	}
 
 	h.persistCalls++
@@ -47,6 +32,21 @@ func (h *stubRenderPackHandler) RenderContextPack(_ context.Context, req *moltne
 		Pinned:           false,
 		RenderedMarkdown: "# Server Markdown\n",
 		RenderMethod:     req.RenderMethod,
+		SourcePackCid:    "bafy-source",
+		SourcePackId:     params.ID,
+		TotalTokens:      3,
+	}, nil
+}
+
+func (h *stubRenderPackHandler) PreviewRenderedPack(_ context.Context, req *moltnetapi.PreviewRenderedPackReq, params moltnetapi.PreviewRenderedPackParams) (moltnetapi.PreviewRenderedPackRes, error) {
+	if _, ok := req.RenderedMarkdown.Get(); ok {
+		h.previewIncludedMarkdown = true
+	}
+
+	h.previewCalls++
+	return &moltnetapi.RenderedPackPreview{
+		RenderMethod:     req.RenderMethod,
+		RenderedMarkdown: "# Server Markdown\n",
 		SourcePackCid:    "bafy-source",
 		SourcePackId:     params.ID,
 		TotalTokens:      3,
@@ -85,5 +85,46 @@ func TestRunServerPackRenderCmd_WritesMarkdownToOutOnPersist(t *testing.T) {
 	}
 	if handler.persistIncludedMarkdown {
 		t.Fatal("persist request unexpectedly included renderedMarkdown")
+	}
+	if handler.previewCalls != 0 {
+		t.Fatalf("expected no preview calls, got %d", handler.previewCalls)
+	}
+}
+
+func TestRunServerPackRenderCmd_WritesMarkdownToOutOnPreview(t *testing.T) {
+	t.Parallel()
+
+	packID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	handler := &stubRenderPackHandler{}
+	_, _, client := newTestServer(t, handler)
+	out := filepath.Join(t.TempDir(), "preview.md")
+
+	if err := runServerPackRenderCmd(
+		client,
+		packID,
+		"server:pack-to-docs-v1",
+		true,
+		nil,
+		out,
+	); err != nil {
+		t.Fatalf("runServerPackRenderCmd() error: %v", err)
+	}
+
+	got, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("ReadFile(%s): %v", out, err)
+	}
+
+	if string(got) != "# Server Markdown\n" {
+		t.Fatalf("expected markdown output, got %q", string(got))
+	}
+	if handler.previewCalls != 1 {
+		t.Fatalf("expected one preview call, got %d", handler.previewCalls)
+	}
+	if handler.persistCalls != 0 {
+		t.Fatalf("expected no persist calls, got %d", handler.persistCalls)
+	}
+	if handler.previewIncludedMarkdown {
+		t.Fatal("preview request unexpectedly included renderedMarkdown")
 	}
 }
