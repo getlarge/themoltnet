@@ -7,7 +7,12 @@
 
 import type { RelationshipApi } from '@ory/client-fetch';
 
-import { KetoNamespace } from './keto-constants.js';
+import { GroupRelation, KetoNamespace } from './keto-constants.js';
+
+export interface GroupMemberTuple {
+  subjectId: string;
+  subjectNs: string;
+}
 
 export interface TeamMemberTuple {
   subjectId: string;
@@ -29,6 +34,8 @@ export interface RelationshipReader {
   listTeamIdsAndRolesBySubject(subjectId: string): Promise<TeamIdWithRole[]>;
   /** Returns all members of a team with their roles. */
   listTeamMembers(teamId: string): Promise<TeamMemberTuple[]>;
+  /** Returns all members of a group. */
+  listGroupMembers(groupId: string): Promise<GroupMemberTuple[]>;
 }
 
 async function paginateRelationships(
@@ -165,6 +172,31 @@ export function createRelationshipReader(
               subjectId: tuple.subject_set.object,
               subjectNs: tuple.subject_set.namespace ?? '',
               relation: tuple.relation,
+            });
+          }
+        }
+        pageToken = result.next_page_token || undefined;
+      } while (pageToken);
+
+      return members;
+    },
+
+    async listGroupMembers(groupId: string): Promise<GroupMemberTuple[]> {
+      const members: GroupMemberTuple[] = [];
+      let pageToken: string | undefined;
+
+      do {
+        const result = await relationshipApi.getRelationships({
+          namespace: KetoNamespace.Group,
+          object: groupId,
+          relation: GroupRelation.Members,
+          pageToken,
+        });
+        for (const tuple of result.relation_tuples ?? []) {
+          if (tuple.subject_set?.object) {
+            members.push({
+              subjectId: tuple.subject_set.object,
+              subjectNs: tuple.subject_set.namespace ?? '',
             });
           }
         }

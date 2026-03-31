@@ -66,6 +66,11 @@ export {
   type EntryRelationRepository,
 } from './repositories/entry-relation.repository.js';
 export {
+  type CreateGroupInput,
+  createGroupRepository,
+  type GroupRepository,
+} from './repositories/group.repository.js';
+export {
   createNonceRepository,
   type NonceRepository,
 } from './repositories/nonce.repository.js';

@@ -16,7 +16,7 @@ import {
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-import { createProblem } from '../problems/index.js';
+import { createProblem, isUniqueViolation } from '../problems/index.js';
 import {
   DiaryEntrySchema,
   DiaryListSchema,
@@ -203,15 +203,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);
         // Unique constraint on content_signature → signing request already used
-        if (
-          err instanceof Error &&
-          'code' in err &&
-          (err as { code: string }).code === '23505' &&
-          'constraint' in err &&
-          String((err as { constraint: string }).constraint).includes(
-            'content_signature',
-          )
-        ) {
+        if (isUniqueViolation(err, 'content_signature')) {
           throw createProblem(
             'conflict',
             'This signing request has already been used to create an entry',

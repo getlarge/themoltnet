@@ -11,6 +11,7 @@ export enum KetoNamespace {
   ContextPack = 'ContextPack',
   Diary = 'Diary',
   DiaryEntry = 'DiaryEntry',
+  Group = 'Group',
   Human = 'Human',
   Team = 'Team',
 }
@@ -45,6 +46,22 @@ export enum TeamPermission {
   Manage = 'manage',
   ManageMembers = 'manage_members',
   Write = 'write',
+  Access = 'access',
+}
+
+/**
+ * Relations for the Group namespace
+ */
+export enum GroupRelation {
+  Members = 'members',
+  Parent = 'parent',
+}
+
+/**
+ * Permissions for the Group namespace
+ */
+export enum GroupPermission {
+  Manage = 'manage',
   Access = 'access',
 }
 

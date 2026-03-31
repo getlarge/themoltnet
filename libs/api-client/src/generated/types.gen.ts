@@ -3815,6 +3815,354 @@ export type JoinTeamResponses = {
 
 export type JoinTeamResponse = JoinTeamResponses[keyof JoinTeamResponses];
 
+export type ListGroupsData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/groups';
+};
+
+export type ListGroupsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListGroupsError = ListGroupsErrors[keyof ListGroupsErrors];
+
+export type ListGroupsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      id: string;
+      name: string;
+      /**
+       * UUID v4 identifier
+       */
+      teamId: string;
+    }>;
+  };
+};
+
+export type ListGroupsResponse = ListGroupsResponses[keyof ListGroupsResponses];
+
+export type CreateGroupData = {
+  body: {
+    name: string;
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+  };
+  query?: never;
+  url: '/teams/{id}/groups';
+};
+
+export type CreateGroupErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type CreateGroupError = CreateGroupErrors[keyof CreateGroupErrors];
+
+export type CreateGroupResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    name: string;
+    /**
+     * UUID v4 identifier
+     */
+    teamId: string;
+  };
+};
+
+export type CreateGroupResponse =
+  CreateGroupResponses[keyof CreateGroupResponses];
+
+export type DeleteGroupData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}';
+};
+
+export type DeleteGroupErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteGroupError = DeleteGroupErrors[keyof DeleteGroupErrors];
+
+export type DeleteGroupResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    deleted: boolean;
+  };
+};
+
+export type DeleteGroupResponse =
+  DeleteGroupResponses[keyof DeleteGroupResponses];
+
+export type GetGroupData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}';
+};
+
+export type GetGroupErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetGroupError = GetGroupErrors[keyof GetGroupErrors];
+
+export type GetGroupResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    /**
+     * UUID v4 identifier
+     */
+    id: string;
+    name: string;
+    /**
+     * UUID v4 identifier
+     */
+    teamId: string;
+    /**
+     * UUID v4 identifier
+     */
+    createdBy: string;
+    createdAt: string;
+    members: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+    }>;
+  };
+};
+
+export type GetGroupResponse = GetGroupResponses[keyof GetGroupResponses];
+
+export type ListGroupMembersData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}/members';
+};
+
+export type ListGroupMembersErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type ListGroupMembersError =
+  ListGroupMembersErrors[keyof ListGroupMembersErrors];
+
+export type ListGroupMembersResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: string;
+    }>;
+  };
+};
+
+export type ListGroupMembersResponse =
+  ListGroupMembersResponses[keyof ListGroupMembersResponses];
+
+export type AddGroupMemberData = {
+  body: {
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs?: 'Agent' | 'Human';
+  };
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}/members';
+};
+
+export type AddGroupMemberErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type AddGroupMemberError =
+  AddGroupMemberErrors[keyof AddGroupMemberErrors];
+
+export type AddGroupMemberResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: string;
+  };
+};
+
+export type AddGroupMemberResponse =
+  AddGroupMemberResponses[keyof AddGroupMemberResponses];
+
+export type RemoveGroupMemberData = {
+  body?: never;
+  path: {
+    /**
+     * UUID v4 identifier
+     */
+    groupId: string;
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+  };
+  query?: never;
+  url: '/groups/{groupId}/members/{subjectId}';
+};
+
+export type RemoveGroupMemberErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type RemoveGroupMemberError =
+  RemoveGroupMemberErrors[keyof RemoveGroupMemberErrors];
+
+export type RemoveGroupMemberResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    removed: boolean;
+  };
+};
+
+export type RemoveGroupMemberResponse =
+  RemoveGroupMemberResponses[keyof RemoveGroupMemberResponses];
+
 export type IssueVoucherData = {
   body?: never;
   path?: never;

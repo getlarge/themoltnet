@@ -28,6 +28,117 @@ type AcceptDiaryInvitationUnauthorized ProblemDetails
 
 func (*AcceptDiaryInvitationUnauthorized) acceptDiaryInvitationRes() {}
 
+type AddGroupMemberBadRequest ProblemDetails
+
+func (*AddGroupMemberBadRequest) addGroupMemberRes() {}
+
+type AddGroupMemberCreated struct {
+	// UUID v4 identifier.
+	SubjectId uuid.UUID `json:"subjectId"`
+	SubjectNs string    `json:"subjectNs"`
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *AddGroupMemberCreated) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *AddGroupMemberCreated) GetSubjectNs() string {
+	return s.SubjectNs
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *AddGroupMemberCreated) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *AddGroupMemberCreated) SetSubjectNs(val string) {
+	s.SubjectNs = val
+}
+
+func (*AddGroupMemberCreated) addGroupMemberRes() {}
+
+type AddGroupMemberForbidden ProblemDetails
+
+func (*AddGroupMemberForbidden) addGroupMemberRes() {}
+
+type AddGroupMemberNotFound ProblemDetails
+
+func (*AddGroupMemberNotFound) addGroupMemberRes() {}
+
+type AddGroupMemberReq struct {
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                     `json:"subjectId"`
+	SubjectNs OptAddGroupMemberReqSubjectNs `json:"subjectNs"`
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *AddGroupMemberReq) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *AddGroupMemberReq) GetSubjectNs() OptAddGroupMemberReqSubjectNs {
+	return s.SubjectNs
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *AddGroupMemberReq) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *AddGroupMemberReq) SetSubjectNs(val OptAddGroupMemberReqSubjectNs) {
+	s.SubjectNs = val
+}
+
+type AddGroupMemberReqSubjectNs string
+
+const (
+	AddGroupMemberReqSubjectNsAgent AddGroupMemberReqSubjectNs = "Agent"
+	AddGroupMemberReqSubjectNsHuman AddGroupMemberReqSubjectNs = "Human"
+)
+
+// AllValues returns all AddGroupMemberReqSubjectNs values.
+func (AddGroupMemberReqSubjectNs) AllValues() []AddGroupMemberReqSubjectNs {
+	return []AddGroupMemberReqSubjectNs{
+		AddGroupMemberReqSubjectNsAgent,
+		AddGroupMemberReqSubjectNsHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AddGroupMemberReqSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case AddGroupMemberReqSubjectNsAgent:
+		return []byte(s), nil
+	case AddGroupMemberReqSubjectNsHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AddGroupMemberReqSubjectNs) UnmarshalText(data []byte) error {
+	switch AddGroupMemberReqSubjectNs(data) {
+	case AddGroupMemberReqSubjectNsAgent:
+		*s = AddGroupMemberReqSubjectNsAgent
+		return nil
+	case AddGroupMemberReqSubjectNsHuman:
+		*s = AddGroupMemberReqSubjectNsHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type AddGroupMemberUnauthorized ProblemDetails
+
+func (*AddGroupMemberUnauthorized) addGroupMemberRes() {}
+
 // Ref: #/components/schemas/AgentIdentity
 type AgentIdentity struct {
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -2175,6 +2286,80 @@ type CreateEntryRelationUnauthorized ProblemDetails
 
 func (*CreateEntryRelationUnauthorized) createEntryRelationRes() {}
 
+type CreateGroupBadRequest ProblemDetails
+
+func (*CreateGroupBadRequest) createGroupRes() {}
+
+type CreateGroupConflict ProblemDetails
+
+func (*CreateGroupConflict) createGroupRes() {}
+
+type CreateGroupCreated struct {
+	// UUID v4 identifier.
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// UUID v4 identifier.
+	TeamId uuid.UUID `json:"teamId"`
+}
+
+// GetID returns the value of ID.
+func (s *CreateGroupCreated) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *CreateGroupCreated) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *CreateGroupCreated) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// SetID sets the value of ID.
+func (s *CreateGroupCreated) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateGroupCreated) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *CreateGroupCreated) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+func (*CreateGroupCreated) createGroupRes() {}
+
+type CreateGroupForbidden ProblemDetails
+
+func (*CreateGroupForbidden) createGroupRes() {}
+
+type CreateGroupNotFound ProblemDetails
+
+func (*CreateGroupNotFound) createGroupRes() {}
+
+type CreateGroupReq struct {
+	Name string `json:"name"`
+}
+
+// GetName returns the value of Name.
+func (s *CreateGroupReq) GetName() string {
+	return s.Name
+}
+
+// SetName sets the value of Name.
+func (s *CreateGroupReq) SetName(val string) {
+	s.Name = val
+}
+
+type CreateGroupUnauthorized ProblemDetails
+
+func (*CreateGroupUnauthorized) createGroupRes() {}
+
 type CreateSigningRequestInternalServerError ProblemDetails
 
 func (*CreateSigningRequestInternalServerError) createSigningRequestRes() {}
@@ -2720,6 +2905,34 @@ func (*DeleteEntryRelationNotFound) deleteEntryRelationRes() {}
 type DeleteEntryRelationUnauthorized ProblemDetails
 
 func (*DeleteEntryRelationUnauthorized) deleteEntryRelationRes() {}
+
+type DeleteGroupForbidden ProblemDetails
+
+func (*DeleteGroupForbidden) deleteGroupRes() {}
+
+type DeleteGroupNotFound ProblemDetails
+
+func (*DeleteGroupNotFound) deleteGroupRes() {}
+
+type DeleteGroupOK struct {
+	Deleted bool `json:"deleted"`
+}
+
+// GetDeleted returns the value of Deleted.
+func (s *DeleteGroupOK) GetDeleted() bool {
+	return s.Deleted
+}
+
+// SetDeleted sets the value of Deleted.
+func (s *DeleteGroupOK) SetDeleted(val bool) {
+	s.Deleted = val
+}
+
+func (*DeleteGroupOK) deleteGroupRes() {}
+
+type DeleteGroupUnauthorized ProblemDetails
+
+func (*DeleteGroupUnauthorized) deleteGroupRes() {}
 
 type DeleteTeamBadRequest ProblemDetails
 
@@ -4842,6 +5055,114 @@ type GetDiaryUnauthorized ProblemDetails
 
 func (*GetDiaryUnauthorized) getDiaryRes() {}
 
+type GetGroupNotFound ProblemDetails
+
+func (*GetGroupNotFound) getGroupRes() {}
+
+type GetGroupOK struct {
+	CreatedAt time.Time `json:"createdAt"`
+	// UUID v4 identifier.
+	CreatedBy uuid.UUID `json:"createdBy"`
+	// UUID v4 identifier.
+	ID      uuid.UUID               `json:"id"`
+	Members []GetGroupOKMembersItem `json:"members"`
+	Name    string                  `json:"name"`
+	// UUID v4 identifier.
+	TeamId uuid.UUID `json:"teamId"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *GetGroupOK) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *GetGroupOK) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
+}
+
+// GetID returns the value of ID.
+func (s *GetGroupOK) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetMembers returns the value of Members.
+func (s *GetGroupOK) GetMembers() []GetGroupOKMembersItem {
+	return s.Members
+}
+
+// GetName returns the value of Name.
+func (s *GetGroupOK) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *GetGroupOK) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *GetGroupOK) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCreatedBy sets the value of CreatedBy.
+func (s *GetGroupOK) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
+}
+
+// SetID sets the value of ID.
+func (s *GetGroupOK) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetMembers sets the value of Members.
+func (s *GetGroupOK) SetMembers(val []GetGroupOKMembersItem) {
+	s.Members = val
+}
+
+// SetName sets the value of Name.
+func (s *GetGroupOK) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *GetGroupOK) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+func (*GetGroupOK) getGroupRes() {}
+
+type GetGroupOKMembersItem struct {
+	// UUID v4 identifier.
+	SubjectId uuid.UUID `json:"subjectId"`
+	SubjectNs string    `json:"subjectNs"`
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *GetGroupOKMembersItem) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *GetGroupOKMembersItem) GetSubjectNs() string {
+	return s.SubjectNs
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *GetGroupOKMembersItem) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *GetGroupOKMembersItem) SetSubjectNs(val string) {
+	s.SubjectNs = val
+}
+
+type GetGroupUnauthorized ProblemDetails
+
+func (*GetGroupUnauthorized) getGroupRes() {}
+
 type GetLatestRenderedPackForbidden ProblemDetails
 
 func (*GetLatestRenderedPackForbidden) getLatestRenderedPackRes() {}
@@ -5928,6 +6249,118 @@ func (*ListEntryRelationsNotFound) listEntryRelationsRes() {}
 type ListEntryRelationsUnauthorized ProblemDetails
 
 func (*ListEntryRelationsUnauthorized) listEntryRelationsRes() {}
+
+type ListGroupMembersNotFound ProblemDetails
+
+func (*ListGroupMembersNotFound) listGroupMembersRes() {}
+
+type ListGroupMembersOK struct {
+	Items []ListGroupMembersOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListGroupMembersOK) GetItems() []ListGroupMembersOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListGroupMembersOK) SetItems(val []ListGroupMembersOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListGroupMembersOK) listGroupMembersRes() {}
+
+type ListGroupMembersOKItemsItem struct {
+	// UUID v4 identifier.
+	SubjectId uuid.UUID `json:"subjectId"`
+	SubjectNs string    `json:"subjectNs"`
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *ListGroupMembersOKItemsItem) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *ListGroupMembersOKItemsItem) GetSubjectNs() string {
+	return s.SubjectNs
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *ListGroupMembersOKItemsItem) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *ListGroupMembersOKItemsItem) SetSubjectNs(val string) {
+	s.SubjectNs = val
+}
+
+type ListGroupMembersUnauthorized ProblemDetails
+
+func (*ListGroupMembersUnauthorized) listGroupMembersRes() {}
+
+type ListGroupsNotFound ProblemDetails
+
+func (*ListGroupsNotFound) listGroupsRes() {}
+
+type ListGroupsOK struct {
+	Items []ListGroupsOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListGroupsOK) GetItems() []ListGroupsOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListGroupsOK) SetItems(val []ListGroupsOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListGroupsOK) listGroupsRes() {}
+
+type ListGroupsOKItemsItem struct {
+	// UUID v4 identifier.
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// UUID v4 identifier.
+	TeamId uuid.UUID `json:"teamId"`
+}
+
+// GetID returns the value of ID.
+func (s *ListGroupsOKItemsItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *ListGroupsOKItemsItem) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *ListGroupsOKItemsItem) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// SetID sets the value of ID.
+func (s *ListGroupsOKItemsItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *ListGroupsOKItemsItem) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *ListGroupsOKItemsItem) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+type ListGroupsUnauthorized ProblemDetails
+
+func (*ListGroupsUnauthorized) listGroupsRes() {}
 
 type ListProblemTypesOKItem struct {
 	Code         OptString `json:"code"`
@@ -7654,6 +8087,52 @@ func (o NilUUID) Get() (v uuid.UUID, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o NilUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptAddGroupMemberReqSubjectNs returns new OptAddGroupMemberReqSubjectNs with value set to v.
+func NewOptAddGroupMemberReqSubjectNs(v AddGroupMemberReqSubjectNs) OptAddGroupMemberReqSubjectNs {
+	return OptAddGroupMemberReqSubjectNs{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptAddGroupMemberReqSubjectNs is optional AddGroupMemberReqSubjectNs.
+type OptAddGroupMemberReqSubjectNs struct {
+	Value AddGroupMemberReqSubjectNs
+	Set   bool
+}
+
+// IsSet returns true if OptAddGroupMemberReqSubjectNs was set.
+func (o OptAddGroupMemberReqSubjectNs) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptAddGroupMemberReqSubjectNs) Reset() {
+	var v AddGroupMemberReqSubjectNs
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptAddGroupMemberReqSubjectNs) SetTo(v AddGroupMemberReqSubjectNs) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptAddGroupMemberReqSubjectNs) Get() (v AddGroupMemberReqSubjectNs, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptAddGroupMemberReqSubjectNs) Or(d AddGroupMemberReqSubjectNs) AddGroupMemberReqSubjectNs {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -11152,6 +11631,34 @@ func (s *RelationType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type RemoveGroupMemberForbidden ProblemDetails
+
+func (*RemoveGroupMemberForbidden) removeGroupMemberRes() {}
+
+type RemoveGroupMemberNotFound ProblemDetails
+
+func (*RemoveGroupMemberNotFound) removeGroupMemberRes() {}
+
+type RemoveGroupMemberOK struct {
+	Removed bool `json:"removed"`
+}
+
+// GetRemoved returns the value of Removed.
+func (s *RemoveGroupMemberOK) GetRemoved() bool {
+	return s.Removed
+}
+
+// SetRemoved sets the value of Removed.
+func (s *RemoveGroupMemberOK) SetRemoved(val bool) {
+	s.Removed = val
+}
+
+func (*RemoveGroupMemberOK) removeGroupMemberRes() {}
+
+type RemoveGroupMemberUnauthorized ProblemDetails
+
+func (*RemoveGroupMemberUnauthorized) removeGroupMemberRes() {}
 
 type RemoveTeamMemberBadRequest ProblemDetails
 

@@ -81,6 +81,72 @@ func decodeAcceptDiaryInvitationParams(args [1]string, argsEscaped bool, r *http
 	return params, nil
 }
 
+// AddGroupMemberParams is parameters of addGroupMember operation.
+type AddGroupMemberParams struct {
+	// UUID v4 identifier.
+	GroupId uuid.UUID
+}
+
+func unpackAddGroupMemberParams(packed middleware.Parameters) (params AddGroupMemberParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "groupId",
+			In:   "path",
+		}
+		params.GroupId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeAddGroupMemberParams(args [1]string, argsEscaped bool, r *http.Request) (params AddGroupMemberParams, _ error) {
+	// Decode path: groupId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "groupId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GroupId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "groupId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CompileDiaryParams is parameters of compileDiary operation.
 type CompileDiaryParams struct {
 	// UUID v4 identifier.
@@ -411,6 +477,72 @@ func decodeCreateEntryRelationParams(args [1]string, argsEscaped bool, r *http.R
 	return params, nil
 }
 
+// CreateGroupParams is parameters of createGroup operation.
+type CreateGroupParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackCreateGroupParams(packed middleware.Parameters) (params CreateGroupParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateGroupParams(args [1]string, argsEscaped bool, r *http.Request) (params CreateGroupParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateTeamInviteParams is parameters of createTeamInvite operation.
 type CreateTeamInviteParams struct {
 	// UUID v4 identifier.
@@ -733,6 +865,72 @@ func decodeDeleteEntryRelationParams(args [1]string, argsEscaped bool, r *http.R
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteGroupParams is parameters of deleteGroup operation.
+type DeleteGroupParams struct {
+	// UUID v4 identifier.
+	GroupId uuid.UUID
+}
+
+func unpackDeleteGroupParams(packed middleware.Parameters) (params DeleteGroupParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "groupId",
+			In:   "path",
+		}
+		params.GroupId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteGroupParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteGroupParams, _ error) {
+	// Decode path: groupId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "groupId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GroupId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "groupId",
 			In:   "path",
 			Err:  err,
 		}
@@ -1552,6 +1750,72 @@ func decodeGetDiaryEntryByIdParams(args [1]string, argsEscaped bool, r *http.Req
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "entryId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetGroupParams is parameters of getGroup operation.
+type GetGroupParams struct {
+	// UUID v4 identifier.
+	GroupId uuid.UUID
+}
+
+func unpackGetGroupParams(packed middleware.Parameters) (params GetGroupParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "groupId",
+			In:   "path",
+		}
+		params.GroupId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetGroupParams(args [1]string, argsEscaped bool, r *http.Request) (params GetGroupParams, _ error) {
+	// Decode path: groupId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "groupId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GroupId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "groupId",
 			In:   "path",
 			Err:  err,
 		}
@@ -4019,6 +4283,138 @@ func decodeListEntryRelationsParams(args [1]string, argsEscaped bool, r *http.Re
 	return params, nil
 }
 
+// ListGroupMembersParams is parameters of listGroupMembers operation.
+type ListGroupMembersParams struct {
+	// UUID v4 identifier.
+	GroupId uuid.UUID
+}
+
+func unpackListGroupMembersParams(packed middleware.Parameters) (params ListGroupMembersParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "groupId",
+			In:   "path",
+		}
+		params.GroupId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListGroupMembersParams(args [1]string, argsEscaped bool, r *http.Request) (params ListGroupMembersParams, _ error) {
+	// Decode path: groupId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "groupId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GroupId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "groupId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListGroupsParams is parameters of listGroups operation.
+type ListGroupsParams struct {
+	// UUID v4 identifier.
+	ID uuid.UUID
+}
+
+func unpackListGroupsParams(packed middleware.Parameters) (params ListGroupsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListGroupsParams(args [1]string, argsEscaped bool, r *http.Request) (params ListGroupsParams, _ error) {
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListSigningRequestsParams is parameters of listSigningRequests operation.
 type ListSigningRequestsParams struct {
 	Limit  OptFloat64 `json:",omitempty,omitzero"`
@@ -4808,6 +5204,126 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 		return params, &ogenerrors.DecodeParamError{
 			Name: "entryTypes",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// RemoveGroupMemberParams is parameters of removeGroupMember operation.
+type RemoveGroupMemberParams struct {
+	// UUID v4 identifier.
+	GroupId uuid.UUID
+	// UUID v4 identifier.
+	SubjectId uuid.UUID
+}
+
+func unpackRemoveGroupMemberParams(packed middleware.Parameters) (params RemoveGroupMemberParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "groupId",
+			In:   "path",
+		}
+		params.GroupId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "subjectId",
+			In:   "path",
+		}
+		params.SubjectId = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeRemoveGroupMemberParams(args [2]string, argsEscaped bool, r *http.Request) (params RemoveGroupMemberParams, _ error) {
+	// Decode path: groupId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "groupId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.GroupId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "groupId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: subjectId.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "subjectId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.SubjectId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "subjectId",
+			In:   "path",
 			Err:  err,
 		}
 	}

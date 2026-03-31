@@ -30,6 +30,7 @@ import { diaryRoutes } from './routes/diary.js';
 import { diaryDistillRoutes } from './routes/diary-distill.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
 import { entryRelationRoutes } from './routes/entry-relations.js';
+import { groupRoutes } from './routes/groups.js';
 import { healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { oauth2Routes } from './routes/oauth2.js';
@@ -53,6 +54,7 @@ import type {
   DiaryService,
   EmbeddingService,
   EntryRelationRepository,
+  GroupRepository,
   NonceRepository,
   RenderedPackRepository,
   SigningRequestRepository,
@@ -104,6 +106,7 @@ export interface AppOptions {
   agentRepository: AgentRepository;
   cryptoService: CryptoService;
   voucherRepository: VoucherRepository;
+  groupRepository: GroupRepository;
   teamRepository: TeamRepository;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
@@ -236,6 +239,7 @@ export async function registerApiRoutes(
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('voucherRepository', options.voucherRepository);
+  decorateSafe('groupRepository', options.groupRepository);
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
@@ -273,6 +277,7 @@ export async function registerApiRoutes(
   });
   await app.register(registrationRoutes);
   await app.register(teamRoutes);
+  await app.register(groupRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(problemRoutes);

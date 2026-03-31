@@ -14,6 +14,8 @@ export {
   DiaryEntryRelation,
   DiaryPermission,
   DiaryRelation,
+  GroupPermission,
+  GroupRelation,
   HumanPermission,
   HumanRelation,
   KetoNamespace,
@@ -39,6 +41,7 @@ export {
 } from './plugin.js';
 export {
   createRelationshipReader,
+  type GroupMemberTuple,
   type RelationshipReader,
   type TeamIdWithRole,
   type TeamMemberTuple,
