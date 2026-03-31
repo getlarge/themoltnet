@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.72"
+    "@anthropic-ai/claude-agent-sdk": "0.2.72"
   }
 }

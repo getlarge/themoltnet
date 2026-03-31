@@ -40,6 +40,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newEntryCmd())
 	rootCmd.AddCommand(newPackCmd())
 	rootCmd.AddCommand(newRelationsCmd())
+	rootCmd.AddCommand(newEvalCmd())
 	rootCmd.AddCommand(newCompletionCmd())
 
 	return rootCmd

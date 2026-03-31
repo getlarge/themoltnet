@@ -40,15 +40,21 @@ try {
     await readFile('/tests/criteria.json', 'utf-8'),
   );
 
+  const checklist = Array.isArray(criteria.checklist)
+    ? criteria.checklist
+    : [];
+  const context =
+    typeof criteria.context === 'string' ? criteria.context : '';
+
   const prompt = `You are an eval judge. Read all files the agent produced in /app.
 
 Score the agent's work against this weighted checklist. For EACH criterion,
 determine a score from 0 to max_score.
 
 Criteria:
-${criteria.checklist.map((c, i) => `${i + 1}. "${c.name}" (max ${c.max_score}): ${c.description}`).join('\n')}
+${checklist.map((c, i) => `${i + 1}. "${c.name}" (max ${c.max_score}): ${c.description}`).join('\n')}
 
-Context: ${criteria.context}
+Context: ${context}
 
 After reading the files, output ONLY a JSON array — one object per criterion:
 [
@@ -75,7 +81,7 @@ No markdown fences. No explanation outside the JSON.`;
       includePartialMessages: false,
       maxTurns: 5,
       settings: { disableAllHooks: true },
-      debug: true,
+      debug: process.env.MOLTNET_EVAL_DEBUG === '1',
       env: {
         ...runtimeEnv,
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',

@@ -1,0 +1,667 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"math"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+
+	"gopkg.in/yaml.v2"
+)
+
+// evalRunOpts holds flags shared by single-task and config modes.
+type evalRunOpts struct {
+	model       string
+	concurrency int
+	forceBuild  bool
+}
+
+// evalRun describes one task + optional pack pair (used in config mode).
+type evalRun struct {
+	Scenario string `yaml:"scenario"`
+	Pack     string `yaml:"pack,omitempty"`
+}
+
+// evalRunInput is the resolved input for a single eval run.
+type evalRunInput struct {
+	name         string
+	taskMD       []byte
+	criteriaJSON []byte
+	packMD       string
+}
+
+// evalConfig is the YAML config file schema.
+type evalConfig struct {
+	Runs []evalRun `yaml:"runs"`
+}
+
+// trialScores holds parsed scores for a single trial.
+type trialScores struct {
+	name    string
+	reward  float64
+	details map[string]float64
+	err     string // non-empty if the trial failed
+}
+
+// evalResult holds the outcome for one eval task.
+type evalResult struct {
+	taskName     string
+	withContext   *trialScores
+	withoutContext *trialScores
+}
+
+// --- Prerequisites ---
+
+func checkPrerequisites() error {
+	if _, err := exec.LookPath("harbor"); err != nil {
+		return fmt.Errorf("harbor CLI not found on PATH — install with: uv tool install harbor")
+	}
+	if _, err := exec.LookPath("docker"); err != nil {
+		return fmt.Errorf("docker CLI not found on PATH: %w", err)
+	}
+	if err := exec.Command("docker", "info").Run(); err != nil {
+		return fmt.Errorf("docker daemon not running or not accessible: %w", err)
+	}
+	return nil
+}
+
+// --- Config loading ---
+
+func loadConfig(path string) ([]evalRun, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading config: %w", err)
+	}
+	var cfg evalConfig
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("parsing config: %w", err)
+	}
+	if len(cfg.Runs) == 0 {
+		return nil, fmt.Errorf("config has no runs defined")
+	}
+
+	configDir := filepath.Dir(path)
+	for i := range cfg.Runs {
+		r := &cfg.Runs[i]
+		if !filepath.IsAbs(r.Scenario) {
+			r.Scenario = filepath.Join(configDir, r.Scenario)
+		}
+		if r.Pack != "" && !filepath.IsAbs(r.Pack) {
+			r.Pack = filepath.Join(configDir, r.Pack)
+		}
+		if err := validateTaskDir(r.Scenario); err != nil {
+			return nil, fmt.Errorf("run %d: %w", i+1, err)
+		}
+	}
+	return cfg.Runs, nil
+}
+
+func validateTaskDir(dir string) error {
+	for _, name := range []string{"task.md", "criteria.json"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			return fmt.Errorf("%s: missing %s", dir, name)
+		}
+	}
+	return nil
+}
+
+// --- Scaffolding ---
+
+func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withContext bool) error {
+	dirs := []string{
+		filepath.Join(dir, "environment", "judge"),
+		filepath.Join(dir, "tests"),
+	}
+	if withContext {
+		dirs = append(dirs, filepath.Join(dir, "environment", ".claude"))
+	}
+	for _, d := range dirs {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			return fmt.Errorf("mkdir %s: %w", d, err)
+		}
+	}
+
+	files := map[string][]byte{
+		filepath.Join(dir, "task.toml"):                          taskTomlTemplate,
+		filepath.Join(dir, "instruction.md"):                     taskMD,
+		filepath.Join(dir, "environment", "Dockerfile"):          dockerfileTemplate,
+		filepath.Join(dir, "environment", "judge", "judge.js"):   judgeJS,
+		filepath.Join(dir, "environment", "judge", "package.json"): judgePackageJSON,
+		filepath.Join(dir, "tests", "criteria.json"):             criteriaJSON,
+	}
+	for path, content := range files {
+		if err := os.WriteFile(path, content, 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", path, err)
+		}
+	}
+
+	// test.sh needs execute permission
+	if err := os.WriteFile(filepath.Join(dir, "tests", "test.sh"), testShTemplate, 0o755); err != nil {
+		return fmt.Errorf("write test.sh: %w", err)
+	}
+
+	if withContext {
+		claudeMD := fmt.Sprintf("# Context Pack\n\n%s", packMD)
+		path := filepath.Join(dir, "environment", ".claude", "CLAUDE.md")
+		if err := os.WriteFile(path, []byte(claudeMD), 0o644); err != nil {
+			return fmt.Errorf("write CLAUDE.md: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// --- Harbor invocation ---
+
+// setupAgentsDir writes the embedded Python agent to a temp directory
+// so Harbor can import it via PYTHONPATH.
+func setupAgentsDir(baseDir string) (string, error) {
+	agentsDir := filepath.Join(baseDir, "agents")
+	if err := os.MkdirAll(agentsDir, 0o755); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(agentsDir, "__init__.py"), []byte(""), 0o644); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(agentsDir, "claude_code_moltnet.py"), agentPython, 0o644); err != nil {
+		return "", err
+	}
+	return baseDir, nil
+}
+
+func runHarbor(workDir, tasksDir, agentsDir, model string, concurrency int, forceBuild bool) error {
+	args := []string{
+		"run",
+		"-p", tasksDir,
+		"--agent-import-path", "agents.claude_code_moltnet:ClaudeCodeMoltNet",
+		"--model", model,
+		"--n-concurrent", strconv.Itoa(concurrency),
+		"-y",
+	}
+	if forceBuild {
+		args = append(args, "--force-build")
+	}
+
+	// Extract model name without provider prefix for the judge
+	judgeModel := model
+	if idx := strings.LastIndex(model, "/"); idx >= 0 {
+		judgeModel = model[idx+1:]
+	}
+
+	cmd := exec.Command("harbor", args...)
+	cmd.Dir = workDir // Harbor writes jobs/ relative to CWD
+	cmd.Env = append(os.Environ(),
+		"PYTHONPATH="+agentsDir,
+		"JUDGE_MODEL="+judgeModel,
+	)
+	cmd.Stdout = os.Stderr // Harbor progress + results to stderr
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// --- Result extraction ---
+
+// harborResult mirrors Harbor's result.json structure (partial).
+type harborResult struct {
+	Stats struct {
+		NErrors int `json:"n_errors"`
+		Evals   map[string]struct {
+			RewardStats struct {
+				Reward map[string][]string `json:"reward"`
+			} `json:"reward_stats"`
+		} `json:"evals"`
+	} `json:"stats"`
+}
+
+func findJobDir(workDir string) (string, error) {
+	jobsDir := filepath.Join(workDir, "jobs")
+	entries, err := os.ReadDir(jobsDir)
+	if err != nil {
+		return "", fmt.Errorf("reading jobs dir: %w", err)
+	}
+	// Pick the most recent (last sorted) job directory
+	var latest string
+	for _, e := range entries {
+		if e.IsDir() {
+			latest = e.Name()
+		}
+	}
+	if latest == "" {
+		return "", fmt.Errorf("no job directories found in %s", jobsDir)
+	}
+	return filepath.Join(jobsDir, latest), nil
+}
+
+func extractResults(jobDir string) ([]evalResult, error) {
+	entries, err := os.ReadDir(jobDir)
+	if err != nil {
+		return nil, fmt.Errorf("reading job dir: %w", err)
+	}
+
+	// Group trials by base task name
+	type trialInfo struct {
+		dir         string
+		withContext bool
+	}
+	groups := make(map[string][]trialInfo)
+
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		// Harbor trial dirs look like: task-name__randomID
+		parts := strings.SplitN(name, "__", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		trialName := parts[0]
+
+		// Determine if this is a with-context variant.
+		// Harbor truncates long task names, so "-with-context" may appear
+		// as "-with-conte", "-with-con", etc.
+		isContext := strings.Contains(trialName, "-with-con")
+
+		baseName := trialName
+		if isContext {
+			// Strip everything from "-with-con" onward to get the base name
+			idx := strings.Index(baseName, "-with-con")
+			baseName = baseName[:idx]
+		}
+
+		groups[baseName] = append(groups[baseName], trialInfo{
+			dir:         filepath.Join(jobDir, name),
+			withContext: isContext,
+		})
+	}
+
+	// Sort base names for deterministic output
+	baseNames := make([]string, 0, len(groups))
+	for k := range groups {
+		baseNames = append(baseNames, k)
+	}
+	sort.Strings(baseNames)
+
+	var results []evalResult
+	for _, baseName := range baseNames {
+		trials := groups[baseName]
+		result := evalResult{taskName: baseName}
+		for _, t := range trials {
+			scores, err := readTrialScores(t.dir)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "warning: could not read scores for %s: %v\n", filepath.Base(t.dir), err)
+				continue
+			}
+			scores.name = filepath.Base(t.dir)
+			if t.withContext {
+				result.withContext = scores
+			} else {
+				result.withoutContext = scores
+			}
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+func readTrialScores(trialDir string) (*trialScores, error) {
+	scores := &trialScores{}
+
+	// Check for trial-level errors
+	resultPath := filepath.Join(trialDir, "result.json")
+	if data, err := os.ReadFile(resultPath); err == nil {
+		var result struct {
+			ExceptionInfo *struct {
+				Type    string `json:"exception_type"`
+				Message string `json:"exception_message"`
+			} `json:"exception_info"`
+		}
+		if err := json.Unmarshal(data, &result); err == nil && result.ExceptionInfo != nil {
+			scores.err = result.ExceptionInfo.Type
+			// Try to extract a short reason from the message
+			if msg := result.ExceptionInfo.Message; len(msg) > 0 {
+				// Look for common patterns
+				if strings.Contains(msg, "Not logged in") {
+					scores.err += ": OAuth token expired — re-authenticate and retry"
+				} else if strings.Contains(msg, "ECONNRESET") || strings.Contains(msg, "TLS connect error") {
+					scores.err += ": TLS connection failed — check Docker networking"
+				} else if strings.Contains(msg, "timed out") {
+					scores.err += ": agent timed out"
+				}
+			}
+		}
+	}
+
+	// Try to read reward even if there was an error (judge may have run)
+	rewardPath := filepath.Join(trialDir, "verifier", "reward.json")
+	rewardData, err := os.ReadFile(rewardPath)
+	if err != nil {
+		if scores.err != "" {
+			// No reward but we have error context — return what we have
+			return scores, nil
+		}
+		return nil, fmt.Errorf("reading reward.json: %w", err)
+	}
+
+	var reward struct {
+		Reward float64 `json:"reward"`
+	}
+	if err := json.Unmarshal(rewardData, &reward); err != nil {
+		return nil, fmt.Errorf("parsing reward.json: %w", err)
+	}
+	scores.reward = reward.Reward
+
+	// scores.json is optional
+	scoresPath := filepath.Join(trialDir, "verifier", "scores.json")
+	if data, err := os.ReadFile(scoresPath); err == nil {
+		var details map[string]float64
+		if err := json.Unmarshal(data, &details); err == nil {
+			scores.details = details
+		}
+	}
+
+	return scores, nil
+}
+
+// --- Summary formatting ---
+
+func printSummary(results []evalResult, model string) {
+	if len(results) == 1 {
+		printSingleSummary(results[0], model)
+		return
+	}
+	printBatchSummary(results, model)
+}
+
+func printVariantLine(label string, s *trialScores) {
+	if s == nil {
+		return
+	}
+	fmt.Printf("  %-18s  %.2f  (%.1f%%)", label+":", s.reward, s.reward*100)
+	if s.err != "" {
+		fmt.Printf("  ⚠ %s", s.err)
+	}
+	fmt.Println()
+}
+
+func printSingleSummary(r evalResult, model string) {
+	fmt.Printf("Eval: %s\n", r.taskName)
+	fmt.Printf("Model: %s\n\n", model)
+
+	printVariantLine("Without context", r.withoutContext)
+	printVariantLine("With context", r.withContext)
+
+	if r.withoutContext != nil && r.withContext != nil {
+		delta := r.withContext.reward - r.withoutContext.reward
+		fmt.Printf("  Delta:              %+.2f  (%+.1f%%)\n", delta, delta*100)
+	}
+
+	// Print per-criterion comparison
+	if r.withoutContext != nil && r.withContext != nil &&
+		(len(r.withoutContext.details) > 0 || len(r.withContext.details) > 0) {
+		// Collect all criterion names from both variants
+		allCriteria := make(map[string]bool)
+		for k := range r.withoutContext.details {
+			allCriteria[k] = true
+		}
+		for k := range r.withContext.details {
+			allCriteria[k] = true
+		}
+		// Sort criteria for deterministic output
+		sortedCriteria := make([]string, 0, len(allCriteria))
+		for k := range allCriteria {
+			sortedCriteria = append(sortedCriteria, k)
+		}
+		sort.Strings(sortedCriteria)
+
+		fmt.Printf("\n  %-38s  %-9s  %-9s  %s\n", "Criteria", "Without", "With", "Delta")
+		fmt.Printf("  %-38s  %-9s  %-9s  %s\n",
+			strings.Repeat("─", 38), strings.Repeat("─", 9), strings.Repeat("─", 9), strings.Repeat("─", 7))
+		for _, name := range sortedCriteria {
+			without := r.withoutContext.details[name]
+			with := r.withContext.details[name]
+			d := with - without
+			delta := ""
+			if d != 0 {
+				delta = fmt.Sprintf("%+.0f%%", d*100)
+			}
+			fmt.Printf("  %-38s  %-9s  %-9s  %s\n",
+				name,
+				fmt.Sprintf("%.0f%%", without*100),
+				fmt.Sprintf("%.0f%%", with*100),
+				delta,
+			)
+		}
+	} else {
+		// Single variant — just list scores
+		single := r.withContext
+		if single == nil {
+			single = r.withoutContext
+		}
+		if single != nil && len(single.details) > 0 {
+			fmt.Printf("\n  Criteria:\n")
+			for name, score := range single.details {
+				fmt.Printf("    %.0f%%  %s\n", score*100, name)
+			}
+		}
+	}
+
+	// Show log paths for failed trials
+	for _, s := range []*trialScores{r.withoutContext, r.withContext} {
+		if s != nil && s.err != "" && s.name != "" {
+			fmt.Printf("\n  Logs: %s/\n", s.name)
+		}
+	}
+	fmt.Println()
+}
+
+func printBatchSummary(results []evalResult, model string) {
+	fmt.Printf("Model: %s\n\n", model)
+	fmt.Printf("  %-30s  %-9s  %-9s  %s\n", "Task", "Without", "With", "Delta")
+	fmt.Printf("  %-30s  %-9s  %-9s  %s\n",
+		strings.Repeat("─", 30), strings.Repeat("─", 9), strings.Repeat("─", 9), strings.Repeat("─", 8))
+
+	var deltas []float64
+	for _, r := range results {
+		without := "—"
+		with := "—"
+		delta := "—"
+
+		if r.withoutContext != nil {
+			if r.withoutContext.err != "" {
+				without = "FAILED"
+			} else {
+				without = fmt.Sprintf("%.1f%%", r.withoutContext.reward*100)
+			}
+		}
+		if r.withContext != nil {
+			if r.withContext.err != "" {
+				with = "FAILED"
+			} else {
+				with = fmt.Sprintf("%.1f%%", r.withContext.reward*100)
+			}
+		}
+		if r.withoutContext != nil && r.withContext != nil &&
+			r.withoutContext.err == "" && r.withContext.err == "" {
+			d := r.withContext.reward - r.withoutContext.reward
+			delta = fmt.Sprintf("%+.1f%%", d*100)
+			deltas = append(deltas, d)
+		}
+
+		fmt.Printf("  %-30s  %-9s  %-9s  %s\n", r.taskName, without, with, delta)
+	}
+
+	// Show error details for failed trials
+	for _, r := range results {
+		for _, s := range []*trialScores{r.withoutContext, r.withContext} {
+			if s != nil && s.err != "" {
+				fmt.Printf("\n  %s: %s", s.name, s.err)
+			}
+		}
+	}
+
+	if len(deltas) > 0 {
+		avg := 0.0
+		for _, d := range deltas {
+			avg += d
+		}
+		avg /= float64(len(deltas))
+		if math.IsNaN(avg) {
+			avg = 0
+		}
+		fmt.Printf("\n  Average delta: %+.1f%%\n", avg*100)
+	}
+	fmt.Println()
+}
+
+// --- Orchestration ---
+
+func resolveEvalRun(scenarioDir, packPath string) (evalRunInput, error) {
+	if err := validateTaskDir(scenarioDir); err != nil {
+		return evalRunInput{}, err
+	}
+	taskMD, err := os.ReadFile(filepath.Join(scenarioDir, "task.md"))
+	if err != nil {
+		return evalRunInput{}, fmt.Errorf("reading task.md from %s: %w", scenarioDir, err)
+	}
+	criteriaJSON, err := os.ReadFile(filepath.Join(scenarioDir, "criteria.json"))
+	if err != nil {
+		return evalRunInput{}, fmt.Errorf("reading criteria.json from %s: %w", scenarioDir, err)
+	}
+	var packMD string
+	if packPath != "" {
+		data, err := os.ReadFile(packPath)
+		if err != nil {
+			return evalRunInput{}, fmt.Errorf("reading pack %s: %w", packPath, err)
+		}
+		packMD = string(data)
+	}
+	return evalRunInput{
+		name:         filepath.Base(scenarioDir),
+		taskMD:       taskMD,
+		criteriaJSON: criteriaJSON,
+		packMD:       packMD,
+	}, nil
+}
+
+func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
+	if err := checkPrerequisites(); err != nil {
+		return err
+	}
+	input, err := resolveEvalRun(taskDir, packPath)
+	if err != nil {
+		return err
+	}
+	return runEval([]evalRunInput{input}, opts)
+}
+
+func runEvalFromConfig(configPath string, opts evalRunOpts) error {
+	if err := checkPrerequisites(); err != nil {
+		return err
+	}
+	runs, err := loadConfig(configPath)
+	if err != nil {
+		return err
+	}
+	var inputs []evalRunInput
+	for _, r := range runs {
+		input, err := resolveEvalRun(r.Scenario, r.Pack)
+		if err != nil {
+			return err
+		}
+		inputs = append(inputs, input)
+	}
+	return runEval(inputs, opts)
+}
+
+func runEval(inputs []evalRunInput, opts evalRunOpts) error {
+	// Create temp working directory for Harbor
+	workDir, err := os.MkdirTemp("", "moltnet-eval-*")
+	if err != nil {
+		return fmt.Errorf("creating temp dir: %w", err)
+	}
+	hasErrors := true // assume errors; set false on clean exit
+	defer func() {
+		if hasErrors {
+			fmt.Fprintf(os.Stderr, "Artifacts preserved at: %s\n", workDir)
+		} else {
+			os.RemoveAll(workDir)
+		}
+	}()
+
+	tasksDir := filepath.Join(workDir, "tasks")
+	if err := os.MkdirAll(tasksDir, 0o755); err != nil {
+		return fmt.Errorf("creating tasks dir: %w", err)
+	}
+
+	// Write Python agent to temp dir
+	agentsDir, err := setupAgentsDir(workDir)
+	if err != nil {
+		return fmt.Errorf("setting up agents: %w", err)
+	}
+
+	// Deduplicate names (batch configs may have same basename)
+	seen := make(map[string]int)
+	for i := range inputs {
+		seen[inputs[i].name]++
+		if seen[inputs[i].name] > 1 {
+			inputs[i].name = fmt.Sprintf("%s-%d", inputs[i].name, seen[inputs[i].name])
+		}
+	}
+
+	// Scaffold task variants
+	for _, input := range inputs {
+		// Always scaffold without-context variant
+		dir := filepath.Join(tasksDir, input.name)
+		if err := scaffoldTask(dir, input.taskMD, input.criteriaJSON, "", false); err != nil {
+			return fmt.Errorf("scaffolding %s: %w", input.name, err)
+		}
+
+		// If pack provided, also scaffold with-context variant
+		if input.packMD != "" {
+			ctxDir := filepath.Join(tasksDir, input.name+"-with-context")
+			if err := scaffoldTask(ctxDir, input.taskMD, input.criteriaJSON, input.packMD, true); err != nil {
+				return fmt.Errorf("scaffolding %s-with-context: %w", input.name, err)
+			}
+		}
+	}
+
+	// Run Harbor
+	fmt.Fprintf(os.Stderr, "Running %d eval task(s) with model %s...\n", len(inputs), opts.model)
+	if err := runHarbor(workDir, tasksDir, agentsDir, opts.model, opts.concurrency, opts.forceBuild); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: harbor exited with error (some trials may have failed): %v\n", err)
+	}
+
+	// Extract and display results
+	jobDir, err := findJobDir(workDir)
+	if err != nil {
+		return fmt.Errorf("finding job results: %w", err)
+	}
+
+	results, err := extractResults(jobDir)
+	if err != nil {
+		return fmt.Errorf("extracting results: %w", err)
+	}
+
+	if len(results) == 0 {
+		return fmt.Errorf("no results found — all trials may have failed")
+	}
+
+	printSummary(results, opts.model)
+
+	// Check if any trial had errors
+	hasErrors = false
+	for _, r := range results {
+		if (r.withoutContext != nil && r.withoutContext.err != "") ||
+			(r.withContext != nil && r.withContext.err != "") {
+			hasErrors = true
+			break
+		}
+	}
+	return nil
+}
