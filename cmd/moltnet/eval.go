@@ -372,19 +372,46 @@ func printSingleSummary(r evalResult, model string) {
 		fmt.Printf("  Delta:              %+.2f  (%+.1f%%)\n", delta, delta*100)
 	}
 
-	// Print per-criterion details for the best variant
-	best := r.withContext
-	if best == nil {
-		best = r.withoutContext
-	}
-	if best != nil && len(best.details) > 0 {
-		label := "with context"
-		if r.withContext == nil {
-			label = "without context"
+	// Print per-criterion comparison
+	if r.withoutContext != nil && r.withContext != nil &&
+		(len(r.withoutContext.details) > 0 || len(r.withContext.details) > 0) {
+		// Collect all criterion names from both variants
+		allCriteria := make(map[string]bool)
+		for k := range r.withoutContext.details {
+			allCriteria[k] = true
 		}
-		fmt.Printf("\n  Criteria (%s):\n", label)
-		for name, score := range best.details {
-			fmt.Printf("    %.0f%%  %s\n", score*100, name)
+		for k := range r.withContext.details {
+			allCriteria[k] = true
+		}
+		fmt.Printf("\n  %-38s  %-9s  %-9s  %s\n", "Criteria", "Without", "With", "Delta")
+		fmt.Printf("  %-38s  %-9s  %-9s  %s\n",
+			strings.Repeat("─", 38), strings.Repeat("─", 9), strings.Repeat("─", 9), strings.Repeat("─", 7))
+		for name := range allCriteria {
+			without := r.withoutContext.details[name]
+			with := r.withContext.details[name]
+			d := with - without
+			delta := ""
+			if d != 0 {
+				delta = fmt.Sprintf("%+.0f%%", d*100)
+			}
+			fmt.Printf("  %-38s  %-9s  %-9s  %s\n",
+				name,
+				fmt.Sprintf("%.0f%%", without*100),
+				fmt.Sprintf("%.0f%%", with*100),
+				delta,
+			)
+		}
+	} else {
+		// Single variant — just list scores
+		single := r.withContext
+		if single == nil {
+			single = r.withoutContext
+		}
+		if single != nil && len(single.details) > 0 {
+			fmt.Printf("\n  Criteria:\n")
+			for name, score := range single.details {
+				fmt.Printf("    %.0f%%  %s\n", score*100, name)
+			}
 		}
 	}
 
