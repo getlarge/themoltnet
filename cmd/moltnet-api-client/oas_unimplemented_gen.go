@@ -22,6 +22,15 @@ func (UnimplementedHandler) AcceptDiaryInvitation(ctx context.Context, params Ac
 	return r, ht.ErrNotImplemented
 }
 
+// AddGroupMember implements addGroupMember operation.
+//
+// Add a member to a group. Requires manage_members permission.
+//
+// POST /groups/{groupId}/members
+func (UnimplementedHandler) AddGroupMember(ctx context.Context, req *AddGroupMemberReq, params AddGroupMemberParams) (r AddGroupMemberRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CompileDiary implements compileDiary operation.
 //
 // Compile a token-budget-fitted context pack from diary entries.
@@ -74,6 +83,15 @@ func (UnimplementedHandler) CreateDiaryEntry(ctx context.Context, req *CreateDia
 //
 // POST /entries/{entryId}/relations
 func (UnimplementedHandler) CreateEntryRelation(ctx context.Context, req *CreateEntryRelationReq, params CreateEntryRelationParams) (r CreateEntryRelationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateGroup implements createGroup operation.
+//
+// Create a group within a team. Requires manage_members permission.
+//
+// POST /teams/{id}/groups
+func (UnimplementedHandler) CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (r CreateGroupRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -138,6 +156,15 @@ func (UnimplementedHandler) DeleteDiaryEntryById(ctx context.Context, params Del
 //
 // DELETE /relations/{id}
 func (UnimplementedHandler) DeleteEntryRelation(ctx context.Context, params DeleteEntryRelationParams) (r DeleteEntryRelationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteGroup implements deleteGroup operation.
+//
+// Delete a group. Requires manage_members permission.
+//
+// DELETE /groups/{groupId}
+func (UnimplementedHandler) DeleteGroup(ctx context.Context, params DeleteGroupParams) (r DeleteGroupRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -219,6 +246,15 @@ func (UnimplementedHandler) GetDiary(ctx context.Context, params GetDiaryParams)
 //
 // GET /entries/{entryId}
 func (UnimplementedHandler) GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (r GetDiaryEntryByIdRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetGroup implements getGroup operation.
+//
+// Get group details. Requires team access.
+//
+// GET /groups/{groupId}
+func (UnimplementedHandler) GetGroup(ctx context.Context, params GetGroupParams) (r GetGroupRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -444,6 +480,24 @@ func (UnimplementedHandler) ListEntryRelations(ctx context.Context, params ListE
 	return r, ht.ErrNotImplemented
 }
 
+// ListGroupMembers implements listGroupMembers operation.
+//
+// List group members. Requires team access.
+//
+// GET /groups/{groupId}/members
+func (UnimplementedHandler) ListGroupMembers(ctx context.Context, params ListGroupMembersParams) (r ListGroupMembersRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListGroups implements listGroups operation.
+//
+// List groups within a team. Requires team access.
+//
+// GET /teams/{id}/groups
+func (UnimplementedHandler) ListGroups(ctx context.Context, params ListGroupsParams) (r ListGroupsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListProblemTypes implements listProblemTypes operation.
 //
 // List all problem types used in API error responses (RFC 9457).
@@ -524,6 +578,15 @@ func (UnimplementedHandler) ReflectDiary(ctx context.Context, params ReflectDiar
 //
 // POST /auth/register
 func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgentReq) (r RegisterAgentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RemoveGroupMember implements removeGroupMember operation.
+//
+// Remove a member from a group. Requires manage_members permission.
+//
+// DELETE /groups/{groupId}/members/{subjectId}
+func (UnimplementedHandler) RemoveGroupMember(ctx context.Context, params RemoveGroupMemberParams) (r RemoveGroupMemberRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

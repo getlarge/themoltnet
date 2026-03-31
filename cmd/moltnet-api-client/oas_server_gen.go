@@ -14,6 +14,12 @@ type Handler interface {
 	//
 	// POST /diaries/invitations/{id}/accept
 	AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error)
+	// AddGroupMember implements addGroupMember operation.
+	//
+	// Add a member to a group. Requires manage_members permission.
+	//
+	// POST /groups/{groupId}/members
+	AddGroupMember(ctx context.Context, req *AddGroupMemberReq, params AddGroupMemberParams) (AddGroupMemberRes, error)
 	// CompileDiary implements compileDiary operation.
 	//
 	// Compile a token-budget-fitted context pack from diary entries.
@@ -51,6 +57,12 @@ type Handler interface {
 	//
 	// POST /entries/{entryId}/relations
 	CreateEntryRelation(ctx context.Context, req *CreateEntryRelationReq, params CreateEntryRelationParams) (CreateEntryRelationRes, error)
+	// CreateGroup implements createGroup operation.
+	//
+	// Create a group within a team. Requires manage_members permission.
+	//
+	// POST /teams/{id}/groups
+	CreateGroup(ctx context.Context, req *CreateGroupReq, params CreateGroupParams) (CreateGroupRes, error)
 	// CreateSigningRequest implements createSigningRequest operation.
 	//
 	// Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for
@@ -94,6 +106,12 @@ type Handler interface {
 	//
 	// DELETE /relations/{id}
 	DeleteEntryRelation(ctx context.Context, params DeleteEntryRelationParams) (DeleteEntryRelationRes, error)
+	// DeleteGroup implements deleteGroup operation.
+	//
+	// Delete a group. Requires manage_members permission.
+	//
+	// DELETE /groups/{groupId}
+	DeleteGroup(ctx context.Context, params DeleteGroupParams) (DeleteGroupRes, error)
 	// DeleteTeam implements deleteTeam operation.
 	//
 	// Delete a team. Requires manage permission (owner only).
@@ -148,6 +166,12 @@ type Handler interface {
 	//
 	// GET /entries/{entryId}
 	GetDiaryEntryById(ctx context.Context, params GetDiaryEntryByIdParams) (GetDiaryEntryByIdRes, error)
+	// GetGroup implements getGroup operation.
+	//
+	// Get group details. Requires team access.
+	//
+	// GET /groups/{groupId}
+	GetGroup(ctx context.Context, params GetGroupParams) (GetGroupRes, error)
 	// GetHealth implements getHealth operation.
 	//
 	// Health check endpoint.
@@ -297,6 +321,18 @@ type Handler interface {
 	//
 	// GET /entries/{entryId}/relations
 	ListEntryRelations(ctx context.Context, params ListEntryRelationsParams) (ListEntryRelationsRes, error)
+	// ListGroupMembers implements listGroupMembers operation.
+	//
+	// List group members. Requires team access.
+	//
+	// GET /groups/{groupId}/members
+	ListGroupMembers(ctx context.Context, params ListGroupMembersParams) (ListGroupMembersRes, error)
+	// ListGroups implements listGroups operation.
+	//
+	// List groups within a team. Requires team access.
+	//
+	// GET /teams/{id}/groups
+	ListGroups(ctx context.Context, params ListGroupsParams) (ListGroupsRes, error)
 	// ListProblemTypes implements listProblemTypes operation.
 	//
 	// List all problem types used in API error responses (RFC 9457).
@@ -353,6 +389,12 @@ type Handler interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, req *RegisterAgentReq) (RegisterAgentRes, error)
+	// RemoveGroupMember implements removeGroupMember operation.
+	//
+	// Remove a member from a group. Requires manage_members permission.
+	//
+	// DELETE /groups/{groupId}/members/{subjectId}
+	RemoveGroupMember(ctx context.Context, params RemoveGroupMemberParams) (RemoveGroupMemberRes, error)
 	// RemoveTeamMember implements removeTeamMember operation.
 	//
 	// Remove a member. Requires manage_members permission.

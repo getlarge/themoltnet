@@ -10,6 +10,20 @@ import (
 	ht "github.com/ogen-go/ogen/http"
 )
 
+func encodeAddGroupMemberRequest(
+	req *AddGroupMemberReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCompileDiaryRequest(
 	req *CompileDiaryReq,
 	r *http.Request,
@@ -88,6 +102,20 @@ func encodeCreateDiaryEntryRequest(
 
 func encodeCreateEntryRelationRequest(
 	req *CreateEntryRelationReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCreateGroupRequest(
+	req *CreateGroupReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

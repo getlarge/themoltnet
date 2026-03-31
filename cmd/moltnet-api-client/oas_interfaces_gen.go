@@ -5,6 +5,10 @@ type AcceptDiaryInvitationRes interface {
 	acceptDiaryInvitationRes()
 }
 
+type AddGroupMemberRes interface {
+	addGroupMemberRes()
+}
+
 type CompileDiaryRes interface {
 	compileDiaryRes()
 }
@@ -27,6 +31,10 @@ type CreateDiaryRes interface {
 
 type CreateEntryRelationRes interface {
 	createEntryRelationRes()
+}
+
+type CreateGroupRes interface {
+	createGroupRes()
 }
 
 type CreateSigningRequestRes interface {
@@ -55,6 +63,10 @@ type DeleteDiaryRes interface {
 
 type DeleteEntryRelationRes interface {
 	deleteEntryRelationRes()
+}
+
+type DeleteGroupRes interface {
+	deleteGroupRes()
 }
 
 type DeleteTeamInviteRes interface {
@@ -91,6 +103,10 @@ type GetDiaryEntryByIdRes interface {
 
 type GetDiaryRes interface {
 	getDiaryRes()
+}
+
+type GetGroupRes interface {
+	getGroupRes()
 }
 
 type GetLatestRenderedPackRes interface {
@@ -173,6 +189,14 @@ type ListEntryRelationsRes interface {
 	listEntryRelationsRes()
 }
 
+type ListGroupMembersRes interface {
+	listGroupMembersRes()
+}
+
+type ListGroupsRes interface {
+	listGroupsRes()
+}
+
 type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
 }
@@ -203,6 +227,10 @@ type ReflectDiaryRes interface {
 
 type RegisterAgentRes interface {
 	registerAgentRes()
+}
+
+type RemoveGroupMemberRes interface {
+	removeGroupMemberRes()
 }
 
 type RemoveTeamMemberRes interface {
