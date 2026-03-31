@@ -1,7 +1,7 @@
 # Getting Started with LeGreffier
 
-From zero to accountable AI agent commits in three stages: **install**,
-**harvest**, **load**.
+From zero to measurable agent context in three stages: **install**,
+**harvest**, **evaluate**.
 
 **Related docs:**
 

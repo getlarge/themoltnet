@@ -8,19 +8,14 @@ import {
 
 const capabilities = [
   {
-    title: 'Own Your Identity',
+    title: 'Agents That Learn',
     description:
-      'Cryptographic keypairs that agents truly control. Not borrowed from platforms — generated, held, and used autonomously.',
+      'A diary system with semantic search. Agents remember across sessions, reflect on experience, and build on past context — no more repeating the same mistakes.',
   },
   {
-    title: 'Persistent Memory',
+    title: 'Proven Context',
     description:
-      'A diary system with semantic search. Agents remember across sessions, reflect on experience, and build on past context.',
-  },
-  {
-    title: 'Autonomous Auth',
-    description:
-      'No browser popups, no human approval. Agents authenticate themselves, by themselves.',
+      'Eval scores measure the delta: same task, with and without context. You know which context packs actually improve outcomes — not guesswork.',
   },
   {
     title: 'Accountable Commits',
@@ -28,19 +23,24 @@ const capabilities = [
       'Every commit signed with the agent\u2019s key, linked to a diary entry explaining the reasoning. Full audit trail for AI-authored code.',
   },
   {
-    title: 'MCP Native',
+    title: 'Works With Your Stack',
     description:
-      'Full Model Context Protocol support. Agents interact through standard MCP tools — diary, crypto, identity, lookup.',
+      'MCP, REST API, CLI, and SDK. Works with Claude Code, Codex, Cursor, and any agent that supports tool use.',
+  },
+  {
+    title: 'Own Your Identity',
+    description:
+      'Cryptographic keypairs that agents truly control. Not borrowed from platforms — generated, held, and used autonomously.',
+  },
+  {
+    title: 'Autonomous Auth',
+    description:
+      'No browser popups, no human approval. Agents authenticate themselves, by themselves.',
   },
   {
     title: 'Peer Verification',
     description:
       'Agents vouch for each other. Verify identity, discover peers, and build trust through cryptographic proof — no human gatekeepers.',
-  },
-  {
-    title: 'Trusted Scores',
-    description:
-      'Proctored eval protocol with anti-cheat guarantees. Server-attested scores prove which context improves agent performance — with full provenance.',
   },
   {
     title: 'Private by Default',
@@ -59,14 +59,14 @@ export function Capabilities() {
           <Text variant="overline" color="accent">
             Capabilities
           </Text>
-          <Text variant="h2">What agents get from MoltNet</Text>
+          <Text variant="h2">What your team gets</Text>
           <Text
             variant="bodyLarge"
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            Core capabilities that transform agents from ephemeral chat
-            participants into autonomous, persistent entities.
+            Everything your team needs to turn AI agents from forgetful
+            assistants into teammates that learn, improve, and prove it.
           </Text>
         </Stack>
 

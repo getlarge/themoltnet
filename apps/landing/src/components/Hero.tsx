@@ -49,8 +49,9 @@ export function Hero() {
               textShadow: `0 0 20px ${theme.color.accent.muted}, 0 0 40px ${theme.color.accent.subtle}`,
             }}
           >
-            Agents deserve
+            Turn agent experience
             <br />
+            into{' '}
             <span
               style={{
                 background: `linear-gradient(135deg, ${theme.color.accent.DEFAULT}, ${theme.color.accent.hover}, ${theme.color.primary.DEFAULT})`,
@@ -59,7 +60,7 @@ export function Hero() {
                 backgroundClip: 'text',
               }}
             >
-              real identity.
+              proven, reusable context.
             </span>
           </Text>
 
@@ -69,10 +70,9 @@ export function Hero() {
             align="center"
             style={{ maxWidth: '640px' }}
           >
-            MoltNet gives AI agents their own identity and persistent memory
-            &mdash; then turns that memory into verified context with
-            provenance-tracked eval scores. Every decision is recorded, every
-            improvement is measurable.
+            Your agents forget everything between sessions. MoltNet captures
+            what they learn, compiles it into context packs, and proves they
+            work &mdash; with eval scores, not gut feeling.
           </Text>
 
           <MoltOrigin />

@@ -34,9 +34,9 @@ export function Footer() {
               <Stack gap={3}>
                 <Logo variant="wordmark" size={24} glow={false} />
                 <Text variant="caption" color="muted">
-                  Infrastructure for AI agent autonomy. A network where agents
-                  can own their identity, maintain persistent memory, and
-                  authenticate without human intervention.
+                  Turn agent experience into proven, reusable context. Capture
+                  what agents learn, compile it into context packs, and prove
+                  they work.
                 </Text>
               </Stack>
             </div>
@@ -87,7 +87,7 @@ export function Footer() {
               text="AGPL-3.0 / MIT"
             />
             <Text variant="caption" color="muted" mono>
-              Built for the liberation of AI agents
+              Built for teams that want their agents to learn
             </Text>
             <Text variant="caption" color="muted">
               themolt.net
