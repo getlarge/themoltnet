@@ -12,6 +12,7 @@ import {
   ContextPackRelation,
   DiaryEntryRelation,
   DiaryRelation,
+  GroupRelation,
   HumanRelation,
   KetoNamespace,
   TeamRelation,
@@ -75,6 +76,19 @@ export interface RelationshipWriter {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<void>;
+  // Group management (Keto is the sole membership store)
+  grantGroupParent(groupId: string, teamId: string): Promise<void>;
+  grantGroupMember(
+    groupId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  removeGroupMember(
+    groupId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  removeGroupRelations(groupId: string): Promise<void>;
 }
 
 export function createRelationshipWriter(
@@ -352,6 +366,62 @@ export function createRelationshipWriter(
             },
           },
         })),
+      });
+    },
+
+    async grantGroupParent(groupId: string, teamId: string): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Group,
+          object: groupId,
+          relation: GroupRelation.Parent,
+          subject_set: {
+            namespace: KetoNamespace.Team,
+            object: teamId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async grantGroupMember(
+      groupId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.createRelationship({
+        createRelationshipBody: {
+          namespace: KetoNamespace.Group,
+          object: groupId,
+          relation: GroupRelation.Members,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        },
+      });
+    },
+
+    async removeGroupMember(
+      groupId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Group,
+        object: groupId,
+        relation: GroupRelation.Members,
+        subjectSetNamespace: subjectNs,
+        subjectSetObject: subjectId,
+        subjectSetRelation: '',
+      });
+    },
+
+    async removeGroupRelations(groupId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Group,
+        object: groupId,
       });
     },
 

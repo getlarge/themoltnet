@@ -43,6 +43,33 @@ class Team implements Namespace {
 }
 
 /**
+ * Group namespace
+ * Named subsets of team members. Used for fine-grained diary grants (Chunk 2).
+ * Management is inherited from the parent team — team owners/managers manage all groups.
+ *
+ * Tuples written on group creation:
+ *   Group:{groupId}#parent@Team:{teamId}
+ * Tuples written on member add:
+ *   Group:{groupId}#members@Agent:{subjectId}
+ *   Group:{groupId}#members@Human:{subjectId}
+ */
+class Group implements Namespace {
+  related: {
+    members: (Agent | Human)[];
+    parent: Team[];
+  };
+
+  permits = {
+    // Management delegated to team owners/managers
+    manage: (ctx: Context) =>
+      this.related.parent.traverse((t) => t.permits.manage_members(ctx)),
+
+    // Membership check (used by diary grants in Chunk 2)
+    access: (ctx: Context) => this.related.members.includes(ctx.subject),
+  };
+}
+
+/**
  * Diary namespace
  * Handles diary-level ownership and role-based access.
  *
