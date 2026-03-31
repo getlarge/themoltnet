@@ -7,7 +7,7 @@
 
 import type { RelationshipApi } from '@ory/client-fetch';
 
-import { KetoNamespace } from './keto-constants.js';
+import { GroupRelation, KetoNamespace } from './keto-constants.js';
 
 export interface GroupMemberTuple {
   subjectId: string;
@@ -189,7 +189,7 @@ export function createRelationshipReader(
         const result = await relationshipApi.getRelationships({
           namespace: KetoNamespace.Group,
           object: groupId,
-          relation: 'members',
+          relation: GroupRelation.Members,
           pageToken,
         });
         for (const tuple of result.relation_tuples ?? []) {

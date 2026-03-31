@@ -273,6 +273,47 @@ describe('Group routes', () => {
       );
     });
 
+    it('adds a Human member when subjectNs is Human', async () => {
+      mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+        { subjectId: OTHER_AGENT_ID, subjectNs: 'Human', relation: 'member' },
+      ]);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/groups/${GROUP_ID}/members`,
+        headers: authHeaders,
+        payload: { subjectId: OTHER_AGENT_ID, subjectNs: 'Human' },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const body = JSON.parse(res.body);
+      expect(body).toMatchObject({
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Human',
+      });
+      expect(mocks.relationshipWriter.grantGroupMember).toHaveBeenCalledWith(
+        GROUP_ID,
+        OTHER_AGENT_ID,
+        'Human',
+      );
+    });
+
+    it('rejects Human member added without subjectNs (defaults to Agent, mismatches)', async () => {
+      mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+        { subjectId: OTHER_AGENT_ID, subjectNs: 'Human', relation: 'member' },
+      ]);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/groups/${GROUP_ID}/members`,
+        headers: authHeaders,
+        payload: { subjectId: OTHER_AGENT_ID },
+      });
+
+      // Defaults to Agent, doesn't match Human membership
+      expect(res.statusCode).toBe(404);
+    });
+
     it('returns 404 if subject is not a team member', async () => {
       mocks.relationshipReader.listTeamMembers.mockResolvedValue([]);
 
