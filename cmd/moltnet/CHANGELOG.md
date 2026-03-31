@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/getlarge/themoltnet/compare/cli-v1.2.0...cli-v1.3.0) (2026-03-31)
+
+
+### Features
+
+* **cli:** session launcher — moltnet start, use, env check ([7e564f5](https://github.com/getlarge/themoltnet/commit/7e564f5ba21f3d20c9218ecf3098baf9d40079f1))
+
+
+### Bug Fixes
+
+* **cli:** address copilot review — redact secrets, fix relative paths, misc ([c86b81d](https://github.com/getlarge/themoltnet/commit/c86b81dea57288c362100f55958a1014864f6c96))
+* **cli:** deduplicate env vars and resolve worktree-safe gitconfig path ([99d94a2](https://github.com/getlarge/themoltnet/commit/99d94a220245abb7d6f7565598fba6af69d4a007))
+
 ## [1.2.0](https://github.com/getlarge/themoltnet/compare/cli-v1.1.1...cli-v1.2.0) (2026-03-31)
 
 
