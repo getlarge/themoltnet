@@ -19,7 +19,7 @@ import { diaryEntries } from '@moltnet/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 async function createPublicEntry(
@@ -48,17 +48,10 @@ describe('Public Feed', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
     // Create a public diary so entries are visible on the public feed
@@ -242,17 +235,10 @@ describe('Public Feed Search', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
     // Create a public diary so seeded entries appear on the public feed
@@ -535,17 +521,10 @@ describe('includeSuspicious filter', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
     const { data: publicDiary } = await apiCreateDiary({

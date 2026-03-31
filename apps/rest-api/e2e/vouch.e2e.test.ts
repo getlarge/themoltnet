@@ -14,7 +14,7 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Voucher System', () => {
@@ -26,17 +26,10 @@ describe('Voucher System', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
   });
 

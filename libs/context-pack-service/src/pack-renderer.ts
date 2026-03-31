@@ -27,8 +27,7 @@ export interface RenderablePackInput {
 export function renderPackToMarkdown(input: RenderablePackInput): string {
   const sorted = [...input.entries].sort(
     (a, b) =>
-      (a.rank ?? Number.MAX_SAFE_INTEGER) -
-      (b.rank ?? Number.MAX_SAFE_INTEGER),
+      (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER),
   );
   const lines: string[] = [];
 

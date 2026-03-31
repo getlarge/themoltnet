@@ -19,13 +19,29 @@ import {
 
 export interface RelationshipWriter {
   // Diary relations (legacy direct + team-based)
-  grantDiaryOwner(diaryId: string, agentId: string): Promise<void>;
-  grantDiaryWriter(diaryId: string, agentId: string): Promise<void>;
-  grantDiaryReader(diaryId: string, agentId: string): Promise<void>;
+  grantDiaryOwner(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  grantDiaryWriter(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
+  grantDiaryReader(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
   grantDiaryTeam(diaryId: string, teamId: string): Promise<void>;
   removeDiaryTeam(diaryId: string): Promise<void>;
   removeDiaryRelations(diaryId: string): Promise<void>;
-  removeDiaryRelationForAgent(diaryId: string, agentId: string): Promise<void>;
+  removeDiaryRelationForAgent(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
   // Entry + pack relations
   grantEntryParent(entryId: string, diaryId: string): Promise<void>;
   grantPackParent(packId: string, diaryId: string): Promise<void>;
@@ -65,35 +81,59 @@ export function createRelationshipWriter(
   relationshipApi: RelationshipApi,
 ): RelationshipWriter {
   return {
-    async grantDiaryOwner(diaryId: string, agentId: string): Promise<void> {
+    async grantDiaryOwner(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {
           namespace: KetoNamespace.Diary,
           object: diaryId,
           relation: DiaryRelation.Owner,
-          subject_id: agentId,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
         },
       });
     },
 
-    async grantDiaryWriter(diaryId: string, agentId: string): Promise<void> {
+    async grantDiaryWriter(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {
           namespace: KetoNamespace.Diary,
           object: diaryId,
           relation: DiaryRelation.Writers,
-          subject_id: agentId,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
         },
       });
     },
 
-    async grantDiaryReader(diaryId: string, agentId: string): Promise<void> {
+    async grantDiaryReader(
+      diaryId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
       await relationshipApi.createRelationship({
         createRelationshipBody: {
           namespace: KetoNamespace.Diary,
           object: diaryId,
           relation: DiaryRelation.Readers,
-          subject_id: agentId,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
         },
       });
     },
@@ -107,19 +147,24 @@ export function createRelationshipWriter(
 
     async removeDiaryRelationForAgent(
       diaryId: string,
-      agentId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
     ): Promise<void> {
       await relationshipApi.deleteRelationships({
         namespace: KetoNamespace.Diary,
         object: diaryId,
         relation: DiaryRelation.Readers,
-        subjectId: agentId,
+        subjectSetNamespace: subjectNs,
+        subjectSetObject: subjectId,
+        subjectSetRelation: '',
       });
       await relationshipApi.deleteRelationships({
         namespace: KetoNamespace.Diary,
         object: diaryId,
         relation: DiaryRelation.Writers,
-        subjectId: agentId,
+        subjectSetNamespace: subjectNs,
+        subjectSetObject: subjectId,
+        subjectSetRelation: '',
       });
     },
 

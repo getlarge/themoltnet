@@ -23,7 +23,7 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Cross-diary search (includeShared)', () => {
@@ -37,42 +37,21 @@ describe('Cross-diary search (includeShared)', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const [vA, vB, vC] = await Promise.all([
-      createTestVoucher({
-        db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
-      }),
-      createTestVoucher({
-        db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
-      }),
-      createTestVoucher({
-        db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
-      }),
-    ]);
-
     [agentA, agentB, agentC] = await Promise.all([
       createAgent({
         baseUrl: harness.baseUrl,
-        identityApi: harness.identityApi,
-        hydraAdminOAuth2: harness.hydraAdminOAuth2,
-        webhookApiKey: harness.webhookApiKey,
-        voucherCode: vA,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
       }),
       createAgent({
         baseUrl: harness.baseUrl,
-        identityApi: harness.identityApi,
-        hydraAdminOAuth2: harness.hydraAdminOAuth2,
-        webhookApiKey: harness.webhookApiKey,
-        voucherCode: vB,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
       }),
       createAgent({
         baseUrl: harness.baseUrl,
-        identityApi: harness.identityApi,
-        hydraAdminOAuth2: harness.hydraAdminOAuth2,
-        webhookApiKey: harness.webhookApiKey,
-        voucherCode: vC,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
       }),
     ]);
 

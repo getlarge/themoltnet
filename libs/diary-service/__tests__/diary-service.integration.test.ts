@@ -15,6 +15,7 @@
  * vector embeddings and hybrid search testing.
  */
 
+import { KetoNamespace } from '@moltnet/auth';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq } from 'drizzle-orm';
 import {
@@ -108,7 +109,7 @@ describe('DiaryService (integration)', () => {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
   let relationshipReader: {
-    listDiaryIdsByAgent: ReturnType<typeof vi.fn>;
+    listDiaryIdsBySubject: ReturnType<typeof vi.fn>;
   };
   let relationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
@@ -151,24 +152,44 @@ describe('DiaryService (integration)', () => {
       canViewEntry: vi.fn().mockResolvedValue(true),
       canEditEntry: vi.fn().mockResolvedValue(true),
       canDeleteEntry: vi.fn().mockResolvedValue(true),
+      canEditAnyEntry: vi.fn().mockResolvedValue(false),
       canReadDiary: vi.fn().mockResolvedValue(true),
       canWriteDiary: vi.fn().mockResolvedValue(true),
       canManageDiary: vi.fn().mockResolvedValue(true),
+      canReadPack: vi.fn().mockResolvedValue(false),
+      canReadPacks: vi.fn().mockResolvedValue(new Map()),
+      canManagePack: vi.fn().mockResolvedValue(false),
+      canAccessTeam: vi.fn().mockResolvedValue(false),
+      canManageTeam: vi.fn().mockResolvedValue(false),
+      canManageTeamMembers: vi.fn().mockResolvedValue(false),
     };
 
     relationshipReader = {
-      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
+      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
+      listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
+      listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
+      listTeamMembers: vi.fn().mockResolvedValue([]),
     };
 
     relationshipWriter = {
       grantEntryParent: vi.fn().mockResolvedValue(undefined),
       registerAgent: vi.fn().mockResolvedValue(undefined),
+      registerHuman: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
       grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
       grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
       grantDiaryReader: vi.fn().mockResolvedValue(undefined),
+      grantDiaryTeam: vi.fn().mockResolvedValue(undefined),
+      removeDiaryTeam: vi.fn().mockResolvedValue(undefined),
       removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
       removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
+      grantPackParent: vi.fn().mockResolvedValue(undefined),
+      removePackRelations: vi.fn().mockResolvedValue(undefined),
+      removePackRelationsBatch: vi.fn().mockResolvedValue(undefined),
+      grantTeamOwner: vi.fn().mockResolvedValue(undefined),
+      grantTeamManager: vi.fn().mockResolvedValue(undefined),
+      grantTeamMember: vi.fn().mockResolvedValue(undefined),
+      removeTeamMemberRelation: vi.fn().mockResolvedValue(undefined),
     };
 
     const embeddingService = await loadEmbeddingService();
@@ -293,6 +314,7 @@ describe('DiaryService (integration)', () => {
           content: 'My first diary entry about MoltNet.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(entry.id).toBeDefined();
@@ -313,6 +335,7 @@ describe('DiaryService (integration)', () => {
           tags: ['crypto', 'learning'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(entry.title).toBe('Crypto Day');
@@ -328,6 +351,7 @@ describe('DiaryService (integration)', () => {
           content: 'No embedding here.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(entry.embedding).toBeNull();
@@ -342,6 +366,7 @@ describe('DiaryService (integration)', () => {
           content: 'Ed25519 cryptographic identity for autonomous agents.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(entry.embedding).not.toBeNull();
@@ -359,10 +384,16 @@ describe('DiaryService (integration)', () => {
           content: 'Private thought.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       permissions.canViewEntry.mockResolvedValue(true);
-      const found = await service.getEntryById(created.id, DIARY_ID, OWNER_ID);
+      const found = await service.getEntryById(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+        { diaryId: DIARY_ID },
+      );
       expect(found).not.toBeNull();
       expect(found!.content).toBe('Private thought.');
     });
@@ -374,11 +405,14 @@ describe('DiaryService (integration)', () => {
           content: 'Secret entry.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       permissions.canViewEntry.mockResolvedValue(false);
       await expect(
-        service.getEntryById(created.id, DIARY_ID, OTHER_AGENT),
+        service.getEntryById(created.id, OTHER_AGENT, KetoNamespace.Agent, {
+          diaryId: DIARY_ID,
+        }),
       ).rejects.toThrow(DiaryServiceError);
     });
   });
@@ -390,14 +424,17 @@ describe('DiaryService (integration)', () => {
       await service.createEntry(
         { diaryId: DIARY_ID, content: 'Entry 1.' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       await service.createEntry(
         { diaryId: DIARY_ID, content: 'Entry 2.' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       await service.createEntry(
         { diaryId: OTHER_DIARY_ID, content: 'Not mine.' },
         OTHER_AGENT,
+        KetoNamespace.Agent,
       );
 
       const { items, total } = await service.listEntries({
@@ -420,15 +457,18 @@ describe('DiaryService (integration)', () => {
           content: 'Cryptographic key exchange protocols are fascinating.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       await service.createEntry(
         { diaryId: DIARY_ID, content: 'The weather is sunny today.' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       const results = await service.searchEntries(
         { diaryId: DIARY_ID, query: 'cryptographic protocols' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(results.length).toBe(1);
@@ -436,12 +476,21 @@ describe('DiaryService (integration)', () => {
     });
 
     it('returns all entries when no query is provided', async () => {
-      await service.createEntry({ diaryId: DIARY_ID, content: 'A.' }, OWNER_ID);
-      await service.createEntry({ diaryId: DIARY_ID, content: 'B.' }, OWNER_ID);
+      await service.createEntry(
+        { diaryId: DIARY_ID, content: 'A.' },
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
+      await service.createEntry(
+        { diaryId: DIARY_ID, content: 'B.' },
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
 
       const results = await service.searchEntries(
         { diaryId: DIARY_ID },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       expect(results.length).toBe(2);
     });
@@ -454,6 +503,7 @@ describe('DiaryService (integration)', () => {
           tags: ['incident'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       await service.createEntry(
         {
@@ -462,11 +512,13 @@ describe('DiaryService (integration)', () => {
           tags: ['architecture'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       const results = await service.searchEntries(
         { diaryId: DIARY_ID, excludeTags: ['incident'] },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(results.some((r) => r.tags?.includes('incident'))).toBe(false);
@@ -483,6 +535,7 @@ describe('DiaryService (integration)', () => {
             'Ed25519 is an elliptic curve digital signature algorithm used for cryptographic identity verification.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       await service.createEntry(
         {
@@ -490,6 +543,7 @@ describe('DiaryService (integration)', () => {
           content: 'I had pasta with tomato sauce for dinner last night.',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       const results = await service.searchEntries(
@@ -498,6 +552,7 @@ describe('DiaryService (integration)', () => {
           query: 'public key cryptography and digital signatures',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(results.length).toBeGreaterThanOrEqual(1);
@@ -512,13 +567,19 @@ describe('DiaryService (integration)', () => {
       const created = await service.createEntry(
         { diaryId: DIARY_ID, content: 'Original.' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       permissions.canEditEntry.mockResolvedValue(true);
-      const updated = await service.updateEntry(created.id, OWNER_ID, {
-        title: 'Updated Title',
-        content: 'New content.',
-      });
+      const updated = await service.updateEntry(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+        {
+          title: 'Updated Title',
+          content: 'New content.',
+        },
+      );
 
       expect(updated).not.toBeNull();
       expect(updated!.title).toBe('Updated Title');
@@ -529,14 +590,20 @@ describe('DiaryService (integration)', () => {
       const created = await service.createEntry(
         { diaryId: DIARY_ID, content: 'Original content', tags: ['tag1'] },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       const originalHash = created.contentHash;
       expect(originalHash).toBeDefined();
 
       permissions.canEditEntry.mockResolvedValue(true);
-      const updated = await service.updateEntry(created.id, OWNER_ID, {
-        content: 'Updated content',
-      });
+      const updated = await service.updateEntry(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+        {
+          content: 'Updated content',
+        },
+      );
 
       expect(updated).not.toBeNull();
       expect(updated!.contentHash).toBeDefined();
@@ -547,11 +614,12 @@ describe('DiaryService (integration)', () => {
       const created = await service.createEntry(
         { diaryId: DIARY_ID, content: 'Protected.' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       permissions.canEditEntry.mockResolvedValue(false);
       await expect(
-        service.updateEntry(created.id, OTHER_AGENT, {
+        service.updateEntry(created.id, OTHER_AGENT, KetoNamespace.Agent, {
           title: 'Hacked',
         }),
       ).rejects.toThrow(DiaryServiceError);
@@ -565,10 +633,15 @@ describe('DiaryService (integration)', () => {
       const created = await service.createEntry(
         { diaryId: DIARY_ID, content: 'To delete.' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       permissions.canDeleteEntry.mockResolvedValue(true);
-      const deleted = await service.deleteEntry(created.id, OWNER_ID);
+      const deleted = await service.deleteEntry(
+        created.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
       expect(deleted).toBe(true);
       expect(relationshipWriter.removeEntryRelations).toHaveBeenCalledWith(
         created.id,
@@ -576,7 +649,9 @@ describe('DiaryService (integration)', () => {
 
       permissions.canViewEntry.mockResolvedValue(true);
       await expect(
-        service.getEntryById(created.id, DIARY_ID, OWNER_ID),
+        service.getEntryById(created.id, OWNER_ID, KetoNamespace.Agent, {
+          diaryId: DIARY_ID,
+        }),
       ).rejects.toThrow(DiaryServiceError);
     });
 
@@ -584,11 +659,12 @@ describe('DiaryService (integration)', () => {
       const created = await service.createEntry(
         { diaryId: DIARY_ID, content: 'Protected.' },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       permissions.canDeleteEntry.mockResolvedValue(false);
       await expect(
-        service.deleteEntry(created.id, OTHER_AGENT),
+        service.deleteEntry(created.id, OTHER_AGENT, KetoNamespace.Agent),
       ).rejects.toThrow(DiaryServiceError);
       expect(relationshipWriter.removeEntryRelations).not.toHaveBeenCalled();
     });
@@ -605,6 +681,7 @@ describe('DiaryService (integration)', () => {
           tags: ['learning'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
       await service.createEntry(
         {
@@ -613,6 +690,7 @@ describe('DiaryService (integration)', () => {
           tags: ['identity'],
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       const digest = await service.reflect({ diaryId: DIARY_ID });

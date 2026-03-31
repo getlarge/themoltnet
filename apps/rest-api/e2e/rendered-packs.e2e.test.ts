@@ -27,7 +27,7 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 // Intentionally duplicates the server formatter so this remains a contract test
@@ -77,28 +77,16 @@ describe('Rendered packs', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherA = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
     agentA = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode: voucherA,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
-    const voucherB = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
     agentB = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode: voucherB,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
     // Create diary entries for pack content in a fixed order so the expected

@@ -23,16 +23,10 @@ describe('Webhook Handlers', () => {
   beforeAll(async () => {
     harness = await createTestHarness();
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
   });
 

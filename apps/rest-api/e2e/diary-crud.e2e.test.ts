@@ -19,7 +19,7 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary CRUD', () => {
@@ -31,17 +31,10 @@ describe('Diary CRUD', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
   });
 
@@ -444,17 +437,10 @@ describe('Diary CRUD', () => {
   // ── Cross-agent isolation ───────────────────────────────────
 
   it('isolates entries between agents', async () => {
-    const otherVoucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     const otherAgent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode: otherVoucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
     await createDiaryEntry({
@@ -487,28 +473,16 @@ describe('Cross-agent Keto permissions', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherA = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
     agentA = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode: voucherA,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
-    const voucherB = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
     agentB = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode: voucherB,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
   });
 
@@ -587,17 +561,10 @@ describe('Unauthorized access (no token)', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
   });
 

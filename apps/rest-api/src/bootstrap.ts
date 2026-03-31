@@ -230,6 +230,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           identityApi: oryClients.identity,
           oauth2Api: oryClients.oauth2,
           agentRepository,
+          diaryRepository,
+          teamRepository,
           voucherRepository,
           relationshipWriter,
           dataSource,
@@ -293,7 +295,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     transactionRunner,
   });
 
-  const compileTtlDays = config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7;
   const contextPackService = new ContextPackService({
     contextPackRepository,
     renderedPackRepository,
@@ -314,7 +315,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       relationshipWriter.removePackRelations(packId),
     deleteMany: (ids: string[]) => contextPackRepository.deleteMany(ids),
     logger: app.log,
-    ttlDays: compileTtlDays,
+    ttlDays: config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
   });
 
   const tokenValidator = createTokenValidator(oryClients.oauth2, {

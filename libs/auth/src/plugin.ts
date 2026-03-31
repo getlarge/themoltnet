@@ -13,6 +13,7 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
+import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
 import type { TokenValidator } from './token-validator.js';
@@ -139,9 +140,14 @@ export const requireAuth: preHandlerAsyncHookHandler =
       : teamIdHeader;
 
     if (requestedTeamId) {
+      const subjectNs =
+        authContext.subjectType === 'human'
+          ? KetoNamespace.Human
+          : KetoNamespace.Agent;
       const canAccess = await request.server.permissionChecker.canAccessTeam(
         requestedTeamId,
         authContext.identityId,
+        subjectNs,
       );
       if (!canAccess) {
         const error = createAuthError('Not a member of the requested team');

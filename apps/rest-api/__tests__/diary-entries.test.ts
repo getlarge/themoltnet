@@ -63,6 +63,7 @@ describe('Diary entry routes', () => {
           entryType: undefined,
         },
         OWNER_ID,
+        'Agent',
       );
     });
 
@@ -360,6 +361,7 @@ describe('Diary entry routes', () => {
       expect(mocks.diaryService.listTags).toHaveBeenCalledWith(
         expect.objectContaining({ diaryId: DIARY_ID, prefix: 'source:' }),
         OWNER_ID,
+        'Agent',
       );
     });
 
@@ -375,6 +377,7 @@ describe('Diary entry routes', () => {
       expect(mocks.diaryService.listTags).toHaveBeenCalledWith(
         expect.objectContaining({ diaryId: DIARY_ID, minCount: 5 }),
         OWNER_ID,
+        'Agent',
       );
     });
 
@@ -393,6 +396,7 @@ describe('Diary entry routes', () => {
           entryTypes: ['semantic', 'episodic'],
         }),
         OWNER_ID,
+        'Agent',
       );
     });
 
@@ -492,6 +496,7 @@ describe('Diary entry routes', () => {
       expect(mocks.diaryService.updateEntry).toHaveBeenCalledWith(
         ENTRY_ID,
         OWNER_ID,
+        'Agent',
         { title: 'Updated by id' },
       );
     });
@@ -511,6 +516,7 @@ describe('Diary entry routes', () => {
       expect(mocks.diaryService.deleteEntry).toHaveBeenCalledWith(
         ENTRY_ID,
         OWNER_ID,
+        'Agent',
       );
     });
   });
@@ -563,6 +569,7 @@ describe('Diary entry routes', () => {
           tags: ['accountable-commit'],
         }),
         expect.any(String),
+        'Agent',
       );
     });
 
@@ -581,6 +588,7 @@ describe('Diary entry routes', () => {
           tags: ['tag-a', 'tag-b'],
         }),
         expect.any(String),
+        'Agent',
       );
     });
 
@@ -599,6 +607,7 @@ describe('Diary entry routes', () => {
           tags: undefined,
         }),
         expect.any(String),
+        'Agent',
       );
     });
 
@@ -621,6 +630,7 @@ describe('Diary entry routes', () => {
           excludeTags: ['incident'],
         }),
         expect.any(String),
+        'Agent',
       );
     });
   });

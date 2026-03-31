@@ -52,6 +52,8 @@ const VALID_AUTH_CONTEXT: AuthContext = {
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
+  subjectType: 'agent',
+  currentTeamId: null,
 };
 
 function createMockSigningRequest(
@@ -167,7 +169,7 @@ function createApp(
       { get: () => vi.fn().mockResolvedValue(null) },
     ) as never,
     relationshipReader: {
-      listDiaryIdsByAgent: vi.fn().mockResolvedValue([]),
+      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamMembers: vi.fn().mockResolvedValue([]),
     } as never,

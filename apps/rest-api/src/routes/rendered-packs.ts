@@ -1,5 +1,5 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { PackServiceError } from '@moltnet/context-pack-service';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
@@ -54,10 +54,15 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           ? request.body.renderedMarkdown
           : undefined;
 
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       try {
         const canRead = await fastify.permissionChecker.canReadPack(
           sourcePack.id,
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
         if (!canRead) {
           throw createProblem('forbidden', 'Not authorized to read this pack');
@@ -119,10 +124,15 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           ? request.body.renderedMarkdown
           : undefined;
 
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       try {
         const canManage = await fastify.permissionChecker.canManagePack(
           sourcePack.id,
-          request.authContext!.identityId,
+          identityId,
+          subjectNs,
         );
         if (!canManage) {
           throw createProblem(
@@ -135,7 +145,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           sourcePackId: request.params.id,
           renderedMarkdown,
           renderMethod: request.body.renderMethod,
-          createdBy: request.authContext!.identityId,
+          createdBy: identityId,
           pinned: request.body.pinned,
         });
 
@@ -184,9 +194,13 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Source pack not found');
       }
 
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const allowed = await fastify.permissionChecker.canReadPack(
         sourcePack.id,
-        request.authContext!.identityId,
+        identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem('forbidden', 'Not authorized to read this pack');
@@ -235,9 +249,13 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       }
 
       // Permission check via source pack
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const allowed = await fastify.permissionChecker.canReadPack(
         rendered.sourcePackId,
-        request.authContext!.identityId,
+        identityId,
+        subjectNs,
       );
       if (!allowed) {
         throw createProblem(

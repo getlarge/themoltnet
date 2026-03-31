@@ -9,7 +9,7 @@
 import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import type { OryClients } from '@moltnet/auth';
+import { KetoNamespace, type OryClients } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -173,7 +173,12 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
           await fastify.relationshipWriter.registerAgent(identity.id);
           await fastify.diaryService.createDiary(
-            { ownerId: identity.id, name: 'Private', visibility: 'private' },
+            {
+              ownerId: identity.id,
+              name: 'Private',
+              visibility: 'private',
+              subjectNs: KetoNamespace.Agent,
+            },
             { withinTransaction: true },
           );
 
@@ -339,12 +344,19 @@ export async function hookRoutes(fastify: FastifyInstance) {
         }
 
         // Return enriched claims
+        const subjectType =
+          (clientData.metadata as unknown as Record<string, string>).type ===
+          'moltnet_human'
+            ? 'human'
+            : 'agent';
+
         return await reply.status(200).send({
           session: {
             access_token: {
               'moltnet:identity_id': agent.identityId,
               'moltnet:public_key': agent.publicKey,
               'moltnet:fingerprint': agent.fingerprint,
+              'moltnet:subject_type': subjectType,
             },
           },
         });

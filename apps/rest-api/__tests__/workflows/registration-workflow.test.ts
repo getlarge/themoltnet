@@ -58,8 +58,21 @@ function createMockDeps() {
     agentRepository: {
       upsert: vi.fn(),
     },
+    diaryRepository: {
+      listByOwner: vi.fn().mockResolvedValue([]),
+      create: vi
+        .fn()
+        .mockResolvedValue({ id: 'private-diary-id', name: 'Private' }),
+    },
+    teamRepository: {
+      findPersonalByCreator: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: 'personal-team-id' }),
+    },
     relationshipWriter: {
       registerAgent: vi.fn(),
+      grantTeamOwner: vi.fn(),
+      grantDiaryOwner: vi.fn(),
+      grantDiaryTeam: vi.fn(),
     },
     dataSource: {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type

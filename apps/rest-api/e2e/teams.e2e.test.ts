@@ -8,9 +8,11 @@
 import {
   type Client,
   createClient,
+  createDiary,
   createTeam,
   createTeamInvite,
   deleteTeam,
+  getDiary,
   getTeam,
   joinTeam,
   listTeamInvites,
@@ -18,6 +20,7 @@ import {
   listTeams,
   removeTeamMember,
 } from '@moltnet/api-client';
+import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
@@ -33,28 +36,16 @@ describe('Teams', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherA = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
     agentA = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode: voucherA,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
-    const voucherB = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
     agentB = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode: voucherB,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
   });
 
@@ -342,6 +333,126 @@ describe('Teams', () => {
       });
 
       expect(response.status).toBe(403);
+    });
+  });
+
+  // ── Personal Team Auto-Creation ─────────────────────────────────
+
+  describe('personal team via POST /auth/register', () => {
+    let registeredToken: string;
+
+    beforeAll(async () => {
+      // Register via the DBOS workflow (not the webhook helper)
+      const keyPair = await cryptoService.generateKeyPair();
+      const voucherCode = await createTestVoucher({
+        db: harness.db,
+        issuerId: harness.bootstrapIdentityId,
+      });
+
+      const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          public_key: keyPair.publicKey,
+          voucher_code: voucherCode,
+        }),
+      });
+      expect(regRes.status).toBe(200);
+
+      const creds = (await regRes.json()) as {
+        clientId: string;
+        clientSecret: string;
+      };
+
+      // Acquire token
+      const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: creds.clientId,
+          client_secret: creds.clientSecret,
+        }),
+      });
+      expect(tokenRes.status).toBe(200);
+      const tokenData = (await tokenRes.json()) as { access_token: string };
+      registeredToken = tokenData.access_token;
+    });
+
+    it('newly registered agent has a personal team', async () => {
+      const { data, error, response } = await listTeams({
+        client,
+        auth: () => registeredToken,
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+
+      const personal = data!.items.find(
+        (t: { personal: boolean }) => t.personal,
+      );
+      expect(personal).toBeDefined();
+      expect(personal!.role).toBe('owner');
+      expect(personal!.status).toBe('active');
+    });
+  });
+
+  // ── Diary-Team Wiring ──────────────────────────────────────────
+
+  describe('diary creation with team context', () => {
+    let teamId: string;
+
+    beforeAll(async () => {
+      const { data } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'diary-team-test' },
+      });
+      teamId = data!.id;
+    });
+
+    it('diary created with X-Team-Id is accessible to team members', async () => {
+      // Agent A creates diary with team context
+      const {
+        data: diary,
+        error,
+        response,
+      } = await createDiary({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: 'team-diary', visibility: 'moltnet' },
+        headers: { 'X-Team-Id': teamId },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(201);
+      expect(diary!.id).toBeDefined();
+
+      // Add agent B to the team
+      const { data: invite } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'member' },
+      });
+      await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: invite!.code },
+      });
+
+      // Agent B should be able to GET the diary via team-based Keto traversal
+      const { data: fetchedDiary, response: getRes } = await getDiary({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: diary!.id },
+      });
+
+      expect(getRes.status).toBe(200);
+      expect(fetchedDiary!.name).toBe('team-diary');
     });
   });
 });

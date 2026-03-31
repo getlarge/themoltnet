@@ -2,12 +2,16 @@
  * @moltnet/auth — Type Definitions
  */
 
+export type SubjectType = 'agent' | 'human';
+
 export interface AuthContext {
   identityId: string;
   publicKey: string;
   fingerprint: string;
   clientId: string;
   scopes: string[];
+  /** Subject type — determines Keto namespace for permission checks. */
+  subjectType: SubjectType;
   /** Active team context — resolved from X-Team-Id header or personal team fallback. */
   currentTeamId: string | null;
 }

@@ -54,7 +54,9 @@ export async function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { name } = request.body;
 
       const team = await fastify.transactionRunner.runInTransaction(
@@ -72,7 +74,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
         await fastify.relationshipWriter.grantTeamOwner(
           team.id,
           identityId,
-          KetoNamespace.Agent,
+          subjectNs,
         );
       } catch (err) {
         request.log.error(
@@ -114,44 +116,38 @@ export async function teamRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { identityId } = request.authContext!;
 
-      // Single Keto call: get all team IDs + relations for this subject
-      const teamIds =
-        await fastify.relationshipReader.listTeamIdsBySubject(identityId);
-      if (teamIds.length === 0) return { items: [] };
+      // Single Keto call: get all team IDs + roles for this subject
+      const teamRoles =
+        await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
+          identityId,
+        );
+      if (teamRoles.length === 0) return { items: [] };
 
       // Single DB query: batch fetch all team metadata
       const teamsMap = new Map(
-        (await fastify.teamRepository.listByIds(teamIds)).map((t) => [t.id, t]),
+        (
+          await fastify.teamRepository.listByIds(teamRoles.map((r) => r.teamId))
+        ).map((t) => [t.id, t]),
       );
 
-      // Derive role from the Keto tuples we already have
-      // listTeamIdsBySubject returns team IDs but not roles.
-      // We need one more Keto call per team to get the role — but we can
-      // use the permission checker which is a single Keto check each.
-      // For now, do a single listTeamMembers per team but only for the caller.
-      // TODO: add a bulk role lookup to RelationshipReader
-      const items = await Promise.all(
-        teamIds.map(async (teamId) => {
-          const team = teamsMap.get(teamId);
+      // Build role map from the Keto tuples we already have
+      const roleMap = new Map(teamRoles.map((r) => [r.teamId, r.relation]));
+
+      const items = teamRoles
+        .map((r) => {
+          const team = teamsMap.get(r.teamId);
           if (!team) return null;
-          const members =
-            await fastify.relationshipReader.listTeamMembers(teamId);
-          const self = members.find((m) => m.subjectId === identityId);
           return {
             id: team.id,
             name: team.name,
             personal: team.personal,
             status: team.status,
-            role: self?.relation ?? 'member',
+            role: roleMap.get(r.teamId) ?? 'member',
           };
-        }),
-      );
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
 
-      return {
-        items: items.filter(
-          (item): item is NonNullable<typeof item> => item !== null,
-        ),
-      };
+      return { items };
     },
   );
 
@@ -174,11 +170,14 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
         identityId,
+        subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
 
@@ -219,11 +218,14 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       const canManage = await fastify.permissionChecker.canManageTeam(
         id,
         identityId,
+        subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
 
@@ -234,9 +236,15 @@ export async function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('team-personal-immutable');
       }
 
-      // Clean up Keto relations before deleting DB row
-      // (DB cascade handles team_invites, but Keto tuples are external)
+      // Snapshot members before DB delete for Keto cleanup
       const members = await fastify.relationshipReader.listTeamMembers(id);
+
+      // Delete DB row first (cascade handles team_invites).
+      // If this fails, Keto tuples remain consistent.
+      await fastify.teamRepository.delete(id);
+
+      // Best-effort Keto cleanup — orphan tuples are harmless
+      // (team no longer exists in DB so tuples are dead references)
       for (const member of members) {
         try {
           await fastify.relationshipWriter.removeTeamMemberRelation(
@@ -252,7 +260,6 @@ export async function teamRoutes(fastify: FastifyInstance) {
         }
       }
 
-      await fastify.teamRepository.delete(id);
       return reply.status(200).send({ deleted: true });
     },
   );
@@ -276,11 +283,14 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
         identityId,
+        subjectNs,
       );
       if (!canAccess) throw createProblem('not-found');
 
@@ -316,10 +326,16 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       const canManageMembers =
-        await fastify.permissionChecker.canManageTeamMembers(id, identityId);
+        await fastify.permissionChecker.canManageTeamMembers(
+          id,
+          identityId,
+          subjectNs,
+        );
       if (!canManageMembers) throw createProblem('forbidden');
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
@@ -390,10 +406,16 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       const canManageMembers =
-        await fastify.permissionChecker.canManageTeamMembers(id, identityId);
+        await fastify.permissionChecker.canManageTeamMembers(
+          id,
+          identityId,
+          subjectNs,
+        );
       if (!canManageMembers) throw createProblem('forbidden');
 
       const team = await fastify.teamRepository.findById(id);
@@ -437,10 +459,16 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       const canManageMembers =
-        await fastify.permissionChecker.canManageTeamMembers(id, identityId);
+        await fastify.permissionChecker.canManageTeamMembers(
+          id,
+          identityId,
+          subjectNs,
+        );
       if (!canManageMembers) throw createProblem('forbidden');
 
       const invites = await fastify.teamRepository.listInvites(id);
@@ -469,10 +497,16 @@ export async function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, inviteId } = request.params;
-      const { identityId } = request.authContext!;
+      const { identityId, subjectType } = request.authContext!;
+      const subjectNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
 
       const canManageMembers =
-        await fastify.permissionChecker.canManageTeamMembers(id, identityId);
+        await fastify.permissionChecker.canManageTeamMembers(
+          id,
+          identityId,
+          subjectNs,
+        );
       if (!canManageMembers) throw createProblem('forbidden');
 
       const deleted = await fastify.teamRepository.deleteInviteByTeam(
@@ -541,7 +575,10 @@ export async function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('invite-exhausted');
       }
 
-      const ns = KetoNamespace.Agent; // TODO: detect from auth context subject_type
+      const ns =
+        request.authContext!.subjectType === 'human'
+          ? KetoNamespace.Human
+          : KetoNamespace.Agent;
       try {
         if (invite.role === 'manager') {
           await fastify.relationshipWriter.grantTeamManager(
@@ -561,6 +598,14 @@ export async function teamRoutes(fastify: FastifyInstance) {
           { teamId: invite.teamId, identityId, inviteId: invite.id, err },
           'team.join_keto_grant_failed — invite claimed but Keto write failed',
         );
+        try {
+          await fastify.teamRepository.revertInviteClaim(invite.id);
+        } catch (revertErr) {
+          request.log.error(
+            { inviteId: invite.id, revertErr },
+            'team.join_invite_revert_failed',
+          );
+        }
         throw err;
       }
 

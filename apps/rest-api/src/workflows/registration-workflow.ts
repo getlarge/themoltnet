@@ -10,9 +10,11 @@
  * 2. Create Kratos identity via Admin API
  * 3. Persist agent + redeem voucher (DB transaction)
  * 4. Register agent in Keto
- * 5. Create OAuth2 client in Hydra
+ * 5. Create personal team + grant Keto owner tuple
+ * 6. Create private diary + grant Keto owner tuple
+ * 7. Create OAuth2 client in Hydra
  *
- * Compensation: if steps 3-5 fail, the Kratos identity is deleted.
+ * Compensation: if steps 3-7 fail, the Kratos identity is deleted.
  *
  * ## Initialization Order
  *
@@ -21,11 +23,13 @@
  * Call `initRegistrationWorkflow()` first, then `setRegistrationDeps()`.
  */
 
-import type { RelationshipWriter } from '@moltnet/auth';
+import { KetoNamespace, type RelationshipWriter } from '@moltnet/auth';
 import {
   type AgentRepository,
   type DataSource,
   DBOS,
+  type DiaryRepository,
+  type TeamRepository,
   type VoucherRepository,
 } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
@@ -55,6 +59,8 @@ export interface RegistrationDeps {
   oauth2Api: OAuth2Api;
   voucherRepository: VoucherRepository;
   agentRepository: AgentRepository;
+  diaryRepository: DiaryRepository;
+  teamRepository: TeamRepository;
   relationshipWriter: RelationshipWriter;
   dataSource: DataSource;
   logger: Logger;
@@ -184,6 +190,79 @@ export function initRegistrationWorkflow(): void {
     },
   );
 
+  const createPersonalTeamStep = DBOS.registerStep(
+    async (identityId: string, fingerprint: string): Promise<string> => {
+      const { teamRepository } = getDeps();
+      const existing = await teamRepository.findPersonalByCreator(identityId);
+      if (existing) return existing.id;
+
+      const team = await teamRepository.create({
+        name: fingerprint,
+        personal: true,
+        createdBy: identityId,
+        status: 'active',
+      });
+      return team.id;
+    },
+    {
+      name: 'registration.step.createPersonalTeam',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const grantPersonalTeamOwnerStep = DBOS.registerStep(
+    async (teamId: string, identityId: string): Promise<void> => {
+      const { relationshipWriter } = getDeps();
+      // Keto PUT is idempotent — safe to retry
+      await relationshipWriter.grantTeamOwner(
+        teamId,
+        identityId,
+        KetoNamespace.Agent,
+      );
+    },
+    {
+      name: 'registration.step.grantPersonalTeamOwner',
+      retriesAllowed: true,
+      maxAttempts: 5,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const createPrivateDiaryStep = DBOS.registerStep(
+    async (identityId: string, personalTeamId: string): Promise<void> => {
+      const { diaryRepository, relationshipWriter } = getDeps();
+      // Idempotent: reuse existing diary, always ensure Keto tuples
+      const owned = await diaryRepository.listByOwner(identityId);
+      const existing = owned.find((d) => d.name === 'Private');
+      const diary =
+        existing ??
+        (await diaryRepository.create({
+          ownerId: identityId,
+          name: 'Private',
+          visibility: 'private',
+          teamId: personalTeamId,
+        }));
+      // Keto PUT is idempotent — safe to re-grant on retry
+      await relationshipWriter.grantDiaryOwner(
+        diary.id,
+        identityId,
+        KetoNamespace.Agent,
+      );
+      await relationshipWriter.grantDiaryTeam(diary.id, personalTeamId);
+    },
+    {
+      name: 'registration.step.createPrivateDiary',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
   const createOAuth2ClientStep = DBOS.registerStep(
     async (
       identityId: string,
@@ -269,7 +348,17 @@ export function initRegistrationWorkflow(): void {
         // Step 4: Register in Keto
         await registerInKetoStep(identityId);
 
-        // Step 5: Create OAuth2 client
+        // Step 5: Create personal team + Keto owner tuple
+        const personalTeamId = await createPersonalTeamStep(
+          identityId,
+          fingerprint,
+        );
+        await grantPersonalTeamOwnerStep(personalTeamId, identityId);
+
+        // Step 6: Create private diary (linked to personal team)
+        await createPrivateDiaryStep(identityId, personalTeamId);
+
+        // Step 7: Create OAuth2 client
         const { clientId, clientSecret } = await createOAuth2ClientStep(
           identityId,
           publicKey,

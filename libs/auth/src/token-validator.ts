@@ -13,7 +13,7 @@ import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
 import { createVerifier } from 'fast-jwt';
 import buildGetJwks from 'get-jwks';
 
-import type { AuthContext, IntrospectionResult } from './types.js';
+import type { AuthContext, IntrospectionResult, SubjectType } from './types.js';
 
 export interface TokenValidatorConfig {
   /** Ory Hydra JWKS URI (e.g. https://<project>.projects.oryapis.com/.well-known/jwks.json) */
@@ -54,6 +54,8 @@ function extractAuthContextFromClaims(
   const identityId = claims['moltnet:identity_id'] as string | undefined;
   const publicKey = claims['moltnet:public_key'] as string | undefined;
   const fingerprint = claims['moltnet:fingerprint'] as string | undefined;
+  const subjectType =
+    (claims['moltnet:subject_type'] as SubjectType) ?? 'agent';
 
   if (!identityId || !publicKey || !fingerprint) {
     return null;
@@ -65,6 +67,7 @@ function extractAuthContextFromClaims(
     fingerprint,
     clientId,
     scopes,
+    subjectType,
     currentTeamId: null, // resolved later by auth plugin
   };
 }
@@ -92,12 +95,17 @@ async function fetchClientMetadata(
       return null;
     }
 
+    const metaType = metadata.type;
+    const subjectType: SubjectType =
+      metaType === 'moltnet_human' ? 'human' : 'agent';
+
     return {
       identityId: metaIdentityId,
       publicKey: metaPublicKey,
       fingerprint: metaFingerprint,
       clientId,
       scopes,
+      subjectType,
       currentTeamId: null, // resolved later by auth plugin
     };
   } catch {

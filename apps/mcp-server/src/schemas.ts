@@ -875,8 +875,7 @@ export const PackRenderPreviewSchema = Type.Object({
 export type PackRenderPreviewInput = {
   pack_id: PathOf<PreviewRenderedPackData>['id'];
   rendered_markdown?: BodyOf<PreviewRenderedPackData>['renderedMarkdown'];
-  render_method:
-    NonNullable<BodyOf<PreviewRenderedPackData>>['renderMethod'];
+  render_method: NonNullable<BodyOf<PreviewRenderedPackData>>['renderMethod'];
 };
 
 // --- Compile-time drift checks ---

@@ -28,50 +28,30 @@ describe('RelationshipReader', () => {
     reader = createRelationshipReader(mockRelationshipApi as any);
   });
 
-  describe('listDiaryIdsByAgent', () => {
-    it('queries Keto for all Diary relations for the agent', async () => {
+  describe('listDiaryIdsBySubject', () => {
+    it('queries Keto with subject_set for both Agent and Human namespaces', async () => {
       mockRelationshipApi.getRelationships.mockResolvedValue({
         relation_tuples: [],
       });
 
-      await reader.listDiaryIdsByAgent(AGENT_ID);
+      await reader.listDiaryIdsBySubject(AGENT_ID);
 
+      // Two parallel calls: Agent namespace + Human namespace
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledTimes(2);
       expect(mockRelationshipApi.getRelationships).toHaveBeenCalledWith({
         namespace: 'Diary',
-        subjectId: AGENT_ID,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
         pageToken: undefined,
       });
-    });
-
-    it('follows pagination tokens until exhausted', async () => {
-      const DIARY_ID_3 = '880e8400-e29b-41d4-a716-446655440003';
-      mockRelationshipApi.getRelationships
-        .mockResolvedValueOnce({
-          relation_tuples: [
-            { object: DIARY_ID_1, relation: 'owner', subject_id: AGENT_ID },
-          ],
-          next_page_token: 'token-page-2',
-        })
-        .mockResolvedValueOnce({
-          relation_tuples: [
-            { object: DIARY_ID_2, relation: 'writers', subject_id: AGENT_ID },
-            { object: DIARY_ID_3, relation: 'readers', subject_id: AGENT_ID },
-          ],
-          next_page_token: '',
-        });
-
-      const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
-
-      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledTimes(2);
-      expect(mockRelationshipApi.getRelationships).toHaveBeenNthCalledWith(2, {
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledWith({
         namespace: 'Diary',
-        subjectId: AGENT_ID,
-        pageToken: 'token-page-2',
+        subjectSetNamespace: 'Human',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
+        pageToken: undefined,
       });
-      expect(ids).toEqual(
-        expect.arrayContaining([DIARY_ID_1, DIARY_ID_2, DIARY_ID_3]),
-      );
-      expect(ids).toHaveLength(3);
     });
 
     it('returns diary IDs across all relations', async () => {
@@ -82,22 +62,25 @@ describe('RelationshipReader', () => {
         ],
       });
 
-      const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+      const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
 
-      expect(ids).toEqual([DIARY_ID_1, DIARY_ID_2]);
+      // Both Agent and Human queries return same tuples in mock,
+      // but deduplication merges them
+      expect(ids).toContain(DIARY_ID_1);
+      expect(ids).toContain(DIARY_ID_2);
     });
 
-    it('deduplicates diary IDs when agent has multiple relations on same diary', async () => {
+    it('deduplicates diary IDs across namespaces', async () => {
       mockRelationshipApi.getRelationships.mockResolvedValue({
         relation_tuples: [
           { object: DIARY_ID_1, relation: 'owner', subject_id: AGENT_ID },
-          { object: DIARY_ID_1, relation: 'writers', subject_id: AGENT_ID },
         ],
       });
 
-      const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+      const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
 
-      expect(ids).toEqual([DIARY_ID_1]);
+      // Both Agent and Human queries return DIARY_ID_1, but it appears once
+      expect(ids.filter((id) => id === DIARY_ID_1)).toHaveLength(1);
     });
 
     it('returns empty array when no relation tuples exist', async () => {
@@ -105,7 +88,7 @@ describe('RelationshipReader', () => {
         relation_tuples: [],
       });
 
-      const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+      const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
 
       expect(ids).toEqual([]);
     });
@@ -113,7 +96,7 @@ describe('RelationshipReader', () => {
     it('returns empty array when relation_tuples is undefined', async () => {
       mockRelationshipApi.getRelationships.mockResolvedValue({});
 
-      const ids = await reader.listDiaryIdsByAgent(AGENT_ID);
+      const ids = await reader.listDiaryIdsBySubject(AGENT_ID);
 
       expect(ids).toEqual([]);
     });

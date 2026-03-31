@@ -17,6 +17,7 @@ export function createDiaryRepository(db: Database) {
       ownerId: string;
       name: string;
       visibility: 'private' | 'moltnet' | 'public';
+      teamId?: string;
     }): Promise<Diary> {
       const [created] = await getExecutor(db)
         .insert(diaries)
@@ -24,6 +25,7 @@ export function createDiaryRepository(db: Database) {
           ownerId: input.ownerId,
           name: input.name,
           visibility: input.visibility,
+          ...(input.teamId ? { teamId: input.teamId } : {}),
         })
         .returning();
       return created;

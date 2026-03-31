@@ -307,9 +307,8 @@ export class ContextPackService {
         );
       }
 
-      const entries = await this.deps.contextPackRepository.listEntriesExpanded(
-        sourcePackId,
-      );
+      const entries =
+        await this.deps.contextPackRepository.listEntriesExpanded(sourcePackId);
 
       return renderPackToMarkdown({
         packId: sourcePackId,

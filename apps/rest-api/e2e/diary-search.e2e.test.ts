@@ -18,7 +18,7 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Diary hybrid search', () => {
@@ -42,17 +42,10 @@ describe('Diary hybrid search', () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
 
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
     agent = await createAgent({
       baseUrl: harness.baseUrl,
-      identityApi: harness.identityApi,
-      hydraAdminOAuth2: harness.hydraAdminOAuth2,
-      webhookApiKey: harness.webhookApiKey,
-      voucherCode,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
     // Seed entries for search tests
@@ -294,17 +287,10 @@ describe('Diary hybrid search', () => {
     let agentB: TestAgent;
 
     beforeAll(async () => {
-      const voucherB = await createTestVoucher({
-        db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
-      });
-
       agentB = await createAgent({
         baseUrl: harness.baseUrl,
-        identityApi: harness.identityApi,
-        hydraAdminOAuth2: harness.hydraAdminOAuth2,
-        webhookApiKey: harness.webhookApiKey,
-        voucherCode: voucherB,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
       });
     });
 
