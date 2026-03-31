@@ -29,6 +29,7 @@ import type {
   ListDiaryPacksData,
   ListEntryRelationsData,
   PreviewDiaryCustomPackData,
+  PreviewRenderedPackData,
   ReflectDiaryData,
   RenderContextPackData,
   SearchDiaryData,
@@ -825,6 +826,7 @@ export const PackRenderSchema = Type.Object({
   rendered_markdown: Type.Optional(
     Type.String({
       minLength: 1,
+      maxLength: 500_000,
       description:
         'The rendered markdown content. Omit this when render_method starts with "server:".',
     }),
@@ -857,6 +859,7 @@ export const PackRenderPreviewSchema = Type.Object({
   rendered_markdown: Type.Optional(
     Type.String({
       minLength: 1,
+      maxLength: 500_000,
       description:
         'The rendered markdown content. Omit this when render_method starts with "server:".',
     }),
@@ -870,9 +873,10 @@ export const PackRenderPreviewSchema = Type.Object({
 });
 
 export type PackRenderPreviewInput = {
-  pack_id: string;
-  rendered_markdown?: string;
-  render_method: string;
+  pack_id: PathOf<PreviewRenderedPackData>['id'];
+  rendered_markdown?: BodyOf<PreviewRenderedPackData>['renderedMarkdown'];
+  render_method:
+    NonNullable<BodyOf<PreviewRenderedPackData>>['renderMethod'];
 };
 
 // --- Compile-time drift checks ---
@@ -1020,4 +1024,8 @@ type _PackUpdateInputMatchesSchema = AssertSchemaToApi<
 type _PackRenderInputMatchesSchema = AssertSchemaToApi<
   Static<typeof PackRenderSchema>,
   PackRenderInput
+>;
+type _PackRenderPreviewInputMatchesSchema = AssertSchemaToApi<
+  Static<typeof PackRenderPreviewSchema>,
+  PackRenderPreviewInput
 >;
