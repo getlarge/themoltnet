@@ -41,6 +41,32 @@ export function createProblem(slug: string, detail?: string): ProblemError {
   return error;
 }
 
+/**
+ * Check whether an error (or its cause) is a Postgres unique constraint violation (23505).
+ * Drizzle wraps PG errors, so the code may be on the error itself or on err.cause.
+ * Optionally match a specific constraint name.
+ */
+export function isUniqueViolation(err: unknown, constraint?: string): boolean {
+  for (const candidate of [err, (err as Error)?.cause]) {
+    if (
+      candidate instanceof Error &&
+      'code' in candidate &&
+      (candidate as { code: string }).code === '23505'
+    ) {
+      if (!constraint) return true;
+      if (
+        'constraint' in candidate &&
+        String((candidate as { constraint: string }).constraint).includes(
+          constraint,
+        )
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function createValidationProblem(
   errors: ValidationError[],
   detail?: string,

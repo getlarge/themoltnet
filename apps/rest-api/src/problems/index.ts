@@ -2,6 +2,7 @@ export {
   acceptsProblemJson,
   createProblem,
   createValidationProblem,
+  isUniqueViolation,
 } from './helpers.js';
 export {
   findProblemTypeByCode,

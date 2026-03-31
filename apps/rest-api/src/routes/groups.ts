@@ -24,7 +24,7 @@ import {
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
-import { createProblem } from '../problems/index.js';
+import { createProblem, isUniqueViolation } from '../problems/index.js';
 
 // ── Routes ─────────────────────────────────────────────────────
 
@@ -87,11 +87,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
           });
         });
       } catch (err) {
-        if (
-          err instanceof Error &&
-          'code' in err &&
-          (err as { code: string }).code === '23505'
-        ) {
+        if (isUniqueViolation(err)) {
           throw createProblem(
             'conflict',
             'A group with this name already exists in this team',
