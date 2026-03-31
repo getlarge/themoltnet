@@ -27,6 +27,7 @@ import {
   createDiaryRepository,
   createDiaryShareRepository,
   createEntryRelationRepository,
+  createGroupRepository,
   createNonceRepository,
   createRenderedPackRepository,
   createSigningRequestRepository,
@@ -170,6 +171,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const diaryEntryRepository = createDiaryEntryRepository(dbConnection.db);
   const teamRepository = createTeamRepository(dbConnection.db);
+  const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
@@ -334,6 +336,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     agentRepository,
     cryptoService,
     voucherRepository,
+    groupRepository,
     teamRepository,
     signingRequestRepository,
     nonceRepository,

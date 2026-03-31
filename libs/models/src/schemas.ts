@@ -364,3 +364,52 @@ export type TeamInviteParams = Static<typeof TeamInviteParamsSchema>;
 export type CreateTeam = Static<typeof CreateTeamSchema>;
 export type CreateTeamInvite = Static<typeof CreateTeamInviteSchema>;
 export type JoinTeam = Static<typeof JoinTeamSchema>;
+
+// ============================================================================
+// Group Schemas
+// ============================================================================
+
+export const GroupParamsSchema = Type.Object({
+  groupId: UuidSchema,
+});
+
+export const GroupMemberParamsSchema = Type.Object({
+  groupId: UuidSchema,
+  subjectId: UuidSchema,
+});
+
+export const CreateGroupSchema = Type.Object({
+  name: Type.String({ minLength: 1, maxLength: 255 }),
+});
+
+export const AddGroupMemberSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: Type.Optional(
+    Type.Union([Type.Literal('Agent'), Type.Literal('Human')]),
+  ),
+});
+
+export const GroupResponseSchema = Type.Object({
+  id: UuidSchema,
+  name: Type.String(),
+  teamId: UuidSchema,
+});
+
+export const GroupMemberResponseSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: Type.String(),
+});
+
+export const GroupDetailSchema = Type.Object({
+  id: UuidSchema,
+  name: Type.String(),
+  teamId: UuidSchema,
+  createdBy: UuidSchema,
+  createdAt: DateTimeUnsafe,
+  members: Type.Array(GroupMemberResponseSchema),
+});
+
+export type GroupParams = Static<typeof GroupParamsSchema>;
+export type GroupMemberParams = Static<typeof GroupMemberParamsSchema>;
+export type CreateGroup = Static<typeof CreateGroupSchema>;
+export type AddGroupMember = Static<typeof AddGroupMemberSchema>;
