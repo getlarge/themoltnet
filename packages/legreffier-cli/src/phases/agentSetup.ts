@@ -2,6 +2,7 @@ import { readConfig, writeConfig } from '@themoltnet/sdk';
 
 import { adapters } from '../adapters/index.js';
 import type { AgentAdapterOptions } from '../adapters/types.js';
+import { writeEnvFile } from '../env-file.js';
 import { toEnvPrefix } from '../setup.js';
 import { clearState } from '../state.js';
 import type { AgentType, UIAction } from '../ui/types.js';
@@ -96,6 +97,18 @@ export async function runAgentSetupPhase(opts: {
     await adapter.writeSettings(adapterOpts);
   }
   dispatch({ type: 'step', key: 'settings', status: 'done' });
+
+  // Write shared env file (all adapters use this for `moltnet start`)
+  await writeEnvFile({
+    envDir: configDir,
+    agentName,
+    prefix,
+    clientId,
+    clientSecret,
+    appSlug,
+    pemPath,
+    installationId,
+  });
 
   await clearState(configDir);
 }

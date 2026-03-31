@@ -42,6 +42,9 @@ without human intervention.`,
 	rootCmd.AddCommand(newRelationsCmd())
 	rootCmd.AddCommand(newEvalCmd())
 	rootCmd.AddCommand(newCompletionCmd())
+	rootCmd.AddCommand(newUseCmd())
+	rootCmd.AddCommand(newEnvCmd())
+	rootCmd.AddCommand(newStartCmd())
 
 	return rootCmd
 }

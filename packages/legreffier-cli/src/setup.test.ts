@@ -1,9 +1,10 @@
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { parseEnvFile, writeEnvFile } from './env-file.js';
 import {
   buildCodexRules,
   buildGhTokenRule,
@@ -371,5 +372,94 @@ describe('writeSettingsLocal', () => {
       'utf-8',
     );
     expect(JSON.parse(raw)).toHaveProperty('env');
+  });
+});
+
+describe('writeEnvFile', () => {
+  it('generates env file with credentials and GIT_CONFIG_GLOBAL', async () => {
+    const envDir = join(tmpRepo, '.moltnet', 'my-agent');
+
+    await writeEnvFile({
+      envDir,
+      agentName: 'my-agent',
+      prefix: 'MY_AGENT',
+      clientId: 'cid',
+      clientSecret: 'csec',
+      appSlug: 'my-app',
+      pemPath: '/tmp/my-app.pem',
+      installationId: '12345',
+    });
+
+    const content = await readFile(join(envDir, 'env'), 'utf-8');
+    expect(content).toContain("MY_AGENT_CLIENT_ID='cid'");
+    expect(content).toContain("MY_AGENT_CLIENT_SECRET='csec'");
+    expect(content).toContain("MY_AGENT_GITHUB_APP_ID='my-app'");
+    expect(content).toContain(
+      "MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='/tmp/my-app.pem'",
+    );
+    expect(content).toContain("MY_AGENT_GITHUB_APP_INSTALLATION_ID='12345'");
+    expect(content).toContain(
+      "GIT_CONFIG_GLOBAL='.moltnet/my-agent/gitconfig'",
+    );
+  });
+
+  it('preserves user-added vars on re-run', async () => {
+    const envDir = join(tmpRepo, '.moltnet', 'my-agent');
+    await mkdir(envDir, { recursive: true });
+
+    // First run
+    await writeEnvFile({
+      envDir,
+      agentName: 'my-agent',
+      prefix: 'MY_AGENT',
+      clientId: 'cid-v1',
+      clientSecret: 'csec-v1',
+      appSlug: 'my-app',
+      pemPath: '/tmp/my-app.pem',
+      installationId: '12345',
+    });
+
+    // User adds custom vars
+    await appendFile(
+      join(envDir, 'env'),
+      "\n# My diary\nMOLTNET_DIARY_ID='abc-123'\nCUSTOM_VAR='keep-me'\n",
+    );
+
+    // Second run (e.g. legreffier setup re-run with new secret)
+    await writeEnvFile({
+      envDir,
+      agentName: 'my-agent',
+      prefix: 'MY_AGENT',
+      clientId: 'cid-v2',
+      clientSecret: 'csec-v2',
+      appSlug: 'my-app',
+      pemPath: '/tmp/my-app.pem',
+      installationId: '12345',
+    });
+
+    const content = await readFile(join(envDir, 'env'), 'utf-8');
+    // Updated managed vars
+    expect(content).toContain("MY_AGENT_CLIENT_ID='cid-v2'");
+    expect(content).toContain("MY_AGENT_CLIENT_SECRET='csec-v2'");
+    // Preserved user vars
+    expect(content).toContain("MOLTNET_DIARY_ID='abc-123'");
+    expect(content).toContain("CUSTOM_VAR='keep-me'");
+    // Preserved comments
+    expect(content).toContain('# My diary');
+    // No duplicate managed keys
+    expect(content.match(/MY_AGENT_CLIENT_ID/g)?.length).toBe(1);
+  });
+});
+
+describe('parseEnvFile', () => {
+  it('parses key=value pairs with various quoting styles', () => {
+    const content =
+      'SIMPLE=value\nQUOTED=\'hello world\'\nDOUBLE="hi"\n# comment\n\nEMPTY=\n';
+    const vars = parseEnvFile(content);
+    expect(vars['SIMPLE']).toBe('value');
+    expect(vars['QUOTED']).toBe('hello world');
+    expect(vars['DOUBLE']).toBe('hi');
+    expect(vars['EMPTY']).toBe('');
+    expect('# comment' in vars).toBe(false);
   });
 });
