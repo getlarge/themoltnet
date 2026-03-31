@@ -300,6 +300,44 @@ func TestStartDryRun(t *testing.T) {
 	}
 }
 
+func TestStartDryRunForwardsTargetArgs(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	moltnetDir := filepath.Join(dir, ".moltnet")
+	agentDir := filepath.Join(moltnetDir, "test-agent")
+	os.MkdirAll(agentDir, 0o755)
+	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\n"), 0o644)
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(
+		root,
+		"start",
+		"echo",
+		"--agent",
+		"test-agent",
+		"--dir",
+		dir,
+		"--dry-run",
+		"--",
+		"--model",
+		"gpt-5.4",
+		"--profile",
+		"dev",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(stdout, "Forwarded target arguments:") {
+		t.Fatalf("expected forwarded argument section, got: %s", stdout)
+	}
+	for _, want := range []string{`"--model"`, `"gpt-5.4"`, `"--profile"`, `"dev"`} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("expected dry-run output to include %s, got: %s", want, stdout)
+		}
+	}
+}
+
 func TestStartMissingAgent(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()

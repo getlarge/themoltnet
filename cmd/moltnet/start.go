@@ -6,13 +6,14 @@ import (
 	osExec "os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
 )
 
-func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, dryRun bool) error {
+func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool) error {
 	moltnetDir, err := resolveMoltnetDir(dir)
 	if err != nil {
 		return err
@@ -65,6 +66,13 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, dryRun bool)
 	if dryRun {
 		fmt.Fprintf(cmd.OutOrStdout(), "Agent: %s\n", agentName)
 		fmt.Fprintf(cmd.OutOrStdout(), "Target: %s (%s)\n\n", target, targetPath)
+		if len(targetArgs) > 0 {
+			fmt.Fprintln(cmd.OutOrStdout(), "Forwarded target arguments:")
+			for _, arg := range targetArgs {
+				fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", strconv.Quote(arg))
+			}
+			fmt.Fprintln(cmd.OutOrStdout())
+		}
 		fmt.Fprintln(cmd.OutOrStdout(), "Environment variables from env file:")
 		keys := make([]string, 0, len(vars))
 		for k := range vars {
@@ -82,7 +90,8 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, dryRun bool)
 	}
 
 	// exec replaces the current process
-	return syscall.Exec(targetPath, []string{target}, env)
+	argv := append([]string{target}, targetArgs...)
+	return syscall.Exec(targetPath, argv, env)
 }
 
 // isSecretKey returns true for env var names that likely contain secrets.
