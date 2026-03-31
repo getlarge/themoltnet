@@ -152,9 +152,12 @@ async function checkPermission(
     'subject_set.object': subjectId,
     'subject_set.relation': '',
   });
-  const res = await fetch(`${ORY_PROJECT_URL}/check?${params.toString()}`, {
-    headers: authHeaders,
-  });
+  const res = await fetch(
+    `${ORY_PROJECT_URL}/relation-tuples/check?${params.toString()}`,
+    {
+      headers: authHeaders,
+    },
+  );
   if (!res.ok) return false;
   const data = (await res.json()) as { allowed: boolean };
   return data.allowed;
