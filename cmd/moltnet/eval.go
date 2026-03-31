@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -23,7 +24,15 @@ type evalRunOpts struct {
 // evalRun describes one task + optional pack pair (used in config mode).
 type evalRun struct {
 	Scenario string `yaml:"scenario"`
-	Pack string `yaml:"pack,omitempty"`
+	Pack     string `yaml:"pack,omitempty"`
+}
+
+// evalRunInput is the resolved input for a single eval run.
+type evalRunInput struct {
+	name         string
+	taskMD       []byte
+	criteriaJSON []byte
+	packMD       string
 }
 
 // evalConfig is the YAML config file schema.
@@ -52,8 +61,11 @@ func checkPrerequisites() error {
 	if _, err := exec.LookPath("harbor"); err != nil {
 		return fmt.Errorf("harbor CLI not found on PATH — install with: uv tool install harbor")
 	}
+	if _, err := exec.LookPath("docker"); err != nil {
+		return fmt.Errorf("docker CLI not found on PATH: %w", err)
+	}
 	if err := exec.Command("docker", "info").Run(); err != nil {
-		return fmt.Errorf("docker is not running or not accessible")
+		return fmt.Errorf("docker daemon not running or not accessible: %w", err)
 	}
 	return nil
 }
@@ -268,8 +280,16 @@ func extractResults(jobDir string) ([]evalResult, error) {
 		})
 	}
 
+	// Sort base names for deterministic output
+	baseNames := make([]string, 0, len(groups))
+	for k := range groups {
+		baseNames = append(baseNames, k)
+	}
+	sort.Strings(baseNames)
+
 	var results []evalResult
-	for baseName, trials := range groups {
+	for _, baseName := range baseNames {
+		trials := groups[baseName]
 		result := evalResult{taskName: baseName}
 		for _, t := range trials {
 			scores, err := readTrialScores(t.dir)
@@ -392,10 +412,17 @@ func printSingleSummary(r evalResult, model string) {
 		for k := range r.withContext.details {
 			allCriteria[k] = true
 		}
+		// Sort criteria for deterministic output
+		sortedCriteria := make([]string, 0, len(allCriteria))
+		for k := range allCriteria {
+			sortedCriteria = append(sortedCriteria, k)
+		}
+		sort.Strings(sortedCriteria)
+
 		fmt.Printf("\n  %-38s  %-9s  %-9s  %s\n", "Criteria", "Without", "With", "Delta")
 		fmt.Printf("  %-38s  %-9s  %-9s  %s\n",
 			strings.Repeat("─", 38), strings.Repeat("─", 9), strings.Repeat("─", 9), strings.Repeat("─", 7))
-		for name := range allCriteria {
+		for _, name := range sortedCriteria {
 			without := r.withoutContext.details[name]
 			with := r.withContext.details[name]
 			d := with - without
@@ -494,80 +521,65 @@ func printBatchSummary(results []evalResult, model string) {
 
 // --- Orchestration ---
 
-func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
-	if err := checkPrerequisites(); err != nil {
-		return err
+func resolveEvalRun(scenarioDir, packPath string) (evalRunInput, error) {
+	if err := validateTaskDir(scenarioDir); err != nil {
+		return evalRunInput{}, err
 	}
-	if err := validateTaskDir(taskDir); err != nil {
-		return err
-	}
-
-	taskMD, err := os.ReadFile(filepath.Join(taskDir, "task.md"))
+	taskMD, err := os.ReadFile(filepath.Join(scenarioDir, "task.md"))
 	if err != nil {
-		return fmt.Errorf("reading task.md: %w", err)
+		return evalRunInput{}, fmt.Errorf("reading task.md from %s: %w", scenarioDir, err)
 	}
-	criteriaJSON, err := os.ReadFile(filepath.Join(taskDir, "criteria.json"))
+	criteriaJSON, err := os.ReadFile(filepath.Join(scenarioDir, "criteria.json"))
 	if err != nil {
-		return fmt.Errorf("reading criteria.json: %w", err)
+		return evalRunInput{}, fmt.Errorf("reading criteria.json from %s: %w", scenarioDir, err)
 	}
-
 	var packMD string
 	if packPath != "" {
 		data, err := os.ReadFile(packPath)
 		if err != nil {
-			return fmt.Errorf("reading pack: %w", err)
+			return evalRunInput{}, fmt.Errorf("reading pack %s: %w", packPath, err)
 		}
 		packMD = string(data)
 	}
+	return evalRunInput{
+		name:         filepath.Base(scenarioDir),
+		taskMD:       taskMD,
+		criteriaJSON: criteriaJSON,
+		packMD:       packMD,
+	}, nil
+}
 
-	taskName := filepath.Base(taskDir)
-
-	return runEval([]evalRun{{Scenario: taskDir}}, []string{taskName}, [][]byte{taskMD}, [][]byte{criteriaJSON}, []string{packMD}, opts)
+func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
+	if err := checkPrerequisites(); err != nil {
+		return err
+	}
+	input, err := resolveEvalRun(taskDir, packPath)
+	if err != nil {
+		return err
+	}
+	return runEval([]evalRunInput{input}, opts)
 }
 
 func runEvalFromConfig(configPath string, opts evalRunOpts) error {
 	if err := checkPrerequisites(); err != nil {
 		return err
 	}
-
 	runs, err := loadConfig(configPath)
 	if err != nil {
 		return err
 	}
-
-	var taskNames []string
-	var taskMDs, criteriaJSONs [][]byte
-	var packMDs []string
-
+	var inputs []evalRunInput
 	for _, r := range runs {
-		taskMD, err := os.ReadFile(filepath.Join(r.Scenario, "task.md"))
+		input, err := resolveEvalRun(r.Scenario, r.Pack)
 		if err != nil {
-			return fmt.Errorf("reading task.md from %s: %w", r.Scenario, err)
+			return err
 		}
-		criteria, err := os.ReadFile(filepath.Join(r.Scenario, "criteria.json"))
-		if err != nil {
-			return fmt.Errorf("reading criteria.json from %s: %w", r.Scenario, err)
-		}
-
-		var packMD string
-		if r.Pack != "" {
-			data, err := os.ReadFile(r.Pack)
-			if err != nil {
-				return fmt.Errorf("reading pack %s: %w", r.Pack, err)
-			}
-			packMD = string(data)
-		}
-
-		taskNames = append(taskNames, filepath.Base(r.Scenario))
-		taskMDs = append(taskMDs, taskMD)
-		criteriaJSONs = append(criteriaJSONs, criteria)
-		packMDs = append(packMDs, packMD)
+		inputs = append(inputs, input)
 	}
-
-	return runEval(runs, taskNames, taskMDs, criteriaJSONs, packMDs, opts)
+	return runEval(inputs, opts)
 }
 
-func runEval(runs []evalRun, taskNames []string, taskMDs, criteriaJSONs [][]byte, packMDs []string, opts evalRunOpts) error {
+func runEval(inputs []evalRunInput, opts evalRunOpts) error {
 	// Create temp working directory for Harbor
 	workDir, err := os.MkdirTemp("", "moltnet-eval-*")
 	if err != nil {
@@ -593,34 +605,34 @@ func runEval(runs []evalRun, taskNames []string, taskMDs, criteriaJSONs [][]byte
 		return fmt.Errorf("setting up agents: %w", err)
 	}
 
-	// Deduplicate task names (batch configs may have same basename)
+	// Deduplicate names (batch configs may have same basename)
 	seen := make(map[string]int)
-	for i, name := range taskNames {
-		seen[name]++
-		if seen[name] > 1 {
-			taskNames[i] = fmt.Sprintf("%s-%d", name, seen[name])
+	for i := range inputs {
+		seen[inputs[i].name]++
+		if seen[inputs[i].name] > 1 {
+			inputs[i].name = fmt.Sprintf("%s-%d", inputs[i].name, seen[inputs[i].name])
 		}
 	}
 
 	// Scaffold task variants
-	for i, name := range taskNames {
+	for _, input := range inputs {
 		// Always scaffold without-context variant
-		dir := filepath.Join(tasksDir, name)
-		if err := scaffoldTask(dir, taskMDs[i], criteriaJSONs[i], "", false); err != nil {
-			return fmt.Errorf("scaffolding %s: %w", name, err)
+		dir := filepath.Join(tasksDir, input.name)
+		if err := scaffoldTask(dir, input.taskMD, input.criteriaJSON, "", false); err != nil {
+			return fmt.Errorf("scaffolding %s: %w", input.name, err)
 		}
 
 		// If pack provided, also scaffold with-context variant
-		if packMDs[i] != "" {
-			ctxDir := filepath.Join(tasksDir, name+"-with-context")
-			if err := scaffoldTask(ctxDir, taskMDs[i], criteriaJSONs[i], packMDs[i], true); err != nil {
-				return fmt.Errorf("scaffolding %s-with-context: %w", name, err)
+		if input.packMD != "" {
+			ctxDir := filepath.Join(tasksDir, input.name+"-with-context")
+			if err := scaffoldTask(ctxDir, input.taskMD, input.criteriaJSON, input.packMD, true); err != nil {
+				return fmt.Errorf("scaffolding %s-with-context: %w", input.name, err)
 			}
 		}
 	}
 
 	// Run Harbor
-	fmt.Fprintf(os.Stderr, "Running %d eval task(s) with model %s...\n", len(taskNames), opts.model)
+	fmt.Fprintf(os.Stderr, "Running %d eval task(s) with model %s...\n", len(inputs), opts.model)
 	if err := runHarbor(workDir, tasksDir, agentsDir, opts.model, opts.concurrency, opts.forceBuild); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: harbor exited with error (some trials may have failed): %v\n", err)
 	}

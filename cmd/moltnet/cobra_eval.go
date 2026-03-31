@@ -43,6 +43,9 @@ variants and reports the score delta (pack contribution).`,
 			concurrency, _ := cmd.Flags().GetInt("concurrency")
 			forceBuild, _ := cmd.Flags().GetBool("force-build")
 
+			if concurrency < 1 {
+				return fmt.Errorf("--concurrency must be at least 1")
+			}
 			if task == "" && config == "" {
 				return fmt.Errorf("either --scenario or --config is required")
 			}
