@@ -11,7 +11,7 @@ import "github.com/spf13/cobra"
 // the Use line and examples below.
 func newStartCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "start <target>",
+		Use:   "start <target> [-- <target-args>...]",
 		Short: "Start an agent session with resolved credentials",
 		Long: `Start an agent session with the resolved agent's environment.
 Sources the agent's .moltnet/<agent>/env file and exec's into the target binary.
@@ -19,13 +19,14 @@ Common targets: claude, codex.`,
 		Example: `  moltnet start claude
   moltnet start codex
   moltnet start claude --agent legreffier
+  moltnet start codex -- --model gpt-5.4 --profile dev
   moltnet start claude --dry-run`,
-		Args: cobra.ExactArgs(1),
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, _ := cmd.Flags().GetString("dir")
 			agent, _ := cmd.Flags().GetString("agent")
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
-			return runStartCmd(cmd, dir, agent, args[0], dryRun)
+			return runStartCmd(cmd, dir, agent, args[0], args[1:], dryRun)
 		},
 	}
 	cmd.Flags().String("agent", "", "Agent name (overrides default)")
