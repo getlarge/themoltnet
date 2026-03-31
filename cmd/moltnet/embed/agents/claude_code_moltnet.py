@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 # Anthropic API connectivity check
 _API_HOST = "api.anthropic.com"
-_CONNECTIVITY_MAX_ATTEMPTS = 10
-_CONNECTIVITY_INITIAL_DELAY_SEC = 1
+_CONNECTIVITY_MAX_ATTEMPTS = 5
+_CONNECTIVITY_INITIAL_DELAY_SEC = 2
 
 
 class ClaudeCodeMoltNet(ClaudeCode):
