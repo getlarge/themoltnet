@@ -112,7 +112,7 @@ func validateTaskDir(dir string) error {
 
 // --- Scaffolding ---
 
-func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withContext bool) error {
+func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withContext bool, tmplData templateData) error {
 	dirs := []string{
 		filepath.Join(dir, "environment", "judge"),
 		filepath.Join(dir, "tests"),
@@ -126,13 +126,22 @@ func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withCo
 		}
 	}
 
+	taskToml, err := renderTemplate(taskTomlTmpl, tmplData)
+	if err != nil {
+		return fmt.Errorf("render task.toml: %w", err)
+	}
+	testSh, err := renderTemplate(testShTmpl, tmplData)
+	if err != nil {
+		return fmt.Errorf("render test.sh: %w", err)
+	}
+
 	files := map[string][]byte{
-		filepath.Join(dir, "task.toml"):                          taskTomlTemplate,
-		filepath.Join(dir, "instruction.md"):                     taskMD,
-		filepath.Join(dir, "environment", "Dockerfile"):          dockerfileTemplate,
-		filepath.Join(dir, "environment", "judge", "judge.js"):   judgeJS,
+		filepath.Join(dir, "task.toml"):                            []byte(taskToml),
+		filepath.Join(dir, "instruction.md"):                       taskMD,
+		filepath.Join(dir, "environment", "Dockerfile"):            dockerfileTemplate,
+		filepath.Join(dir, "environment", "judge", "judge.js"):     judgeJS,
 		filepath.Join(dir, "environment", "judge", "package.json"): judgePackageJSON,
-		filepath.Join(dir, "tests", "criteria.json"):             criteriaJSON,
+		filepath.Join(dir, "tests", "criteria.json"):               criteriaJSON,
 	}
 	for path, content := range files {
 		if err := os.WriteFile(path, content, 0o644); err != nil {
@@ -141,7 +150,7 @@ func scaffoldTask(dir string, taskMD, criteriaJSON []byte, packMD string, withCo
 	}
 
 	// test.sh needs execute permission
-	if err := os.WriteFile(filepath.Join(dir, "tests", "test.sh"), testShTemplate, 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "tests", "test.sh"), []byte(testSh), 0o755); err != nil {
 		return fmt.Errorf("write test.sh: %w", err)
 	}
 
@@ -615,17 +624,18 @@ func runEval(inputs []evalRunInput, opts evalRunOpts) error {
 	}
 
 	// Scaffold task variants
+	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
 	for _, input := range inputs {
 		// Always scaffold without-context variant
 		dir := filepath.Join(tasksDir, input.name)
-		if err := scaffoldTask(dir, input.taskMD, input.criteriaJSON, "", false); err != nil {
+		if err := scaffoldTask(dir, input.taskMD, input.criteriaJSON, "", false, tmplData); err != nil {
 			return fmt.Errorf("scaffolding %s: %w", input.name, err)
 		}
 
 		// If pack provided, also scaffold with-context variant
 		if input.packMD != "" {
 			ctxDir := filepath.Join(tasksDir, input.name+"-with-context")
-			if err := scaffoldTask(ctxDir, input.taskMD, input.criteriaJSON, input.packMD, true); err != nil {
+			if err := scaffoldTask(ctxDir, input.taskMD, input.criteriaJSON, input.packMD, true, tmplData); err != nil {
 				return fmt.Errorf("scaffolding %s-with-context: %w", input.name, err)
 			}
 		}

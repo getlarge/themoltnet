@@ -8,14 +8,78 @@ import (
 	"testing"
 )
 
+func TestRenderTaskToml(t *testing.T) {
+	data := templateData{
+		JudgeSDK:          "claude",
+		JudgeModelDefault: "claude-sonnet-4-6",
+	}
+	got, err := renderTemplate(taskTomlTmpl, data)
+	if err != nil {
+		t.Fatalf("renderTemplate: %v", err)
+	}
+	if !strings.Contains(got, `JUDGE_SDK = "claude"`) {
+		t.Error("should contain JUDGE_SDK = claude")
+	}
+	if !strings.Contains(got, "ANTHROPIC_API_KEY") {
+		t.Error("should contain ANTHROPIC_API_KEY for claude judge")
+	}
+	if strings.Contains(got, "OPENAI_API_KEY") {
+		t.Error("should not contain OPENAI_API_KEY for claude judge")
+	}
+}
+
+func TestRenderTaskTomlCodex(t *testing.T) {
+	data := templateData{
+		JudgeSDK:          "codex",
+		JudgeModelDefault: "gpt-5-codex",
+	}
+	got, err := renderTemplate(taskTomlTmpl, data)
+	if err != nil {
+		t.Fatalf("renderTemplate: %v", err)
+	}
+	if !strings.Contains(got, `JUDGE_SDK = "codex"`) {
+		t.Error("should contain JUDGE_SDK = codex")
+	}
+	if !strings.Contains(got, "OPENAI_API_KEY") {
+		t.Error("should contain OPENAI_API_KEY for codex judge")
+	}
+	if strings.Contains(got, "ANTHROPIC_API_KEY") {
+		t.Error("should not contain ANTHROPIC_API_KEY for codex judge")
+	}
+}
+
+func TestRenderTestSh(t *testing.T) {
+	data := templateData{JudgeSDK: "claude"}
+	got, err := renderTemplate(testShTmpl, data)
+	if err != nil {
+		t.Fatalf("renderTemplate: %v", err)
+	}
+	if !strings.Contains(got, "judge.js") {
+		t.Error("claude judge should use judge.js")
+	}
+	if strings.Contains(got, "judge-codex.js") {
+		t.Error("claude judge should not reference judge-codex.js")
+	}
+
+	data.JudgeSDK = "codex"
+	got, err = renderTemplate(testShTmpl, data)
+	if err != nil {
+		t.Fatalf("renderTemplate: %v", err)
+	}
+	if !strings.Contains(got, "judge-codex.js") {
+		t.Error("codex judge should use judge-codex.js")
+	}
+}
+
 func TestScaffoldTask(t *testing.T) {
 	dir := t.TempDir()
 	taskDir := filepath.Join(dir, "test-task")
 
 	taskMD := []byte("# Test Task\nDo something.")
 	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
+	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
 
-	if err := scaffoldTask(taskDir, taskMD, criteria, "", false); err != nil {
+	if err := scaffoldTask(taskDir, taskMD, criteria, "", false, tmplData); err != nil {
 		t.Fatalf("scaffoldTask: %v", err)
 	}
 
@@ -62,7 +126,8 @@ func TestScaffoldTaskWithContext(t *testing.T) {
 	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
 	packMD := "## My Pack\n\nSome context here."
 
-	if err := scaffoldTask(taskDir, taskMD, criteria, packMD, true); err != nil {
+	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
+	if err := scaffoldTask(taskDir, taskMD, criteria, packMD, true, tmplData); err != nil {
 		t.Fatalf("scaffoldTask: %v", err)
 	}
 
