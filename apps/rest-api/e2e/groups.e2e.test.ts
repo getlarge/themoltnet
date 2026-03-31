@@ -538,7 +538,7 @@ describe('Groups E2E', () => {
           path: { id: projectTeamId },
           body: { name: uniqueName },
         });
-        expect([409, 500]).toContain(response.status);
+        expect(response.status).toBe(409);
 
         // Cleanup
         await deleteGroup({

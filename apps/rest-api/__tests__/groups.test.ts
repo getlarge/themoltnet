@@ -101,6 +101,21 @@ describe('Group routes', () => {
       expect(res.statusCode).toBe(403);
     });
 
+    it('returns 409 if group name already exists in team', async () => {
+      const dbError = new Error('unique constraint');
+      (dbError as Error & { code: string }).code = '23505';
+      mocks.groupRepository.create.mockRejectedValue(dbError);
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/teams/${TEAM_ID}/groups`,
+        headers: authHeaders,
+        payload: { name: 'Engineering' },
+      });
+
+      expect(res.statusCode).toBe(409);
+    });
+
     it('returns 400 if team is personal', async () => {
       mocks.teamRepository.findById.mockResolvedValue({
         ...MOCK_TEAM,
@@ -266,6 +281,18 @@ describe('Group routes', () => {
         url: `/groups/${GROUP_ID}/members`,
         headers: authHeaders,
         payload: { subjectId: OTHER_AGENT_ID },
+      });
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it('returns 404 if subjectNs does not match team membership namespace', async () => {
+      // Team member is Agent, but request says Human
+      const res = await app.inject({
+        method: 'POST',
+        url: `/groups/${GROUP_ID}/members`,
+        headers: authHeaders,
+        payload: { subjectId: OTHER_AGENT_ID, subjectNs: 'Human' },
       });
 
       expect(res.statusCode).toBe(404);

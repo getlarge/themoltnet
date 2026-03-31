@@ -50,7 +50,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema),
           403: Type.Ref(ProblemDetailsSchema),
           404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
+          409: Type.Ref(ProblemDetailsSchema),
         },
       },
     },
@@ -77,15 +77,28 @@ export async function groupRoutes(fastify: FastifyInstance) {
 
       const { name } = request.body;
 
-      const group = await fastify.transactionRunner.runInTransaction(
-        async () => {
+      let group;
+      try {
+        group = await fastify.transactionRunner.runInTransaction(async () => {
           return fastify.groupRepository.create({
             name,
             teamId: id,
             createdBy: identityId,
           });
-        },
-      );
+        });
+      } catch (err) {
+        if (
+          err instanceof Error &&
+          'code' in err &&
+          (err as { code: string }).code === '23505'
+        ) {
+          throw createProblem(
+            'conflict',
+            'A group with this name already exists in this team',
+          );
+        }
+        throw err;
+      }
 
       try {
         await fastify.relationshipWriter.grantGroupParent(group.id, id);
@@ -293,21 +306,26 @@ export async function groupRoutes(fastify: FastifyInstance) {
       if (!canManageMembers) throw createProblem('forbidden');
 
       const { subjectId, subjectNs: bodySubjectNs } = request.body;
-      const memberNs = bodySubjectNs ?? KetoNamespace.Agent;
+      const memberNs: string = bodySubjectNs ?? KetoNamespace.Agent;
 
-      // Validate subject is a team member
+      // Validate subject is a team member with matching namespace
       const teamMembers = await fastify.relationshipReader.listTeamMembers(
         group.teamId,
       );
-      const isMember = teamMembers.some((m) => m.subjectId === subjectId);
+      const isMember = teamMembers.some(
+        (m) => m.subjectId === subjectId && m.subjectNs === memberNs,
+      );
       if (!isMember) {
         throw createProblem('not-found', 'Subject is not a member of the team');
       }
 
+      const memberKetoNs =
+        memberNs === 'Human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
       await fastify.relationshipWriter.grantGroupMember(
         groupId,
         subjectId,
-        memberNs as KetoNamespace,
+        memberKetoNs,
       );
 
       return reply.status(201).send({
