@@ -282,7 +282,7 @@ func extractResults(jobDir string) ([]evalResult, error) {
 func readTrialScores(trialDir string) (*trialScores, error) {
 	scores := &trialScores{}
 
-	// Check for trial-level errors first
+	// Check for trial-level errors
 	resultPath := filepath.Join(trialDir, "result.json")
 	if data, err := os.ReadFile(resultPath); err == nil {
 		var result struct {
@@ -352,11 +352,11 @@ func printVariantLine(label string, s *trialScores) {
 	if s == nil {
 		return
 	}
+	fmt.Printf("  %-18s  %.2f  (%.1f%%)", label+":", s.reward, s.reward*100)
 	if s.err != "" {
-		fmt.Printf("  %-18s  FAILED — %s\n", label+":", s.err)
-	} else {
-		fmt.Printf("  %-18s  %.2f  (%.1f%%)\n", label+":", s.reward, s.reward*100)
+		fmt.Printf("  ⚠ %s", s.err)
 	}
+	fmt.Println()
 }
 
 func printSingleSummary(r evalResult, model string) {
@@ -366,20 +366,19 @@ func printSingleSummary(r evalResult, model string) {
 	printVariantLine("Without context", r.withoutContext)
 	printVariantLine("With context", r.withContext)
 
-	if r.withoutContext != nil && r.withContext != nil &&
-		r.withoutContext.err == "" && r.withContext.err == "" {
+	if r.withoutContext != nil && r.withContext != nil {
 		delta := r.withContext.reward - r.withoutContext.reward
 		fmt.Printf("  Delta:              %+.2f  (%+.1f%%)\n", delta, delta*100)
 	}
 
 	// Print per-criterion details for the best variant
 	best := r.withContext
-	if best == nil || best.err != "" {
+	if best == nil {
 		best = r.withoutContext
 	}
-	if best != nil && best.err == "" && len(best.details) > 0 {
+	if best != nil && len(best.details) > 0 {
 		label := "with context"
-		if r.withContext == nil || r.withContext.err != "" {
+		if r.withContext == nil {
 			label = "without context"
 		}
 		fmt.Printf("\n  Criteria (%s):\n", label)
