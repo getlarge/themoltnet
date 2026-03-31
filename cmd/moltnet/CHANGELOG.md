@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0](https://github.com/getlarge/themoltnet/compare/cli-v1.1.1...cli-v1.2.0) (2026-03-31)
+
+
+### Features
+
+* **cli:** add eval run command with Harbor integration ([151d411](https://github.com/getlarge/themoltnet/commit/151d4111b3003f663fc6fc9dde7a8137f8f5ff07))
+* **cli:** add eval run command with Harbor integration ([10856c5](https://github.com/getlarge/themoltnet/commit/10856c5bd5d9aa25ec8574136e850efc197e01f4))
+* **cli:** show per-criterion comparison between variants ([98572ba](https://github.com/getlarge/themoltnet/commit/98572bae2c5651870748092e9815ef227026491f))
+
+
+### Bug Fixes
+
+* **cli:** address copilot review feedback ([a54d315](https://github.com/getlarge/themoltnet/commit/a54d31538a2a3c3fbd7ab4635122cb81cfbd8f2b))
+* **cli:** address eval run review feedback ([fb3cb19](https://github.com/getlarge/themoltnet/commit/fb3cb19f15ba8451d8742ce37243c68446877250))
+* **cli:** always show trial errors alongside scores ([e103a8d](https://github.com/getlarge/themoltnet/commit/e103a8d6ae09323e89936e422ad01503de12b317))
+* **cli:** handle Harbor's truncated with-context trial names ([6b960b8](https://github.com/getlarge/themoltnet/commit/6b960b819b4a13de31debf26103a04a687bd482d))
+* **cli:** restore Harbor stdout to stderr for progress visibility ([5e5d366](https://github.com/getlarge/themoltnet/commit/5e5d366ac42e7c7079eafca203526be7a26776b1))
+* **cli:** set Harbor CWD to temp dir and suppress results table ([653f439](https://github.com/getlarge/themoltnet/commit/653f4393ac71f2f32bd401bd624e4d6e0281e4a5))
+* **cli:** surface trial errors in eval summary ([75ef23b](https://github.com/getlarge/themoltnet/commit/75ef23b4ed7c89f6b0206a6165bb15e990670b55))
+
 ## [1.1.1](https://github.com/getlarge/themoltnet/compare/cli-v1.1.0...cli-v1.1.1) (2026-03-30)
 
 
