@@ -95,7 +95,7 @@ func TestLoadConfig(t *testing.T) {
 
 	// Write config
 	configPath := filepath.Join(dir, "eval.yaml")
-	config := "runs:\n  - task: task1\n    pack: pack.md\n  - task: task2\n"
+	config := "runs:\n  - scenario: task1\n    pack: pack.md\n  - scenario: task2\n"
 	os.WriteFile(configPath, []byte(config), 0o644)
 
 	runs, err := loadConfig(configPath)
@@ -105,8 +105,8 @@ func TestLoadConfig(t *testing.T) {
 	if len(runs) != 2 {
 		t.Fatalf("expected 2 runs, got %d", len(runs))
 	}
-	if !filepath.IsAbs(runs[0].Task) {
-		t.Error("task path should be absolute")
+	if !filepath.IsAbs(runs[0].Scenario) {
+		t.Error("scenario path should be absolute")
 	}
 	if runs[0].Pack == "" {
 		t.Error("run 0 should have a pack")
@@ -121,7 +121,7 @@ func TestLoadConfigInvalid(t *testing.T) {
 
 	// Config pointing to missing task dir
 	configPath := filepath.Join(dir, "eval.yaml")
-	os.WriteFile(configPath, []byte("runs:\n  - task: nonexistent\n"), 0o644)
+	os.WriteFile(configPath, []byte("runs:\n  - scenario: nonexistent\n"), 0o644)
 
 	_, err := loadConfig(configPath)
 	if err == nil {

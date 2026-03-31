@@ -22,7 +22,7 @@ type evalRunOpts struct {
 
 // evalRun describes one task + optional pack pair (used in config mode).
 type evalRun struct {
-	Task string `yaml:"task"`
+	Scenario string `yaml:"scenario"`
 	Pack string `yaml:"pack,omitempty"`
 }
 
@@ -76,13 +76,13 @@ func loadConfig(path string) ([]evalRun, error) {
 	configDir := filepath.Dir(path)
 	for i := range cfg.Runs {
 		r := &cfg.Runs[i]
-		if !filepath.IsAbs(r.Task) {
-			r.Task = filepath.Join(configDir, r.Task)
+		if !filepath.IsAbs(r.Scenario) {
+			r.Scenario = filepath.Join(configDir, r.Scenario)
 		}
 		if r.Pack != "" && !filepath.IsAbs(r.Pack) {
 			r.Pack = filepath.Join(configDir, r.Pack)
 		}
-		if err := validateTaskDir(r.Task); err != nil {
+		if err := validateTaskDir(r.Scenario); err != nil {
 			return nil, fmt.Errorf("run %d: %w", i+1, err)
 		}
 	}
@@ -485,7 +485,7 @@ func runEvalSingleTask(taskDir, packPath string, opts evalRunOpts) error {
 
 	taskName := filepath.Base(taskDir)
 
-	return runEval([]evalRun{{Task: taskDir}}, []string{taskName}, [][]byte{taskMD}, [][]byte{criteriaJSON}, []string{packMD}, opts)
+	return runEval([]evalRun{{Scenario: taskDir}}, []string{taskName}, [][]byte{taskMD}, [][]byte{criteriaJSON}, []string{packMD}, opts)
 }
 
 func runEvalFromConfig(configPath string, opts evalRunOpts) error {
@@ -503,13 +503,13 @@ func runEvalFromConfig(configPath string, opts evalRunOpts) error {
 	var packMDs []string
 
 	for _, r := range runs {
-		taskMD, err := os.ReadFile(filepath.Join(r.Task, "task.md"))
+		taskMD, err := os.ReadFile(filepath.Join(r.Scenario, "task.md"))
 		if err != nil {
-			return fmt.Errorf("reading task.md from %s: %w", r.Task, err)
+			return fmt.Errorf("reading task.md from %s: %w", r.Scenario, err)
 		}
-		criteria, err := os.ReadFile(filepath.Join(r.Task, "criteria.json"))
+		criteria, err := os.ReadFile(filepath.Join(r.Scenario, "criteria.json"))
 		if err != nil {
-			return fmt.Errorf("reading criteria.json from %s: %w", r.Task, err)
+			return fmt.Errorf("reading criteria.json from %s: %w", r.Scenario, err)
 		}
 
 		var packMD string
@@ -521,7 +521,7 @@ func runEvalFromConfig(configPath string, opts evalRunOpts) error {
 			packMD = string(data)
 		}
 
-		taskNames = append(taskNames, filepath.Base(r.Task))
+		taskNames = append(taskNames, filepath.Base(r.Scenario))
 		taskMDs = append(taskMDs, taskMD)
 		criteriaJSONs = append(criteriaJSONs, criteria)
 		packMDs = append(packMDs, packMD)
