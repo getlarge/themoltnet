@@ -2,6 +2,13 @@ package main
 
 import "github.com/spf13/cobra"
 
+// newStartCmd creates the "moltnet start" command.
+// Supported targets correspond to the agent adapters in the legreffier CLI:
+//   - claude  → packages/legreffier-cli/src/adapters/claude.ts
+//   - codex   → packages/legreffier-cli/src/adapters/codex.ts
+//
+// To add a new target, create the adapter in legreffier first, then update
+// the Use line and examples below.
 func newStartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start <claude|codex>",

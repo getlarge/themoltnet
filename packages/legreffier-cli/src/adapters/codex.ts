@@ -49,22 +49,11 @@ export class CodexAdapter implements AgentAdapter {
   }
 
   /**
-   * Write a sourceable env file at `.moltnet/<name>/env` with the OAuth2
-   * credentials that Codex needs in the shell environment.
+   * Env file generation moved to shared writeEnvFile in the agentSetup phase.
+   * Codex has no additional settings beyond the env file.
    */
-  async writeSettings(opts: AgentAdapterOptions): Promise<void> {
-    const envDir = join(opts.repoDir, '.moltnet', opts.agentName);
-    await mkdir(envDir, { recursive: true });
-
-    const q = (v: string) => `'${v.replace(/'/g, "'\\''")}'`;
-    const lines = [
-      `${opts.prefix}_CLIENT_ID=${q(opts.clientId)}`,
-      `${opts.prefix}_CLIENT_SECRET=${q(opts.clientSecret)}`,
-      `${opts.prefix}_GITHUB_APP_ID=${q(opts.appSlug)}`,
-      `${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH=${q(opts.pemPath)}`,
-      `${opts.prefix}_GITHUB_APP_INSTALLATION_ID=${q(opts.installationId)}`,
-    ];
-    await writeFile(join(envDir, 'env'), lines.join('\n') + '\n', 'utf-8');
+  async writeSettings(_opts: AgentAdapterOptions): Promise<void> {
+    // no-op — env file is written by writeEnvFile in agentSetup
   }
 
   async writeRules(opts: AgentAdapterOptions): Promise<void> {

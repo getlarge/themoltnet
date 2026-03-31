@@ -86,17 +86,9 @@ describe('CodexAdapter.writeRules', () => {
 });
 
 describe('CodexAdapter.writeSettings', () => {
-  it('writes a sourceable env file with credentials', async () => {
+  it('is a no-op (env file generation moved to shared writeEnvFile)', async () => {
     const adapter = new CodexAdapter();
+    // Should not throw and should not create any files
     await adapter.writeSettings(baseOpts);
-
-    const raw = await readFile(
-      join(tmpRepo, '.moltnet', 'my-agent', 'env'),
-      'utf-8',
-    );
-    expect(raw).toContain("MY_AGENT_CLIENT_ID='cid'");
-    expect(raw).toContain("MY_AGENT_CLIENT_SECRET='csec'");
-    expect(raw).toContain("MY_AGENT_GITHUB_APP_ID='my-app'");
-    expect(raw).toContain("MY_AGENT_GITHUB_APP_INSTALLATION_ID='99999'");
   });
 });
