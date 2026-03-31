@@ -79,7 +79,7 @@ func TestScaffoldTask(t *testing.T) {
 	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
 	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
 
-	if err := scaffoldTask(taskDir, taskMD, criteria, "", false, tmplData); err != nil {
+	if err := scaffoldTask(taskDir, taskMD, criteria, "", false, tmplData, "claude"); err != nil {
 		t.Fatalf("scaffoldTask: %v", err)
 	}
 
@@ -89,6 +89,7 @@ func TestScaffoldTask(t *testing.T) {
 		"instruction.md",
 		"environment/Dockerfile",
 		"environment/judge/judge.js",
+		"environment/judge/judge-codex.js",
 		"environment/judge/package.json",
 		"tests/criteria.json",
 		"tests/test.sh",
@@ -127,7 +128,7 @@ func TestScaffoldTaskWithContext(t *testing.T) {
 	packMD := "## My Pack\n\nSome context here."
 
 	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
-	if err := scaffoldTask(taskDir, taskMD, criteria, packMD, true, tmplData); err != nil {
+	if err := scaffoldTask(taskDir, taskMD, criteria, packMD, true, tmplData, "claude"); err != nil {
 		t.Fatalf("scaffoldTask: %v", err)
 	}
 
@@ -138,6 +139,88 @@ func TestScaffoldTaskWithContext(t *testing.T) {
 	}
 	if !strings.Contains(string(got), packMD) {
 		t.Errorf("CLAUDE.md should contain pack markdown, got: %s", got)
+	}
+}
+
+func TestScaffoldTaskCodexJudge(t *testing.T) {
+	dir := t.TempDir()
+	taskDir := filepath.Join(dir, "test-task-codex")
+
+	taskMD := []byte("# Test Task")
+	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
+	tmplData := templateData{JudgeSDK: "codex", JudgeModelDefault: "gpt-5-codex"}
+
+	if err := scaffoldTask(taskDir, taskMD, criteria, "", false, tmplData, "codex"); err != nil {
+		t.Fatalf("scaffoldTask: %v", err)
+	}
+
+	codexJudgePath := filepath.Join(taskDir, "environment", "judge", "judge-codex.js")
+	if _, err := os.Stat(codexJudgePath); err != nil {
+		t.Errorf("missing judge-codex.js: %v", err)
+	}
+
+	toml, _ := os.ReadFile(filepath.Join(taskDir, "task.toml"))
+	if !strings.Contains(string(toml), "OPENAI_API_KEY") {
+		t.Error("task.toml should contain OPENAI_API_KEY for codex judge")
+	}
+	if strings.Contains(string(toml), "ANTHROPIC_API_KEY") {
+		t.Error("task.toml should not contain ANTHROPIC_API_KEY for codex judge")
+	}
+
+	testSh, _ := os.ReadFile(filepath.Join(taskDir, "tests", "test.sh"))
+	if !strings.Contains(string(testSh), "judge-codex.js") {
+		t.Error("test.sh should reference judge-codex.js for codex judge")
+	}
+}
+
+func TestScaffoldTaskCodexContextFile(t *testing.T) {
+	dir := t.TempDir()
+	taskDir := filepath.Join(dir, "test-task-codex-ctx")
+
+	taskMD := []byte("# Test Task")
+	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
+	packMD := "## Context Pack\n\nSome context."
+	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
+
+	if err := scaffoldTask(taskDir, taskMD, criteria, packMD, true, tmplData, "codex"); err != nil {
+		t.Fatalf("scaffoldTask: %v", err)
+	}
+
+	agentsMDPath := filepath.Join(taskDir, "environment", "AGENTS.md")
+	if _, err := os.Stat(agentsMDPath); err != nil {
+		t.Errorf("missing AGENTS.md: %v", err)
+	}
+	claudeMDPath := filepath.Join(taskDir, "environment", ".claude", "CLAUDE.md")
+	if _, err := os.Stat(claudeMDPath); err == nil {
+		t.Error("CLAUDE.md should not exist for codex agent")
+	}
+
+	got, _ := os.ReadFile(agentsMDPath)
+	if !strings.Contains(string(got), packMD) {
+		t.Error("AGENTS.md should contain pack content")
+	}
+}
+
+func TestScaffoldTaskClaudeContextFile(t *testing.T) {
+	dir := t.TempDir()
+	taskDir := filepath.Join(dir, "test-task-claude-ctx")
+
+	taskMD := []byte("# Test Task")
+	criteria := []byte(`{"type":"weighted_checklist","checklist":[]}`)
+	packMD := "## Context Pack"
+	tmplData := templateData{JudgeSDK: "claude", JudgeModelDefault: "claude-sonnet-4-6"}
+
+	if err := scaffoldTask(taskDir, taskMD, criteria, packMD, true, tmplData, "claude"); err != nil {
+		t.Fatalf("scaffoldTask: %v", err)
+	}
+
+	claudeMDPath := filepath.Join(taskDir, "environment", ".claude", "CLAUDE.md")
+	if _, err := os.Stat(claudeMDPath); err != nil {
+		t.Errorf("missing CLAUDE.md: %v", err)
+	}
+	agentsMDPath := filepath.Join(taskDir, "environment", "AGENTS.md")
+	if _, err := os.Stat(agentsMDPath); err == nil {
+		t.Error("AGENTS.md should not exist for claude agent")
 	}
 }
 
@@ -178,6 +261,44 @@ func TestLoadConfig(t *testing.T) {
 	}
 	if runs[1].Pack != "" {
 		t.Errorf("run 1 should have no pack, got %q", runs[1].Pack)
+	}
+}
+
+func TestLoadConfigWithAgentModel(t *testing.T) {
+	dir := t.TempDir()
+
+	taskDir := filepath.Join(dir, "task1")
+	os.MkdirAll(taskDir, 0o755)
+	os.WriteFile(filepath.Join(taskDir, "task.md"), []byte("task"), 0o644)
+	os.WriteFile(filepath.Join(taskDir, "criteria.json"), []byte("{}"), 0o644)
+
+	config := `runs:
+  - scenario: task1
+    agent: codex
+    model: openai/gpt-5-codex
+  - scenario: task1
+`
+	configPath := filepath.Join(dir, "eval.yaml")
+	os.WriteFile(configPath, []byte(config), 0o644)
+
+	runs, err := loadConfig(configPath)
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if len(runs) != 2 {
+		t.Fatalf("expected 2 runs, got %d", len(runs))
+	}
+	if runs[0].Agent != "codex" {
+		t.Errorf("run 0 agent: got %q, want codex", runs[0].Agent)
+	}
+	if runs[0].Model != "openai/gpt-5-codex" {
+		t.Errorf("run 0 model: got %q, want openai/gpt-5-codex", runs[0].Model)
+	}
+	if runs[1].Agent != "" {
+		t.Errorf("run 1 agent: got %q, want empty (inherit CLI default)", runs[1].Agent)
+	}
+	if runs[1].Model != "" {
+		t.Errorf("run 1 model: got %q, want empty (inherit CLI default)", runs[1].Model)
 	}
 }
 
@@ -250,6 +371,105 @@ func TestExtractResults(t *testing.T) {
 	}
 	if len(r.withContext.details) != 2 {
 		t.Errorf("withContext details: got %d entries, want 2", len(r.withContext.details))
+	}
+}
+
+func TestValidateAgentModel(t *testing.T) {
+	tests := []struct {
+		agent string
+		model string
+		ok    bool
+	}{
+		{"claude", "anthropic/claude-sonnet-4-6", true},
+		{"claude", "anthropic/claude-opus-4-6", true},
+		{"claude", "openai/gpt-5-codex", false},
+		{"claude", "gpt-5-codex", false},
+		{"codex", "openai/gpt-5-codex", true},
+		{"codex", "openai/gpt-5-codex-mini", true},
+		{"codex", "anthropic/claude-sonnet-4-6", false},
+		{"codex", "claude-sonnet-4-6", false},
+	}
+	for _, tt := range tests {
+		err := validateAgentModel(tt.agent, tt.model)
+		if tt.ok && err != nil {
+			t.Errorf("validateAgentModel(%q, %q) = %v, want nil", tt.agent, tt.model, err)
+		}
+		if !tt.ok && err == nil {
+			t.Errorf("validateAgentModel(%q, %q) = nil, want error", tt.agent, tt.model)
+		}
+	}
+}
+
+func TestValidateJudgeModel(t *testing.T) {
+	tests := []struct {
+		judge string
+		model string
+		ok    bool
+	}{
+		{"claude", "claude-sonnet-4-6", true},
+		{"claude", "claude-opus-4-6", true},
+		{"claude", "gpt-5-codex", false},
+		{"codex", "gpt-5-codex", true},
+		{"codex", "gpt-5-codex-mini", true},
+		{"codex", "claude-sonnet-4-6", false},
+	}
+	for _, tt := range tests {
+		err := validateJudgeModel(tt.judge, tt.model)
+		if tt.ok && err != nil {
+			t.Errorf("validateJudgeModel(%q, %q) = %v, want nil", tt.judge, tt.model, err)
+		}
+		if !tt.ok && err == nil {
+			t.Errorf("validateJudgeModel(%q, %q) = nil, want error", tt.judge, tt.model)
+		}
+	}
+}
+
+func TestDefaultModel(t *testing.T) {
+	if got := defaultAgentModel("claude"); got != "anthropic/claude-sonnet-4-6" {
+		t.Errorf("defaultAgentModel(claude) = %q", got)
+	}
+	if got := defaultAgentModel("codex"); got != "openai/gpt-5-codex" {
+		t.Errorf("defaultAgentModel(codex) = %q", got)
+	}
+	if got := defaultJudgeModel("claude"); got != "claude-sonnet-4-6" {
+		t.Errorf("defaultJudgeModel(claude) = %q", got)
+	}
+	if got := defaultJudgeModel("codex"); got != "gpt-5-codex" {
+		t.Errorf("defaultJudgeModel(codex) = %q", got)
+	}
+}
+
+func TestGroupRunsByAgentModel(t *testing.T) {
+	inputs := []evalRunInput{
+		{name: "task1", agent: "claude", model: "anthropic/claude-sonnet-4-6"},
+		{name: "task2", agent: "claude", model: "anthropic/claude-sonnet-4-6"},
+		{name: "task3", agent: "codex", model: "openai/gpt-5-codex"},
+		{name: "task4", agent: "claude", model: "anthropic/claude-opus-4-6"},
+	}
+
+	groups := groupRunsByAgentModel(inputs)
+
+	if len(groups) != 3 {
+		t.Fatalf("expected 3 groups, got %d", len(groups))
+	}
+
+	keys := make([]string, 0, len(groups))
+	for _, g := range groups {
+		keys = append(keys, g.agent+"/"+g.model)
+	}
+	for i := 1; i < len(keys); i++ {
+		if keys[i] < keys[i-1] {
+			t.Errorf("groups not sorted: %v", keys)
+			break
+		}
+	}
+
+	for _, g := range groups {
+		if g.agent == "claude" && g.model == "anthropic/claude-sonnet-4-6" {
+			if len(g.inputs) != 2 {
+				t.Errorf("claude-sonnet group: expected 2 inputs, got %d", len(g.inputs))
+			}
+		}
 	}
 }
 
