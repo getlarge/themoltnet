@@ -615,6 +615,38 @@ export const teams = pgTable(
 );
 
 /**
+ * Groups Table
+ *
+ * Named subsets of team members for fine-grained diary grants.
+ * Membership is stored in Keto (Group:id#members@Subject:id), not in a DB table.
+ */
+export const groups = pgTable(
+  'groups',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    name: varchar('name', { length: 255 }).notNull(),
+
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+
+    createdBy: uuid('created_by').notNull(),
+
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    teamIdx: index('groups_team_idx').on(table.teamId),
+    nameTeamIdx: uniqueIndex('groups_name_team_idx').on(
+      table.name,
+      table.teamId,
+    ),
+  }),
+);
+
+/**
  * Team Invites Table
  *
  * Code-based invitations for joining teams.
@@ -721,6 +753,9 @@ export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
 export type TeamInvite = typeof teamInvites.$inferSelect;
 export type NewTeamInvite = typeof teamInvites.$inferInsert;
+
+export type Group = typeof groups.$inferSelect;
+export type NewGroup = typeof groups.$inferInsert;
 export type NewContextPackEntry = typeof contextPackEntries.$inferInsert;
 export type RenderedPack = typeof renderedPacks.$inferSelect;
 export type NewRenderedPack = typeof renderedPacks.$inferInsert;
