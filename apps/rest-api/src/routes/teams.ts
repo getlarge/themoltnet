@@ -7,7 +7,7 @@
  */
 
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth, TeamRelation } from '@moltnet/auth';
 import {
   CreateTeamInviteSchema,
   CreateTeamSchema,
@@ -339,7 +339,9 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!canManageMembers) throw createProblem('forbidden');
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
-      const owners = members.filter((m) => m.relation === 'owner');
+      const owners = members.filter(
+        (m) => m.relation === (TeamRelation.Owners as string),
+      );
       const isRemovingOwner = owners.some((o) => o.subjectId === subjectId);
       if (isRemovingOwner && owners.length <= 1) {
         throw createProblem('team-last-owner');
@@ -363,7 +365,9 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (isRemovingOwner) {
         const postMembers =
           await fastify.relationshipReader.listTeamMembers(id);
-        const postOwners = postMembers.filter((m) => m.relation === 'owner');
+        const postOwners = postMembers.filter(
+          (m) => m.relation === (TeamRelation.Owners as string),
+        );
         if (postOwners.length === 0 && postMembers.length > 0) {
           request.log.error(
             { teamId: id, removedSubject: subjectId },

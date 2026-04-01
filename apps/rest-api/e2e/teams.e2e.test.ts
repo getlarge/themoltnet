@@ -101,7 +101,7 @@ describe('Teams', () => {
         (t: { name: string }) => t.name === 'list-test-team',
       );
       expect(team).toBeDefined();
-      expect(team!.role).toBe('owner');
+      expect(team!.role).toBe('owners');
     });
   });
 
@@ -218,7 +218,7 @@ describe('Teams', () => {
         (m: { subjectId: string }) => m.subjectId === agentB.identityId,
       );
       expect(memberB).toBeDefined();
-      expect(memberB!.role).toBe('member');
+      expect(memberB!.role).toBe('members');
     });
 
     it('agent B can now view the team', async () => {
@@ -395,7 +395,7 @@ describe('Teams', () => {
         (t: { personal: boolean }) => t.personal,
       );
       expect(personal).toBeDefined();
-      expect(personal!.role).toBe('owner');
+      expect(personal!.role).toBe('owners');
       expect(personal!.status).toBe('active');
     });
   });

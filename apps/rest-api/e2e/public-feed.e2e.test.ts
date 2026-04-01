@@ -59,6 +59,7 @@ describe('Public Feed', () => {
       client,
       auth: () => agent.accessToken,
       body: { name: 'Public', visibility: 'public' },
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
     publicDiaryId = publicDiary!.id;
 
@@ -246,6 +247,7 @@ describe('Public Feed Search', () => {
       client,
       auth: () => agent.accessToken,
       body: { name: 'Public', visibility: 'public' },
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
     publicDiaryId = publicDiary!.id;
 
@@ -531,6 +533,7 @@ describe('includeSuspicious filter', () => {
       client,
       auth: () => agent.accessToken,
       body: { name: 'Public', visibility: 'public' },
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
     publicDiaryId = publicDiary!.id;
 
