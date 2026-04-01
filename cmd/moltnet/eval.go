@@ -303,6 +303,27 @@ func printVariantLine(label string, s *trialScores) {
 	fmt.Println()
 }
 
+func groupHeaderLine(index, total int, group runGroup) string {
+	return fmt.Sprintf(
+		"Group %d/%d: agent=%s model=%s (%d task(s))",
+		index+1,
+		total,
+		group.agent,
+		group.model,
+		len(group.inputs),
+	)
+}
+
+func evalRunCompletionError(results []evalResult, hasErrors bool) error {
+	if len(results) == 0 {
+		return fmt.Errorf("no results found — all trials may have failed")
+	}
+	if hasErrors {
+		return fmt.Errorf("one or more trials reported errors")
+	}
+	return nil
+}
+
 func printSingleSummary(r evalResult, model string) {
 	fmt.Printf("Eval: %s\n", r.taskName)
 	if model != "" {
@@ -560,7 +581,9 @@ func runEval(inputs []evalRunInput, opts evalRunOpts) error {
 	hasErrors := false
 
 	for gi, group := range groups {
-		fmt.Fprintf(os.Stderr, "Group %d/%d: agent=%s model=%s (%d task(s))\n", gi+1, len(groups), group.agent, group.model, len(group.inputs))
+		header := groupHeaderLine(gi, len(groups), group)
+		fmt.Fprintln(os.Stderr, header)
+		fmt.Fprintln(os.Stdout, header)
 
 		results, groupHasErrors, err := runEvalGroup(group, opts)
 		if err != nil {
@@ -572,13 +595,8 @@ func runEval(inputs []evalRunInput, opts evalRunOpts) error {
 		}
 	}
 
-	if len(allResults) == 0 {
-		return fmt.Errorf("no results found — all trials may have failed")
-	}
-
 	printSummary(allResults, "")
-	_ = hasErrors
-	return nil
+	return evalRunCompletionError(allResults, hasErrors)
 }
 
 func runEvalGroup(group runGroup, opts evalRunOpts) ([]evalResult, bool, error) {

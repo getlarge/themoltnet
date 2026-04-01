@@ -501,3 +501,35 @@ func TestPrintSummary(t *testing.T) {
 	})
 	printSummary(results, "claude-sonnet-4-6")
 }
+
+func TestGroupHeaderLine(t *testing.T) {
+	group := runGroup{
+		agent: "codex",
+		model: "openai/gpt-5-codex",
+		inputs: []evalRunInput{
+			{name: "task-a"},
+			{name: "task-b"},
+		},
+	}
+
+	got := groupHeaderLine(1, 3, group)
+	want := "Group 2/3: agent=codex model=openai/gpt-5-codex (2 task(s))"
+	if got != want {
+		t.Fatalf("groupHeaderLine() = %q, want %q", got, want)
+	}
+}
+
+func TestEvalRunCompletionError(t *testing.T) {
+	results := []evalResult{{taskName: "task"}}
+
+	if err := evalRunCompletionError(nil, false); err == nil || !strings.Contains(err.Error(), "no results found") {
+		t.Fatalf("expected no-results error, got %v", err)
+	}
+
+	if err := evalRunCompletionError(results, true); err == nil || !strings.Contains(err.Error(), "one or more trials reported errors") {
+		t.Fatalf("expected trial-error failure, got %v", err)
+	}
+
+	if err := evalRunCompletionError(results, false); err != nil {
+		t.Fatalf("expected nil error on clean completion, got %v", err)
+	}
