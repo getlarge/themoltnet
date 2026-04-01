@@ -17,6 +17,7 @@ ANTHROPIC_API_KEY = "${ANTHROPIC_API_KEY:-}"
 CLAUDE_CODE_OAUTH_TOKEN = "${CLAUDE_CODE_OAUTH_TOKEN:-}"
 {{- end}}
 {{- if eq .JudgeSDK "codex"}}
+CODEX_HOME = "/home/agent/.codex"
 OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
 {{- end}}
 

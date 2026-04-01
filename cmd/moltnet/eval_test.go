@@ -43,6 +43,9 @@ func TestRenderTaskTomlCodex(t *testing.T) {
 	if !strings.Contains(got, "OPENAI_API_KEY") {
 		t.Error("should contain OPENAI_API_KEY for codex judge")
 	}
+	if !strings.Contains(got, `CODEX_HOME = "/home/agent/.codex"`) {
+		t.Error("should contain shared CODEX_HOME for codex judge")
+	}
 	if strings.Contains(got, "ANTHROPIC_API_KEY") {
 		t.Error("should not contain ANTHROPIC_API_KEY for codex judge")
 	}
@@ -533,3 +536,4 @@ func TestEvalRunCompletionError(t *testing.T) {
 	if err := evalRunCompletionError(results, false); err != nil {
 		t.Fatalf("expected nil error on clean completion, got %v", err)
 	}
+}
