@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -596,6 +598,72 @@ func TestPrintSummary(t *testing.T) {
 		withoutContext: &trialScores{reward: 0.5},
 	})
 	printSummary(results, "claude-sonnet-4-6")
+}
+
+func TestPrintSingleSummaryUsesAbsoluteLogDir(t *testing.T) {
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	os.Stdout = w
+	t.Cleanup(func() {
+		os.Stdout = oldStdout
+	})
+
+	printSingleSummary(evalResult{
+		taskName: "test-task",
+		withoutContext: &trialScores{
+			reward: 0,
+			err:    "NonZeroAgentExitCodeError",
+			logDir: "/tmp/moltnet-eval/jobs/test-task__abc123",
+		},
+	}, "")
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("close writer: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, r); err != nil {
+		t.Fatalf("read captured stdout: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "Logs: /tmp/moltnet-eval/jobs/test-task__abc123/") {
+		t.Fatalf("expected absolute log path in summary, got %q", got)
+	}
+}
+
+func TestPrintRunPaths(t *testing.T) {
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	os.Stdout = w
+	t.Cleanup(func() {
+		os.Stdout = oldStdout
+	})
+
+	printRunPaths("/tmp/moltnet-eval/jobs/2026-04-01__14-57-01")
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("close writer: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, r); err != nil {
+		t.Fatalf("read captured stdout: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "Run output: /tmp/moltnet-eval/jobs/2026-04-01__14-57-01") {
+		t.Fatalf("missing run output path, got %q", got)
+	}
+	if !strings.Contains(got, "Result file: /tmp/moltnet-eval/jobs/2026-04-01__14-57-01/result.json") {
+		t.Fatalf("missing result file path, got %q", got)
+	}
 }
 
 func TestGroupHeaderLine(t *testing.T) {

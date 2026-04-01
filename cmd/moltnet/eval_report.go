@@ -12,6 +12,7 @@ import (
 // trialScores holds parsed scores for a single trial.
 type trialScores struct {
 	name    string
+	logDir  string
 	reward  float64
 	details map[string]float64
 	err     string // non-empty if the trial failed
@@ -112,6 +113,7 @@ func extractResults(jobDir string) ([]evalResult, error) {
 				continue
 			}
 			scores.name = filepath.Base(t.dir)
+			scores.logDir = t.dir
 			if t.withContext {
 				result.withContext = scores
 			} else {

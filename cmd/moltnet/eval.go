@@ -303,6 +303,11 @@ func printVariantLine(label string, s *trialScores) {
 	fmt.Println()
 }
 
+func printRunPaths(jobDir string) {
+	fmt.Printf("Run output: %s\n", jobDir)
+	fmt.Printf("Result file: %s\n", filepath.Join(jobDir, "result.json"))
+}
+
 func groupHeaderLine(index, total int, group runGroup) string {
 	return fmt.Sprintf(
 		"Group %d/%d: agent=%s model=%s (%d task(s))",
@@ -391,8 +396,13 @@ func printSingleSummary(r evalResult, model string) {
 
 	// Show log paths for failed trials
 	for _, s := range []*trialScores{r.withoutContext, r.withContext} {
-		if s != nil && s.err != "" && s.name != "" {
-			fmt.Printf("\n  Logs: %s/\n", s.name)
+		if s != nil && s.err != "" {
+			switch {
+			case s.logDir != "":
+				fmt.Printf("\n  Logs: %s/\n", s.logDir)
+			case s.name != "":
+				fmt.Printf("\n  Logs: %s/\n", s.name)
+			}
 		}
 	}
 	fmt.Println()
@@ -669,6 +679,8 @@ func runEvalGroup(group runGroup, opts evalRunOpts) ([]evalResult, bool, error) 
 	if err != nil {
 		return nil, false, fmt.Errorf("extracting results: %w", err)
 	}
+
+	printRunPaths(jobDir)
 
 	if len(results) == 0 {
 		return nil, false, fmt.Errorf("no results found — all trials may have failed")
