@@ -33,6 +33,7 @@ import {
   createRenderedPackRepository,
   createSigningRequestRepository,
   createTeamRepository,
+  createVerificationRepository,
   createVoucherRepository,
   type DatabaseConnection,
   getDataSource,
@@ -183,6 +184,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const contextPackRepository = createContextPackRepository(dbConnection.db);
   const renderedPackRepository = createRenderedPackRepository(dbConnection.db);
   const attestationRepository = createAttestationRepository(dbConnection.db);
+  const verificationRepository = createVerificationRepository(dbConnection.db);
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
@@ -285,6 +287,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       () => {
         setVerificationWorkflowDeps({
+          updateVerificationStatus: (verificationId, status, claimedBy) =>
+            verificationRepository.updateStatus(
+              verificationId,
+              status,
+              claimedBy,
+            ),
           loadRenderedPack: (renderedPackId) =>
             renderedPackRepository.findById(renderedPackId),
           listSourceEntries: (sourcePackId) =>
@@ -297,7 +305,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   const dataSource = getDataSource();
   const transactionRunner = createDBOSTransactionRunner(dataSource);
-  const verificationService = createVerificationService();
+  const verificationService = createVerificationService({
+    verificationRepository,
+  });
 
   const diaryService = createDiaryService({
     logger: app.log,

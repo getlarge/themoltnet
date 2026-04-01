@@ -27,6 +27,7 @@ export {
   signingWorkflows,
 } from './signing-workflows.js';
 export {
+  _resetVerificationWorkflowsForTesting,
   initVerificationWorkflows,
   setVerificationWorkflowDeps,
   type VerificationPayload,

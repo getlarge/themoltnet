@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import { DBOS } from '@dbos-inc/dbos-sdk';
 
 export interface VerificationPayload {
@@ -32,6 +30,11 @@ export interface VerificationResult {
 }
 
 export interface VerificationWorkflowDeps {
+  updateVerificationStatus(
+    verificationId: string,
+    status: 'claimed' | 'submitted' | 'expired',
+    claimedBy?: string,
+  ): Promise<void>;
   loadRenderedPack(renderedPackId: string): Promise<{
     id: string;
     sourcePackId: string;
@@ -93,6 +96,7 @@ const stepConfig = {
 let workflowDeps: VerificationWorkflowDeps | null = null;
 let _workflows: {
   startVerification: (
+    verificationId: string,
     renderedPackId: string,
     nonce: string,
   ) => Promise<{ verificationId: string; nonce: string }>;
@@ -172,13 +176,28 @@ export function initVerificationWorkflows(): void {
     { name: 'verification.step.createAttestation', ...stepConfig },
   );
 
+  const updateVerificationStatusStep = DBOS.registerStep(
+    async (
+      verificationId: string,
+      status: 'claimed' | 'submitted' | 'expired',
+      claimedBy?: string,
+    ): Promise<void> => {
+      await getDeps().updateVerificationStatus(
+        verificationId,
+        status,
+        claimedBy,
+      );
+    },
+    { name: 'verification.step.updateStatus', ...stepConfig },
+  );
+
   _workflows = {
     startVerification: DBOS.registerWorkflow(
       async (
+        verificationId: string,
         renderedPackId: string,
         nonce: string,
       ): Promise<{ verificationId: string; nonce: string }> => {
-        const verificationId = randomUUID();
         await DBOS.setEvent('created', { verificationId, nonce });
 
         const claim = await DBOS.recv<{ judgeIdentityId: string }>(
@@ -186,6 +205,7 @@ export function initVerificationWorkflows(): void {
           VERIFICATION_TIMEOUT_SECONDS,
         );
         if (!claim) {
+          await updateVerificationStatusStep(verificationId, 'expired');
           const result: VerificationResult = {
             verificationId,
             status: 'expired',
@@ -193,6 +213,12 @@ export function initVerificationWorkflows(): void {
           await DBOS.setEvent('result', result);
           return { verificationId, nonce };
         }
+
+        await updateVerificationStatusStep(
+          verificationId,
+          'claimed',
+          claim.judgeIdentityId,
+        );
 
         const payload = await buildPayloadStep(renderedPackId);
         await DBOS.setEvent('payload', payload);
@@ -202,6 +228,7 @@ export function initVerificationWorkflows(): void {
           VERIFICATION_TIMEOUT_SECONDS,
         );
         if (!submission) {
+          await updateVerificationStatusStep(verificationId, 'expired');
           const result: VerificationResult = {
             verificationId,
             status: 'expired',
@@ -226,6 +253,7 @@ export function initVerificationWorkflows(): void {
           renderedPackId,
           submission,
         );
+        await updateVerificationStatusStep(verificationId, 'submitted');
         const result: VerificationResult = {
           verificationId,
           status: 'submitted',
@@ -255,7 +283,14 @@ export const verificationWorkflows = new Proxy(
   },
 ) as {
   startVerification: (
+    verificationId: string,
     renderedPackId: string,
     nonce: string,
   ) => Promise<{ verificationId: string; nonce: string }>;
 };
+
+/** @internal Reset module state for testing. */
+export function _resetVerificationWorkflowsForTesting(): void {
+  _workflows = null;
+  workflowDeps = null;
+}

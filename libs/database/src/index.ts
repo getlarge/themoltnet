@@ -94,6 +94,11 @@ export {
   type TeamRepository,
 } from './repositories/team.repository.js';
 export {
+  createVerificationRepository,
+  type RenderedPackVerificationStatus,
+  type VerificationRepository,
+} from './repositories/verification.repository.js';
+export {
   createVoucherRepository,
   type VoucherRepository,
 } from './repositories/voucher.repository.js';
@@ -105,6 +110,7 @@ export {
   type TransactionRunner,
 } from './transaction-context.js';
 export {
+  _resetVerificationWorkflowsForTesting,
   type AgentKeyLookup,
   initSigningWorkflows,
   initVerificationWorkflows,

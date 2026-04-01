@@ -1,6 +1,7 @@
 import {
   DBOS,
   type VerificationPayload,
+  type VerificationRepository,
   type VerificationResult,
   verificationWorkflows,
 } from '@moltnet/database';
@@ -33,10 +34,7 @@ export interface SubmitVerificationInput {
 }
 
 const EVENT_TIMEOUT_SECONDS = 5;
-
-function workflowIdForRenderedPack(renderedPackId: string): string {
-  return `verification-${renderedPackId}`;
-}
+const VERIFICATION_TIMEOUT_MS = 600_000;
 
 async function getResultEvent(
   workflowID: string,
@@ -44,18 +42,41 @@ async function getResultEvent(
   return DBOS.getEvent<VerificationResult>(workflowID, 'result', 0);
 }
 
-export function createVerificationService() {
+interface VerificationServiceDeps {
+  verificationRepository: Pick<
+    VerificationRepository,
+    'create' | 'findByNonce' | 'findLatestClaimableByRenderedPackId'
+  >;
+}
+
+export function createVerificationService(deps: VerificationServiceDeps) {
   return {
     async createVerification(
       renderedPackId: string,
       nonce: string,
     ): Promise<{ verificationId: string; nonce: string }> {
-      const workflowID = workflowIdForRenderedPack(renderedPackId);
+      const existing = await deps.verificationRepository.findByNonce(nonce);
+      if (existing) {
+        if (existing.renderedPackId !== renderedPackId) {
+          throw new VerificationServiceError(
+            'conflict',
+            'Nonce already used by another rendered pack verification attempt',
+          );
+        }
+        return { verificationId: existing.id, nonce: existing.nonce };
+      }
+
+      const verification = await deps.verificationRepository.create({
+        renderedPackId,
+        nonce,
+        expiresAt: new Date(Date.now() + VERIFICATION_TIMEOUT_MS),
+      });
+      const workflowID = verification.id;
 
       try {
         await DBOS.startWorkflow(verificationWorkflows.startVerification, {
           workflowID,
-        })(renderedPackId, nonce);
+        })(verification.id, renderedPackId, nonce);
       } catch {
         // If the workflow already exists, read its existing events below.
       }
@@ -76,10 +97,40 @@ export function createVerificationService() {
     },
 
     async claim(renderedPackId: string, judgeIdentityId: string) {
-      const workflowID = workflowIdForRenderedPack(renderedPackId);
+      const verification =
+        await deps.verificationRepository.findLatestClaimableByRenderedPackId(
+          renderedPackId,
+        );
+      if (!verification) {
+        throw new VerificationServiceError(
+          'not_found',
+          'No active verification found for this rendered pack',
+        );
+      }
+
+      if (verification.expiresAt <= new Date()) {
+        throw new VerificationServiceError(
+          'expired',
+          'Verification expired before the judge claimed the payload',
+        );
+      }
+      if (
+        verification.status === 'claimed' &&
+        verification.claimedBy &&
+        verification.claimedBy !== judgeIdentityId
+      ) {
+        throw new VerificationServiceError(
+          'conflict',
+          'Verification is already claimed by another judge identity',
+        );
+      }
+
+      const workflowID = verification.id;
 
       try {
-        await DBOS.send(workflowID, { judgeIdentityId }, 'claim');
+        if (verification.status === 'created') {
+          await DBOS.send(workflowID, { judgeIdentityId }, 'claim');
+        }
       } catch {
         throw new VerificationServiceError(
           'not_found',
@@ -118,7 +169,33 @@ export function createVerificationService() {
     },
 
     async submit(renderedPackId: string, input: SubmitVerificationInput) {
-      const workflowID = workflowIdForRenderedPack(renderedPackId);
+      const verification = await deps.verificationRepository.findByNonce(
+        input.nonce,
+      );
+      if (!verification || verification.renderedPackId !== renderedPackId) {
+        throw new VerificationServiceError(
+          'not_found',
+          'No active verification found for this rendered pack',
+        );
+      }
+      if (verification.expiresAt <= new Date()) {
+        throw new VerificationServiceError(
+          'expired',
+          'Verification expired before the judge submitted results',
+        );
+      }
+      if (
+        verification.status === 'claimed' &&
+        verification.claimedBy &&
+        verification.claimedBy !== input.createdBy
+      ) {
+        throw new VerificationServiceError(
+          'invalid',
+          'Verification was claimed by another judge identity',
+        );
+      }
+
+      const workflowID = verification.id;
 
       try {
         await DBOS.send(workflowID, input, 'submit');

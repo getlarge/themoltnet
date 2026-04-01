@@ -174,6 +174,13 @@ export interface MockServices {
     deleteMany: ReturnType<typeof vi.fn>;
     listByDiary: ReturnType<typeof vi.fn>;
   };
+  renderedPackRepository: {
+    findById: ReturnType<typeof vi.fn>;
+    findLatestBySourcePackId: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    updatePinned: ReturnType<typeof vi.fn>;
+    deleteBySourcePackId: ReturnType<typeof vi.fn>;
+  };
   attestationRepository: {
     [K in keyof AttestationRepository]: ReturnType<typeof vi.fn>;
   };
@@ -253,6 +260,13 @@ export function createMockServices(): MockServices {
       updateExpiry: vi.fn(),
       deleteMany: vi.fn(),
       listByDiary: vi.fn().mockResolvedValue([]),
+    },
+    renderedPackRepository: {
+      findById: vi.fn(),
+      findLatestBySourcePackId: vi.fn(),
+      create: vi.fn(),
+      updatePinned: vi.fn(),
+      deleteBySourcePackId: vi.fn(),
     },
     attestationRepository: {
       create: vi.fn(),
@@ -433,16 +447,10 @@ export async function createTestApp(
     diaryEntryRepository:
       mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
     contextPackRepository: mocks.contextPackRepository as never,
+    renderedPackRepository: mocks.renderedPackRepository as never,
     attestationRepository:
       mocks.attestationRepository as unknown as AttestationRepository,
     entryRelationRepository: mocks.entryRelationRepository as never,
-    renderedPackRepository: {
-      findById: vi.fn(),
-      findLatestBySourcePackId: vi.fn(),
-      create: vi.fn(),
-      updatePinned: vi.fn(),
-      deleteBySourcePackId: vi.fn(),
-    } as never,
     contextPackService: {
       createRenderedPack: vi.fn(),
     } as never,

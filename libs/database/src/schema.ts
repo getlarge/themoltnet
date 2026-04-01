@@ -761,6 +761,44 @@ export type NewContextPackEntry = typeof contextPackEntries.$inferInsert;
 export type RenderedPack = typeof renderedPacks.$inferSelect;
 export type NewRenderedPack = typeof renderedPacks.$inferInsert;
 
+// ── Rendered Pack Verifications ────────────────────────────
+
+export const renderedPackVerifications = pgTable(
+  'rendered_pack_verifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    renderedPackId: uuid('rendered_pack_id')
+      .notNull()
+      .references(() => renderedPacks.id, { onDelete: 'cascade' }),
+    nonce: uuid('nonce').notNull(),
+    status: varchar('status', { length: 20 }).notNull(),
+    claimedBy: uuid('claimed_by'),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    renderedPackIdx: index('verifications_rendered_pack_idx').on(
+      table.renderedPackId,
+    ),
+    statusIdx: index('verifications_status_idx').on(table.status),
+    expiresAtIdx: index('verifications_expires_at_idx').on(table.expiresAt),
+    nonceUniqueIdx: uniqueIndex('verifications_nonce_unique_idx').on(
+      table.nonce,
+    ),
+  }),
+);
+
+export type RenderedPackVerification =
+  typeof renderedPackVerifications.$inferSelect;
+export type NewRenderedPackVerification =
+  typeof renderedPackVerifications.$inferInsert;
+
 // ── Rendered Pack Attestations ─────────────────────────────
 
 export const renderedPackAttestations = pgTable(

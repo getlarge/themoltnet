@@ -7,6 +7,7 @@
  * Auth types (AuthContext, PermissionChecker) are provided by @moltnet/auth plugin.
  */
 
+export type { VerificationService } from './services/verification.service.js';
 export type {
   AuthContext,
   PermissionChecker,
