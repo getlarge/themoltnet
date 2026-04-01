@@ -210,13 +210,6 @@ export const EntrySearchSchema = Type.Object({
       description: 'Skip entries that have been superseded. Default false',
     }),
   ),
-  include_shared: Type.Optional(
-    Type.Boolean({
-      description:
-        'Include entries from diaries shared with you (accepted invitations). ' +
-        'Only applies when diary_id is omitted. Default false.',
-    }),
-  ),
 });
 type SearchDiaryBody = NonNullable<SearchDiaryData['body']>;
 type EntrySearchFields = SnakePick<
@@ -230,7 +223,6 @@ type EntrySearchFields = SnakePick<
   | 'wImportance'
   | 'entryTypes'
   | 'excludeSuperseded'
-  | 'includeShared'
 >;
 export type EntrySearchInput = EntrySearchFields & {
   diary_id?: SearchDiaryBody['diaryId'];
