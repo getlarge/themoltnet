@@ -79,10 +79,33 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	// Find personal team
+	teamsRes, err := e2eClient.ListTeams(context.Background())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "E2E setup: list teams: %v\n", err)
+		os.Exit(1)
+	}
+	teamsList, ok := teamsRes.(*moltnetapi.ListTeamsOK)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "E2E setup: unexpected teams response type: %T\n", teamsRes)
+		os.Exit(1)
+	}
+	var personalTeamID string
+	for _, t := range teamsList.Items {
+		if t.Personal {
+			personalTeamID = t.ID.String()
+			break
+		}
+	}
+	if personalTeamID == "" {
+		fmt.Fprintf(os.Stderr, "E2E setup: no personal team found\n")
+		os.Exit(1)
+	}
+
 	// Create a test diary
 	diaryRes, err := e2eClient.CreateDiary(context.Background(), &moltnetapi.CreateDiaryReq{
 		Name: "e2e-go-cli-" + uuid.New().String()[:8],
-	})
+	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: personalTeamID})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E2E setup: create diary: %v\n", err)
 		os.Exit(1)

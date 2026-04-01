@@ -81,13 +81,13 @@ func newTestDiary(name string) *moltnetapi.DiaryCatalog {
 	}
 }
 
-func (h *stubDiaryHandler) ListDiaries(_ context.Context) (moltnetapi.ListDiariesRes, error) {
+func (h *stubDiaryHandler) ListDiaries(_ context.Context, _ moltnetapi.ListDiariesParams) (moltnetapi.ListDiariesRes, error) {
 	return &moltnetapi.DiaryCatalogList{
 		Items: []moltnetapi.DiaryCatalog{*newTestDiary("diary-1"), *newTestDiary("diary-2")},
 	}, nil
 }
 
-func (h *stubDiaryHandler) CreateDiary(_ context.Context, req *moltnetapi.CreateDiaryReq) (moltnetapi.CreateDiaryRes, error) {
+func (h *stubDiaryHandler) CreateDiary(_ context.Context, req *moltnetapi.CreateDiaryReq, _ moltnetapi.CreateDiaryParams) (moltnetapi.CreateDiaryRes, error) {
 	return newTestDiary(req.Name), nil
 }
 
@@ -114,7 +114,7 @@ func TestDiaryListDiaries(t *testing.T) {
 	_, _, client := newTestServer(t, &stubDiaryHandler{})
 
 	// Act
-	res, err := client.ListDiaries(context.Background())
+	res, err := client.ListDiaries(context.Background(), moltnetapi.ListDiariesParams{})
 
 	// Assert
 	if err != nil {
@@ -136,7 +136,7 @@ func TestDiaryCreateDiary(t *testing.T) {
 	// Act
 	res, err := client.CreateDiary(context.Background(), &moltnetapi.CreateDiaryReq{
 		Name: "test diary",
-	})
+	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: "00000000-0000-0000-0000-000000000088"})
 
 	// Assert
 	if err != nil {

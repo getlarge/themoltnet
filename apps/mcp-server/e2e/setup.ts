@@ -15,7 +15,7 @@
  */
 
 import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
-import { createDatabase } from '@moltnet/database';
+import { createDatabase, createTeamRepository } from '@moltnet/database';
 
 // ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──
 
@@ -66,23 +66,41 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   // DB connection for bootstrap (inserts into agent_keys)
   const { db, pool } = createDatabase(DATABASE_URL);
 
-  async function getPersonalTeamId(agent: GenesisAgent): Promise<string> {
-    const response = await fetch(`${REST_API_URL}/teams`, {
-      headers: { Authorization: `Bearer ${agent.accessToken}` },
+  const teamRepository = createTeamRepository(db);
+
+  async function createPersonalTeam(agent: GenesisAgent): Promise<string> {
+    // Bootstrap doesn't create personal teams — create one directly in DB + Keto
+    const team = await teamRepository.create({
+      name: agent.keyPair.fingerprint,
+      personal: true,
+      createdBy: agent.identityId,
+      status: 'active',
     });
-    if (!response.ok) {
+
+    // Grant Keto owner tuple: Team:<teamId>#owners@Agent:<identityId>
+    const ketoBody = {
+      namespace: 'Team',
+      object: team.id,
+      relation: 'owners',
+      subject_set: {
+        namespace: 'Agent',
+        object: agent.identityId,
+        relation: '',
+      },
+    };
+    const ketoRes = await fetch(`${KETO_WRITE_URL}/admin/relation-tuples`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ketoBody),
+    });
+    if (!ketoRes.ok) {
+      const body = await ketoRes.text();
       throw new Error(
-        `Failed to list teams: ${response.status} ${await response.text()}`,
+        `Failed to write Keto team owner tuple: ${ketoRes.status} ${body}`,
       );
     }
-    const data = (await response.json()) as {
-      items: Array<{ id: string; personal: boolean }>;
-    };
-    const personal = data.items.find((t) => t.personal);
-    if (!personal) {
-      throw new Error('No personal team found for bootstrapped agent');
-    }
-    return personal.id;
+
+    return team.id;
   }
 
   async function createDiaryForAgent(
@@ -138,7 +156,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     }
 
     const agent = result.agents[0];
-    const personalTeamId = await getPersonalTeamId(agent);
+    const personalTeamId = await createPersonalTeam(agent);
     const privateDiaryId = await createDiaryForAgent(
       agent,
       'Private',
