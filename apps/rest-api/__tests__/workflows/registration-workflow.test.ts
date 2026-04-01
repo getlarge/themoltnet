@@ -59,7 +59,7 @@ function createMockDeps() {
       upsert: vi.fn(),
     },
     diaryRepository: {
-      listByOwner: vi.fn().mockResolvedValue([]),
+      listByCreator: vi.fn().mockResolvedValue([]),
       create: vi
         .fn()
         .mockResolvedValue({ id: 'private-diary-id', name: 'Private' }),

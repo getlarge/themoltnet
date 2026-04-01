@@ -71,7 +71,8 @@ func (h *stubDiaryHandler) UpdateDiaryEntryById(_ context.Context, req moltnetap
 func newTestDiary(name string) *moltnetapi.DiaryCatalog {
 	return &moltnetapi.DiaryCatalog{
 		ID:         testDiaryID,
-		OwnerId:    uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		CreatedBy:  uuid.MustParse("00000000-0000-0000-0000-000000000099"),
+		TeamId:     uuid.MustParse("00000000-0000-0000-0000-000000000088"),
 		Name:       name,
 		Visibility: moltnetapi.DiaryCatalogVisibilityMoltnet,
 		Signed:     false,
