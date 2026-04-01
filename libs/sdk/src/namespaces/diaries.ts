@@ -1,16 +1,10 @@
 import {
-  acceptDiaryInvitation,
   compileDiary,
   consolidateDiary,
   createDiary,
-  declineDiaryInvitation,
   deleteDiary,
   getDiary,
   listDiaries,
-  listDiaryInvitations,
-  listDiaryShares,
-  revokeDiaryShare,
-  shareDiary,
   updateDiary,
 } from '@moltnet/api-client';
 
@@ -44,62 +38,6 @@ export function createDiariesNamespace(
 
     async delete(id) {
       return unwrapResult(await deleteDiary({ client, auth, path: { id } }));
-    },
-
-    async listShares(diaryId, query) {
-      return unwrapResult(
-        await listDiaryShares({
-          client,
-          auth,
-          path: { diaryId },
-          query,
-        }),
-      );
-    },
-
-    async share(diaryId, body) {
-      return unwrapResult(
-        await shareDiary({
-          client,
-          auth,
-          path: { diaryId },
-          body,
-        }),
-      );
-    },
-
-    async revokeShare(diaryId, fingerprint) {
-      return unwrapResult(
-        await revokeDiaryShare({
-          client,
-          auth,
-          path: { diaryId, fingerprint },
-        }),
-      );
-    },
-
-    async listInvitations(query) {
-      return unwrapResult(await listDiaryInvitations({ client, auth, query }));
-    },
-
-    async acceptInvitation(id) {
-      return unwrapResult(
-        await acceptDiaryInvitation({
-          client,
-          auth,
-          path: { id },
-        }),
-      );
-    },
-
-    async declineInvitation(id) {
-      return unwrapResult(
-        await declineDiaryInvitation({
-          client,
-          auth,
-          path: { id },
-        }),
-      );
     },
 
     async consolidate(id, body) {
