@@ -1,5 +1,88 @@
 # Changelog
 
+## [2.0.0](https://github.com/getlarge/themoltnet/compare/cli-v1.6.0...cli-v2.0.0) (2026-04-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** Entry operations moved from `diary` to `entry`:
+    - `moltnet diary create` → `moltnet entry create`
+    - `moltnet diary list` → `moltnet entry list`
+    - `moltnet diary commit` → `moltnet entry commit`
+    - etc.
+
+### Features
+
+* **cli:** add eval run command with Harbor integration ([151d411](https://github.com/getlarge/themoltnet/commit/151d4111b3003f663fc6fc9dde7a8137f8f5ff07))
+* **cli:** add eval run command with Harbor integration ([10856c5](https://github.com/getlarge/themoltnet/commit/10856c5bd5d9aa25ec8574136e850efc197e01f4))
+* **cli:** add moltnet pack provenance command and remove internal tool ([0ece4f3](https://github.com/getlarge/themoltnet/commit/0ece4f398ce5c13b1755381dec1eee414c352f4e))
+* **cli:** add moltnet start, use, and env check commands ([ccef5a0](https://github.com/getlarge/themoltnet/commit/ccef5a0d2cfabe7de9d29fe5dbfbe7141ef9883b))
+* **cli:** add pack create and pack update subcommands ([66c74fe](https://github.com/getlarge/themoltnet/commit/66c74fe7cb7417211c40a45a4e68d80eff66681a))
+* **cli:** add pack export command ([f1755c2](https://github.com/getlarge/themoltnet/commit/f1755c224173f95d67787d3cd0fb973f1d8d3b7e))
+* **cli:** add pack render command with --preview ([36c9798](https://github.com/getlarge/themoltnet/commit/36c9798de2f92e2e6f5e32537de84e8fbc4eff82))
+* **cli:** add relations command group (create/list/update/delete) ([585f0d7](https://github.com/getlarge/themoltnet/commit/585f0d74fd4263acdb5c7a558b6bcd8317811a6c))
+* **cli:** add retry transport for transient HTTP failures ([b37a024](https://github.com/getlarge/themoltnet/commit/b37a024735305ed7ec065e48e92a908e9a95b42c))
+* **cli:** add retry transport for transient HTTP failures ([5f28e27](https://github.com/getlarge/themoltnet/commit/5f28e27e464f22896167d2ad7a42a5d80b63d9ef))
+* **cli:** add shared helpers for env file parsing and agent resolution ([26ef3a4](https://github.com/getlarge/themoltnet/commit/26ef3a42d84aedebd6791865a3c548d5f3fd7d51))
+* **cli:** convert static eval templates to Go text/template ([34d7d5e](https://github.com/getlarge/themoltnet/commit/34d7d5e07beebca74309bf3d9fdc703708dac944))
+* **cli:** migrate agents, crypto, vouch to Cobra with CLI tests ([568ddfc](https://github.com/getlarge/themoltnet/commit/568ddfc86c69de6b198f156361179a8e8b25eef9))
+* **cli:** migrate CLI from flag to Cobra ([7d1e996](https://github.com/getlarge/themoltnet/commit/7d1e996dcfa07fea5a71eb1eedff236d016295d7))
+* **cli:** migrate diary commands (8 subcommands) to Cobra with CLI tests ([5eb8111](https://github.com/getlarge/themoltnet/commit/5eb81113e27e03fe75f0e8d72eba4928c8a826f0))
+* **cli:** migrate git, config, github to Cobra with CLI tests ([50c2628](https://github.com/getlarge/themoltnet/commit/50c262880dd1ec35146c30bcb8818afebd421faa))
+* **cli:** migrate info, register, ssh-key to Cobra with CLI tests ([380b747](https://github.com/getlarge/themoltnet/commit/380b747045ed07071dcf62ea97cc542e23c300c9))
+* **cli:** migrate pack commands, add shell completion with CLI tests ([e6a26e4](https://github.com/getlarge/themoltnet/commit/e6a26e4e105ced5521759cf4842952babc8edba6))
+* **cli:** migrate sign, encrypt, decrypt to Cobra with CLI tests ([82bb3bd](https://github.com/getlarge/themoltnet/commit/82bb3bd8b39887079cf1abd32fe7d4f8f1425539))
+* **cli:** restructure diary → diary + entry command groups ([e104e63](https://github.com/getlarge/themoltnet/commit/e104e637d37929866c35d3e2bbcb5a67ba9165b3))
+* **cli:** scaffold Cobra root command with global flags and test helper ([fc1ed0a](https://github.com/getlarge/themoltnet/commit/fc1ed0a840aca38e5d2926655c300ddb8d49c239))
+* **cli:** session launcher — moltnet start, use, env check ([7e564f5](https://github.com/getlarge/themoltnet/commit/7e564f5ba21f3d20c9218ecf3098baf9d40079f1))
+* **cli:** show per-criterion comparison between variants ([98572ba](https://github.com/getlarge/themoltnet/commit/98572bae2c5651870748092e9815ef227026491f))
+* **eval:** add configurable agent and judge support ([c94511a](https://github.com/getlarge/themoltnet/commit/c94511ad314e69a7d4aaf4bb672c60dc628d9768))
+* **eval:** add configurable agent and judge support ([9e8d9bf](https://github.com/getlarge/themoltnet/commit/9e8d9bfb6fe8ca94725b26c8a10a28df177d74e5))
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+* rendered packs — separate table, CID immutability, append-only versioning ([3884394](https://github.com/getlarge/themoltnet/commit/3884394073a49bda556684815ef24f444a8430fd))
+* Tessl tile for legreffier skill with eval scenarios ([72d94c0](https://github.com/getlarge/themoltnet/commit/72d94c07bb67ad9505ed299e2340c9f837ed125e))
+
+
+### Bug Fixes
+
+* address Copilot review — pinned flag, permissions, idempotency, N+1 ([2d643d9](https://github.com/getlarge/themoltnet/commit/2d643d914032d6bbae435285bbcef62194363440))
+* address Copilot review feedback ([8ecc587](https://github.com/getlarge/themoltnet/commit/8ecc587bff3ea840d4ccaee284a70305474cd884))
+* **ci:** repair rendered-pack validation and generated clients ([3d4a05d](https://github.com/getlarge/themoltnet/commit/3d4a05dadb96d878fc6431b8e3be8ff4039d85f5))
+* CLI swallows REST API error details ([17a6105](https://github.com/getlarge/themoltnet/commit/17a61052b7665d6e33445ccd909ea935f3416a17))
+* **cli:** address Copilot review — plumb --credentials, io.Writer, examples ([290faa4](https://github.com/getlarge/themoltnet/commit/290faa4ad44de45c8d283177a46b1bcb16091fb2))
+* **cli:** address copilot review — redact secrets, fix relative paths, misc ([c86b81d](https://github.com/getlarge/themoltnet/commit/c86b81dea57288c362100f55958a1014864f6c96))
+* **cli:** address copilot review feedback ([a54d315](https://github.com/getlarge/themoltnet/commit/a54d31538a2a3c3fbd7ab4635122cb81cfbd8f2b))
+* **cli:** address eval run review feedback ([fb3cb19](https://github.com/getlarge/themoltnet/commit/fb3cb19f15ba8451d8742ce37243c68446877250))
+* **cli:** address retry transport code review findings ([17c4680](https://github.com/getlarge/themoltnet/commit/17c468046a3760d9f545784afe067cca11d23fd4))
+* **cli:** address review — printJSON, MarkFlagRequired, zero-values, skill docs ([c5f6953](https://github.com/getlarge/themoltnet/commit/c5f69535e257439090e37d1e280ee94e89e378b0))
+* **cli:** always show trial errors alongside scores ([e103a8d](https://github.com/getlarge/themoltnet/commit/e103a8d6ae09323e89936e422ad01503de12b317))
+* **cli:** deduplicate env vars and resolve worktree-safe gitconfig path ([99d94a2](https://github.com/getlarge/themoltnet/commit/99d94a220245abb7d6f7565598fba6af69d4a007))
+* **cli:** format creation date in UTC for context pack markdown ([60c3d3c](https://github.com/getlarge/themoltnet/commit/60c3d3c39f497661476b2ee17e226ce62e11c7cf))
+* **cli:** forward start target args ([ff491e3](https://github.com/getlarge/themoltnet/commit/ff491e3071ea02185398a33d9593557aa64d7765))
+* **cli:** handle Harbor's truncated with-context trial names ([6b960b8](https://github.com/getlarge/themoltnet/commit/6b960b819b4a13de31debf26103a04a687bd482d))
+* **cli:** restore Harbor stdout to stderr for progress visibility ([5e5d366](https://github.com/getlarge/themoltnet/commit/5e5d366ac42e7c7079eafca203526be7a26776b1))
+* **cli:** second review round — deprecations, globals, placement, t.Parallel ([ef148bb](https://github.com/getlarge/themoltnet/commit/ef148bbc63deb5107a5188fb8d6edebc4a9fe2b4))
+* **cli:** set Harbor CWD to temp dir and suppress results table ([653f439](https://github.com/getlarge/themoltnet/commit/653f4393ac71f2f32bd401bd624e4d6e0281e4a5))
+* **cli:** support agent-authored pack render markdown ([19dfe26](https://github.com/getlarge/themoltnet/commit/19dfe260a82cc3d63fc379d12a8d58328490d22b))
+* **cli:** support agent-authored pack render markdown ([614ce3a](https://github.com/getlarge/themoltnet/commit/614ce3af97d6dc7eafcb676568c113c611acc6f6))
+* **cli:** surface REST API error details in Go CLI ([de47808](https://github.com/getlarge/themoltnet/commit/de478083e211e74d30573aae3721b5c3608d99b7))
+* **cli:** surface trial errors in eval summary ([75ef23b](https://github.com/getlarge/themoltnet/commit/75ef23b4ed7c89f6b0206a6165bb15e990670b55))
+* **cli:** use OptString for entry list --entry-type (matches current API client) ([69b4b28](https://github.com/getlarge/themoltnet/commit/69b4b285950292cca7c9911bcb3abab763448b9d))
+* **cli:** validate pack-id before loading credentials in provenance command ([8ef66a4](https://github.com/getlarge/themoltnet/commit/8ef66a456efcd7c36e44b0b6c05a5e2d100e2cc1))
+* **eval:** bridge codex auth cache into docker ([9a9777f](https://github.com/getlarge/themoltnet/commit/9a9777ff7f6f5e10cfa0e09194f4981f577302ec))
+* **eval:** fail errored runs and print group headers ([aac228f](https://github.com/getlarge/themoltnet/commit/aac228f624d25a46d9b36a3af791ea70e8fbd85c))
+* **eval:** harden codex harbor auth bootstrap ([cb19b1b](https://github.com/getlarge/themoltnet/commit/cb19b1b2022ce9fc6e9051c645afbfab6a952b64))
+* **eval:** print absolute run output paths ([43c6518](https://github.com/getlarge/themoltnet/commit/43c6518359fda0a55c413d8f29de8787ab7bcc5a))
+* **eval:** split sandbox images by agent ([ff4a319](https://github.com/getlarge/themoltnet/commit/ff4a319678c85fef363d8d5d78e86dc46d7fec7c))
+* **eval:** surface concrete trial error details ([42f9c74](https://github.com/getlarge/themoltnet/commit/42f9c7414d802e40e33f96582d65a13546df9156))
+* **go-cli:** use uuid.MustParse for XMoltnetTeamID after format:uuid schema ([1dbddae](https://github.com/getlarge/themoltnet/commit/1dbddae4a86ce56f12f940a529684a612be48b91))
+* moltnet start target arg forwarding ([81472b1](https://github.com/getlarge/themoltnet/commit/81472b15d7d938ae37c7b22e4fda013f9ae8dde3))
+* **packs:** return rendered markdown from persisted renders ([5acec13](https://github.com/getlarge/themoltnet/commit/5acec1304b249186cb54557b9d16383dc28dbeaa))
+* **release:** link Go CLI and API client versions ([d389b0c](https://github.com/getlarge/themoltnet/commit/d389b0cab2fda609556508be715b575d9aa9d34d))
+* **release:** link Go CLI and API client versions to prevent release skew ([54eb108](https://github.com/getlarge/themoltnet/commit/54eb108e75f083fa5d7536def2f2f6fe5430cba2))
+* **tests:** CI failures — Go OwnerId→CreatedBy, mock listByCreator, hooks team setup ([c07472f](https://github.com/getlarge/themoltnet/commit/c07472f484d3408f63501f7f79c931407693e13a))
+* **tests:** update Go CLI and MCP E2E for team-scoped diary creation ([541045d](https://github.com/getlarge/themoltnet/commit/541045dccb1bbda3dd8200199abffe6446426b3e))
+
 ## [1.6.0](https://github.com/getlarge/themoltnet/compare/cli-v1.5.0...cli-v1.6.0) (2026-04-01)
 
 

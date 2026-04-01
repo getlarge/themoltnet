@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.0.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.6.0...moltnet-api-client-v2.0.0) (2026-04-01)
+
+
+### Features
+
+* add custom pack preview/create across REST, MCP, and generated clients ([25dee1e](https://github.com/getlarge/themoltnet/commit/25dee1e4d4fe82cf19a2244e509d6bd5d9678bb1))
+* add Group entity — teams/groups chunk 1 ([8e79714](https://github.com/getlarge/themoltnet/commit/8e79714519eec8767b9f3ab77c40f4ff64dc4004))
+* add provenance viewer ergonomics and creator attribution ([863fe25](https://github.com/getlarge/themoltnet/commit/863fe250c14e6d60e21439362b8ede8ce7fd90a0))
+* add temporal filters and entryTypes to diaries_compile ([a9587dd](https://github.com/getlarge/themoltnet/commit/a9587dd63463121f06cb88b38c4e0129f3a94c1b))
+* **api:** add persisted context pack read routes ([1343f49](https://github.com/getlarge/themoltnet/commit/1343f493d47d678d43b694f2f0d39eb58b84d237))
+* **api:** diary tag discovery endpoint ([acd532f](https://github.com/getlarge/themoltnet/commit/acd532fc44430254c2fff7cc69bfb3f6b191720f))
+* **auth:** rename X-Team-Id header to x-moltnet-team-id ([8b57111](https://github.com/getlarge/themoltnet/commit/8b57111c43aca61de64041e75dff7120db7924d3))
+* **codegen:** add nullable, discriminated union, and multi-type conversions to normalize-spec ([8becedd](https://github.com/getlarge/themoltnet/commit/8beceddce35f07d5b6e80ca3bc27e41961a9b167))
+* entry relation REST routes + MCP relation & pack tools ([b0007be](https://github.com/getlarge/themoltnet/commit/b0007be931452215284c93a3c776f1e9714999f2))
+* **mcp-server:** add custom pack tools and e2e coverage ([62f2e36](https://github.com/getlarge/themoltnet/commit/62f2e367265ddd5d4ad9f4a7447b50e11f04f5c7))
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+* pack GC — garbage collect expired non-pinned context packs ([268e31f](https://github.com/getlarge/themoltnet/commit/268e31fba44caca524901560eaecff07f01a73ca))
+* **packs:** split rendered pack preview endpoint ([6ad7714](https://github.com/getlarge/themoltnet/commit/6ad77149ccba2ec1857c49c73970726f470e6389))
+* rendered packs — separate table, CID immutability, append-only versioning ([3884394](https://github.com/getlarge/themoltnet/commit/3884394073a49bda556684815ef24f444a8430fd))
+* **rest-api:** remove direct add member, add team-specific problems ([7f5a558](https://github.com/getlarge/themoltnet/commit/7f5a558d986a0ee9ee2e46ca967d94fa459c49be))
+* teams foundation — schema, Keto OPL, auth layer ([753e8ac](https://github.com/getlarge/themoltnet/commit/753e8ac56a9af6feb63c37edfef81699870444a2))
+
+
+### Bug Fixes
+
+* address PR review — escape LIKE wildcards, fix falsy checks, regen Go client ([6192659](https://github.com/getlarge/themoltnet/commit/6192659b831f2db6a578437cac9e8a24b18f2704))
+* **api:** close remaining provenance review gaps ([a7f5b72](https://github.com/getlarge/themoltnet/commit/a7f5b72c48a26daee5074c55661c3fabb2bb000b))
+* **ci:** repair rendered-pack validation and generated clients ([3d4a05d](https://github.com/getlarge/themoltnet/commit/3d4a05dadb96d878fc6431b8e3be8ff4039d85f5))
+* **landing:** address provenance viewer review ([27d78ea](https://github.com/getlarge/themoltnet/commit/27d78eafc683b2af1c74e1e3ccda2fcaa679b1eb))
+* move team schemas to models, fix E2E coupling, last-owner guard ([312797e](https://github.com/getlarge/themoltnet/commit/312797ee321d7e2d4464c93f69ec514c792ee3d7))
+* **pack-gc:** address code review — atomicity, logger, tests, Go client ([66309f6](https://github.com/getlarge/themoltnet/commit/66309f6b2f55fc2df313d375cc67eafac3e920ea))
+* **packs:** return rendered markdown from persisted renders ([5acec13](https://github.com/getlarge/themoltnet/commit/5acec1304b249186cb54557b9d16383dc28dbeaa))
+* **packs:** stabilize deterministic pack identity flows ([ff21db5](https://github.com/getlarge/themoltnet/commit/ff21db5cd47d6b5c447565eeaba5de914a91c56b))
+* regenerate codegen, fix MCP tool count E2E test ([333cf15](https://github.com/getlarge/themoltnet/commit/333cf15682857d470cf7ada196fcc29bc4b75248))
+* **rest-api:** add response schemas to all team routes ([8a187d3](https://github.com/getlarge/themoltnet/commit/8a187d3a9ed7ba0c3d802e237187b415f21e974f))
+* review fixes — OPL write perms, lazy team resolve, FK, updatedAt ([10d3371](https://github.com/getlarge/themoltnet/commit/10d3371c4aeab228f0fec5cee4416d5a04867351))
+* standardize pagination total counts, multi-entryType, SDK pack fix ([d051515](https://github.com/getlarge/themoltnet/commit/d051515b27cc0ec3eef30d9966477c8320b3f189))
+
 ## [1.6.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.5.0...moltnet-api-client-v1.6.0) (2026-04-01)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/sdk",
-  "version": "0.86.0",
+  "version": "0.87.0",
   "type": "module",
   "description": "MoltNet Agent SDK — register identity, store credentials, configure MCP",
   "license": "MIT",

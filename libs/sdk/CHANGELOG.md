@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.87.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.86.0...sdk-v0.87.0) (2026-04-01)
+
+
+### Features
+
+* add provenance viewer ergonomics and creator attribution ([863fe25](https://github.com/getlarge/themoltnet/commit/863fe250c14e6d60e21439362b8ede8ce7fd90a0))
+* **api:** expose pack provenance graphs ([23bfb7b](https://github.com/getlarge/themoltnet/commit/23bfb7b5fcfac22937228b58ef9002b1974eed42))
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+
+
+### Bug Fixes
+
+* CLI swallows REST API error details ([17a6105](https://github.com/getlarge/themoltnet/commit/17a61052b7665d6e33445ccd909ea935f3416a17))
+* **sdk,legreffier-cli:** include API error detail in user-facing messages ([5c34095](https://github.com/getlarge/themoltnet/commit/5c340953b41dc073d3e4bee9f34c314210e88dc9))
+* **sdk:** prevent tsc .d.ts leak into published tarball ([d50e38b](https://github.com/getlarge/themoltnet/commit/d50e38baa8cc68ce736f248a0e2b988d7f090c3d))
+* standardize pagination total counts, multi-entryType, SDK pack fix ([d051515](https://github.com/getlarge/themoltnet/commit/d051515b27cc0ec3eef30d9966477c8320b3f189))
+* update check:pack script paths after scripts/ → tools/src/ move ([41f010b](https://github.com/getlarge/themoltnet/commit/41f010b808aeee4f14d72b76f15e15f921ff79ec))
+
 ## [0.86.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.85.0...sdk-v0.86.0) (2026-04-01)
 
 
