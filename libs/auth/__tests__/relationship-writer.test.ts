@@ -43,7 +43,7 @@ describe('RelationshipWriter', () => {
         createRelationshipBody: {
           namespace: 'Diary',
           object: DIARY_ID,
-          relation: 'teams',
+          relation: 'team',
           subject_set: {
             namespace: 'Team',
             object: TEAM_ID,
@@ -72,7 +72,7 @@ describe('RelationshipWriter', () => {
       expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
         namespace: 'Diary',
         object: DIARY_ID,
-        relation: 'teams',
+        relation: 'team',
       });
     });
   });
