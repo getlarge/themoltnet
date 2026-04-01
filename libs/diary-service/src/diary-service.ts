@@ -463,11 +463,10 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       agentId: string,
     ): Promise<DiaryEntry[]> {
       const teamIds = await relationshipReader.listTeamIdsBySubject(agentId);
-      const diaries = await diaryRepository.listByTeamIds(teamIds);
-      if (!diaries.length) return [];
+      if (!teamIds.length) return [];
       return diaryEntryRepository.search({
         ...input,
-        diaryIds: diaries.map((d) => d.id),
+        teamIds,
         embedding: await resolveEmbedding(input.query),
       });
     },

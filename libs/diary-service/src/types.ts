@@ -150,6 +150,7 @@ export interface UpdateEntryInput {
 export interface SearchInput {
   diaryId?: string;
   diaryIds?: string[];
+  teamIds?: string[];
   query?: string;
   tags?: string[];
   excludeTags?: string[];
