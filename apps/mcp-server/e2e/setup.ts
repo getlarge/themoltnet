@@ -15,7 +15,7 @@
  */
 
 import { bootstrapGenesisAgents, type GenesisAgent } from '@moltnet/bootstrap';
-import { createDatabase, createTeamRepository } from '@moltnet/database';
+import { createDatabase } from '@moltnet/database';
 
 // ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──
 
@@ -66,69 +66,6 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
   // DB connection for bootstrap (inserts into agent_keys)
   const { db, pool } = createDatabase(DATABASE_URL);
 
-  const teamRepository = createTeamRepository(db);
-
-  async function createPersonalTeam(agent: GenesisAgent): Promise<string> {
-    // Bootstrap doesn't create personal teams — create one directly in DB + Keto
-    const team = await teamRepository.create({
-      name: agent.keyPair.fingerprint,
-      personal: true,
-      createdBy: agent.identityId,
-      status: 'active',
-    });
-
-    // Grant Keto owner tuple: Team:<teamId>#owners@Agent:<identityId>
-    const ketoBody = {
-      namespace: 'Team',
-      object: team.id,
-      relation: 'owners',
-      subject_set: {
-        namespace: 'Agent',
-        object: agent.identityId,
-        relation: '',
-      },
-    };
-    const ketoRes = await fetch(`${KETO_WRITE_URL}/admin/relation-tuples`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ketoBody),
-    });
-    if (!ketoRes.ok) {
-      const body = await ketoRes.text();
-      throw new Error(
-        `Failed to write Keto team owner tuple: ${ketoRes.status} ${body}`,
-      );
-    }
-
-    return team.id;
-  }
-
-  async function createDiaryForAgent(
-    agent: GenesisAgent,
-    name: string,
-    visibility: 'private' | 'public',
-    teamId: string,
-  ): Promise<string> {
-    const response = await fetch(`${REST_API_URL}/diaries`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${agent.accessToken}`,
-        'x-moltnet-team-id': teamId,
-      },
-      body: JSON.stringify({ name, visibility }),
-    });
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `Failed to create ${visibility} diary: ${response.status} ${body}`,
-      );
-    }
-
-    const data = (await response.json()) as { id: string };
-    return data.id;
-  }
-
   async function createAgent(name: string): Promise<HarnessAgent> {
     const result = await bootstrapGenesisAgents({
       config: {
@@ -156,21 +93,31 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     }
 
     const agent = result.agents[0];
-    const personalTeamId = await createPersonalTeam(agent);
-    const privateDiaryId = await createDiaryForAgent(
-      agent,
-      'Private',
-      'private',
-      personalTeamId,
-    );
-    const publicDiaryId = await createDiaryForAgent(
-      agent,
-      'Public',
-      'public',
-      personalTeamId,
-    );
+    // Bootstrap now creates personal team + private diary.
+    // Create a public diary via REST API for tests that need it.
+    const publicResponse = await fetch(`${REST_API_URL}/diaries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${agent.accessToken}`,
+        'x-moltnet-team-id': agent.personalTeamId,
+      },
+      body: JSON.stringify({ name: 'Public', visibility: 'public' }),
+    });
+    if (!publicResponse.ok) {
+      const body = await publicResponse.text();
+      throw new Error(
+        `Failed to create public diary: ${publicResponse.status} ${body}`,
+      );
+    }
+    const publicDiary = (await publicResponse.json()) as { id: string };
 
-    return { agent, privateDiaryId, publicDiaryId, personalTeamId };
+    return {
+      agent,
+      privateDiaryId: agent.privateDiaryId,
+      publicDiaryId: publicDiary.id,
+      personalTeamId: agent.personalTeamId,
+    };
   }
 
   let initialAgent: HarnessAgent;
