@@ -9,6 +9,10 @@ type AddGroupMemberRes interface {
 	addGroupMemberRes()
 }
 
+type ClaimVerificationRes interface {
+	claimVerificationRes()
+}
+
 type CompileDiaryRes interface {
 	compileDiaryRes()
 }
@@ -273,6 +277,10 @@ type SubmitSignatureRes interface {
 	submitSignatureRes()
 }
 
+type SubmitVerificationRes interface {
+	submitVerificationRes()
+}
+
 type UpdateContextPackRes interface {
 	updateContextPackRes()
 }
@@ -303,4 +311,8 @@ type VerifyDiaryEntryByIdRes interface {
 
 type VerifyRecoveryChallengeRes interface {
 	verifyRecoveryChallengeRes()
+}
+
+type VerifyRenderedPackRes interface {
+	verifyRenderedPackRes()
 }

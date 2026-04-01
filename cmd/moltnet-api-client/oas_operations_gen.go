@@ -8,6 +8,7 @@ type OperationName = string
 const (
 	AcceptDiaryInvitationOperation         OperationName = "AcceptDiaryInvitation"
 	AddGroupMemberOperation                OperationName = "AddGroupMember"
+	ClaimVerificationOperation             OperationName = "ClaimVerification"
 	CompileDiaryOperation                  OperationName = "CompileDiary"
 	ConsolidateDiaryOperation              OperationName = "ConsolidateDiary"
 	CreateDiaryOperation                   OperationName = "CreateDiary"
@@ -79,6 +80,7 @@ const (
 	ShareDiaryOperation                    OperationName = "ShareDiary"
 	StartLegreffierOnboardingOperation     OperationName = "StartLegreffierOnboarding"
 	SubmitSignatureOperation               OperationName = "SubmitSignature"
+	SubmitVerificationOperation            OperationName = "SubmitVerification"
 	UpdateContextPackOperation             OperationName = "UpdateContextPack"
 	UpdateDiaryOperation                   OperationName = "UpdateDiary"
 	UpdateDiaryEntryByIdOperation          OperationName = "UpdateDiaryEntryById"
@@ -87,4 +89,5 @@ const (
 	VerifyCryptoSignatureOperation         OperationName = "VerifyCryptoSignature"
 	VerifyDiaryEntryByIdOperation          OperationName = "VerifyDiaryEntryById"
 	VerifyRecoveryChallengeOperation       OperationName = "VerifyRecoveryChallenge"
+	VerifyRenderedPackOperation            OperationName = "VerifyRenderedPack"
 )

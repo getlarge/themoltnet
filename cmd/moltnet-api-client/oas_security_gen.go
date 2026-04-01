@@ -37,6 +37,7 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 var operationRolesBearerAuth = map[string][]string{
 	AcceptDiaryInvitationOperation:         []string{},
 	AddGroupMemberOperation:                []string{},
+	ClaimVerificationOperation:             []string{},
 	CompileDiaryOperation:                  []string{},
 	ConsolidateDiaryOperation:              []string{},
 	CreateDiaryOperation:                   []string{},
@@ -93,11 +94,13 @@ var operationRolesBearerAuth = map[string][]string{
 	SearchDiaryOperation:                   []string{},
 	ShareDiaryOperation:                    []string{},
 	SubmitSignatureOperation:               []string{},
+	SubmitVerificationOperation:            []string{},
 	UpdateContextPackOperation:             []string{},
 	UpdateDiaryOperation:                   []string{},
 	UpdateDiaryEntryByIdOperation:          []string{},
 	UpdateEntryRelationStatusOperation:     []string{},
 	VerifyDiaryEntryByIdOperation:          []string{},
+	VerifyRenderedPackOperation:            []string{},
 }
 
 // GetRolesForBearerAuth returns the required roles for the given operation.

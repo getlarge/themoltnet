@@ -1,0 +1,285 @@
+// Package claudecode provides a dspy-go LLM adapter that executes prompts
+// via the Claude Code CLI (claude --print).
+package claudecode
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/XiaoConstantine/dspy-go/pkg/core"
+)
+
+const (
+	ProviderName = "claude-code"
+	DefaultModel = "claude-sonnet-4-6"
+)
+
+// Config holds configuration for the Claude Code CLI adapter.
+type Config struct {
+	// Model to use (e.g. "claude-sonnet-4-6", "claude-opus-4-6").
+	Model string
+
+	// Executable path. Defaults to "claude" (resolved via PATH).
+	Executable string
+
+	// MaxBudgetUSD caps spending per call. 0 means no limit (CLI default).
+	MaxBudgetUSD float64
+
+	// ExtraArgs are additional CLI flags passed to claude.
+	ExtraArgs []string
+
+	// Env overrides for the subprocess. Merged with os.Environ().
+	Env map[string]string
+}
+
+// LLM implements core.LLM by spawning the Claude Code CLI.
+type LLM struct {
+	*core.BaseLLM
+	config Config
+}
+
+// New creates a new Claude Code CLI adapter.
+func New(cfg Config) (*LLM, error) {
+	if cfg.Model == "" {
+		cfg.Model = DefaultModel
+	}
+	if cfg.Executable == "" {
+		cfg.Executable = "claude"
+	}
+
+	// Verify the executable exists
+	if _, err := exec.LookPath(cfg.Executable); err != nil {
+		return nil, fmt.Errorf("claude CLI not found at %q: %w", cfg.Executable, err)
+	}
+
+	caps := []core.Capability{
+		core.CapabilityCompletion,
+		core.CapabilityChat,
+		core.CapabilityJSON,
+	}
+
+	return &LLM{
+		BaseLLM: core.NewBaseLLM(ProviderName, core.ModelID(cfg.Model), caps, nil),
+		config:  cfg,
+	}, nil
+}
+
+// Generate runs a prompt through the Claude Code CLI and returns the response.
+func (l *LLM) Generate(ctx context.Context, prompt string, opts ...core.GenerateOption) (*core.LLMResponse, error) {
+	args := l.buildArgs(nil)
+	return l.run(ctx, prompt, args)
+}
+
+// GenerateWithJSON runs a prompt with --json-schema and --output-format json,
+// then parses the structured response.
+func (l *LLM) GenerateWithJSON(ctx context.Context, prompt string, opts ...core.GenerateOption) (map[string]interface{}, error) {
+	// Build a JSON schema from the prompt hints.
+	// dspy-go's structured output interceptor injects schema instructions into the prompt.
+	// We extract and pass them via --json-schema for native enforcement.
+	schema := extractJSONSchemaFromPrompt(prompt)
+
+	var args []string
+	if schema != "" {
+		args = l.buildArgs([]string{"--json-schema", schema})
+	} else {
+		args = l.buildArgs(nil)
+	}
+
+	resp, err := l.run(ctx, prompt, args)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	content := resp.Content
+
+	// Try direct JSON parse first
+	if err := json.Unmarshal([]byte(content), &result); err == nil {
+		return result, nil
+	}
+
+	// Try extracting JSON from markdown fences or prose
+	extracted := extractJSON(content)
+	if extracted != "" {
+		if err := json.Unmarshal([]byte(extracted), &result); err == nil {
+			return result, nil
+		}
+	}
+
+	return nil, fmt.Errorf("claude CLI did not return valid JSON.\nResponse:\n%s", content)
+}
+
+// GenerateWithFunctions is not supported by Claude Code CLI.
+func (l *LLM) GenerateWithFunctions(ctx context.Context, prompt string, functions []map[string]interface{}, opts ...core.GenerateOption) (map[string]interface{}, error) {
+	return nil, fmt.Errorf("function calling not supported by %s", ProviderName)
+}
+
+// StreamGenerate fakes streaming by running a single generation.
+func (l *LLM) StreamGenerate(ctx context.Context, prompt string, opts ...core.GenerateOption) (*core.StreamResponse, error) {
+	chunkChan := make(chan core.StreamChunk, 2)
+
+	go func() {
+		defer close(chunkChan)
+		resp, err := l.Generate(ctx, prompt, opts...)
+		if err != nil {
+			chunkChan <- core.StreamChunk{Error: err}
+			return
+		}
+		chunkChan <- core.StreamChunk{Content: resp.Content}
+		chunkChan <- core.StreamChunk{Done: true, Usage: resp.Usage}
+	}()
+
+	return &core.StreamResponse{ChunkChannel: chunkChan}, nil
+}
+
+// CreateEmbedding is not supported.
+func (l *LLM) CreateEmbedding(ctx context.Context, input string, opts ...core.EmbeddingOption) (*core.EmbeddingResult, error) {
+	return nil, fmt.Errorf("embeddings not supported by %s", ProviderName)
+}
+
+// CreateEmbeddings is not supported.
+func (l *LLM) CreateEmbeddings(ctx context.Context, inputs []string, opts ...core.EmbeddingOption) (*core.BatchEmbeddingResult, error) {
+	return nil, fmt.Errorf("embeddings not supported by %s", ProviderName)
+}
+
+// buildArgs constructs CLI arguments for claude --print.
+func (l *LLM) buildArgs(extra []string) []string {
+	args := []string{
+		"--print",
+		"--output-format", "text",
+		"--model", l.config.Model,
+		"--permission-mode", "bypassPermissions",
+		"--no-session-persistence",
+	}
+	if l.config.MaxBudgetUSD > 0 {
+		args = append(args, "--max-budget-usd", fmt.Sprintf("%.2f", l.config.MaxBudgetUSD))
+	}
+	args = append(args, l.config.ExtraArgs...)
+	args = append(args, extra...)
+	return args
+}
+
+// run executes the Claude CLI with the given prompt and args.
+func (l *LLM) run(ctx context.Context, prompt string, args []string) (*core.LLMResponse, error) {
+	cmd := exec.CommandContext(ctx, l.config.Executable, args...)
+
+	// Pass prompt via stdin
+	cmd.Stdin = strings.NewReader(prompt)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	// Build environment
+	cmd.Env = l.buildEnv()
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("claude CLI failed: %w\nstderr: %s", err, stderr.String())
+	}
+
+	content := strings.TrimSpace(stdout.String())
+
+	return &core.LLMResponse{
+		Content:  content,
+		Metadata: map[string]interface{}{"provider": ProviderName},
+	}, nil
+}
+
+// buildEnv merges os.Environ with config overrides, stripping sensitive vars.
+func (l *LLM) buildEnv() []string {
+	env := os.Environ()
+
+	// Strip vars that could leak tokens to the subprocess
+	filtered := make([]string, 0, len(env))
+	stripPrefixes := []string{"CLAUDECODE", "CLAUDE_CODE_OAUTH_TOKEN"}
+	for _, e := range env {
+		skip := false
+		for _, prefix := range stripPrefixes {
+			if strings.HasPrefix(e, prefix+"=") || strings.HasPrefix(e, prefix) {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			filtered = append(filtered, e)
+		}
+	}
+
+	// Apply config overrides
+	for k, v := range l.config.Env {
+		filtered = append(filtered, k+"="+v)
+	}
+
+	return filtered
+}
+
+// extractJSONSchemaFromPrompt tries to find a JSON schema block in the prompt
+// that was injected by dspy-go's structured output interceptor.
+func extractJSONSchemaFromPrompt(prompt string) string {
+	// dspy-go injects schemas like:
+	//   ```json
+	//   { "field": <type>, ... }
+	//   ```
+	// We look for a JSON object that looks like a schema hint
+	// and convert it to a proper JSON Schema for --json-schema.
+
+	// For now, return empty — the spike will test with explicit schema passing.
+	// TODO: implement schema extraction from dspy-go prompt format
+	return ""
+}
+
+// extractJSON tries to find a JSON object in text that may contain markdown fences or prose.
+func extractJSON(text string) string {
+	// Try markdown fence
+	if idx := strings.Index(text, "```json"); idx >= 0 {
+		start := idx + len("```json")
+		if end := strings.Index(text[start:], "```"); end >= 0 {
+			return strings.TrimSpace(text[start : start+end])
+		}
+	}
+	if idx := strings.Index(text, "```"); idx >= 0 {
+		start := idx + len("```")
+		if end := strings.Index(text[start:], "```"); end >= 0 {
+			candidate := strings.TrimSpace(text[start : start+end])
+			if len(candidate) > 0 && (candidate[0] == '{' || candidate[0] == '[') {
+				return candidate
+			}
+		}
+	}
+
+	// Try finding raw JSON object in prose
+	if idx := strings.Index(text, "{"); idx >= 0 {
+		depth := 0
+		for i := idx; i < len(text); i++ {
+			switch text[i] {
+			case '{':
+				depth++
+			case '}':
+				depth--
+				if depth == 0 {
+					return text[idx : i+1]
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
+// Register adds the claude-code provider to the dspy-go registry.
+func Register() {
+	core.RegisterProviderFactory(ProviderName, func(
+		ctx context.Context,
+		config core.ProviderConfig,
+		modelID core.ModelID,
+	) (core.LLM, error) {
+		return New(Config{
+			Model: string(modelID),
+		})
+	})
+}

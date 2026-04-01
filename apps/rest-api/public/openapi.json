@@ -33,6 +33,102 @@
         "required": ["publicKey", "fingerprint"],
         "type": "object"
       },
+      "Attestation": {
+        "properties": {
+          "composite": {
+            "type": "number"
+          },
+          "coverage": {
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "faithfulness": {
+            "type": "number"
+          },
+          "grounding": {
+            "type": "number"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "judgeBinaryCid": {
+            "type": "string"
+          },
+          "judgeModel": {
+            "type": "string"
+          },
+          "judgeProvider": {
+            "type": "string"
+          },
+          "renderedPackId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "rubricCid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "renderedPackId",
+          "coverage",
+          "grounding",
+          "faithfulness",
+          "composite",
+          "judgeModel",
+          "judgeProvider",
+          "judgeBinaryCid",
+          "rubricCid",
+          "createdBy",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ClaimVerificationResponse": {
+        "properties": {
+          "renderedContent": {
+            "type": "string"
+          },
+          "rubric": {
+            "type": "string"
+          },
+          "sourceEntries": {
+            "items": {
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "contentHash": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": ["title", "content", "contentHash"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": ["sourceEntries", "renderedContent", "rubric"],
+        "type": "object"
+      },
       "CompileResult": {
         "properties": {
           "compileStats": {
@@ -3347,6 +3443,21 @@
         "required": ["items", "total", "limit", "offset"],
         "type": "object"
       },
+      "SubmitVerificationResponse": {
+        "properties": {
+          "attestationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "composite": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": ["attestationId", "composite"],
+        "type": "object"
+      },
       "Success": {
         "properties": {
           "success": {
@@ -3504,6 +3615,20 @@
             "type": "object"
           }
         ],
+        "type": "object"
+      },
+      "VerifyRenderedPackResponse": {
+        "properties": {
+          "nonce": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "verificationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": ["verificationId", "nonce"],
         "type": "object"
       },
       "VerifyResult": {
@@ -9705,6 +9830,327 @@
             "description": "Default Response"
           },
           "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/rendered-packs/{id}/verify": {
+      "post": {
+        "description": "Trigger fidelity verification for an agent-rendered pack.",
+        "operationId": "verifyRenderedPack",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "description": "Trigger fidelity verification for an agent-rendered pack.",
+                "properties": {
+                  "nonce": {
+                    "description": "Caller-generated nonce for idempotency.",
+                    "format": "uuid",
+                    "type": "string"
+                  }
+                },
+                "required": ["nonce"],
+                "type": "object"
+              }
+            }
+          },
+          "description": "Trigger fidelity verification for an agent-rendered pack.",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyRenderedPackResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/rendered-packs/{id}/verify/claim": {
+      "post": {
+        "description": "Judge claims verification payload (source entries, rendered content, and rubric).",
+        "operationId": "claimVerification",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimVerificationResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["diary"]
+      }
+    },
+    "/rendered-packs/{id}/verify/submit": {
+      "post": {
+        "description": "Judge submits fidelity scores and transcript.",
+        "operationId": "submitVerification",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "description": "Submit fidelity judge results.",
+                "properties": {
+                  "coverage": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "faithfulness": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "grounding": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "judgeBinaryCid": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "judgeModel": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9._:-]+$",
+                    "type": "string"
+                  },
+                  "judgeProvider": {
+                    "maxLength": 50,
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9-]+$",
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "transcript": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "nonce",
+                  "coverage",
+                  "grounding",
+                  "faithfulness",
+                  "transcript",
+                  "judgeModel",
+                  "judgeProvider",
+                  "judgeBinaryCid"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "description": "Submit fidelity judge results.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmitVerificationResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {

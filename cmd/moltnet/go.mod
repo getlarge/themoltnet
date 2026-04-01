@@ -3,7 +3,9 @@ module github.com/getlarge/themoltnet/cmd/moltnet
 go 1.25.0
 
 require (
+	github.com/XiaoConstantine/dspy-go v0.82.2
 	github.com/getlarge/themoltnet/cmd/moltnet-api-client v0.0.0-00010101000000-000000000000
+	github.com/getlarge/themoltnet/go/dspy-adapters v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
 	github.com/joho/godotenv v1.5.1
@@ -14,6 +16,8 @@ require (
 )
 
 require (
+	github.com/XiaoConstantine/mcp-go v0.3.1 // indirect
+	github.com/anthropics/anthropic-sdk-go v1.27.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -24,7 +28,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
+	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -38,18 +42,24 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/match v1.2.0 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.40.0 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	go.opentelemetry.io/otel/trace v1.40.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
-	golang.org/x/exp v0.0.0-20230725093048-515e97ebf090 // indirect
+	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b // indirect
 	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
 
 replace github.com/getlarge/themoltnet/cmd/moltnet-api-client => ../moltnet-api-client
+
+replace github.com/getlarge/themoltnet/go/dspy-adapters => ../../libs/dspy-adapters

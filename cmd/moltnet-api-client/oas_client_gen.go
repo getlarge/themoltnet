@@ -40,6 +40,12 @@ type Invoker interface {
 	//
 	// POST /groups/{groupId}/members
 	AddGroupMember(ctx context.Context, request *AddGroupMemberReq, params AddGroupMemberParams) (AddGroupMemberRes, error)
+	// ClaimVerification invokes claimVerification operation.
+	//
+	// Judge claims verification payload (source entries, rendered content, and rubric).
+	//
+	// POST /rendered-packs/{id}/verify/claim
+	ClaimVerification(ctx context.Context, params ClaimVerificationParams) (ClaimVerificationRes, error)
 	// CompileDiary invokes compileDiary operation.
 	//
 	// Compile a token-budget-fitted context pack from diary entries.
@@ -479,6 +485,12 @@ type Invoker interface {
 	//
 	// POST /crypto/signing-requests/{id}/sign
 	SubmitSignature(ctx context.Context, request *SubmitSignatureReq, params SubmitSignatureParams) (SubmitSignatureRes, error)
+	// SubmitVerification invokes submitVerification operation.
+	//
+	// Judge submits fidelity scores and transcript.
+	//
+	// POST /rendered-packs/{id}/verify/submit
+	SubmitVerification(ctx context.Context, request *SubmitVerificationReq, params SubmitVerificationParams) (SubmitVerificationRes, error)
 	// UpdateContextPack invokes updateContextPack operation.
 	//
 	// Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
@@ -528,6 +540,12 @@ type Invoker interface {
 	//
 	// POST /recovery/verify
 	VerifyRecoveryChallenge(ctx context.Context, request *VerifyRecoveryChallengeReq) (VerifyRecoveryChallengeRes, error)
+	// VerifyRenderedPack invokes verifyRenderedPack operation.
+	//
+	// Trigger fidelity verification for an agent-rendered pack.
+	//
+	// POST /rendered-packs/{id}/verify
+	VerifyRenderedPack(ctx context.Context, request *VerifyRenderedPackReq, params VerifyRenderedPackParams) (VerifyRenderedPackRes, error)
 }
 
 // Client implements OAS client.
@@ -819,6 +837,132 @@ func (c *Client) sendAddGroupMember(ctx context.Context, request *AddGroupMember
 
 	stage = "DecodeResponse"
 	result, err := decodeAddGroupMemberResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ClaimVerification invokes claimVerification operation.
+//
+// Judge claims verification payload (source entries, rendered content, and rubric).
+//
+// POST /rendered-packs/{id}/verify/claim
+func (c *Client) ClaimVerification(ctx context.Context, params ClaimVerificationParams) (ClaimVerificationRes, error) {
+	res, err := c.sendClaimVerification(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendClaimVerification(ctx context.Context, params ClaimVerificationParams) (res ClaimVerificationRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("claimVerification"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/rendered-packs/{id}/verify/claim"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ClaimVerificationOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/rendered-packs/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/verify/claim"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, ClaimVerificationOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeClaimVerificationResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -9601,6 +9745,135 @@ func (c *Client) sendSubmitSignature(ctx context.Context, request *SubmitSignatu
 	return result, nil
 }
 
+// SubmitVerification invokes submitVerification operation.
+//
+// Judge submits fidelity scores and transcript.
+//
+// POST /rendered-packs/{id}/verify/submit
+func (c *Client) SubmitVerification(ctx context.Context, request *SubmitVerificationReq, params SubmitVerificationParams) (SubmitVerificationRes, error) {
+	res, err := c.sendSubmitVerification(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendSubmitVerification(ctx context.Context, request *SubmitVerificationReq, params SubmitVerificationParams) (res SubmitVerificationRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("submitVerification"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/rendered-packs/{id}/verify/submit"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, SubmitVerificationOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/rendered-packs/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/verify/submit"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeSubmitVerificationRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, SubmitVerificationOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeSubmitVerificationResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // UpdateContextPack invokes updateContextPack operation.
 //
 // Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.
@@ -10483,6 +10756,135 @@ func (c *Client) sendVerifyRecoveryChallenge(ctx context.Context, request *Verif
 
 	stage = "DecodeResponse"
 	result, err := decodeVerifyRecoveryChallengeResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// VerifyRenderedPack invokes verifyRenderedPack operation.
+//
+// Trigger fidelity verification for an agent-rendered pack.
+//
+// POST /rendered-packs/{id}/verify
+func (c *Client) VerifyRenderedPack(ctx context.Context, request *VerifyRenderedPackReq, params VerifyRenderedPackParams) (VerifyRenderedPackRes, error) {
+	res, err := c.sendVerifyRenderedPack(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendVerifyRenderedPack(ctx context.Context, request *VerifyRenderedPackReq, params VerifyRenderedPackParams) (res VerifyRenderedPackRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("verifyRenderedPack"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/rendered-packs/{id}/verify"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, VerifyRenderedPackOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/rendered-packs/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/verify"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeVerifyRenderedPackRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, VerifyRenderedPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeVerifyRenderedPackResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
