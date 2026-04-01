@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -15,6 +14,8 @@ import (
 	dspyadapters "github.com/getlarge/themoltnet/go/dspy-adapters"
 	"github.com/getlarge/themoltnet/go/dspy-adapters/fidelity"
 	"github.com/google/uuid"
+	gocid "github.com/ipfs/go-cid"
+	"github.com/multiformats/go-multihash"
 	"github.com/spf13/cobra"
 )
 
@@ -81,7 +82,7 @@ func runRenderedPacksJudge(
 		return fmt.Errorf("auth failed: %w", err)
 	}
 
-	binaryCID, err := selfBinarySHA256CID()
+	binaryCID, err := selfBinaryCID()
 	if err != nil {
 		return fmt.Errorf("self-hash failed: %w", err)
 	}
@@ -177,7 +178,7 @@ func buildSourceEntriesMarkdown(
 	return b.String()
 }
 
-func selfBinarySHA256CID() (string, error) {
+func selfBinaryCID() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return "", fmt.Errorf("cannot find executable path: %w", err)
@@ -194,5 +195,15 @@ func selfBinarySHA256CID() (string, error) {
 		return "", fmt.Errorf("hash failed: %w", err)
 	}
 
-	return "sha256:" + hex.EncodeToString(h.Sum(nil)), nil
+	mh, err := multihash.Encode(h.Sum(nil), multihash.SHA2_256)
+	if err != nil {
+		return "", fmt.Errorf("multihash encode failed: %w", err)
+	}
+
+	c := gocid.NewCidV1(0x55, mh) // raw codec
+	encoded, err := c.StringOfBase('b')
+	if err != nil {
+		return "", fmt.Errorf("cid base32 encode failed: %w", err)
+	}
+	return encoded, nil
 }
