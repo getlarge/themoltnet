@@ -27,6 +27,7 @@ class CodexMoltNet(Codex):
     """Codex agent configured for headless MoltNet eval runs."""
 
     _SHARED_CODEX_HOME = "/home/agent/.codex"
+    _UPLOADED_AUTH_CACHE = "/app/.codex-host-auth.json"
 
     @staticmethod
     def name() -> str:
@@ -55,7 +56,14 @@ class CodexMoltNet(Codex):
             if auth_cache.is_file():
                 await environment.upload_file(
                     auth_cache,
-                    f"{self._SHARED_CODEX_HOME}/auth.json",
+                    self._UPLOADED_AUTH_CACHE,
+                )
+                await self.exec_as_root(
+                    environment,
+                    command=(
+                        f"chown agent:agent {shlex.quote(self._UPLOADED_AUTH_CACHE)} && "
+                        f"chmod 0644 {shlex.quote(self._UPLOADED_AUTH_CACHE)}"
+                    ),
                 )
             else:
                 logger.info(
@@ -96,6 +104,9 @@ class CodexMoltNet(Codex):
 
         setup_command = """
 mkdir -p "$CODEX_HOME" /tmp/codex-secrets
+cat > "$CODEX_HOME/config.toml" <<EOF
+cli_auth_credentials_store = "file"
+EOF
 if [ -n "${OPENAI_API_KEY}" ]; then
   cat > /tmp/codex-secrets/auth.json <<EOF
 {
@@ -103,7 +114,28 @@ if [ -n "${OPENAI_API_KEY}" ]; then
 }
 EOF
   ln -sf /tmp/codex-secrets/auth.json "$CODEX_HOME/auth.json"
+elif [ -f "/app/.codex-host-auth.json" ]; then
+  cp /app/.codex-host-auth.json "$CODEX_HOME/auth.json"
+  chmod 600 "$CODEX_HOME/auth.json"
 fi
+{
+  echo "CODEX_HOME=$CODEX_HOME"
+  echo "--- ls -la CODEX_HOME ---"
+  ls -la "$CODEX_HOME"
+  echo "--- config.toml ---"
+  cat "$CODEX_HOME/config.toml"
+  echo "--- auth.json metadata ---"
+  if [ -f "$CODEX_HOME/auth.json" ]; then
+    ls -l "$CODEX_HOME/auth.json"
+    if command -v jq >/dev/null 2>&1; then
+      jq '{auth_mode, has_openai_api_key: (.OPENAI_API_KEY != null), token_keys: (.tokens | keys)}' "$CODEX_HOME/auth.json"
+    else
+      echo "jq missing"
+    fi
+  else
+    echo "auth.json missing"
+  fi
+} > %s 2>&1
                 """
 
         skills_command = self._build_register_skills_command()
@@ -116,7 +148,9 @@ fi
 
         await self.exec_as_agent(
             environment,
-            command=setup_command,
+            command=setup_command % shlex.quote(
+                str(EnvironmentPaths.agent_dir / "codex-setup.txt")
+            ),
             env=env,
         )
         try:
