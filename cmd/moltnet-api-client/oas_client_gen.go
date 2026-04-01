@@ -990,7 +990,7 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq, p
 			Explode: false,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.StringToString(params.XMoltnetTeamID))
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}
@@ -1997,7 +1997,7 @@ func (c *Client) sendDeleteDiary(ctx context.Context, params DeleteDiaryParams) 
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.XMoltnetTeamID.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+				return e.EncodeValue(conv.UUIDToString(val))
 			}
 			return nil
 		}); err != nil {
@@ -3422,7 +3422,7 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.XMoltnetTeamID.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+				return e.EncodeValue(conv.UUIDToString(val))
 			}
 			return nil
 		}); err != nil {
@@ -5564,7 +5564,7 @@ func (c *Client) sendListDiaries(ctx context.Context, params ListDiariesParams) 
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.XMoltnetTeamID.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+				return e.EncodeValue(conv.UUIDToString(val))
 			}
 			return nil
 		}); err != nil {
@@ -9087,7 +9087,7 @@ func (c *Client) sendUpdateDiary(ctx context.Context, request OptUpdateDiaryReq,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
 			if val, ok := params.XMoltnetTeamID.Get(); ok {
-				return e.EncodeValue(conv.StringToString(val))
+				return e.EncodeValue(conv.UUIDToString(val))
 			}
 			return nil
 		}); err != nil {

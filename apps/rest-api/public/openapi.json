@@ -4218,11 +4218,12 @@
         "operationId": "listDiaries",
         "parameters": [
           {
-            "description": "Team ID for scoping the request. Optional.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -4271,11 +4272,12 @@
         "operationId": "createDiary",
         "parameters": [
           {
-            "description": "Team ID that will own the resource. Required.",
+            "description": "Team ID (UUID) that will own the resource. Required.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": true,
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -4991,11 +4993,12 @@
             }
           },
           {
-            "description": "Team ID for scoping the request. Optional.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -5084,11 +5087,12 @@
             }
           },
           {
-            "description": "Team ID for scoping the request. Optional.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
@@ -5157,11 +5161,12 @@
             }
           },
           {
-            "description": "Team ID for scoping the request. Optional.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
