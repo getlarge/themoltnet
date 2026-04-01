@@ -105,7 +105,7 @@ func TestMain(m *testing.M) {
 	// Create a test diary
 	diaryRes, err := e2eClient.CreateDiary(context.Background(), &moltnetapi.CreateDiaryReq{
 		Name: "e2e-go-cli-" + uuid.New().String()[:8],
-	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: personalTeamID})
+	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: uuid.MustParse(personalTeamID)})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E2E setup: create diary: %v\n", err)
 		os.Exit(1)

@@ -44,7 +44,7 @@ func runDiaryCreateCmd(apiURL, credPath, name, visibility, teamID string) error 
 		}
 	}
 	res, err := client.CreateDiary(context.Background(), req, moltnetapi.CreateDiaryParams{
-		XMoltnetTeamID: teamID,
+		XMoltnetTeamID: uuid.MustParse(teamID),
 	})
 	if err != nil {
 		return fmt.Errorf("diary create: %w", err)

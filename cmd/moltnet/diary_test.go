@@ -136,7 +136,7 @@ func TestDiaryCreateDiary(t *testing.T) {
 	// Act
 	res, err := client.CreateDiary(context.Background(), &moltnetapi.CreateDiaryReq{
 		Name: "test diary",
-	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: "00000000-0000-0000-0000-000000000088"})
+	}, moltnetapi.CreateDiaryParams{XMoltnetTeamID: uuid.MustParse("00000000-0000-0000-0000-000000000088")})
 
 	// Assert
 	if err != nil {
