@@ -1,5 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
+import { restApiOtelExternals } from '../../vite.shared';
+
 export default defineConfig({
   build: {
     ssr: 'src/main.ts',
@@ -19,7 +21,7 @@ export default defineConfig({
       'pino-opentelemetry-transport',
       'thread-stream',
       '@fastify/otel',
-      /^@opentelemetry\//,
+      ...restApiOtelExternals,
       // onnxruntime-node uses native .node addons loaded via dynamic require().
       // Rollup cannot resolve these at bundle time; must stay external so Node
       // resolves them from node_modules at runtime.

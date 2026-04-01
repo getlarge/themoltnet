@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 
+import { otelObservabilityExternals } from '../../vite.shared';
+
 export default defineConfig({
   build: {
     ssr: 'src/main.ts',
@@ -16,7 +18,7 @@ export default defineConfig({
       'pino-opentelemetry-transport',
       'thread-stream',
       '@fastify/otel',
-      /^@opentelemetry\//,
+      ...otelObservabilityExternals,
     ],
   },
   test: {
