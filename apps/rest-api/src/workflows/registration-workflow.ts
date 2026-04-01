@@ -217,7 +217,7 @@ export function initRegistrationWorkflow(): void {
     async (teamId: string, identityId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
       // Keto PUT is idempotent — safe to retry
-      await relationshipWriter.grantTeamOwner(
+      await relationshipWriter.grantTeamOwners(
         teamId,
         identityId,
         KetoNamespace.Agent,
@@ -235,23 +235,17 @@ export function initRegistrationWorkflow(): void {
   const createPrivateDiaryStep = DBOS.registerStep(
     async (identityId: string, personalTeamId: string): Promise<void> => {
       const { diaryRepository, relationshipWriter } = getDeps();
-      // Idempotent: reuse existing diary, always ensure Keto tuples
-      const owned = await diaryRepository.listByOwner(identityId);
+      const owned = await diaryRepository.listByCreator(identityId);
       const existing = owned.find((d) => d.name === 'Private');
       const diary =
         existing ??
         (await diaryRepository.create({
-          ownerId: identityId,
+          createdBy: identityId,
           name: 'Private',
           visibility: 'private',
           teamId: personalTeamId,
         }));
       // Keto PUT is idempotent — safe to re-grant on retry
-      await relationshipWriter.grantDiaryOwner(
-        diary.id,
-        identityId,
-        KetoNamespace.Agent,
-      );
       await relationshipWriter.grantDiaryTeam(diary.id, personalTeamId);
     },
     {

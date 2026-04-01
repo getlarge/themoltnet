@@ -6,10 +6,20 @@
  * (Docker Compose with per-service URLs).
  */
 
-import { createOryClients, createRelationshipWriter } from '@moltnet/auth';
+import {
+  createOryClients,
+  createRelationshipWriter,
+  KetoNamespace,
+} from '@moltnet/auth';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
-import type { AgentRepository } from '@moltnet/database';
-import { createAgentRepository, type Database } from '@moltnet/database';
+import type { AgentRepository, DiaryRepository } from '@moltnet/database';
+import {
+  createAgentRepository,
+  createDiaryRepository,
+  createTeamRepository,
+  type Database,
+  type TeamRepository,
+} from '@moltnet/database';
 import { Configuration, IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
 // ── Configuration ────────────────────────────────────────────
@@ -41,6 +51,8 @@ export interface GenesisAgent {
   clientId: string;
   clientSecret: string;
   accessToken: string;
+  personalTeamId: string;
+  privateDiaryId: string;
 }
 
 export interface BootstrapResult {
@@ -63,6 +75,8 @@ export async function bootstrapGenesisAgents(
 ): Promise<BootstrapResult> {
   const log = opts.log ?? (() => {});
   const agentRepository = createAgentRepository(opts.db);
+  const teamRepository = createTeamRepository(opts.db);
+  const diaryRepository = createDiaryRepository(opts.db);
 
   // Resolve Ory clients based on config mode
   const { identityApi, hydraAdminOAuth2, hydraPublicUrl, relationshipWriter } =
@@ -80,6 +94,8 @@ export async function bootstrapGenesisAgents(
         hydraAdminOAuth2,
         hydraPublicUrl,
         agentRepository,
+        teamRepository,
+        diaryRepository,
         relationshipWriter,
         scopes: opts.scopes,
         log,
@@ -149,6 +165,8 @@ async function createGenesisAgent(opts: {
   hydraAdminOAuth2: OAuth2Api;
   hydraPublicUrl: string;
   agentRepository: AgentRepository;
+  teamRepository: TeamRepository;
+  diaryRepository: DiaryRepository;
   relationshipWriter: ReturnType<typeof createRelationshipWriter>;
   scopes: string;
   log: (message: string) => void;
@@ -201,7 +219,45 @@ async function createGenesisAgent(opts: {
   await opts.relationshipWriter.registerAgent(identityId);
   opts.log(`  Registered in Keto`);
 
-  // 5. Create OAuth2 client in Hydra via admin API
+  // 5. Create personal team + private diary (mirrors registration workflow)
+  // Keto PUTs are idempotent — safe to re-run. Compensate DB on Keto failure
+  // to avoid orphan rows that are inaccessible via permission checks.
+  const personalTeam = await opts.teamRepository.create({
+    name: keyPair.fingerprint,
+    personal: true,
+    createdBy: identityId,
+    status: 'active',
+  });
+  try {
+    await opts.relationshipWriter.grantTeamOwners(
+      personalTeam.id,
+      identityId,
+      KetoNamespace.Agent,
+    );
+  } catch (err) {
+    await opts.teamRepository.delete(personalTeam.id).catch(() => {});
+    throw err;
+  }
+  opts.log(`  Personal team created: ${personalTeam.id}`);
+
+  const privateDiary = await opts.diaryRepository.create({
+    createdBy: identityId,
+    name: 'Private',
+    visibility: 'private',
+    teamId: personalTeam.id,
+  });
+  try {
+    await opts.relationshipWriter.grantDiaryTeam(
+      privateDiary.id,
+      personalTeam.id,
+    );
+  } catch (err) {
+    await opts.diaryRepository.delete(privateDiary.id).catch(() => {});
+    throw err;
+  }
+  opts.log(`  Private diary created: ${privateDiary.id}`);
+
+  // 6. Create OAuth2 client in Hydra via admin API
   const oauthClient = await opts.hydraAdminOAuth2.createOAuth2Client({
     oAuth2Client: {
       client_name: `Genesis: ${opts.name}`,
@@ -253,5 +309,7 @@ async function createGenesisAgent(opts: {
     clientId: oauthClient.client_id,
     clientSecret: oauthClient.client_secret,
     accessToken: tokenData.access_token,
+    personalTeamId: personalTeam.id,
+    privateDiaryId: privateDiary.id,
   };
 }

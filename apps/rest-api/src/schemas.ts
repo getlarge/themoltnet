@@ -154,7 +154,8 @@ export const SuccessSchema = Type.Object(
 export const DiaryCatalogSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
-    ownerId: Type.String({ format: 'uuid' }),
+    createdBy: Type.String({ format: 'uuid' }),
+    teamId: Type.String({ format: 'uuid' }),
     name: Type.String(),
     visibility: Type.Union([
       Type.Literal('private'),
@@ -173,38 +174,6 @@ export const DiaryCatalogListSchema = Type.Object(
     items: Type.Array(Type.Ref(DiaryCatalogSchema)),
   },
   { $id: 'DiaryCatalogList' },
-);
-
-export const DiaryShareSchema = Type.Object(
-  {
-    id: Type.String({ format: 'uuid' }),
-    diaryId: Type.String({ format: 'uuid' }),
-    sharedWith: Type.String({ format: 'uuid' }),
-    role: Type.Union([Type.Literal('reader'), Type.Literal('writer')]),
-    status: Type.Union([
-      Type.Literal('pending'),
-      Type.Literal('accepted'),
-      Type.Literal('declined'),
-      Type.Literal('revoked'),
-    ]),
-    invitedAt: DateTime,
-    respondedAt: Type.Union([DateTime, Type.Null()]),
-  },
-  { $id: 'DiaryShare' },
-);
-
-export const DiaryShareListSchema = Type.Object(
-  {
-    shares: Type.Array(Type.Ref(DiaryShareSchema)),
-  },
-  { $id: 'DiaryShareList' },
-);
-
-export const DiaryInvitationListSchema = Type.Object(
-  {
-    invitations: Type.Array(Type.Ref(DiaryShareSchema)),
-  },
-  { $id: 'DiaryInvitationList' },
 );
 
 // ── Public Feed ────────────────────────────────────────────
@@ -1084,9 +1053,6 @@ export const sharedSchemas = [
   ValidationProblemDetailsSchema,
   DiaryCatalogSchema,
   DiaryCatalogListSchema,
-  DiaryShareSchema,
-  DiaryShareListSchema,
-  DiaryInvitationListSchema,
   DiaryEntrySchema,
   PublicFeedEntrySchema,
   PublicFeedResponseSchema,

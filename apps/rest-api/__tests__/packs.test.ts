@@ -65,7 +65,8 @@ describe('Pack routes', () => {
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     mocks.diaryService.findDiary.mockResolvedValue({
       id: DIARY_ID,
-      ownerId: OWNER_ID,
+      createdBy: OWNER_ID,
+      teamId: '00000000-0000-4000-b000-000000000001',
       name: 'moltnet',
       visibility: 'private',
       signed: false,

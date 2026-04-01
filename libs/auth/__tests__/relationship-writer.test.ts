@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { KetoNamespace } from '../src/keto-constants.js';
 import {
   createRelationshipWriter,
   type RelationshipWriter,
@@ -21,7 +20,6 @@ function createMockRelationshipApi(): MockRelationshipApi {
 }
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
-const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 
@@ -35,65 +33,20 @@ describe('RelationshipWriter', () => {
   });
 
   describe('diary relationships', () => {
-    it('creates diary owner relation tuple', async () => {
+    it('grants diary team relation', async () => {
       mockRelationshipApi.createRelationship.mockResolvedValue({});
 
-      await writer.grantDiaryOwner(DIARY_ID, AGENT_ID, KetoNamespace.Agent);
+      const TEAM_ID = '00000000-0000-4000-b000-000000000001';
+      await writer.grantDiaryTeam(DIARY_ID, TEAM_ID);
 
       expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
         createRelationshipBody: {
           namespace: 'Diary',
           object: DIARY_ID,
-          relation: 'owner',
+          relation: 'team',
           subject_set: {
-            namespace: 'Agent',
-            object: AGENT_ID,
-            relation: '',
-          },
-        },
-      });
-    });
-
-    it('creates diary writer relation tuple', async () => {
-      mockRelationshipApi.createRelationship.mockResolvedValue({});
-
-      await writer.grantDiaryWriter(
-        DIARY_ID,
-        OTHER_AGENT_ID,
-        KetoNamespace.Agent,
-      );
-
-      expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
-        createRelationshipBody: {
-          namespace: 'Diary',
-          object: DIARY_ID,
-          relation: 'writers',
-          subject_set: {
-            namespace: 'Agent',
-            object: OTHER_AGENT_ID,
-            relation: '',
-          },
-        },
-      });
-    });
-
-    it('creates diary reader relation tuple', async () => {
-      mockRelationshipApi.createRelationship.mockResolvedValue({});
-
-      await writer.grantDiaryReader(
-        DIARY_ID,
-        OTHER_AGENT_ID,
-        KetoNamespace.Agent,
-      );
-
-      expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
-        createRelationshipBody: {
-          namespace: 'Diary',
-          object: DIARY_ID,
-          relation: 'readers',
-          subject_set: {
-            namespace: 'Agent',
-            object: OTHER_AGENT_ID,
+            namespace: 'Team',
+            object: TEAM_ID,
             relation: '',
           },
         },
@@ -111,31 +64,15 @@ describe('RelationshipWriter', () => {
       });
     });
 
-    it('removes diary relations for a specific agent', async () => {
+    it('removes diary team relation', async () => {
       mockRelationshipApi.deleteRelationships.mockResolvedValue({});
 
-      await writer.removeDiaryRelationForAgent(
-        DIARY_ID,
-        OTHER_AGENT_ID,
-        KetoNamespace.Agent,
-      );
+      await writer.removeDiaryTeam(DIARY_ID);
 
-      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledTimes(2);
       expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
         namespace: 'Diary',
         object: DIARY_ID,
-        relation: 'readers',
-        subjectSetNamespace: 'Agent',
-        subjectSetObject: OTHER_AGENT_ID,
-        subjectSetRelation: '',
-      });
-      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
-        namespace: 'Diary',
-        object: DIARY_ID,
-        relation: 'writers',
-        subjectSetNamespace: 'Agent',
-        subjectSetObject: OTHER_AGENT_ID,
-        subjectSetRelation: '',
+        relation: 'team',
       });
     });
   });

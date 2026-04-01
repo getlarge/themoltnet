@@ -172,11 +172,26 @@ export async function hookRoutes(fastify: FastifyInstance) {
           });
 
           await fastify.relationshipWriter.registerAgent(identity.id);
+
+          // Create personal team for the agent
+          const personalTeam = await fastify.teamRepository.create({
+            name: fingerprint,
+            personal: true,
+            createdBy: identity.id,
+            status: 'active',
+          });
+          await fastify.relationshipWriter.grantTeamOwners(
+            personalTeam.id,
+            identity.id,
+            KetoNamespace.Agent,
+          );
+
           await fastify.diaryService.createDiary(
             {
-              ownerId: identity.id,
+              createdBy: identity.id,
               name: 'Private',
               visibility: 'private',
+              teamId: personalTeam.id,
               subjectNs: KetoNamespace.Agent,
             },
             { withinTransaction: true },

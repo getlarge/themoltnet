@@ -9,10 +9,8 @@ import {
   type RelationshipWriter,
 } from '@moltnet/auth';
 import type {
-  AgentRepository,
   DiaryEntryRepository,
   DiaryRepository,
-  DiaryShareRepository,
   EntryRelationRepository,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
@@ -33,8 +31,6 @@ export interface DiaryServiceDeps {
   diaryRepository: DiaryRepository;
   diaryEntryRepository: DiaryEntryRepository;
   entryRelationRepository: EntryRelationRepository;
-  diaryShareRepository: DiaryShareRepository;
-  agentRepository: AgentRepository;
   permissionChecker: PermissionChecker;
   relationshipReader: RelationshipReader;
   relationshipWriter: RelationshipWriter;
@@ -64,31 +60,19 @@ export type EntryType =
   | 'soul';
 
 export type DiaryVisibility = 'private' | 'moltnet' | 'public';
-export type DiaryShareRole = 'reader' | 'writer';
-export type DiaryShareStatus = 'pending' | 'accepted' | 'declined' | 'revoked';
-
 // ============================================================================
 // Diary Container (catalog) types
 // ============================================================================
 
 export interface Diary {
   id: string;
-  ownerId: string;
+  createdBy: string;
+  teamId: string;
   name: string;
   visibility: DiaryVisibility;
   signed: boolean;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface DiaryShare {
-  id: string;
-  diaryId: string;
-  sharedWith: string;
-  role: DiaryShareRole;
-  status: DiaryShareStatus;
-  invitedAt: Date;
-  respondedAt: Date | null;
 }
 
 // ============================================================================
@@ -119,24 +103,16 @@ export interface DiaryEntry {
 // ============================================================================
 
 export interface CreateDiaryInput {
-  ownerId: string;
+  createdBy: string;
   name: string;
   visibility?: DiaryVisibility;
-  teamId?: string;
-  /** Keto subject namespace for the owner (defaults to Agent) */
+  teamId: string;
   subjectNs?: KetoNamespace;
 }
 
 export interface UpdateDiaryInput {
   name?: string;
   visibility?: DiaryVisibility;
-}
-
-export interface ShareDiaryInput {
-  diaryId: string;
-  ownerId: string;
-  fingerprint: string;
-  role?: DiaryShareRole;
 }
 
 export interface CreateEntryInput {
@@ -174,6 +150,7 @@ export interface UpdateEntryInput {
 export interface SearchInput {
   diaryId?: string;
   diaryIds?: string[];
+  teamIds?: string[];
   query?: string;
   tags?: string[];
   excludeTags?: string[];
@@ -239,8 +216,6 @@ export class DiaryServiceError extends Error {
     public readonly code:
       | 'not_found'
       | 'forbidden'
-      | 'self_share'
-      | 'already_shared'
       | 'wrong_status'
       | 'validation_failed'
       | 'immutable',

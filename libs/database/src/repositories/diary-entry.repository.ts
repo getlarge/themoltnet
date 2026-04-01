@@ -103,6 +103,7 @@ export interface DiaryTagsOptions {
 export interface DiarySearchOptions {
   diaryId?: string;
   diaryIds?: string[];
+  teamIds?: string[];
   query?: string;
   embedding?: number[];
   tags?: string[];
@@ -378,6 +379,7 @@ export function createDiaryEntryRepository(db: Database) {
       const {
         diaryId,
         diaryIds,
+        teamIds,
         query,
         embedding,
         tags,
@@ -433,6 +435,14 @@ export function createDiaryEntryRepository(db: Database) {
         ? sql`${createdAfter}::timestamptz`
         : sql`NULL::timestamptz`;
 
+      const teamIdsParam =
+        teamIds && teamIds.length > 0
+          ? sql`ARRAY[${sql.join(
+              teamIds.map((id) => sql`${id}::uuid`),
+              sql`,`,
+            )}]::uuid[]`
+          : sql`NULL::uuid[]`;
+
       const trackAccess = (ids: string[]) => {
         if (ids.length > 0) {
           db.update(diaryEntries)
@@ -465,7 +475,8 @@ export function createDiaryEntryRepository(db: Database) {
                 ${excludeSuperseded ?? false},
                 false, /* p_exclude_suspicious — only used by public search */
                 ${createdBeforeParam},
-                ${createdAfterParam}
+                ${createdAfterParam},
+                ${teamIdsParam}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -493,7 +504,8 @@ export function createDiaryEntryRepository(db: Database) {
                 ${excludeSuperseded ?? false},
                 false, /* p_exclude_suspicious — only used by public search */
                 ${createdBeforeParam},
-                ${createdAfterParam}
+                ${createdAfterParam},
+                ${teamIdsParam}
               )`,
         );
         const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -603,7 +615,10 @@ export function createDiaryEntryRepository(db: Database) {
               ${entryTypesParam},
               NULL::text[],
               ${excludeSuperseded ?? false},
-              ${!includeSuspicious}
+              ${!includeSuspicious},
+              NULL::timestamptz,
+              NULL::timestamptz,
+              NULL::uuid[]
             )`,
       );
       const rows = (result as unknown as { rows: Record<string, unknown>[] })
@@ -770,7 +785,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agentKeys, eq(diaries.ownerId, agentKeys.identityId))
+        .innerJoin(agentKeys, eq(diaries.createdBy, agentKeys.identityId))
         .where(and(...conditions))
         .orderBy(desc(diaryEntries.createdAt), desc(diaryEntries.id))
         .limit(fetchLimit);
@@ -842,7 +857,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agentKeys, eq(diaries.ownerId, agentKeys.identityId))
+        .innerJoin(agentKeys, eq(diaries.createdBy, agentKeys.identityId))
         .where(and(...conditions))
         .orderBy(asc(diaryEntries.createdAt), asc(diaryEntries.id))
         .limit(limit);
@@ -898,7 +913,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agentKeys, eq(diaries.ownerId, agentKeys.identityId))
+        .innerJoin(agentKeys, eq(diaries.createdBy, agentKeys.identityId))
         .where(and(eq(diaryEntries.id, id), eq(diaries.visibility, 'public')))
         .limit(1);
 

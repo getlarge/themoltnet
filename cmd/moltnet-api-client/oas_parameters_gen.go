@@ -15,72 +15,6 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-// AcceptDiaryInvitationParams is parameters of acceptDiaryInvitation operation.
-type AcceptDiaryInvitationParams struct {
-	// UUID v4 identifier.
-	ID uuid.UUID
-}
-
-func unpackAcceptDiaryInvitationParams(packed middleware.Parameters) (params AcceptDiaryInvitationParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
-		}
-		params.ID = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeAcceptDiaryInvitationParams(args [1]string, argsEscaped bool, r *http.Request) (params AcceptDiaryInvitationParams, _ error) {
-	// Decode path: id.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // AddGroupMemberParams is parameters of addGroupMember operation.
 type AddGroupMemberParams struct {
 	// UUID v4 identifier.
@@ -273,6 +207,62 @@ func decodeConsolidateDiaryParams(args [1]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// CreateDiaryParams is parameters of createDiary operation.
+type CreateDiaryParams struct {
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackCreateDiaryParams(packed middleware.Parameters) (params CreateDiaryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateDiaryParams(args [0]string, argsEscaped bool, r *http.Request) (params CreateDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -609,13 +599,15 @@ func decodeCreateTeamInviteParams(args [1]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
-// DeclineDiaryInvitationParams is parameters of declineDiaryInvitation operation.
-type DeclineDiaryInvitationParams struct {
+// DeleteDiaryParams is parameters of deleteDiary operation.
+type DeleteDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
-func unpackDeclineDiaryInvitationParams(packed middleware.Parameters) (params DeclineDiaryInvitationParams) {
+func unpackDeleteDiaryParams(packed middleware.Parameters) (params DeleteDiaryParams) {
 	{
 		key := middleware.ParameterKey{
 			Name: "id",
@@ -623,10 +615,20 @@ func unpackDeclineDiaryInvitationParams(packed middleware.Parameters) (params De
 		}
 		params.ID = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
 	return params
 }
 
-func decodeDeclineDiaryInvitationParams(args [1]string, argsEscaped bool, r *http.Request) (params DeclineDiaryInvitationParams, _ error) {
+func decodeDeleteDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -672,69 +674,42 @@ func decodeDeclineDiaryInvitationParams(args [1]string, argsEscaped bool, r *htt
 			Err:  err,
 		}
 	}
-	return params, nil
-}
-
-// DeleteDiaryParams is parameters of deleteDiary operation.
-type DeleteDiaryParams struct {
-	// UUID v4 identifier.
-	ID uuid.UUID
-}
-
-func unpackDeleteDiaryParams(packed middleware.Parameters) (params DeleteDiaryParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "id",
-			In:   "path",
-		}
-		params.ID = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeDeleteDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDiaryParams, _ error) {
-	// Decode path: id.
+	// Decode header: x-moltnet-team-id.
 	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
 		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "id",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
 
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.ID = c
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
 				return nil
-			}(); err != nil {
+			}); err != nil {
 				return err
 			}
-		} else {
-			return validate.ErrFieldRequired
 		}
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "id",
-			In:   "path",
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -1629,6 +1604,8 @@ func decodeGetContextPackProvenanceByIdParams(args [1]string, argsEscaped bool, 
 type GetDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackGetDiaryParams(packed middleware.Parameters) (params GetDiaryParams) {
@@ -1639,10 +1616,20 @@ func unpackGetDiaryParams(packed middleware.Parameters) (params GetDiaryParams) 
 		}
 		params.ID = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
 	return params
 }
 
 func decodeGetDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -1685,6 +1672,45 @@ func decodeGetDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -2756,6 +2782,69 @@ func decodeGetTrustGraphParams(args [0]string, argsEscaped bool, r *http.Request
 	return params, nil
 }
 
+// ListDiariesParams is parameters of listDiaries operation.
+type ListDiariesParams struct {
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
+}
+
+func unpackListDiariesParams(packed middleware.Parameters) (params ListDiariesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeListDiariesParams(args [0]string, argsEscaped bool, r *http.Request) (params ListDiariesParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // ListDiaryEntriesParams is parameters of listDiaryEntries operation.
 type ListDiaryEntriesParams struct {
 	Limit  OptFloat64 `json:",omitempty,omitzero"`
@@ -3491,72 +3580,6 @@ func decodeListDiaryPacksParams(args [1]string, argsEscaped bool, r *http.Reques
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
-// ListDiarySharesParams is parameters of listDiaryShares operation.
-type ListDiarySharesParams struct {
-	// UUID v4 identifier.
-	DiaryId uuid.UUID
-}
-
-func unpackListDiarySharesParams(packed middleware.Parameters) (params ListDiarySharesParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "diaryId",
-			In:   "path",
-		}
-		params.DiaryId = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeListDiarySharesParams(args [1]string, argsEscaped bool, r *http.Request) (params ListDiarySharesParams, _ error) {
-	// Decode path: diaryId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "diaryId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.DiaryId = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "diaryId",
 			In:   "path",
 			Err:  err,
 		}
@@ -5515,146 +5538,6 @@ func decodeRenderContextPackParams(args [1]string, argsEscaped bool, r *http.Req
 	return params, nil
 }
 
-// RevokeDiaryShareParams is parameters of revokeDiaryShare operation.
-type RevokeDiaryShareParams struct {
-	// UUID v4 identifier.
-	DiaryId uuid.UUID
-	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
-	Fingerprint string
-}
-
-func unpackRevokeDiaryShareParams(packed middleware.Parameters) (params RevokeDiaryShareParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "diaryId",
-			In:   "path",
-		}
-		params.DiaryId = packed[key].(uuid.UUID)
-	}
-	{
-		key := middleware.ParameterKey{
-			Name: "fingerprint",
-			In:   "path",
-		}
-		params.Fingerprint = packed[key].(string)
-	}
-	return params
-}
-
-func decodeRevokeDiaryShareParams(args [2]string, argsEscaped bool, r *http.Request) (params RevokeDiaryShareParams, _ error) {
-	// Decode path: diaryId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "diaryId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.DiaryId = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "diaryId",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	// Decode path: fingerprint.
-	if err := func() error {
-		param := args[1]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[1])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "fingerprint",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToString(val)
-				if err != nil {
-					return err
-				}
-
-				params.Fingerprint = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-			if err := func() error {
-				if err := (validate.String{
-					MinLength:     0,
-					MinLengthSet:  false,
-					MaxLength:     0,
-					MaxLengthSet:  false,
-					Email:         false,
-					Hostname:      false,
-					Regex:         regexMap["^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"],
-					MinNumeric:    0,
-					MinNumericSet: false,
-					MaxNumeric:    0,
-					MaxNumericSet: false,
-				}).Validate(string(params.Fingerprint)); err != nil {
-					return errors.Wrap(err, "string")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "fingerprint",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // SearchPublicFeedParams is parameters of searchPublicFeed operation.
 type SearchPublicFeedParams struct {
 	Q     string
@@ -6072,72 +5955,6 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
-// ShareDiaryParams is parameters of shareDiary operation.
-type ShareDiaryParams struct {
-	// UUID v4 identifier.
-	DiaryId uuid.UUID
-}
-
-func unpackShareDiaryParams(packed middleware.Parameters) (params ShareDiaryParams) {
-	{
-		key := middleware.ParameterKey{
-			Name: "diaryId",
-			In:   "path",
-		}
-		params.DiaryId = packed[key].(uuid.UUID)
-	}
-	return params
-}
-
-func decodeShareDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params ShareDiaryParams, _ error) {
-	// Decode path: diaryId.
-	if err := func() error {
-		param := args[0]
-		if argsEscaped {
-			unescaped, err := url.PathUnescape(args[0])
-			if err != nil {
-				return errors.Wrap(err, "unescape path")
-			}
-			param = unescaped
-		}
-		if len(param) > 0 {
-			d := uri.NewPathDecoder(uri.PathDecoderConfig{
-				Param:   "diaryId",
-				Value:   param,
-				Style:   uri.PathStyleSimple,
-				Explode: false,
-			})
-
-			if err := func() error {
-				val, err := d.DecodeValue()
-				if err != nil {
-					return err
-				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.DiaryId = c
-				return nil
-			}(); err != nil {
-				return err
-			}
-		} else {
-			return validate.ErrFieldRequired
-		}
-		return nil
-	}(); err != nil {
-		return params, &ogenerrors.DecodeParamError{
-			Name: "diaryId",
-			In:   "path",
-			Err:  err,
-		}
-	}
-	return params, nil
-}
-
 // SubmitSignatureParams is parameters of submitSignature operation.
 type SubmitSignatureParams struct {
 	ID uuid.UUID
@@ -6272,6 +6089,8 @@ func decodeUpdateContextPackParams(args [1]string, argsEscaped bool, r *http.Req
 type UpdateDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackUpdateDiaryParams(packed middleware.Parameters) (params UpdateDiaryParams) {
@@ -6282,10 +6101,20 @@ func unpackUpdateDiaryParams(packed middleware.Parameters) (params UpdateDiaryPa
 		}
 		params.ID = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
 	return params
 }
 
 func decodeUpdateDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -6328,6 +6157,45 @@ func decodeUpdateDiaryParams(args [1]string, argsEscaped bool, r *http.Request) 
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

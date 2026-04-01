@@ -13,6 +13,7 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
+import { TEAM_HEADER } from './constants.js';
 import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
@@ -131,10 +132,10 @@ export const requireAuth: preHandlerAsyncHookHandler =
       throw createAuthError('Invalid or expired token');
     }
 
-    // Resolve team context: only validate X-Team-Id when explicitly provided.
+    // Resolve team context: only validate x-moltnet-team-id when explicitly provided.
     // When absent, currentTeamId stays null — routes that need it resolve
     // the personal team lazily via teamResolver to avoid a DB hit on every request.
-    const teamIdHeader = request.headers['x-team-id'];
+    const teamIdHeader = request.headers[TEAM_HEADER];
     const requestedTeamId = Array.isArray(teamIdHeader)
       ? teamIdHeader[0]
       : teamIdHeader;

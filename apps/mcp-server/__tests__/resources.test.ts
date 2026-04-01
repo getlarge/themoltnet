@@ -174,7 +174,7 @@ describe('MCP Resources', () => {
   });
 
   describe('moltnet://entries/recent', () => {
-    it('fetches with wRecency=1.0 and includeShared=true', async () => {
+    it('fetches with wRecency=1.0', async () => {
       vi.mocked(searchDiary).mockResolvedValue(
         sdkOk({ results: [{ id: ENTRY_ID }], total: 1 }) as never,
       );
@@ -183,7 +183,7 @@ describe('MCP Resources', () => {
 
       expect(searchDiary).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { limit: 10, includeShared: true, wRecency: 1.0 },
+          body: { limit: 10, wRecency: 1.0 },
         }),
       );
       expect(result.contents[0].uri).toBe('moltnet://entries/recent');

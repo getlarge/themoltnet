@@ -27,11 +27,9 @@ import {
   type DiaryService,
 } from '../src/diary-service.js';
 import type {
-  AgentLookupRepository,
   DiaryEntry,
   DiaryEntryRepository,
   DiaryRepository,
-  DiaryShareRepository,
   EmbeddingService,
   PermissionChecker,
   RelationshipReader,
@@ -101,6 +99,7 @@ function createMockPermissionChecker(): {
     canReadPacks: vi.fn().mockResolvedValue(new Map()),
     canManagePack: vi.fn().mockResolvedValue(false),
     canAccessTeam: vi.fn().mockResolvedValue(false),
+    canWriteTeam: vi.fn().mockResolvedValue(false),
     canManageTeam: vi.fn().mockResolvedValue(false),
     canManageTeamMembers: vi.fn().mockResolvedValue(false),
   };
@@ -110,10 +109,10 @@ function createMockRelationshipReader(): {
   [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
 } {
   return {
-    listDiaryIdsBySubject: vi.fn().mockResolvedValue([DIARY_ID]),
     listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
     listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
     listTeamMembers: vi.fn().mockResolvedValue([]),
+    listGroupMembers: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -125,20 +124,20 @@ function createMockRelationshipWriter(): {
     registerAgent: vi.fn().mockResolvedValue(undefined),
     registerHuman: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
-    grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
-    grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
-    grantDiaryReader: vi.fn().mockResolvedValue(undefined),
     grantDiaryTeam: vi.fn().mockResolvedValue(undefined),
     removeDiaryTeam: vi.fn().mockResolvedValue(undefined),
     removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
-    removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
     grantPackParent: vi.fn().mockResolvedValue(undefined),
     removePackRelations: vi.fn().mockResolvedValue(undefined),
     removePackRelationsBatch: vi.fn().mockResolvedValue(undefined),
-    grantTeamOwner: vi.fn().mockResolvedValue(undefined),
-    grantTeamManager: vi.fn().mockResolvedValue(undefined),
-    grantTeamMember: vi.fn().mockResolvedValue(undefined),
+    grantTeamOwners: vi.fn().mockResolvedValue(undefined),
+    grantTeamManagers: vi.fn().mockResolvedValue(undefined),
+    grantTeamMembers: vi.fn().mockResolvedValue(undefined),
     removeTeamMemberRelation: vi.fn().mockResolvedValue(undefined),
+    grantGroupParent: vi.fn().mockResolvedValue(undefined),
+    grantGroupMember: vi.fn().mockResolvedValue(undefined),
+    removeGroupMember: vi.fn().mockResolvedValue(undefined),
+    removeGroupRelations: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -157,33 +156,12 @@ function createMockDiaryRepository(): {
   return {
     create: vi.fn(),
     findById: vi.fn(),
-    findOwnedById: vi.fn(),
+    findByCreator: vi.fn(),
     listByIds: vi.fn(),
-    listByOwner: vi.fn(),
+    listByCreator: vi.fn(),
+    listByTeamIds: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-  };
-}
-
-function createMockDiaryShareRepository(): {
-  [K in keyof DiaryShareRepository]: ReturnType<typeof vi.fn>;
-} {
-  return {
-    create: vi.fn(),
-    findById: vi.fn(),
-    findByDiaryAndAgent: vi.fn(),
-    listByDiary: vi.fn(),
-    listPendingForAgent: vi.fn(),
-    listAcceptedForAgent: vi.fn(),
-    updateStatus: vi.fn(),
-  };
-}
-
-function createMockAgentLookupRepository(): {
-  [K in keyof AgentLookupRepository]: ReturnType<typeof vi.fn>;
-} {
-  return {
-    findByFingerprint: vi.fn(),
   };
 }
 
@@ -200,9 +178,12 @@ function createMockEntryRelationRepository(): {
   };
 }
 
+const TEAM_ID = '00000000-0000-4000-b000-000000000001';
+
 const MOCK_DIARY = {
   id: DIARY_ID,
-  ownerId: OWNER_ID,
+  createdBy: OWNER_ID,
+  teamId: TEAM_ID,
   name: 'default',
   visibility: 'private' as const,
   signed: false,
@@ -243,10 +224,6 @@ describe('DiaryService', () => {
     service = createDiaryService({
       logger,
       diaryRepository: diaryRepo as unknown as DiaryRepository,
-      diaryShareRepository:
-        createMockDiaryShareRepository() as unknown as DiaryShareRepository,
-      agentRepository:
-        createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       entryRelationRepository:
         entryRelationRepo as unknown as EntryRelationRepository,
@@ -324,18 +301,22 @@ describe('DiaryService', () => {
   });
 
   describe('createDiary', () => {
-    it('compensates by deleting DB row when Keto grantDiaryOwner fails', async () => {
+    it('compensates by deleting DB row when Keto grantDiaryTeam fails', async () => {
       const createdDiary = {
         ...MOCK_DIARY,
         id: 'new-diary-id',
         name: 'My Diary',
       };
       diaryRepo.create.mockResolvedValue(createdDiary);
-      writer.grantDiaryOwner.mockRejectedValue(new Error('Keto unavailable'));
+      writer.grantDiaryTeam.mockRejectedValue(new Error('Keto unavailable'));
       diaryRepo.delete.mockResolvedValue(true);
 
       await expect(
-        service.createDiary({ ownerId: OWNER_ID, name: 'My Diary' }),
+        service.createDiary({
+          createdBy: OWNER_ID,
+          teamId: TEAM_ID,
+          name: 'My Diary',
+        }),
       ).rejects.toThrow('Keto unavailable');
 
       expect(diaryRepo.delete).toHaveBeenCalledWith('new-diary-id');
@@ -348,11 +329,15 @@ describe('DiaryService', () => {
         name: 'My Diary',
       };
       diaryRepo.create.mockResolvedValue(createdDiary);
-      writer.grantDiaryOwner.mockRejectedValue(new Error('Keto unavailable'));
+      writer.grantDiaryTeam.mockRejectedValue(new Error('Keto unavailable'));
       diaryRepo.delete.mockRejectedValue(new Error('DB also down'));
 
       await expect(
-        service.createDiary({ ownerId: OWNER_ID, name: 'My Diary' }),
+        service.createDiary({
+          createdBy: OWNER_ID,
+          teamId: TEAM_ID,
+          name: 'My Diary',
+        }),
       ).rejects.toThrow('Keto unavailable');
     });
 
@@ -363,10 +348,11 @@ describe('DiaryService', () => {
         name: 'My Diary',
       };
       diaryRepo.create.mockResolvedValue(createdDiary);
-      writer.grantDiaryOwner.mockResolvedValue(undefined);
+      writer.grantDiaryTeam.mockResolvedValue(undefined);
 
       const result = await service.createDiary({
-        ownerId: OWNER_ID,
+        createdBy: OWNER_ID,
+        teamId: TEAM_ID,
         name: 'My Diary',
       });
 
@@ -376,25 +362,24 @@ describe('DiaryService', () => {
   });
 
   describe('listDiaries', () => {
-    it('queries Keto first then fetches by IDs', async () => {
-      reader.listDiaryIdsBySubject.mockResolvedValue([DIARY_ID]);
-      diaryRepo.listByIds.mockResolvedValue([MOCK_DIARY]);
+    it('queries Keto for team IDs then fetches diaries by team IDs', async () => {
+      reader.listTeamIdsBySubject.mockResolvedValue([TEAM_ID]);
+      diaryRepo.listByTeamIds.mockResolvedValue([MOCK_DIARY]);
 
       const result = await service.listDiaries(OWNER_ID);
 
-      expect(reader.listDiaryIdsBySubject).toHaveBeenCalledWith(OWNER_ID);
-      expect(diaryRepo.listByIds).toHaveBeenCalledWith([DIARY_ID]);
-      expect(diaryRepo.listByOwner).not.toHaveBeenCalled();
+      expect(reader.listTeamIdsBySubject).toHaveBeenCalledWith(OWNER_ID);
+      expect(diaryRepo.listByTeamIds).toHaveBeenCalledWith([TEAM_ID]);
       expect(result).toEqual([MOCK_DIARY]);
     });
 
-    it('returns empty array when agent has no Keto relations', async () => {
-      reader.listDiaryIdsBySubject.mockResolvedValue([]);
-      diaryRepo.listByIds.mockResolvedValue([]);
+    it('returns empty array when agent has no team relations', async () => {
+      reader.listTeamIdsBySubject.mockResolvedValue([]);
+      diaryRepo.listByTeamIds.mockResolvedValue([]);
 
       const result = await service.listDiaries(OWNER_ID);
 
-      expect(diaryRepo.listByIds).toHaveBeenCalledWith([]);
+      expect(diaryRepo.listByTeamIds).toHaveBeenCalledWith([]);
       expect(result).toEqual([]);
     });
   });
@@ -1160,10 +1145,6 @@ describe('DiaryService — tags filter', () => {
     service = createDiaryService({
       logger,
       diaryRepository: diaryRepo as unknown as DiaryRepository,
-      diaryShareRepository:
-        createMockDiaryShareRepository() as unknown as DiaryShareRepository,
-      agentRepository:
-        createMockAgentLookupRepository() as unknown as AgentLookupRepository,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       entryRelationRepository:
         createMockEntryRelationRepository() as unknown as EntryRelationRepository,

@@ -42,12 +42,15 @@ func newDiaryCreateCmd() *cobra.Command {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			name, _ := cmd.Flags().GetString("name")
 			visibility, _ := cmd.Flags().GetString("visibility")
-			return runDiaryCreateCmd(apiURL, credPath, name, visibility)
+			teamID, _ := cmd.Flags().GetString("team-id")
+			return runDiaryCreateCmd(apiURL, credPath, name, visibility, teamID)
 		},
 	}
 	cmd.Flags().String("name", "", "Diary name (required)")
 	cmd.Flags().String("visibility", "moltnet", "Diary visibility (private, moltnet, public)")
+	cmd.Flags().String("team-id", "", "Team ID that will own the diary (required)")
 	_ = cmd.MarkFlagRequired("name")
+	_ = cmd.MarkFlagRequired("team-id")
 	return cmd
 }
 

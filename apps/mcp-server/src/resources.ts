@@ -114,7 +114,7 @@ export async function handleEntriesRecentResource(
   const { data, error } = await searchDiary({
     client: deps.client,
     auth: () => token,
-    body: { limit: 10, includeShared: true, wRecency: 1.0 },
+    body: { limit: 10, wRecency: 1.0 },
   });
 
   if (error) {

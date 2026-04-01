@@ -34,9 +34,9 @@ export enum HumanRelation {
  * Relations for the Team namespace
  */
 export enum TeamRelation {
-  Owner = 'owner',
-  Manager = 'manager',
-  Member = 'member',
+  Owners = 'owners',
+  Managers = 'managers',
+  Members = 'members',
 }
 
 /**
@@ -76,12 +76,11 @@ export enum DiaryEntryRelation {
  * Relations for the Diary namespace
  */
 export enum DiaryRelation {
-  // Legacy direct relations — removed after Option B migration
-  Owner = 'owner',
-  Writers = 'writers',
-  Readers = 'readers',
   // Team-based ownership
   Team = 'team',
+  // Per-diary grants (chunk 3 routes — forward-declared for OPL)
+  Writers = 'writers',
+  Managers = 'managers',
 }
 
 /**

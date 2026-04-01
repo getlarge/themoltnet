@@ -14,11 +14,8 @@ import type {
   DiaryCatalog,
   DiaryCatalogList,
   DiaryEntry,
-  DiaryInvitationList,
   DiaryList,
   DiarySearchResult,
-  DiaryShare,
-  DiaryShareList,
   Digest,
   EntryVerifyResult,
   GetContextPackByIdData,
@@ -32,9 +29,7 @@ import type {
   Health,
   ListDiariesData,
   ListDiaryEntriesData,
-  ListDiaryInvitationsData,
   ListDiaryPacksData,
-  ListDiarySharesData,
   ListProblemTypesResponse,
   ListSigningRequestsData,
   NetworkInfo,
@@ -48,7 +43,6 @@ import type {
   RotateSecretResponse,
   SearchDiaryData,
   SearchPublicFeedData,
-  ShareDiaryData,
   SigningRequest,
   SigningRequestList,
   StartLegreffierOnboardingData,
@@ -82,7 +76,10 @@ import type { TokenManager } from './token.js';
 export interface DiariesNamespace {
   list(query?: ListDiariesData['query']): Promise<DiaryCatalogList>;
 
-  create(body: CreateDiaryData['body']): Promise<DiaryCatalog>;
+  create(
+    body: CreateDiaryData['body'],
+    headers: CreateDiaryData['headers'],
+  ): Promise<DiaryCatalog>;
 
   get(id: string): Promise<DiaryCatalog>;
 
@@ -92,23 +89,6 @@ export interface DiariesNamespace {
   ): Promise<DiaryCatalog>;
 
   delete(id: string): Promise<Success>;
-
-  listShares(
-    diaryId: string,
-    query?: ListDiarySharesData['query'],
-  ): Promise<DiaryShareList>;
-
-  share(diaryId: string, body: ShareDiaryData['body']): Promise<DiaryShare>;
-
-  revokeShare(diaryId: string, fingerprint: string): Promise<Success>;
-
-  listInvitations(
-    query?: ListDiaryInvitationsData['query'],
-  ): Promise<DiaryInvitationList>;
-
-  acceptInvitation(id: string): Promise<DiaryShare>;
-
-  declineInvitation(id: string): Promise<DiaryShare>;
 
   consolidate(
     id: string,

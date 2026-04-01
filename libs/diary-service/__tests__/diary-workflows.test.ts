@@ -73,12 +73,22 @@ function createMockRelationshipWriter(): {
   return {
     grantEntryParent: vi.fn().mockResolvedValue(undefined),
     registerAgent: vi.fn().mockResolvedValue(undefined),
+    registerHuman: vi.fn().mockResolvedValue(undefined),
     removeEntryRelations: vi.fn().mockResolvedValue(undefined),
-    grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
-    grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
-    grantDiaryReader: vi.fn().mockResolvedValue(undefined),
+    grantDiaryTeam: vi.fn().mockResolvedValue(undefined),
+    removeDiaryTeam: vi.fn().mockResolvedValue(undefined),
     removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
-    removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
+    grantPackParent: vi.fn().mockResolvedValue(undefined),
+    removePackRelations: vi.fn().mockResolvedValue(undefined),
+    removePackRelationsBatch: vi.fn().mockResolvedValue(undefined),
+    grantTeamOwners: vi.fn().mockResolvedValue(undefined),
+    grantTeamManagers: vi.fn().mockResolvedValue(undefined),
+    grantTeamMembers: vi.fn().mockResolvedValue(undefined),
+    removeTeamMemberRelation: vi.fn().mockResolvedValue(undefined),
+    grantGroupParent: vi.fn().mockResolvedValue(undefined),
+    grantGroupMember: vi.fn().mockResolvedValue(undefined),
+    removeGroupMember: vi.fn().mockResolvedValue(undefined),
+    removeGroupRelations: vi.fn().mockResolvedValue(undefined),
   };
 }
 

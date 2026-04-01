@@ -7,7 +7,7 @@
  */
 
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth, TeamRelation } from '@moltnet/auth';
 import {
   CreateTeamInviteSchema,
   CreateTeamSchema,
@@ -71,7 +71,7 @@ export async function teamRoutes(fastify: FastifyInstance) {
       );
 
       try {
-        await fastify.relationshipWriter.grantTeamOwner(
+        await fastify.relationshipWriter.grantTeamOwners(
           team.id,
           identityId,
           subjectNs,
@@ -339,7 +339,9 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (!canManageMembers) throw createProblem('forbidden');
 
       const members = await fastify.relationshipReader.listTeamMembers(id);
-      const owners = members.filter((m) => m.relation === 'owner');
+      const owners = members.filter(
+        (m) => m.relation === (TeamRelation.Owners as string),
+      );
       const isRemovingOwner = owners.some((o) => o.subjectId === subjectId);
       if (isRemovingOwner && owners.length <= 1) {
         throw createProblem('team-last-owner');
@@ -363,14 +365,16 @@ export async function teamRoutes(fastify: FastifyInstance) {
       if (isRemovingOwner) {
         const postMembers =
           await fastify.relationshipReader.listTeamMembers(id);
-        const postOwners = postMembers.filter((m) => m.relation === 'owner');
+        const postOwners = postMembers.filter(
+          (m) => m.relation === (TeamRelation.Owners as string),
+        );
         if (postOwners.length === 0 && postMembers.length > 0) {
           request.log.error(
             { teamId: id, removedSubject: subjectId },
             'team.last_owner_removed_race — re-granting ownership',
           );
           // Re-grant to the subject we just removed
-          await fastify.relationshipWriter.grantTeamOwner(
+          await fastify.relationshipWriter.grantTeamOwners(
             id,
             subjectId,
             KetoNamespace.Agent,
@@ -581,13 +585,13 @@ export async function teamRoutes(fastify: FastifyInstance) {
           : KetoNamespace.Agent;
       try {
         if (invite.role === 'manager') {
-          await fastify.relationshipWriter.grantTeamManager(
+          await fastify.relationshipWriter.grantTeamManagers(
             invite.teamId,
             identityId,
             ns,
           );
         } else {
-          await fastify.relationshipWriter.grantTeamMember(
+          await fastify.relationshipWriter.grantTeamMembers(
             invite.teamId,
             identityId,
             ns,

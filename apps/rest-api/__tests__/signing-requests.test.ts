@@ -169,7 +169,6 @@ function createApp(
       { get: () => vi.fn().mockResolvedValue(null) },
     ) as never,
     relationshipReader: {
-      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamMembers: vi.fn().mockResolvedValue([]),
     } as never,

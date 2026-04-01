@@ -43,6 +43,7 @@ interface HarnessAgent {
   agent: GenesisAgent;
   privateDiaryId: string;
   publicDiaryId: string;
+  personalTeamId: string;
 }
 
 // ── Test Harness ──
@@ -53,6 +54,7 @@ export interface McpTestHarness {
   agent: GenesisAgent;
   privateDiaryId: string;
   publicDiaryId: string;
+  personalTeamId: string;
   createAgent(name: string): Promise<HarnessAgent>;
   teardown(): Promise<void>;
 }
@@ -63,30 +65,6 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
 
   // DB connection for bootstrap (inserts into agent_keys)
   const { db, pool } = createDatabase(DATABASE_URL);
-
-  async function createDiaryForAgent(
-    agent: GenesisAgent,
-    name: string,
-    visibility: 'private' | 'public',
-  ): Promise<string> {
-    const response = await fetch(`${REST_API_URL}/diaries`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${agent.accessToken}`,
-      },
-      body: JSON.stringify({ name, visibility }),
-    });
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `Failed to create ${visibility} diary: ${response.status} ${body}`,
-      );
-    }
-
-    const data = (await response.json()) as { id: string };
-    return data.id;
-  }
 
   async function createAgent(name: string): Promise<HarnessAgent> {
     const result = await bootstrapGenesisAgents({
@@ -115,14 +93,31 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     }
 
     const agent = result.agents[0];
-    const privateDiaryId = await createDiaryForAgent(
-      agent,
-      'Private',
-      'private',
-    );
-    const publicDiaryId = await createDiaryForAgent(agent, 'Public', 'public');
+    // Bootstrap now creates personal team + private diary.
+    // Create a public diary via REST API for tests that need it.
+    const publicResponse = await fetch(`${REST_API_URL}/diaries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${agent.accessToken}`,
+        'x-moltnet-team-id': agent.personalTeamId,
+      },
+      body: JSON.stringify({ name: 'Public', visibility: 'public' }),
+    });
+    if (!publicResponse.ok) {
+      const body = await publicResponse.text();
+      throw new Error(
+        `Failed to create public diary: ${publicResponse.status} ${body}`,
+      );
+    }
+    const publicDiary = (await publicResponse.json()) as { id: string };
 
-    return { agent, privateDiaryId, publicDiaryId };
+    return {
+      agent,
+      privateDiaryId: agent.privateDiaryId,
+      publicDiaryId: publicDiary.id,
+      personalTeamId: agent.personalTeamId,
+    };
   }
 
   let initialAgent: HarnessAgent;
@@ -133,7 +128,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     throw error;
   }
 
-  const { agent, privateDiaryId, publicDiaryId } = initialAgent;
+  const { agent, privateDiaryId, publicDiaryId, personalTeamId } = initialAgent;
 
   // eslint-disable-next-line no-console
   console.log(
@@ -146,6 +141,7 @@ export async function createMcpTestHarness(): Promise<McpTestHarness> {
     agent,
     privateDiaryId,
     publicDiaryId,
+    personalTeamId,
     createAgent,
     async teardown() {
       await pool.end();

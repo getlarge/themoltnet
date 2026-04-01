@@ -35,7 +35,6 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 
 // operationRolesBearerAuth is a private map storing roles per operation.
 var operationRolesBearerAuth = map[string][]string{
-	AcceptDiaryInvitationOperation:         []string{},
 	AddGroupMemberOperation:                []string{},
 	CompileDiaryOperation:                  []string{},
 	ConsolidateDiaryOperation:              []string{},
@@ -47,7 +46,6 @@ var operationRolesBearerAuth = map[string][]string{
 	CreateSigningRequestOperation:          []string{},
 	CreateTeamOperation:                    []string{},
 	CreateTeamInviteOperation:              []string{},
-	DeclineDiaryInvitationOperation:        []string{},
 	DeleteDiaryOperation:                   []string{},
 	DeleteDiaryEntryByIdOperation:          []string{},
 	DeleteEntryRelationOperation:           []string{},
@@ -71,9 +69,7 @@ var operationRolesBearerAuth = map[string][]string{
 	ListActiveVouchersOperation:            []string{},
 	ListDiariesOperation:                   []string{},
 	ListDiaryEntriesOperation:              []string{},
-	ListDiaryInvitationsOperation:          []string{},
 	ListDiaryPacksOperation:                []string{},
-	ListDiarySharesOperation:               []string{},
 	ListDiaryTagsOperation:                 []string{},
 	ListEntryRelationsOperation:            []string{},
 	ListGroupMembersOperation:              []string{},
@@ -88,10 +84,8 @@ var operationRolesBearerAuth = map[string][]string{
 	RemoveGroupMemberOperation:             []string{},
 	RemoveTeamMemberOperation:              []string{},
 	RenderContextPackOperation:             []string{},
-	RevokeDiaryShareOperation:              []string{},
 	RotateClientSecretOperation:            []string{},
 	SearchDiaryOperation:                   []string{},
-	ShareDiaryOperation:                    []string{},
 	SubmitSignatureOperation:               []string{},
 	UpdateContextPackOperation:             []string{},
 	UpdateDiaryOperation:                   []string{},

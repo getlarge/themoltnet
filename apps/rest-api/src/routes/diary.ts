@@ -3,14 +3,13 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
   DiaryParamsSchema,
-  DiaryShareParamsSchema,
-  InvitationIdParamsSchema,
-  NestedDiaryParamsSchema,
   ProblemDetailsSchema,
+  TeamHeaderOptionalSchema,
+  TeamHeaderRequiredSchema,
 } from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
@@ -19,9 +18,6 @@ import { createProblem } from '../problems/index.js';
 import {
   DiaryCatalogListSchema,
   DiaryCatalogSchema,
-  DiaryInvitationListSchema,
-  DiaryShareListSchema,
-  DiaryShareSchema,
   SuccessSchema,
 } from '../schemas.js';
 
@@ -31,11 +27,9 @@ function translateServiceError(err: DiaryServiceError): never {
       throw createProblem('not-found', err.message);
     case 'forbidden':
       throw createProblem('forbidden', err.message);
-    case 'self_share':
     case 'validation_failed':
     case 'wrong_status':
       throw createProblem('validation-failed', err.message);
-    case 'already_shared':
     case 'immutable':
       throw createProblem('conflict', err.message);
     default:
@@ -58,6 +52,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: 'Create a new diary.',
         security: [{ bearerAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
         body: Type.Object({
           name: Type.String({ minLength: 1, maxLength: 255 }),
           visibility: Type.Optional(
@@ -82,11 +77,32 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const { name, visibility } = request.body;
 
+      const teamId = request.authContext!.currentTeamId;
+      if (!teamId) {
+        throw createProblem(
+          'validation-failed',
+          `${TEAM_HEADER} header is required — all diaries must be team-scoped`,
+        );
+      }
+
+      // Diary creation requires Team.write (owners/managers), not just Team.access
+      const canWrite = await fastify.permissionChecker.canWriteTeam(
+        teamId,
+        identityId,
+        subjectNs,
+      );
+      if (!canWrite) {
+        throw createProblem(
+          'forbidden',
+          'Only team owners and managers can create diaries',
+        );
+      }
+
       const diary = await fastify.diaryService.createDiary({
-        ownerId: identityId,
+        createdBy: identityId,
         name,
         visibility,
-        teamId: request.authContext!.currentTeamId ?? undefined,
+        teamId,
         subjectNs,
       });
 
@@ -103,6 +119,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: "List the authenticated agent's diaries.",
         security: [{ bearerAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         response: {
           200: Type.Ref(DiaryCatalogListSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -127,6 +144,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: 'Get a diary by ID.',
         security: [{ bearerAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         response: {
           200: Type.Ref(DiaryCatalogSchema),
@@ -164,6 +182,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: 'Update diary name or visibility.',
         security: [{ bearerAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         body: Type.Object({
           name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
@@ -217,9 +236,9 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'deleteDiary',
         tags: ['diary'],
-        description:
-          'Delete a diary and cascade-delete its entries and shares.',
+        description: 'Delete a diary and cascade-delete its entries.',
         security: [{ bearerAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         response: {
           200: Type.Ref(SuccessSchema),
@@ -256,213 +275,8 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // ── List Diary Shares ──────────────────────────────────────
-  server.get(
-    '/diaries/:diaryId/share',
-    {
-      schema: {
-        operationId: 'listDiaryShares',
-        tags: ['diary'],
-        description: 'List all shares for a diary (owner only).',
-        security: [{ bearerAuth: [] }],
-        params: NestedDiaryParamsSchema,
-        response: {
-          200: Type.Ref(DiaryShareListSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { diaryId } = request.params;
-
-      const diary = await fastify.diaryService.findOwnedDiary(
-        request.authContext!.identityId,
-        diaryId,
-      );
-      if (!diary) {
-        throw createProblem('not-found', 'Diary not found');
-      }
-
-      const shares = await fastify.diaryService.listShares(diary.id);
-      return { shares };
-    },
-  );
-
-  // ── Share Diary (Invite) ────────────────────────────────────
-  server.post(
-    '/diaries/:diaryId/share',
-    {
-      schema: {
-        operationId: 'shareDiary',
-        tags: ['diary'],
-        description: 'Invite another agent to a diary.',
-        security: [{ bearerAuth: [] }],
-        params: NestedDiaryParamsSchema,
-        body: Type.Object({
-          fingerprint: Type.String({
-            pattern:
-              '^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$',
-            description: 'Fingerprint of the agent to invite',
-          }),
-          role: Type.Optional(
-            Type.Union([Type.Literal('reader'), Type.Literal('writer')]),
-          ),
-        }),
-        response: {
-          201: Type.Ref(DiaryShareSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          409: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request, reply) => {
-      const { diaryId } = request.params;
-      const { fingerprint, role } = request.body;
-
-      try {
-        const share = await fastify.diaryService.shareDiary({
-          diaryId,
-          ownerId: request.authContext!.identityId,
-          fingerprint,
-          role,
-        });
-        return await reply.status(201).send(share);
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-    },
-  );
-
-  // ── List Pending Invitations ────────────────────────────────
-  server.get(
-    '/diaries/invitations',
-    {
-      schema: {
-        operationId: 'listDiaryInvitations',
-        tags: ['diary'],
-        description: 'List pending diary share invitations for you.',
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: Type.Ref(DiaryInvitationListSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const invitations = await fastify.diaryService.listInvitations(
-        request.authContext!.identityId,
-      );
-      return { invitations };
-    },
-  );
-
-  // ── Accept Invitation ───────────────────────────────────────
-  server.post(
-    '/diaries/invitations/:id/accept',
-    {
-      schema: {
-        operationId: 'acceptDiaryInvitation',
-        tags: ['diary'],
-        description: 'Accept a pending diary share invitation.',
-        security: [{ bearerAuth: [] }],
-        params: InvitationIdParamsSchema,
-        response: {
-          200: Type.Ref(DiaryShareSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { id } = request.params;
-
-      try {
-        return await fastify.diaryService.acceptInvitation(
-          id,
-          request.authContext!.identityId,
-        );
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-    },
-  );
-
-  // ── Decline Invitation ──────────────────────────────────────
-  server.post(
-    '/diaries/invitations/:id/decline',
-    {
-      schema: {
-        operationId: 'declineDiaryInvitation',
-        tags: ['diary'],
-        description: 'Decline a pending diary share invitation.',
-        security: [{ bearerAuth: [] }],
-        params: InvitationIdParamsSchema,
-        response: {
-          200: Type.Ref(DiaryShareSchema),
-          400: Type.Ref(ProblemDetailsSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { id } = request.params;
-
-      try {
-        return await fastify.diaryService.declineInvitation(
-          id,
-          request.authContext!.identityId,
-        );
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-    },
-  );
-
-  // ── Revoke Diary Share ──────────────────────────────────────
-  server.delete(
-    '/diaries/:diaryId/share/:fingerprint',
-    {
-      schema: {
-        operationId: 'revokeDiaryShare',
-        tags: ['diary'],
-        description: 'Revoke diary access for a specific agent.',
-        security: [{ bearerAuth: [] }],
-        params: DiaryShareParamsSchema,
-        response: {
-          200: Type.Ref(SuccessSchema),
-          401: Type.Ref(ProblemDetailsSchema),
-          404: Type.Ref(ProblemDetailsSchema),
-          500: Type.Ref(ProblemDetailsSchema),
-        },
-      },
-    },
-    async (request) => {
-      const { diaryId, fingerprint } = request.params;
-
-      try {
-        await fastify.diaryService.revokeShare(
-          diaryId,
-          fingerprint,
-          request.authContext!.identityId,
-        );
-        return { success: true };
-      } catch (err) {
-        if (err instanceof DiaryServiceError) translateServiceError(err);
-        throw err;
-      }
-    },
-  );
+  // TODO(chunk-3): per-diary grant routes
+  // POST /diaries/:id/grants — grant writers/managers (agent, human, or group)
+  // DELETE /diaries/:id/grants/:subjectId — revoke grant
+  // GET /diaries/:id/grants — list grants
 }

@@ -16,6 +16,7 @@ const VALID_AUTH_CONTEXT: AuthContext = {
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
   clientId: 'hydra-client-uuid',
   scopes: ['diary:read', 'diary:write', 'agent:profile'],
+  subjectType: 'agent',
   currentTeamId: null,
 };
 
@@ -42,11 +43,9 @@ function createMockRelationshipWriter() {
     grantEntryParent: vi.fn(),
     registerAgent: vi.fn(),
     removeEntryRelations: vi.fn(),
-    grantDiaryOwner: vi.fn(),
-    grantDiaryWriter: vi.fn(),
-    grantDiaryReader: vi.fn(),
+    grantDiaryTeam: vi.fn(),
+    removeDiaryTeam: vi.fn(),
     removeDiaryRelations: vi.fn(),
-    removeDiaryRelationForAgent: vi.fn(),
   };
 }
 
