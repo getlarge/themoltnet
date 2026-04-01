@@ -247,7 +247,7 @@ describe('Group routes', () => {
   describe('POST /groups/:groupId/members', () => {
     beforeEach(() => {
       mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-        { subjectId: OTHER_AGENT_ID, subjectNs: 'Agent', relation: 'member' },
+        { subjectId: OTHER_AGENT_ID, subjectNs: 'Agent', relation: 'members' },
       ]);
       mocks.relationshipWriter.grantGroupMember.mockResolvedValue(undefined);
     });
@@ -275,7 +275,7 @@ describe('Group routes', () => {
 
     it('adds a Human member when subjectNs is Human', async () => {
       mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-        { subjectId: OTHER_AGENT_ID, subjectNs: 'Human', relation: 'member' },
+        { subjectId: OTHER_AGENT_ID, subjectNs: 'Human', relation: 'members' },
       ]);
 
       const res = await app.inject({
@@ -300,7 +300,7 @@ describe('Group routes', () => {
 
     it('rejects Human member added without subjectNs (defaults to Agent, mismatches)', async () => {
       mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-        { subjectId: OTHER_AGENT_ID, subjectNs: 'Human', relation: 'member' },
+        { subjectId: OTHER_AGENT_ID, subjectNs: 'Human', relation: 'members' },
       ]);
 
       const res = await app.inject({

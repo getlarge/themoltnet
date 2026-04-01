@@ -195,12 +195,12 @@ async function main(): Promise<void> {
       }
 
       try {
-        // Update DB
+        // Keto first — PUT is idempotent, safe to re-run if DB fails
+        await grantDiaryTeam(ory, diary.id, personalTeam.id);
+        // Then DB
         await db.execute(
           sql`UPDATE diaries SET team_id = ${personalTeam.id} WHERE id = ${diary.id}`,
         );
-        // Write Keto tuple
-        await grantDiaryTeam(ory, diary.id, personalTeam.id);
         linked.push({
           diaryId: diary.id,
           teamId: personalTeam.id,

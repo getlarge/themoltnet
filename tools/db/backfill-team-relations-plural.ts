@@ -178,6 +178,8 @@ async function main(): Promise<void> {
   const pending: Array<{ old: RelationTuple; replacement: RelationTuple }> = [];
   let totalFound = 0;
 
+  let createFailed = 0;
+
   for (const [singular, plural] of Object.entries(SINGULAR_TO_PLURAL)) {
     const tuples = await listTuples(singular);
     console.log(
@@ -211,11 +213,19 @@ async function main(): Promise<void> {
         console.log(`  created ${tuple.object}#${plural}${label}`);
         pending.push({ old: tuple, replacement });
       } catch (err) {
+        createFailed++;
         console.error(
           `  FAILED to create ${tuple.object}#${plural}${label}: ${err}`,
         );
       }
     }
+  }
+
+  if (createFailed > 0) {
+    console.error(
+      `\nABORTING: ${createFailed} tuple(s) failed to create. Fix the errors above and re-run.`,
+    );
+    process.exit(1);
   }
 
   if (dryRun) {

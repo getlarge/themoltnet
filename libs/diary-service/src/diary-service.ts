@@ -57,7 +57,7 @@ export interface DiaryService {
     input: CreateDiaryInput,
     opts?: { withinTransaction?: boolean },
   ): Promise<Diary>;
-  listDiaries(ownerId: string): Promise<Diary[]>;
+  listDiaries(agentId: string): Promise<Diary[]>;
   findDiary(
     id: string,
     agentId: string,
