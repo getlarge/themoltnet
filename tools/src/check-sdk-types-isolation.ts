@@ -8,7 +8,7 @@
  * imports from the built SDK dist, then runs tsc --noEmit to check for errors.
  *
  * Usage:
- *   tsx scripts/check-sdk-types-isolation.ts
+ *   tsx tools/src/check-sdk-types-isolation.ts
  */
 
 import { execSync } from 'node:child_process';
@@ -16,7 +16,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const root = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+const root = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
 const sdkDist = join(root, 'libs/sdk/dist');
 const sdkTypesEntry = join(sdkDist, 'index.d.ts');
 

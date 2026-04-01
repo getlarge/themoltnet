@@ -20,7 +20,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-const root = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+const root = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
 
 const { values } = parseArgs({
   options: {
