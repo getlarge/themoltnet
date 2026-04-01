@@ -1,14 +1,6 @@
 import { defineConfig } from 'vite';
 
-const otelExternals = [
-  '@opentelemetry/api',
-  '@opentelemetry/instrumentation',
-  '@opentelemetry/instrumentation-dns',
-  '@opentelemetry/instrumentation-http',
-  '@opentelemetry/instrumentation-pino',
-  '@opentelemetry/instrumentation-runtime-node',
-  '@opentelemetry/instrumentation-undici',
-];
+import { otelObservabilityExternals } from '../../vite.shared';
 
 export default defineConfig({
   build: {
@@ -26,7 +18,7 @@ export default defineConfig({
       'pino-opentelemetry-transport',
       'thread-stream',
       '@fastify/otel',
-      ...otelExternals,
+      ...otelObservabilityExternals,
     ],
   },
   test: {
