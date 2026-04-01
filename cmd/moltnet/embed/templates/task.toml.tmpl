@@ -10,9 +10,16 @@ tags = ["moltnet", "tile-eval"]
 timeout_sec = 300.0
 
 [verifier.env]
+JUDGE_SDK = "{{.JudgeSDK}}"
+JUDGE_MODEL = "${JUDGE_MODEL:-{{.JudgeModelDefault}}}"
+{{- if eq .JudgeSDK "claude"}}
 ANTHROPIC_API_KEY = "${ANTHROPIC_API_KEY:-}"
 CLAUDE_CODE_OAUTH_TOKEN = "${CLAUDE_CODE_OAUTH_TOKEN:-}"
-JUDGE_MODEL = "${JUDGE_MODEL:-claude-sonnet-4-6}"
+{{- end}}
+{{- if eq .JudgeSDK "codex"}}
+CODEX_HOME = "/home/agent/.codex"
+OPENAI_API_KEY = "${OPENAI_API_KEY:-}"
+{{- end}}
 
 [agent]
 timeout_sec = 900.0

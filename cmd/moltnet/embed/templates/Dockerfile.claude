@@ -2,6 +2,7 @@ FROM docker/sandbox-templates:claude-code
 
 USER root
 
+# System packages (rarely changes)
 RUN apt-get update && apt-get install -y jq && rm -rf /var/lib/apt/lists/*
 
 # Strip apiKeyHelper so CLAUDE_CODE_OAUTH_TOKEN works
@@ -18,8 +19,8 @@ RUN mkdir -p /home/agent/.claude && \
     echo '{"hasCompletedOnboarding":true}' > /home/agent/.claude.json && \
     chown -R agent:agent /home/agent/.claude /home/agent/.claude.json
 
-# Pre-install judge with dependencies. test.sh runs from /opt/judge
-# where node_modules are already present (no network or write access needed).
+# Pre-install judge with both SDK dependencies (claude + codex).
+# test.sh selects which judge script to run at runtime.
 COPY judge/ /opt/judge/
 RUN cd /opt/judge && npm install --ignore-scripts
 
