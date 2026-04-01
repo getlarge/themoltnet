@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ import (
 
 // runPackRenderCmd renders a pack locally for agent-authored methods and
 // delegates to the server for trusted server-side render methods.
-func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out string) error {
+func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview bool, pinned *bool, out, markdownFile string, markdownStdin bool) error {
 	packUUID, err := uuid.Parse(packID)
 	if err != nil {
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
@@ -28,41 +29,47 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		return err
 	}
 
+	if markdownFile != "" && markdownStdin {
+		return fmt.Errorf("provide at most one of --markdown-file or --markdown-stdin")
+	}
+
 	if strings.HasPrefix(renderMethod, "server:") {
+		if markdownFile != "" || markdownStdin {
+			return fmt.Errorf("server render methods must not be combined with --markdown-file or --markdown-stdin")
+		}
 		return runServerPackRenderCmd(client, packUUID, renderMethod, preview, pinned, out)
 	}
 
-	// Fetch the pack with expanded entries for local rendering
-	expand := moltnetapi.NewOptGetContextPackByIdExpand(
-		moltnetapi.GetContextPackByIdExpandEntries,
-	)
-	res, err := client.GetContextPackById(
-		context.Background(),
-		moltnetapi.GetContextPackByIdParams{
-			ID:     packUUID,
-			Expand: expand,
-		},
+	md, err := resolvePackRenderMarkdown(
+		client,
+		packUUID,
+		markdownFile,
+		markdownStdin,
 	)
 	if err != nil {
-		return fmt.Errorf("fetch pack: %w", err)
+		return err
 	}
-	pack, ok := res.(*moltnetapi.ContextPackResponse)
-	if !ok {
-		return fmt.Errorf("unexpected response type: %T", res)
-	}
-
-	// Non-server methods still persist caller-authored markdown, so the CLI
-	// renders locally before sending the content to the API.
-	md := renderPackMarkdown(packUUID.String(), pack)
 
 	if preview {
+		req := &moltnetapi.PreviewRenderedPackReq{
+			RenderedMarkdown: moltnetapi.NewOptString(md),
+			RenderMethod:     renderMethod,
+		}
+		renderRes, err := executePreviewRenderedPack(client, packUUID, req)
+		if err != nil {
+			return err
+		}
+		result, ok := renderRes.(*moltnetapi.RenderedPackPreview)
+		if !ok {
+			return fmt.Errorf("unexpected response type: %T", renderRes)
+		}
 		if out != "" {
-			if err := os.WriteFile(out, []byte(md), 0644); err != nil {
+			if err := os.WriteFile(out, []byte(result.RenderedMarkdown), 0644); err != nil {
 				return fmt.Errorf("write %s: %w", out, err)
 			}
 			fmt.Fprintf(os.Stderr, "[pack render] preview → %s\n", out)
 		} else {
-			fmt.Print(md)
+			fmt.Print(result.RenderedMarkdown)
 		}
 		return nil
 	}
@@ -95,6 +102,44 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		return printJSON(result)
 	}
 	return nil
+}
+
+func resolvePackRenderMarkdown(client *moltnetapi.Client, packUUID uuid.UUID, markdownFile string, markdownStdin bool) (string, error) {
+	if markdownFile != "" {
+		content, err := os.ReadFile(markdownFile)
+		if err != nil {
+			return "", fmt.Errorf("read %s: %w", markdownFile, err)
+		}
+		return string(content), nil
+	}
+
+	if markdownStdin {
+		content, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return "", fmt.Errorf("read stdin: %w", err)
+		}
+		return string(content), nil
+	}
+
+	expand := moltnetapi.NewOptGetContextPackByIdExpand(
+		moltnetapi.GetContextPackByIdExpandEntries,
+	)
+	res, err := client.GetContextPackById(
+		context.Background(),
+		moltnetapi.GetContextPackByIdParams{
+			ID:     packUUID,
+			Expand: expand,
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("fetch pack: %w", err)
+	}
+	pack, ok := res.(*moltnetapi.ContextPackResponse)
+	if !ok {
+		return "", fmt.Errorf("unexpected response type: %T", res)
+	}
+
+	return renderPackMarkdown(packUUID.String(), pack), nil
 }
 
 func executeRenderContextPack(client *moltnetapi.Client, packUUID uuid.UUID, req *moltnetapi.RenderContextPackReq) (moltnetapi.RenderContextPackRes, error) {

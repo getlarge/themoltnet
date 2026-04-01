@@ -26,12 +26,15 @@ func newPackRenderCmd() *cobra.Command {
 		Short: "Render a context pack to structured markdown",
 		Long: `Render a context pack to structured markdown. By default, uses the
 server-side renderer and persists the rendered pack via the API.
-Use a non-server render method to persist caller-rendered markdown instead.
+For non-server render methods, pass caller-authored markdown via
+--markdown-file or --markdown-stdin, or let the CLI derive markdown from the
+source pack locally.
 Use --preview to return the rendered markdown without persisting.`,
 		Example: `  moltnet pack render <pack-uuid>
   moltnet pack render --preview <pack-uuid>
   moltnet pack render --pinned <pack-uuid>
-  moltnet pack render --render-method agent-refined <pack-uuid>
+  moltnet pack render --render-method agent-refined --markdown-file rendered.md <pack-uuid>
+  cat rendered.md | moltnet pack render --render-method agent-refined --markdown-stdin <pack-uuid>
   moltnet pack render --out rendered.md --preview <pack-uuid>`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -40,6 +43,8 @@ Use --preview to return the rendered markdown without persisting.`,
 			renderMethod, _ := cmd.Flags().GetString("render-method")
 			preview, _ := cmd.Flags().GetBool("preview")
 			out, _ := cmd.Flags().GetString("out")
+			markdownFile, _ := cmd.Flags().GetString("markdown-file")
+			markdownStdin, _ := cmd.Flags().GetBool("markdown-stdin")
 
 			var pinned *bool
 			if cmd.Flags().Changed("pinned") {
@@ -47,13 +52,25 @@ Use --preview to return the rendered markdown without persisting.`,
 				pinned = &v
 			}
 
-			return runPackRenderCmd(apiURL, credPath, args[0], renderMethod, preview, pinned, out)
+			return runPackRenderCmd(
+				apiURL,
+				credPath,
+				args[0],
+				renderMethod,
+				preview,
+				pinned,
+				out,
+				markdownFile,
+				markdownStdin,
+			)
 		},
 	}
 	cmd.Flags().String("render-method", "server:pack-to-docs-v1", "Render method label")
 	cmd.Flags().Bool("preview", false, "Preview without persisting")
 	cmd.Flags().Bool("pinned", false, "Pin the rendered pack")
 	cmd.Flags().String("out", "", "Output file path (default: stdout)")
+	cmd.Flags().String("markdown-file", "", "Read caller-authored markdown from file for non-server render methods")
+	cmd.Flags().Bool("markdown-stdin", false, "Read caller-authored markdown from stdin for non-server render methods")
 	return cmd
 }
 

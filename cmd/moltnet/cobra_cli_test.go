@@ -852,6 +852,12 @@ func TestPackRenderHelp(t *testing.T) {
 	if !strings.Contains(stdout, "--render-method") {
 		t.Errorf("expected help to contain '--render-method', got: %s", stdout)
 	}
+	if !strings.Contains(stdout, "--markdown-file") {
+		t.Errorf("expected help to contain '--markdown-file', got: %s", stdout)
+	}
+	if !strings.Contains(stdout, "--markdown-stdin") {
+		t.Errorf("expected help to contain '--markdown-stdin', got: %s", stdout)
+	}
 }
 
 func TestPackProvenanceRequiresOneSelector(t *testing.T) {
