@@ -28,12 +28,6 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
-	// AcceptDiaryInvitation invokes acceptDiaryInvitation operation.
-	//
-	// Accept a pending diary share invitation.
-	//
-	// POST /diaries/invitations/{id}/accept
-	AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error)
 	// AddGroupMember invokes addGroupMember operation.
 	//
 	// Add a member to a group. Requires manage_members permission.
@@ -102,15 +96,9 @@ type Invoker interface {
 	//
 	// POST /teams/{id}/invites
 	CreateTeamInvite(ctx context.Context, request OptCreateTeamInviteReq, params CreateTeamInviteParams) (CreateTeamInviteRes, error)
-	// DeclineDiaryInvitation invokes declineDiaryInvitation operation.
-	//
-	// Decline a pending diary share invitation.
-	//
-	// POST /diaries/invitations/{id}/decline
-	DeclineDiaryInvitation(ctx context.Context, params DeclineDiaryInvitationParams) (DeclineDiaryInvitationRes, error)
 	// DeleteDiary invokes deleteDiary operation.
 	//
-	// Delete a diary and cascade-delete its entries and shares.
+	// Delete a diary and cascade-delete its entries.
 	//
 	// DELETE /diaries/{id}
 	DeleteDiary(ctx context.Context, params DeleteDiaryParams) (DeleteDiaryRes, error)
@@ -311,24 +299,12 @@ type Invoker interface {
 	//
 	// GET /diaries/{diaryId}/entries
 	ListDiaryEntries(ctx context.Context, params ListDiaryEntriesParams) (ListDiaryEntriesRes, error)
-	// ListDiaryInvitations invokes listDiaryInvitations operation.
-	//
-	// List pending diary share invitations for you.
-	//
-	// GET /diaries/invitations
-	ListDiaryInvitations(ctx context.Context) (ListDiaryInvitationsRes, error)
 	// ListDiaryPacks invokes listDiaryPacks operation.
 	//
 	// List persisted context packs for a diary. Use `expand=entries` to include entry content.
 	//
 	// GET /diaries/{id}/packs
 	ListDiaryPacks(ctx context.Context, params ListDiaryPacksParams) (ListDiaryPacksRes, error)
-	// ListDiaryShares invokes listDiaryShares operation.
-	//
-	// List all shares for a diary (owner only).
-	//
-	// GET /diaries/{diaryId}/share
-	ListDiaryShares(ctx context.Context, params ListDiarySharesParams) (ListDiarySharesRes, error)
 	// ListDiaryTags invokes listDiaryTags operation.
 	//
 	// List distinct tags used across all entries in a diary, with counts.
@@ -434,12 +410,6 @@ type Invoker interface {
 	//
 	// POST /recovery/challenge
 	RequestRecoveryChallenge(ctx context.Context, request *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
-	// RevokeDiaryShare invokes revokeDiaryShare operation.
-	//
-	// Revoke diary access for a specific agent.
-	//
-	// DELETE /diaries/{diaryId}/share/{fingerprint}
-	RevokeDiaryShare(ctx context.Context, params RevokeDiaryShareParams) (RevokeDiaryShareRes, error)
 	// RotateClientSecret invokes rotateClientSecret operation.
 	//
 	// Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is
@@ -459,12 +429,6 @@ type Invoker interface {
 	//
 	// GET /public/feed/search
 	SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error)
-	// ShareDiary invokes shareDiary operation.
-	//
-	// Invite another agent to a diary.
-	//
-	// POST /diaries/{diaryId}/share
-	ShareDiary(ctx context.Context, request *ShareDiaryReq, params ShareDiaryParams) (ShareDiaryRes, error)
 	// StartLegreffierOnboarding invokes startLegreffierOnboarding operation.
 	//
 	// Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No
@@ -569,132 +533,6 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 		return c.serverURL
 	}
 	return u
-}
-
-// AcceptDiaryInvitation invokes acceptDiaryInvitation operation.
-//
-// Accept a pending diary share invitation.
-//
-// POST /diaries/invitations/{id}/accept
-func (c *Client) AcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (AcceptDiaryInvitationRes, error) {
-	res, err := c.sendAcceptDiaryInvitation(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendAcceptDiaryInvitation(ctx context.Context, params AcceptDiaryInvitationParams) (res AcceptDiaryInvitationRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("acceptDiaryInvitation"),
-		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/diaries/invitations/{id}/accept"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, AcceptDiaryInvitationOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/diaries/invitations/"
-	{
-		// Encode "id" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.ID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/accept"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "POST", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, AcceptDiaryInvitationOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeAcceptDiaryInvitationResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
 }
 
 // AddGroupMember invokes addGroupMember operation.
@@ -2061,135 +1899,9 @@ func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeam
 	return result, nil
 }
 
-// DeclineDiaryInvitation invokes declineDiaryInvitation operation.
-//
-// Decline a pending diary share invitation.
-//
-// POST /diaries/invitations/{id}/decline
-func (c *Client) DeclineDiaryInvitation(ctx context.Context, params DeclineDiaryInvitationParams) (DeclineDiaryInvitationRes, error) {
-	res, err := c.sendDeclineDiaryInvitation(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendDeclineDiaryInvitation(ctx context.Context, params DeclineDiaryInvitationParams) (res DeclineDiaryInvitationRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("declineDiaryInvitation"),
-		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/diaries/invitations/{id}/decline"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, DeclineDiaryInvitationOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/diaries/invitations/"
-	{
-		// Encode "id" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.ID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/decline"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "POST", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, DeclineDiaryInvitationOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeDeclineDiaryInvitationResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
 // DeleteDiary invokes deleteDiary operation.
 //
-// Delete a diary and cascade-delete its entries and shares.
+// Delete a diary and cascade-delete its entries.
 //
 // DELETE /diaries/{id}
 func (c *Client) DeleteDiary(ctx context.Context, params DeleteDiaryParams) (DeleteDiaryRes, error) {
@@ -6060,113 +5772,6 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 	return result, nil
 }
 
-// ListDiaryInvitations invokes listDiaryInvitations operation.
-//
-// List pending diary share invitations for you.
-//
-// GET /diaries/invitations
-func (c *Client) ListDiaryInvitations(ctx context.Context) (ListDiaryInvitationsRes, error) {
-	res, err := c.sendListDiaryInvitations(ctx)
-	return res, err
-}
-
-func (c *Client) sendListDiaryInvitations(ctx context.Context) (res ListDiaryInvitationsRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("listDiaryInvitations"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/diaries/invitations"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, ListDiaryInvitationsOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/diaries/invitations"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "GET", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, ListDiaryInvitationsOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeListDiaryInvitationsResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
 // ListDiaryPacks invokes listDiaryPacks operation.
 //
 // List persisted context packs for a diary. Use `expand=entries` to include entry content.
@@ -6341,132 +5946,6 @@ func (c *Client) sendListDiaryPacks(ctx context.Context, params ListDiaryPacksPa
 
 	stage = "DecodeResponse"
 	result, err := decodeListDiaryPacksResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// ListDiaryShares invokes listDiaryShares operation.
-//
-// List all shares for a diary (owner only).
-//
-// GET /diaries/{diaryId}/share
-func (c *Client) ListDiaryShares(ctx context.Context, params ListDiarySharesParams) (ListDiarySharesRes, error) {
-	res, err := c.sendListDiaryShares(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendListDiaryShares(ctx context.Context, params ListDiarySharesParams) (res ListDiarySharesRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("listDiaryShares"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/diaries/{diaryId}/share"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, ListDiarySharesOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/diaries/"
-	{
-		// Encode "diaryId" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "diaryId",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.DiaryId))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/share"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "GET", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, ListDiarySharesOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeListDiarySharesResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -8725,150 +8204,6 @@ func (c *Client) sendRequestRecoveryChallenge(ctx context.Context, request *Requ
 	return result, nil
 }
 
-// RevokeDiaryShare invokes revokeDiaryShare operation.
-//
-// Revoke diary access for a specific agent.
-//
-// DELETE /diaries/{diaryId}/share/{fingerprint}
-func (c *Client) RevokeDiaryShare(ctx context.Context, params RevokeDiaryShareParams) (RevokeDiaryShareRes, error) {
-	res, err := c.sendRevokeDiaryShare(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendRevokeDiaryShare(ctx context.Context, params RevokeDiaryShareParams) (res RevokeDiaryShareRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("revokeDiaryShare"),
-		semconv.HTTPRequestMethodKey.String("DELETE"),
-		semconv.URLTemplateKey.String("/diaries/{diaryId}/share/{fingerprint}"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, RevokeDiaryShareOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [4]string
-	pathParts[0] = "/diaries/"
-	{
-		// Encode "diaryId" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "diaryId",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.DiaryId))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/share/"
-	{
-		// Encode "fingerprint" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "fingerprint",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.Fingerprint))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[3] = encoded
-	}
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "DELETE", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, RevokeDiaryShareOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeRevokeDiaryShareResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
 // RotateClientSecret invokes rotateClientSecret operation.
 //
 // Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is
@@ -9257,135 +8592,6 @@ func (c *Client) sendSearchPublicFeed(ctx context.Context, params SearchPublicFe
 
 	stage = "DecodeResponse"
 	result, err := decodeSearchPublicFeedResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// ShareDiary invokes shareDiary operation.
-//
-// Invite another agent to a diary.
-//
-// POST /diaries/{diaryId}/share
-func (c *Client) ShareDiary(ctx context.Context, request *ShareDiaryReq, params ShareDiaryParams) (ShareDiaryRes, error) {
-	res, err := c.sendShareDiary(ctx, request, params)
-	return res, err
-}
-
-func (c *Client) sendShareDiary(ctx context.Context, request *ShareDiaryReq, params ShareDiaryParams) (res ShareDiaryRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("shareDiary"),
-		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/diaries/{diaryId}/share"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, ShareDiaryOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/diaries/"
-	{
-		// Encode "diaryId" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "diaryId",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.UUIDToString(params.DiaryId))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/share"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "POST", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-	if err := encodeShareDiaryRequest(request, r); err != nil {
-		return res, errors.Wrap(err, "encode request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, ShareDiaryOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeShareDiaryResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

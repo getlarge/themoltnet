@@ -12,22 +12,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type AcceptDiaryInvitationBadRequest ProblemDetails
-
-func (*AcceptDiaryInvitationBadRequest) acceptDiaryInvitationRes() {}
-
-type AcceptDiaryInvitationInternalServerError ProblemDetails
-
-func (*AcceptDiaryInvitationInternalServerError) acceptDiaryInvitationRes() {}
-
-type AcceptDiaryInvitationNotFound ProblemDetails
-
-func (*AcceptDiaryInvitationNotFound) acceptDiaryInvitationRes() {}
-
-type AcceptDiaryInvitationUnauthorized ProblemDetails
-
-func (*AcceptDiaryInvitationUnauthorized) acceptDiaryInvitationRes() {}
-
 type AddGroupMemberBadRequest ProblemDetails
 
 func (*AddGroupMemberBadRequest) addGroupMemberRes() {}
@@ -2833,22 +2817,6 @@ func (s *CustomPackResultParams) init() CustomPackResultParams {
 	return m
 }
 
-type DeclineDiaryInvitationBadRequest ProblemDetails
-
-func (*DeclineDiaryInvitationBadRequest) declineDiaryInvitationRes() {}
-
-type DeclineDiaryInvitationInternalServerError ProblemDetails
-
-func (*DeclineDiaryInvitationInternalServerError) declineDiaryInvitationRes() {}
-
-type DeclineDiaryInvitationNotFound ProblemDetails
-
-func (*DeclineDiaryInvitationNotFound) declineDiaryInvitationRes() {}
-
-type DeclineDiaryInvitationUnauthorized ProblemDetails
-
-func (*DeclineDiaryInvitationUnauthorized) declineDiaryInvitationRes() {}
-
 type DeleteDiaryBadRequest ProblemDetails
 
 func (*DeleteDiaryBadRequest) deleteDiaryRes() {}
@@ -2997,10 +2965,11 @@ func (*DeleteTeamUnauthorized) deleteTeamRes() {}
 // Ref: #/components/schemas/DiaryCatalog
 type DiaryCatalog struct {
 	CreatedAt  time.Time              `json:"createdAt"`
+	CreatedBy  uuid.UUID              `json:"createdBy"`
 	ID         uuid.UUID              `json:"id"`
 	Name       string                 `json:"name"`
-	OwnerId    uuid.UUID              `json:"ownerId"`
 	Signed     bool                   `json:"signed"`
+	TeamId     uuid.UUID              `json:"teamId"`
 	UpdatedAt  time.Time              `json:"updatedAt"`
 	Visibility DiaryCatalogVisibility `json:"visibility"`
 }
@@ -3008,6 +2977,11 @@ type DiaryCatalog struct {
 // GetCreatedAt returns the value of CreatedAt.
 func (s *DiaryCatalog) GetCreatedAt() time.Time {
 	return s.CreatedAt
+}
+
+// GetCreatedBy returns the value of CreatedBy.
+func (s *DiaryCatalog) GetCreatedBy() uuid.UUID {
+	return s.CreatedBy
 }
 
 // GetID returns the value of ID.
@@ -3020,14 +2994,14 @@ func (s *DiaryCatalog) GetName() string {
 	return s.Name
 }
 
-// GetOwnerId returns the value of OwnerId.
-func (s *DiaryCatalog) GetOwnerId() uuid.UUID {
-	return s.OwnerId
-}
-
 // GetSigned returns the value of Signed.
 func (s *DiaryCatalog) GetSigned() bool {
 	return s.Signed
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *DiaryCatalog) GetTeamId() uuid.UUID {
+	return s.TeamId
 }
 
 // GetUpdatedAt returns the value of UpdatedAt.
@@ -3045,6 +3019,11 @@ func (s *DiaryCatalog) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
+// SetCreatedBy sets the value of CreatedBy.
+func (s *DiaryCatalog) SetCreatedBy(val uuid.UUID) {
+	s.CreatedBy = val
+}
+
 // SetID sets the value of ID.
 func (s *DiaryCatalog) SetID(val uuid.UUID) {
 	s.ID = val
@@ -3055,14 +3034,14 @@ func (s *DiaryCatalog) SetName(val string) {
 	s.Name = val
 }
 
-// SetOwnerId sets the value of OwnerId.
-func (s *DiaryCatalog) SetOwnerId(val uuid.UUID) {
-	s.OwnerId = val
-}
-
 // SetSigned sets the value of Signed.
 func (s *DiaryCatalog) SetSigned(val bool) {
 	s.Signed = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *DiaryCatalog) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
 }
 
 // SetUpdatedAt sets the value of UpdatedAt.
@@ -3613,23 +3592,6 @@ func (s *DiaryEntryWithCreatorEntryType) UnmarshalText(data []byte) error {
 	}
 }
 
-// Ref: #/components/schemas/DiaryInvitationList
-type DiaryInvitationList struct {
-	Invitations []DiaryShare `json:"invitations"`
-}
-
-// GetInvitations returns the value of Invitations.
-func (s *DiaryInvitationList) GetInvitations() []DiaryShare {
-	return s.Invitations
-}
-
-// SetInvitations sets the value of Invitations.
-func (s *DiaryInvitationList) SetInvitations(val []DiaryShare) {
-	s.Invitations = val
-}
-
-func (*DiaryInvitationList) listDiaryInvitationsRes() {}
-
 // Ref: #/components/schemas/DiaryList
 type DiaryList struct {
 	Items  []DiaryEntry `json:"items"`
@@ -3708,204 +3670,6 @@ func (s *DiarySearchResult) SetTotal(val float64) {
 }
 
 func (*DiarySearchResult) searchDiaryRes() {}
-
-// Ref: #/components/schemas/DiaryShare
-type DiaryShare struct {
-	DiaryId     uuid.UUID        `json:"diaryId"`
-	ID          uuid.UUID        `json:"id"`
-	InvitedAt   time.Time        `json:"invitedAt"`
-	RespondedAt NilDateTime      `json:"respondedAt"`
-	Role        DiaryShareRole   `json:"role"`
-	SharedWith  uuid.UUID        `json:"sharedWith"`
-	Status      DiaryShareStatus `json:"status"`
-}
-
-// GetDiaryId returns the value of DiaryId.
-func (s *DiaryShare) GetDiaryId() uuid.UUID {
-	return s.DiaryId
-}
-
-// GetID returns the value of ID.
-func (s *DiaryShare) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetInvitedAt returns the value of InvitedAt.
-func (s *DiaryShare) GetInvitedAt() time.Time {
-	return s.InvitedAt
-}
-
-// GetRespondedAt returns the value of RespondedAt.
-func (s *DiaryShare) GetRespondedAt() NilDateTime {
-	return s.RespondedAt
-}
-
-// GetRole returns the value of Role.
-func (s *DiaryShare) GetRole() DiaryShareRole {
-	return s.Role
-}
-
-// GetSharedWith returns the value of SharedWith.
-func (s *DiaryShare) GetSharedWith() uuid.UUID {
-	return s.SharedWith
-}
-
-// GetStatus returns the value of Status.
-func (s *DiaryShare) GetStatus() DiaryShareStatus {
-	return s.Status
-}
-
-// SetDiaryId sets the value of DiaryId.
-func (s *DiaryShare) SetDiaryId(val uuid.UUID) {
-	s.DiaryId = val
-}
-
-// SetID sets the value of ID.
-func (s *DiaryShare) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetInvitedAt sets the value of InvitedAt.
-func (s *DiaryShare) SetInvitedAt(val time.Time) {
-	s.InvitedAt = val
-}
-
-// SetRespondedAt sets the value of RespondedAt.
-func (s *DiaryShare) SetRespondedAt(val NilDateTime) {
-	s.RespondedAt = val
-}
-
-// SetRole sets the value of Role.
-func (s *DiaryShare) SetRole(val DiaryShareRole) {
-	s.Role = val
-}
-
-// SetSharedWith sets the value of SharedWith.
-func (s *DiaryShare) SetSharedWith(val uuid.UUID) {
-	s.SharedWith = val
-}
-
-// SetStatus sets the value of Status.
-func (s *DiaryShare) SetStatus(val DiaryShareStatus) {
-	s.Status = val
-}
-
-func (*DiaryShare) acceptDiaryInvitationRes()  {}
-func (*DiaryShare) declineDiaryInvitationRes() {}
-func (*DiaryShare) shareDiaryRes()             {}
-
-// Ref: #/components/schemas/DiaryShareList
-type DiaryShareList struct {
-	Shares []DiaryShare `json:"shares"`
-}
-
-// GetShares returns the value of Shares.
-func (s *DiaryShareList) GetShares() []DiaryShare {
-	return s.Shares
-}
-
-// SetShares sets the value of Shares.
-func (s *DiaryShareList) SetShares(val []DiaryShare) {
-	s.Shares = val
-}
-
-func (*DiaryShareList) listDiarySharesRes() {}
-
-type DiaryShareRole string
-
-const (
-	DiaryShareRoleReader DiaryShareRole = "reader"
-	DiaryShareRoleWriter DiaryShareRole = "writer"
-)
-
-// AllValues returns all DiaryShareRole values.
-func (DiaryShareRole) AllValues() []DiaryShareRole {
-	return []DiaryShareRole{
-		DiaryShareRoleReader,
-		DiaryShareRoleWriter,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DiaryShareRole) MarshalText() ([]byte, error) {
-	switch s {
-	case DiaryShareRoleReader:
-		return []byte(s), nil
-	case DiaryShareRoleWriter:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DiaryShareRole) UnmarshalText(data []byte) error {
-	switch DiaryShareRole(data) {
-	case DiaryShareRoleReader:
-		*s = DiaryShareRoleReader
-		return nil
-	case DiaryShareRoleWriter:
-		*s = DiaryShareRoleWriter
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type DiaryShareStatus string
-
-const (
-	DiaryShareStatusPending  DiaryShareStatus = "pending"
-	DiaryShareStatusAccepted DiaryShareStatus = "accepted"
-	DiaryShareStatusDeclined DiaryShareStatus = "declined"
-	DiaryShareStatusRevoked  DiaryShareStatus = "revoked"
-)
-
-// AllValues returns all DiaryShareStatus values.
-func (DiaryShareStatus) AllValues() []DiaryShareStatus {
-	return []DiaryShareStatus{
-		DiaryShareStatusPending,
-		DiaryShareStatusAccepted,
-		DiaryShareStatusDeclined,
-		DiaryShareStatusRevoked,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DiaryShareStatus) MarshalText() ([]byte, error) {
-	switch s {
-	case DiaryShareStatusPending:
-		return []byte(s), nil
-	case DiaryShareStatusAccepted:
-		return []byte(s), nil
-	case DiaryShareStatusDeclined:
-		return []byte(s), nil
-	case DiaryShareStatusRevoked:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DiaryShareStatus) UnmarshalText(data []byte) error {
-	switch DiaryShareStatus(data) {
-	case DiaryShareStatusPending:
-		*s = DiaryShareStatusPending
-		return nil
-	case DiaryShareStatusAccepted:
-		*s = DiaryShareStatusAccepted
-		return nil
-	case DiaryShareStatusDeclined:
-		*s = DiaryShareStatusDeclined
-		return nil
-	case DiaryShareStatusRevoked:
-		*s = DiaryShareStatusRevoked
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 // Ref: #/components/schemas/DiaryTagsResponse
 type DiaryTagsResponse struct {
@@ -6104,14 +5868,6 @@ type ListDiaryEntriesUnauthorized ProblemDetails
 
 func (*ListDiaryEntriesUnauthorized) listDiaryEntriesRes() {}
 
-type ListDiaryInvitationsInternalServerError ProblemDetails
-
-func (*ListDiaryInvitationsInternalServerError) listDiaryInvitationsRes() {}
-
-type ListDiaryInvitationsUnauthorized ProblemDetails
-
-func (*ListDiaryInvitationsUnauthorized) listDiaryInvitationsRes() {}
-
 type ListDiaryPacksExpand string
 
 const (
@@ -6161,18 +5917,6 @@ func (*ListDiaryPacksNotFound) listDiaryPacksRes() {}
 type ListDiaryPacksUnauthorized ProblemDetails
 
 func (*ListDiaryPacksUnauthorized) listDiaryPacksRes() {}
-
-type ListDiarySharesInternalServerError ProblemDetails
-
-func (*ListDiarySharesInternalServerError) listDiarySharesRes() {}
-
-type ListDiarySharesNotFound ProblemDetails
-
-func (*ListDiarySharesNotFound) listDiarySharesRes() {}
-
-type ListDiarySharesUnauthorized ProblemDetails
-
-func (*ListDiarySharesUnauthorized) listDiarySharesRes() {}
 
 type ListDiaryTagsInternalServerError ProblemDetails
 
@@ -9139,52 +8883,6 @@ func (o OptSearchDiaryReq) Or(d SearchDiaryReq) SearchDiaryReq {
 	return d
 }
 
-// NewOptShareDiaryReqRole returns new OptShareDiaryReqRole with value set to v.
-func NewOptShareDiaryReqRole(v ShareDiaryReqRole) OptShareDiaryReqRole {
-	return OptShareDiaryReqRole{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptShareDiaryReqRole is optional ShareDiaryReqRole.
-type OptShareDiaryReqRole struct {
-	Value ShareDiaryReqRole
-	Set   bool
-}
-
-// IsSet returns true if OptShareDiaryReqRole was set.
-func (o OptShareDiaryReqRole) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptShareDiaryReqRole) Reset() {
-	var v ShareDiaryReqRole
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptShareDiaryReqRole) SetTo(v ShareDiaryReqRole) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptShareDiaryReqRole) Get() (v ShareDiaryReqRole, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptShareDiaryReqRole) Or(d ShareDiaryReqRole) ShareDiaryReqRole {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{
@@ -12071,18 +11769,6 @@ func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
 
-type RevokeDiaryShareInternalServerError ProblemDetails
-
-func (*RevokeDiaryShareInternalServerError) revokeDiaryShareRes() {}
-
-type RevokeDiaryShareNotFound ProblemDetails
-
-func (*RevokeDiaryShareNotFound) revokeDiaryShareRes() {}
-
-type RevokeDiaryShareUnauthorized ProblemDetails
-
-func (*RevokeDiaryShareUnauthorized) revokeDiaryShareRes() {}
-
 type RotateClientSecretBadGateway ProblemDetails
 
 func (*RotateClientSecretBadGateway) rotateClientSecretRes() {}
@@ -12132,7 +11818,6 @@ type SearchDiaryReq struct {
 	EntryTypes        []SearchDiaryReqEntryTypesItem `json:"entryTypes"`
 	ExcludeSuperseded OptBool                        `json:"excludeSuperseded"`
 	ExcludeTags       []string                       `json:"excludeTags"`
-	IncludeShared     OptBool                        `json:"includeShared"`
 	Limit             OptFloat64                     `json:"limit"`
 	Offset            OptFloat64                     `json:"offset"`
 	Query             OptString                      `json:"query"`
@@ -12160,11 +11845,6 @@ func (s *SearchDiaryReq) GetExcludeSuperseded() OptBool {
 // GetExcludeTags returns the value of ExcludeTags.
 func (s *SearchDiaryReq) GetExcludeTags() []string {
 	return s.ExcludeTags
-}
-
-// GetIncludeShared returns the value of IncludeShared.
-func (s *SearchDiaryReq) GetIncludeShared() OptBool {
-	return s.IncludeShared
 }
 
 // GetLimit returns the value of Limit.
@@ -12220,11 +11900,6 @@ func (s *SearchDiaryReq) SetExcludeSuperseded(val OptBool) {
 // SetExcludeTags sets the value of ExcludeTags.
 func (s *SearchDiaryReq) SetExcludeTags(val []string) {
 	s.ExcludeTags = val
-}
-
-// SetIncludeShared sets the value of IncludeShared.
-func (s *SearchDiaryReq) SetIncludeShared(val OptBool) {
-	s.IncludeShared = val
 }
 
 // SetLimit sets the value of Limit.
@@ -12346,93 +12021,6 @@ func (*SearchPublicFeedInternalServerError) searchPublicFeedRes() {}
 type SearchPublicFeedTooManyRequests ProblemDetails
 
 func (*SearchPublicFeedTooManyRequests) searchPublicFeedRes() {}
-
-type ShareDiaryBadRequest ProblemDetails
-
-func (*ShareDiaryBadRequest) shareDiaryRes() {}
-
-type ShareDiaryConflict ProblemDetails
-
-func (*ShareDiaryConflict) shareDiaryRes() {}
-
-type ShareDiaryInternalServerError ProblemDetails
-
-func (*ShareDiaryInternalServerError) shareDiaryRes() {}
-
-type ShareDiaryNotFound ProblemDetails
-
-func (*ShareDiaryNotFound) shareDiaryRes() {}
-
-type ShareDiaryReq struct {
-	// Fingerprint of the agent to invite.
-	Fingerprint string               `json:"fingerprint"`
-	Role        OptShareDiaryReqRole `json:"role"`
-}
-
-// GetFingerprint returns the value of Fingerprint.
-func (s *ShareDiaryReq) GetFingerprint() string {
-	return s.Fingerprint
-}
-
-// GetRole returns the value of Role.
-func (s *ShareDiaryReq) GetRole() OptShareDiaryReqRole {
-	return s.Role
-}
-
-// SetFingerprint sets the value of Fingerprint.
-func (s *ShareDiaryReq) SetFingerprint(val string) {
-	s.Fingerprint = val
-}
-
-// SetRole sets the value of Role.
-func (s *ShareDiaryReq) SetRole(val OptShareDiaryReqRole) {
-	s.Role = val
-}
-
-type ShareDiaryReqRole string
-
-const (
-	ShareDiaryReqRoleReader ShareDiaryReqRole = "reader"
-	ShareDiaryReqRoleWriter ShareDiaryReqRole = "writer"
-)
-
-// AllValues returns all ShareDiaryReqRole values.
-func (ShareDiaryReqRole) AllValues() []ShareDiaryReqRole {
-	return []ShareDiaryReqRole{
-		ShareDiaryReqRoleReader,
-		ShareDiaryReqRoleWriter,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ShareDiaryReqRole) MarshalText() ([]byte, error) {
-	switch s {
-	case ShareDiaryReqRoleReader:
-		return []byte(s), nil
-	case ShareDiaryReqRoleWriter:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ShareDiaryReqRole) UnmarshalText(data []byte) error {
-	switch ShareDiaryReqRole(data) {
-	case ShareDiaryReqRoleReader:
-		*s = ShareDiaryReqRoleReader
-		return nil
-	case ShareDiaryReqRoleWriter:
-		*s = ShareDiaryReqRoleWriter
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type ShareDiaryUnauthorized ProblemDetails
-
-func (*ShareDiaryUnauthorized) shareDiaryRes() {}
 
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
@@ -12783,7 +12371,6 @@ func (s *Success) SetSuccess(val bool) {
 
 func (*Success) deleteDiaryEntryByIdRes() {}
 func (*Success) deleteDiaryRes()          {}
-func (*Success) revokeDiaryShareRes()     {}
 
 type UpdateContextPackBadRequest ProblemDetails
 
