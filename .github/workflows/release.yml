@@ -28,11 +28,11 @@ jobs:
     outputs:
       sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
-      api-client-release-created: ${{ steps.release.outputs['cmd/moltnet-api-client--release_created'] }}
-      api-client-tag-name: ${{ steps.release.outputs['cmd/moltnet-api-client--tag_name'] }}
-      api-client-version: ${{ steps.release.outputs['cmd/moltnet-api-client--version'] }}
-      cli-release-created: ${{ steps.release.outputs['cmd/moltnet--release_created'] }}
-      cli-tag-name: ${{ steps.release.outputs['cmd/moltnet--tag_name'] }}
+      api-client-release-created: ${{ steps.release.outputs['libs/moltnet-api-client--release_created'] }}
+      api-client-tag-name: ${{ steps.release.outputs['libs/moltnet-api-client--tag_name'] }}
+      api-client-version: ${{ steps.release.outputs['libs/moltnet-api-client--version'] }}
+      cli-release-created: ${{ steps.release.outputs['apps/moltnet-cli--release_created'] }}
+      cli-tag-name: ${{ steps.release.outputs['apps/moltnet-cli--tag_name'] }}
       github-agent-release-created: ${{ steps.release.outputs['packages/github-agent--release_created'] }}
       github-agent-tag-name: ${{ steps.release.outputs['packages/github-agent--tag_name'] }}
       skill-release-created: ${{ steps.release.outputs['packages/openclaw-skill--release_created'] }}
@@ -256,12 +256,12 @@ jobs:
           fetch-depth: 0
 
       - name: Push Go module proxy tag
-        # The Go module proxy resolves github.com/getlarge/themoltnet/cmd/moltnet-api-client@vX.Y.Z
-        # by looking for a git tag of the form "cmd/moltnet-api-client/vX.Y.Z".
+        # The Go module proxy resolves github.com/getlarge/themoltnet/go/moltnet-api-client@vX.Y.Z
+        # by looking for a git tag of the form "go/moltnet-api-client/vX.Y.Z".
         # release-please creates the component tag "moltnet-api-client-vX.Y.Z"; we push the
         # additional tag that the Go toolchain needs.
         run: |
-          TAG="cmd/moltnet-api-client/v${{ needs.resolve-publish.outputs.api-client-version }}"
+          TAG="go/moltnet-api-client/v${{ needs.resolve-publish.outputs.api-client-version }}"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists, skipping"
           else
@@ -303,7 +303,7 @@ jobs:
           # back to the version recorded in the manifest.
           API_CLIENT_VER="${{ needs.resolve-publish.outputs.api-client-version }}"
           if [ -z "$API_CLIENT_VER" ]; then
-            API_CLIENT_VER=$(jq -r '.["cmd/moltnet-api-client"]' .release-please-manifest.json)
+            API_CLIENT_VER=$(jq -r '.["libs/moltnet-api-client"]' .release-please-manifest.json)
           fi
           echo "api_client_version=v${API_CLIENT_VER}" >> "$GITHUB_OUTPUT"
 
@@ -320,8 +320,9 @@ jobs:
         with:
           version: '~> v2'
           args: release --clean --skip=validate
-          workdir: cmd/moltnet
+          workdir: apps/moltnet-cli
         env:
+          GOWORK: off
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
           API_CLIENT_VERSION: ${{ steps.tag.outputs.api_client_version }}
           HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -329,9 +330,9 @@ jobs:
       - name: Upload binaries to GitHub Release
         run: |
           gh release upload "${{ needs.resolve-publish.outputs.cli-tag }}" \
-            cmd/moltnet/dist/*.tar.gz \
-            cmd/moltnet/dist/*.zip \
-            cmd/moltnet/dist/checksums.txt
+            apps/moltnet-cli/dist/*.tar.gz \
+            apps/moltnet-cli/dist/*.zip \
+            apps/moltnet-cli/dist/checksums.txt
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

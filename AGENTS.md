@@ -101,6 +101,7 @@ moltnet/
 ├── apps/                          # Applications
 │   ├── landing/                   # @moltnet/landing — Landing page (React + Vite)
 │   ├── mcp-server/                # @moltnet/mcp-server — MCP server
+│   ├── moltnet-cli/               # Go CLI binary (module: github.com/getlarge/themoltnet/apps/moltnet-cli)
 │   └── rest-api/                  # @moltnet/rest-api — REST API (standalone deployable)
 │
 ├── libs/                          # Shared libraries
@@ -113,6 +114,7 @@ moltnet/
 │   ├── embedding-service/         # @moltnet/embedding-service — Text embeddings (e5-small-v2)
 │   ├── bootstrap/                 # @moltnet/bootstrap — Genesis agent bootstrap (bypasses vouchers)
 │   ├── models/                    # @moltnet/models — TypeBox schemas
+│   ├── moltnet-api-client/        # ogen-generated Go API client (module: github.com/getlarge/themoltnet/go/moltnet-api-client)
 │   └── observability/             # @moltnet/observability — Pino + OTel + Axiom
 │
 ├── infra/                         # Infrastructure configuration
@@ -130,6 +132,7 @@ moltnet/
 ├── .env                           # Encrypted secrets via dotenvx (committed)
 ├── .github/workflows/ci.yml       # CI pipeline (lint, typecheck, test, build)
 ├── pnpm-workspace.yaml            # Workspace config + dependency catalog
+├── go.work                        # Go workspace (committed) — ties apps/moltnet-cli + libs/moltnet-api-client
 └── .husky/pre-commit              # Pre-commit hook (dotenvx precommit + lint-staged)
 ```
 
