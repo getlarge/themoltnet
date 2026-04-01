@@ -220,17 +220,24 @@ async function createGenesisAgent(opts: {
   opts.log(`  Registered in Keto`);
 
   // 5. Create personal team + private diary (mirrors registration workflow)
+  // Keto PUTs are idempotent — safe to re-run. Compensate DB on Keto failure
+  // to avoid orphan rows that are inaccessible via permission checks.
   const personalTeam = await opts.teamRepository.create({
     name: keyPair.fingerprint,
     personal: true,
     createdBy: identityId,
     status: 'active',
   });
-  await opts.relationshipWriter.grantTeamOwners(
-    personalTeam.id,
-    identityId,
-    KetoNamespace.Agent,
-  );
+  try {
+    await opts.relationshipWriter.grantTeamOwners(
+      personalTeam.id,
+      identityId,
+      KetoNamespace.Agent,
+    );
+  } catch (err) {
+    await opts.teamRepository.delete(personalTeam.id).catch(() => {});
+    throw err;
+  }
   opts.log(`  Personal team created: ${personalTeam.id}`);
 
   const privateDiary = await opts.diaryRepository.create({
@@ -239,10 +246,15 @@ async function createGenesisAgent(opts: {
     visibility: 'private',
     teamId: personalTeam.id,
   });
-  await opts.relationshipWriter.grantDiaryTeam(
-    privateDiary.id,
-    personalTeam.id,
-  );
+  try {
+    await opts.relationshipWriter.grantDiaryTeam(
+      privateDiary.id,
+      personalTeam.id,
+    );
+  } catch (err) {
+    await opts.diaryRepository.delete(privateDiary.id).catch(() => {});
+    throw err;
+  }
   opts.log(`  Private diary created: ${privateDiary.id}`);
 
   // 6. Create OAuth2 client in Hydra via admin API

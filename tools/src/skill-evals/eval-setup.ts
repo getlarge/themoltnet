@@ -130,16 +130,11 @@ async function setup(): Promise<void> {
     apiUrl: API_URL,
   });
 
-  // Resolve personal team ID from existing diaries (bootstrap creates a
-  // private diary whose teamId is the personal team).
-  const diaryList = await sdk.diaries.list();
-  const existingDiary = diaryList.items[0] as
-    | ((typeof diaryList.items)[0] & { teamId?: string })
-    | undefined;
-  const personalTeamId = existingDiary?.teamId;
+  // Use personalTeamId from bootstrap result (available since Option B)
+  const personalTeamId = agent.personalTeamId;
   if (!personalTeamId) {
     throw new Error(
-      'Cannot resolve personal team ID — no diary with teamId found',
+      'Cannot resolve personal team ID — bootstrap did not return personalTeamId',
     );
   }
 

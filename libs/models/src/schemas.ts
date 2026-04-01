@@ -410,7 +410,8 @@ export type AddGroupMember = Static<typeof AddGroupMemberSchema>;
 /** Required x-moltnet-team-id header schema for routes that need team context */
 export const TeamHeaderRequiredSchema = Type.Object({
   'x-moltnet-team-id': Type.String({
-    description: 'Team ID that will own the resource. Required.',
+    format: 'uuid',
+    description: 'Team ID (UUID) that will own the resource. Required.',
   }),
 });
 
@@ -418,7 +419,8 @@ export const TeamHeaderRequiredSchema = Type.Object({
 export const TeamHeaderOptionalSchema = Type.Object({
   'x-moltnet-team-id': Type.Optional(
     Type.String({
-      description: 'Team ID for scoping the request. Optional.',
+      format: 'uuid',
+      description: 'Team ID (UUID) for scoping the request. Optional.',
     }),
   ),
 });
