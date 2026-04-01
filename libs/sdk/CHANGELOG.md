@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.86.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.85.0...sdk-v0.86.0) (2026-04-01)
+
+
+### Features
+
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+
 ## [0.85.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.84.0...sdk-v0.85.0) (2026-04-01)
 
 

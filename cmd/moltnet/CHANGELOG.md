@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/getlarge/themoltnet/compare/cli-v1.5.0...cli-v1.6.0) (2026-04-01)
+
+
+### Features
+
+* Option B chunk 2 — team-only diary permissions ([0143a31](https://github.com/getlarge/themoltnet/commit/0143a31f8136487308aaad29f17e68dc72df469d))
+
+
+### Bug Fixes
+
+* **go-cli:** use uuid.MustParse for XMoltnetTeamID after format:uuid schema ([1dbddae](https://github.com/getlarge/themoltnet/commit/1dbddae4a86ce56f12f940a529684a612be48b91))
+
 ## [1.5.0](https://github.com/getlarge/themoltnet/compare/cli-v1.4.1...cli-v1.5.0) (2026-04-01)
 
 
