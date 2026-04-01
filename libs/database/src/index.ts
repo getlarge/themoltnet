@@ -34,6 +34,10 @@ export {
   createAgentRepository,
 } from './repositories/agent.repository.js';
 export {
+  type AttestationRepository,
+  createAttestationRepository,
+} from './repositories/attestation.repository.js';
+export {
   type ContextPackRepository,
   type ContextPackWithCreator,
   createContextPackRepository,
