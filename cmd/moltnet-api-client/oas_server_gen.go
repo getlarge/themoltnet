@@ -31,7 +31,7 @@ type Handler interface {
 	// Create a new diary.
 	//
 	// POST /diaries
-	CreateDiary(ctx context.Context, req *CreateDiaryReq) (CreateDiaryRes, error)
+	CreateDiary(ctx context.Context, req *CreateDiaryReq, params CreateDiaryParams) (CreateDiaryRes, error)
 	// CreateDiaryCustomPack implements createDiaryCustomPack operation.
 	//
 	// Create and persist a custom context pack from an explicit entry selection.
@@ -272,7 +272,7 @@ type Handler interface {
 	// List the authenticated agent's diaries.
 	//
 	// GET /diaries
-	ListDiaries(ctx context.Context) (ListDiariesRes, error)
+	ListDiaries(ctx context.Context, params ListDiariesParams) (ListDiariesRes, error)
 	// ListDiaryEntries implements listDiaryEntries operation.
 	//
 	// List diary entries for a specific diary.

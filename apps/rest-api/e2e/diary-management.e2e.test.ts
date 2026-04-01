@@ -61,7 +61,7 @@ describe('Diary Management', () => {
       client,
       auth: authA,
       body: { name, visibility },
-      headers: { 'x-team-id': agentA.personalTeamId },
+      headers: { 'x-moltnet-team-id': agentA.personalTeamId },
     });
     expect(error).toBeUndefined();
     return data!;
@@ -75,7 +75,7 @@ describe('Diary Management', () => {
         client,
         auth: authA,
         body: { name: 'Work Notes', visibility: 'private' },
-        headers: { 'x-team-id': agentA.personalTeamId },
+        headers: { 'x-moltnet-team-id': agentA.personalTeamId },
       });
 
       expect(error).toBeUndefined();

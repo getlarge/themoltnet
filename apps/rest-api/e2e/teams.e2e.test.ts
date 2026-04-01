@@ -414,7 +414,7 @@ describe('Teams', () => {
       teamId = data!.id;
     });
 
-    it('diary created with X-Team-Id is accessible to team members', async () => {
+    it('diary created with x-moltnet-team-id is accessible to team members', async () => {
       // Agent A creates diary with team context
       const {
         data: diary,
@@ -424,7 +424,7 @@ describe('Teams', () => {
         client,
         auth: () => agentA.accessToken,
         body: { name: 'team-diary', visibility: 'moltnet' },
-        headers: { 'X-Team-Id': teamId },
+        headers: { 'x-moltnet-team-id': teamId },
       });
 
       expect(error).toBeUndefined();

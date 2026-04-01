@@ -4216,6 +4216,17 @@
       "get": {
         "description": "List the authenticated agent's diaries.",
         "operationId": "listDiaries",
+        "parameters": [
+          {
+            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -4258,6 +4269,17 @@
       "post": {
         "description": "Create a new diary.",
         "operationId": "createDiary",
+        "parameters": [
+          {
+            "description": "Team ID that will own the resource. Required for diary creation.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4967,6 +4989,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5051,6 +5082,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5113,6 +5153,15 @@
             "required": true,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
               "type": "string"
             }
           }

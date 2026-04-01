@@ -45,7 +45,7 @@ func (UnimplementedHandler) ConsolidateDiary(ctx context.Context, req OptConsoli
 // Create a new diary.
 //
 // POST /diaries
-func (UnimplementedHandler) CreateDiary(ctx context.Context, req *CreateDiaryReq) (r CreateDiaryRes, _ error) {
+func (UnimplementedHandler) CreateDiary(ctx context.Context, req *CreateDiaryReq, params CreateDiaryParams) (r CreateDiaryRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -404,7 +404,7 @@ func (UnimplementedHandler) ListActiveVouchers(ctx context.Context) (r ListActiv
 // List the authenticated agent's diaries.
 //
 // GET /diaries
-func (UnimplementedHandler) ListDiaries(ctx context.Context) (r ListDiariesRes, _ error) {
+func (UnimplementedHandler) ListDiaries(ctx context.Context, params ListDiariesParams) (r ListDiariesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -51,7 +51,7 @@ type Invoker interface {
 	// Create a new diary.
 	//
 	// POST /diaries
-	CreateDiary(ctx context.Context, request *CreateDiaryReq) (CreateDiaryRes, error)
+	CreateDiary(ctx context.Context, request *CreateDiaryReq, params CreateDiaryParams) (CreateDiaryRes, error)
 	// CreateDiaryCustomPack invokes createDiaryCustomPack operation.
 	//
 	// Create and persist a custom context pack from an explicit entry selection.
@@ -292,7 +292,7 @@ type Invoker interface {
 	// List the authenticated agent's diaries.
 	//
 	// GET /diaries
-	ListDiaries(ctx context.Context) (ListDiariesRes, error)
+	ListDiaries(ctx context.Context, params ListDiariesParams) (ListDiariesRes, error)
 	// ListDiaryEntries invokes listDiaryEntries operation.
 	//
 	// List diary entries for a specific diary.
@@ -927,12 +927,12 @@ func (c *Client) sendConsolidateDiary(ctx context.Context, request OptConsolidat
 // Create a new diary.
 //
 // POST /diaries
-func (c *Client) CreateDiary(ctx context.Context, request *CreateDiaryReq) (CreateDiaryRes, error) {
-	res, err := c.sendCreateDiary(ctx, request)
+func (c *Client) CreateDiary(ctx context.Context, request *CreateDiaryReq, params CreateDiaryParams) (CreateDiaryRes, error) {
+	res, err := c.sendCreateDiary(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq) (res CreateDiaryRes, err error) {
+func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq, params CreateDiaryParams) (res CreateDiaryRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createDiary"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -980,6 +980,20 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq) (
 	}
 	if err := encodeCreateDiaryRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -1972,6 +1986,23 @@ func (c *Client) sendDeleteDiary(ctx context.Context, params DeleteDiaryParams) 
 	r, err := ht.NewRequest(ctx, "DELETE", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -3380,6 +3411,23 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -5455,12 +5503,12 @@ func (c *Client) sendListActiveVouchers(ctx context.Context) (res ListActiveVouc
 // List the authenticated agent's diaries.
 //
 // GET /diaries
-func (c *Client) ListDiaries(ctx context.Context) (ListDiariesRes, error) {
-	res, err := c.sendListDiaries(ctx)
+func (c *Client) ListDiaries(ctx context.Context, params ListDiariesParams) (ListDiariesRes, error) {
+	res, err := c.sendListDiaries(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendListDiaries(ctx context.Context) (res ListDiariesRes, err error) {
+func (c *Client) sendListDiaries(ctx context.Context, params ListDiariesParams) (res ListDiariesRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listDiaries"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -5505,6 +5553,23 @@ func (c *Client) sendListDiaries(ctx context.Context) (res ListDiariesRes, err e
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{
@@ -9011,6 +9076,23 @@ func (c *Client) sendUpdateDiary(ctx context.Context, request OptUpdateDiaryReq,
 	}
 	if err := encodeUpdateDiaryRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{

@@ -966,6 +966,12 @@ export type GetHealthResponse = GetHealthResponses[keyof GetHealthResponses];
 
 export type ListDiariesData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path?: never;
   query?: never;
   url: '/diaries';
@@ -998,6 +1004,12 @@ export type CreateDiaryData = {
   body: {
     name: string;
     visibility?: 'private' | 'moltnet' | 'public';
+  };
+  headers: {
+    /**
+     * Team ID that will own the resource. Required for diary creation.
+     */
+    'x-moltnet-team-id': string;
   };
   path?: never;
   query?: never;
@@ -1033,6 +1045,12 @@ export type CreateDiaryResponse =
 
 export type DeleteDiaryData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     /**
      * UUID v4 identifier
@@ -1080,6 +1098,12 @@ export type DeleteDiaryResponse =
 
 export type GetDiaryData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     /**
      * UUID v4 identifier
@@ -1120,6 +1144,12 @@ export type UpdateDiaryData = {
   body?: {
     name?: string;
     visibility?: 'private' | 'moltnet' | 'public';
+  };
+  headers?: {
+    /**
+     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     */
+    'x-moltnet-team-id'?: string;
   };
   path: {
     /**

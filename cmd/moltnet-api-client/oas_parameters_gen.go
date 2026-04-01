@@ -213,6 +213,62 @@ func decodeConsolidateDiaryParams(args [1]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// CreateDiaryParams is parameters of createDiary operation.
+type CreateDiaryParams struct {
+	// Team ID that will own the resource. Required for diary creation.
+	XMoltnetTeamID string
+}
+
+func unpackCreateDiaryParams(packed middleware.Parameters) (params CreateDiaryParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(string)
+	}
+	return params
+}
+
+func decodeCreateDiaryParams(args [0]string, argsEscaped bool, r *http.Request) (params CreateDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateDiaryCustomPackParams is parameters of createDiaryCustomPack operation.
 type CreateDiaryCustomPackParams struct {
 	// UUID v4 identifier.
@@ -547,6 +603,8 @@ func decodeCreateTeamInviteParams(args [1]string, argsEscaped bool, r *http.Requ
 type DeleteDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
+	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
 }
 
 func unpackDeleteDiaryParams(packed middleware.Parameters) (params DeleteDiaryParams) {
@@ -557,10 +615,20 @@ func unpackDeleteDiaryParams(packed middleware.Parameters) (params DeleteDiaryPa
 		}
 		params.ID = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptString)
+		}
+	}
 	return params
 }
 
 func decodeDeleteDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -603,6 +671,45 @@ func decodeDeleteDiaryParams(args [1]string, argsEscaped bool, r *http.Request) 
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -1497,6 +1604,8 @@ func decodeGetContextPackProvenanceByIdParams(args [1]string, argsEscaped bool, 
 type GetDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
+	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
 }
 
 func unpackGetDiaryParams(packed middleware.Parameters) (params GetDiaryParams) {
@@ -1507,10 +1616,20 @@ func unpackGetDiaryParams(packed middleware.Parameters) (params GetDiaryParams) 
 		}
 		params.ID = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptString)
+		}
+	}
 	return params
 }
 
 func decodeGetDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params GetDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -1553,6 +1672,45 @@ func decodeGetDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (pa
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -2618,6 +2776,69 @@ func decodeGetTrustGraphParams(args [0]string, argsEscaped bool, r *http.Request
 		return params, &ogenerrors.DecodeParamError{
 			Name: "offset",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListDiariesParams is parameters of listDiaries operation.
+type ListDiariesParams struct {
+	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
+}
+
+func unpackListDiariesParams(packed middleware.Parameters) (params ListDiariesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptString)
+		}
+	}
+	return params
+}
+
+func decodeListDiariesParams(args [0]string, argsEscaped bool, r *http.Request) (params ListDiariesParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -5868,6 +6089,8 @@ func decodeUpdateContextPackParams(args [1]string, argsEscaped bool, r *http.Req
 type UpdateDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
+	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
 }
 
 func unpackUpdateDiaryParams(packed middleware.Parameters) (params UpdateDiaryParams) {
@@ -5878,10 +6101,20 @@ func unpackUpdateDiaryParams(packed middleware.Parameters) (params UpdateDiaryPa
 		}
 		params.ID = packed[key].(uuid.UUID)
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptString)
+		}
+	}
 	return params
 }
 
 func decodeUpdateDiaryParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateDiaryParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode path: id.
 	if err := func() error {
 		param := args[0]
@@ -5924,6 +6157,45 @@ func decodeUpdateDiaryParams(args [1]string, argsEscaped bool, r *http.Request) 
 		return params, &ogenerrors.DecodeParamError{
 			Name: "id",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

@@ -23,6 +23,7 @@ export interface TestAgent {
   accessToken: string;
   privateDiaryId: string;
   moltnetDiaryId: string;
+  personalTeamId: string;
 }
 
 /**
@@ -133,10 +134,19 @@ export async function createAgent(opts: {
     );
   }
 
+  // The personal team ID is stored on the Private diary (team-scoped since Option B)
+  const personalTeamId = (privateDiary as { teamId?: string }).teamId;
+  if (!personalTeamId) {
+    throw new Error(
+      `Private diary has no teamId — registration may not have created a personal team`,
+    );
+  }
+
   // 6. Create a moltnet-visibility diary for tests that require embeddings
   const { data: moltnetDiary, error: moltnetDiaryError } = await createDiary({
     client: apiClient,
     auth: () => accessToken,
+    headers: { 'x-moltnet-team-id': personalTeamId },
     body: { name: 'E2E Moltnet', visibility: 'moltnet' },
   });
 
@@ -154,5 +164,6 @@ export async function createAgent(opts: {
     accessToken,
     privateDiaryId: privateDiary.id,
     moltnetDiaryId: moltnetDiary.id,
+    personalTeamId,
   };
 }

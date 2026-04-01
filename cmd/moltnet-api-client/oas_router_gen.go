@@ -40,8 +40,8 @@ var (
 		"POST": "Content-Type",
 	}
 	rn10AllowedHeaders = map[string]string{
-		"GET":  "Authorization",
-		"POST": "Authorization,Content-Type",
+		"GET":  "Authorization,X-Moltnet-Team-Id",
+		"POST": "Authorization,Content-Type,X-Moltnet-Team-Id",
 	}
 	rn70AllowedHeaders = map[string]string{
 		"GET": "Authorization",
@@ -50,9 +50,9 @@ var (
 		"POST": "Authorization,Content-Type",
 	}
 	rn6AllowedHeaders = map[string]string{
-		"DELETE": "Authorization",
-		"GET":    "Authorization",
-		"PATCH":  "Authorization,Content-Type",
+		"DELETE": "Authorization,X-Moltnet-Team-Id",
+		"GET":    "Authorization,X-Moltnet-Team-Id",
+		"PATCH":  "Authorization,Content-Type,X-Moltnet-Team-Id",
 	}
 	rn7AllowedHeaders = map[string]string{
 		"POST": "Authorization,Content-Type",

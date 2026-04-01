@@ -759,6 +759,16 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 			return
 		}
 	}
+	params, err := decodeCreateDiaryParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeCreateDiaryRequest(r)
@@ -786,13 +796,18 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 			OperationID:      "createDiary",
 			Body:             request,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = *CreateDiaryReq
-			Params   = struct{}
+			Params   = CreateDiaryParams
 			Response = CreateDiaryRes
 		)
 		response, err = middleware.HookMiddleware[
@@ -802,14 +817,14 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 		](
 			m,
 			mreq,
-			nil,
+			unpackCreateDiaryParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.CreateDiary(ctx, request)
+				response, err = s.h.CreateDiary(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.CreateDiary(ctx, request)
+		response, err = s.h.CreateDiary(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -2359,6 +2374,10 @@ func (s *Server) handleDeleteDiaryRequest(args [1]string, argsEscaped bool, w ht
 					Name: "id",
 					In:   "path",
 				}: params.ID,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}
@@ -4373,6 +4392,10 @@ func (s *Server) handleGetDiaryRequest(args [1]string, argsEscaped bool, w http.
 					Name: "id",
 					In:   "path",
 				}: params.ID,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}
@@ -7591,6 +7614,16 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 			return
 		}
 	}
+	params, err := decodeListDiariesParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 
@@ -7603,13 +7636,18 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 			OperationID:      "listDiaries",
 			Body:             nil,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = struct{}
-			Params   = struct{}
+			Params   = ListDiariesParams
 			Response = ListDiariesRes
 		)
 		response, err = middleware.HookMiddleware[
@@ -7619,14 +7657,14 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 		](
 			m,
 			mreq,
-			nil,
+			unpackListDiariesParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.ListDiaries(ctx)
+				response, err = s.h.ListDiaries(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.ListDiaries(ctx)
+		response, err = s.h.ListDiaries(ctx, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -12404,6 +12442,10 @@ func (s *Server) handleUpdateDiaryRequest(args [1]string, argsEscaped bool, w ht
 					Name: "id",
 					In:   "path",
 				}: params.ID,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}
