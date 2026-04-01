@@ -20,6 +20,7 @@ import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
   createAgentRepository,
+  createAttestationRepository,
   createContextPackRepository,
   createDatabase,
   createDBOSTransactionRunner,
@@ -36,10 +37,12 @@ import {
   type DatabaseConnection,
   getDataSource,
   initSigningWorkflows,
+  initVerificationWorkflows,
   type NonceRepository,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
+  setVerificationWorkflowDeps,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
 import {
@@ -59,6 +62,7 @@ import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
 import { resolveOryUrls } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
+import { createVerificationService } from './services/verification.service.js';
 import {
   initContextDistillWorkflows,
   initLegreffierOnboardingWorkflow,
@@ -178,6 +182,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
   const contextPackRepository = createContextPackRepository(dbConnection.db);
   const renderedPackRepository = createRenderedPackRepository(dbConnection.db);
+  const attestationRepository = createAttestationRepository(dbConnection.db);
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
@@ -213,6 +218,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           },
         });
       },
+      () => initVerificationWorkflows(),
       () => initRegistrationWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
@@ -277,11 +283,21 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           logger: app.log,
         });
       },
+      () => {
+        setVerificationWorkflowDeps({
+          loadRenderedPack: (renderedPackId) =>
+            renderedPackRepository.findById(renderedPackId),
+          listSourceEntries: (sourcePackId) =>
+            contextPackRepository.listEntriesExpanded(sourcePackId),
+          createAttestation: (input) => attestationRepository.create(input),
+        });
+      },
     ],
   });
 
   const dataSource = getDataSource();
   const transactionRunner = createDBOSTransactionRunner(dataSource);
+  const verificationService = createVerificationService();
 
   const diaryService = createDiaryService({
     logger: app.log,
@@ -330,7 +346,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     diaryEntryRepository,
     contextPackRepository,
     renderedPackRepository,
+    attestationRepository,
     contextPackService,
+    verificationService,
     entryRelationRepository,
     embeddingService,
     agentRepository,

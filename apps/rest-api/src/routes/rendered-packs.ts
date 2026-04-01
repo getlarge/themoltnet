@@ -149,6 +149,23 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           pinned: request.body.pinned,
         });
 
+        if (result.renderMethod.startsWith('server:')) {
+          await fastify.attestationRepository.create({
+            renderedPackId: result.id,
+            coverage: 1.0,
+            grounding: 1.0,
+            faithfulness: 1.0,
+            composite: 1.0,
+            judgeModel: 'deterministic',
+            judgeProvider: 'server',
+            judgeBinaryCid: 'server:deterministic',
+            rubricCid: null,
+            createdBy: identityId,
+            transcript:
+              'Server-side deterministic rendering. Fidelity guaranteed by construction.',
+          });
+        }
+
         return await reply.code(201).send(result);
       } catch (err) {
         if (err instanceof PackServiceError) {

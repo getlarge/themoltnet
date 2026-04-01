@@ -42,10 +42,12 @@ import { registrationRoutes } from './routes/registration.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { teamRoutes } from './routes/teams.js';
+import { verificationRoutes } from './routes/verification.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
 import type {
   AgentRepository,
+  AttestationRepository,
   ContextPackRepository,
   ContextPackService,
   CryptoService,
@@ -60,6 +62,7 @@ import type {
   SigningRequestRepository,
   TeamRepository,
   TransactionRunner,
+  VerificationService,
   VoucherRepository,
 } from './types.js';
 
@@ -100,7 +103,9 @@ export interface AppOptions {
   diaryEntryRepository: DiaryEntryRepository;
   contextPackRepository: ContextPackRepository;
   renderedPackRepository: RenderedPackRepository;
+  attestationRepository: AttestationRepository;
   contextPackService: ContextPackService;
+  verificationService: VerificationService;
   entryRelationRepository: EntryRelationRepository;
   embeddingService: EmbeddingService;
   agentRepository: AgentRepository;
@@ -233,7 +238,9 @@ export async function registerApiRoutes(
   decorateSafe('diaryEntryRepository', options.diaryEntryRepository);
   decorateSafe('contextPackRepository', options.contextPackRepository);
   decorateSafe('renderedPackRepository', options.renderedPackRepository);
+  decorateSafe('attestationRepository', options.attestationRepository);
   decorateSafe('contextPackService', options.contextPackService);
+  decorateSafe('verificationService', options.verificationService);
   decorateSafe('entryRelationRepository', options.entryRelationRepository);
   decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('agentRepository', options.agentRepository);
@@ -266,6 +273,7 @@ export async function registerApiRoutes(
   await app.register(diaryDistillRoutes);
   await app.register(packRoutes);
   await app.register(renderedPackRoutes);
+  await app.register(verificationRoutes);
   await app.register(entryRelationRoutes);
   await app.register(agentRoutes);
   await app.register(cryptoRoutes);

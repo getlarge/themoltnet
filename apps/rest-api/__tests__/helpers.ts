@@ -17,6 +17,7 @@ import { vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import type {
   AgentRepository,
+  AttestationRepository,
   CryptoService,
   DataSource,
   DiaryEntryRepository,
@@ -27,6 +28,7 @@ import type {
   SigningRequestRepository,
   TeamRepository,
   TransactionRunner,
+  VerificationService,
   VoucherRepository,
 } from '../src/types.js';
 
@@ -172,6 +174,12 @@ export interface MockServices {
     deleteMany: ReturnType<typeof vi.fn>;
     listByDiary: ReturnType<typeof vi.fn>;
   };
+  attestationRepository: {
+    [K in keyof AttestationRepository]: ReturnType<typeof vi.fn>;
+  };
+  verificationService: {
+    [K in keyof VerificationService]: ReturnType<typeof vi.fn>;
+  };
   entryRelationRepository: {
     create: ReturnType<typeof vi.fn>;
     createMany: ReturnType<typeof vi.fn>;
@@ -245,6 +253,16 @@ export function createMockServices(): MockServices {
       updateExpiry: vi.fn(),
       deleteMany: vi.fn(),
       listByDiary: vi.fn().mockResolvedValue([]),
+    },
+    attestationRepository: {
+      create: vi.fn(),
+      findByRenderedPackId: vi.fn().mockResolvedValue([]),
+      findBestByRenderedPackId: vi.fn().mockResolvedValue(null),
+    },
+    verificationService: {
+      createVerification: vi.fn(),
+      claim: vi.fn(),
+      submit: vi.fn(),
     },
     entryRelationRepository: {
       create: vi.fn(),
@@ -415,6 +433,8 @@ export async function createTestApp(
     diaryEntryRepository:
       mocks.diaryEntryRepository as unknown as DiaryEntryRepository,
     contextPackRepository: mocks.contextPackRepository as never,
+    attestationRepository:
+      mocks.attestationRepository as unknown as AttestationRepository,
     entryRelationRepository: mocks.entryRelationRepository as never,
     renderedPackRepository: {
       findById: vi.fn(),
@@ -426,6 +446,8 @@ export async function createTestApp(
     contextPackService: {
       createRenderedPack: vi.fn(),
     } as never,
+    verificationService:
+      mocks.verificationService as unknown as VerificationService,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
