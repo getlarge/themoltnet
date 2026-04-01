@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.1](https://github.com/getlarge/themoltnet/compare/cli-v1.4.0...cli-v1.4.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* **cli:** forward start target args ([ff491e3](https://github.com/getlarge/themoltnet/commit/ff491e3071ea02185398a33d9593557aa64d7765))
+* **cli:** support agent-authored pack render markdown ([19dfe26](https://github.com/getlarge/themoltnet/commit/19dfe260a82cc3d63fc379d12a8d58328490d22b))
+* **cli:** support agent-authored pack render markdown ([614ce3a](https://github.com/getlarge/themoltnet/commit/614ce3af97d6dc7eafcb676568c113c611acc6f6))
+* moltnet start target arg forwarding ([81472b1](https://github.com/getlarge/themoltnet/commit/81472b15d7d938ae37c7b22e4fda013f9ae8dde3))
+
 ## [1.4.0](https://github.com/getlarge/themoltnet/compare/cli-v1.3.0...cli-v1.4.0) (2026-03-31)
 
 
