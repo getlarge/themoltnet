@@ -1,5 +1,15 @@
 import { defineConfig } from 'vite';
 
+const otelExternals = [
+  '@opentelemetry/api',
+  '@opentelemetry/instrumentation',
+  '@opentelemetry/instrumentation-dns',
+  '@opentelemetry/instrumentation-http',
+  '@opentelemetry/instrumentation-pino',
+  '@opentelemetry/instrumentation-runtime-node',
+  '@opentelemetry/instrumentation-undici',
+];
+
 export default defineConfig({
   build: {
     ssr: 'src/main.ts',
@@ -16,7 +26,7 @@ export default defineConfig({
       'pino-opentelemetry-transport',
       'thread-stream',
       '@fastify/otel',
-      /^@opentelemetry\//,
+      ...otelExternals,
     ],
   },
   test: {

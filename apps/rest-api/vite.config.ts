@@ -1,5 +1,25 @@
 import { defineConfig } from 'vitest/config';
 
+const otelExternals = [
+  '@opentelemetry/api',
+  '@opentelemetry/exporter-logs-otlp-proto',
+  '@opentelemetry/exporter-metrics-otlp-proto',
+  '@opentelemetry/exporter-trace-otlp-proto',
+  '@opentelemetry/instrumentation',
+  '@opentelemetry/instrumentation-dns',
+  '@opentelemetry/instrumentation-http',
+  '@opentelemetry/instrumentation-net',
+  '@opentelemetry/instrumentation-pg',
+  '@opentelemetry/instrumentation-pino',
+  '@opentelemetry/instrumentation-runtime-node',
+  '@opentelemetry/instrumentation-undici',
+  '@opentelemetry/resources',
+  '@opentelemetry/sdk-metrics',
+  '@opentelemetry/sdk-trace-base',
+  '@opentelemetry/sdk-trace-node',
+  '@opentelemetry/semantic-conventions',
+];
+
 export default defineConfig({
   build: {
     ssr: 'src/main.ts',
@@ -19,7 +39,7 @@ export default defineConfig({
       'pino-opentelemetry-transport',
       'thread-stream',
       '@fastify/otel',
-      /^@opentelemetry\//,
+      ...otelExternals,
       // onnxruntime-node uses native .node addons loaded via dynamic require().
       // Rollup cannot resolve these at bundle time; must stay external so Node
       // resolves them from node_modules at runtime.
