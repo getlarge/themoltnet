@@ -723,10 +723,14 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.diaries.create({ name: 'My Diary' });
+      const headers = { 'x-moltnet-team-id': 'team-123' };
+      await agent.diaries.create({ name: 'My Diary' }, headers);
 
       expect(createDiary).toHaveBeenCalledWith(
-        expect.objectContaining({ body: { name: 'My Diary' } }),
+        expect.objectContaining({
+          body: { name: 'My Diary' },
+          headers,
+        }),
       );
     });
 

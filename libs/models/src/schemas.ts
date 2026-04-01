@@ -402,3 +402,23 @@ export type GroupParams = Static<typeof GroupParamsSchema>;
 export type GroupMemberParams = Static<typeof GroupMemberParamsSchema>;
 export type CreateGroup = Static<typeof CreateGroupSchema>;
 export type AddGroupMember = Static<typeof AddGroupMemberSchema>;
+
+// ============================================================================
+// Header Schemas
+// ============================================================================
+
+/** Required x-moltnet-team-id header schema for routes that need team context */
+export const TeamHeaderRequiredSchema = Type.Object({
+  'x-moltnet-team-id': Type.String({
+    description: 'Team ID that will own the resource. Required.',
+  }),
+});
+
+/** Optional x-moltnet-team-id header schema for routes that accept team context */
+export const TeamHeaderOptionalSchema = Type.Object({
+  'x-moltnet-team-id': Type.Optional(
+    Type.String({
+      description: 'Team ID for scoping the request. Optional.',
+    }),
+  ),
+});

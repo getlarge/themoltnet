@@ -215,7 +215,7 @@ func decodeConsolidateDiaryParams(args [1]string, argsEscaped bool, r *http.Requ
 
 // CreateDiaryParams is parameters of createDiary operation.
 type CreateDiaryParams struct {
-	// Team ID that will own the resource. Required for diary creation.
+	// Team ID that will own the resource. Required.
 	XMoltnetTeamID string
 }
 
@@ -603,7 +603,7 @@ func decodeCreateTeamInviteParams(args [1]string, argsEscaped bool, r *http.Requ
 type DeleteDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
-	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	// Team ID for scoping the request. Optional.
 	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
 }
 
@@ -1604,7 +1604,7 @@ func decodeGetContextPackProvenanceByIdParams(args [1]string, argsEscaped bool, 
 type GetDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
-	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	// Team ID for scoping the request. Optional.
 	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
 }
 
@@ -2784,7 +2784,7 @@ func decodeGetTrustGraphParams(args [0]string, argsEscaped bool, r *http.Request
 
 // ListDiariesParams is parameters of listDiaries operation.
 type ListDiariesParams struct {
-	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	// Team ID for scoping the request. Optional.
 	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
 }
 
@@ -6089,7 +6089,7 @@ func decodeUpdateContextPackParams(args [1]string, argsEscaped bool, r *http.Req
 type UpdateDiaryParams struct {
 	// UUID v4 identifier.
 	ID uuid.UUID
-	// Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+	// Team ID for scoping the request. Optional.
 	XMoltnetTeamID OptString `json:",omitempty,omitzero"`
 }
 

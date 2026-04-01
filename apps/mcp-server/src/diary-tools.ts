@@ -324,6 +324,7 @@ export async function handleDiariesCreate(
     client: deps.client,
     auth: () => token,
     body: { name: args.name, visibility: args.visibility },
+    headers: { 'x-moltnet-team-id': args.team_id },
   });
 
   if (error) {

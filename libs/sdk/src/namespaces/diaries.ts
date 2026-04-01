@@ -22,8 +22,8 @@ export function createDiariesNamespace(
       return unwrapResult(await listDiaries({ client, auth, query }));
     },
 
-    async create(body) {
-      return unwrapResult(await createDiary({ client, auth, body }));
+    async create(body, headers) {
+      return unwrapResult(await createDiary({ client, auth, body, headers }));
     },
 
     async get(id) {

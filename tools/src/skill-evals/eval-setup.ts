@@ -130,10 +130,23 @@ async function setup(): Promise<void> {
     apiUrl: API_URL,
   });
 
-  const diary = await sdk.diaries.create({
-    name: 'eval-workspace',
-    visibility: 'moltnet',
-  });
+  // Resolve personal team ID from existing diaries (bootstrap creates a
+  // private diary whose teamId is the personal team).
+  const diaryList = await sdk.diaries.list();
+  const existingDiary = diaryList.items[0] as
+    | ((typeof diaryList.items)[0] & { teamId?: string })
+    | undefined;
+  const personalTeamId = existingDiary?.teamId;
+  if (!personalTeamId) {
+    throw new Error(
+      'Cannot resolve personal team ID — no diary with teamId found',
+    );
+  }
+
+  const diary = await sdk.diaries.create(
+    { name: 'eval-workspace', visibility: 'moltnet' },
+    { 'x-moltnet-team-id': personalTeamId },
+  );
   console.log(`[eval-setup] Diary created: ${diary.id}`);
 
   // 6. Write .eval-env.json

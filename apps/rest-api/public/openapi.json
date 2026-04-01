@@ -4218,7 +4218,7 @@
         "operationId": "listDiaries",
         "parameters": [
           {
-            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "description": "Team ID for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,
@@ -4271,7 +4271,7 @@
         "operationId": "createDiary",
         "parameters": [
           {
-            "description": "Team ID that will own the resource. Required for diary creation.",
+            "description": "Team ID that will own the resource. Required.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": true,
@@ -4991,7 +4991,7 @@
             }
           },
           {
-            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "description": "Team ID for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,
@@ -5084,7 +5084,7 @@
             }
           },
           {
-            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "description": "Team ID for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,
@@ -5157,7 +5157,7 @@
             }
           },
           {
-            "description": "Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.",
+            "description": "Team ID for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
             "required": false,

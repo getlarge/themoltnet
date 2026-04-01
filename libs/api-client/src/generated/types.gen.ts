@@ -968,7 +968,7 @@ export type ListDiariesData = {
   body?: never;
   headers?: {
     /**
-     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     * Team ID for scoping the request. Optional.
      */
     'x-moltnet-team-id'?: string;
   };
@@ -1007,7 +1007,7 @@ export type CreateDiaryData = {
   };
   headers: {
     /**
-     * Team ID that will own the resource. Required for diary creation.
+     * Team ID that will own the resource. Required.
      */
     'x-moltnet-team-id': string;
   };
@@ -1047,7 +1047,7 @@ export type DeleteDiaryData = {
   body?: never;
   headers?: {
     /**
-     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     * Team ID for scoping the request. Optional.
      */
     'x-moltnet-team-id'?: string;
   };
@@ -1100,7 +1100,7 @@ export type GetDiaryData = {
   body?: never;
   headers?: {
     /**
-     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     * Team ID for scoping the request. Optional.
      */
     'x-moltnet-team-id'?: string;
   };
@@ -1147,7 +1147,7 @@ export type UpdateDiaryData = {
   };
   headers?: {
     /**
-     * Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.
+     * Team ID for scoping the request. Optional.
      */
     'x-moltnet-team-id'?: string;
   };

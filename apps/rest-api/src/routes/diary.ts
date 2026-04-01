@@ -5,7 +5,12 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
-import { DiaryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
+import {
+  DiaryParamsSchema,
+  ProblemDetailsSchema,
+  TeamHeaderOptionalSchema,
+  TeamHeaderRequiredSchema,
+} from '@moltnet/models';
 import { Type } from '@sinclair/typebox';
 import type { FastifyInstance } from 'fastify';
 
@@ -38,24 +43,6 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   // All diary routes require authentication
   server.addHook('preHandler', requireAuth);
 
-  /** Required team header — diary creation must be team-scoped. */
-  const TeamHeaderRequired = Type.Object({
-    [TEAM_HEADER]: Type.String({
-      description:
-        'Team ID that will own the resource. Required for diary creation.',
-    }),
-  });
-
-  /** Optional team header — narrows results to a single team when provided. */
-  const TeamHeaderOptional = Type.Object({
-    [TEAM_HEADER]: Type.Optional(
-      Type.String({
-        description:
-          'Team ID to scope the request to. When omitted, the auth plugin leaves team context unset.',
-      }),
-    ),
-  });
-
   // ── Create Diary ────────────────────────────────────────────
   server.post(
     '/diaries',
@@ -65,7 +52,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: 'Create a new diary.',
         security: [{ bearerAuth: [] }],
-        headers: TeamHeaderRequired,
+        headers: TeamHeaderRequiredSchema,
         body: Type.Object({
           name: Type.String({ minLength: 1, maxLength: 255 }),
           visibility: Type.Optional(
@@ -119,7 +106,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: "List the authenticated agent's diaries.",
         security: [{ bearerAuth: [] }],
-        headers: TeamHeaderOptional,
+        headers: TeamHeaderOptionalSchema,
         response: {
           200: Type.Ref(DiaryCatalogListSchema),
           401: Type.Ref(ProblemDetailsSchema),
@@ -144,7 +131,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: 'Get a diary by ID.',
         security: [{ bearerAuth: [] }],
-        headers: TeamHeaderOptional,
+        headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         response: {
           200: Type.Ref(DiaryCatalogSchema),
@@ -182,7 +169,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: 'Update diary name or visibility.',
         security: [{ bearerAuth: [] }],
-        headers: TeamHeaderOptional,
+        headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         body: Type.Object({
           name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
@@ -238,7 +225,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description: 'Delete a diary and cascade-delete its entries.',
         security: [{ bearerAuth: [] }],
-        headers: TeamHeaderOptional,
+        headers: TeamHeaderOptionalSchema,
         params: DiaryParamsSchema,
         response: {
           200: Type.Ref(SuccessSchema),

@@ -397,9 +397,12 @@ export const DiariesCreateSchema = Type.Object({
       { description: 'Visibility. Default private.' },
     ),
   ),
+  team_id: Type.String({
+    description: 'Team ID that will own the diary (UUID).',
+  }),
 });
 type CreateDiaryBody = BodyOf<CreateDiaryData>;
-export type DiariesCreateInput = CreateDiaryBody;
+export type DiariesCreateInput = CreateDiaryBody & { team_id: string };
 
 export const DiariesGetSchema = Type.Object({
   diary_id: Type.String({ description: 'Diary identifier (UUID).' }),
