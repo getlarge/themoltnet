@@ -85,6 +85,19 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
       }
 
+      // Diary creation requires Team.write (owners/managers), not just Team.access
+      const canWrite = await fastify.permissionChecker.canWriteTeam(
+        teamId,
+        identityId,
+        subjectNs,
+      );
+      if (!canWrite) {
+        throw createProblem(
+          'forbidden',
+          'Only team owners and managers can create diaries',
+        );
+      }
+
       const diary = await fastify.diaryService.createDiary({
         createdBy: identityId,
         name,

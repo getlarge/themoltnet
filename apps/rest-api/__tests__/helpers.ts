@@ -313,6 +313,7 @@ export function createMockServices(): MockServices {
       canManagePack: vi.fn(),
       canAccessTeam: vi.fn(),
       canManageTeam: vi.fn(),
+      canWriteTeam: vi.fn().mockResolvedValue(true),
       canManageTeamMembers: vi.fn(),
     },
     relationshipWriter: {

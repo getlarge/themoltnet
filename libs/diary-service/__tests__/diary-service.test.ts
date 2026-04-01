@@ -99,6 +99,7 @@ function createMockPermissionChecker(): {
     canReadPacks: vi.fn().mockResolvedValue(new Map()),
     canManagePack: vi.fn().mockResolvedValue(false),
     canAccessTeam: vi.fn().mockResolvedValue(false),
+    canWriteTeam: vi.fn().mockResolvedValue(false),
     canManageTeam: vi.fn().mockResolvedValue(false),
     canManageTeamMembers: vi.fn().mockResolvedValue(false),
   };
