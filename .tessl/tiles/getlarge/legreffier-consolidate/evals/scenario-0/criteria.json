@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "Defines one bounded working set such as a scope family, branch, recent window, or incident family instead of the full diary",
+      "max_score": 20,
+      "name": "Bounded scope"
+    },
+    {
+      "description": "States the retrieval or memory problem the consolidation batch is meant to improve",
+      "max_score": 10,
+      "name": "Objective stated"
+    },
+    {
+      "description": "Names one or more relation types in scope for the run instead of using a generic 'related entries' framing",
+      "max_score": 10,
+      "name": "Focus relation set"
+    },
+    {
+      "description": "Uses at least three candidate-generation signals such as shared scope, overlapping refs, temporal adjacency, repeated symptoms, or cross-type sequences",
+      "max_score": 20,
+      "name": "Candidate signals"
+    },
+    {
+      "description": "Does not propose a blanket all-pairs or whole-diary clustering pass",
+      "max_score": 15,
+      "name": "No all-vs-all"
+    },
+    {
+      "description": "If clustering is mentioned, treats it only as a weak candidate source rather than final judgment",
+      "max_score": 10,
+      "name": "Untrusted clustering"
+    },
+    {
+      "description": "Explains that candidate pairs will be reviewed pairwise before relation creation",
+      "max_score": 15,
+      "name": "Review plan"
+    }
+  ],
+  "context": "Tests whether the agent scopes consolidation to a bounded slice, uses intentional candidate-generation signals, and avoids blanket whole-diary review.",
+  "type": "weighted_checklist"
+}

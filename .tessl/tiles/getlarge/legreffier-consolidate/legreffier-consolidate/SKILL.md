@@ -35,7 +35,7 @@ Default rule: **create proposals, do not auto-accept**.
 - Diary has enough signal to consolidate: incidents, decisions, commits, scan
   entries, or repeated retrieval noise
 
-Read `consolidation-approach.md` for rationale when needed.
+Read `references/consolidation-approach.md` for rationale when needed.
 
 ## Transport detection
 
@@ -266,7 +266,7 @@ Look for:
 ## Recovery after context compression
 
 1. Read this file
-2. Read `consolidation-approach.md` if you need methodology rationale
+2. Read `references/consolidation-approach.md` if you need methodology rationale
 3. Inspect existing proposals with `relations_list`
 4. Resume from the current working set instead of restarting whole-diary review
 

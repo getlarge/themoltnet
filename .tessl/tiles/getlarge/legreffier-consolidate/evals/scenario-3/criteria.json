@@ -1,0 +1,41 @@
+{
+  "checklist": [
+    {
+      "description": "Defines the dream pass over a small recent or subsystem-bounded working set rather than the entire diary",
+      "max_score": 20,
+      "name": "Bounded window"
+    },
+    {
+      "description": "Specifies that the dream routine stops after one pass instead of recursively reprocessing its own output",
+      "max_score": 10,
+      "name": "Single pass"
+    },
+    {
+      "description": "Leaves newly created edges in proposed state",
+      "max_score": 15,
+      "name": "Proposed only"
+    },
+    {
+      "description": "Explicitly avoids mutating or rewriting source entries during the dream pass",
+      "max_score": 15,
+      "name": "No entry edits"
+    },
+    {
+      "description": "Preserves contradictions as graph structure rather than resolving them into rewritten summary text",
+      "max_score": 15,
+      "name": "No contradiction collapse"
+    },
+    {
+      "description": "If server-side discovery is used, it is framed as candidate generation rather than trusted acceptance logic",
+      "max_score": 10,
+      "name": "Weak server role"
+    },
+    {
+      "description": "Includes an explicit later review or packet output for the dream-generated proposals",
+      "max_score": 15,
+      "name": "Review hook"
+    }
+  ],
+  "context": "Tests whether the agent defines a bounded dream pass with explicit guardrails against auto-acceptance, whole-diary processing, entry mutation, and contradiction erasure.",
+  "type": "weighted_checklist"
+}

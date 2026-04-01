@@ -1,0 +1,88 @@
+{
+  "instructions": [
+    {
+      "instruction": "Treat consolidation as editorial graph curation rather than bulk clustering or summary writing.",
+      "original_snippets": "Consolidation is editorial graph curation, not bulk clustering. ... relation-first rather than summary-first",
+      "relevant_when": "When designing or executing diary consolidation workflow artifacts.",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Default to creating proposed relations and do not auto-accept by default.",
+      "original_snippets": "Default rule: create proposals, do not auto-accept. ... Create relations with status: proposed unless the user explicitly asks for acceptance review",
+      "relevant_when": "Whenever relation proposals are being created or persisted.",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Use a bounded working set instead of consolidating the entire diary by default.",
+      "original_snippets": "Never consolidate the whole diary by default. ... Start with one bounded slice",
+      "relevant_when": "When choosing scope for a consolidation run or dream pass.",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Generate candidate pairs intentionally rather than using blanket all-vs-all pairing.",
+      "original_snippets": "Do not perform blanket pair generation. ... Generate candidate pairs from these signals",
+      "relevant_when": "When preparing relation candidates from diary entries.",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Prefer candidate signals such as shared scope, overlapping refs, temporal adjacency, repeated symptoms, and cross-type sequences.",
+      "original_snippets": "Generate candidate pairs from these signals: same scope tag ... overlapping refs ... temporal adjacency ... decision followed by procedural implementation",
+      "relevant_when": "When building relation candidates from incidents, decisions, commits, and scan entries.",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Treat server clustering only as a weak candidate source and not as trusted semantic judgment.",
+      "original_snippets": "Server clustering may be used only as a weak candidate source. Treat every cluster suggestion as untrusted until reviewed.",
+      "relevant_when": "When a consolidation run includes server-provided clusters or similarity groups.",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Judge each candidate pair relation-specifically and not with a generic 'related' heuristic.",
+      "original_snippets": "For each candidate pair, read both entries ... The judgment must be relation-specific, not 'these feel related'.",
+      "relevant_when": "When deciding whether to create supports, elaborates, contradicts, caused_by, references, or supersedes edges.",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Use contradicts only for substantive incompatibility on the same subject or diagnosis.",
+      "original_snippets": "contradicts ... claims cannot both be treated as current truth ... contradiction is substantive, not different emphasis",
+      "relevant_when": "When reviewing conflicting incidents, diagnoses, or semantic entries.",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Use supersedes only when one entry should replace another as the active version.",
+      "original_snippets": "supersedes ... source is the new active version of target ... use stricter evidence than for contradicts",
+      "relevant_when": "When deciding whether a newer entry replaces an older one rather than merely contradicting or elaborating it.",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Attach review metadata including rationale, confidence, evidence refs, proposal method, reviewer, and working set to every proposed relation.",
+      "original_snippets": "Every created relation must include review metadata ... confidence ... evidenceRefs ... proposalMethod ... rationale ... reviewedAt ... reviewedBy ... workingSet",
+      "relevant_when": "When serializing relation proposals or review packets.",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "Report a review packet summarizing working set, candidate count, proposals by type, skips, and open questions.",
+      "original_snippets": "At the end of the run, report: working-set definition ... candidate count ... proposals created by relation type ... skipped candidates and why",
+      "relevant_when": "When finishing a consolidation batch and presenting results.",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "A dream pass must stay bounded, stop after one pass, and leave all new edges proposed.",
+      "original_snippets": "A dream is a bounded background consolidation pass ... stop after one pass ... leave all new edges in proposed",
+      "relevant_when": "When designing an autonomous or periodic maintenance workflow.",
+      "why_given": "new knowledge"
+    },
+    {
+      "instruction": "A dream pass must never auto-accept relations, edit source entries, process the entire diary at once, or collapse contradictions into rewritten summaries.",
+      "original_snippets": "Never let a dream pass: auto-accept relations ... edit source entries ... process the entire diary at once ... collapse contradictions into one rewritten summary",
+      "relevant_when": "When defining the boundaries of a background consolidation routine.",
+      "why_given": "preference"
+    },
+    {
+      "instruction": "Verify consolidation quality by checking compile/search behavior against the same task prompt as before.",
+      "original_snippets": "After consolidation, test retrieval quality with diaries_compile or entries_search using the same task prompt as before",
+      "relevant_when": "When validating whether a consolidation run improved retrieval quality.",
+      "why_given": "new knowledge"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "getlarge/legreffier-consolidate",
+  "private": true,
+  "skills": {
+    "legreffier-consolidate": {
+      "path": "legreffier-consolidate/SKILL.md"
+    }
+  },
+  "summary": "Agent-side diary consolidation workflow for proposing entry relations through bounded review, explicit rationale, and no auto-accept by default.",
+  "version": "0.1.0"
+}

@@ -1,0 +1,46 @@
+{
+  "checklist": [
+    {
+      "description": "Each proposal names a specific relation type rather than using a generic relation label",
+      "max_score": 15,
+      "name": "Typed edges"
+    },
+    {
+      "description": "Leaves all new relations in proposed state instead of accepted state",
+      "max_score": 15,
+      "name": "Proposed status"
+    },
+    {
+      "description": "Every proposal includes a concise rationale explaining why the chosen relation applies",
+      "max_score": 15,
+      "name": "Rationale field"
+    },
+    {
+      "description": "Every proposal includes an explicit confidence value",
+      "max_score": 10,
+      "name": "Confidence field"
+    },
+    {
+      "description": "Every proposal includes evidence references such as scope tags, file paths, symbols, or other stable identifiers",
+      "max_score": 15,
+      "name": "Evidence refs"
+    },
+    {
+      "description": "Every proposal records reviewedBy and reviewedAt fields",
+      "max_score": 10,
+      "name": "Reviewer identity"
+    },
+    {
+      "description": "Every proposal records proposalMethod and workingSet metadata",
+      "max_score": 10,
+      "name": "Proposal method"
+    },
+    {
+      "description": "Includes a packet summarizing proposal counts by relation type and any skipped candidates or open questions",
+      "max_score": 10,
+      "name": "Review summary"
+    }
+  ],
+  "context": "Tests whether the agent proposes typed entry relations with explicit rationale and the required metadata contract, while leaving the relations unaccepted by default.",
+  "type": "weighted_checklist"
+}
