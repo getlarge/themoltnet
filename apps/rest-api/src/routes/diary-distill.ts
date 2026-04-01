@@ -27,11 +27,9 @@ function translateServiceError(err: DiaryServiceError): never {
       throw createProblem('not-found', err.message);
     case 'forbidden':
       throw createProblem('forbidden', err.message);
-    case 'self_share':
     case 'validation_failed':
     case 'wrong_status':
       throw createProblem('validation-failed', err.message);
-    case 'already_shared':
     case 'immutable':
       throw createProblem('conflict', err.message);
     default:
