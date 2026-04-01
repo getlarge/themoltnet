@@ -148,11 +148,12 @@ async function main(): Promise<void> {
 
   try {
     // 1. Find diaries with no team_id
+    // Use owner_id (pre-migration column name) — this script runs before migration 0036
     const orphaned = await db.execute<{
       id: string;
-      created_by: string;
+      owner_id: string;
       name: string;
-    }>(sql`SELECT id, created_by, name FROM diaries WHERE team_id IS NULL`);
+    }>(sql`SELECT id, owner_id, name FROM diaries WHERE team_id IS NULL`);
     const diaries = orphaned.rows;
     console.log(`Found ${diaries.length} diaries with no team_id`);
 
@@ -170,13 +171,11 @@ async function main(): Promise<void> {
     const skipped: string[] = [];
 
     for (const diary of diaries) {
-      const personalTeam = await teamRepo.findPersonalByCreator(
-        diary.created_by,
-      );
+      const personalTeam = await teamRepo.findPersonalByCreator(diary.owner_id);
 
       if (!personalTeam) {
         console.error(
-          `  SKIP "${diary.name}" (${diary.id}): no personal team for creator ${diary.created_by}`,
+          `  SKIP "${diary.name}" (${diary.id}): no personal team for creator ${diary.owner_id}`,
         );
         skipped.push(diary.id);
         continue;
