@@ -387,6 +387,99 @@ func TestExtractResults(t *testing.T) {
 	}
 }
 
+func TestExtractResultsIncludesConcreteErrorDetail(t *testing.T) {
+	dir := t.TempDir()
+	trial := filepath.Join(dir, "codegen-chain__abc123")
+
+	if err := os.MkdirAll(filepath.Join(trial, "verifier"), 0o755); err != nil {
+		t.Fatalf("mkdir verifier: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(trial, "agent"), 0o755); err != nil {
+		t.Fatalf("mkdir agent: %v", err)
+	}
+
+	resultJSON := `{
+		"exception_info": {
+			"exception_type": "NonZeroAgentExitCodeError",
+			"exception_message": "wrapper error"
+		}
+	}`
+	if err := os.WriteFile(filepath.Join(trial, "result.json"), []byte(resultJSON), 0o644); err != nil {
+		t.Fatalf("write result.json: %v", err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(trial, "exception.txt"),
+		[]byte("stdout: Permission denied (os error 13)\n"),
+		0o644,
+	); err != nil {
+		t.Fatalf("write exception.txt: %v", err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(trial, "verifier", "reward.json"),
+		[]byte(`{"reward":0}`),
+		0o644,
+	); err != nil {
+		t.Fatalf("write reward.json: %v", err)
+	}
+
+	results, err := extractResults(dir)
+	if err != nil {
+		t.Fatalf("extractResults: %v", err)
+	}
+	if len(results) != 1 || results[0].withoutContext == nil {
+		t.Fatalf("unexpected results shape: %+v", results)
+	}
+
+	got := results[0].withoutContext.err
+	if !strings.Contains(got, "NonZeroAgentExitCodeError") {
+		t.Fatalf("expected wrapper error type, got %q", got)
+	}
+	if !strings.Contains(got, "Permission denied (os error 13)") {
+		t.Fatalf("expected concrete error detail, got %q", got)
+	}
+}
+
+func TestExtractResultsIgnoresAgentLogNoiseWithoutException(t *testing.T) {
+	dir := t.TempDir()
+	trial := filepath.Join(dir, "codegen-chain__abc123")
+
+	if err := os.MkdirAll(filepath.Join(trial, "verifier"), 0o755); err != nil {
+		t.Fatalf("mkdir verifier: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(trial, "agent"), 0o755); err != nil {
+		t.Fatalf("mkdir agent: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(trial, "result.json"), []byte(`{}`), 0o644); err != nil {
+		t.Fatalf("write result.json: %v", err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(trial, "agent", "codex.txt"),
+		[]byte(`{"type":"item.completed","item":{"command":"ls /root","aggregated_output":"Permission denied","status":"failed"}}`+"\n"),
+		0o644,
+	); err != nil {
+		t.Fatalf("write agent log: %v", err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(trial, "verifier", "reward.json"),
+		[]byte(`{"reward":0}`),
+		0o644,
+	); err != nil {
+		t.Fatalf("write reward.json: %v", err)
+	}
+
+	results, err := extractResults(dir)
+	if err != nil {
+		t.Fatalf("extractResults: %v", err)
+	}
+	if len(results) != 1 || results[0].withoutContext == nil {
+		t.Fatalf("unexpected results shape: %+v", results)
+	}
+	if got := results[0].withoutContext.err; got != "" {
+		t.Fatalf("expected no error from agent log noise, got %q", got)
+	}
+}
+
 func TestValidateAgentModel(t *testing.T) {
 	tests := []struct {
 		agent string

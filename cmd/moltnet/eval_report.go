@@ -125,6 +125,7 @@ func extractResults(jobDir string) ([]evalResult, error) {
 
 func readTrialScores(trialDir string) (*trialScores, error) {
 	scores := &trialScores{}
+	hadException := false
 
 	resultPath := filepath.Join(trialDir, "result.json")
 	if data, err := os.ReadFile(resultPath); err == nil {
@@ -136,6 +137,7 @@ func readTrialScores(trialDir string) (*trialScores, error) {
 		}
 		if err := json.Unmarshal(data, &result); err == nil &&
 			result.ExceptionInfo != nil {
+			hadException = true
 			scores.err = result.ExceptionInfo.Type
 			if msg := result.ExceptionInfo.Message; len(msg) > 0 {
 				switch {
@@ -147,6 +149,16 @@ func readTrialScores(trialDir string) (*trialScores, error) {
 				case strings.Contains(msg, "timed out"):
 					scores.err += ": agent timed out"
 				}
+			}
+		}
+	}
+
+	if hadException {
+		if detail := readTrialErrorDetail(trialDir); detail != "" {
+			if scores.err != "" {
+				scores.err += ": " + detail
+			} else {
+				scores.err = detail
 			}
 		}
 	}
@@ -177,4 +189,68 @@ func readTrialScores(trialDir string) (*trialScores, error) {
 	}
 
 	return scores, nil
+}
+
+func readTrialErrorDetail(trialDir string) string {
+	for _, path := range []string{
+		filepath.Join(trialDir, "exception.txt"),
+	} {
+		if detail := extractErrorDetailFromFile(path); detail != "" {
+			return detail
+		}
+	}
+
+	agentDir := filepath.Join(trialDir, "agent")
+	entries, err := os.ReadDir(agentDir)
+	if err != nil {
+		return ""
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".txt") {
+			continue
+		}
+		if detail := extractErrorDetailFromFile(filepath.Join(agentDir, entry.Name())); detail != "" {
+			return detail
+		}
+	}
+	return ""
+}
+
+func extractErrorDetailFromFile(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, raw := range lines {
+		line := strings.TrimSpace(raw)
+		if line == "" {
+			continue
+		}
+
+		switch {
+		case strings.HasPrefix(line, "stdout: "):
+			line = strings.TrimSpace(strings.TrimPrefix(line, "stdout: "))
+		case strings.HasPrefix(line, "stderr: "):
+			line = strings.TrimSpace(strings.TrimPrefix(line, "stderr: "))
+		}
+
+		switch {
+		case strings.Contains(line, "Permission denied"):
+			return line
+		case strings.Contains(line, "Unauthorized"):
+			return line
+		case strings.Contains(line, "apiKeySource"):
+			if strings.Contains(line, `"apiKeySource":"none"`) {
+				return "Claude started without an auth source (apiKeySource:none)"
+			}
+		case strings.Contains(line, "ECONNRESET"):
+			return line
+		case strings.Contains(line, "Not logged in"):
+			return line
+		case strings.Contains(line, "Incorrect API key provided"):
+			return line
+		}
+	}
+	return ""
 }
