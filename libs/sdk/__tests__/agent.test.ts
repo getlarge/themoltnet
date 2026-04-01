@@ -1,12 +1,10 @@
 import type { Client } from '@moltnet/api-client';
 import {
-  acceptDiaryInvitation,
   compileDiary,
   consolidateDiary,
   createDiary,
   createDiaryEntry,
   createSigningRequest,
-  declineDiaryInvitation,
   deleteDiary,
   deleteDiaryEntryById,
   getAgentProfile,
@@ -27,17 +25,13 @@ import {
   listActiveVouchers,
   listDiaries,
   listDiaryEntries,
-  listDiaryInvitations,
-  listDiaryShares,
   listProblemTypes,
   listSigningRequests,
   reflectDiary,
   requestRecoveryChallenge,
-  revokeDiaryShare,
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
-  shareDiary,
   startLegreffierOnboarding,
   submitSignature,
   updateDiary,
@@ -62,12 +56,6 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     getDiary: vi.fn(),
     updateDiary: vi.fn(),
     deleteDiary: vi.fn(),
-    listDiaryShares: vi.fn(),
-    shareDiary: vi.fn(),
-    revokeDiaryShare: vi.fn(),
-    listDiaryInvitations: vi.fn(),
-    acceptDiaryInvitation: vi.fn(),
-    declineDiaryInvitation: vi.fn(),
     createDiaryEntry: vi.fn(),
     listDiaryEntries: vi.fn(),
     getDiaryEntryById: vi.fn(),
@@ -703,7 +691,8 @@ describe('Agent facade', () => {
   // -----------------------------------------------------------------------
   const mockDiary = {
     id: 'diary-1',
-    ownerId: 'owner-1',
+    createdBy: 'owner-1',
+    teamId: '00000000-0000-4000-b000-000000000001',
     name: 'My Diary',
     visibility: 'private' as const,
     signed: false,
@@ -783,96 +772,6 @@ describe('Agent facade', () => {
 
       expect(deleteDiary).toHaveBeenCalledWith(
         expect.objectContaining({ path: { id: 'diary-1' } }),
-      );
-    });
-
-    it('diaries.listShares passes diaryId as path param', async () => {
-      vi.mocked(listDiaryShares).mockResolvedValueOnce({
-        data: { shares: [] },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.listShares('diary-1');
-
-      expect(listDiaryShares).toHaveBeenCalledWith(
-        expect.objectContaining({ path: { diaryId: 'diary-1' } }),
-      );
-    });
-
-    it('diaries.share passes diaryId and body', async () => {
-      const share = { diaryId: 'diary-1', fingerprint: 'A1B2', role: 'reader' };
-      vi.mocked(shareDiary).mockResolvedValueOnce({
-        data: share,
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.share('diary-1', { fingerprint: 'A1B2' });
-
-      expect(shareDiary).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { diaryId: 'diary-1' },
-          body: { fingerprint: 'A1B2' },
-        }),
-      );
-    });
-
-    it('diaries.revokeShare passes diaryId and fingerprint', async () => {
-      vi.mocked(revokeDiaryShare).mockResolvedValueOnce({
-        data: { success: true },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.revokeShare('diary-1', 'A1B2');
-
-      expect(revokeDiaryShare).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { diaryId: 'diary-1', fingerprint: 'A1B2' },
-        }),
-      );
-    });
-
-    it('diaries.listInvitations calls listDiaryInvitations', async () => {
-      vi.mocked(listDiaryInvitations).mockResolvedValueOnce({
-        data: { invitations: [] },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.listInvitations();
-
-      expect(listDiaryInvitations).toHaveBeenCalled();
-    });
-
-    it('diaries.acceptInvitation passes id as path param', async () => {
-      const share = { diaryId: 'diary-1', fingerprint: 'A1B2', role: 'reader' };
-      vi.mocked(acceptDiaryInvitation).mockResolvedValueOnce({
-        data: share,
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.acceptInvitation('inv-1');
-
-      expect(acceptDiaryInvitation).toHaveBeenCalledWith(
-        expect.objectContaining({ path: { id: 'inv-1' } }),
-      );
-    });
-
-    it('diaries.declineInvitation passes id as path param', async () => {
-      const share = { diaryId: 'diary-1', fingerprint: 'A1B2', role: 'reader' };
-      vi.mocked(declineDiaryInvitation).mockResolvedValueOnce({
-        data: share,
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.diaries.declineInvitation('inv-1');
-
-      expect(declineDiaryInvitation).toHaveBeenCalledWith(
-        expect.objectContaining({ path: { id: 'inv-1' } }),
       );
     });
 

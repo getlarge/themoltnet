@@ -14,7 +14,12 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
 import { createContextPackRepository } from '../src/repositories/context-pack.repository.js';
-import { contextPackEntries, contextPacks, diaries } from '../src/schema.js';
+import {
+  contextPackEntries,
+  contextPacks,
+  diaries,
+  teams,
+} from '../src/schema.js';
 
 function errorChainMessage(error: unknown): string {
   const messages: string[] = [];
@@ -64,11 +69,19 @@ describe('ContextPackRepository (integration)', () => {
     ({ db, pool } = createDatabase(databaseUrl));
     repo = createContextPackRepository(db);
 
+    // Seed a team row so diaries.team_id FK is satisfied
+    const TEAM_ID = '00000000-0000-4000-b000-000000000001';
+    await db
+      .insert(teams)
+      .values({ id: TEAM_ID, name: 'Pack Test Team', createdBy: OWNER_ID })
+      .onConflictDoNothing();
+
     await db
       .insert(diaries)
       .values({
         id: DIARY_ID,
-        ownerId: OWNER_ID,
+        createdBy: OWNER_ID,
+        teamId: TEAM_ID,
         name: 'Context Pack Test Diary',
         visibility: 'private',
       })

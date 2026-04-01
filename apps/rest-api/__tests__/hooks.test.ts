@@ -47,7 +47,8 @@ describe('Hook routes', () => {
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
       mocks.diaryService.createDiary.mockResolvedValue({
         id: DIARY_ID,
-        ownerId: OWNER_ID,
+        createdBy: OWNER_ID,
+        teamId: '00000000-0000-4000-b000-000000000001',
         name: 'Private',
         visibility: 'private',
         signed: false,
@@ -339,7 +340,8 @@ describe('Hook routes', () => {
       mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
       mocks.diaryService.createDiary.mockResolvedValue({
         id: DIARY_ID,
-        ownerId: OWNER_ID,
+        createdBy: OWNER_ID,
+        teamId: '00000000-0000-4000-b000-000000000001',
         name: 'Private',
         visibility: 'private',
         signed: false,

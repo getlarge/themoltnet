@@ -70,8 +70,7 @@ function createMockDeps() {
     },
     relationshipWriter: {
       registerAgent: vi.fn(),
-      grantTeamOwner: vi.fn(),
-      grantDiaryOwner: vi.fn(),
+      grantTeamOwners: vi.fn(),
       grantDiaryTeam: vi.fn(),
     },
     dataSource: {

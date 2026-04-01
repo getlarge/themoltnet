@@ -31,8 +31,6 @@ import {
 import { createDiaryService, type DiaryService } from '../src/diary-service.js';
 import { createNoopEmbeddingService } from '../src/embedding-service.js';
 import type {
-  AgentLookupRepository,
-  DiaryShareRepository,
   EmbeddingService,
   PermissionChecker,
   RelationshipReader,
@@ -60,6 +58,7 @@ async function setupDatabase(url: string) {
     createEntryRelationRepository,
     diaryEntries,
     diaries,
+    teams,
   } = await import('@moltnet/database');
   const { db, pool } = createDatabase(url);
   const repo = createDiaryEntryRepository(db);
@@ -73,6 +72,7 @@ async function setupDatabase(url: string) {
     entryRelationRepo,
     diaryEntries,
     diaries,
+    teams,
   };
 }
 
@@ -109,7 +109,7 @@ describe('DiaryService (integration)', () => {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
   let relationshipReader: {
-    listDiaryIdsBySubject: ReturnType<typeof vi.fn>;
+    [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
   };
   let relationshipWriter: {
     [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
@@ -165,10 +165,10 @@ describe('DiaryService (integration)', () => {
     };
 
     relationshipReader = {
-      listDiaryIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
       listTeamMembers: vi.fn().mockResolvedValue([]),
+      listGroupMembers: vi.fn().mockResolvedValue([]),
     };
 
     relationshipWriter = {
@@ -176,20 +176,20 @@ describe('DiaryService (integration)', () => {
       registerAgent: vi.fn().mockResolvedValue(undefined),
       registerHuman: vi.fn().mockResolvedValue(undefined),
       removeEntryRelations: vi.fn().mockResolvedValue(undefined),
-      grantDiaryOwner: vi.fn().mockResolvedValue(undefined),
-      grantDiaryWriter: vi.fn().mockResolvedValue(undefined),
-      grantDiaryReader: vi.fn().mockResolvedValue(undefined),
       grantDiaryTeam: vi.fn().mockResolvedValue(undefined),
       removeDiaryTeam: vi.fn().mockResolvedValue(undefined),
       removeDiaryRelations: vi.fn().mockResolvedValue(undefined),
-      removeDiaryRelationForAgent: vi.fn().mockResolvedValue(undefined),
       grantPackParent: vi.fn().mockResolvedValue(undefined),
       removePackRelations: vi.fn().mockResolvedValue(undefined),
       removePackRelationsBatch: vi.fn().mockResolvedValue(undefined),
-      grantTeamOwner: vi.fn().mockResolvedValue(undefined),
-      grantTeamManager: vi.fn().mockResolvedValue(undefined),
-      grantTeamMember: vi.fn().mockResolvedValue(undefined),
+      grantTeamOwners: vi.fn().mockResolvedValue(undefined),
+      grantTeamManagers: vi.fn().mockResolvedValue(undefined),
+      grantTeamMembers: vi.fn().mockResolvedValue(undefined),
       removeTeamMemberRelation: vi.fn().mockResolvedValue(undefined),
+      grantGroupParent: vi.fn().mockResolvedValue(undefined),
+      grantGroupMember: vi.fn().mockResolvedValue(undefined),
+      removeGroupMember: vi.fn().mockResolvedValue(undefined),
+      removeGroupRelations: vi.fn().mockResolvedValue(undefined),
     };
 
     const embeddingService = await loadEmbeddingService();
@@ -207,18 +207,6 @@ describe('DiaryService (integration)', () => {
 
     service = createDiaryService({
       diaryRepository: setup.diaryRepo,
-      diaryShareRepository: {
-        create: vi.fn(),
-        findById: vi.fn(),
-        findByDiaryAndAgent: vi.fn(),
-        listByDiary: vi.fn(),
-        listPendingForAgent: vi.fn(),
-        listAcceptedForAgent: vi.fn(),
-        updateStatus: vi.fn(),
-      } as unknown as DiaryShareRepository,
-      agentRepository: {
-        findByFingerprint: vi.fn(),
-      } as unknown as AgentLookupRepository,
       diaryEntryRepository: setup.repo,
       entryRelationRepository: setup.entryRelationRepo,
       permissionChecker: permissions as unknown as PermissionChecker,
@@ -234,16 +222,29 @@ describe('DiaryService (integration)', () => {
       } as never,
     });
 
+    // Seed team rows so diaries.team_id FK is satisfied
+    const TEAM_ID = '00000000-0000-4000-c000-000000000001';
+    const OTHER_TEAM_ID = '00000000-0000-4000-c000-000000000002';
+    await db
+      .insert(setup.teams)
+      .values([
+        { id: TEAM_ID, name: 'Owner Team', createdBy: OWNER_ID },
+        { id: OTHER_TEAM_ID, name: 'Other Team', createdBy: OTHER_AGENT },
+      ])
+      .onConflictDoNothing();
+
     // Create test diary containers so diary_entries FK constraint is satisfied
     const diary = await setup.diaryRepo.create({
-      ownerId: OWNER_ID,
+      createdBy: OWNER_ID,
+      teamId: TEAM_ID,
       name: 'Test Diary',
       visibility: 'private',
     });
     DIARY_ID = diary.id;
 
     const otherDiary = await setup.diaryRepo.create({
-      ownerId: OTHER_AGENT,
+      createdBy: OTHER_AGENT,
+      teamId: OTHER_TEAM_ID,
       name: 'Other Test Diary',
       visibility: 'private',
     });
