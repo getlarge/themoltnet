@@ -198,15 +198,6 @@ export const DiaryParamsSchema = Type.Object({
   id: UuidSchema,
 });
 
-export const DiaryShareParamsSchema = Type.Object({
-  diaryId: UuidSchema,
-  fingerprint: FingerprintSchema,
-});
-
-export const InvitationIdParamsSchema = Type.Object({
-  id: UuidSchema,
-});
-
 // ============================================================================
 // LeGreffier Onboarding Schemas
 // ============================================================================
@@ -267,8 +258,6 @@ export type NestedDiaryParams = Static<typeof NestedDiaryParamsSchema>;
 export type DiaryEntryParams = Static<typeof DiaryEntryParamsSchema>;
 export type EntryParams = Static<typeof EntryParamsSchema>;
 export type DiaryParams = Static<typeof DiaryParamsSchema>;
-export type DiaryShareParams = Static<typeof DiaryShareParamsSchema>;
-export type InvitationIdParams = Static<typeof InvitationIdParamsSchema>;
 
 // ============================================================================
 // Team Schemas
