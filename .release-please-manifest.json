@@ -1,6 +1,6 @@
 {
-  "cmd/moltnet": "1.4.1",
-  "cmd/moltnet-api-client": "1.4.1",
+  "cmd/moltnet": "1.5.0",
+  "cmd/moltnet-api-client": "1.5.0",
   "libs/design-system": "0.3.1",
   "libs/sdk": "0.85.0",
   "packages/github-agent": "0.22.1",

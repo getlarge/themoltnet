@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.5.0](https://github.com/getlarge/themoltnet/compare/cli-v1.4.1...cli-v1.5.0) (2026-04-01)
+
+
+### Features
+
+* **eval:** add configurable agent and judge support ([c94511a](https://github.com/getlarge/themoltnet/commit/c94511ad314e69a7d4aaf4bb672c60dc628d9768))
+
+
+### Bug Fixes
+
+* **eval:** bridge codex auth cache into docker ([9a9777f](https://github.com/getlarge/themoltnet/commit/9a9777ff7f6f5e10cfa0e09194f4981f577302ec))
+* **eval:** fail errored runs and print group headers ([aac228f](https://github.com/getlarge/themoltnet/commit/aac228f624d25a46d9b36a3af791ea70e8fbd85c))
+* **eval:** harden codex harbor auth bootstrap ([cb19b1b](https://github.com/getlarge/themoltnet/commit/cb19b1b2022ce9fc6e9051c645afbfab6a952b64))
+* **eval:** print absolute run output paths ([43c6518](https://github.com/getlarge/themoltnet/commit/43c6518359fda0a55c413d8f29de8787ab7bcc5a))
+* **eval:** surface concrete trial error details ([42f9c74](https://github.com/getlarge/themoltnet/commit/42f9c7414d802e40e33f96582d65a13546df9156))
+
 ## [1.4.1](https://github.com/getlarge/themoltnet/compare/cli-v1.4.0...cli-v1.4.1) (2026-04-01)
 
 
