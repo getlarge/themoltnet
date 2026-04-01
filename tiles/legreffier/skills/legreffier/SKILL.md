@@ -204,10 +204,6 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-Current CLI naming note: accountable commit creation uses
-`moltnet entry commit ...`. Older references to `moltnet diary commit ...`
-are deprecated and should be treated as stale documentation.
-
 | MCP Tool                                               | CLI Command                                                                                |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | `moltnet_whoami`                                       | `moltnet agents whoami`                                                                    |
@@ -263,9 +259,6 @@ are deprecated and should be treated as stale documentation.
      --tool "$TOOL" \
      --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
    ```
-
-   Do not use `npx @themoltnet/cli diary commit ...` here. The current
-   accountable commit command lives under `entry commit`.
 
    Output (stdout): `{"entryId":"<uuid>","signature":"<base64>"}`. Parse `entryId`.
 
