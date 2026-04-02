@@ -1,4 +1,5 @@
 import { FormatRegistry } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -219,8 +220,25 @@ describe('AuthContextSchema', () => {
 
 describe('Response schemas', () => {
   describe('PaginatedResponseSchema', () => {
+    const ItemSchema = Type.Object({
+      id: Type.String(),
+      name: Type.String(),
+    });
+
     it('creates a working paginated schema', () => {
-      const schema = PaginatedResponseSchema(CreateDiaryEntrySchema);
+      const schema = PaginatedResponseSchema(ItemSchema);
+      expect(
+        Value.Check(schema, {
+          items: [{ id: '1', name: 'test' }],
+          total: 1,
+          limit: 20,
+          offset: 0,
+        }),
+      ).toBe(true);
+    });
+
+    it('accepts empty items', () => {
+      const schema = PaginatedResponseSchema(ItemSchema);
       expect(
         Value.Check(schema, {
           items: [],

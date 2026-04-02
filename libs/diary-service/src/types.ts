@@ -17,9 +17,9 @@ import type {
 import type { EmbeddingService } from '@moltnet/embedding-service';
 
 /**
- * Re-export the Drizzle-inferred DiaryEntry row type as the service-layer
- * type. Previously this was a hand-maintained interface that had drifted
- * (missing `createdBy`, including `embedding` that reads never return).
+ * Service-layer DiaryEntry derived from the Drizzle-inferred row type.
+ * Keeps the authoritative DB shape including `createdBy` and `signingNonce`
+ * (needed for entry signature verification at the API layer).
  */
 export type DiaryEntry = _DiaryEntry;
 
