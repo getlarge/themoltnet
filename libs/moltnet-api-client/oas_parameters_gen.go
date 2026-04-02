@@ -5724,7 +5724,7 @@ func decodeReflectDiaryParams(args [0]string, argsEscaped bool, r *http.Request)
 							MaxLengthSet:  false,
 							Email:         false,
 							Hostname:      false,
-							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$"],
+							Regex:         regexMap["^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$"],
 							MinNumeric:    0,
 							MinNumericSet: false,
 							MaxNumeric:    0,

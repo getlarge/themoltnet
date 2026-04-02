@@ -4561,7 +4561,7 @@
             "name": "entryTypes",
             "required": false,
             "schema": {
-              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul))*$",
+              "pattern": "^(episodic|semantic|procedural|reflection|identity|soul)(,(episodic|semantic|procedural|reflection|identity|soul)){0,5}$",
               "type": "string"
             }
           }
