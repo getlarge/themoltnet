@@ -361,6 +361,24 @@ jobs:
           owner: getlarge
           repositories: homebrew-moltnet
 
+      - name: Sync CLI Go dependencies to released module versions
+        working-directory: apps/moltnet-cli
+        env:
+          API_CLIENT_VERSION: ${{ needs.resolve-publish.outputs.api-client-version }}
+          DSPY_ADAPTERS_VERSION: ${{ needs.resolve-publish.outputs.dspy-adapters-version }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${API_CLIENT_VERSION}" ]; then
+            go mod edit -require=github.com/getlarge/themoltnet/libs/moltnet-api-client@v${API_CLIENT_VERSION}
+          fi
+
+          if [ -n "${DSPY_ADAPTERS_VERSION}" ]; then
+            go mod edit -require=github.com/getlarge/themoltnet/libs/dspy-adapters@v${DSPY_ADAPTERS_VERSION}
+          fi
+
+          go mod tidy
+
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
